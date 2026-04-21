@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppShellGlow, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { BookingCard } from '../components/BookingCard';
@@ -118,7 +118,7 @@ export function BookingsScreen() {
           paddingTop: 18,
         },
         sectionHeader: {
-          backgroundColor: colors.shell,
+          /** No solid shell fill — avoids a heavy bar behind sticky date labels. */
           marginBottom: 10,
           paddingTop: 18,
         },
@@ -126,7 +126,7 @@ export function BookingsScreen() {
           paddingTop: 2,
         },
         sectionHeaderText: {
-          color: colors.textMuted,
+          color: colors.textSecondary,
           fontSize: 16,
           fontWeight: '500',
           letterSpacing: -0.2,
@@ -284,7 +284,6 @@ export function BookingsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.root}>
-      <AppShellGlow />
       {viewMode === BOOKINGS_VIEW_LIST ? (
         <BookingsListTabs onChange={list.setListFilter} value={list.listFilter} />
       ) : null}

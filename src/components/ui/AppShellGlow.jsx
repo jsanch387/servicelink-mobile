@@ -13,14 +13,15 @@ export function AppShellGlow() {
         />
       </View>
 
-      <View style={styles.bottomGlowLayer}>
+      {/* Bottom glow — toggle on if you want a subtle lift above the tab bar */}
+      {/* <View style={styles.bottomGlowLayer}>
         <LinearGradient
           colors={['rgba(10,10,10,0)', 'rgba(198,198,198,0.035)', 'rgba(255,255,255,0.06)']}
           locations={[0, 0.62, 1]}
           start={{ x: 0.5, y: 0 }}
           style={styles.bottomGlowGradient}
         />
-      </View>
+      </View> */}
     </View>
   );
 }
@@ -38,13 +39,14 @@ const styles = StyleSheet.create({
     height: 260,
     width: '100%',
   },
-  bottomGlowLayer: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  bottomGlowGradient: {
-    height: 130,
-    width: '100%',
-  },
+  // Used when bottom glow block above is uncommented
+  // bottomGlowLayer: {
+  //   ...StyleSheet.absoluteFillObject,
+  //   alignItems: 'center',
+  //   justifyContent: 'flex-end',
+  // },
+  // bottomGlowGradient: {
+  //   height: 130,
+  //   width: '100%',
+  // },
 });

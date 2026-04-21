@@ -17,7 +17,7 @@ const SURFACE_PADDING = StyleSheet.create({
 });
 
 /**
- * Bordered panel using `cardSurface` / `cardBorder` — stats, lists, link rows, etc.
+ * Flat panel using `cardSurface` — no border (outline removed for now).
  */
 export function SurfaceCard({ children, style, padding = 'md', ...rest }) {
   const { colors } = useTheme();
@@ -27,10 +27,7 @@ export function SurfaceCard({ children, style, padding = 'md', ...rest }) {
       style={[
         styles.surface,
         SURFACE_PADDING[padding],
-        {
-          backgroundColor: colors.cardSurface,
-          borderColor: colors.cardBorder,
-        },
+        { backgroundColor: colors.cardSurface },
         style,
       ]}
       {...rest}
@@ -66,7 +63,6 @@ export function SpotlightCard({ children, style, ...rest }) {
 const styles = StyleSheet.create({
   surface: {
     borderRadius: 16,
-    borderWidth: 1.5,
   },
   spotlight: {
     borderRadius: 18,

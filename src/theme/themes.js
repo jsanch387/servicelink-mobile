@@ -42,8 +42,12 @@ export const darkTheme = {
   inputText: '#fafafa',
   placeholder: '#636366',
 
-  /** `SurfaceCard` — darker than inputs, closer to shell for a calmer list UI */
-  cardSurface: '#121212',
+  /**
+   * `SurfaceCard` — dark matte, close to `#0a0a0a` shell but still reads as a surface
+   * (less mid-gray than `#242424`).
+   */
+  cardSurface: '#151515',
+  /** Hairlines / chips on or next to cards */
   cardBorder: '#262626',
 
   /** Bottom tab: selected label + icon */
@@ -96,8 +100,8 @@ export const lightTheme = {
   inputText: '#0a0a0a',
   placeholder: '#737373',
 
-  /** `SurfaceCard` — soft gray panel vs white inputs */
-  cardSurface: '#ebebeb',
+  /** `SurfaceCard` — warm matte panel vs white inputs (not cold gray) */
+  cardSurface: '#e8e8e8',
   cardBorder: '#d4d4d4',
 
   tabBarActive: '#0a0a0a',

@@ -10,15 +10,16 @@ export function CustomerFilterPills({ options, selectedKey, onSelect }) {
       StyleSheet.create({
         row: {
           flexDirection: 'row',
-          gap: 10,
-          marginBottom: 14,
+          flexWrap: 'wrap',
+          gap: 8,
         },
         pill: {
+          backgroundColor: colors.cardSurface,
           borderColor: colors.cardBorder,
           borderRadius: 999,
-          borderWidth: 1.5,
-          paddingHorizontal: 16,
-          paddingVertical: 8,
+          borderWidth: 1,
+          paddingHorizontal: 10,
+          paddingVertical: 5,
         },
         pillActive: {
           backgroundColor: colors.accent,
@@ -26,9 +27,9 @@ export function CustomerFilterPills({ options, selectedKey, onSelect }) {
         },
         label: {
           color: colors.textMuted,
-          fontSize: 15,
-          fontWeight: '500',
-          letterSpacing: -0.1,
+          fontSize: 12,
+          fontWeight: '600',
+          letterSpacing: -0.05,
         },
         labelActive: {
           color: colors.shell,

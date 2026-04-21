@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppShellGlow, Button } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import { useAuth } from '../../auth';
 import { useTheme } from '../../../theme';
 
@@ -39,7 +39,6 @@ export function ProfileScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={styles.root}>
-      <AppShellGlow />
       <View style={styles.spacer} />
       <View style={styles.footer}>
         <Button

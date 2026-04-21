@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppShellGlow, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { CustomerCard } from '../components/CustomerCard';
@@ -45,7 +45,6 @@ export function CustomersScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.root, { backgroundColor: colors.shell }]}>
-      <AppShellGlow />
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -59,12 +58,14 @@ export function CustomersScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <CustomersSearchBar onChangeText={setSearchText} value={searchText} />
-        <CustomerFilterPills
-          onSelect={setSelectedFilter}
-          options={CUSTOMER_FILTER_OPTIONS}
-          selectedKey={selectedFilter}
-        />
+        <View style={styles.controlsSection}>
+          <CustomersSearchBar onChangeText={setSearchText} value={searchText} />
+          <CustomerFilterPills
+            onSelect={setSelectedFilter}
+            options={CUSTOMER_FILTER_OPTIONS}
+            selectedKey={selectedFilter}
+          />
+        </View>
 
         {customersList.businessError ? (
           <View style={styles.errorBlock}>
@@ -114,28 +115,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 28,
+    paddingBottom: 36,
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 16,
+  },
+  /** Search + filters — separated from the list below */
+  controlsSection: {
+    marginBottom: 24,
   },
   resultsText: {
-    fontSize: 15,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
     letterSpacing: -0.1,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   list: {
-    paddingBottom: 20,
+    paddingBottom: 24,
   },
   errorBlock: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
 });
 
 const skeletonStyles = StyleSheet.create({
   column: {
     gap: 12,
-    marginTop: 6,
+    marginTop: 0,
   },
   card: {
     marginBottom: 0,

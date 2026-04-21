@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppShellGlow, Button, SocialSignInButton, TextField } from '../../../components/ui';
+import { Button, SocialSignInButton, TextField } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { useAuth } from '..';
@@ -92,7 +92,6 @@ export function SignUpScreen() {
 
   return (
     <View style={styles.screen}>
-      <AppShellGlow />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}

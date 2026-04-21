@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppShellGlow, SurfaceCard } from '../../../components/ui';
+import { SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
 export function CustomerDetailsScreen({ route }) {
@@ -38,7 +38,6 @@ export function CustomerDetailsScreen({ route }) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.root}>
-      <AppShellGlow />
       <View style={styles.content}>
         <SurfaceCard>
           <Text style={styles.title}>Customer details</Text>
