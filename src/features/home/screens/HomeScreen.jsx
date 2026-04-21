@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Divider } from '../../../components/ui';
+import { AppShellGlow, Divider } from '../../../components/ui';
 import { LinkStatsSection } from '../components/LinkStatsSection';
 import { NextUpCard } from '../components/NextUpCard';
 import { RestOfTodayCard } from '../components/restOfToday';
@@ -130,6 +130,7 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.root}>
+      <AppShellGlow />
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"

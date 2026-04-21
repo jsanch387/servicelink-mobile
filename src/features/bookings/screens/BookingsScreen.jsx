@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { AppShellGlow, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { BookingCard } from '../components/BookingCard';
@@ -284,6 +284,7 @@ export function BookingsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.root}>
+      <AppShellGlow />
       {viewMode === BOOKINGS_VIEW_LIST ? (
         <BookingsListTabs onChange={list.setListFilter} value={list.listFilter} />
       ) : null}

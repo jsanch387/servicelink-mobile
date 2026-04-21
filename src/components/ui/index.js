@@ -1,4 +1,5 @@
 export { Button } from './Button';
+export { AppShellGlow } from './AppShellGlow';
 export { Divider } from './Divider';
 export { SpotlightCard, SurfaceCard } from './Card';
 export { InlineCardError } from './InlineCardError';

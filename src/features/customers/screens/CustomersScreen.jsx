@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { AppShellGlow, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { CustomerCard } from '../components/CustomerCard';
@@ -45,6 +45,7 @@ export function CustomersScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.root, { backgroundColor: colors.shell }]}>
+      <AppShellGlow />
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
