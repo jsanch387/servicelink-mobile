@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
@@ -12,12 +12,14 @@ import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
  *   booking: object;
  *   variant?: 'standalone' | 'underDateHeader';
  *   showRelativeLine?: boolean;
+ *   onPress?: () => void;
  * }} props
  */
 export function BookingCard({
   booking,
   variant = 'standalone',
   showRelativeLine = true,
+  onPress,
 }) {
   const { colors } = useTheme();
   const serviceTitle = booking.service_name?.trim() || 'Detail package';
@@ -224,45 +226,47 @@ export function BookingCard({
   );
 
   return (
-    <SurfaceCard accessibilityRole="none" style={styles.card}>
-      <View style={styles.row}>
-        <View style={styles.timeCol}>
-          {timeParts.time === '—' ? (
-            <Text style={styles.unknownSchedule}>—</Text>
-          ) : (
-            <>
-              <Text style={styles.timeText}>{timeParts.time}</Text>
-              {timeParts.meridiem ? <Text style={styles.meridiem}>{timeParts.meridiem}</Text> : <View style={styles.hiddenMeridiemSpacer} />}
-              {timeParts.date ? <Text style={styles.date}>{timeParts.date}</Text> : null}
-            </>
-          )}
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.mainCol}>
-          <View style={styles.topRow}>
-            <Text numberOfLines={1} style={styles.customerName}>
-              {customerName}
-            </Text>
-            <View style={[styles.statusPill, { backgroundColor: statusStyle.bg }]}>
-              <Ionicons color={statusStyle.icon} name={statusStyle.iconName} size={12} />
-              <Text style={[styles.statusText, { color: statusStyle.text }]}>{statusLabel}</Text>
+    <Pressable accessibilityRole="button" onPress={onPress}>
+      <SurfaceCard style={styles.card}>
+        <View style={styles.row}>
+          <View style={styles.timeCol}>
+            {timeParts.time === '—' ? (
+              <Text style={styles.unknownSchedule}>—</Text>
+            ) : (
+              <>
+                <Text style={styles.timeText}>{timeParts.time}</Text>
+                {timeParts.meridiem ? <Text style={styles.meridiem}>{timeParts.meridiem}</Text> : <View style={styles.hiddenMeridiemSpacer} />}
+                {timeParts.date ? <Text style={styles.date}>{timeParts.date}</Text> : null}
+              </>
+            )}
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.mainCol}>
+            <View style={styles.topRow}>
+              <Text numberOfLines={1} style={styles.customerName}>
+                {customerName}
+              </Text>
+              <View style={[styles.statusPill, { backgroundColor: statusStyle.bg }]}>
+                <Ionicons color={statusStyle.icon} name={statusStyle.iconName} size={12} />
+                <Text style={[styles.statusText, { color: statusStyle.text }]}>{statusLabel}</Text>
+              </View>
+            </View>
+            <View style={styles.detailRow}>
+              <Text numberOfLines={1} style={styles.detailText}>
+                {serviceTitle}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text numberOfLines={1} style={styles.detailText}>
+                {secondaryLine}
+              </Text>
+              <View style={styles.chevron}>
+                <Ionicons color={colors.textMuted} name="chevron-forward" size={19} />
+              </View>
             </View>
           </View>
-          <View style={styles.detailRow}>
-            <Text numberOfLines={1} style={styles.detailText}>
-              {serviceTitle}
-            </Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text numberOfLines={1} style={styles.detailText}>
-              {secondaryLine}
-            </Text>
-            <View style={styles.chevron}>
-              <Ionicons color={colors.textMuted} name="chevron-forward" size={19} />
-            </View>
-          </View>
         </View>
-      </View>
-    </SurfaceCard>
+      </SurfaceCard>
+    </Pressable>
   );
 }

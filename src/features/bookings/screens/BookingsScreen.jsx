@@ -1,4 +1,5 @@
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useNavigation } from "@react-navigation/native";
 import { useCallback, useMemo, useState } from "react";
 import {
   RefreshControl,
@@ -33,6 +34,7 @@ import {
 import { useBookingsList } from "../hooks/useBookingsList";
 import { useBookingsPlannerDay } from "../hooks/useBookingsPlannerDay";
 import { groupBookingsByScheduledDate } from "../utils/groupBookingsByDate";
+import { ROUTES } from "../../../routes/routes";
 
 const FAB_VERTICAL_GAP = 56;
 
@@ -62,6 +64,7 @@ function BookingsListSkeleton() {
 
 export function BookingsScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const bottomPad = 28 + Math.max(tabBarHeight, 72) + FAB_VERTICAL_GAP;
@@ -213,11 +216,14 @@ export function BookingsScreen() {
     ({ item }) => (
       <BookingCard
         booking={item}
+        onPress={() =>
+          navigation.navigate(ROUTES.BOOKING_DETAILS, { bookingId: item.id })
+        }
         showRelativeLine={showRelativeLine}
         variant="underDateHeader"
       />
     ),
-    [showRelativeLine],
+    [navigation, showRelativeLine],
   );
 
   const sectionsWithIndex = useMemo(
