@@ -1,15 +1,15 @@
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useMemo, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Divider } from "../../../components/ui";
-import { LinkStatsSection } from "../components/LinkStatsSection";
-import { NextUpCard } from "../components/NextUpCard";
-import { RestOfTodayCard } from "../components/restOfToday";
-import { useHomeDashboard } from "../hooks/useHomeDashboard";
-import { normalizeBusinessSlug } from "../utils/bookingLink";
-import { useTheme } from "../../../theme";
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
+import { useCallback, useMemo, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Divider } from '../../../components/ui';
+import { LinkStatsSection } from '../components/LinkStatsSection';
+import { NextUpCard } from '../components/NextUpCard';
+import { RestOfTodayCard } from '../components/restOfToday';
+import { useHomeDashboard } from '../hooks/useHomeDashboard';
+import { normalizeBusinessSlug } from '../utils/bookingLink';
+import { useTheme } from '../../../theme';
 
 export function HomeScreen() {
   const { colors } = useTheme();
@@ -26,7 +26,7 @@ export function HomeScreen() {
   const businessDisplayName = useMemo(() => {
     const rawName = dashboard.business?.business_name?.trim();
     if (!rawName) {
-      return "there";
+      return 'there';
     }
     return rawName;
   }, [dashboard.business?.business_name]);
@@ -46,10 +46,9 @@ export function HomeScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, [dashboard.refetch]);
+  }, [dashboard]);
 
-  const sectionLoading =
-    dashboard.isPendingBusiness || dashboard.isPendingBookings;
+  const sectionLoading = dashboard.isPendingBusiness || dashboard.isPendingBookings;
 
   const styles = useMemo(
     () =>
@@ -69,7 +68,7 @@ export function HomeScreen() {
         sectionLabel: {
           color: colors.text,
           fontSize: 18,
-          fontWeight: "700",
+          fontWeight: '700',
           letterSpacing: -0.2,
           marginTop: 30,
         },
@@ -77,15 +76,15 @@ export function HomeScreen() {
           marginTop: 10,
         },
         profileRow: {
-          alignItems: "center",
-          flexDirection: "row",
-          justifyContent: "space-between",
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
           marginBottom: 10,
           marginTop: 6,
         },
         profileLeft: {
-          alignItems: "center",
-          flexDirection: "row",
+          alignItems: 'center',
+          flexDirection: 'row',
           flexShrink: 1,
           minWidth: 0,
         },
@@ -93,15 +92,15 @@ export function HomeScreen() {
           color: colors.text,
           flexShrink: 1,
           fontSize: 18,
-          fontWeight: "700",
+          fontWeight: '700',
           marginLeft: 10,
           minWidth: 0,
         },
         bellButton: {
-          alignItems: "center",
+          alignItems: 'center',
           borderRadius: 16,
           height: 32,
-          justifyContent: "center",
+          justifyContent: 'center',
           width: 32,
         },
         headerDivider: {
@@ -109,28 +108,28 @@ export function HomeScreen() {
         },
         syncHint: {
           fontSize: 12,
-          fontWeight: "600",
+          fontWeight: '600',
           marginBottom: 4,
           marginTop: 0,
-          textAlign: "left",
+          textAlign: 'left',
         },
         floatingButton: {
-          alignItems: "center",
+          alignItems: 'center',
           backgroundColor: colors.accent,
           borderRadius: 28,
           bottom: 30,
           height: 56,
-          justifyContent: "center",
-          position: "absolute",
+          justifyContent: 'center',
+          position: 'absolute',
           right: 20,
           width: 56,
         },
       }),
-    [colors, scrollBottomPad, tabBarHeight],
+    [colors, scrollBottomPad],
   );
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.root}>
+    <SafeAreaView edges={['top']} style={styles.root}>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -152,19 +151,19 @@ export function HomeScreen() {
               {businessDisplayName}
             </Text>
           </View>
-          <Pressable accessibilityLabel="Notifications" accessibilityRole="button" style={styles.bellButton}>
+          <Pressable
+            accessibilityLabel="Notifications"
+            accessibilityRole="button"
+            style={styles.bellButton}
+          >
             <Ionicons color={colors.textMuted} name="notifications-outline" size={22} />
           </Pressable>
         </View>
         <Divider style={styles.headerDivider} />
         {dashboard.isFetching && !dashboard.isLoading ? (
-          <Text style={[styles.syncHint, { color: colors.textMuted }]}>
-            Updating…
-          </Text>
+          <Text style={[styles.syncHint, { color: colors.textMuted }]}>Updating…</Text>
         ) : null}
-        <Text style={[styles.sectionLabel, styles.sectionLabelFirst]}>
-          Next Up
-        </Text>
+        <Text style={[styles.sectionLabel, styles.sectionLabelFirst]}>Next Up</Text>
         <NextUpCard
           bookingsError={dashboard.bookingsError}
           businessError={dashboard.businessError}

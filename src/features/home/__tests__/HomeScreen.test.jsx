@@ -30,12 +30,15 @@ function baseDashboard(overrides = {}) {
     business: { id: 'b1', business_slug: 'acme', profile_views: 12 },
     businessError: null,
     bookingsError: null,
+    todayBookingsError: null,
     nextBooking: null,
     upcomingCount: 0,
     nextSubtitle: '',
     nextBookingTitle: '',
+    todayTimelineItems: [],
     isPendingBusiness: false,
     isPendingBookings: false,
+    isPendingTodayBookings: false,
     isLoading: false,
     isFetching: false,
     refetch: jest.fn().mockResolvedValue(undefined),
@@ -53,9 +56,9 @@ describe('HomeScreen', () => {
   it('renders section labels and link stats when loaded', () => {
     renderWithProviders(<HomeScreen />);
     expect(screen.getByText('Booking link')).toBeTruthy();
-    expect(screen.getByText('Upcoming')).toBeTruthy();
-    expect(screen.getByText('Scheduled')).toBeTruthy();
-    expect(screen.getByText('Link views')).toBeTruthy();
+    expect(screen.getByText('Next Up')).toBeTruthy();
+    expect(screen.getByText('Rest of Today')).toBeTruthy();
+    expect(screen.getByText('Views')).toBeTruthy();
     expect(screen.getByText('12')).toBeTruthy();
   });
 

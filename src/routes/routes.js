@@ -13,6 +13,8 @@ export const ROUTES = {
   BOOKINGS_LIST: 'BookingsList',
   BOOKING_DETAILS: 'BookingDetails',
   CUSTOMERS: 'Customers',
+  CUSTOMERS_LIST: 'CustomersList',
+  CUSTOMER_DETAILS: 'CustomerDetails',
   PAYMENTS: 'Payments',
   PROFILE: 'Profile',
 };
@@ -25,6 +27,8 @@ export const PATHS = {
   BOOKINGS_LIST: '/bookings/list',
   BOOKING_DETAILS: '/bookings/:bookingId',
   CUSTOMERS: '/customers',
+  CUSTOMERS_LIST: '/customers/list',
+  CUSTOMER_DETAILS: '/customers/:customerId',
   PAYMENTS: '/payments',
   PROFILE: '/profile',
 };

@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useAuth } from '../../auth';
 import * as homeApi from '../api/homeDashboard';
+import * as restOfTodayApi from '../api/restOfToday';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
 import { createTestQueryClient } from './testUtils';
 
@@ -30,6 +31,10 @@ jest.mock('../api/homeDashboard', () => {
   };
 });
 
+jest.mock('../api/restOfToday', () => ({
+  fetchConfirmedBookingsForToday: jest.fn(),
+}));
+
 const mockedUseAuth = useAuth;
 
 describe('useHomeDashboard', () => {
@@ -52,6 +57,10 @@ describe('useHomeDashboard', () => {
       error: null,
     });
     homeApi.fetchConfirmedBookingsFromToday.mockResolvedValue({ data: [], error: null });
+    restOfTodayApi.fetchConfirmedBookingsForToday.mockResolvedValue({
+      data: [],
+      error: null,
+    });
   });
 
   it('loads business and empty bookings', async () => {
@@ -145,6 +154,7 @@ describe('useHomeDashboard', () => {
 
     expect(homeApi.fetchBusinessProfileForUser).not.toHaveBeenCalled();
     expect(homeApi.fetchConfirmedBookingsFromToday).not.toHaveBeenCalled();
+    expect(restOfTodayApi.fetchConfirmedBookingsForToday).not.toHaveBeenCalled();
   });
 
   it('refetch forces API calls again', async () => {

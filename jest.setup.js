@@ -29,6 +29,14 @@ jest.mock('@expo/vector-icons', () => {
   );
 });
 
+jest.mock('@expo/vector-icons/Ionicons', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  return function MockIonicons(props) {
+    return <Text accessibilityRole="image" {...props} />;
+  };
+});
+
 jest.mock('react-native-reanimated', () => {
   const Reanimated = require('react-native-reanimated/mock');
   Reanimated.default.call = () => {};

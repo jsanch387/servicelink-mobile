@@ -33,21 +33,16 @@ describe('LinkStatsSection', () => {
       <LinkStatsSection businessError={null} isLoading={false} profileViews={42} slug="acme" />,
     );
     expect(screen.getByText('42')).toBeTruthy();
-    expect(screen.getByText('Link views')).toBeTruthy();
+    expect(screen.getByText('Views')).toBeTruthy();
     expect(screen.getByText('myservicelink.app/acme')).toBeTruthy();
   });
 
   it('shows error state when business failed', () => {
     renderWithProviders(
-      <LinkStatsSection
-        businessError="Network down"
-        isLoading={false}
-        profileViews={0}
-        slug=""
-      />,
+      <LinkStatsSection businessError="Network down" isLoading={false} profileViews={0} slug="" />,
     );
     expect(screen.getByText('Network down')).toBeTruthy();
-    expect(screen.getByText(/Booking link unavailable/)).toBeTruthy();
+    expect(screen.getByText('Link unavailable until your business profile loads.')).toBeTruthy();
   });
 
   it('copies https URL when copy is pressed', async () => {

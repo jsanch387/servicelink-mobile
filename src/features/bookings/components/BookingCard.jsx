@@ -15,12 +15,7 @@ import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
  *   onPress?: () => void;
  * }} props
  */
-export function BookingCard({
-  booking,
-  variant = 'standalone',
-  showRelativeLine = true,
-  onPress,
-}) {
+export function BookingCard({ booking, variant = 'standalone', showRelativeLine = true, onPress }) {
   const { colors } = useTheme();
   const serviceTitle = booking.service_name?.trim() || 'Detail package';
   const customerName = booking.customer_name?.trim() || 'Customer';
@@ -33,7 +28,11 @@ export function BookingCard({
       return { time: '—', meridiem: '', date: '' };
     }
     const d = new Date(scheduleMs);
-    const full = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
+    const full = d.toLocaleTimeString(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
     const match = full.match(/^(.*?)[\s\u202f\u00a0]*(AM|PM)$/i);
     const time = match?.[1]?.trim() ?? full;
     const meridiem = (match?.[2] ?? '').toUpperCase();
@@ -79,7 +78,6 @@ export function BookingCard({
     booking.vehicle_year,
   ]);
   const secondaryLine = vehicleLine || 'Vehicle not provided';
-  const secondaryIcon = 'car-sport-outline';
   const statusLabel = useMemo(() => {
     const raw = String(booking.status ?? 'confirmed').toLowerCase();
     if (raw === 'cancelled' || raw === 'canceled') {
@@ -235,7 +233,11 @@ export function BookingCard({
             ) : (
               <>
                 <Text style={styles.timeText}>{timeParts.time}</Text>
-                {timeParts.meridiem ? <Text style={styles.meridiem}>{timeParts.meridiem}</Text> : <View style={styles.hiddenMeridiemSpacer} />}
+                {timeParts.meridiem ? (
+                  <Text style={styles.meridiem}>{timeParts.meridiem}</Text>
+                ) : (
+                  <View style={styles.hiddenMeridiemSpacer} />
+                )}
                 {timeParts.date ? <Text style={styles.date}>{timeParts.date}</Text> : null}
               </>
             )}

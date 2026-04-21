@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BookingsNavigator } from '../features/bookings';
-import { CustomersScreen } from '../features/customers/screens/CustomersScreen';
+import { CustomersNavigator } from '../features/customers/navigation/CustomersNavigator';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { PaymentsScreen } from '../features/payments/screens/PaymentsScreen';
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
@@ -14,7 +14,7 @@ const Tab = createBottomTabNavigator();
 const TAB_SCREENS = {
   [ROUTES.HOME]: HomeScreen,
   [ROUTES.BOOKINGS]: BookingsNavigator,
-  [ROUTES.CUSTOMERS]: CustomersScreen,
+  [ROUTES.CUSTOMERS]: CustomersNavigator,
   [ROUTES.PAYMENTS]: PaymentsScreen,
   [ROUTES.PROFILE]: ProfileScreen,
 };

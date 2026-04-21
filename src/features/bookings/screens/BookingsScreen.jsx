@@ -1,40 +1,26 @@
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { useNavigation } from "@react-navigation/native";
-import { useCallback, useMemo, useState } from "react";
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
+import { useCallback, useMemo, useState } from 'react';
+import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { useTheme } from '../../../theme';
+import { localYyyyMmDd } from '../../home/utils/bookingStart';
+import { BookingCard } from '../components/BookingCard';
+import { BookingsDayPlanner } from '../components/BookingsDayPlanner';
+import { BookingsListTabs } from '../components/BookingsListTabs';
+import { BookingsViewModeToggle } from '../components/BookingsViewModeToggle';
 import {
-  RefreshControl,
-  SectionList,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import {
-  InlineCardError,
-  SkeletonBox,
-  SurfaceCard,
-} from "../../../components/ui";
-import { useTheme } from "../../../theme";
-import { localYyyyMmDd } from "../../home/utils/bookingStart";
-import { BookingCard } from "../components/BookingCard";
-import { BookingsDayPlanner } from "../components/BookingsDayPlanner";
-import { BookingsListTabs } from "../components/BookingsListTabs";
-import { BookingsViewModeToggle } from "../components/BookingsViewModeToggle";
-import {
-  BOOKINGS_FILTER_CANCELLED,
   BOOKINGS_FILTER_PAST,
   BOOKINGS_FILTER_UPCOMING,
   BOOKINGS_LIST_SCREEN_PADDING,
   BOOKINGS_VIEW_LIST,
   BOOKINGS_VIEW_PLANNER,
-} from "../constants";
-import { useBookingsList } from "../hooks/useBookingsList";
-import { useBookingsPlannerDay } from "../hooks/useBookingsPlannerDay";
-import { groupBookingsByScheduledDate } from "../utils/groupBookingsByDate";
-import { ROUTES } from "../../../routes/routes";
+} from '../constants';
+import { useBookingsList } from '../hooks/useBookingsList';
+import { useBookingsPlannerDay } from '../hooks/useBookingsPlannerDay';
+import { groupBookingsByScheduledDate } from '../utils/groupBookingsByDate';
+import { ROUTES } from '../../../routes/routes';
 
 const FAB_VERTICAL_GAP = 56;
 
@@ -44,18 +30,8 @@ function BookingsListSkeleton() {
       {[0, 1, 2].map((k) => (
         <SurfaceCard key={k} style={skeletonStyles.skeletonCard}>
           <SkeletonBox borderRadius={8} height={18} width="72%" />
-          <SkeletonBox
-            borderRadius={8}
-            height={14}
-            style={{ marginTop: 14 }}
-            width="50%"
-          />
-          <SkeletonBox
-            borderRadius={8}
-            height={14}
-            style={{ marginTop: 10 }}
-            width="40%"
-          />
+          <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 14 }} width="50%" />
+          <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 10 }} width="40%" />
         </SurfaceCard>
       ))}
     </View>
@@ -76,13 +52,8 @@ export function BookingsScreen() {
   const list = useBookingsList({
     listEnabled: viewMode === BOOKINGS_VIEW_LIST,
   });
-  const plannerDateStr = useMemo(
-    () => localYyyyMmDd(plannerDate),
-    [plannerDate],
-  );
-  const planner = useBookingsPlannerDay(
-    viewMode === BOOKINGS_VIEW_PLANNER ? plannerDateStr : null,
-  );
+  const plannerDateStr = useMemo(() => localYyyyMmDd(plannerDate), [plannerDate]);
+  const planner = useBookingsPlannerDay(viewMode === BOOKINGS_VIEW_PLANNER ? plannerDateStr : null);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -95,7 +66,7 @@ export function BookingsScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, [viewMode, list.refetch, planner.refetch]);
+  }, [viewMode, list, planner]);
 
   const shiftPlannerDay = useCallback((delta) => {
     setPlannerDate((d) => {
@@ -114,24 +85,24 @@ export function BookingsScreen() {
         },
         fabWrap: {
           ...StyleSheet.absoluteFillObject,
-          alignItems: "center",
-          justifyContent: "flex-end",
+          alignItems: 'center',
+          justifyContent: 'flex-end',
           /** Hug the bottom tab bar — small gap only (tab bar sits below this screen). */
           paddingBottom: Math.max(insets.bottom, 6) + 6,
         },
         /** Ensures the toggle receives taps above the list/planner scroll surface. */
         fabHit: {
-          alignSelf: "center",
+          alignSelf: 'center',
           elevation: 24,
-          position: "relative",
+          position: 'relative',
           zIndex: 24,
         },
         syncHint: {
           color: colors.textMuted,
           fontSize: 12,
-          fontWeight: "600",
+          fontWeight: '600',
           marginBottom: 8,
-          textAlign: "center",
+          textAlign: 'center',
         },
         listContent: {
           flexGrow: 1,
@@ -157,28 +128,28 @@ export function BookingsScreen() {
         sectionHeaderText: {
           color: colors.textMuted,
           fontSize: 16,
-          fontWeight: "500",
+          fontWeight: '500',
           letterSpacing: -0.2,
         },
         emptyWrap: {
-          alignItems: "center",
-          alignSelf: "stretch",
+          alignItems: 'center',
+          alignSelf: 'stretch',
           marginTop: 32,
           paddingHorizontal: 0,
         },
         emptyTitle: {
           color: colors.textSecondary,
           fontSize: 17,
-          fontWeight: "700",
-          textAlign: "center",
+          fontWeight: '700',
+          textAlign: 'center',
         },
         emptyBody: {
           color: colors.textMuted,
           fontSize: 15,
-          fontWeight: "500",
+          fontWeight: '500',
           lineHeight: 21,
           marginTop: 8,
-          textAlign: "center",
+          textAlign: 'center',
         },
         errorBlock: {
           marginBottom: 12,
@@ -187,15 +158,11 @@ export function BookingsScreen() {
     [colors, bottomPad, insets.bottom, insets.left, insets.right],
   );
 
-  const showSyncHint =
-    viewMode === BOOKINGS_VIEW_LIST && list.isFetching && !list.isLoading;
+  const showSyncHint = viewMode === BOOKINGS_VIEW_LIST && list.isFetching && !list.isLoading;
   const scheduleError = list.businessError || list.listError;
   const showRelativeLine = list.listFilter === BOOKINGS_FILTER_UPCOMING;
 
-  const sections = useMemo(
-    () => groupBookingsByScheduledDate(list.bookings),
-    [list.bookings],
-  );
+  const sections = useMemo(() => groupBookingsByScheduledDate(list.bookings), [list.bookings]);
 
   const renderSectionHeader = useCallback(
     ({ section }) => {
@@ -216,9 +183,7 @@ export function BookingsScreen() {
     ({ item }) => (
       <BookingCard
         booking={item}
-        onPress={() =>
-          navigation.navigate(ROUTES.BOOKING_DETAILS, { bookingId: item.id })
-        }
+        onPress={() => navigation.navigate(ROUTES.BOOKING_DETAILS, { bookingId: item.id })}
         showRelativeLine={showRelativeLine}
         variant="underDateHeader"
       />
@@ -273,8 +238,7 @@ export function BookingsScreen() {
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyTitle}>No business profile</Text>
           <Text style={styles.emptyBody}>
-            Once your business is set up in ServiceLink, appointments will show
-            here.
+            Once your business is set up in ServiceLink, appointments will show here.
           </Text>
         </View>
       );
@@ -284,8 +248,7 @@ export function BookingsScreen() {
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyTitle}>No upcoming appointments</Text>
           <Text style={styles.emptyBody}>
-            Confirmed visits from today onward that have not started yet show
-            here, soonest first.
+            Confirmed visits from today onward that have not started yet show here, soonest first.
           </Text>
         </View>
       );
@@ -295,8 +258,8 @@ export function BookingsScreen() {
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyTitle}>No past appointments</Text>
           <Text style={styles.emptyBody}>
-            Confirmed or completed visits that already ended show here (up to
-            the last 250 prior days loaded, plus today).
+            Confirmed or completed visits that already ended show here (up to the last 250 prior
+            days loaded, plus today).
           </Text>
         </View>
       );
@@ -305,8 +268,7 @@ export function BookingsScreen() {
       <View style={styles.emptyWrap}>
         <Text style={styles.emptyTitle}>No cancelled appointments</Text>
         <Text style={styles.emptyBody}>
-          Cancelled bookings (status cancelled or canceled) appear here, most
-          recent first.
+          Cancelled bookings (status cancelled or canceled) appear here, most recent first.
         </Text>
       </View>
     );
@@ -321,12 +283,9 @@ export function BookingsScreen() {
   ]);
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.root}>
+    <SafeAreaView edges={['top']} style={styles.root}>
       {viewMode === BOOKINGS_VIEW_LIST ? (
-        <BookingsListTabs
-          onChange={list.setListFilter}
-          value={list.listFilter}
-        />
+        <BookingsListTabs onChange={list.setListFilter} value={list.listFilter} />
       ) : null}
 
       {viewMode === BOOKINGS_VIEW_LIST ? (

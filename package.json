@@ -7,6 +7,12 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "check": "npm run lint && npm run format:check",
+    "prepare": "husky",
     "test": "jest --runInBand --forceExit",
     "test:watch": "jest --watch --runInBand"
   },
@@ -46,6 +52,20 @@
   "private": true,
   "devDependencies": {
     "@testing-library/react-native": "^13.3.3",
+    "eslint": "^9.39.4",
+    "eslint-config-expo": "^55.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.3",
     "react-test-renderer": "^19.1.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,json,md,yml,yaml}": [
+      "prettier --write"
+    ],
+    "*.{js,jsx}": [
+      "eslint --fix"
+    ]
   }
 }
