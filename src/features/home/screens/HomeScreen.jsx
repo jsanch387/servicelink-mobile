@@ -1,9 +1,10 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppShellGlow, AppText, Divider } from '../../../components/ui';
+import { FloatingCreateMenu } from '../components/FloatingCreateMenu';
 import { LinkStatsSection } from '../components/LinkStatsSection';
 import { NextUpCard } from '../components/NextUpCard';
 import { RestOfTodayCard } from '../components/restOfToday';
@@ -113,20 +114,17 @@ export function HomeScreen() {
           marginTop: 0,
           textAlign: 'left',
         },
-        floatingButton: {
-          alignItems: 'center',
-          backgroundColor: colors.accent,
-          borderRadius: 28,
-          bottom: 30,
-          height: 56,
-          justifyContent: 'center',
-          position: 'absolute',
-          right: 20,
-          width: 56,
-        },
       }),
     [colors, scrollBottomPad],
   );
+
+  const handleCreateAppointment = useCallback(() => {
+    Alert.alert('Create appointment', 'Appointment creation flow coming next.');
+  }, []);
+
+  const handleCreateQuote = useCallback(() => {
+    Alert.alert('Create quote', 'Quote creation flow coming next.');
+  }, []);
 
   return (
     <SafeAreaView edges={['top']} style={styles.root}>
@@ -189,13 +187,11 @@ export function HomeScreen() {
           items={dashboard.todayTimelineItems}
         />
       </ScrollView>
-      <Pressable
-        accessibilityLabel="Create"
-        accessibilityRole="button"
-        style={styles.floatingButton}
-      >
-        <Ionicons color={colors.surface} name="add" size={28} />
-      </Pressable>
+      <FloatingCreateMenu
+        bottom={30}
+        onCreateAppointment={handleCreateAppointment}
+        onCreateQuote={handleCreateQuote}
+      />
     </SafeAreaView>
   );
 }
