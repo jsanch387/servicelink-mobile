@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, Button, SocialSignInButton, TextField } from '../../../components/ui';
+import { AppText, Button, SocialSignInButton, SurfaceTextField } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { useAuth } from '..';
@@ -31,6 +31,18 @@ export function SignUpScreen() {
     () =>
       StyleSheet.create({
         ...getAuthFormSharedStyles(colors),
+        titleType: {
+          fontSize: 30,
+          fontWeight: '700',
+          letterSpacing: -0.4,
+          lineHeight: 36,
+        },
+        subtitleType: {
+          fontSize: 16,
+          fontWeight: '400',
+          lineHeight: 24,
+          marginTop: 10,
+        },
         formError: {
           color: colors.danger,
           fontSize: 14,
@@ -105,17 +117,17 @@ export function SignUpScreen() {
           >
             <View style={styles.centerBlock}>
               <View style={styles.header}>
-                <AppText className="text-3xl font-bold leading-tight" style={styles.title}>
-                  Create account
-                </AppText>
-                <AppText className="mt-3 text-base leading-6" style={styles.subtitle}>
-                  Enter your details or continue with Google or Apple.
+                <AppText style={[styles.title, styles.titleType]}>Create account</AppText>
+                <AppText style={[styles.subtitle, styles.subtitleType]}>
+                  Create your account to manage your business profile.
                 </AppText>
               </View>
 
               <View style={styles.form}>
-                <TextField
+                <SurfaceTextField
+                  autoCapitalize="none"
                   autoComplete="email"
+                  autoCorrect={false}
                   keyboardType="email-address"
                   label="Email"
                   onChangeText={(v) => {
@@ -128,7 +140,7 @@ export function SignUpScreen() {
                   textContentType="emailAddress"
                   value={email}
                 />
-                <TextField
+                <SurfaceTextField
                   autoComplete="password-new"
                   label="Password"
                   onChangeText={(v) => {
@@ -138,11 +150,11 @@ export function SignUpScreen() {
                     }
                   }}
                   placeholder="Create a password"
-                  secureTextEntry
+                  showPasswordToggle
                   textContentType="newPassword"
                   value={password}
                 />
-                <TextField
+                <SurfaceTextField
                   autoComplete="password-new"
                   label="Confirm password"
                   onChangeText={(v) => {
@@ -152,7 +164,7 @@ export function SignUpScreen() {
                     }
                   }}
                   placeholder="Confirm your password"
-                  secureTextEntry
+                  showPasswordToggle
                   textContentType="newPassword"
                   value={confirmPassword}
                 />

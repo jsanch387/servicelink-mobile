@@ -1,54 +1,29 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useMemo } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-import { AppTextInput } from '../../../components/ui';
+import { View } from 'react-native';
+import { AppTextInput, SurfaceInputRow, useSurfaceInputTextStyle } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
-/** Matches `SurfaceCard`: `cardSurface`, same corner radius, no stroke. */
+/** Same `cardSurface` shell as auth `SurfaceTextField` and shared `SurfaceInputRow`. */
 export function CustomersSearchBar({ value, onChangeText }) {
   const { colors } = useTheme();
-
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        wrap: {
-          alignItems: 'center',
-          backgroundColor: colors.cardSurface,
-          borderRadius: 16,
-          flexDirection: 'row',
-          marginBottom: 14,
-          minHeight: 40,
-          paddingHorizontal: 10,
-          paddingVertical: 6,
-        },
-        input: {
-          color: colors.text,
-          flex: 1,
-          fontSize: 15,
-          fontWeight: '500',
-          minHeight: 36,
-          paddingLeft: 6,
-          paddingRight: 4,
-          paddingVertical: Platform.select({ android: 6, default: 8 }),
-          ...Platform.select({
-            android: { includeFontPadding: false },
-            default: {},
-          }),
-        },
-      }),
-    [colors],
-  );
+  const inputTextStyle = useSurfaceInputTextStyle();
 
   return (
-    <View style={styles.wrap}>
-      <Ionicons color={colors.textMuted} name="search-outline" size={18} />
+    <SurfaceInputRow
+      left={
+        <View style={{ alignItems: 'center', justifyContent: 'center', marginRight: 2, width: 22 }}>
+          <Ionicons color={colors.textMuted} name="search-outline" size={18} />
+        </View>
+      }
+      style={{ marginBottom: 14 }}
+    >
       <AppTextInput
         onChangeText={onChangeText}
         placeholder="Search by customer name..."
         placeholderTextColor={colors.placeholder}
-        style={styles.input}
+        style={inputTextStyle}
         value={value}
       />
-    </View>
+    </SurfaceInputRow>
   );
 }

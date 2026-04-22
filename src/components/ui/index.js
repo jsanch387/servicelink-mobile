@@ -11,3 +11,5 @@ export { SocialSignInButton } from './SocialSignInButton';
 export { TextField } from './TextField';
 export { SettingsSection } from './SettingsSection';
 export { SettingsNavRow } from './SettingsNavRow';
+export { SurfaceInputRow, useSurfaceInputTextStyle } from './SurfaceInputRow';
+export { SurfaceTextField } from './SurfaceTextField';

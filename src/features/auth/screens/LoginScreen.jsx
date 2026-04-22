@@ -9,7 +9,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, Button, SocialSignInButton, TextField } from '../../../components/ui';
+import {
+  AppShellGlow,
+  AppText,
+  Button,
+  SocialSignInButton,
+  SurfaceTextField,
+} from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { useAuth } from '..';
@@ -29,13 +35,43 @@ export function LoginScreen() {
     () =>
       StyleSheet.create({
         ...getAuthFormSharedStyles(colors),
-        passwordFieldTight: {
+        safe: {
+          flex: 1,
+          backgroundColor: 'transparent',
+        },
+        keyboard: {
+          flex: 1,
+          backgroundColor: 'transparent',
+        },
+        scroll: {
+          flex: 1,
+          backgroundColor: 'transparent',
+        },
+        titleType: {
+          fontSize: 30,
+          fontWeight: '700',
+          letterSpacing: -0.4,
+          lineHeight: 36,
+        },
+        subtitleType: {
+          fontSize: 16,
+          fontWeight: '400',
+          lineHeight: 24,
+          marginTop: 10,
+        },
+        centerBlock: {
+          alignSelf: 'center',
+          marginTop: 100,
+          maxWidth: 400,
+          width: '100%',
+        },
+        passwordField: {
           marginBottom: 6,
         },
         forgotLink: {
           alignSelf: 'flex-end',
-          marginBottom: 24,
-          marginTop: 2,
+          marginBottom: 16,
+          marginTop: 0,
           paddingVertical: 2,
         },
         forgotLinkText: {
@@ -85,6 +121,7 @@ export function LoginScreen() {
 
   return (
     <View style={styles.screen}>
+      <AppShellGlow />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -99,17 +136,17 @@ export function LoginScreen() {
           >
             <View style={styles.centerBlock}>
               <View style={styles.header}>
-                <AppText className="text-3xl font-bold leading-tight" style={styles.title}>
-                  Welcome back
-                </AppText>
-                <AppText className="mt-3 text-base leading-6" style={styles.subtitle}>
-                  Sign in to keep jobs, clients, and your team in sync.
+                <AppText style={[styles.title, styles.titleType]}>Welcome back</AppText>
+                <AppText style={[styles.subtitle, styles.subtitleType]}>
+                  Login to manage your business profile.
                 </AppText>
               </View>
 
               <View style={styles.form}>
-                <TextField
+                <SurfaceTextField
+                  autoCapitalize="none"
                   autoComplete="email"
+                  autoCorrect={false}
                   keyboardType="email-address"
                   label="Email"
                   onChangeText={(v) => {
@@ -122,9 +159,9 @@ export function LoginScreen() {
                   textContentType="emailAddress"
                   value={email}
                 />
-                <TextField
+                <SurfaceTextField
                   autoComplete="password"
-                  containerStyle={styles.passwordFieldTight}
+                  containerStyle={styles.passwordField}
                   label="Password"
                   onChangeText={(v) => {
                     setPassword(v);
@@ -133,7 +170,7 @@ export function LoginScreen() {
                     }
                   }}
                   placeholder="Enter your password"
-                  secureTextEntry
+                  showPasswordToggle
                   textContentType="password"
                   value={password}
                 />
@@ -157,25 +194,12 @@ export function LoginScreen() {
                   <View style={[styles.dividerLine, styles.dividerLineFill]} />
                 </View>
 
-                <View style={styles.socialRow}>
-                  <View style={styles.socialHalf}>
-                    <SocialSignInButton
-                      compact
-                      disabled={submitting || googleSubmitting}
-                      fullWidth
-                      onPress={handleGoogleSignIn}
-                      provider="google"
-                    />
-                  </View>
-                  <View style={styles.socialHalf}>
-                    <SocialSignInButton
-                      compact
-                      disabled={submitting || googleSubmitting}
-                      fullWidth
-                      provider="apple"
-                    />
-                  </View>
-                </View>
+                <SocialSignInButton
+                  disabled={submitting || googleSubmitting}
+                  fullWidth
+                  onPress={handleGoogleSignIn}
+                  provider="google"
+                />
               </View>
             </View>
 
