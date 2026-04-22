@@ -7,10 +7,9 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
-import { InlineCardError, SurfaceCard } from '../../../components/ui';
+import { AppText, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { layoutPlannerDay, isPlannerCancelledStatus } from '../utils/plannerDayLayout';
@@ -306,10 +305,10 @@ export function BookingsDayPlanner({
     return (
       <View style={styles.root}>
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>No business profile</Text>
-          <Text style={styles.emptyBody}>
+          <AppText style={styles.emptyTitle}>No business profile</AppText>
+          <AppText style={styles.emptyBody}>
             Once your business is set up in ServiceLink, the planner will load appointments here.
-          </Text>
+          </AppText>
         </View>
       </View>
     );
@@ -339,10 +338,10 @@ export function BookingsDayPlanner({
           <Ionicons color={colors.tabBarActive} name="chevron-back" size={26} />
         </Pressable>
         <View style={styles.titleWrap}>
-          <Text style={styles.title}>{title}</Text>
+          <AppText style={styles.title}>{title}</AppText>
           {isToday ? (
             <View style={styles.todayPill}>
-              <Text style={styles.todayPillText}>Today</Text>
+              <AppText style={styles.todayPillText}>Today</AppText>
             </View>
           ) : null}
         </View>
@@ -377,10 +376,10 @@ export function BookingsDayPlanner({
         </View>
       ) : !dayError && bookings.length === 0 ? (
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>No appointments this day</Text>
-          <Text style={styles.emptyBody}>
+          <AppText style={styles.emptyTitle}>No appointments this day</AppText>
+          <AppText style={styles.emptyBody}>
             All statuses are shown. Use the arrows to check other days.
-          </Text>
+          </AppText>
         </View>
       ) : !dayError ? (
         <View style={styles.timelineRow}>
@@ -390,12 +389,12 @@ export function BookingsDayPlanner({
               return (
                 <View key={h} style={[styles.hourLabelCell, { height: layout.hourHeightPx }]}>
                   <View style={styles.hourLabelRow}>
-                    <Text ellipsizeMode="clip" numberOfLines={1} style={styles.hourLabelClock}>
+                    <AppText ellipsizeMode="clip" numberOfLines={1} style={styles.hourLabelClock}>
                       {clock}
-                    </Text>
-                    <Text numberOfLines={1} style={styles.hourLabelMeridiem}>
+                    </AppText>
+                    <AppText numberOfLines={1} style={styles.hourLabelMeridiem}>
                       {meridiem}
-                    </Text>
+                    </AppText>
                   </View>
                 </View>
               );
@@ -436,18 +435,18 @@ export function BookingsDayPlanner({
                     },
                   ]}
                 >
-                  <Text
+                  <AppText
                     numberOfLines={2}
                     style={[styles.blockTitle, cancelled && styles.blockTitleCancelled]}
                   >
                     {service}
-                  </Text>
+                  </AppText>
                   {customer ? (
-                    <Text numberOfLines={1} style={styles.blockSub}>
+                    <AppText numberOfLines={1} style={styles.blockSub}>
                       {customer}
-                    </Text>
+                    </AppText>
                   ) : null}
-                  <Text style={styles.blockStatus}>{String(b.booking.status ?? '')}</Text>
+                  <AppText style={styles.blockStatus}>{String(b.booking.status ?? '')}</AppText>
                 </View>
               );
             })}

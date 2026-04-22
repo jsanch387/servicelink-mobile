@@ -1,15 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
+import { AppText } from './AppText';
 
 /**
  * Opens a bottom sheet to pick one option. Trigger matches {@link TextField} outline styling.
@@ -182,7 +176,7 @@ export function SelectField({
 
   return (
     <View style={styles.field}>
-      {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      {label ? <AppText style={styles.fieldLabel}>{label}</AppText> : null}
       <Pressable
         accessibilityHint="Opens a list of options"
         accessibilityLabel={`${label ? `${label}. ` : ''}Currently ${selectedLabel ?? placeholder}. Tap to change.`}
@@ -191,12 +185,12 @@ export function SelectField({
         onPress={() => setOpen(true)}
         style={({ pressed }) => [styles.trigger, pressed && { opacity: 0.9 }]}
       >
-        <Text
+        <AppText
           numberOfLines={1}
           style={[styles.triggerText, !selectedLabel && styles.triggerPlaceholder]}
         >
           {selectedLabel ?? placeholder}
-        </Text>
+        </AppText>
         <Ionicons color={colors.textMuted} name="chevron-down" size={22} />
       </Pressable>
 
@@ -218,9 +212,9 @@ export function SelectField({
             <View style={styles.sheet}>
               <View style={styles.grabber} />
               <View style={styles.sheetHeader}>
-                <Text accessibilityRole="header" style={styles.sheetTitle}>
+                <AppText accessibilityRole="header" style={styles.sheetTitle}>
                   {sheetTitle}
-                </Text>
+                </AppText>
                 <Pressable
                   accessibilityLabel="Close"
                   accessibilityRole="button"
@@ -246,11 +240,9 @@ export function SelectField({
                       pressed && { backgroundColor: colors.buttonGhostPressed },
                     ]}
                   >
-                    <Text
-                      style={[styles.rowLabel, !selected && styles.rowLabelDim]}
-                    >
+                    <AppText style={[styles.rowLabel, !selected && styles.rowLabelDim]}>
                       {opt.label}
-                    </Text>
+                    </AppText>
                     {selected ? (
                       <Ionicons color={colors.tabBarActive} name="checkmark-circle" size={26} />
                     ) : (

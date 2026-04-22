@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 
@@ -13,8 +13,7 @@ export function TotalScheduledCard({ count, isLoading, businessError, bookingsEr
   const blocked = Boolean(scheduleError) || isLoading;
 
   const label = useMemo(
-    () =>
-      count === 1 ? 'Scheduled appointment' : 'Scheduled appointments',
+    () => (count === 1 ? 'Scheduled appointment' : 'Scheduled appointments'),
     [count],
   );
 
@@ -36,10 +35,7 @@ export function TotalScheduledCard({ count, isLoading, businessError, bookingsEr
       accessibilityState={{ disabled: blocked }}
       disabled={blocked}
       onPress={() => navigation.navigate(ROUTES.BOOKINGS)}
-      style={({ pressed }) => [
-        styles.pressable,
-        pressed && !blocked && styles.pressed,
-      ]}
+      style={({ pressed }) => [styles.pressable, pressed && !blocked && styles.pressed]}
     >
       <SurfaceCard style={styles.card}>
         {isLoading ? (
@@ -55,8 +51,10 @@ export function TotalScheduledCard({ count, isLoading, businessError, bookingsEr
         ) : (
           <View style={styles.row}>
             <View style={styles.main}>
-              <Text style={[styles.value, { color: colors.text }]}>{count.toLocaleString()}</Text>
-              <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
+              <AppText style={[styles.value, { color: colors.text }]}>
+                {count.toLocaleString()}
+              </AppText>
+              <AppText style={[styles.label, { color: colors.textMuted }]}>{label}</AppText>
             </View>
             <Ionicons
               accessibilityElementsHidden

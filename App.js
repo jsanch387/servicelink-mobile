@@ -1,24 +1,22 @@
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, View } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { AuthProvider } from "./src/features/auth";
-import { AuthNavigator } from "./src/navigation/AuthNavigator";
-import { queryClient } from "./src/lib/queryClient";
-import { ThemeProvider, useTheme } from "./src/theme";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from './src/features/auth';
+import { AuthNavigator } from './src/navigation/AuthNavigator';
+import { queryClient } from './src/lib/queryClient';
+import { ThemeProvider, TypographyProvider, useTheme } from './src/theme';
+import { QueryClientProvider } from '@tanstack/react-query';
 
 function AppShell() {
   const { colors, isDark } = useTheme();
 
   return (
     <View style={[styles.root, { backgroundColor: colors.shell }]}>
-      <SafeAreaProvider
-        style={[styles.provider, { backgroundColor: colors.shell }]}
-      >
+      <SafeAreaProvider style={[styles.provider, { backgroundColor: colors.shell }]}>
         <AuthProvider>
           <AuthNavigator />
         </AuthProvider>
-        <StatusBar style={isDark ? "light" : "dark"} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
       </SafeAreaProvider>
     </View>
   );
@@ -27,9 +25,11 @@ function AppShell() {
 export default function App() {
   return (
     <ThemeProvider initialScheme="dark">
-      <QueryClientProvider client={queryClient}>
-        <AppShell />
-      </QueryClientProvider>
+      <TypographyProvider>
+        <QueryClientProvider client={queryClient}>
+          <AppShell />
+        </QueryClientProvider>
+      </TypographyProvider>
     </ThemeProvider>
   );
 }

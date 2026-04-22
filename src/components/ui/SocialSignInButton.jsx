@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
+import { AppText } from './AppText';
 
 /** OAuth-style row (Google / Apple). Wire `onPress` from auth (e.g. Supabase). */
 export function SocialSignInButton({
@@ -51,7 +52,7 @@ export function SocialSignInButton({
         ]}
       >
         <Ionicons color={colors.text} name={icon} size={isGoogle ? 22 : 24} />
-        <Text
+        <AppText
           ellipsizeMode="tail"
           numberOfLines={1}
           style={[
@@ -62,7 +63,7 @@ export function SocialSignInButton({
           ]}
         >
           {label}
-        </Text>
+        </AppText>
       </View>
     </Pressable>
   );

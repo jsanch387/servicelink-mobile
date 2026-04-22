@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
+import { AppText } from './AppText';
 
 /** Compact error copy inside a card (home sections, lists). */
 export function InlineCardError({ message }) {
@@ -19,7 +20,7 @@ export function InlineCardError({ message }) {
         },
       ]}
     >
-      <Text style={[styles.text, { color: colors.danger }]}>{message.trim()}</Text>
+      <AppText style={[styles.text, { color: colors.danger }]}>{message.trim()}</AppText>
     </View>
   );
 }

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SurfaceCard } from '../../../components/ui';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 
@@ -229,39 +229,41 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
         <View style={styles.row}>
           <View style={styles.timeCol}>
             {timeParts.time === '—' ? (
-              <Text style={styles.unknownSchedule}>—</Text>
+              <AppText style={styles.unknownSchedule}>—</AppText>
             ) : (
               <>
-                <Text style={styles.timeText}>{timeParts.time}</Text>
+                <AppText style={styles.timeText}>{timeParts.time}</AppText>
                 {timeParts.meridiem ? (
-                  <Text style={styles.meridiem}>{timeParts.meridiem}</Text>
+                  <AppText style={styles.meridiem}>{timeParts.meridiem}</AppText>
                 ) : (
                   <View style={styles.hiddenMeridiemSpacer} />
                 )}
-                {timeParts.date ? <Text style={styles.date}>{timeParts.date}</Text> : null}
+                {timeParts.date ? <AppText style={styles.date}>{timeParts.date}</AppText> : null}
               </>
             )}
           </View>
           <View style={styles.divider} />
           <View style={styles.mainCol}>
             <View style={styles.topRow}>
-              <Text numberOfLines={1} style={styles.customerName}>
+              <AppText numberOfLines={1} style={styles.customerName}>
                 {customerName}
-              </Text>
+              </AppText>
               <View style={[styles.statusPill, { backgroundColor: statusStyle.bg }]}>
                 <Ionicons color={statusStyle.icon} name={statusStyle.iconName} size={12} />
-                <Text style={[styles.statusText, { color: statusStyle.text }]}>{statusLabel}</Text>
+                <AppText style={[styles.statusText, { color: statusStyle.text }]}>
+                  {statusLabel}
+                </AppText>
               </View>
             </View>
             <View style={styles.detailRow}>
-              <Text numberOfLines={1} style={styles.detailText}>
+              <AppText numberOfLines={1} style={styles.detailText}>
                 {serviceTitle}
-              </Text>
+              </AppText>
             </View>
             <View style={styles.detailRow}>
-              <Text numberOfLines={1} style={styles.detailText}>
+              <AppText numberOfLines={1} style={styles.detailText}>
                 {secondaryLine}
-              </Text>
+              </AppText>
               <View style={styles.chevron}>
                 <Ionicons color={colors.textMuted} name="chevron-forward" size={19} />
               </View>

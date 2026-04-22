@@ -6,11 +6,10 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, SocialSignInButton, TextField } from '../../../components/ui';
+import { AppText, Button, SocialSignInButton, TextField } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { useAuth } from '..';
@@ -100,12 +99,12 @@ export function LoginScreen() {
           >
             <View style={styles.centerBlock}>
               <View style={styles.header}>
-                <Text className="text-3xl font-bold leading-tight" style={styles.title}>
+                <AppText className="text-3xl font-bold leading-tight" style={styles.title}>
                   Welcome back
-                </Text>
-                <Text className="mt-3 text-base leading-6" style={styles.subtitle}>
+                </AppText>
+                <AppText className="mt-3 text-base leading-6" style={styles.subtitle}>
                   Sign in to keep jobs, clients, and your team in sync.
-                </Text>
+                </AppText>
               </View>
 
               <View style={styles.form}>
@@ -138,11 +137,11 @@ export function LoginScreen() {
                   textContentType="password"
                   value={password}
                 />
-                {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+                {formError ? <AppText style={styles.formError}>{formError}</AppText> : null}
                 <Pressable accessibilityRole="button" hitSlop={12} style={styles.forgotLink}>
-                  <Text className="text-sm font-semibold" style={styles.forgotLinkText}>
+                  <AppText className="text-sm font-semibold" style={styles.forgotLinkText}>
                     Forgot password?
-                  </Text>
+                  </AppText>
                 </Pressable>
                 <Button
                   accessibilityLabel="Log in"
@@ -154,7 +153,7 @@ export function LoginScreen() {
 
                 <View style={styles.divider}>
                   <View style={[styles.dividerLine, styles.dividerLineFill]} />
-                  <Text style={styles.dividerText}>or</Text>
+                  <AppText style={styles.dividerText}>or</AppText>
                   <View style={[styles.dividerLine, styles.dividerLineFill]} />
                 </View>
 
@@ -181,13 +180,13 @@ export function LoginScreen() {
             </View>
 
             <View style={styles.footer}>
-              <Text className="text-sm" style={styles.footerMuted}>
+              <AppText className="text-sm" style={styles.footerMuted}>
                 New to ServiceLink?{' '}
-              </Text>
+              </AppText>
               <Pressable accessibilityRole="button" hitSlop={8} onPress={goToSignUp}>
-                <Text className="text-sm font-semibold" style={styles.link}>
+                <AppText className="text-sm font-semibold" style={styles.link}>
                   Create an account
-                </Text>
+                </AppText>
               </Pressable>
             </View>
           </ScrollView>

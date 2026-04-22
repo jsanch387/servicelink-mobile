@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
 export function CustomerFilterPills({ options, selectedKey, onSelect }) {
@@ -48,7 +49,9 @@ export function CustomerFilterPills({ options, selectedKey, onSelect }) {
             onPress={() => onSelect(option.key)}
             style={[styles.pill, isSelected && styles.pillActive]}
           >
-            <Text style={[styles.label, isSelected && styles.labelActive]}>{option.label}</Text>
+            <AppText style={[styles.label, isSelected && styles.labelActive]}>
+              {option.label}
+            </AppText>
           </Pressable>
         );
       })}

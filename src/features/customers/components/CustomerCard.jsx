@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SurfaceCard } from '../../../components/ui';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { CUSTOMER_FILTER_DUE, CUSTOMER_FILTER_NEW, CUSTOMER_FILTER_RETURNING } from '../constants';
 
@@ -114,25 +114,27 @@ export function CustomerCard({ customer, onPress }) {
     <Pressable accessibilityRole="button" onPress={onPress}>
       <SurfaceCard padding="none" style={styles.card}>
         <View style={styles.topRow}>
-          <Text style={styles.name}>{customer.fullName}</Text>
+          <AppText style={styles.name}>{customer.fullName}</AppText>
           <Ionicons color={colors.placeholder} name="ellipsis-horizontal" size={22} />
         </View>
 
         <View style={styles.metaRow}>
-          <Text style={[styles.segment, { color: segmentColor(customer.segment) }]}>
+          <AppText style={[styles.segment, { color: segmentColor(customer.segment) }]}>
             {segmentLabel(customer.segment)}
-          </Text>
+          </AppText>
           <View style={styles.divider} />
-          <Text style={styles.summary}>{customer.pastVisitsSummary}</Text>
+          <AppText style={styles.summary}>{customer.pastVisitsSummary}</AppText>
         </View>
 
         <View style={styles.scheduleRow}>
-          <Text style={styles.scheduleLabel}>{customer.scheduleLabel}</Text>
+          <AppText style={styles.scheduleLabel}>{customer.scheduleLabel}</AppText>
           {customer.nextAppointmentDateLabel ? (
             <View style={styles.rightSchedule}>
-              <Text style={styles.scheduleDate}>{customer.nextAppointmentDateLabel}</Text>
+              <AppText style={styles.scheduleDate}>{customer.nextAppointmentDateLabel}</AppText>
               {customer.nextAppointmentRelativeLabel ? (
-                <Text style={styles.scheduleRelative}>{customer.nextAppointmentRelativeLabel}</Text>
+                <AppText style={styles.scheduleRelative}>
+                  {customer.nextAppointmentRelativeLabel}
+                </AppText>
               ) : null}
             </View>
           ) : null}

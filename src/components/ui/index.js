@@ -1,3 +1,5 @@
+export { AppText } from './AppText';
+export { AppTextInput } from './AppTextInput';
 export { Button } from './Button';
 export { AppShellGlow } from './AppShellGlow';
 export { Divider } from './Divider';

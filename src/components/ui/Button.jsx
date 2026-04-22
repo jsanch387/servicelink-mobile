@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
+import { AppText } from './AppText';
 
 /** Primary: white background, black text (tokens + explicit fallbacks so layout always paints). */
 const PRIMARY_BG = '#ffffff';
@@ -90,8 +91,10 @@ export function Button({
         } else if (variant === 'surfaceDark') {
           faceStyle = [
             styles.face,
+            styles.faceOutlineBold,
             {
               backgroundColor: pressed ? SURFACE_DARK_BG_PRESSED : SURFACE_DARK_BG,
+              borderColor: 'transparent',
             },
           ];
           textColor = SURFACE_DARK_TEXT;
@@ -129,7 +132,7 @@ export function Button({
                     style={styles.iconLeft}
                   />
                 ) : null}
-                <Text style={[styles.label, { color: textColor }]}>{title}</Text>
+                <AppText style={[styles.label, { color: textColor }]}>{title}</AppText>
                 {iconName && iconPosition === 'right' ? (
                   <Ionicons
                     color={iconColor ?? textColor}

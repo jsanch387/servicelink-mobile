@@ -1,5 +1,7 @@
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
+import { AppText } from './AppText';
+import { AppTextInput } from './AppTextInput';
 
 /**
  * Shared labeled text input — outline style from theme (`inputBorder` / `inputBg`).
@@ -21,8 +23,10 @@ export function TextField({
 
   return (
     <View style={[styles.field, containerStyle]}>
-      {label ? <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text> : null}
-      <TextInput
+      {label ? (
+        <AppText style={[styles.label, { color: colors.textMuted }]}>{label}</AppText>
+      ) : null}
+      <AppTextInput
         autoCapitalize={autoCapitalize}
         autoComplete={autoComplete}
         keyboardType={keyboardType}

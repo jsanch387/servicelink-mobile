@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { CustomerCard } from '../components/CustomerCard';
@@ -86,9 +86,9 @@ export function CustomersScreen() {
           <CustomersListSkeleton />
         ) : (
           <>
-            <Text style={[styles.resultsText, { color: colors.textMuted }]}>
+            <AppText style={[styles.resultsText, { color: colors.textMuted }]}>
               Showing {visibleCustomers.length} of {customersList.customers.length} customers
-            </Text>
+            </AppText>
 
             <View style={styles.list}>
               {visibleCustomers.map((customer) => (

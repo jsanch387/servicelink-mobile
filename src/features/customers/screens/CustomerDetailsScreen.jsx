@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SurfaceCard } from '../../../components/ui';
+import { AppText, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
 export function CustomerDetailsScreen({ route }) {
@@ -40,11 +40,11 @@ export function CustomerDetailsScreen({ route }) {
     <SafeAreaView edges={['top']} style={styles.root}>
       <View style={styles.content}>
         <SurfaceCard>
-          <Text style={styles.title}>Customer details</Text>
-          <Text style={styles.body}>
+          <AppText style={styles.title}>Customer details</AppText>
+          <AppText style={styles.body}>
             Placeholder screen for customer details.
             {customerId ? ` Customer ID: ${customerId}` : ''}
-          </Text>
+          </AppText>
         </SurfaceCard>
       </View>
     </SafeAreaView>

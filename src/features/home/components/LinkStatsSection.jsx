@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useCallback, useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { getBookingLinkDisplay, getBookingLinkHttpsUrl } from '../utils/bookingLink';
 
@@ -76,16 +76,16 @@ export function LinkStatsSection({ slug, profileViews, isLoading, businessError 
       <SurfaceCard style={styles.compactCard}>
         <View style={styles.topRow}>
           <View style={styles.viewsBlock}>
-            <Text style={[styles.viewsValue, { color: colors.text }]}>0</Text>
-            <Text style={[styles.viewsLabel, { color: colors.textMuted }]}>Views</Text>
+            <AppText style={[styles.viewsValue, { color: colors.text }]}>0</AppText>
+            <AppText style={[styles.viewsLabel, { color: colors.textMuted }]}>Views</AppText>
           </View>
         </View>
         <InlineCardError message={businessError} />
         <View style={[styles.linkRow, styles.linkRowDisabled]}>
           <View style={[styles.linkWell, linkWellStyle, styles.linkWellMuted]}>
-            <Text style={[styles.linkUnavailable, { color: colors.textMuted }]}>
+            <AppText style={[styles.linkUnavailable, { color: colors.textMuted }]}>
               Link unavailable until your business profile loads.
-            </Text>
+            </AppText>
           </View>
           <View style={[styles.copyPill, styles.copyPillDisabled]}>
             <Ionicons color={colors.textMuted} name="clipboard-outline" size={20} />
@@ -99,13 +99,13 @@ export function LinkStatsSection({ slug, profileViews, isLoading, businessError 
     <SurfaceCard style={styles.compactCard}>
       <View style={styles.topRow}>
         <View style={styles.viewsBlock}>
-          <Text style={[styles.viewsValue, { color: colors.text }]}>{viewsDisplay}</Text>
-          <Text style={[styles.viewsLabel, { color: colors.textMuted }]}>Views</Text>
+          <AppText style={[styles.viewsValue, { color: colors.text }]}>{viewsDisplay}</AppText>
+          <AppText style={[styles.viewsLabel, { color: colors.textMuted }]}>Views</AppText>
         </View>
       </View>
       <View style={styles.linkRow}>
         <View style={[styles.linkWell, linkWellStyle]}>
-          <Text
+          <AppText
             accessibilityLabel={
               hasSlug
                 ? `Booking link ${displayLink}`
@@ -129,7 +129,7 @@ export function LinkStatsSection({ slug, profileViews, isLoading, businessError 
             ]}
           >
             {hasSlug ? displayLink : 'Set your business slug to get a shareable link.'}
-          </Text>
+          </AppText>
         </View>
         <Pressable
           accessibilityLabel={copied ? 'Link copied' : 'Copy booking link'}
@@ -140,9 +140,7 @@ export function LinkStatsSection({ slug, profileViews, isLoading, businessError 
           style={({ pressed }) => [
             styles.copyPill,
             {
-              backgroundColor: pressed
-                ? colors.buttonSecondaryBgPressed
-                : colors.buttonSecondaryBg,
+              backgroundColor: pressed ? colors.buttonSecondaryBgPressed : colors.buttonSecondaryBg,
             },
             !hasSlug && styles.copyPillDisabled,
           ]}

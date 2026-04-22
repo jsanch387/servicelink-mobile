@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SurfaceCard } from '../../../components/ui';
+import { AppText, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
 export function BookingDetailsScreen({ route }) {
@@ -40,11 +40,11 @@ export function BookingDetailsScreen({ route }) {
     <SafeAreaView edges={['top']} style={styles.root}>
       <View style={styles.content}>
         <SurfaceCard>
-          <Text style={styles.title}>Booking details</Text>
-          <Text style={styles.body}>
+          <AppText style={styles.title}>Booking details</AppText>
+          <AppText style={styles.body}>
             Placeholder screen for booking details.
             {bookingId ? ` Booking ID: ${bookingId}` : ''}
-          </Text>
+          </AppText>
         </SurfaceCard>
       </View>
     </SafeAreaView>

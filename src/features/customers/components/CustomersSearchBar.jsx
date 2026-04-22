@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMemo } from 'react';
-import { Platform, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+import { AppTextInput } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
 /** Matches `SurfaceCard`: `cardSurface`, same corner radius, no stroke. */
@@ -41,7 +42,7 @@ export function CustomersSearchBar({ value, onChangeText }) {
   return (
     <View style={styles.wrap}>
       <Ionicons color={colors.textMuted} name="search-outline" size={18} />
-      <TextInput
+      <AppTextInput
         onChangeText={onChangeText}
         placeholder="Search by customer name..."
         placeholderTextColor={colors.placeholder}

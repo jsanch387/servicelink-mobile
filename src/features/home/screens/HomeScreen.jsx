@@ -1,9 +1,9 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppShellGlow, Divider } from '../../../components/ui';
+import { AppShellGlow, AppText, Divider } from '../../../components/ui';
 import { LinkStatsSection } from '../components/LinkStatsSection';
 import { NextUpCard } from '../components/NextUpCard';
 import { RestOfTodayCard } from '../components/restOfToday';
@@ -148,9 +148,9 @@ export function HomeScreen() {
         <View style={styles.profileRow}>
           <View style={styles.profileLeft}>
             <Ionicons color={colors.textMuted} name="person-circle-outline" size={30} />
-            <Text numberOfLines={1} style={styles.profileName}>
+            <AppText numberOfLines={1} style={styles.profileName}>
               {businessDisplayName}
-            </Text>
+            </AppText>
           </View>
           <Pressable
             accessibilityLabel="Notifications"
@@ -162,9 +162,9 @@ export function HomeScreen() {
         </View>
         <Divider style={styles.headerDivider} />
         {dashboard.isFetching && !dashboard.isLoading ? (
-          <Text style={[styles.syncHint, { color: colors.textMuted }]}>Updating…</Text>
+          <AppText style={[styles.syncHint, { color: colors.textMuted }]}>Updating…</AppText>
         ) : null}
-        <Text style={[styles.sectionLabel, styles.sectionLabelFirst]}>Next Up</Text>
+        <AppText style={[styles.sectionLabel, styles.sectionLabelFirst]}>Next Up</AppText>
         <NextUpCard
           bookingsError={dashboard.bookingsError}
           businessError={dashboard.businessError}
@@ -174,7 +174,7 @@ export function HomeScreen() {
           title={dashboard.nextBookingTitle}
         />
 
-        <Text style={styles.sectionLabel}>Booking link</Text>
+        <AppText style={styles.sectionLabel}>Booking link</AppText>
         <LinkStatsSection
           businessError={dashboard.businessError}
           isLoading={dashboard.isPendingBusiness}
@@ -182,7 +182,7 @@ export function HomeScreen() {
           slug={slug}
         />
 
-        <Text style={styles.sectionLabel}>Rest of Today</Text>
+        <AppText style={styles.sectionLabel}>Rest of Today</AppText>
         <RestOfTodayCard
           error={dashboard.todayBookingsError}
           isLoading={dashboard.isPendingTodayBookings}

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { BOOKINGS_FILTER_OPTIONS, BOOKINGS_LIST_SCREEN_PADDING } from '../constants';
 
@@ -111,7 +112,7 @@ export function BookingsListTabs({ value, onChange }) {
                 pressed && { opacity: 0.75 },
               ]}
             >
-              <Text
+              <AppText
                 numberOfLines={1}
                 onLayout={(e) => {
                   const { x, width } = e.nativeEvent.layout;
@@ -120,7 +121,7 @@ export function BookingsListTabs({ value, onChange }) {
                 style={[styles.tabLabel, selected ? styles.tabLabelActive : styles.tabLabelIdle]}
               >
                 {opt.label}
-              </Text>
+              </AppText>
             </Pressable>
           );
         })}

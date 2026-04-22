@@ -1,9 +1,9 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { BookingCard } from '../components/BookingCard';
@@ -172,7 +172,7 @@ export function BookingsScreen() {
           style={[styles.sectionHeader, isFirst && styles.sectionHeaderFirst]}
           accessibilityRole="header"
         >
-          <Text style={styles.sectionHeaderText}>{section.title}</Text>
+          <AppText style={styles.sectionHeaderText}>{section.title}</AppText>
         </View>
       );
     },
@@ -199,7 +199,7 @@ export function BookingsScreen() {
   const listHeader = useMemo(
     () => (
       <View>
-        {showSyncHint ? <Text style={styles.syncHint}>Updating…</Text> : null}
+        {showSyncHint ? <AppText style={styles.syncHint}>Updating…</AppText> : null}
         {list.businessError ? (
           <View style={styles.errorBlock}>
             <SurfaceCard>
@@ -236,40 +236,40 @@ export function BookingsScreen() {
     if (!list.business?.id) {
       return (
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>No business profile</Text>
-          <Text style={styles.emptyBody}>
+          <AppText style={styles.emptyTitle}>No business profile</AppText>
+          <AppText style={styles.emptyBody}>
             Once your business is set up in ServiceLink, appointments will show here.
-          </Text>
+          </AppText>
         </View>
       );
     }
     if (list.listFilter === BOOKINGS_FILTER_UPCOMING) {
       return (
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>No upcoming appointments</Text>
-          <Text style={styles.emptyBody}>
+          <AppText style={styles.emptyTitle}>No upcoming appointments</AppText>
+          <AppText style={styles.emptyBody}>
             Confirmed visits from today onward that have not started yet show here, soonest first.
-          </Text>
+          </AppText>
         </View>
       );
     }
     if (list.listFilter === BOOKINGS_FILTER_PAST) {
       return (
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>No past appointments</Text>
-          <Text style={styles.emptyBody}>
+          <AppText style={styles.emptyTitle}>No past appointments</AppText>
+          <AppText style={styles.emptyBody}>
             Confirmed or completed visits that already ended show here (up to the last 250 prior
             days loaded, plus today).
-          </Text>
+          </AppText>
         </View>
       );
     }
     return (
       <View style={styles.emptyWrap}>
-        <Text style={styles.emptyTitle}>No cancelled appointments</Text>
-        <Text style={styles.emptyBody}>
+        <AppText style={styles.emptyTitle}>No cancelled appointments</AppText>
+        <AppText style={styles.emptyBody}>
           Cancelled bookings (status cancelled or canceled) appear here, most recent first.
-        </Text>
+        </AppText>
       </View>
     );
   }, [

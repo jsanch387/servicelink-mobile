@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { AppText } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { BOOKINGS_VIEW_LIST, BOOKINGS_VIEW_PLANNER } from '../constants';
 
@@ -120,19 +121,10 @@ export function BookingsViewModeToggle({ mode, onChange }) {
         onPress={() => onChange(BOOKINGS_VIEW_LIST)}
         style={({ pressed }) => [styles.segmentHit, pressed && { opacity: 0.92 }]}
       >
-        <View
-          style={[
-            styles.segmentSurface,
-            listActive && styles.segmentSurfaceActive,
-          ]}
-        >
+        <View style={[styles.segmentSurface, listActive && styles.segmentSurfaceActive]}>
           <View style={styles.segmentRow}>
-            <Ionicons
-              color={listActive ? ACTIVE_FG : inactiveIconColor}
-              name="list"
-              size={18}
-            />
-            <Text style={[styles.label, listActive && styles.labelActive]}>List</Text>
+            <Ionicons color={listActive ? ACTIVE_FG : inactiveIconColor} name="list" size={18} />
+            <AppText style={[styles.label, listActive && styles.labelActive]}>List</AppText>
           </View>
         </View>
       </Pressable>
@@ -145,19 +137,14 @@ export function BookingsViewModeToggle({ mode, onChange }) {
         onPress={() => onChange(BOOKINGS_VIEW_PLANNER)}
         style={({ pressed }) => [styles.segmentHit, pressed && { opacity: 0.92 }]}
       >
-        <View
-          style={[
-            styles.segmentSurface,
-            plannerActive && styles.segmentSurfaceActive,
-          ]}
-        >
+        <View style={[styles.segmentSurface, plannerActive && styles.segmentSurfaceActive]}>
           <View style={styles.segmentRow}>
             <Ionicons
               color={plannerActive ? ACTIVE_FG : inactiveIconColor}
               name="calendar-outline"
               size={18}
             />
-            <Text style={[styles.label, plannerActive && styles.labelActive]}>Day</Text>
+            <AppText style={[styles.label, plannerActive && styles.labelActive]}>Day</AppText>
           </View>
         </View>
       </Pressable>

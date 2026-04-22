@@ -6,7 +6,7 @@ import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { PaymentsScreen } from '../features/payments/screens/PaymentsScreen';
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
 import { MAIN_TAB_CONFIG, ROUTES } from '../routes/routes';
-import { useTheme } from '../theme';
+import { FONT_FAMILIES, useTheme } from '../theme';
 import { MainTabBar } from './MainTabBar';
 
 const Tab = createBottomTabNavigator();
@@ -30,8 +30,8 @@ export function MainTabNavigator() {
         tabBarActiveTintColor: colors.tabBarActive,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
+          fontFamily: FONT_FAMILIES.semibold,
           fontSize: 11,
-          fontWeight: '600',
         },
       }}
       tabBar={(props) => <MainTabBar {...props} />}

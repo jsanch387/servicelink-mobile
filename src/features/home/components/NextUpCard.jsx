@@ -1,6 +1,12 @@
 import { useCallback, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Button, InlineCardError, SkeletonBox, SpotlightCard } from '../../../components/ui';
+import { StyleSheet, View } from 'react-native';
+import {
+  AppText,
+  Button,
+  InlineCardError,
+  SkeletonBox,
+  SpotlightCard,
+} from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { openMapsForBooking, openSmsOnMyWay, phoneForSmsUri } from '../utils/appointmentOutbound';
 import { hasBookingAddressForMaps } from '../utils/bookingAddress';
@@ -8,14 +14,38 @@ import { hasBookingAddressForMaps } from '../utils/bookingAddress';
 function NextUpSkeleton({ bone }) {
   return (
     <SpotlightCard collapsable={false} style={styles.card}>
-      <SkeletonBox backgroundColor={bone} borderRadius={10} height={22} style={{ opacity: 0.35 }} width="92%" />
-      <SkeletonBox backgroundColor={bone} borderRadius={8} height={18} style={{ marginTop: 12, opacity: 0.35 }} width="55%" />
+      <SkeletonBox
+        backgroundColor={bone}
+        borderRadius={10}
+        height={22}
+        style={{ opacity: 0.35 }}
+        width="92%"
+      />
+      <SkeletonBox
+        backgroundColor={bone}
+        borderRadius={8}
+        height={18}
+        style={{ marginTop: 12, opacity: 0.35 }}
+        width="55%"
+      />
       <View collapsable={false} style={styles.actions}>
         <View style={styles.actionCell}>
-          <SkeletonBox backgroundColor={bone} borderRadius={14} height={52} style={{ opacity: 0.35 }} width="100%" />
+          <SkeletonBox
+            backgroundColor={bone}
+            borderRadius={14}
+            height={52}
+            style={{ opacity: 0.35 }}
+            width="100%"
+          />
         </View>
         <View style={styles.actionCell}>
-          <SkeletonBox backgroundColor={bone} borderRadius={14} height={52} style={{ opacity: 0.35 }} width="100%" />
+          <SkeletonBox
+            backgroundColor={bone}
+            borderRadius={14}
+            height={52}
+            style={{ opacity: 0.35 }}
+            width="100%"
+          />
         </View>
       </View>
     </SpotlightCard>
@@ -73,17 +103,21 @@ export function NextUpCard({
       {scheduleError ? (
         <InlineCardError message={scheduleError} />
       ) : empty ? (
-        <Text style={[styles.empty, { color: colors.nextUpTextMuted }]}>
+        <AppText style={[styles.empty, { color: colors.nextUpTextMuted }]}>
           No upcoming appointments.
-        </Text>
+        </AppText>
       ) : (
         <>
-          <Text style={[styles.title, { color: colors.nextUpText }]}>{title}</Text>
+          <AppText style={[styles.title, { color: colors.nextUpText }]}>{title}</AppText>
           {vehicleLine ? (
-            <Text style={[styles.vehicle, { color: colors.nextUpTextMuted }]}>{vehicleLine}</Text>
+            <AppText style={[styles.vehicle, { color: colors.nextUpTextMuted }]}>
+              {vehicleLine}
+            </AppText>
           ) : null}
           {subtitle ? (
-            <Text style={[styles.countdown, { color: colors.nextUpTextMuted }]}>{subtitle}</Text>
+            <AppText style={[styles.countdown, { color: colors.nextUpTextMuted }]}>
+              {subtitle}
+            </AppText>
           ) : null}
         </>
       )}
