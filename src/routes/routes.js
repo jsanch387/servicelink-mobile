@@ -16,7 +16,8 @@ export const ROUTES = {
   CUSTOMERS_LIST: 'CustomersList',
   CUSTOMER_DETAILS: 'CustomerDetails',
   PAYMENTS: 'Payments',
-  PROFILE: 'Profile',
+  /** Bottom tab: More (settings, business tools, support) */
+  MORE: 'More',
 };
 
 export const PATHS = {
@@ -30,7 +31,7 @@ export const PATHS = {
   CUSTOMERS_LIST: '/customers/list',
   CUSTOMER_DETAILS: '/customers/:customerId',
   PAYMENTS: '/payments',
-  PROFILE: '/profile',
+  MORE: '/more',
 };
 
 /** Bottom tabs: order, labels, and Ionicons glyph names. */
@@ -39,5 +40,5 @@ export const MAIN_TAB_CONFIG = [
   { route: ROUTES.BOOKINGS, label: 'Bookings', icon: 'calendar-outline' },
   { route: ROUTES.CUSTOMERS, label: 'Customers', icon: 'people-outline' },
   { route: ROUTES.PAYMENTS, label: 'Payments', icon: 'card-outline' },
-  { route: ROUTES.PROFILE, label: 'More', icon: 'ellipsis-horizontal' },
+  { route: ROUTES.MORE, label: 'More', icon: 'ellipsis-horizontal' },
 ];

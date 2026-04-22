@@ -4,7 +4,7 @@ import { BookingsNavigator } from '../features/bookings';
 import { CustomersNavigator } from '../features/customers/navigation/CustomersNavigator';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { PaymentsScreen } from '../features/payments/screens/PaymentsScreen';
-import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
+import { MoreScreen } from '../features/more';
 import { MAIN_TAB_CONFIG, ROUTES } from '../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../theme';
 import { MainTabBar } from './MainTabBar';
@@ -16,7 +16,7 @@ const TAB_SCREENS = {
   [ROUTES.BOOKINGS]: BookingsNavigator,
   [ROUTES.CUSTOMERS]: CustomersNavigator,
   [ROUTES.PAYMENTS]: PaymentsScreen,
-  [ROUTES.PROFILE]: ProfileScreen,
+  [ROUTES.MORE]: MoreScreen,
 };
 
 export function MainTabNavigator() {
