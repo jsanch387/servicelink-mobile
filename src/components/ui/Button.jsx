@@ -14,11 +14,12 @@ const SURFACE_DARK_BG = '#0a0a0a';
 const SURFACE_DARK_BG_PRESSED = '#262626';
 const SURFACE_LIGHT_TEXT = '#000000';
 const SURFACE_DARK_TEXT = '#ffffff';
+const DANGER_TEXT = '#ffffff';
 
 /**
  * Shared button — theme `primary` / `secondary` / `ghost`, plus fixed high-contrast pairs for
  * hero surfaces (e.g. Next up card): `surfaceLight` (white + black), `surfaceDark` (black + white),
- * `outline` (transparent + 2px border, uses `outlineColor` or theme text).
+ * `outline` (transparent + 2px border, uses `outlineColor` or theme text), and `danger`.
  */
 export function Button({
   title,
@@ -45,6 +46,7 @@ export function Button({
     if (variant === 'surfaceLight') return SURFACE_LIGHT_TEXT;
     if (variant === 'surfaceDark') return SURFACE_DARK_TEXT;
     if (variant === 'outline') return outlineTint;
+    if (variant === 'danger') return DANGER_TEXT;
     return colors.accent;
   }, [colors, variant, outlineTint]);
 
@@ -92,6 +94,7 @@ export function Button({
           faceStyle = [
             styles.face,
             styles.faceOutlineBold,
+            styles.faceStrokeInset,
             {
               backgroundColor: pressed ? SURFACE_DARK_BG_PRESSED : SURFACE_DARK_BG,
               borderColor: 'transparent',
@@ -102,12 +105,21 @@ export function Button({
           faceStyle = [
             styles.face,
             styles.faceOutlineBold,
+            styles.faceStrokeInset,
             {
               backgroundColor: 'transparent',
               borderColor: outlineTint,
             },
           ];
           textColor = outlineTint;
+        } else if (variant === 'danger') {
+          faceStyle = [
+            styles.face,
+            {
+              backgroundColor: pressed ? 'rgba(185, 28, 28, 0.95)' : colors.danger,
+            },
+          ];
+          textColor = DANGER_TEXT;
         } else {
           faceStyle = [
             styles.face,
@@ -169,6 +181,11 @@ const styles = StyleSheet.create({
   },
   faceOutlineBold: {
     borderWidth: 2,
+  },
+  /** Border strokes add visual bulk; inset keeps parity beside filled buttons. */
+  faceStrokeInset: {
+    minHeight: 50,
+    paddingVertical: 14,
   },
   label: {
     fontSize: 16,

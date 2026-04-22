@@ -18,6 +18,7 @@ import {
   BOOKINGS_FILTER_UPCOMING,
 } from '../constants';
 import { BOOKINGS_QUERY_ROOT, bookingsListQueryKey } from '../queryKeys';
+import { shouldRetryBookingsQuery } from '../utils/queryRetryPolicy';
 
 /**
  * @param {{ listEnabled?: boolean }} [options] - set false while day planner is visible to skip list queries
@@ -51,6 +52,8 @@ export function useBookingsList(options = {}) {
     enabled: Boolean(userId),
     staleTime: 60 * 1000,
     gcTime: 15 * 60 * 1000,
+    retry: shouldRetryBookingsQuery,
+    retryDelay: 400,
   });
 
   const business = businessQ.data ?? null;
@@ -87,6 +90,8 @@ export function useBookingsList(options = {}) {
     enabled: hasBusinessRow && listEnabled,
     staleTime: 45 * 1000,
     gcTime: 15 * 60 * 1000,
+    retry: shouldRetryBookingsQuery,
+    retryDelay: 400,
   });
 
   const businessError = businessQ.isError

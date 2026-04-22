@@ -16,3 +16,10 @@ export function bookingsListQueryKey(businessId, filter) {
 export function bookingsPlannerDayQueryKey(businessId, yyyyMmDd) {
   return [...BOOKINGS_QUERY_ROOT, 'plannerDay', businessId ?? 'none', yyyyMmDd];
 }
+
+/**
+ * @param {string | undefined} bookingId
+ */
+export function bookingsDetailsQueryKey(bookingId) {
+  return [...BOOKINGS_QUERY_ROOT, 'details', bookingId ?? 'none'];
+}
