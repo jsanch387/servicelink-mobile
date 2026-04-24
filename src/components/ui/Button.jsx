@@ -84,6 +84,7 @@ export function Button({
           faceStyle = [
             styles.face,
             styles.faceBorder,
+            styles.faceStrokeInset,
             {
               backgroundColor: pressed ? PRIMARY_BG_PRESSED : PRIMARY_BG,
               borderColor: SURFACE_LIGHT_BORDER,

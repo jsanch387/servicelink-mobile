@@ -1,9 +1,11 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
 import { useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, SettingsNavRow, SettingsSection } from '../../../components/ui';
 import { getAppVersionLine } from '../../../constants/appInfo';
+import { ROUTES } from '../../../routes/routes';
 import { useAuth } from '../../auth';
 import { useTheme } from '../../../theme';
 
@@ -13,6 +15,7 @@ function noopNav() {}
 export function MoreScreen() {
   const { signOut } = useAuth();
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
   const [signingOut, setSigningOut] = useState(false);
@@ -75,7 +78,11 @@ export function MoreScreen() {
       >
         <AppText style={styles.screenTitle}>More</AppText>
         <SettingsSection first title="Business management">
-          <SettingsNavRow icon="construct-outline" label="Services" onPress={noopNav} />
+          <SettingsNavRow
+            icon="construct-outline"
+            label="Services"
+            onPress={() => navigation.navigate(ROUTES.SERVICES_LIST)}
+          />
           <SettingsNavRow icon="time-outline" label="Availability" onPress={noopNav} />
           <SettingsNavRow icon="document-text-outline" label="Quotes" onPress={noopNav} />
           <SettingsNavRow

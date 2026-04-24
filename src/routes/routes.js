@@ -15,6 +15,8 @@ export const ROUTES = {
   CUSTOMERS: 'Customers',
   CUSTOMERS_LIST: 'CustomersList',
   CUSTOMER_DETAILS: 'CustomerDetails',
+  SERVICES: 'Services',
+  SERVICES_LIST: 'ServicesList',
   PAYMENTS: 'Payments',
   /** Bottom tab: More (settings, business tools, support) */
   MORE: 'More',
@@ -30,6 +32,8 @@ export const PATHS = {
   CUSTOMERS: '/customers',
   CUSTOMERS_LIST: '/customers/list',
   CUSTOMER_DETAILS: '/customers/:customerId',
+  SERVICES: '/services',
+  SERVICES_LIST: '/services/list',
   PAYMENTS: '/payments',
   MORE: '/more',
 };

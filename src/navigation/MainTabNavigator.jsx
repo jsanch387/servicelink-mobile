@@ -3,8 +3,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BookingsNavigator } from '../features/bookings';
 import { CustomersNavigator } from '../features/customers/navigation/CustomersNavigator';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
+import { MoreNavigator } from '../features/more';
 import { PaymentsScreen } from '../features/payments/screens/PaymentsScreen';
-import { MoreScreen } from '../features/more';
 import { MAIN_TAB_CONFIG, ROUTES } from '../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../theme';
 import { MainTabBar } from './MainTabBar';
@@ -16,7 +16,7 @@ const TAB_SCREENS = {
   [ROUTES.BOOKINGS]: BookingsNavigator,
   [ROUTES.CUSTOMERS]: CustomersNavigator,
   [ROUTES.PAYMENTS]: PaymentsScreen,
-  [ROUTES.MORE]: MoreScreen,
+  [ROUTES.MORE]: MoreNavigator,
 };
 
 export function MainTabNavigator() {
