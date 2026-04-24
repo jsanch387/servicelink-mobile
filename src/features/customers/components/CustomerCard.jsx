@@ -3,30 +3,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
-import { CUSTOMER_FILTER_DUE, CUSTOMER_FILTER_NEW, CUSTOMER_FILTER_RETURNING } from '../constants';
-
-function segmentLabel(segment) {
-  if (segment === CUSTOMER_FILTER_NEW) {
-    return 'New';
-  }
-  if (segment === CUSTOMER_FILTER_RETURNING) {
-    return 'Returning';
-  }
-  if (segment === CUSTOMER_FILTER_DUE) {
-    return 'Due';
-  }
-  return 'All';
-}
-
-function segmentColor(segment) {
-  if (segment === CUSTOMER_FILTER_RETURNING) {
-    return '#34d399';
-  }
-  if (segment === CUSTOMER_FILTER_DUE) {
-    return '#fcd34d';
-  }
-  return '#38bdf8';
-}
+import { customerSegmentColor, customerSegmentLabel } from '../utils/customerSegmentDisplay';
 
 export function CustomerCard({ customer, onPress }) {
   const { colors } = useTheme();
@@ -83,7 +60,7 @@ export function CustomerCard({ customer, onPress }) {
         },
         scheduleLabel: {
           color: colors.placeholder,
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: '400',
           letterSpacing: -0.1,
           marginRight: 8,
@@ -99,12 +76,10 @@ export function CustomerCard({ customer, onPress }) {
           lineHeight: 16,
         },
         scheduleRelative: {
-          color: colors.placeholder,
-          fontSize: 13,
-          fontWeight: '400',
-          letterSpacing: -0.1,
-          lineHeight: 16,
+          fontSize: 11,
+          lineHeight: 14,
           marginTop: 2,
+          marginRight: 0,
         },
       }),
     [colors],
@@ -119,8 +94,8 @@ export function CustomerCard({ customer, onPress }) {
         </View>
 
         <View style={styles.metaRow}>
-          <AppText style={[styles.segment, { color: segmentColor(customer.segment) }]}>
-            {segmentLabel(customer.segment)}
+          <AppText style={[styles.segment, { color: customerSegmentColor(customer.segment) }]}>
+            {customerSegmentLabel(customer.segment)}
           </AppText>
           <View style={styles.divider} />
           <AppText style={styles.summary}>{customer.pastVisitsSummary}</AppText>
@@ -132,7 +107,7 @@ export function CustomerCard({ customer, onPress }) {
             <View style={styles.rightSchedule}>
               <AppText style={styles.scheduleDate}>{customer.nextAppointmentDateLabel}</AppText>
               {customer.nextAppointmentRelativeLabel ? (
-                <AppText style={styles.scheduleRelative}>
+                <AppText style={[styles.scheduleLabel, styles.scheduleRelative]}>
                   {customer.nextAppointmentRelativeLabel}
                 </AppText>
               ) : null}

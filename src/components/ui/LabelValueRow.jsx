@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText } from '../../../../components/ui';
-import { useTheme } from '../../../../theme';
+import { AppText } from './AppText';
+import { useTheme } from '../../theme';
 
 export function LabelValueRow({
   label,

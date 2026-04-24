@@ -1,6 +1,9 @@
 export { AppText } from './AppText';
 export { AppTextInput } from './AppTextInput';
 export { Button } from './Button';
+export { DetailsSectionCard } from './DetailsSectionCard';
+export { InfoSection } from './InfoSection';
+export { LabelValueRow } from './LabelValueRow';
 export { AppShellGlow } from './AppShellGlow';
 export { Divider } from './Divider';
 export { SpotlightCard, SurfaceCard } from './Card';

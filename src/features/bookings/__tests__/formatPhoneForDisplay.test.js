@@ -1,4 +1,4 @@
-import { formatPhoneForDisplay } from '../utils/formatPhoneForDisplay';
+import { formatPhoneForDisplay } from '../../../utils/phone';
 
 describe('formatPhoneForDisplay', () => {
   it('returns empty for null, undefined, or blank', () => {

@@ -1,9 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
-import { AppText } from '../../../../components/ui';
+import { AppText, DetailsSectionCard, LabelValueRow } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
-import { DetailsSectionCard } from './DetailsSectionCard';
-import { LabelValueRow } from './LabelValueRow';
 
 export function ScheduleSection({ schedule }) {
   const { colors } = useTheme();

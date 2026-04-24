@@ -1,11 +1,10 @@
 import { useCallback, useMemo } from 'react';
 import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, InlineCardError, SurfaceCard } from '../../../components/ui';
+import { Button, InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { BookingActionsSection } from '../booking-details/components/BookingActionsSection';
 import { BookingDetailsSkeleton } from '../booking-details/components/BookingDetailsSkeleton';
-import { InfoSection } from '../booking-details/components/InfoSection';
 import { PriceBreakdownSection } from '../booking-details/components/PriceBreakdownSection';
 import { ScheduleSection } from '../booking-details/components/ScheduleSection';
 import { useBookingActions } from '../booking-details/hooks/useBookingActions';

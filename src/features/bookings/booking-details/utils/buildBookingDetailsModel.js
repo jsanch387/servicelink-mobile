@@ -1,5 +1,5 @@
 import { parseBookingStartLocalMs } from '../../../home/utils/bookingStart';
-import { formatPhoneForDisplay } from '../../utils/formatPhoneForDisplay';
+import { formatPhoneForDisplay } from '../../../../utils/phone';
 
 function formatMoney(amount) {
   const safe = Number.isFinite(amount) ? amount : 0;

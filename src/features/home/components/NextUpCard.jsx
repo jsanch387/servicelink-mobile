@@ -8,7 +8,8 @@ import {
   SpotlightCard,
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
-import { openMapsForBooking, openSmsOnMyWay, phoneForSmsUri } from '../utils/appointmentOutbound';
+import { phoneForSmsUri } from '../../../utils/phone';
+import { openMapsForBooking, openSmsOnMyWay } from '../utils/appointmentOutbound';
 import { hasBookingAddressForMaps } from '../utils/bookingAddress';
 
 function NextUpSkeleton({ bone }) {

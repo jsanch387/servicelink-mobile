@@ -1,34 +1,6 @@
 import { Alert, Linking, Platform } from 'react-native';
+import { phoneForSmsUri } from '../../../utils/phone';
 import { formatBookingAddressForMaps } from './bookingAddress';
-
-/**
- * Normalize stored phone for `sms:` URLs (keeps leading +, strips spaces/punctuation).
- * @param {string | null | undefined} raw
- * @returns {string | null}
- */
-export function phoneForSmsUri(raw) {
-  if (raw == null || typeof raw !== 'string') {
-    return null;
-  }
-  let t = raw.trim().replace(/[\s().-]/g, '');
-  if (!t) {
-    return null;
-  }
-  if (t.startsWith('+')) {
-    return t;
-  }
-  const digits = t.replace(/\D/g, '');
-  if (digits.length === 10) {
-    return `+1${digits}`;
-  }
-  if (digits.length >= 11) {
-    return `+${digits}`;
-  }
-  if (digits.length > 0) {
-    return `+${digits}`;
-  }
-  return null;
-}
 
 /**
  * @param {{ customer_name?: string | null }} booking

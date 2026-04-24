@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, SurfaceCard } from '../../../../components/ui';
-import { useTheme } from '../../../../theme';
+import { AppText } from './AppText';
+import { SurfaceCard } from './Card';
+import { useTheme } from '../../theme';
 
 export function DetailsSectionCard({ title, children }) {
   const { colors } = useTheme();

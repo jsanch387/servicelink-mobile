@@ -74,6 +74,8 @@ describe('CustomersScreen', () => {
     fireEvent.press(screen.getByText('Jane Fuller'));
     expect(mockNavigate).toHaveBeenCalledWith('CustomerDetails', {
       customerId: 'c1',
+      customerName: 'Jane Fuller',
+      customerSegment: 'new',
     });
   });
 });

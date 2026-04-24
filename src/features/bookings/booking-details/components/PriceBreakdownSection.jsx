@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { DetailsSectionCard, LabelValueRow } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
-import { DetailsSectionCard } from './DetailsSectionCard';
-import { LabelValueRow } from './LabelValueRow';
 
 export function PriceBreakdownSection({ formattedPrice }) {
   const { colors } = useTheme();

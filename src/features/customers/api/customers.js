@@ -68,6 +68,81 @@ export async function fetchCustomerBookingsForBusiness(businessId) {
   return { data, error };
 }
 
+/**
+ * @param {string} businessId
+ * @param {string} customerId
+ */
+export async function fetchCustomerForBusiness(businessId, customerId) {
+  const { data, error } = await supabase
+    .from('customers')
+    .select(CUSTOMER_SELECT)
+    .eq('business_id', businessId)
+    .eq('id', customerId)
+    .maybeSingle();
+
+  return { data, error };
+}
+
+/**
+ * Non-cancelled bookings for one customer (same select + status filter as list metrics).
+ * @param {string} businessId
+ * @param {string} customerId
+ */
+export async function fetchBookingsForCustomerMetrics(businessId, customerId) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(BOOKING_CUSTOMER_METRICS_SELECT)
+    .eq('business_id', businessId)
+    .eq('customer_id', customerId)
+    .not('status', 'in', '("cancelled","canceled")');
+
+  return { data, error };
+}
+
+/**
+ * Removes a customer from CRM for a business.
+ * First detaches `bookings.customer_id` to avoid FK failures, then deletes the customer row.
+ *
+ * @param {string} businessId
+ * @param {string} customerId
+ */
+export async function removeCustomerForBusiness(businessId, customerId) {
+  const { error: detachError } = await supabase
+    .from('bookings')
+    .update({ customer_id: null })
+    .eq('business_id', businessId)
+    .eq('customer_id', customerId);
+  if (detachError) {
+    return { error: detachError };
+  }
+
+  const { error } = await supabase
+    .from('customers')
+    .delete()
+    .eq('business_id', businessId)
+    .eq('id', customerId);
+
+  return { error };
+}
+
+/**
+ * Updates customer CRM notes.
+ * @param {string} businessId
+ * @param {string} customerId
+ * @param {string} notes
+ */
+export async function updateCustomerNotesForBusiness(businessId, customerId, notes) {
+  const { data, error } = await supabase
+    .from('customers')
+    .update({ notes })
+    .eq('business_id', businessId)
+    .eq('id', customerId)
+    .select(CUSTOMER_SELECT)
+    .maybeSingle();
+
+  return { data, error };
+}
+
 function centsFromAddonDetails(addonDetails) {
   if (!addonDetails) {
     return 0;
@@ -137,6 +212,89 @@ function diffCalendarDays(targetMs, nowMs) {
   return Math.round((startTarget.getTime() - startNow.getTime()) / 86400000);
 }
 
+function createEmptyBookingMetrics() {
+  return { totalVisits: 0, totalSpent: 0, lastVisitMs: null, nextAppointmentMs: null };
+}
+
+/**
+ * Mutates `acc`. Parity with web: completed/complete → visits, spend, latest last visit by
+ * `scheduled_date` + `start_time` (local); confirmed in the future → next slot; cancelled rows
+ * must be excluded before calling (see fetch helpers).
+ *
+ * @param {{ totalVisits: number; totalSpent: number; lastVisitMs: number | null; nextAppointmentMs: number | null }} acc
+ * @param {Record<string, unknown>} booking
+ * @param {number} nowMs
+ */
+function applyBookingToCustomerMetrics(acc, booking, nowMs) {
+  const status = String(booking?.status ?? '').toLowerCase();
+  const startMs = parseBookingStartLocalMs(booking?.scheduled_date, booking?.start_time);
+
+  if ((status === 'completed' || status === 'complete') && Number.isFinite(startMs)) {
+    acc.totalVisits += 1;
+    const baseCents = numberOrZero(booking?.service_price_cents);
+    const addonCents = centsFromAddonDetails(booking?.addon_details);
+    acc.totalSpent += baseCents + addonCents;
+
+    if (acc.lastVisitMs == null || startMs > acc.lastVisitMs) {
+      acc.lastVisitMs = startMs;
+    }
+  }
+
+  if (status === 'confirmed' && Number.isFinite(startMs) && startMs >= nowMs) {
+    if (acc.nextAppointmentMs == null || startMs < acc.nextAppointmentMs) {
+      acc.nextAppointmentMs = startMs;
+    }
+  }
+}
+
+/**
+ * @param {Array<Record<string, unknown>> | null | undefined} bookings
+ * @param {number} [nowMs]
+ * @returns {Map<string, { totalVisits: number; totalSpent: number; lastVisitMs: number | null; nextAppointmentMs: number | null }>}
+ */
+export function aggregateBookingsPerCustomerMap(bookings, nowMs = Date.now()) {
+  const byCustomerId = new Map();
+  for (const booking of bookings ?? []) {
+    const customerId = booking?.customer_id;
+    if (!customerId) {
+      continue;
+    }
+    if (!byCustomerId.has(customerId)) {
+      byCustomerId.set(customerId, createEmptyBookingMetrics());
+    }
+    applyBookingToCustomerMetrics(byCustomerId.get(customerId), booking, nowMs);
+  }
+  return byCustomerId;
+}
+
+/**
+ * Same rules as {@link aggregateBookingsPerCustomerMap} for bookings that all belong to one customer.
+ * @param {Array<Record<string, unknown>> | null | undefined} bookings
+ * @param {number} [nowMs]
+ */
+export function aggregateCustomerBookingMetrics(bookings, nowMs = Date.now()) {
+  const acc = createEmptyBookingMetrics();
+  for (const booking of bookings ?? []) {
+    applyBookingToCustomerMetrics(acc, booking, nowMs);
+  }
+  return acc;
+}
+
+/**
+ * @param {{ totalVisits: number; totalSpent: number; lastVisitMs: number | null; nextAppointmentMs: number | null }} metrics
+ * @param {number} [nowMs]
+ * @returns {{ segment: string; lastDays: number | null }}
+ */
+export function deriveCustomerStatusAndLastDays(metrics, nowMs = Date.now()) {
+  const lifecycle = metrics.totalVisits > 1 ? CUSTOMER_FILTER_RETURNING : CUSTOMER_FILTER_NEW;
+  const lastDays =
+    metrics.lastVisitMs == null ? null : Math.abs(diffCalendarDays(metrics.lastVisitMs, nowMs));
+  const needsAttention =
+    metrics.nextAppointmentMs == null && lastDays != null && lastDays > NEEDS_ATTENTION_DAYS;
+  const segment = needsAttention ? CUSTOMER_FILTER_DUE : lifecycle;
+  return { segment, lastDays };
+}
+
 /**
  * @param {CustomerRow[] | null | undefined} customers
  * @param {Array<any> | null | undefined} bookings
@@ -144,62 +302,14 @@ function diffCalendarDays(targetMs, nowMs) {
  * @returns {CustomerCardModel[]}
  */
 export function buildCustomerCards(customers, bookings, nowMs = Date.now()) {
-  const byCustomerId = new Map();
-
-  for (const booking of bookings ?? []) {
-    const customerId = booking?.customer_id;
-    if (!customerId) {
-      continue;
-    }
-    const status = String(booking?.status ?? '').toLowerCase();
-    const startMs = parseBookingStartLocalMs(booking?.scheduled_date, booking?.start_time);
-
-    if (!byCustomerId.has(customerId)) {
-      byCustomerId.set(customerId, {
-        totalVisits: 0,
-        totalSpent: 0,
-        lastVisitMs: null,
-        nextAppointmentMs: null,
-      });
-    }
-
-    const acc = byCustomerId.get(customerId);
-
-    if ((status === 'completed' || status === 'complete') && Number.isFinite(startMs)) {
-      acc.totalVisits += 1;
-      const baseCents = numberOrZero(booking?.service_price_cents);
-      const addonCents = centsFromAddonDetails(booking?.addon_details);
-      acc.totalSpent += baseCents + addonCents;
-
-      if (acc.lastVisitMs == null || startMs > acc.lastVisitMs) {
-        acc.lastVisitMs = startMs;
-      }
-    }
-
-    if (status === 'confirmed' && Number.isFinite(startMs) && startMs >= nowMs) {
-      if (acc.nextAppointmentMs == null || startMs < acc.nextAppointmentMs) {
-        acc.nextAppointmentMs = startMs;
-      }
-    }
-  }
+  const byCustomerId = aggregateBookingsPerCustomerMap(bookings, nowMs);
 
   return (customers ?? []).map((row) => {
-    const metrics = byCustomerId.get(row.id) ?? {
-      totalVisits: 0,
-      totalSpent: 0,
-      lastVisitMs: null,
-      nextAppointmentMs: null,
-    };
+    const metrics = byCustomerId.get(row.id) ?? createEmptyBookingMetrics();
 
-    const lifecycle = metrics.totalVisits > 1 ? CUSTOMER_FILTER_RETURNING : CUSTOMER_FILTER_NEW;
+    const { segment: status, lastDays } = deriveCustomerStatusAndLastDays(metrics, nowMs);
     const nextDays =
       metrics.nextAppointmentMs == null ? null : diffCalendarDays(metrics.nextAppointmentMs, nowMs);
-    const lastDays =
-      metrics.lastVisitMs == null ? null : Math.abs(diffCalendarDays(metrics.lastVisitMs, nowMs));
-
-    const needsAttention =
-      metrics.nextAppointmentMs == null && lastDays != null && lastDays > NEEDS_ATTENTION_DAYS;
-    const status = needsAttention ? CUSTOMER_FILTER_DUE : lifecycle;
 
     let scheduleLabel = 'No schedule yet';
     let dateLabel = '';
@@ -216,11 +326,7 @@ export function buildCustomerCards(customers, bookings, nowMs = Date.now()) {
     } else if (metrics.lastVisitMs != null) {
       scheduleLabel = 'Last visit';
       dateLabel = formatLongDate(metrics.lastVisitMs);
-      if ((lastDays ?? 0) > 0) {
-        relativeLabel = `${lastDays} day${lastDays === 1 ? '' : 's'} ago`;
-      } else {
-        relativeLabel = 'today';
-      }
+      relativeLabel = `${Math.max(0, lastDays ?? 0)}d ago`;
     }
 
     const totalVisits = metrics.totalVisits;

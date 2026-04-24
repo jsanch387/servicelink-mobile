@@ -98,6 +98,8 @@ export function CustomersScreen() {
                   onPress={() =>
                     navigation.navigate(ROUTES.CUSTOMER_DETAILS, {
                       customerId: customer.id,
+                      customerName: customer.fullName,
+                      customerSegment: customer.segment,
                     })
                   }
                 />

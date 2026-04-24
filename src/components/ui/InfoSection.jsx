@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { AppText } from '../../../../components/ui';
-import { useTheme } from '../../../../theme';
+import { AppText } from './AppText';
 import { DetailsSectionCard } from './DetailsSectionCard';
+import { useTheme } from '../../theme';
 
 function InfoRow({
   icon,
@@ -82,11 +82,11 @@ export function InfoSection({ title, rows, hideIcons = false, footer = null }) {
   return (
     <DetailsSectionCard title={title}>
       <View style={styles.rowsWrap}>
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <InfoRow
             emphasize={Boolean(row.emphasize)}
             hideIcon={hideIcons || Boolean(row.hideIcon)}
-            key={`${title}-${row.icon}-${row.value}`}
+            key={row.key ?? `${title}-${index}`}
             icon={row.icon}
             value={row.value}
             onPress={row.onPress}
