@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
@@ -11,18 +11,17 @@ const SYSTEM_SANS_SERIF = Platform.select({
 });
 const EDIT_ACCENT = '#34d399';
 const DELETE_ACCENT = '#fb7185';
+const DESCRIPTION_PREVIEW_CHARS = 100;
 
 export function ServiceEntityCard({
   index,
   item,
   isSortMode,
-  canMoveUp,
-  canMoveDown,
   onToggleEnabled,
   onEdit,
   onDelete,
-  onMoveUp,
-  onMoveDown,
+  onDragStart,
+  isDragActive = false,
   showDescription = true,
   showToggle = true,
   showPriceCaption = true,
@@ -33,43 +32,74 @@ export function ServiceEntityCard({
 }) {
   const { colors } = useTheme();
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const dragPulse = useRef(new Animated.Value(0.72)).current;
   const description = item.description?.trim() ?? '';
-  const isLongDescription = description.length > 150;
+  const isLongDescription = description.length > DESCRIPTION_PREVIEW_CHARS;
   const metaLabel =
     metaLabelOverride ??
     (item.addonsCountLabel
       ? `${item.durationLabel} · ${item.addonsCountLabel}`
       : item.durationLabel);
-  const descriptionNumberOfLines = useMemo(() => {
-    if (!isLongDescription || isDescriptionExpanded) return undefined;
-    return 5;
-  }, [isDescriptionExpanded, isLongDescription]);
+  const previewDescription = useMemo(() => {
+    if (!isLongDescription || isDescriptionExpanded) {
+      return description;
+    }
+    return `${description.slice(0, DESCRIPTION_PREVIEW_CHARS).trimEnd()}...`;
+  }, [description, isDescriptionExpanded, isLongDescription]);
+
+  useEffect(() => {
+    if (!isSortMode) {
+      dragPulse.stopAnimation();
+      dragPulse.setValue(0.72);
+      return;
+    }
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(dragPulse, {
+          duration: 700,
+          toValue: 1,
+          useNativeDriver: true,
+        }),
+        Animated.timing(dragPulse, {
+          duration: 700,
+          toValue: 0.72,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [dragPulse, isSortMode]);
 
   return (
-    <SurfaceCard padding="none" style={[styles.card, { borderColor: colors.border }]}>
+    <SurfaceCard
+      padding="none"
+      style={[
+        styles.card,
+        { borderColor: colors.border },
+        isSortMode && {
+          backgroundColor: colors.shellElevated,
+          borderColor: 'rgba(34,197,94,0.45)',
+          borderStyle: 'dashed',
+        },
+        isDragActive && { transform: [{ scale: 1.01 }], opacity: 0.92 },
+      ]}
+    >
       <View style={styles.outerRow}>
         {isSortMode ? (
           <View style={styles.reorderCol}>
-            <Pressable
-              accessibilityRole="button"
-              disabled={!canMoveUp}
-              onPress={onMoveUp}
-              style={[styles.reorderIconButton, !canMoveUp && styles.disabled]}
-            >
-              <Ionicons color="#22c55e" name="chevron-up" size={20} />
-            </Pressable>
             <AppText style={[styles.orderText, { color: colors.text }]}>{index + 1}</AppText>
             <Pressable
               accessibilityRole="button"
-              disabled={!canMoveDown}
-              onPress={onMoveDown}
-              style={[styles.reorderIconButton, !canMoveDown && styles.disabled]}
+              delayLongPress={120}
+              onLongPress={onDragStart}
+              style={styles.dragPill}
             >
-              <Ionicons color="#22c55e" name="chevron-down" size={20} />
+              <Animated.View style={{ opacity: dragPulse }}>
+                <Ionicons color="#22c55e" name="reorder-three-outline" size={18} />
+              </Animated.View>
+              <AppText style={styles.dragLabel}>Drag</AppText>
             </Pressable>
-            <View style={styles.dragPill}>
-              <Ionicons color="#22c55e" name="reorder-three-outline" size={18} />
-            </View>
           </View>
         ) : null}
 
@@ -99,7 +129,7 @@ export function ServiceEntityCard({
             <View style={[styles.headerDivider, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
           ) : null}
 
-          {!metaUnderTitle ? (
+          {!metaUnderTitle && !isSortMode ? (
             <View style={styles.metaRow}>
               <AppText style={[styles.meta, { color: colors.textMuted }]}>{metaLabel}</AppText>
             </View>
@@ -107,11 +137,8 @@ export function ServiceEntityCard({
 
           {showDescription ? (
             <View style={styles.descriptionWrap}>
-              <AppText
-                numberOfLines={descriptionNumberOfLines}
-                style={[styles.description, { color: colors.textMuted }]}
-              >
-                {description}
+              <AppText style={[styles.description, { color: colors.textMuted }]}>
+                {previewDescription}
               </AppText>
               {isLongDescription ? (
                 <Pressable
@@ -219,29 +246,28 @@ const styles = StyleSheet.create({
   reorderCol: {
     alignItems: 'center',
     marginRight: 10,
-    paddingTop: 2,
+    paddingTop: 4,
     width: 40,
-  },
-  reorderIconButton: {
-    alignItems: 'center',
-    borderRadius: 12,
-    justifyContent: 'center',
-    minHeight: 38,
-    minWidth: 38,
   },
   orderText: {
     fontSize: 13,
     fontWeight: '700',
-    marginVertical: 2,
+    marginBottom: 10,
   },
   dragPill: {
     alignItems: 'center',
     backgroundColor: 'rgba(34,197,94,0.12)',
     borderRadius: 10,
     justifyContent: 'center',
-    marginTop: 6,
-    minHeight: 34,
+    minHeight: 46,
     minWidth: 34,
+    paddingVertical: 6,
+  },
+  dragLabel: {
+    color: '#22c55e',
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 1,
   },
   contentCol: {
     flex: 1,

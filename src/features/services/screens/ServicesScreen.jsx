@@ -1,22 +1,18 @@
-import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import DraggableFlatList from 'react-native-draggable-flatlist';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, Button } from '../../../components/ui';
+import { AppText, Button, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
-import { MOCK_ADDONS, MOCK_SERVICES } from '../constants/mockServicesUiModel';
 import {
   ENTITY_VIEW_ADDONS,
   ENTITY_VIEW_SERVICES,
   SegmentedEntityToggle,
 } from '../components/SegmentedEntityToggle';
 import { ServiceEntityCard } from '../components/ServiceEntityCard';
-
-function moveItem(list, fromIndex, toIndex) {
-  const next = [...list];
-  const [item] = next.splice(fromIndex, 1);
-  next.splice(toIndex, 0, item);
-  return next;
-}
+import { useServicesCatalog } from '../hooks/useServicesCatalog';
+import { normalizeAddonDurationLabelForCard } from '../utils/buildServicesCatalogModel';
 
 function sectionCopy(view) {
   if (view === ENTITY_VIEW_ADDONS) {
@@ -35,59 +31,56 @@ function sectionCopy(view) {
   };
 }
 
+function ServicesCardsSkeleton() {
+  return (
+    <View style={styles.skeletonList}>
+      {[0, 1, 2].map((k) => (
+        <SurfaceCard key={k} style={styles.skeletonCard}>
+          <SkeletonBox borderRadius={8} height={18} width="48%" />
+          <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 10 }} width="36%" />
+          <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 12 }} width="88%" />
+          <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 8 }} width="72%" />
+          <SkeletonBox borderRadius={12} height={42} style={{ marginTop: 18 }} width="100%" />
+        </SurfaceCard>
+      ))}
+    </View>
+  );
+}
+
 export function ServicesScreen() {
   const { colors } = useTheme();
+  const catalog = useServicesCatalog();
   const [selectedView, setSelectedView] = useState(ENTITY_VIEW_SERVICES);
   const [isSortMode, setIsSortMode] = useState(false);
-  const [services, setServices] = useState(MOCK_SERVICES);
-  const [addons, setAddons] = useState(MOCK_ADDONS);
+  const [servicesDraft, setServicesDraft] = useState([]);
   const isServicesView = selectedView === ENTITY_VIEW_SERVICES;
-
-  const activeItems = isServicesView ? services : addons;
+  const activeItems = isServicesView ? servicesDraft : catalog.addons;
   const activeCopy = sectionCopy(selectedView);
+
+  useEffect(() => {
+    setServicesDraft(catalog.services);
+  }, [catalog.services]);
 
   const titleLabel = useMemo(
     () => `${activeItems.length} ${selectedView === ENTITY_VIEW_SERVICES ? 'services' : 'add-ons'}`,
     [activeItems.length, selectedView],
   );
 
-  function setCurrentList(updater) {
-    if (selectedView === ENTITY_VIEW_SERVICES) {
-      setServices(updater);
-      return;
+  const displayItems = useMemo(() => {
+    if (!isServicesView || !isSortMode) {
+      return activeItems;
     }
-    setAddons(updater);
-  }
-
-  function toggleEnabled(id) {
-    setCurrentList((list) =>
-      list.map((item) => (item.id === id ? { ...item, isEnabled: !item.isEnabled } : item)),
-    );
-  }
-
-  function handleMove(index, direction) {
-    const target = index + direction;
-    setCurrentList((list) => {
-      if (target < 0 || target >= list.length) return list;
-      return moveItem(list, index, target);
-    });
-  }
+    return activeItems;
+  }, [activeItems, isServicesView, isSortMode]);
 
   function handleViewChange(nextView) {
     setSelectedView(nextView);
     setIsSortMode(false);
   }
 
-  return (
-    <SafeAreaView
-      edges={['left', 'right']}
-      style={[styles.root, { backgroundColor: colors.shell }]}
-    >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+  function renderHeader() {
+    return (
+      <>
         <SegmentedEntityToggle onSelect={handleViewChange} selected={selectedView} />
 
         <View style={styles.sectionMetaRow}>
@@ -99,6 +92,7 @@ export function ServicesScreen() {
         <View style={styles.actionsRow}>
           <View style={styles.actionCell}>
             <Button
+              disabled={catalog.isLoading}
               fullWidth
               iconColor="#000000"
               iconName="add"
@@ -110,6 +104,7 @@ export function ServicesScreen() {
           {isServicesView ? (
             <View style={styles.actionCell}>
               <Button
+                disabled={catalog.isLoading || displayItems.length <= 1}
                 fullWidth
                 iconColor={colors.textMuted}
                 iconName="swap-vertical-outline"
@@ -121,47 +116,116 @@ export function ServicesScreen() {
             </View>
           ) : null}
         </View>
-
-        {activeItems.length === 0 ? (
-          <View
-            style={[
-              styles.emptyState,
-              { borderColor: colors.border, backgroundColor: colors.cardSurface },
-            ]}
-          >
-            <AppText style={[styles.emptyText, { color: colors.textMuted }]}>
-              {activeCopy.emptyLabel}
+        {isServicesView && isSortMode ? (
+          <View style={[styles.sortModeBanner, { borderColor: colors.borderStrong }]}>
+            <Ionicons color="#22c55e" name="move-outline" size={16} />
+            <AppText style={[styles.sortHint, { color: colors.textMuted }]}>
+              Long press and drag to reorder.
             </AppText>
           </View>
-        ) : (
-          activeItems.map((item, index) => (
-            <ServiceEntityCard
-              canMoveDown={index < activeItems.length - 1}
-              canMoveUp={index > 0}
-              index={index}
-              isSortMode={isServicesView && isSortMode}
-              item={item}
-              key={item.id}
-              onDelete={() => {}}
-              onEdit={() => {}}
-              onMoveDown={() => handleMove(index, 1)}
-              onMoveUp={() => handleMove(index, -1)}
-              onToggleEnabled={() => toggleEnabled(item.id)}
-              showDescription={isServicesView}
-              showHeaderDivider={isServicesView}
-              showPriceCaption={isServicesView}
-              showToggle={isServicesView}
-              metaUnderTitle={!isServicesView}
-              fullWidthActions={!isServicesView}
-              metaLabelOverride={
-                !isServicesView
-                  ? item.durationLabel.replace(/(\+?\d+)\s*m\b/gi, '$1 min')
-                  : undefined
-              }
+        ) : null}
+
+        {catalog.businessError ? (
+          <View style={styles.errorBlock}>
+            <SurfaceCard>
+              <InlineCardError message={catalog.businessError} />
+            </SurfaceCard>
+          </View>
+        ) : null}
+        {catalog.catalogError ? (
+          <View style={styles.errorBlock}>
+            <SurfaceCard>
+              <InlineCardError message={catalog.catalogError} />
+            </SurfaceCard>
+          </View>
+        ) : null}
+      </>
+    );
+  }
+
+  const renderCard = (item, index, onDragStart, isDragActive = false) => (
+    <ServiceEntityCard
+      index={index}
+      isDragActive={isDragActive}
+      isSortMode={isServicesView && isSortMode}
+      item={item}
+      key={item.id}
+      onDelete={() => {}}
+      onDragStart={onDragStart}
+      onEdit={() => {}}
+      onToggleEnabled={() => {}}
+      showDescription={isServicesView && !isSortMode}
+      showHeaderDivider={isServicesView}
+      showPriceCaption={isServicesView}
+      showToggle={isServicesView}
+      metaUnderTitle={!isServicesView}
+      fullWidthActions={!isServicesView}
+      metaLabelOverride={
+        !isServicesView ? normalizeAddonDurationLabelForCard(item.durationLabel) : undefined
+      }
+    />
+  );
+
+  return (
+    <SafeAreaView
+      edges={['left', 'right']}
+      style={[styles.root, { backgroundColor: colors.shell }]}
+    >
+      {isServicesView && isSortMode && !catalog.isLoading && displayItems.length > 0 ? (
+        <DraggableFlatList
+          activationDistance={10}
+          contentContainerStyle={styles.content}
+          data={displayItems}
+          keyExtractor={(item) => item.id}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={renderHeader}
+          onDragEnd={({ data }) => setServicesDraft(data)}
+          refreshControl={
+            <RefreshControl
+              colors={[colors.accent]}
+              onRefresh={catalog.refetch}
+              refreshing={catalog.isFetching && !catalog.isLoading}
+              tintColor={colors.accent}
             />
-          ))
-        )}
-      </ScrollView>
+          }
+          renderItem={({ item, getIndex, drag, isActive }) =>
+            renderCard(item, getIndex?.() ?? 0, drag, isActive)
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              colors={[colors.accent]}
+              onRefresh={catalog.refetch}
+              refreshing={catalog.isFetching && !catalog.isLoading}
+              tintColor={colors.accent}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {renderHeader()}
+          {catalog.isLoading ? (
+            <ServicesCardsSkeleton />
+          ) : displayItems.length === 0 ? (
+            <View
+              style={[
+                styles.emptyState,
+                { borderColor: colors.border, backgroundColor: colors.cardSurface },
+              ]}
+            >
+              <AppText style={[styles.emptyText, { color: colors.textMuted }]}>
+                {activeCopy.emptyLabel}
+              </AppText>
+            </View>
+          ) : (
+            displayItems.map((item, index) => renderCard(item, index))
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -191,6 +255,21 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 14,
   },
+  sortHint: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  sortModeBanner: {
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: 'row',
+    marginBottom: 10,
+    marginTop: -2,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
   actionCell: {
     flex: 1,
     flexBasis: 0,
@@ -208,5 +287,14 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  errorBlock: {
+    marginBottom: 12,
+  },
+  skeletonList: {
+    gap: 12,
+  },
+  skeletonCard: {
+    marginBottom: 0,
   },
 });

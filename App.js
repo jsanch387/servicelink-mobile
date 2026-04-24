@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/features/auth';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
@@ -24,13 +25,15 @@ function AppShell() {
 
 export default function App() {
   return (
-    <ThemeProvider initialScheme="dark">
-      <TypographyProvider>
-        <QueryClientProvider client={queryClient}>
-          <AppShell />
-        </QueryClientProvider>
-      </TypographyProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <ThemeProvider initialScheme="dark">
+        <TypographyProvider>
+          <QueryClientProvider client={queryClient}>
+            <AppShell />
+          </QueryClientProvider>
+        </TypographyProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
