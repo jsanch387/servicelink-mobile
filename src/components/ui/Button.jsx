@@ -33,6 +33,7 @@ export function Button({
   iconPosition = 'left',
   iconSize = 18,
   iconColor,
+  labelColor,
   style,
   ...rest
 }) {
@@ -131,24 +132,26 @@ export function Button({
           textColor = colors.accent;
         }
 
+        const resolvedTextColor = labelColor ?? textColor;
+
         return (
-          <View style={[faceStyle, isBusy && styles.busy]}>
+          <View style={[faceStyle, disabled && !loading && styles.busy]}>
             {loading ? (
               <ActivityIndicator color={spinnerColor} />
             ) : (
               <View style={styles.contentRow}>
                 {iconName && iconPosition === 'left' ? (
                   <Ionicons
-                    color={iconColor ?? textColor}
+                    color={iconColor ?? resolvedTextColor}
                     name={iconName}
                     size={iconSize}
                     style={styles.iconLeft}
                   />
                 ) : null}
-                <AppText style={[styles.label, { color: textColor }]}>{title}</AppText>
+                <AppText style={[styles.label, { color: resolvedTextColor }]}>{title}</AppText>
                 {iconName && iconPosition === 'right' ? (
                   <Ionicons
-                    color={iconColor ?? textColor}
+                    color={iconColor ?? resolvedTextColor}
                     name={iconName}
                     size={iconSize}
                     style={styles.iconRight}

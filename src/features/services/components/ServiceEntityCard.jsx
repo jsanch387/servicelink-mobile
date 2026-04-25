@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../components/ui';
@@ -29,6 +30,8 @@ export function ServiceEntityCard({
   metaUnderTitle = false,
   metaLabelOverride,
   fullWidthActions = false,
+  deleteDisabled = false,
+  toggleDisabled = false,
 }) {
   const { colors } = useTheme();
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -71,6 +74,156 @@ export function ServiceEntityCard({
     return () => animation.stop();
   }, [dragPulse, isSortMode]);
 
+  function handleSortLongPress() {
+    if (!isSortMode) return;
+    // Small native-feeling tactile tick when drag starts.
+    Haptics.selectionAsync().catch(() => {});
+    onDragStart?.();
+  }
+
+  const cardBody = (
+    <View style={styles.outerRow}>
+      {isSortMode ? (
+        <View style={styles.reorderCol}>
+          <AppText style={[styles.orderText, { color: colors.text }]}>{index + 1}</AppText>
+          <View style={styles.dragPill}>
+            <Animated.View style={{ opacity: dragPulse }}>
+              <Ionicons color="#22c55e" name="reorder-three-outline" size={18} />
+            </Animated.View>
+            <AppText style={styles.dragLabel}>Hold</AppText>
+          </View>
+        </View>
+      ) : null}
+
+      <View style={styles.contentCol}>
+        <View style={styles.headerRow}>
+          <View style={styles.titleWrap}>
+            <AppText numberOfLines={1} style={[styles.name, { color: colors.text }]}>
+              {item.name}
+            </AppText>
+            {metaUnderTitle && metaLabel ? (
+              <AppText style={[styles.metaInline, { color: colors.textMuted }]}>
+                {metaLabel}
+              </AppText>
+            ) : null}
+          </View>
+          <View style={styles.priceWrap}>
+            {showPriceCaption ? (
+              <AppText style={[styles.priceCaption, { color: colors.textMuted }]}>
+                Starting at
+              </AppText>
+            ) : null}
+            <AppText style={[styles.price, { color: colors.text }]}>{item.priceLabel}</AppText>
+          </View>
+        </View>
+
+        {showHeaderDivider ? (
+          <View style={[styles.headerDivider, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
+        ) : null}
+
+        {!metaUnderTitle && !isSortMode ? (
+          <View style={styles.metaRow}>
+            <AppText style={[styles.meta, { color: colors.textMuted }]}>{metaLabel}</AppText>
+          </View>
+        ) : null}
+
+        {showDescription ? (
+          <View style={styles.descriptionWrap}>
+            <AppText style={[styles.description, { color: colors.textMuted }]}>
+              {previewDescription}
+            </AppText>
+            {isLongDescription ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setIsDescriptionExpanded((value) => !value)}
+                style={styles.seeMoreRow}
+              >
+                <Ionicons
+                  color={colors.textMuted}
+                  name={isDescriptionExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={14}
+                />
+                <AppText style={[styles.seeMoreText, { color: colors.textMuted }]}>
+                  {isDescriptionExpanded ? 'See less' : 'See more'}
+                </AppText>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+
+        {!isSortMode ? (
+          <View
+            style={[
+              styles.bottomRow,
+              fullWidthActions ? styles.bottomRowWide : styles.bottomRowCompact,
+            ]}
+          >
+            <View
+              style={[
+                styles.actionButtonsRow,
+                fullWidthActions ? styles.actionButtonsRowWide : styles.actionButtonsRowCompact,
+              ]}
+            >
+              <Pressable
+                accessibilityRole="button"
+                onPress={onEdit}
+                style={[
+                  styles.actionButton,
+                  fullWidthActions ? styles.actionButtonWide : styles.actionButtonCompact,
+                  { borderColor: 'rgba(255,255,255,0.2)' },
+                ]}
+              >
+                <Ionicons color={EDIT_ACCENT} name="create-outline" size={16} />
+                <AppText
+                  style={[
+                    styles.actionText,
+                    fullWidthActions ? styles.actionTextWide : styles.actionTextCompact,
+                    { color: EDIT_ACCENT },
+                  ]}
+                >
+                  Edit
+                </AppText>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={deleteDisabled}
+                onPress={onDelete}
+                style={[
+                  styles.actionButton,
+                  fullWidthActions ? styles.actionButtonWide : styles.actionButtonCompact,
+                  { borderColor: 'rgba(255,255,255,0.2)' },
+                ]}
+              >
+                <Ionicons color={DELETE_ACCENT} name="trash-outline" size={16} />
+                <AppText
+                  style={[
+                    styles.actionText,
+                    fullWidthActions ? styles.actionTextWide : styles.actionTextCompact,
+                    { color: DELETE_ACCENT },
+                  ]}
+                >
+                  Delete
+                </AppText>
+              </Pressable>
+            </View>
+
+            {showToggle ? (
+              <View style={styles.toggleWrap}>
+                <Switch
+                  disabled={toggleDisabled}
+                  onValueChange={onToggleEnabled}
+                  thumbColor={item.isEnabled ? '#f8fafc' : '#f4f4f5'}
+                  trackColor={{ false: colors.borderStrong, true: '#10b981' }}
+                  value={item.isEnabled}
+                />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+
   return (
     <SurfaceCard
       padding="none"
@@ -85,149 +238,18 @@ export function ServiceEntityCard({
         isDragActive && { transform: [{ scale: 1.01 }], opacity: 0.92 },
       ]}
     >
-      <View style={styles.outerRow}>
-        {isSortMode ? (
-          <View style={styles.reorderCol}>
-            <AppText style={[styles.orderText, { color: colors.text }]}>{index + 1}</AppText>
-            <Pressable
-              accessibilityRole="button"
-              delayLongPress={120}
-              onLongPress={onDragStart}
-              style={styles.dragPill}
-            >
-              <Animated.View style={{ opacity: dragPulse }}>
-                <Ionicons color="#22c55e" name="reorder-three-outline" size={18} />
-              </Animated.View>
-              <AppText style={styles.dragLabel}>Drag</AppText>
-            </Pressable>
-          </View>
-        ) : null}
-
-        <View style={styles.contentCol}>
-          <View style={styles.headerRow}>
-            <View style={styles.titleWrap}>
-              <AppText numberOfLines={1} style={[styles.name, { color: colors.text }]}>
-                {item.name}
-              </AppText>
-              {metaUnderTitle ? (
-                <AppText style={[styles.metaInline, { color: colors.textMuted }]}>
-                  {metaLabel}
-                </AppText>
-              ) : null}
-            </View>
-            <View style={styles.priceWrap}>
-              {showPriceCaption ? (
-                <AppText style={[styles.priceCaption, { color: colors.textMuted }]}>
-                  Starting at
-                </AppText>
-              ) : null}
-              <AppText style={[styles.price, { color: colors.text }]}>{item.priceLabel}</AppText>
-            </View>
-          </View>
-
-          {showHeaderDivider ? (
-            <View style={[styles.headerDivider, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
-          ) : null}
-
-          {!metaUnderTitle && !isSortMode ? (
-            <View style={styles.metaRow}>
-              <AppText style={[styles.meta, { color: colors.textMuted }]}>{metaLabel}</AppText>
-            </View>
-          ) : null}
-
-          {showDescription ? (
-            <View style={styles.descriptionWrap}>
-              <AppText style={[styles.description, { color: colors.textMuted }]}>
-                {previewDescription}
-              </AppText>
-              {isLongDescription ? (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setIsDescriptionExpanded((value) => !value)}
-                  style={styles.seeMoreRow}
-                >
-                  <Ionicons
-                    color={colors.textMuted}
-                    name={isDescriptionExpanded ? 'chevron-up' : 'chevron-down'}
-                    size={14}
-                  />
-                  <AppText style={[styles.seeMoreText, { color: colors.textMuted }]}>
-                    {isDescriptionExpanded ? 'See less' : 'See more'}
-                  </AppText>
-                </Pressable>
-              ) : null}
-            </View>
-          ) : null}
-
-          {!isSortMode ? (
-            <View
-              style={[
-                styles.bottomRow,
-                fullWidthActions ? styles.bottomRowWide : styles.bottomRowCompact,
-              ]}
-            >
-              <View
-                style={[
-                  styles.actionButtonsRow,
-                  fullWidthActions ? styles.actionButtonsRowWide : styles.actionButtonsRowCompact,
-                ]}
-              >
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={onEdit}
-                  style={[
-                    styles.actionButton,
-                    fullWidthActions ? styles.actionButtonWide : styles.actionButtonCompact,
-                    { borderColor: 'rgba(255,255,255,0.2)' },
-                  ]}
-                >
-                  <Ionicons color={EDIT_ACCENT} name="create-outline" size={16} />
-                  <AppText
-                    style={[
-                      styles.actionText,
-                      fullWidthActions ? styles.actionTextWide : styles.actionTextCompact,
-                      { color: EDIT_ACCENT },
-                    ]}
-                  >
-                    Edit
-                  </AppText>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={onDelete}
-                  style={[
-                    styles.actionButton,
-                    fullWidthActions ? styles.actionButtonWide : styles.actionButtonCompact,
-                    { borderColor: 'rgba(255,255,255,0.2)' },
-                  ]}
-                >
-                  <Ionicons color={DELETE_ACCENT} name="trash-outline" size={16} />
-                  <AppText
-                    style={[
-                      styles.actionText,
-                      fullWidthActions ? styles.actionTextWide : styles.actionTextCompact,
-                      { color: DELETE_ACCENT },
-                    ]}
-                  >
-                    Delete
-                  </AppText>
-                </Pressable>
-              </View>
-
-              {showToggle ? (
-                <View style={styles.toggleWrap}>
-                  <Switch
-                    onValueChange={onToggleEnabled}
-                    thumbColor={item.isEnabled ? '#f8fafc' : '#f4f4f5'}
-                    trackColor={{ false: colors.borderStrong, true: '#10b981' }}
-                    value={item.isEnabled}
-                  />
-                </View>
-              ) : null}
-            </View>
-          ) : null}
-        </View>
-      </View>
+      {isSortMode ? (
+        <Pressable
+          accessibilityRole="button"
+          delayLongPress={120}
+          onLongPress={handleSortLongPress}
+          style={styles.sortModePressable}
+        >
+          {cardBody}
+        </Pressable>
+      ) : (
+        cardBody
+      )}
     </SurfaceCard>
   );
 }
@@ -242,6 +264,9 @@ const styles = StyleSheet.create({
   },
   outerRow: {
     flexDirection: 'row',
+  },
+  sortModePressable: {
+    width: '100%',
   },
   reorderCol: {
     alignItems: 'center',

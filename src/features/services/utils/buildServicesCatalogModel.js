@@ -1,3 +1,8 @@
+import {
+  formatAddonDurationMinutes,
+  minutesToServiceDurationHHmm,
+} from '../../../components/ui/durationTime';
+
 function numberOrNull(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
@@ -121,11 +126,19 @@ export function buildServicesCatalogModel(servicesRows, addonsRows, assignmentRo
       const sortOrder = pick(row, ['sort_order', 'display_order', 'position']);
       const createdAt = pick(row, ['created_at', 'createdAt']);
 
+      const priceInput =
+        priceCents != null && Number.isFinite(Number(priceCents)) && Number(priceCents) >= 0
+          ? (Number(priceCents) / 100).toFixed(2)
+          : '';
+
       return {
         id: id || `addon-${name}`,
         name,
-        durationLabel: formatDurationLabel(durationMinutes, true),
+        durationLabel: formatAddonDurationMinutes(durationMinutes),
         priceLabel: `+${formatPriceLabel(priceCents)}`,
+        /** Raw price for editor forms (no $). */
+        price: priceInput,
+        durationHHmm: minutesToServiceDurationHHmm(durationMinutes) || '',
         isEnabled: isActiveFromRow(row),
         sortOrder: numberOrNull(sortOrder),
         createdAt: typeof createdAt === 'string' ? createdAt : null,
@@ -136,8 +149,11 @@ export function buildServicesCatalogModel(servicesRows, addonsRows, assignmentRo
   return { services, addons };
 }
 
+/** Strip legacy "+" prefix from duration copy on cards. */
 export function normalizeAddonDurationLabelForCard(durationLabel) {
-  return String(durationLabel ?? '').replace(/(\+?\d+)\s*m\b/gi, '$1 min');
+  return String(durationLabel ?? '')
+    .replace(/^\+\s*/, '')
+    .trim();
 }
 
 export function deriveServicesSummary(model) {

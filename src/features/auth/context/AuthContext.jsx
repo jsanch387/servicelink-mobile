@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
       setIsReady(true);
     });
 
-    const { data: subscription } = onAuthStateChange((event, nextSession) => {
+    const { data } = onAuthStateChange((event, nextSession) => {
       if (event === 'SIGNED_OUT') {
         queryClient.clear();
       }
@@ -39,7 +39,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       active = false;
-      subscription.unsubscribe();
+      data?.subscription?.unsubscribe?.();
     };
   }, []);
 

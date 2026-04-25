@@ -1,18 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
+import { useAuth } from '../../auth';
+import { AddonEditorSheet } from '../components/AddonEditorSheet';
+import { ServiceCreateSheet } from '../components/ServiceCreateSheet';
 import {
   ENTITY_VIEW_ADDONS,
   ENTITY_VIEW_SERVICES,
   SegmentedEntityToggle,
 } from '../components/SegmentedEntityToggle';
 import { ServiceEntityCard } from '../components/ServiceEntityCard';
+import { useCreateBusinessService } from '../hooks/useCreateBusinessService';
+import { useDeleteBusinessService } from '../hooks/useDeleteBusinessService';
+import { useDeleteServiceAddon } from '../hooks/useDeleteServiceAddon';
+import { useMutateServiceAddon } from '../hooks/useMutateServiceAddon';
+import { useSaveBusinessServicesOrder } from '../hooks/useSaveBusinessServicesOrder';
 import { useServicesCatalog } from '../hooks/useServicesCatalog';
+import { useUpdateBusinessServiceActive } from '../hooks/useUpdateBusinessServiceActive';
 import { normalizeAddonDurationLabelForCard } from '../utils/buildServicesCatalogModel';
+import { normalizeAddonDurationHHmm } from '../utils/serviceAddonModel';
 
 function sectionCopy(view) {
   if (view === ENTITY_VIEW_ADDONS) {
@@ -48,11 +60,18 @@ function ServicesCardsSkeleton() {
 }
 
 export function ServicesScreen() {
+  const { user } = useAuth();
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const catalog = useServicesCatalog();
   const [selectedView, setSelectedView] = useState(ENTITY_VIEW_SERVICES);
   const [isSortMode, setIsSortMode] = useState(false);
   const [servicesDraft, setServicesDraft] = useState([]);
+  const [addonSheetOpen, setAddonSheetOpen] = useState(false);
+  const [editingAddonId, setEditingAddonId] = useState(null);
+  const [addonSheetError, setAddonSheetError] = useState('');
+  const [serviceSheetOpen, setServiceSheetOpen] = useState(false);
+  const [serviceSheetError, setServiceSheetError] = useState('');
   const isServicesView = selectedView === ENTITY_VIEW_SERVICES;
   const activeItems = isServicesView ? servicesDraft : catalog.addons;
   const activeCopy = sectionCopy(selectedView);
@@ -66,6 +85,39 @@ export function ServicesScreen() {
     [activeItems.length, selectedView],
   );
 
+  const { mutateAddon, isSavingAddon } = useMutateServiceAddon({
+    businessId: catalog.businessId,
+    userId: user?.id,
+    serviceId: null,
+  });
+  const { deleteAddon, isDeletingAddon } = useDeleteServiceAddon({
+    businessId: catalog.businessId,
+    userId: user?.id,
+    serviceId: null,
+  });
+  const { deleteService, isDeletingService, deleteServiceVariables } = useDeleteBusinessService({
+    businessId: catalog.businessId,
+    userId: user?.id,
+  });
+  const { createService, isCreatingService } = useCreateBusinessService({
+    businessId: catalog.businessId,
+    userId: user?.id,
+  });
+  const { setServiceActive, isTogglingServiceActive, toggleServiceVariables } =
+    useUpdateBusinessServiceActive({
+      businessId: catalog.businessId,
+      userId: user?.id,
+    });
+  const { saveServicesOrder, isSavingServicesOrder } = useSaveBusinessServicesOrder({
+    businessId: catalog.businessId,
+    userId: user?.id,
+  });
+
+  const editingAddon = useMemo(() => {
+    if (isServicesView || !editingAddonId) return null;
+    return activeItems.find((a) => a.id === editingAddonId) ?? null;
+  }, [activeItems, editingAddonId, isServicesView]);
+
   const displayItems = useMemo(() => {
     if (!isServicesView || !isSortMode) {
       return activeItems;
@@ -76,6 +128,167 @@ export function ServicesScreen() {
   function handleViewChange(nextView) {
     setSelectedView(nextView);
     setIsSortMode(false);
+    setAddonSheetOpen(false);
+    setEditingAddonId(null);
+    setAddonSheetError('');
+    setServiceSheetOpen(false);
+    setServiceSheetError('');
+  }
+
+  function openAddServiceSheet() {
+    setServiceSheetError('');
+    setServiceSheetOpen(true);
+  }
+
+  function openAddAddonSheet() {
+    setEditingAddonId(null);
+    setAddonSheetError('');
+    setAddonSheetOpen(true);
+  }
+
+  function openEditAddonSheet(addonId) {
+    setEditingAddonId(addonId);
+    setAddonSheetError('');
+    setAddonSheetOpen(true);
+  }
+
+  async function handleAddonSheetSave({ name, price, durationHHmm }) {
+    if (!catalog.businessId) {
+      setAddonSheetError('Missing business context.');
+      return;
+    }
+    try {
+      setAddonSheetError('');
+      const normalizedDuration = normalizeAddonDurationHHmm(durationHHmm);
+      if (editingAddonId) {
+        await mutateAddon({
+          mode: 'update',
+          addonId: editingAddonId,
+          name,
+          price,
+          durationHHmm: normalizedDuration,
+        });
+      } else {
+        await mutateAddon({
+          mode: 'create',
+          name,
+          price,
+          durationHHmm: normalizedDuration,
+        });
+      }
+      setAddonSheetOpen(false);
+      setEditingAddonId(null);
+    } catch (err) {
+      setAddonSheetError(err?.message ?? 'Could not save add-on');
+    }
+  }
+
+  function confirmDeleteAddon(item) {
+    Alert.alert(
+      'Remove add-on?',
+      'This add-on will be deleted. It will be removed from any services that use it. This cannot be undone.',
+      [
+        { style: 'cancel', text: 'Cancel' },
+        {
+          style: 'destructive',
+          text: 'Delete',
+          onPress: () => {
+            void handleDeleteAddon(item);
+          },
+        },
+      ],
+    );
+  }
+
+  async function handleDeleteAddon(item) {
+    try {
+      await deleteAddon({ addonId: item.id });
+      if (editingAddonId === item.id) {
+        setAddonSheetOpen(false);
+        setEditingAddonId(null);
+      }
+    } catch (err) {
+      Alert.alert('Could not delete', err?.message ?? 'Please try again.');
+    }
+  }
+
+  function confirmDeleteService(item) {
+    Alert.alert('Remove service?', 'This service will be deleted. This cannot be undone.', [
+      { style: 'cancel', text: 'Cancel' },
+      {
+        style: 'destructive',
+        text: 'Delete',
+        onPress: () => {
+          void handleDeleteService(item);
+        },
+      },
+    ]);
+  }
+
+  async function handleDeleteService(item) {
+    if (!catalog.businessId) return;
+    try {
+      await deleteService({ serviceId: item.id });
+    } catch (err) {
+      Alert.alert('Could not delete', err?.message ?? 'Please try again.');
+    }
+  }
+
+  async function handleToggleServiceActive(item, nextActive) {
+    if (!catalog.businessId) return;
+    try {
+      await setServiceActive({ serviceId: item.id, isActive: nextActive });
+    } catch (err) {
+      Alert.alert('Could not update', err?.message ?? 'Please try again.');
+    }
+  }
+
+  async function handleServiceSheetSave({ name, description, price, durationHHmm }) {
+    if (!catalog.businessId) {
+      setServiceSheetError('Missing business context.');
+      return;
+    }
+    try {
+      setServiceSheetError('');
+      await createService({ name, description, price, durationHHmm });
+      setServiceSheetOpen(false);
+    } catch (err) {
+      setServiceSheetError(err?.message ?? 'Could not create service.');
+    }
+  }
+
+  const hasOrderChanges = useMemo(() => {
+    if (!isServicesView) return false;
+    const base = (catalog.services ?? []).map((s) => s.id);
+    const draft = (servicesDraft ?? []).map((s) => s.id);
+    if (base.length !== draft.length) return false;
+    for (let i = 0; i < base.length; i += 1) {
+      if (base[i] !== draft[i]) return true;
+    }
+    return false;
+  }, [catalog.services, isServicesView, servicesDraft]);
+
+  async function handleSortModeAction() {
+    if (!isSortMode) {
+      setIsSortMode(true);
+      return;
+    }
+    if (!catalog.businessId) {
+      Alert.alert('Could not save order', 'Missing business context.');
+      return;
+    }
+    if (!hasOrderChanges) {
+      setIsSortMode(false);
+      return;
+    }
+    try {
+      await saveServicesOrder({
+        orderedServiceIds: servicesDraft.map((s) => s.id),
+      });
+      setIsSortMode(false);
+    } catch (err) {
+      Alert.alert('Could not save order', err?.message ?? 'Please try again.');
+    }
   }
 
   function renderHeader() {
@@ -98,20 +311,32 @@ export function ServicesScreen() {
               iconName="add"
               title={activeCopy.addLabel}
               variant="surfaceLight"
-              onPress={() => {}}
+              onPress={() => {
+                if (isServicesView) {
+                  openAddServiceSheet();
+                  return;
+                }
+                openAddAddonSheet();
+              }}
             />
           </View>
           {isServicesView ? (
             <View style={styles.actionCell}>
               <Button
-                disabled={catalog.isLoading || displayItems.length <= 1}
+                disabled={
+                  catalog.isLoading ||
+                  displayItems.length <= 1 ||
+                  (isSortMode && isSavingServicesOrder)
+                }
                 fullWidth
-                iconColor={colors.textMuted}
-                iconName="swap-vertical-outline"
-                outlineColor={colors.borderStrong}
+                iconColor={isSortMode ? '#000000' : colors.textMuted}
+                iconName={isSortMode ? 'checkmark' : 'swap-vertical-outline'}
+                outlineColor={isSortMode ? undefined : colors.borderStrong}
                 title={isSortMode ? 'Save order' : 'Sort order'}
-                variant="outline"
-                onPress={() => setIsSortMode((value) => !value)}
+                variant={isSortMode ? 'surfaceLight' : 'outline'}
+                onPress={() => {
+                  void handleSortModeAction();
+                }}
               />
             </View>
           ) : null}
@@ -150,10 +375,28 @@ export function ServicesScreen() {
       isSortMode={isServicesView && isSortMode}
       item={item}
       key={item.id}
-      onDelete={() => {}}
+      onDelete={() => {
+        if (isServicesView) {
+          confirmDeleteService(item);
+          return;
+        }
+        confirmDeleteAddon(item);
+      }}
       onDragStart={onDragStart}
-      onEdit={() => {}}
-      onToggleEnabled={() => {}}
+      onEdit={() => {
+        if (isServicesView) {
+          navigation.navigate(ROUTES.SERVICES_EDIT, {
+            service: item,
+            serviceId: item.id,
+          });
+          return;
+        }
+        openEditAddonSheet(item.id);
+      }}
+      onToggleEnabled={(next) => {
+        if (!isServicesView) return;
+        void handleToggleServiceActive(item, next);
+      }}
       showDescription={isServicesView && !isSortMode}
       showHeaderDivider={isServicesView}
       showPriceCaption={isServicesView}
@@ -161,7 +404,16 @@ export function ServicesScreen() {
       metaUnderTitle={!isServicesView}
       fullWidthActions={!isServicesView}
       metaLabelOverride={
-        !isServicesView ? normalizeAddonDurationLabelForCard(item.durationLabel) : undefined
+        !isServicesView
+          ? normalizeAddonDurationLabelForCard(item.durationLabel) || undefined
+          : undefined
+      }
+      deleteDisabled={
+        (isServicesView && isDeletingService && deleteServiceVariables?.serviceId === item.id) ||
+        (!isServicesView && isDeletingAddon)
+      }
+      toggleDisabled={
+        isServicesView && isTogglingServiceActive && toggleServiceVariables?.serviceId === item.id
       }
     />
   );
@@ -226,6 +478,34 @@ export function ServicesScreen() {
           )}
         </ScrollView>
       )}
+      <AddonEditorSheet
+        allowBackdropClose={false}
+        initialDurationHHmm={editingAddon?.durationHHmm ?? ''}
+        initialName={editingAddon?.name ?? ''}
+        initialPrice={editingAddon?.price ?? ''}
+        isSaving={isSavingAddon}
+        primaryButtonTitle={editingAddonId ? 'Save' : 'Save add-on'}
+        submitError={addonSheetError}
+        title={editingAddonId ? 'Edit add-on' : 'Add new add-on'}
+        visible={!isServicesView && addonSheetOpen}
+        onRequestClose={() => {
+          setAddonSheetOpen(false);
+          setEditingAddonId(null);
+          setAddonSheetError('');
+        }}
+        onSave={handleAddonSheetSave}
+      />
+      <ServiceCreateSheet
+        allowBackdropClose={false}
+        isSaving={isCreatingService}
+        submitError={serviceSheetError}
+        visible={isServicesView && serviceSheetOpen}
+        onRequestClose={() => {
+          setServiceSheetOpen(false);
+          setServiceSheetError('');
+        }}
+        onSave={handleServiceSheetSave}
+      />
     </SafeAreaView>
   );
 }

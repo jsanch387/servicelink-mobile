@@ -7,6 +7,7 @@ It is a **read-only reference** for implementation alignment and should not be e
 ## Primary App Tables
 
 ### `business_profiles`
+
 - `id` (PK)
 - `profile_id` (FK -> `profiles.user_id`)
 - `business_name` (text, required)
@@ -15,6 +16,7 @@ It is a **read-only reference** for implementation alignment and should not be e
 - contact/branding fields (`phone_number_call`, `phone_number_text`, `logo_path`, `banner_path`)
 
 ### `bookings`
+
 - `id` (PK)
 - `business_id` (FK -> `business_profiles.id`)
 - scheduling: `scheduled_date`, `start_time`, `duration_minutes`
@@ -28,6 +30,7 @@ It is a **read-only reference** for implementation alignment and should not be e
 - `status` in `confirmed | completed | cancelled`
 
 ### `booking_requests`
+
 - lead/request intake table before confirmation
 - vehicle fields:
   - `customer_vehicle_year`
@@ -36,38 +39,74 @@ It is a **read-only reference** for implementation alignment and should not be e
 - `status` in `pending | approved | declined | cancelled`
 
 ### `business_services`
+
 - service catalog per business
 - includes price and duration (`price_cents`, `duration_minutes`)
 
 ### `customers`
+
 - customer CRM table (`full_name`, `phone`, `email`, `notes`)
 
 ## Payments
 
 ### `payment_accounts`
+
 - per-business connected Stripe account
 - onboarding and capability flags (`charges_enabled`, `payouts_enabled`)
 
 ### `payment_settings`
+
 - per-business checkout/deposit behavior
 - includes `payments_enabled`, `deposit_type`, `deposit_value`
 
 ## Quotes
 
 ### `quotes`
+
 - supports pricing, schedule proposal, and status lifecycle
 - includes vehicle fields (`vehicle_year`, `vehicle_make`, `vehicle_model`)
 
 ### `quote_public_links`
+
 - tokenized public link records for quote response flow
 
 ## Add-ons / Service Options
 
-### `service_addons`
-### `service_addon_assignments`
 ### `service_price_options`
 
-These support optional add-ons and multi-price-tier service configurations.
+Per-service pricing tiers (e.g. Truck vs SUV). **Human-readable tier title is `label` (not `name`).**
+
+- `id` (uuid, PK, default `gen_random_uuid()`)
+- `service_id` (uuid, FK → `business_services.id`, on delete CASCADE)
+- `business_id` (uuid, FK → `business_profiles.id`, on delete CASCADE) — synced from `service_id` via trigger `trg_service_price_options_sync_business`
+- `label` (text, NOT NULL, trimmed length 1–80)
+- `price_cents` (integer, NOT NULL, ≥ 0)
+- `duration_minutes` (integer, NOT NULL, **CHECK `> 0`**)
+- `sort_order` (integer, NOT NULL, default 0, ≥ 0)
+- `is_active` (boolean, NOT NULL, default true)
+- `created_at`, `updated_at` (timestamptz, NOT NULL; `updated_at` maintained by `trg_service_price_options_updated_at`)
+
+Indexes (examples): `(service_id, sort_order)`, `(business_id)`, partial `(service_id) WHERE is_active = true`.
+
+### `service_addons`
+
+Business-wide add-on catalog (not tied to a single service until assigned).
+
+- `id` (uuid, PK)
+- `business_id` (uuid, FK → `business_profiles.id`, on delete CASCADE)
+- `name` (text, NOT NULL)
+- `price_cents` (integer, NOT NULL, default 0)
+- `duration_minutes` (integer, **nullable** — extra time optional)
+- `created_at`, `updated_at` (timestamptz)
+
+### `service_addon_assignments`
+
+Maps which add-ons apply to which service. **Composite PK only; there is no `business_id` column.**
+
+- `service_id` (uuid, FK → `business_services.id`, on delete CASCADE)
+- `addon_id` (uuid, FK → `service_addons.id`, on delete CASCADE)
+- `created_at` (timestamptz, NOT NULL)
+- Primary key: `(service_id, addon_id)`
 
 ## Other Supporting Tables
 

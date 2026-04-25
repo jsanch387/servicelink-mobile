@@ -17,9 +17,11 @@ export const ROUTES = {
   CUSTOMER_DETAILS: 'CustomerDetails',
   SERVICES: 'Services',
   SERVICES_LIST: 'ServicesList',
+  SERVICES_EDIT: 'ServicesEdit',
   PAYMENTS: 'Payments',
   /** Bottom tab: More (settings, business tools, support) */
   MORE: 'More',
+  MORE_HOME: 'MoreHome',
 };
 
 export const PATHS = {
@@ -34,8 +36,10 @@ export const PATHS = {
   CUSTOMER_DETAILS: '/customers/:customerId',
   SERVICES: '/services',
   SERVICES_LIST: '/services/list',
+  SERVICES_EDIT: '/services/:serviceId/edit',
   PAYMENTS: '/payments',
   MORE: '/more',
+  MORE_HOME: '/more/home',
 };
 
 /** Bottom tabs: order, labels, and Ionicons glyph names. */

@@ -25,10 +25,12 @@ export function SelectField({
   options,
   value,
   onValueChange,
+  triggerStyle,
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
+  const [pressed, setPressed] = useState(false);
 
   const selectedLabel = useMemo(() => {
     const hit = options.find((o) => o.value === value);
@@ -52,25 +54,30 @@ export function SelectField({
           marginBottom: 8,
         },
         trigger: {
+          alignSelf: 'stretch',
+          width: '100%',
+        },
+        triggerShell: {
           alignItems: 'center',
-          backgroundColor: colors.inputBg,
-          borderColor: colors.inputBorder,
-          borderRadius: 14,
-          borderWidth: 1.5,
+          backgroundColor: colors.cardSurface,
+          borderColor: pressed ? colors.borderStrong : colors.inputBorder,
+          borderRadius: 16,
+          borderWidth: pressed ? 1.5 : 1,
           flexDirection: 'row',
-          justifyContent: 'space-between',
-          minHeight: 52,
-          paddingHorizontal: 16,
-          paddingVertical: 12,
+          minHeight: 40,
+          paddingHorizontal: 10,
+          paddingVertical: 6,
         },
         triggerText: {
-          color: colors.inputText,
+          color: colors.text,
           flex: 1,
-          fontSize: 16,
-          fontWeight: '600',
-          letterSpacing: -0.2,
-          marginRight: 10,
-          minWidth: 0,
+          fontSize: 15,
+          fontWeight: '500',
+          minHeight: 34,
+          paddingLeft: 6,
+          paddingRight: 10,
+          paddingVertical: Platform.select({ android: 6, default: 8 }),
+          textAlign: 'left',
         },
         triggerPlaceholder: {
           color: colors.placeholder,
@@ -162,8 +169,14 @@ export function SelectField({
           color: colors.textMuted,
           fontWeight: '500',
         },
+        triggerIconWrap: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: 2,
+          width: 24,
+        },
       }),
-    [colors, insets.bottom],
+    [colors, insets.bottom, pressed],
   );
 
   const onSelect = useCallback(
@@ -182,16 +195,22 @@ export function SelectField({
         accessibilityLabel={`${label ? `${label}. ` : ''}Currently ${selectedLabel ?? placeholder}. Tap to change.`}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
         onPress={() => setOpen(true)}
-        style={({ pressed }) => [styles.trigger, pressed && { opacity: 0.9 }]}
+        style={({ pressed: pressedState }) => [styles.trigger, pressedState && { opacity: 0.9 }]}
       >
-        <AppText
-          numberOfLines={1}
-          style={[styles.triggerText, !selectedLabel && styles.triggerPlaceholder]}
-        >
-          {selectedLabel ?? placeholder}
-        </AppText>
-        <Ionicons color={colors.textMuted} name="chevron-down" size={22} />
+        <View style={[styles.triggerShell, triggerStyle]}>
+          <AppText
+            numberOfLines={1}
+            style={[styles.triggerText, !selectedLabel && styles.triggerPlaceholder]}
+          >
+            {selectedLabel ?? placeholder}
+          </AppText>
+          <View style={styles.triggerIconWrap}>
+            <Ionicons color={colors.textMuted} name="chevron-down" size={22} />
+          </View>
+        </View>
       </Pressable>
 
       <Modal
