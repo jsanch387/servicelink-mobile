@@ -17,9 +17,9 @@ const SURFACE_PADDING = StyleSheet.create({
 });
 
 /**
- * Flat panel using `cardSurface` — no border (outline removed for now).
+ * Flat panel using `cardSurface` with optional outline.
  */
-export function SurfaceCard({ children, style, padding = 'md', ...rest }) {
+export function SurfaceCard({ children, style, padding = 'md', outlined = true, ...rest }) {
   const { colors } = useTheme();
 
   return (
@@ -28,6 +28,7 @@ export function SurfaceCard({ children, style, padding = 'md', ...rest }) {
         styles.surface,
         SURFACE_PADDING[padding],
         { backgroundColor: colors.cardSurface },
+        outlined && { borderColor: colors.border, borderWidth: 1 },
         style,
       ]}
       {...rest}

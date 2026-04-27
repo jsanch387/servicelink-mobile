@@ -1,6 +1,10 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ROUTES } from '../../../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
+import { AvailabilityScreen } from '../../availability/screens/AvailabilityScreen';
+import { BookingLinkScreen } from '../../bookingLink/screens/BookingLinkScreen';
+import { PaymentsScreen } from '../../payments/screens/PaymentsScreen';
+import { QuotesScreen } from '../../quotes/screens/QuotesScreen';
 import { ServicesScreen } from '../../services';
 import { ServiceEditScreen } from '../../services/screens/ServiceEditScreen';
 import { MoreScreen } from '../screens/MoreScreen';
@@ -39,6 +43,42 @@ export function MoreNavigator() {
         name={ROUTES.SERVICES_EDIT}
         options={{
           title: 'Edit service',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={AvailabilityScreen}
+        name={ROUTES.AVAILABILITY}
+        options={{
+          title: 'Availability',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={QuotesScreen}
+        name={ROUTES.QUOTES}
+        options={{
+          title: 'Quotes',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={BookingLinkScreen}
+        name={ROUTES.BOOKING_LINK}
+        options={{
+          title: 'Booking link',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={PaymentsScreen}
+        name={ROUTES.MORE_PAYMENTS}
+        options={{
+          title: 'Payments',
           headerBackButtonDisplayMode: 'minimal',
           headerBackTitleVisible: false,
         }}

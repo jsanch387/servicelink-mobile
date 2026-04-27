@@ -62,6 +62,7 @@ export function Button({
       {({ pressed }) => {
         let faceStyle = styles.face;
         let textColor = colors.text;
+        let disabledFaceStyle = null;
 
         if (variant === 'primary') {
           faceStyle = [
@@ -92,6 +93,12 @@ export function Button({
             },
           ];
           textColor = SURFACE_LIGHT_TEXT;
+          disabledFaceStyle = [
+            {
+              backgroundColor: '#a1a1aa',
+              borderColor: SURFACE_LIGHT_BORDER,
+            },
+          ];
         } else if (variant === 'surfaceDark') {
           faceStyle = [
             styles.face,
@@ -132,10 +139,13 @@ export function Button({
           textColor = colors.accent;
         }
 
-        const resolvedTextColor = labelColor ?? textColor;
+        const resolvedTextColor =
+          disabled && !loading && variant === 'surfaceLight'
+            ? '#3f3f46'
+            : (labelColor ?? textColor);
 
         return (
-          <View style={[faceStyle, disabled && !loading && styles.busy]}>
+          <View style={[faceStyle, disabled && !loading && (disabledFaceStyle ?? styles.busy)]}>
             {loading ? (
               <ActivityIndicator color={spinnerColor} />
             ) : (

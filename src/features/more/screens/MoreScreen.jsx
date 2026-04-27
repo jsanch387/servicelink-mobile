@@ -83,13 +83,26 @@ export function MoreScreen() {
             label="Services"
             onPress={() => navigation.navigate(ROUTES.SERVICES_LIST)}
           />
-          <SettingsNavRow icon="time-outline" label="Availability" onPress={noopNav} />
-          <SettingsNavRow icon="document-text-outline" label="Quotes" onPress={noopNav} />
+          <SettingsNavRow
+            icon="time-outline"
+            label="Availability"
+            onPress={() => navigation.navigate(ROUTES.AVAILABILITY)}
+          />
+          <SettingsNavRow
+            icon="document-text-outline"
+            label="Quotes"
+            onPress={() => navigation.navigate(ROUTES.QUOTES)}
+          />
           <SettingsNavRow
             icon="link-outline"
             label="Booking link"
+            onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
+          />
+          <SettingsNavRow
+            icon="card-outline"
+            label="Payments"
             showDividerBelow={false}
-            onPress={noopNav}
+            onPress={() => navigation.navigate(ROUTES.MORE_PAYMENTS)}
           />
         </SettingsSection>
 
