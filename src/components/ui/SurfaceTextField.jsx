@@ -19,9 +19,11 @@ export function SurfaceTextField({
   placeholder,
   secureTextEntry: secureTextEntryProp,
   containerStyle,
+  maxLength: maxLengthProp,
   ...rest
 }) {
-  const { style: restInputStyle, ...inputRest } = rest;
+  const { style: restInputStyle, maxLength: maxLengthFromRest, ...inputRest } = rest;
+  const maxLength = maxLengthProp ?? maxLengthFromRest;
   const { colors } = useTheme();
   const inputTextStyle = useSurfaceInputTextStyle();
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -103,6 +105,7 @@ export function SurfaceTextField({
           secureTextEntry={secureTextEntry}
           style={[inputTextStyle, restInputStyle]}
           value={value}
+          maxLength={maxLength}
         />
       </SurfaceInputRow>
     </View>

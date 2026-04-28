@@ -1,15 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
-
-const SYSTEM_SANS_SERIF = Platform.select({
-  ios: 'System',
-  android: 'sans-serif',
-  default: 'sans-serif',
-});
+import {
+  SERVICE_CARD_TITLE_FONT_SIZE,
+  SERVICE_CARD_TITLE_SYSTEM_FONT,
+} from '../../../utils/serviceCardTypography';
 const EDIT_ACCENT = '#34d399';
 const DELETE_ACCENT = '#fb7185';
 const DESCRIPTION_PREVIEW_CHARS = 100;
@@ -308,8 +306,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   name: {
-    fontFamily: SYSTEM_SANS_SERIF,
-    fontSize: 17,
+    fontFamily: SERVICE_CARD_TITLE_SYSTEM_FONT,
+    fontSize: SERVICE_CARD_TITLE_FONT_SIZE,
     fontWeight: '900',
     marginBottom: 4,
   },
@@ -322,7 +320,7 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   price: {
-    fontFamily: SYSTEM_SANS_SERIF,
+    fontFamily: SERVICE_CARD_TITLE_SYSTEM_FONT,
     fontSize: 20,
     fontWeight: '900',
     lineHeight: 24,

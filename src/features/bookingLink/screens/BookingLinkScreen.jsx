@@ -1,176 +1,114 @@
-import { useMemo, useState } from 'react';
-import { Modal, StyleSheet, View } from 'react-native';
-import { AppText, Button, SurfaceTextField } from '../../../components/ui';
+import { useCallback, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useTheme } from '../../../theme';
+import { BookingLinkEditMode } from '../edit';
+import { useBookingLinkProfile } from '../hooks/useBookingLinkProfile';
+import { BookingLinkPreview } from '../preview/BookingLinkPreview';
+import { BookingLinkScreenSkeleton } from '../preview/components/BookingLinkScreenSkeleton';
+import { mapServicesForCards } from '../utils/bookingLinkModel';
+import { splitServiceAreaCityState } from '../utils/serviceArea';
 
 export function BookingLinkScreen() {
   const { colors } = useTheme();
-  const [isEditing, setIsEditing] = useState(false);
+  const { width } = useWindowDimensions();
+  const bookingProfile = useBookingLinkProfile();
+  const { profile, refetch: refetchBookingProfile } = bookingProfile;
+  const coverHeight = width >= 768 ? 256 : width >= 640 ? 224 : 192;
+  const [activeTab, setActiveTab] = useState('services');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const services = useMemo(() => mapServicesForCards(profile?.services), [profile?.services]);
+  const galleryImages = useMemo(
+    () => (profile?.images ?? []).filter((image) => Boolean(image?.preview_url)),
+    [profile?.images],
+  );
+  const businessNameDisplay = profile?.business_name?.trim() || 'Business Name';
+  const businessTypeDisplay = profile?.business_type?.trim() || 'Business type';
+  const businessNameEdit = profile?.business_name?.trim() ?? '';
+  const businessTypeEdit = profile?.business_type?.trim() ?? '';
+  const location = profile?.service_area?.trim() || 'Service area';
+  const bio = profile?.bio?.trim() || '';
+  const [city, state] = splitServiceAreaCityState(profile?.service_area);
+  const phoneNumber = profile?.phone_number_call?.trim() || '';
+  const coverImageUrl = profile?.cover_image_url || null;
+  const logoUrl = profile?.logo_url || null;
+  const coverImagePath = profile?.banner_path || null;
+  const logoPath = profile?.logo_path || null;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        container: {
+          backgroundColor: colors.shell,
+          flex: 1,
+        },
         root: {
           backgroundColor: colors.shell,
           flex: 1,
-          padding: 20,
         },
-        header: {
-          color: colors.text,
-          fontSize: 24,
-          fontWeight: '700',
-          marginBottom: 8,
-        },
-        subheader: {
-          color: colors.textMuted,
-          fontSize: 14,
-          marginBottom: 20,
-        },
-        profileCard: {
-          backgroundColor: colors.cardSurface,
-          borderColor: colors.border,
-          borderRadius: 14,
-          borderWidth: 1,
-          padding: 14,
-        },
-        rowLabel: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontWeight: '700',
-          marginBottom: 6,
-          marginTop: 12,
-          textTransform: 'uppercase',
-        },
-        rowValue: {
-          color: colors.text,
-          fontSize: 15,
-          fontWeight: '600',
-        },
-        badge: {
-          alignSelf: 'flex-start',
-          backgroundColor: colors.shell,
-          borderColor: colors.border,
-          borderRadius: 999,
-          borderWidth: 1,
-          marginBottom: 12,
-          paddingHorizontal: 10,
-          paddingVertical: 4,
-        },
-        badgeText: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontWeight: '700',
-        },
-        editCta: {
-          marginTop: 16,
-        },
-        modalBackdrop: {
-          alignItems: 'center',
-          backgroundColor: 'rgba(0,0,0,0.35)',
-          flex: 1,
-          justifyContent: 'center',
-          padding: 20,
-        },
-        modalCard: {
-          backgroundColor: colors.cardSurface,
-          borderColor: colors.borderStrong,
-          borderRadius: 16,
-          borderWidth: 1,
-          padding: 16,
-          width: '100%',
-        },
-        modalTitle: {
-          color: colors.text,
-          fontSize: 18,
-          fontWeight: '700',
-          marginBottom: 8,
-        },
-        modalBody: {
-          color: colors.textMuted,
-          fontSize: 14,
-          lineHeight: 20,
-          marginBottom: 14,
-        },
-        modalActions: {
-          flexDirection: 'row',
-          gap: 10,
-        },
-        modalAction: {
-          flex: 1,
+        scrollContent: {
+          paddingBottom: 28,
         },
       }),
     [colors],
   );
 
+  const handleEditSaved = useCallback(async () => {
+    await refetchBookingProfile();
+    setIsEditMode(false);
+  }, [refetchBookingProfile]);
+
+  const handleEditBack = useCallback(() => {
+    setIsEditMode(false);
+  }, []);
+
   return (
-    <View style={styles.root}>
-      <AppText style={styles.header}>Business profile</AppText>
-      <AppText style={styles.subheader}>
-        This is what customers see before they book your service.
-      </AppText>
-
-      <View style={styles.profileCard}>
-        <View style={styles.badge}>
-          <AppText style={styles.badgeText}>{isEditing ? 'Edit mode' : 'View mode'}</AppText>
-        </View>
-
-        {isEditing ? (
-          <>
-            <SurfaceTextField
-              label="Business name"
-              placeholder="Enter your business name"
-              value="ServiceLink Studio"
-              onChangeText={() => {}}
-            />
-            <SurfaceTextField
-              label="Tagline"
-              placeholder="Your short one-line intro"
-              value="Premium home services with fast response"
-              onChangeText={() => {}}
-            />
-          </>
-        ) : (
-          <>
-            <AppText style={styles.rowLabel}>Business name</AppText>
-            <AppText style={styles.rowValue}>ServiceLink Studio</AppText>
-
-            <AppText style={styles.rowLabel}>Tagline</AppText>
-            <AppText style={styles.rowValue}>Premium home services with fast response</AppText>
-          </>
-        )}
-
-        <View style={styles.editCta}>
-          <Button
-            title={isEditing ? 'Done editing' : 'Edit profile'}
-            variant={isEditing ? 'surfaceLight' : 'outline'}
-            onPress={() => setIsEditing((v) => !v)}
-          />
-        </View>
-      </View>
-
-      <Modal animationType="fade" transparent visible>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <AppText style={styles.modalTitle}>Your public booking profile</AppText>
-            <AppText style={styles.modalBody}>
-              This is your public booking profile. Add a logo and a cover photo to look more
-              professional, then edit your business info so customers trust you right away.
-            </AppText>
-            <View style={styles.modalActions}>
-              <View style={styles.modalAction}>
-                <Button title="Later" variant="outline" onPress={() => {}} />
-              </View>
-              <View style={styles.modalAction}>
-                <Button
-                  title="Edit profile"
-                  variant="surfaceLight"
-                  onPress={() => setIsEditing(true)}
-                />
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
+    <View style={styles.container}>
+      {isEditMode ? (
+        <BookingLinkEditMode
+          businessBio={bio}
+          businessCity={city}
+          businessId={profile?.id}
+          businessName={businessNameEdit}
+          businessState={state}
+          businessType={businessTypeEdit}
+          coverImageUrl={coverImageUrl}
+          coverImagePath={coverImagePath}
+          logoUrl={logoUrl}
+          logoPath={logoPath}
+          phoneNumber={phoneNumber}
+          portfolioImages={galleryImages}
+          onBack={handleEditBack}
+          onSaved={handleEditSaved}
+        />
+      ) : bookingProfile.isLoading ? (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={styles.root}
+        >
+          <BookingLinkScreenSkeleton coverHeight={coverHeight} />
+        </ScrollView>
+      ) : (
+        <BookingLinkPreview
+          activeTab={activeTab}
+          bio={bio}
+          businessName={businessNameDisplay}
+          businessType={businessTypeDisplay}
+          coverHeight={coverHeight}
+          coverImageUrl={coverImageUrl}
+          galleryImages={galleryImages}
+          location={location}
+          logoUrl={logoUrl}
+          onChangeTab={setActiveTab}
+          onPressEdit={() => setIsEditMode(true)}
+          onRefresh={refetchBookingProfile}
+          phoneNumber={phoneNumber}
+          queryState={bookingProfile}
+          services={services}
+          showVerifiedBadge={profile?.showVerifiedBadge ?? false}
+        />
+      )}
     </View>
   );
 }

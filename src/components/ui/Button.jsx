@@ -19,7 +19,9 @@ const DANGER_TEXT = '#ffffff';
 /**
  * Shared button — theme `primary` / `secondary` / `ghost`, plus fixed high-contrast pairs for
  * hero surfaces (e.g. Next up card): `surfaceLight` (white + black), `surfaceDark` (black + white),
- * `outline` (transparent + 2px border, uses `outlineColor` or theme text), and `danger`.
+ * `outline` (transparent + 2px border by default, uses `outlineColor` or theme text), and `danger`.
+ * Use `outlineThin` for a 1px outline (e.g. muted border + primary label via `labelColor`).
+ * Optional `outlineBg` adds a tone behind outline pills (pair with `outlineBgPressed` or defaults to `buttonSecondaryBgPressed`).
  */
 export function Button({
   title,
@@ -28,6 +30,13 @@ export function Button({
   disabled = false,
   loading = false,
   fullWidth = false,
+  /** Squarer corners (e.g. paired row actions) — overrides default 14px radius. */
+  squared = false,
+  /** When `variant="outline"`, use 1px border instead of 2px. */
+  outlineThin = false,
+  /** Fills the outline face; when set, default press state is `buttonSecondaryBgPressed` unless `outlineBgPressed` is set. */
+  outlineBg,
+  outlineBgPressed,
   outlineColor,
   iconName,
   iconPosition = 'left',
@@ -111,12 +120,19 @@ export function Button({
           ];
           textColor = SURFACE_DARK_TEXT;
         } else if (variant === 'outline') {
+          const fill = outlineBg ?? 'transparent';
+          const fillPressed =
+            outlineBgPressed != null
+              ? outlineBgPressed
+              : outlineBg
+                ? colors.buttonSecondaryBgPressed
+                : 'transparent';
           faceStyle = [
             styles.face,
-            styles.faceOutlineBold,
+            outlineThin ? styles.faceBorder : styles.faceOutlineBold,
             styles.faceStrokeInset,
             {
-              backgroundColor: 'transparent',
+              backgroundColor: pressed ? fillPressed : fill,
               borderColor: outlineTint,
             },
           ];
@@ -145,7 +161,13 @@ export function Button({
             : (labelColor ?? textColor);
 
         return (
-          <View style={[faceStyle, disabled && !loading && (disabledFaceStyle ?? styles.busy)]}>
+          <View
+            style={[
+              faceStyle,
+              squared && styles.faceSquared,
+              disabled && !loading && (disabledFaceStyle ?? styles.busy),
+            ]}
+          >
             {loading ? (
               <ActivityIndicator color={spinnerColor} />
             ) : (
@@ -189,6 +211,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingHorizontal: 20,
     paddingVertical: 16,
+  },
+  faceSquared: {
+    borderRadius: 10,
   },
   faceBorder: {
     borderWidth: 1,

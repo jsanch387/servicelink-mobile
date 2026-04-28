@@ -7,6 +7,7 @@ export { InfoSection } from './InfoSection';
 export { LabelValueRow } from './LabelValueRow';
 export { AppShellGlow } from './AppShellGlow';
 export { Divider } from './Divider';
+export { DashedBorderFrame } from './DashedBorderFrame';
 export { SpotlightCard, SurfaceCard } from './Card';
 export { InlineCardError } from './InlineCardError';
 export { SelectField } from './SelectField';
