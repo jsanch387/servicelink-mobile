@@ -11,6 +11,7 @@ import {
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
+import { AvailabilityScreenSkeleton } from '../components/AvailabilityScreenSkeleton';
 import { TimeOffSheet } from '../components/TimeOffSheet';
 import { useBusinessAvailability } from '../hooks/useBusinessAvailability';
 import { useSaveBusinessAvailability } from '../hooks/useSaveBusinessAvailability';
@@ -326,123 +327,132 @@ export function AvailabilityScreen() {
             <InlineCardError message={availability.availabilityError} />
           </SurfaceCard>
         ) : null}
-        <SurfaceCard style={styles.toggleCard}>
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleTextWrap}>
-              <AppText style={styles.toggleTitle}>Accept booking requests</AppText>
-              <AppText style={styles.toggleHint}>
-                {isAcceptingRequests
-                  ? 'Turn this off to stop accepting appointments.'
-                  : 'Turn this on to start accepting appointments.'}
-              </AppText>
-            </View>
-            <Switch
-              onValueChange={setIsAcceptingRequests}
-              thumbColor={isAcceptingRequests ? '#f8fafc' : '#f4f4f5'}
-              trackColor={{ false: colors.borderStrong, true: '#10b981' }}
-              value={isAcceptingRequests}
-            />
-          </View>
-        </SurfaceCard>
-
-        <AppText style={styles.sectionTitle}>Weekly schedule</AppText>
-        <SurfaceCard style={styles.scheduleCard}>
-          {DAY_DEFINITIONS.map((entry, index) => (
-            <View
-              key={entry.key}
-              style={[styles.dayRow, index === DAY_DEFINITIONS.length - 1 && styles.dayRowLast]}
-            >
-              <View style={styles.dayHeaderRow}>
-                <AppText style={styles.dayShort}>{entry.label}</AppText>
+        {availability.isLoading ? (
+          <AvailabilityScreenSkeleton />
+        ) : (
+          <>
+            <SurfaceCard style={styles.toggleCard}>
+              <View style={styles.toggleRow}>
+                <View style={styles.toggleTextWrap}>
+                  <AppText style={styles.toggleTitle}>Accept booking requests</AppText>
+                  <AppText style={styles.toggleHint}>
+                    {isAcceptingRequests
+                      ? 'Turn this off to stop accepting appointments.'
+                      : 'Turn this on to start accepting appointments.'}
+                  </AppText>
+                </View>
                 <Switch
-                  thumbColor="#f8fafc"
+                  onValueChange={setIsAcceptingRequests}
+                  thumbColor={isAcceptingRequests ? '#f8fafc' : '#f4f4f5'}
                   trackColor={{ false: colors.borderStrong, true: '#10b981' }}
-                  value={Boolean(dayEnabledMap[entry.label])}
-                  onValueChange={(next) => {
-                    setDayEnabledMap((prev) => ({ ...prev, [entry.label]: next }));
-                  }}
+                  value={isAcceptingRequests}
                 />
               </View>
-              <View style={styles.dayDetailRow}>
-                {Boolean(dayEnabledMap[entry.label]) ? (
-                  <View style={styles.timeRangeWrap}>
-                    <View style={styles.timeSelectCell}>
-                      <TimeSelectField
-                        placeholder="Start"
-                        title={`${entry.label} start time`}
-                        triggerStyle={styles.timeSelectTrigger}
-                        value={dayTimeRanges[entry.label]?.start ?? ''}
-                        onValueChange={(next) => updateDayTime(entry.label, 'start', next)}
-                      />
-                    </View>
-                    <AppText style={styles.toText}>to</AppText>
-                    <View style={styles.timeSelectCell}>
-                      <TimeSelectField
-                        placeholder="End"
-                        title={`${entry.label} end time`}
-                        triggerStyle={styles.timeSelectTrigger}
-                        value={dayTimeRanges[entry.label]?.end ?? ''}
-                        onValueChange={(next) => updateDayTime(entry.label, 'end', next)}
-                      />
-                    </View>
-                  </View>
-                ) : (
-                  <AppText style={styles.unavailableText}>Unavailable</AppText>
-                )}
-              </View>
-            </View>
-          ))}
-        </SurfaceCard>
+            </SurfaceCard>
 
-        <AppText style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Time off</AppText>
-        <SurfaceCard style={styles.timeOffCard}>
-          <View style={styles.timeOffHeader}>
-            <AppText style={styles.timeOffSubtext}>
-              Block times when you can&apos;t take bookings.
-            </AppText>
-            <Pressable style={styles.timeOffAddButton} onPress={() => setIsTimeOffSheetOpen(true)}>
-              <Ionicons color={colors.text} name="add" size={26} />
-              <AppText style={styles.timeOffAddText}>Add</AppText>
-            </Pressable>
-          </View>
-          {timeOffBlocks.length === 0 ? (
-            <View style={styles.timeOffEmpty}>
-              <AppText style={styles.timeOffEmptyText}>No time off scheduled.</AppText>
-            </View>
-          ) : (
-            <View style={styles.timeOffList}>
-              {timeOffBlocks.map((block, index) => (
+            <AppText style={styles.sectionTitle}>Weekly schedule</AppText>
+            <SurfaceCard style={styles.scheduleCard}>
+              {DAY_DEFINITIONS.map((entry, index) => (
                 <View
-                  key={`${block?.date ?? 'date'}-${index}`}
-                  style={[
-                    styles.timeOffItem,
-                    index === timeOffBlocks.length - 1 && styles.timeOffItemLast,
-                  ]}
+                  key={entry.key}
+                  style={[styles.dayRow, index === DAY_DEFINITIONS.length - 1 && styles.dayRowLast]}
                 >
-                  <View style={styles.timeOffItemInfo}>
-                    <AppText style={styles.timeOffItemDate}>
-                      {formatTimeOffDateDisplay(block?.date)}
-                    </AppText>
-                    <AppText style={styles.timeOffItemTime}>
-                      {format24HourTo12Hour(block?.start_time) ?? '--'} -{' '}
-                      {format24HourTo12Hour(block?.end_time) ?? '--'}
-                    </AppText>
+                  <View style={styles.dayHeaderRow}>
+                    <AppText style={styles.dayShort}>{entry.label}</AppText>
+                    <Switch
+                      thumbColor="#f8fafc"
+                      trackColor={{ false: colors.borderStrong, true: '#10b981' }}
+                      value={Boolean(dayEnabledMap[entry.label])}
+                      onValueChange={(next) => {
+                        setDayEnabledMap((prev) => ({ ...prev, [entry.label]: next }));
+                      }}
+                    />
                   </View>
-                  <Pressable
-                    accessibilityLabel="Delete time off"
-                    accessibilityRole="button"
-                    style={styles.timeOffDeleteButton}
-                    onPress={() =>
-                      setTimeOffBlocks((prev) => prev.filter((_, itemIdx) => itemIdx !== index))
-                    }
-                  >
-                    <Ionicons color="#f87171" name="trash-outline" size={20} />
-                  </Pressable>
+                  <View style={styles.dayDetailRow}>
+                    {Boolean(dayEnabledMap[entry.label]) ? (
+                      <View style={styles.timeRangeWrap}>
+                        <View style={styles.timeSelectCell}>
+                          <TimeSelectField
+                            placeholder="Start"
+                            title={`${entry.label} start time`}
+                            triggerStyle={styles.timeSelectTrigger}
+                            value={dayTimeRanges[entry.label]?.start ?? ''}
+                            onValueChange={(next) => updateDayTime(entry.label, 'start', next)}
+                          />
+                        </View>
+                        <AppText style={styles.toText}>to</AppText>
+                        <View style={styles.timeSelectCell}>
+                          <TimeSelectField
+                            placeholder="End"
+                            title={`${entry.label} end time`}
+                            triggerStyle={styles.timeSelectTrigger}
+                            value={dayTimeRanges[entry.label]?.end ?? ''}
+                            onValueChange={(next) => updateDayTime(entry.label, 'end', next)}
+                          />
+                        </View>
+                      </View>
+                    ) : (
+                      <AppText style={styles.unavailableText}>Unavailable</AppText>
+                    )}
+                  </View>
                 </View>
               ))}
-            </View>
-          )}
-        </SurfaceCard>
+            </SurfaceCard>
+
+            <AppText style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Time off</AppText>
+            <SurfaceCard style={styles.timeOffCard}>
+              <View style={styles.timeOffHeader}>
+                <AppText style={styles.timeOffSubtext}>
+                  Block times when you can&apos;t take bookings.
+                </AppText>
+                <Pressable
+                  style={styles.timeOffAddButton}
+                  onPress={() => setIsTimeOffSheetOpen(true)}
+                >
+                  <Ionicons color={colors.text} name="add" size={26} />
+                  <AppText style={styles.timeOffAddText}>Add</AppText>
+                </Pressable>
+              </View>
+              {timeOffBlocks.length === 0 ? (
+                <View style={styles.timeOffEmpty}>
+                  <AppText style={styles.timeOffEmptyText}>No time off scheduled.</AppText>
+                </View>
+              ) : (
+                <View style={styles.timeOffList}>
+                  {timeOffBlocks.map((block, index) => (
+                    <View
+                      key={`${block?.date ?? 'date'}-${index}`}
+                      style={[
+                        styles.timeOffItem,
+                        index === timeOffBlocks.length - 1 && styles.timeOffItemLast,
+                      ]}
+                    >
+                      <View style={styles.timeOffItemInfo}>
+                        <AppText style={styles.timeOffItemDate}>
+                          {formatTimeOffDateDisplay(block?.date)}
+                        </AppText>
+                        <AppText style={styles.timeOffItemTime}>
+                          {format24HourTo12Hour(block?.start_time) ?? '--'} -{' '}
+                          {format24HourTo12Hour(block?.end_time) ?? '--'}
+                        </AppText>
+                      </View>
+                      <Pressable
+                        accessibilityLabel="Delete time off"
+                        accessibilityRole="button"
+                        style={styles.timeOffDeleteButton}
+                        onPress={() =>
+                          setTimeOffBlocks((prev) => prev.filter((_, itemIdx) => itemIdx !== index))
+                        }
+                      >
+                        <Ionicons color="#f87171" name="trash-outline" size={20} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </SurfaceCard>
+          </>
+        )}
         <TimeOffSheet
           visible={isTimeOffSheetOpen}
           onAddTimeOff={(block) => {

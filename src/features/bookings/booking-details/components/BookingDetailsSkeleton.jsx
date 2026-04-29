@@ -21,7 +21,7 @@ function SectionSkeleton({ titleWidth = '24%', rows = 3, withButton = false }) {
 
   return (
     <View style={styles.wrap}>
-      <SkeletonBox borderRadius={8} height={16} width={titleWidth} />
+      <SkeletonBox borderRadius={8} height={16} pulse width={titleWidth} />
       <SurfaceCard style={styles.card}>
         {Array.from({ length: rows }).map((_, idx) => (
           <SkeletonBox
@@ -29,7 +29,8 @@ function SectionSkeleton({ titleWidth = '24%', rows = 3, withButton = false }) {
             borderRadius={8}
             height={16}
             key={`row-${idx}`}
-            style={{ marginTop: idx === 0 ? 0 : 10, opacity: 0.3 }}
+            pulse
+            style={{ marginTop: idx === 0 ? 0 : 10 }}
             width={idx % 2 === 0 ? '68%' : '52%'}
           />
         ))}
@@ -38,7 +39,8 @@ function SectionSkeleton({ titleWidth = '24%', rows = 3, withButton = false }) {
             backgroundColor={colors.textMuted}
             borderRadius={14}
             height={52}
-            style={{ marginTop: 14, opacity: 0.3 }}
+            pulse
+            style={{ marginTop: 14 }}
             width="100%"
           />
         ) : null}
@@ -56,18 +58,8 @@ export function BookingDetailsSkeleton() {
       <SectionSkeleton rows={1} titleWidth="20%" withButton />
       <SectionSkeleton rows={1} titleWidth="18%" />
       <SectionSkeleton rows={2} titleWidth="28%" />
-      <SkeletonBox
-        borderRadius={14}
-        height={52}
-        style={{ marginTop: 4, opacity: 0.35 }}
-        width="100%"
-      />
-      <SkeletonBox
-        borderRadius={14}
-        height={52}
-        style={{ marginTop: 10, opacity: 0.35 }}
-        width="100%"
-      />
+      <SkeletonBox borderRadius={14} height={52} pulse style={{ marginTop: 4 }} width="100%" />
+      <SkeletonBox borderRadius={14} height={52} pulse style={{ marginTop: 10 }} width="100%" />
     </>
   );
 }

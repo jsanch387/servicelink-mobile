@@ -16,9 +16,9 @@ function CustomersListSkeleton() {
     <View style={skeletonStyles.column}>
       {[0, 1, 2].map((k) => (
         <SurfaceCard key={k} style={skeletonStyles.card}>
-          <SkeletonBox borderRadius={8} height={18} width="60%" />
-          <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 12 }} width="45%" />
-          <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 14 }} width="72%" />
+          <SkeletonBox borderRadius={8} height={18} pulse width="60%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 12 }} width="45%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 14 }} width="72%" />
         </SurfaceCard>
       ))}
     </View>

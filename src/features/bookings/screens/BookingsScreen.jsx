@@ -29,9 +29,9 @@ function BookingsListSkeleton() {
     <View style={skeletonStyles.skeletonColumn}>
       {[0, 1, 2].map((k) => (
         <SurfaceCard key={k} style={skeletonStyles.skeletonCard}>
-          <SkeletonBox borderRadius={8} height={18} width="72%" />
-          <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 14 }} width="50%" />
-          <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 10 }} width="40%" />
+          <SkeletonBox borderRadius={8} height={18} pulse width="72%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 14 }} width="50%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 10 }} width="40%" />
         </SurfaceCard>
       ))}
     </View>

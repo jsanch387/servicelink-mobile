@@ -120,18 +120,30 @@ export function ServicesTabContent({ services, isLoading, error }) {
       {isLoading ? (
         <>
           <SurfaceCard style={styles.serviceCard} padding="none">
-            <SkeletonBox borderRadius={8} height={18} width="48%" />
-            <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 10 }} width="36%" />
-            <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 12 }} width="88%" />
-            <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 8 }} width="72%" />
-            <SkeletonBox borderRadius={12} height={42} style={{ marginTop: 18 }} width="100%" />
+            <SkeletonBox borderRadius={8} height={18} pulse width="48%" />
+            <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 10 }} width="36%" />
+            <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 12 }} width="88%" />
+            <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 8 }} width="72%" />
+            <SkeletonBox
+              borderRadius={12}
+              height={42}
+              pulse
+              style={{ marginTop: 18 }}
+              width="100%"
+            />
           </SurfaceCard>
           <SurfaceCard style={styles.serviceCard} padding="none">
-            <SkeletonBox borderRadius={8} height={18} width="48%" />
-            <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 10 }} width="36%" />
-            <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 12 }} width="88%" />
-            <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 8 }} width="72%" />
-            <SkeletonBox borderRadius={12} height={42} style={{ marginTop: 18 }} width="100%" />
+            <SkeletonBox borderRadius={8} height={18} pulse width="48%" />
+            <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 10 }} width="36%" />
+            <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 12 }} width="88%" />
+            <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 8 }} width="72%" />
+            <SkeletonBox
+              borderRadius={12}
+              height={42}
+              pulse
+              style={{ marginTop: 18 }}
+              width="100%"
+            />
           </SurfaceCard>
         </>
       ) : null}

@@ -19,21 +19,39 @@ function CustomerDetailsSkeleton() {
   return (
     <View style={skeletonStyles.column}>
       <SurfaceCard style={skeletonStyles.profileCard}>
-        <SkeletonBox borderRadius={24} height={48} width={48} />
-        <SkeletonBox borderRadius={8} height={22} style={{ marginTop: 12 }} width="55%" />
-        <SkeletonBox borderRadius={8} height={16} style={{ marginTop: 16 }} width="72%" />
-        <SkeletonBox borderRadius={8} height={16} style={{ marginTop: 10 }} width="66%" />
+        <SkeletonBox borderRadius={24} height={48} pulse width={48} />
+        <SkeletonBox borderRadius={8} height={22} pulse style={{ marginTop: 12 }} width="55%" />
+        <SkeletonBox borderRadius={8} height={16} pulse style={{ marginTop: 16 }} width="72%" />
+        <SkeletonBox borderRadius={8} height={16} pulse style={{ marginTop: 10 }} width="66%" />
       </SurfaceCard>
 
       <View style={skeletonStyles.section}>
-        <SkeletonBox borderRadius={8} height={18} width="26%" />
+        <SkeletonBox borderRadius={8} height={18} pulse width="26%" />
         <View style={skeletonStyles.statsRow}>
           {[0, 1, 2].map((k) => (
             <SurfaceCard key={k} style={skeletonStyles.statCard}>
-              <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 4 }} width="60%" />
-              <SkeletonBox borderRadius={8} height={20} style={{ marginTop: 10 }} width="70%" />
+              <SkeletonBox
+                borderRadius={8}
+                height={14}
+                pulse
+                style={{ marginTop: 4 }}
+                width="60%"
+              />
+              <SkeletonBox
+                borderRadius={8}
+                height={20}
+                pulse
+                style={{ marginTop: 10 }}
+                width="70%"
+              />
               {k === 2 ? (
-                <SkeletonBox borderRadius={8} height={12} style={{ marginTop: 6 }} width="45%" />
+                <SkeletonBox
+                  borderRadius={8}
+                  height={12}
+                  pulse
+                  style={{ marginTop: 6 }}
+                  width="45%"
+                />
               ) : null}
             </SurfaceCard>
           ))}
@@ -41,17 +59,17 @@ function CustomerDetailsSkeleton() {
       </View>
 
       <View style={skeletonStyles.section}>
-        <SkeletonBox borderRadius={8} height={18} width="23%" />
+        <SkeletonBox borderRadius={8} height={18} pulse width="23%" />
         <SurfaceCard style={skeletonStyles.notesCard}>
-          <SkeletonBox borderRadius={8} height={16} width="85%" />
-          <SkeletonBox borderRadius={8} height={16} style={{ marginTop: 10 }} width="92%" />
-          <SkeletonBox borderRadius={8} height={16} style={{ marginTop: 10 }} width="76%" />
+          <SkeletonBox borderRadius={8} height={16} pulse width="85%" />
+          <SkeletonBox borderRadius={8} height={16} pulse style={{ marginTop: 10 }} width="92%" />
+          <SkeletonBox borderRadius={8} height={16} pulse style={{ marginTop: 10 }} width="76%" />
         </SurfaceCard>
       </View>
 
       <View style={skeletonStyles.actions}>
-        <SkeletonBox borderRadius={14} height={52} width="100%" />
-        <SkeletonBox borderRadius={14} height={52} style={{ marginTop: 10 }} width="100%" />
+        <SkeletonBox borderRadius={14} height={52} pulse width="100%" />
+        <SkeletonBox borderRadius={14} height={52} pulse style={{ marginTop: 10 }} width="100%" />
       </View>
     </View>
   );

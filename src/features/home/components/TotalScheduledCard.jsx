@@ -41,10 +41,16 @@ export function TotalScheduledCard({ count, isLoading, businessError, bookingsEr
         {isLoading ? (
           <View style={styles.row}>
             <View style={styles.main}>
-              <SkeletonBox borderRadius={10} height={40} width={72} />
-              <SkeletonBox borderRadius={8} height={15} style={{ marginTop: 10 }} width={200} />
+              <SkeletonBox borderRadius={10} height={40} pulse width={72} />
+              <SkeletonBox
+                borderRadius={8}
+                height={15}
+                pulse
+                style={{ marginTop: 10 }}
+                width={200}
+              />
             </View>
-            <SkeletonBox borderRadius={8} height={22} width={22} />
+            <SkeletonBox borderRadius={8} height={22} pulse width={22} />
           </View>
         ) : scheduleError ? (
           <InlineCardError message={scheduleError} />

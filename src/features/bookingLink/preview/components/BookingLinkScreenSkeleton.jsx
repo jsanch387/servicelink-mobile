@@ -118,56 +118,62 @@ export function BookingLinkScreenSkeleton({ coverHeight }) {
   return (
     <View>
       <View style={styles.hero}>
-        <SkeletonBox borderRadius={0} height={coverHeight} style={styles.heroBone} width="100%" />
+        <SkeletonBox
+          borderRadius={0}
+          height={coverHeight}
+          pulse
+          style={styles.heroBone}
+          width="100%"
+        />
       </View>
 
       <View style={styles.profileBlock}>
         <View style={styles.logoRing}>
           <View style={styles.logoInner}>
-            <SkeletonBox borderRadius={34} height={120} width={120} />
+            <SkeletonBox borderRadius={34} height={120} pulse width={120} />
           </View>
         </View>
 
         <View style={styles.nameWrap}>
-          <SkeletonBox borderRadius={8} height={28} width="64%" />
-          <SkeletonBox borderRadius={6} height={12} style={styles.typeBone} width="42%" />
+          <SkeletonBox borderRadius={8} height={28} pulse width="64%" />
+          <SkeletonBox borderRadius={6} height={12} pulse style={styles.typeBone} width="42%" />
         </View>
 
         <View style={styles.locationRow}>
-          <SkeletonBox borderRadius={4} height={14} width={14} />
-          <SkeletonBox borderRadius={6} height={14} width="48%" />
+          <SkeletonBox borderRadius={4} height={14} pulse width={14} />
+          <SkeletonBox borderRadius={6} height={14} pulse width="48%" />
         </View>
 
-        <SkeletonBox borderRadius={12} height={42} style={styles.contactBone} width={148} />
+        <SkeletonBox borderRadius={12} height={42} pulse style={styles.contactBone} width={148} />
       </View>
 
       <View style={styles.tabsRow}>
-        <SkeletonBox borderRadius={6} height={16} style={styles.tabBone} width={72} />
-        <SkeletonBox borderRadius={6} height={16} style={styles.tabBone} width={56} />
-        <SkeletonBox borderRadius={6} height={16} style={styles.tabBone} width={36} />
+        <SkeletonBox borderRadius={6} height={16} pulse style={styles.tabBone} width={72} />
+        <SkeletonBox borderRadius={6} height={16} pulse style={styles.tabBone} width={56} />
+        <SkeletonBox borderRadius={6} height={16} pulse style={styles.tabBone} width={36} />
       </View>
 
       <View style={styles.contentWrap}>
         <View style={styles.serviceCard}>
           <View style={styles.cardTopRow}>
-            <SkeletonBox borderRadius={8} height={18} width="48%" />
-            <SkeletonBox borderRadius={8} height={20} width="28%" />
+            <SkeletonBox borderRadius={8} height={18} pulse width="48%" />
+            <SkeletonBox borderRadius={8} height={20} pulse width="28%" />
           </View>
-          <SkeletonBox borderRadius={8} height={14} style={styles.line} width="36%" />
-          <SkeletonBox borderRadius={8} height={14} style={styles.line} width="88%" />
-          <SkeletonBox borderRadius={8} height={14} style={styles.line} width="72%" />
-          <SkeletonBox borderRadius={12} height={42} style={styles.footerBone} width="100%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={styles.line} width="36%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={styles.line} width="88%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={styles.line} width="72%" />
+          <SkeletonBox borderRadius={12} height={42} pulse style={styles.footerBone} width="100%" />
         </View>
 
         <View style={styles.serviceCard}>
           <View style={styles.cardTopRow}>
-            <SkeletonBox borderRadius={8} height={18} width="44%" />
-            <SkeletonBox borderRadius={8} height={20} width="30%" />
+            <SkeletonBox borderRadius={8} height={18} pulse width="44%" />
+            <SkeletonBox borderRadius={8} height={20} pulse width="30%" />
           </View>
-          <SkeletonBox borderRadius={8} height={14} style={styles.line} width="40%" />
-          <SkeletonBox borderRadius={8} height={14} style={styles.line} width="92%" />
-          <SkeletonBox borderRadius={8} height={14} style={styles.line} width="68%" />
-          <SkeletonBox borderRadius={12} height={42} style={styles.footerBone} width="100%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={styles.line} width="40%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={styles.line} width="92%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={styles.line} width="68%" />
+          <SkeletonBox borderRadius={12} height={42} pulse style={styles.footerBone} width="100%" />
         </View>
       </View>
     </View>

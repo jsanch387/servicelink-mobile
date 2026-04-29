@@ -199,7 +199,7 @@ export function BookingProfileHeader({
 
         <View style={styles.businessNameWrap}>
           {isLoading ? (
-            <SkeletonBox borderRadius={8} height={28} width="64%" />
+            <SkeletonBox borderRadius={8} height={28} pulse width="64%" />
           ) : (
             <AppText style={styles.businessName}>{businessName}</AppText>
           )}
