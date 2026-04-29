@@ -36,9 +36,10 @@ describe('NextUpCard', () => {
         title=""
       />,
     );
-    expect(screen.getByText('No upcoming appointments.')).toBeTruthy();
-    expect(screen.getByLabelText('On my way')).toBeDisabled();
-    expect(screen.getByLabelText('Navigate')).toBeDisabled();
+    expect(screen.getByText('Nothing scheduled yet')).toBeTruthy();
+    expect(screen.getByText('Your next booking will show up here.')).toBeTruthy();
+    expect(screen.queryByLabelText('On my way')).toBeNull();
+    expect(screen.queryByLabelText('Navigate')).toBeNull();
   });
 
   it('shows title, subtitle, and enables actions when booking has phone and address', () => {

@@ -7,6 +7,7 @@ import { PaymentsScreen } from '../../payments/screens/PaymentsScreen';
 import { QuotesScreen } from '../../quotes/screens/QuotesScreen';
 import { ServicesScreen } from '../../services';
 import { ServiceEditScreen } from '../../services/screens/ServiceEditScreen';
+import { AccountSettingsScreen } from '../screens/AccountSettingsScreen';
 import { MoreScreen } from '../screens/MoreScreen';
 
 const Stack = createNativeStackNavigator();
@@ -28,6 +29,15 @@ export function MoreNavigator() {
         component={MoreScreen}
         name={ROUTES.MORE_HOME}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        component={AccountSettingsScreen}
+        name={ROUTES.ACCOUNT_SETTINGS}
+        options={{
+          title: 'Account',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
       />
       <Stack.Screen
         component={ServicesScreen}

@@ -26,6 +26,8 @@ export const ROUTES = {
   /** Bottom tab: More (settings, business tools, support) */
   MORE: 'More',
   MORE_HOME: 'MoreHome',
+  /** Stack screen name shown in devtools; path is `/more/account`. */
+  ACCOUNT_SETTINGS: 'Account',
 };
 
 export const PATHS = {
@@ -48,6 +50,7 @@ export const PATHS = {
   PAYMENTS: '/payments',
   MORE: '/more',
   MORE_HOME: '/more/home',
+  ACCOUNT_SETTINGS: '/more/account',
 };
 
 /** Bottom tabs: order, labels, and Ionicons glyph names. */

@@ -191,6 +191,11 @@ export async function normalizeMobileBusinessProfile({
   };
 }
 
+/** Exported for account / billing UI — same rules as verified Pro badge on the booking profile. */
+export function ownerHasProAccess(ownerProfileRow) {
+  return hasProAccess(ownerProfileRow);
+}
+
 function hasProAccess(ownerProfileRow) {
   if (!ownerProfileRow || typeof ownerProfileRow !== 'object') return false;
 

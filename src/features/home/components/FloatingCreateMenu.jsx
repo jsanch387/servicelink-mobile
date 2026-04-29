@@ -4,22 +4,37 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
 import { useTheme } from '../../../theme';
 
+const FAB_SIZE = 56;
+const ACTION_GAP = 10;
+const ROW_GAP = 12;
+
+/** Secondary action color (distinct from accent), matches speed-dial style. */
+const QUOTE_ACTION_ORANGE = '#ea580c';
+
 const MENU_ITEMS = [
   {
     key: 'appointment',
     icon: 'calendar-outline',
     label: 'Create appointment',
+    colorToken: 'accent',
   },
   {
     key: 'quote',
     icon: 'document-text-outline',
     label: 'Create quote',
+    colorToken: 'orange',
   },
 ];
 
+function circleBackground(colors, token) {
+  if (token === 'orange') {
+    return QUOTE_ACTION_ORANGE;
+  }
+  return colors.accent;
+}
+
 /**
- * Floating create FAB with a compact action menu.
- * Includes subtle spring/opacity animation + tactile vibration feedback.
+ * Floating create FAB with a speed-dial menu (label pill + icon row, + / × on main control).
  */
 export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom = 30 }) {
   const { colors } = useTheme();
@@ -36,7 +51,6 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
   }, [open, progress]);
 
   const vibrateSoft = useCallback(() => {
-    // Tiny, crisp tactile tap on both iOS/Android.
     Haptics.selectionAsync().catch(() => {
       Vibration.vibrate(6);
     });
@@ -75,86 +89,68 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
           ...StyleSheet.absoluteFillObject,
           backgroundColor: 'rgba(0,0,0,0.28)',
         },
-        actionListWrap: {
+        actionColumn: {
           alignItems: 'flex-end',
-          bottom: bottom + 72,
+          bottom: bottom + FAB_SIZE + ACTION_GAP,
+          gap: ROW_GAP,
           position: 'absolute',
           right: 20,
+          zIndex: 21,
         },
-        actionSheet: {
-          backgroundColor: colors.surface,
-          borderColor: colors.borderStrong,
-          borderRadius: 18,
-          borderWidth: 1,
-          padding: 8,
-          width: 236,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.3,
-          shadowRadius: 20,
-          elevation: 16,
-        },
-        optionButton: {
-          backgroundColor: colors.shellElevated,
-          borderRadius: 12,
-          height: 52,
-          justifyContent: 'center',
-          paddingHorizontal: 12,
-          width: '100%',
-        },
-        optionRow: {
+        actionRow: {
           alignItems: 'center',
           flexDirection: 'row',
-          width: '100%',
+          gap: 12,
         },
-        optionGap: {
-          height: 8,
-        },
-        optionPressed: {
-          backgroundColor: colors.cardSurface,
-        },
-        optionIconWrap: {
-          alignItems: 'center',
+        labelPill: {
           backgroundColor: colors.surface,
-          borderRadius: 14,
-          height: 28,
-          justifyContent: 'center',
-          marginRight: 10,
-          width: 28,
+          borderColor: colors.borderStrong,
+          borderRadius: 999,
+          borderWidth: 1,
+          maxWidth: 240,
+          paddingHorizontal: 14,
+          paddingVertical: 9,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 6,
+          elevation: 3,
         },
-        labelWrap: {
-          flex: 1,
-          minWidth: 0,
-          paddingRight: 8,
-        },
-        optionLabel: {
+        labelText: {
           color: colors.text,
-          fontSize: 15,
+          fontSize: 14,
           fontWeight: '600',
         },
-        optionChevronWrap: {
-          alignItems: 'flex-end',
+        actionIconOuter: {
+          alignItems: 'center',
+          borderRadius: 24,
+          height: 48,
           justifyContent: 'center',
-          width: 18,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 8,
+          elevation: 8,
+          width: 48,
         },
         fab: {
           alignItems: 'center',
           backgroundColor: colors.accent,
           borderRadius: 28,
           bottom,
-          height: 56,
+          height: FAB_SIZE,
           justifyContent: 'center',
           position: 'absolute',
           right: 20,
-          width: 56,
+          width: FAB_SIZE,
           zIndex: 30,
         },
         fabPress: {
           alignItems: 'center',
           borderRadius: 28,
-          height: 56,
+          height: FAB_SIZE,
           justifyContent: 'center',
-          width: 56,
+          width: FAB_SIZE,
         },
       }),
     [bottom, colors],
@@ -174,17 +170,13 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
   });
   const fabScale = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 0.96],
-  });
-  const iconRotate = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '45deg'],
+    outputRange: [1, 0.98],
   });
 
   return (
     <>
       {open ? (
-        <View pointerEvents="auto" style={styles.overlay}>
+        <View pointerEvents="box-none" style={styles.overlay}>
           <Pressable
             accessibilityLabel="Close create menu"
             accessibilityRole="button"
@@ -192,55 +184,47 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
             onPress={closeMenu}
           />
           <Animated.View
+            pointerEvents="box-none"
             style={[
-              styles.actionListWrap,
+              styles.actionColumn,
               {
                 opacity: menuOpacity,
                 transform: [{ translateY: menuTranslateY }, { scale: menuScale }],
               },
             ]}
           >
-            <View style={styles.actionSheet}>
-              {MENU_ITEMS.map((item, idx) => (
-                <View key={item.key}>
-                  <Pressable
-                    accessibilityLabel={item.label}
-                    accessibilityRole="button"
-                    style={({ pressed }) => [styles.optionButton, pressed && styles.optionPressed]}
-                    onPress={() => handleSelect(item.key)}
-                  >
-                    <View style={styles.optionRow}>
-                      <View style={styles.optionIconWrap}>
-                        <Ionicons color={colors.textMuted} name={item.icon} size={16} />
-                      </View>
-                      <View style={styles.labelWrap}>
-                        <Text allowFontScaling={false} numberOfLines={1} style={styles.optionLabel}>
-                          {item.label}
-                        </Text>
-                      </View>
-                      <View style={styles.optionChevronWrap}>
-                        <Ionicons color={colors.textMuted} name="chevron-forward" size={17} />
-                      </View>
-                    </View>
-                  </Pressable>
-                  {idx < MENU_ITEMS.length - 1 ? <View style={styles.optionGap} /> : null}
+            {MENU_ITEMS.map((item) => (
+              <View key={item.key} style={styles.actionRow}>
+                <View style={styles.labelPill}>
+                  <Text allowFontScaling={false} numberOfLines={1} style={styles.labelText}>
+                    {item.label}
+                  </Text>
                 </View>
-              ))}
-            </View>
+                <Pressable
+                  accessibilityLabel={item.label}
+                  accessibilityRole="button"
+                  style={[
+                    styles.actionIconOuter,
+                    { backgroundColor: circleBackground(colors, item.colorToken) },
+                  ]}
+                  onPress={() => handleSelect(item.key)}
+                >
+                  <Ionicons color={colors.surface} name={item.icon} size={22} />
+                </Pressable>
+              </View>
+            ))}
           </Animated.View>
         </View>
       ) : null}
 
       <Animated.View style={[styles.fab, { transform: [{ scale: fabScale }] }]}>
         <Pressable
-          accessibilityLabel="Create"
+          accessibilityLabel={open ? 'Close create menu' : 'Open create menu'}
           accessibilityRole="button"
           style={styles.fabPress}
           onPress={toggleMenu}
         >
-          <Animated.View style={{ transform: [{ rotate: iconRotate }] }}>
-            <Ionicons color={colors.surface} name="add" size={28} />
-          </Animated.View>
+          <Ionicons color={colors.surface} name={open ? 'close' : 'add'} size={28} />
         </Pressable>
       </Animated.View>
     </>

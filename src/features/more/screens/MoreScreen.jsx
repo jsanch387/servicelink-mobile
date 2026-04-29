@@ -78,7 +78,7 @@ export function MoreScreen() {
         style={styles.scroll}
       >
         <AppText style={styles.screenTitle}>More</AppText>
-        <SettingsSection first title="Business management">
+        <SettingsSection first title="Business">
           <SettingsNavRow
             icon="construct-outline"
             label="Services"
@@ -107,9 +107,12 @@ export function MoreScreen() {
           />
         </SettingsSection>
 
-        <SettingsSection title="Configurations">
-          <SettingsNavRow icon="person-outline" label="Account settings" onPress={noopNav} />
-          <SettingsNavRow icon="card-outline" label="Subscriptions" onPress={noopNav} />
+        <SettingsSection title="Account">
+          <SettingsNavRow
+            icon="person-outline"
+            label="Account"
+            onPress={() => navigation.navigate(ROUTES.ACCOUNT_SETTINGS)}
+          />
           <SettingsNavRow
             icon="notifications-outline"
             label="Notifications"

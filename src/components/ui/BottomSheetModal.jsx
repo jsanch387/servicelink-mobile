@@ -20,54 +20,68 @@ export function BottomSheetModal({
   allowBackdropClose = true,
   minHeight = '64%',
   maxHeight = '90%',
+  keyboardBehavior,
+  disableKeyboardAvoiding = false,
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const resolvedKeyboardBehavior =
+    keyboardBehavior ?? (Platform.OS === 'ios' ? 'padding' : 'height');
 
   function closeFromBackdrop() {
     if (!allowBackdropClose) return;
     onRequestClose?.();
   }
 
+  const content = (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        onPress={closeFromBackdrop}
+        style={styles.sheetBackdrop}
+      />
+      <View
+        style={[
+          styles.sheetWrap,
+          {
+            backgroundColor: colors.shellElevated,
+            maxHeight,
+            minHeight,
+            paddingBottom: Math.max(insets.bottom, 16),
+          },
+        ]}
+      >
+        <ScrollView
+          contentContainerStyle={styles.sheetContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {title ? (
+            <AppText style={[styles.sheetTitle, { color: colors.text }]}>{title}</AppText>
+          ) : null}
+          {title ? (
+            <View style={[styles.headerDivider, { backgroundColor: colors.border }]} />
+          ) : null}
+          {children}
+          {footer}
+        </ScrollView>
+      </View>
+    </>
+  );
+
   return (
     <Modal animationType="slide" transparent visible={visible} onRequestClose={onRequestClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-        style={styles.modalRoot}
-      >
-        <Pressable
-          accessibilityRole="button"
-          onPress={closeFromBackdrop}
-          style={styles.sheetBackdrop}
-        />
-        <View
-          style={[
-            styles.sheetWrap,
-            {
-              backgroundColor: colors.shellElevated,
-              maxHeight,
-              minHeight,
-              paddingBottom: Math.max(insets.bottom, 16),
-            },
-          ]}
+      {disableKeyboardAvoiding ? (
+        <View style={styles.modalRoot}>{content}</View>
+      ) : (
+        <KeyboardAvoidingView
+          behavior={resolvedKeyboardBehavior}
+          keyboardVerticalOffset={0}
+          style={styles.modalRoot}
         >
-          <ScrollView
-            contentContainerStyle={styles.sheetContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {title ? (
-              <AppText style={[styles.sheetTitle, { color: colors.text }]}>{title}</AppText>
-            ) : null}
-            {title ? (
-              <View style={[styles.headerDivider, { backgroundColor: colors.border }]} />
-            ) : null}
-            {children}
-            {footer}
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
+          {content}
+        </KeyboardAvoidingView>
+      )}
     </Modal>
   );
 }
