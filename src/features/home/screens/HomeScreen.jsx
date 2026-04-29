@@ -5,10 +5,12 @@ import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppShellGlow, AppText, Divider } from '../../../components/ui';
 import { FloatingCreateMenu } from '../components/FloatingCreateMenu';
+import { HomeErrorBanner } from '../components/HomeErrorBanner';
 import { LinkStatsSection } from '../components/LinkStatsSection';
 import { NextUpCard } from '../components/NextUpCard';
 import { RestOfTodayCard } from '../components/restOfToday';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
+import { computeHomeErrorPresentation } from '../utils/homeErrorPresentation';
 import { normalizeBusinessSlug } from '../utils/bookingLink';
 import { useTheme } from '../../../theme';
 
@@ -48,6 +50,16 @@ export function HomeScreen() {
       setRefreshing(false);
     }
   }, [dashboard]);
+
+  const homeErrors = useMemo(
+    () =>
+      computeHomeErrorPresentation({
+        businessError: dashboard.businessError,
+        bookingsError: dashboard.bookingsError,
+        todayBookingsError: dashboard.todayBookingsError,
+      }),
+    [dashboard.businessError, dashboard.bookingsError, dashboard.todayBookingsError],
+  );
 
   const sectionLoading = dashboard.isPendingBusiness || dashboard.isPendingBookings;
 
@@ -162,10 +174,11 @@ export function HomeScreen() {
         {dashboard.isFetching && !dashboard.isLoading ? (
           <AppText style={[styles.syncHint, { color: colors.textMuted }]}>Updating…</AppText>
         ) : null}
+        {homeErrors.bannerError ? <HomeErrorBanner message={homeErrors.bannerError} /> : null}
         <AppText style={[styles.sectionLabel, styles.sectionLabelFirst]}>Next Up</AppText>
         <NextUpCard
-          bookingsError={dashboard.bookingsError}
-          businessError={dashboard.businessError}
+          bookingsError={homeErrors.nextUpBookingsError}
+          businessError={homeErrors.nextUpBusinessError}
           isLoading={sectionLoading}
           nextBooking={dashboard.nextBooking}
           subtitle={dashboard.nextSubtitle}
@@ -174,15 +187,16 @@ export function HomeScreen() {
 
         <AppText style={styles.sectionLabel}>Booking link</AppText>
         <LinkStatsSection
-          businessError={dashboard.businessError}
+          businessError={homeErrors.linkBusinessError}
           isLoading={dashboard.isPendingBusiness}
+          linkSectionDegraded={homeErrors.linkSectionDegraded}
           profileViews={profileViews}
           slug={slug}
         />
 
         <AppText style={styles.sectionLabel}>Rest of Today</AppText>
         <RestOfTodayCard
-          error={dashboard.todayBookingsError}
+          error={homeErrors.restOfTodayError}
           isLoading={dashboard.isPendingTodayBookings}
           items={dashboard.todayTimelineItems}
         />

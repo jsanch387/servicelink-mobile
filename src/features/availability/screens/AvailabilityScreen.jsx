@@ -10,6 +10,7 @@ import {
   TimeSelectField,
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { TimeOffSheet } from '../components/TimeOffSheet';
 import { useBusinessAvailability } from '../hooks/useBusinessAvailability';
 import { useSaveBusinessAvailability } from '../hooks/useSaveBusinessAvailability';
@@ -101,7 +102,7 @@ export function AvailabilityScreen() {
     const normalizedTimeOff = normalizeTimeOffBlocksForSave(timeOffBlocks);
     const timeOffValidationError = validateTimeOffBlocks(normalizedTimeOff);
     if (timeOffValidationError) {
-      Alert.alert('Could not save', timeOffValidationError);
+      Alert.alert('Could not save', safeUserFacingMessage(timeOffValidationError));
       return;
     }
     await saveAvailability({

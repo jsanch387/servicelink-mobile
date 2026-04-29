@@ -4,6 +4,7 @@ import { Alert, useWindowDimensions } from 'react-native';
 import { useAuth } from '../../../auth';
 import { useTheme } from '../../../../theme';
 import { formatPhoneForDisplay, formatPhoneInputAsYouType } from '../../../../utils/phone';
+import { safeUserFacingMessage } from '../../../../utils/safeUserFacingMessage';
 import { BUSINESS_TYPE_OPTIONS } from '../../constants/businessTypeOptions';
 import {
   BOOKING_LINK_EDIT_GALLERY_COLUMNS,
@@ -231,8 +232,7 @@ export function useBookingLinkEditController({
       );
       onSaved?.();
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Please try again.';
-      Alert.alert('Could not save', message);
+      Alert.alert('Could not save', safeUserFacingMessage(e, { fallback: 'Please try again.' }));
     }
   }, [
     businessId,

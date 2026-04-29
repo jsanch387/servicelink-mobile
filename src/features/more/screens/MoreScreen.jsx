@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, SettingsNavRow, SettingsSection } from '../../../components/ui';
 import { getAppVersionLine } from '../../../constants/appInfo';
 import { ROUTES } from '../../../routes/routes';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { useAuth } from '../../auth';
 import { useTheme } from '../../../theme';
 
@@ -64,7 +65,7 @@ export function MoreScreen() {
     const { error } = await signOut();
     setSigningOut(false);
     if (error) {
-      Alert.alert('Sign out failed', error);
+      Alert.alert('Sign out failed', safeUserFacingMessage(error));
     }
   };
 

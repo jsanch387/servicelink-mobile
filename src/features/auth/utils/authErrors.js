@@ -1,16 +1,20 @@
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
+
+const AUTH_FALLBACK = 'Something went wrong. Try again.';
+
 /**
  * Normalize Supabase Auth errors (or unknown throws) for UI copy.
  */
 export function getAuthErrorMessage(error) {
   if (error == null) {
-    return 'Something went wrong. Try again.';
+    return AUTH_FALLBACK;
   }
   if (typeof error === 'string') {
-    return error;
+    return safeUserFacingMessage(error, { fallback: AUTH_FALLBACK });
   }
   const msg = error.message?.trim();
   if (msg) {
-    return msg;
+    return safeUserFacingMessage(msg, { fallback: AUTH_FALLBACK });
   }
-  return 'Something went wrong. Try again.';
+  return AUTH_FALLBACK;
 }

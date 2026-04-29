@@ -15,6 +15,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, DurationSelectField, SurfaceTextField } from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import {
   formatServiceDurationSelectLabel,
   serviceDurationHHmmToMinutes,
@@ -378,7 +379,7 @@ export function ServiceEditScreen({ route }) {
       setAddonSheetOpen(false);
       setEditingAddonId(null);
     } catch (err) {
-      setAddonSheetError(err?.message ?? 'Could not save add-on');
+      setAddonSheetError(safeUserFacingMessage(err, { fallback: 'Could not save add-on' }));
     }
   }
 
@@ -413,7 +414,7 @@ export function ServiceEditScreen({ route }) {
         setEditingAddonId(null);
       }
     } catch (err) {
-      setSaveFeedback(err?.message ?? 'Could not delete add-on.');
+      setSaveFeedback(safeUserFacingMessage(err, { fallback: 'Could not delete add-on.' }));
     }
   }
 
@@ -449,7 +450,7 @@ export function ServiceEditScreen({ route }) {
         setEditingPricingOptionId(null);
       }
     } catch (err) {
-      setSaveFeedback(err?.message ?? 'Could not delete pricing option.');
+      setSaveFeedback(safeUserFacingMessage(err, { fallback: 'Could not delete pricing option.' }));
     }
   }
 
@@ -513,7 +514,7 @@ export function ServiceEditScreen({ route }) {
       setSaveFeedback('Saved');
       setTimeout(() => setSaveFeedback(''), 1500);
     } catch (error) {
-      setSaveFeedback(error?.message ?? 'Could not save changes.');
+      setSaveFeedback(safeUserFacingMessage(error, { fallback: 'Could not save changes.' }));
     }
   }
 

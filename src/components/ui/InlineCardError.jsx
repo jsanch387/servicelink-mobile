@@ -1,11 +1,16 @@
 import { StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
+import { safeUserFacingMessage } from '../../utils/safeUserFacingMessage';
 import { AppText } from './AppText';
 
 /** Compact error copy inside a card (home sections, lists). */
 export function InlineCardError({ message }) {
   const { colors, isDark } = useTheme();
   if (!message?.trim()) {
+    return null;
+  }
+  const safe = safeUserFacingMessage(message);
+  if (!safe?.trim()) {
     return null;
   }
   return (
@@ -20,7 +25,7 @@ export function InlineCardError({ message }) {
         },
       ]}
     >
-      <AppText style={[styles.text, { color: colors.danger }]}>{message.trim()}</AppText>
+      <AppText style={[styles.text, { color: colors.danger }]}>{safe.trim()}</AppText>
     </View>
   );
 }

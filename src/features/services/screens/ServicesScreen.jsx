@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { useAuth } from '../../auth';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
 import { ServiceCreateSheet } from '../components/ServiceCreateSheet';
@@ -179,7 +180,7 @@ export function ServicesScreen() {
       setAddonSheetOpen(false);
       setEditingAddonId(null);
     } catch (err) {
-      setAddonSheetError(err?.message ?? 'Could not save add-on');
+      setAddonSheetError(safeUserFacingMessage(err, { fallback: 'Could not save add-on' }));
     }
   }
 
@@ -208,7 +209,10 @@ export function ServicesScreen() {
         setEditingAddonId(null);
       }
     } catch (err) {
-      Alert.alert('Could not delete', err?.message ?? 'Please try again.');
+      Alert.alert(
+        'Could not delete',
+        safeUserFacingMessage(err, { fallback: 'Please try again.' }),
+      );
     }
   }
 
@@ -230,7 +234,10 @@ export function ServicesScreen() {
     try {
       await deleteService({ serviceId: item.id });
     } catch (err) {
-      Alert.alert('Could not delete', err?.message ?? 'Please try again.');
+      Alert.alert(
+        'Could not delete',
+        safeUserFacingMessage(err, { fallback: 'Please try again.' }),
+      );
     }
   }
 
@@ -239,7 +246,10 @@ export function ServicesScreen() {
     try {
       await setServiceActive({ serviceId: item.id, isActive: nextActive });
     } catch (err) {
-      Alert.alert('Could not update', err?.message ?? 'Please try again.');
+      Alert.alert(
+        'Could not update',
+        safeUserFacingMessage(err, { fallback: 'Please try again.' }),
+      );
     }
   }
 
@@ -253,7 +263,7 @@ export function ServicesScreen() {
       await createService({ name, description, price, durationHHmm });
       setServiceSheetOpen(false);
     } catch (err) {
-      setServiceSheetError(err?.message ?? 'Could not create service.');
+      setServiceSheetError(safeUserFacingMessage(err, { fallback: 'Could not create service.' }));
     }
   }
 
@@ -287,7 +297,10 @@ export function ServicesScreen() {
       });
       setIsSortMode(false);
     } catch (err) {
-      Alert.alert('Could not save order', err?.message ?? 'Please try again.');
+      Alert.alert(
+        'Could not save order',
+        safeUserFacingMessage(err, { fallback: 'Please try again.' }),
+      );
     }
   }
 

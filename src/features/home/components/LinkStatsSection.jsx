@@ -20,19 +20,26 @@ function LinkStatsSkeleton() {
     <SurfaceCard style={styles.compactCard}>
       <View style={styles.topRow}>
         <View style={styles.viewsBlock}>
-          <SkeletonBox borderRadius={10} height={28} width={54} />
-          <SkeletonBox borderRadius={8} height={14} style={{ marginTop: 8 }} width={90} />
+          <SkeletonBox borderRadius={10} height={28} pulse width={54} />
+          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 8 }} width={90} />
         </View>
       </View>
       <View style={[styles.linkWell, wellBg]}>
-        <SkeletonBox borderRadius={8} height={16} width="76%" />
+        <SkeletonBox borderRadius={8} height={16} pulse width="76%" />
       </View>
-      <SkeletonBox borderRadius={14} height={40} style={styles.copySkeleton} width={46} />
+      <SkeletonBox borderRadius={14} height={40} pulse style={styles.copySkeleton} width={46} />
     </SurfaceCard>
   );
 }
 
-export function LinkStatsSection({ slug, profileViews, isLoading, businessError }) {
+export function LinkStatsSection({
+  slug,
+  profileViews,
+  isLoading,
+  businessError,
+  /** When the parent shows a shared banner (e.g. profile load failure), keep muted link UI without a second inline error. */
+  linkSectionDegraded = false,
+}) {
   const { colors, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
 
@@ -71,7 +78,7 @@ export function LinkStatsSection({ slug, profileViews, isLoading, businessError 
     return <LinkStatsSkeleton />;
   }
 
-  if (businessError) {
+  if (businessError || linkSectionDegraded) {
     return (
       <SurfaceCard style={styles.compactCard}>
         <View style={styles.topRow}>
@@ -80,7 +87,7 @@ export function LinkStatsSection({ slug, profileViews, isLoading, businessError 
             <AppText style={[styles.viewsLabel, { color: colors.textMuted }]}>Views</AppText>
           </View>
         </View>
-        <InlineCardError message={businessError} />
+        {businessError ? <InlineCardError message={businessError} /> : null}
         <View style={[styles.linkRow, styles.linkRowDisabled]}>
           <View style={[styles.linkWell, linkWellStyle, styles.linkWellMuted]}>
             <AppText style={[styles.linkUnavailable, { color: colors.textMuted }]}>

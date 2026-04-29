@@ -5,6 +5,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { AppText, Button, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { CustomerDetailActionsSection } from '../customer-details/components/CustomerDetailActionsSection';
 import { CustomerNotesSection } from '../customer-details/components/CustomerNotesSection';
 import { CustomerProfileContactCard } from '../customer-details/components/CustomerProfileContactCard';
@@ -144,7 +145,10 @@ export function CustomerDetailsScreen() {
     try {
       const { error } = await removeCustomerForBusiness(businessId, detailCustomerId);
       if (error) {
-        Alert.alert('Unable to remove customer', error.message ?? 'Please try again in a moment.');
+        Alert.alert(
+          'Unable to remove customer',
+          safeUserFacingMessage(error, { fallback: 'Please try again in a moment.' }),
+        );
         return;
       }
 
@@ -206,7 +210,10 @@ export function CustomerDetailsScreen() {
         notesDraft,
       );
       if (error) {
-        Alert.alert('Unable to save notes', error.message ?? 'Please try again in a moment.');
+        Alert.alert(
+          'Unable to save notes',
+          safeUserFacingMessage(error, { fallback: 'Please try again in a moment.' }),
+        );
         return;
       }
 

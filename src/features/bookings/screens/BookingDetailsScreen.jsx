@@ -3,6 +3,7 @@ import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BookingActionsSection } from '../booking-details/components/BookingActionsSection';
 import { BookingDetailsSkeleton } from '../booking-details/components/BookingDetailsSkeleton';
 import { PriceBreakdownSection } from '../booking-details/components/PriceBreakdownSection';
@@ -64,7 +65,10 @@ export function BookingDetailsScreen({ route }) {
     try {
       await bookingActions.markCompleted();
     } catch (error) {
-      Alert.alert('Could not mark completed', error?.message ?? 'Please try again.');
+      Alert.alert(
+        'Could not mark completed',
+        safeUserFacingMessage(error, { fallback: 'Please try again.' }),
+      );
     }
   }, [bookingActions, bookingId, isCancelledStatus, isCompletedStatus]);
   const handleCancelBooking = useCallback(() => {
@@ -80,7 +84,10 @@ export function BookingDetailsScreen({ route }) {
           try {
             await bookingActions.cancelBooking();
           } catch (error) {
-            Alert.alert('Could not cancel booking', error?.message ?? 'Please try again.');
+            Alert.alert(
+              'Could not cancel booking',
+              safeUserFacingMessage(error, { fallback: 'Please try again.' }),
+            );
           }
         },
       },

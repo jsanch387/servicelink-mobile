@@ -23,9 +23,6 @@ export function AuthProvider({ children }) {
       if (!active) {
         return;
       }
-      if (error) {
-        console.warn('[auth] getSession', error.message);
-      }
       setSession(data.session ?? null);
       setIsReady(true);
     });
