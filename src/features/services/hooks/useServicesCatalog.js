@@ -15,6 +15,7 @@ import {
 } from '../utils/buildServicesCatalogModel';
 
 const EMPTY_LIST = [];
+const EMPTY_ASSIGNMENTS = [];
 const EMPTY_SUMMARY = { totalServices: 0, totalAddons: 0 };
 
 export function useServicesCatalog() {
@@ -66,7 +67,10 @@ export function useServicesCatalog() {
 
       return {
         services: model.services,
+        /** Raw `business_services` rows (snake/camel) for create-flow fields like `price_options_enabled`. */
+        serviceRows: servicesRows ?? [],
         addons: model.addons,
+        addonAssignments: assignmentError ? [] : (assignmentRows ?? []),
         summary,
       };
     },
@@ -96,13 +100,17 @@ export function useServicesCatalog() {
 
   return {
     businessId,
+    /** From `business_profiles.business_slug` — used when persisting bookings. */
+    businessSlug: businessQ.data?.business_slug ?? null,
     businessError,
     catalogError,
     isLoading,
     isFetching,
     refetch,
     services: catalogQ.data?.services ?? EMPTY_LIST,
+    serviceRows: catalogQ.data?.serviceRows ?? EMPTY_LIST,
     addons: catalogQ.data?.addons ?? EMPTY_LIST,
+    addonAssignments: catalogQ.data?.addonAssignments ?? EMPTY_ASSIGNMENTS,
     summary: catalogQ.data?.summary ?? EMPTY_SUMMARY,
   };
 }

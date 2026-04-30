@@ -102,9 +102,12 @@ export function buildServicesCatalogModel(servicesRows, addonsRows, assignmentRo
       const sortOrder = pick(row, ['sort_order', 'display_order', 'position']);
       const createdAt = pick(row, ['created_at', 'createdAt']);
 
+      const dm = numberOrNull(durationMinutes);
       return {
         id: id || `service-${name}`,
         name,
+        /** Raw minutes for booking duration when raw service row is not handy. */
+        durationMinutes: dm != null && dm > 0 ? Math.max(15, dm) : 60,
         durationLabel: formatDurationLabel(durationMinutes),
         addonsCountLabel:
           addonsCount > 0 ? `${addonsCount} add-on${addonsCount === 1 ? '' : 's'}` : null,
@@ -134,6 +137,8 @@ export function buildServicesCatalogModel(servicesRows, addonsRows, assignmentRo
       return {
         id: id || `addon-${name}`,
         name,
+        /** Raw minutes for booking duration math (0 = price-only add-on). */
+        durationMinutes: numberOrNull(durationMinutes) ?? 0,
         durationLabel: formatAddonDurationMinutes(durationMinutes),
         priceLabel: `+${formatPriceLabel(priceCents)}`,
         /** Raw price for editor forms (no $). */

@@ -1,9 +1,11 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppShellGlow, AppText, Divider } from '../../../components/ui';
+import { ROUTES } from '../../../routes/routes';
 import { FloatingCreateMenu } from '../components/FloatingCreateMenu';
 import { HomeErrorBanner } from '../components/HomeErrorBanner';
 import { LinkStatsSection } from '../components/LinkStatsSection';
@@ -13,9 +15,11 @@ import { useHomeDashboard } from '../hooks/useHomeDashboard';
 import { computeHomeErrorPresentation } from '../utils/homeErrorPresentation';
 import { normalizeBusinessSlug } from '../utils/bookingLink';
 import { useTheme } from '../../../theme';
+import { serviceCardTitleStyle } from '../../../utils/serviceCardTypography';
 
 export function HomeScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const dashboard = useHomeDashboard();
   const tabBarHeight = useBottomTabBarHeight();
   /** Extra space so content clears the custom tab bar (hook can be 0 with custom `tabBar`). */
@@ -95,19 +99,11 @@ export function HomeScreen() {
           marginBottom: 10,
           marginTop: 6,
         },
-        profileLeft: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          flexShrink: 1,
-          minWidth: 0,
-        },
         profileName: {
-          color: colors.text,
-          flexShrink: 1,
-          fontSize: 18,
-          fontWeight: '700',
-          marginLeft: 10,
+          flex: 1,
           minWidth: 0,
+          paddingRight: 12,
+          ...serviceCardTitleStyle(colors),
         },
         bellButton: {
           alignItems: 'center',
@@ -131,12 +127,16 @@ export function HomeScreen() {
   );
 
   const handleCreateAppointment = useCallback(() => {
-    Alert.alert('Create appointment', 'Appointment creation flow coming next.');
-  }, []);
+    navigation.navigate(ROUTES.CREATE_APPOINTMENT);
+  }, [navigation]);
 
   const handleCreateQuote = useCallback(() => {
     Alert.alert('Create quote', 'Quote creation flow coming next.');
   }, []);
+
+  const handleOpenNotifications = useCallback(() => {
+    navigation.navigate(ROUTES.NOTIFICATIONS_INBOX);
+  }, [navigation]);
 
   return (
     <SafeAreaView edges={['top']} style={styles.root}>
@@ -156,16 +156,15 @@ export function HomeScreen() {
         style={styles.scroll}
       >
         <View style={styles.profileRow}>
-          <View style={styles.profileLeft}>
-            <Ionicons color={colors.textMuted} name="person-circle-outline" size={30} />
-            <AppText numberOfLines={1} style={styles.profileName}>
-              {businessDisplayName}
-            </AppText>
-          </View>
+          <AppText accessibilityRole="header" numberOfLines={1} style={styles.profileName}>
+            {businessDisplayName}
+          </AppText>
           <Pressable
+            accessibilityHint="Opens notification settings"
             accessibilityLabel="Notifications"
             accessibilityRole="button"
             style={styles.bellButton}
+            onPress={handleOpenNotifications}
           >
             <Ionicons color={colors.textMuted} name="notifications-outline" size={22} />
           </Pressable>

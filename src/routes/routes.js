@@ -28,6 +28,13 @@ export const ROUTES = {
   MORE_HOME: 'MoreHome',
   /** Stack screen name shown in devtools; path is `/more/account`. */
   ACCOUNT_SETTINGS: 'Account',
+  /** More stack — push notification preferences. */
+  NOTIFICATIONS: 'Notifications',
+  /** Root stack — inbox from Home bell (back returns to tabs). */
+  NOTIFICATIONS_INBOX: 'NotificationsInbox',
+  /** Root stack — new appointment from home FAB (back returns to tabs). */
+  CREATE_APPOINTMENT: 'CreateAppointment',
+  HELP: 'Help',
 };
 
 export const PATHS = {
@@ -51,6 +58,10 @@ export const PATHS = {
   MORE: '/more',
   MORE_HOME: '/more/home',
   ACCOUNT_SETTINGS: '/more/account',
+  NOTIFICATIONS: '/more/notifications',
+  NOTIFICATIONS_INBOX: '/notifications',
+  CREATE_APPOINTMENT: '/create-appointment',
+  HELP: '/more/help',
 };
 
 /** Bottom tabs: order, labels, and Ionicons glyph names. */

@@ -1,12 +1,13 @@
 import { useNavigation } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useAuth } from '../../auth';
 import { ROUTES } from '../../../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { AccountBookingLinkCard } from '../components/AccountBookingLinkCard';
+import { AccountSettingsScreenSkeleton } from '../components/AccountSettingsScreenSkeleton';
 import { AccountSubscriptionCard } from '../components/AccountSubscriptionCard';
 import { ChangeBusinessSlugSheet } from '../components/ChangeBusinessSlugSheet';
 import { useAccountSettings } from '../hooks/useAccountSettings';
@@ -27,7 +28,9 @@ export function AccountSettingsScreen() {
     ownerProfile,
     business,
     isLoading,
+    isFetching,
     loadError,
+    refetch,
     updateSlug,
     isSavingSlug,
     saveSlugError,
@@ -60,12 +63,6 @@ export function AccountSettingsScreen() {
           paddingTop: 16,
           width: '100%',
         },
-        boot: {
-          alignItems: 'center',
-          flex: 1,
-          justifyContent: 'center',
-          paddingHorizontal: 24,
-        },
         signedInBlock: {
           gap: 4,
         },
@@ -81,6 +78,11 @@ export function AccountSettingsScreen() {
           fontSize: 16,
           fontWeight: '600',
           letterSpacing: -0.2,
+        },
+        updatingHint: {
+          color: colors.textMuted,
+          fontSize: 13,
+          marginBottom: -8,
         },
       }),
     [colors, scrollBottomPad],
@@ -99,47 +101,78 @@ export function AccountSettingsScreen() {
     [resetSaveSlugError, updateSlug],
   );
 
+  const refreshControl = useMemo(
+    () => (
+      <RefreshControl
+        colors={[colors.accent]}
+        onRefresh={refetch}
+        refreshing={Boolean(isFetching && !isLoading)}
+        tintColor={colors.accent}
+      />
+    ),
+    [colors.accent, isFetching, isLoading, refetch],
+  );
+
   if (isLoading) {
     return (
-      <View style={[styles.root, styles.boot]}>
-        <ActivityIndicator
-          accessibilityLabel="Loading account"
-          color={colors.accent}
-          size="large"
-        />
+      <View style={styles.root}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          <AccountSettingsScreenSkeleton />
+        </ScrollView>
       </View>
     );
   }
 
   if (loadError) {
     return (
-      <View style={[styles.root, { paddingHorizontal: 20, paddingTop: 16 }]}>
-        <InlineCardError message={loadError} />
+      <View style={styles.root}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={refreshControl}
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          <InlineCardError message={loadError} />
+        </ScrollView>
       </View>
     );
   }
 
   if (!business?.id) {
     return (
-      <View style={[styles.root, { paddingHorizontal: 20, paddingTop: 16 }]}>
-        <View style={styles.signedInBlock}>
-          <AppText style={styles.signedInLabel}>Signed in as</AppText>
-          <AppText selectable style={styles.signedInEmail}>
-            {signedInEmail}
-          </AppText>
-        </View>
-        <SurfaceCard style={{ marginTop: 16 }}>
-          <AppText style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>
-            Add a business profile to manage your booking link and subscription.
-          </AppText>
-          <Button
-            fullWidth
-            style={{ marginTop: 16 }}
-            title="Open booking link"
-            variant="secondary"
-            onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
-          />
-        </SurfaceCard>
+      <View style={styles.root}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={refreshControl}
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          <View style={styles.signedInBlock}>
+            <AppText style={styles.signedInLabel}>Signed in as</AppText>
+            <AppText selectable style={styles.signedInEmail}>
+              {signedInEmail}
+            </AppText>
+          </View>
+          <SurfaceCard>
+            <AppText style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>
+              Add a business profile to manage your booking link and subscription.
+            </AppText>
+            <Button
+              fullWidth
+              style={{ marginTop: 16 }}
+              title="Open booking link"
+              variant="secondary"
+              onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
+            />
+          </SurfaceCard>
+        </ScrollView>
       </View>
     );
   }
@@ -149,9 +182,11 @@ export function AccountSettingsScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        refreshControl={refreshControl}
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
+        {isFetching && !isLoading ? <AppText style={styles.updatingHint}>Updating…</AppText> : null}
         <View style={styles.signedInBlock}>
           <AppText style={styles.signedInLabel}>Signed in as</AppText>
           <AppText selectable style={styles.signedInEmail}>
@@ -168,6 +203,8 @@ export function AccountSettingsScreen() {
           httpsUrl={linkModel.httpsUrl}
           onChangeLink={() => setSlugSheetVisible(true)}
         />
+
+        <Button fullWidth title="Delete account" variant="danger" onPress={() => {}} />
       </ScrollView>
 
       <ChangeBusinessSlugSheet

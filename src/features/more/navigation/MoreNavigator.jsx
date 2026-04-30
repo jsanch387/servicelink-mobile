@@ -9,6 +9,8 @@ import { ServicesScreen } from '../../services';
 import { ServiceEditScreen } from '../../services/screens/ServiceEditScreen';
 import { AccountSettingsScreen } from '../screens/AccountSettingsScreen';
 import { MoreScreen } from '../screens/MoreScreen';
+import { HelpScreen } from '../screens/HelpScreen';
+import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -35,6 +37,24 @@ export function MoreNavigator() {
         name={ROUTES.ACCOUNT_SETTINGS}
         options={{
           title: 'Account',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={NotificationSettingsScreen}
+        name={ROUTES.NOTIFICATIONS}
+        options={{
+          title: 'Notification settings',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={HelpScreen}
+        name={ROUTES.HELP}
+        options={{
+          title: 'Help',
           headerBackButtonDisplayMode: 'minimal',
           headerBackTitleVisible: false,
         }}

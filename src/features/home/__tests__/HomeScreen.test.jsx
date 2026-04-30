@@ -1,6 +1,7 @@
-import { screen } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
 import { HomeScreen } from '../screens/HomeScreen';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
+import { ROUTES } from '../../../routes/routes';
 import { renderWithProviders } from './testUtils';
 
 const mockNavigate = jest.fn();
@@ -71,6 +72,19 @@ describe('HomeScreen', () => {
     );
     renderWithProviders(<HomeScreen />);
     expect(screen.getByText('Updating…')).toBeTruthy();
+  });
+
+  it('navigates to notifications inbox when bell is pressed', () => {
+    renderWithProviders(<HomeScreen />);
+    fireEvent.press(screen.getByLabelText('Notifications'));
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.NOTIFICATIONS_INBOX);
+  });
+
+  it('navigates to create appointment when FAB menu appointment is pressed', () => {
+    renderWithProviders(<HomeScreen />);
+    fireEvent.press(screen.getByLabelText('Open create menu'));
+    fireEvent.press(screen.getByLabelText('Create appointment'));
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.CREATE_APPOINTMENT);
   });
 
   it('does not show Updating during initial load', () => {

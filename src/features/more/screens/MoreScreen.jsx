@@ -117,12 +117,16 @@ export function MoreScreen() {
             icon="notifications-outline"
             label="Notifications"
             showDividerBelow={false}
-            onPress={noopNav}
+            onPress={() => navigation.navigate(ROUTES.NOTIFICATIONS)}
           />
         </SettingsSection>
 
         <SettingsSection title="Support">
-          <SettingsNavRow icon="help-circle-outline" label="Help" onPress={noopNav} />
+          <SettingsNavRow
+            icon="help-circle-outline"
+            label="Help"
+            onPress={() => navigation.navigate(ROUTES.HELP)}
+          />
           <SettingsNavRow
             icon="shield-checkmark-outline"
             label="Privacy policy"

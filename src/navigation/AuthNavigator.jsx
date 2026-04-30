@@ -4,9 +4,11 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from '../features/auth';
 import { LoginScreen } from '../features/auth/screens/LoginScreen';
 import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
+import { CreateAppointmentScreen } from '../features/bookings';
+import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
 import { MainTabNavigator } from './MainTabNavigator';
 import { ROUTES } from '../routes/routes';
-import { useTheme } from '../theme';
+import { FONT_FAMILIES, useTheme } from '../theme';
 
 const Stack = createNativeStackNavigator();
 
@@ -45,7 +47,35 @@ export function AuthNavigator() {
         }}
       >
         {session ? (
-          <Stack.Screen component={MainTabNavigator} name={ROUTES.MAIN_APP} />
+          <>
+            <Stack.Screen component={MainTabNavigator} name={ROUTES.MAIN_APP} />
+            <Stack.Screen
+              component={NotificationsInboxScreen}
+              name={ROUTES.NOTIFICATIONS_INBOX}
+              options={{
+                headerShown: true,
+                title: 'Notifications',
+                headerBackButtonDisplayMode: 'minimal',
+                headerBackTitleVisible: false,
+                headerTitleStyle: {
+                  fontFamily: FONT_FAMILIES.semibold,
+                },
+              }}
+            />
+            <Stack.Screen
+              component={CreateAppointmentScreen}
+              name={ROUTES.CREATE_APPOINTMENT}
+              options={{
+                headerShown: true,
+                title: 'New appointment',
+                headerBackButtonDisplayMode: 'minimal',
+                headerBackTitleVisible: false,
+                headerTitleStyle: {
+                  fontFamily: FONT_FAMILIES.semibold,
+                },
+              }}
+            />
+          </>
         ) : (
           <>
             <Stack.Screen component={LoginScreen} name={ROUTES.LOGIN} />

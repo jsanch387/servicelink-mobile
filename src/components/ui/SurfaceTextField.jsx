@@ -20,6 +20,8 @@ export function SurfaceTextField({
   secureTextEntry: secureTextEntryProp,
   containerStyle,
   maxLength: maxLengthProp,
+  /** Tighter vertical rhythm for dense forms (e.g. create-appointment). */
+  compact = false,
   ...rest
 }) {
   const { style: restInputStyle, maxLength: maxLengthFromRest, ...inputRest } = rest;
@@ -35,12 +37,12 @@ export function SurfaceTextField({
     () =>
       StyleSheet.create({
         field: {
-          marginBottom: 20,
+          marginBottom: compact ? 12 : 20,
         },
         label: {
           fontSize: 14,
           fontWeight: '500',
-          marginBottom: 8,
+          marginBottom: compact ? 6 : 8,
         },
         rowShell: {
           borderColor: focused ? colors.borderStrong : colors.inputBorder,
@@ -57,7 +59,7 @@ export function SurfaceTextField({
           width: 40,
         },
       }),
-    [colors, focused],
+    [colors, compact, focused],
   );
 
   const leftNode =

@@ -1,25 +1,24 @@
-const DESCRIPTION_PREVIEW_CHARS = 100;
+import {
+  SERVICE_DESCRIPTION_PREVIEW_CHARS,
+  getServiceDescriptionCopy,
+} from '../../services/utils/servicePreviewCopy';
+
+export { getServiceDescriptionCopy };
 
 export function mapServicesForCards(rows) {
   return (rows ?? []).map((row) => {
-    const description = String(row?.description ?? '').trim();
+    const raw = String(row?.description ?? '').trim();
+    const description = raw || 'No description yet.';
 
     return {
       id: String(row?.id ?? `service-${row?.name ?? 'unknown'}`),
       title: String(row?.name ?? 'Service'),
       price: formatPriceLabel(row?.price_cents),
-      description: description || 'No description yet.',
-      isLongDescription: description.length > DESCRIPTION_PREVIEW_CHARS,
+      description,
+      isLongDescription: description.length > SERVICE_DESCRIPTION_PREVIEW_CHARS,
       duration: formatDurationLabel(row?.duration_minutes),
     };
   });
-}
-
-export function getServiceDescriptionCopy(service, isExpanded) {
-  if (!service.isLongDescription || isExpanded) {
-    return service.description;
-  }
-  return `${service.description.slice(0, DESCRIPTION_PREVIEW_CHARS).trimEnd()}...`;
 }
 
 function formatPriceLabel(cents) {
