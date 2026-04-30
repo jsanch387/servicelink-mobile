@@ -21,7 +21,7 @@ export function AddonsStep({
   );
 
   const metaLine = selectedPricingOption
-    ? `${selectedPricingOption.durationLabel} • ${selectedPricingOption.label}`
+    ? `${selectedPricingOption.durationLabel} — ${selectedPricingOption.label}`
     : (service?.durationLabel ?? '—');
 
   /** Tier price only — does not change when add-ons are toggled. */

@@ -53,8 +53,8 @@ export function BookingDetailsSkeleton() {
   return (
     <>
       <SectionSkeleton rows={4} titleWidth="22%" />
-      <SectionSkeleton rows={4} titleWidth="30%" />
       <SectionSkeleton rows={3} titleWidth="20%" />
+      <SectionSkeleton rows={4} titleWidth="30%" />
       <SectionSkeleton rows={1} titleWidth="20%" withButton />
       <SectionSkeleton rows={1} titleWidth="18%" />
       <SectionSkeleton rows={2} titleWidth="28%" />

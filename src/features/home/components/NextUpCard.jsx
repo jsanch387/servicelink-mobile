@@ -12,49 +12,70 @@ import { useTheme } from '../../../theme';
 import { phoneForSmsUri } from '../../../utils/phone';
 import { openMapsForBooking, openSmsOnMyWay } from '../utils/appointmentOutbound';
 import { hasBookingAddressForMaps } from '../utils/bookingAddress';
+import {
+  buildNextUpHeadlines,
+  formatNextUpServiceLine,
+  formatNextUpVehicleLine,
+} from '../utils/nextUpCardDisplay';
 
 function NextUpSkeleton({ bone }) {
   return (
     <SpotlightCard collapsable={false} style={styles.card}>
-      <SkeletonBox backgroundColor={bone} borderRadius={10} height={22} pulse width="92%" />
+      <View style={styles.skeletonHeadlineRow}>
+        <SkeletonBox
+          backgroundColor={bone}
+          borderRadius={10}
+          height={22}
+          pulse
+          style={styles.skeletonName}
+        />
+        <SkeletonBox
+          backgroundColor={bone}
+          borderRadius={8}
+          height={34}
+          pulse
+          style={styles.skeletonWhen}
+        />
+      </View>
       <SkeletonBox
         backgroundColor={bone}
-        borderRadius={8}
-        height={18}
+        borderRadius={6}
+        height={15}
         pulse
-        style={{ marginTop: 12 }}
-        width="55%"
+        style={{ marginTop: 22 }}
+        width="72%"
+      />
+      <SkeletonBox
+        backgroundColor={bone}
+        borderRadius={6}
+        height={14}
+        pulse
+        style={{ marginTop: 5 }}
+        width="100%"
       />
       <View collapsable={false} style={styles.actions}>
         <View style={styles.actionCell}>
-          <SkeletonBox backgroundColor={bone} borderRadius={14} height={52} pulse width="100%" />
+          <SkeletonBox backgroundColor={bone} borderRadius={12} height={50} pulse width="100%" />
         </View>
         <View style={styles.actionCell}>
-          <SkeletonBox backgroundColor={bone} borderRadius={14} height={52} pulse width="100%" />
+          <SkeletonBox backgroundColor={bone} borderRadius={12} height={50} pulse width="100%" />
         </View>
       </View>
     </SpotlightCard>
   );
 }
 
-export function NextUpCard({
-  nextBooking,
-  title,
-  subtitle,
-  isLoading,
-  businessError,
-  bookingsError,
-}) {
+export function NextUpCard({ nextBooking, subtitle, isLoading, businessError, bookingsError }) {
   const { colors, isDark } = useTheme();
   const scheduleError = businessError || bookingsError || null;
-  const empty = !isLoading && !scheduleError && !title;
+  const empty = !isLoading && !scheduleError && !nextBooking;
   const bone = colors.nextUpTextMuted;
 
-  const canSms = useMemo(
-    () => Boolean(nextBooking && phoneForSmsUri(nextBooking.customer_phone)),
+  const headlines = useMemo(
+    () => (nextBooking ? buildNextUpHeadlines(nextBooking) : null),
     [nextBooking],
   );
-  const canMaps = useMemo(() => hasBookingAddressForMaps(nextBooking), [nextBooking]);
+
   const vehicleLine = useMemo(() => {
     if (!nextBooking) {
       return '';
@@ -66,6 +87,28 @@ export function NextUpCard({
     ].filter(Boolean);
     return parts.join(' ');
   }, [nextBooking]);
+
+  const serviceDisplayLine = useMemo(
+    () =>
+      headlines ? formatNextUpServiceLine(headlines.servicePrimary, headlines.serviceDetail) : '',
+    [headlines],
+  );
+
+  const vehicleOnlyLine = useMemo(() => formatNextUpVehicleLine(vehicleLine), [vehicleLine]);
+
+  const a11ySummary = useMemo(() => {
+    if (!headlines) return undefined;
+    const parts = [headlines.customerName, serviceDisplayLine];
+    if (vehicleOnlyLine) parts.push(vehicleOnlyLine);
+    if (subtitle) parts.push(subtitle);
+    return parts.join('. ');
+  }, [headlines, serviceDisplayLine, subtitle, vehicleOnlyLine]);
+
+  const canSms = useMemo(
+    () => Boolean(nextBooking && phoneForSmsUri(nextBooking.customer_phone)),
+    [nextBooking],
+  );
+  const canMaps = useMemo(() => hasBookingAddressForMaps(nextBooking), [nextBooking]);
 
   const onMyWay = useCallback(() => {
     if (nextBooking) {
@@ -86,13 +129,22 @@ export function NextUpCard({
   const showActions = !empty && !scheduleError;
 
   return (
-    <SpotlightCard collapsable={false} style={styles.card}>
+    <SpotlightCard
+      accessibilityLabel={!empty && !scheduleError ? a11ySummary : undefined}
+      collapsable={false}
+      style={styles.card}
+    >
       {scheduleError ? (
         <InlineCardError message={scheduleError} />
       ) : empty ? (
         <View style={styles.emptyWrap}>
-          <View style={[styles.emptyIconWrap, { backgroundColor: isDark ? '#000000' : '#0a0a0a' }]}>
-            <Ionicons color="#f5f5f5" name="calendar-outline" size={22} />
+          <View
+            style={[
+              styles.emptyIconWrap,
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
+            ]}
+          >
+            <Ionicons color={colors.nextUpTextMuted} name="calendar-outline" size={20} />
           </View>
           <AppText style={[styles.emptyTitle, { color: colors.nextUpText }]}>
             Nothing scheduled yet
@@ -102,19 +154,48 @@ export function NextUpCard({
           </AppText>
         </View>
       ) : (
-        <>
-          <AppText style={[styles.title, { color: colors.nextUpText }]}>{title}</AppText>
-          {vehicleLine ? (
-            <AppText style={[styles.vehicle, { color: colors.nextUpTextMuted }]}>
-              {vehicleLine}
+        <View style={styles.contentColumn}>
+          <View style={styles.headlineRow}>
+            <View style={styles.customerNameCol}>
+              <AppText
+                ellipsizeMode="tail"
+                numberOfLines={2}
+                style={[styles.customerName, { color: colors.nextUpText }]}
+              >
+                {headlines?.customerName}
+              </AppText>
+            </View>
+            {subtitle ? (
+              <View style={styles.whenColumn}>
+                <AppText
+                  ellipsizeMode="tail"
+                  numberOfLines={3}
+                  style={[styles.whenInline, { color: colors.nextUpTextMuted }]}
+                >
+                  {subtitle}
+                </AppText>
+              </View>
+            ) : null}
+          </View>
+
+          <AppText
+            ellipsizeMode="tail"
+            numberOfLines={2}
+            style={[styles.servicePrimary, { color: colors.nextUpText }]}
+          >
+            {serviceDisplayLine}
+          </AppText>
+
+          {vehicleOnlyLine ? (
+            <AppText
+              ellipsizeMode="tail"
+              numberOfLines={3}
+              style={[styles.vehicleAndType, { color: colors.nextUpTextMuted }]}
+            >
+              {vehicleOnlyLine}
             </AppText>
           ) : null}
-          {subtitle ? (
-            <AppText style={[styles.countdown, { color: colors.nextUpTextMuted }]}>
-              {subtitle}
-            </AppText>
-          ) : null}
-        </>
+        </View>
       )}
 
       {showActions ? (
@@ -151,6 +232,22 @@ export function NextUpCard({
 }
 
 const styles = StyleSheet.create({
+  skeletonHeadlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  skeletonName: {
+    flex: 1,
+    minWidth: 0,
+    maxWidth: '58%',
+  },
+  skeletonWhen: {
+    width: '38%',
+    maxWidth: 120,
+    minHeight: 34,
+  },
   card: {
     marginTop: 8,
   },
@@ -163,47 +260,90 @@ const styles = StyleSheet.create({
   emptyIconWrap: {
     alignItems: 'center',
     borderRadius: 999,
-    height: 48,
+    height: 44,
     justifyContent: 'center',
-    marginBottom: 14,
-    width: 48,
+    marginBottom: 16,
+    width: 44,
   },
   emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-    lineHeight: 22,
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: -0.25,
+    lineHeight: 21,
     textAlign: 'center',
   },
   emptyBody: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '400',
     lineHeight: 20,
-    marginTop: 6,
+    marginTop: 8,
     maxWidth: 280,
     textAlign: 'center',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    lineHeight: 26,
+  contentColumn: {
+    alignSelf: 'stretch',
+    minWidth: 0,
+    width: '100%',
   },
-  countdown: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 10,
+  headlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    justifyContent: 'space-between',
+    minWidth: 0,
   },
-  vehicle: {
-    fontSize: 15,
+  customerNameCol: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  whenColumn: {
+    flexShrink: 0,
+    maxWidth: '44%',
+    minWidth: 0,
+    paddingLeft: 6,
+    alignItems: 'flex-end',
+  },
+  whenInline: {
+    fontSize: 12,
     fontWeight: '500',
-    marginTop: 8,
+    letterSpacing: 0.15,
+    lineHeight: 15,
+    textAlign: 'right',
+    opacity: 0.92,
+  },
+  customerName: {
+    fontSize: 24,
+    fontWeight: '600',
+    letterSpacing: -0.55,
+    lineHeight: 29,
+    width: '100%',
+  },
+  servicePrimary: {
+    alignSelf: 'stretch',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: -0.14,
+    lineHeight: 21,
+    marginTop: 18,
+    minWidth: 0,
+    opacity: 0.96,
+  },
+  vehicleAndType: {
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 19,
+    letterSpacing: -0.05,
+    alignSelf: 'stretch',
+    marginTop: 3,
+    minWidth: 0,
+    opacity: 0.88,
   },
   actions: {
     alignSelf: 'stretch',
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 22,
+    gap: 12,
+    marginTop: 26,
     width: '100%',
   },
   actionCell: {

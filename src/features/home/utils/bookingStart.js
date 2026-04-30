@@ -60,3 +60,61 @@ export function formatStartsRelative(startMs, nowMs) {
   const days = Math.round(hours / 24);
   return `Starts in ${days} day${days === 1 ? '' : 's'}`;
 }
+
+function startOfLocalDayMs(ms) {
+  const d = new Date(ms);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/**
+ * Human-readable “when” for the home Next Up card: calendar + clock first, not “starts in 72 hours”.
+ *
+ * @param {number} startMs
+ * @param {number} nowMs
+ */
+export function formatNextUpWhenLine(startMs, nowMs) {
+  if (!Number.isFinite(startMs) || !Number.isFinite(nowMs)) {
+    return '';
+  }
+  const diff = startMs - nowMs;
+  if (diff < 0) {
+    return '';
+  }
+  if (diff < 45_000) {
+    return 'Starting soon';
+  }
+
+  const start = new Date(startMs);
+  const now = new Date(nowMs);
+  const timePart = start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
+  const dayDiff = Math.round((startOfLocalDayMs(startMs) - startOfLocalDayMs(nowMs)) / 86400000);
+
+  if (dayDiff === 0) {
+    if (diff < 60 * 60 * 1000) {
+      const mins = Math.max(1, Math.round(diff / 60000));
+      return `${timePart} · in ${mins} min`;
+    }
+    return `Today at ${timePart}`;
+  }
+  if (dayDiff === 1) {
+    return `Tmrw at ${timePart}`;
+  }
+  if (dayDiff >= 2 && dayDiff <= 6) {
+    const datePart = start.toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+    return `${datePart} at ${timePart}`;
+  }
+
+  const includeYear = start.getFullYear() !== now.getFullYear();
+  const datePart = start.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    ...(includeYear ? { year: 'numeric' } : {}),
+  });
+  return `${datePart} at ${timePart}`;
+}

@@ -78,7 +78,7 @@ export function ReviewStep({
   const pricingLine = useMemo(() => {
     if (!selectedPricingOption) return '—';
     const { label, durationLabel, priceLabel } = selectedPricingOption;
-    return `${label} • ${durationLabel} • ${priceLabel}`;
+    return `${label} — ${durationLabel} — ${priceLabel}`;
   }, [selectedPricingOption]);
 
   const notesTrimmed = (notes ?? '').trim();

@@ -31,7 +31,7 @@ export function PricingStep({ service, pricingOptions, selectedPricingId, onSele
 
   const displayPrice = selectedOption?.priceLabel ?? service?.priceLabel ?? '—';
   const metaLine = selectedOption
-    ? `${selectedOption.durationLabel} • ${selectedOption.label}`
+    ? `${selectedOption.durationLabel} — ${selectedOption.label}`
     : (service?.durationLabel ?? '—');
 
   const styles = useMemo(

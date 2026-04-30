@@ -75,7 +75,7 @@ describe('useHomeDashboard', () => {
     expect(result.current.bookingsError).toBeNull();
     expect(result.current.nextBooking).toBeNull();
     expect(result.current.upcomingCount).toBe(0);
-    expect(result.current.nextBookingTitle).toBe('');
+    expect(result.current.nextSubtitle).toBe('');
   });
 
   it('derives next booking and count from confirmed future rows', async () => {
@@ -123,7 +123,7 @@ describe('useHomeDashboard', () => {
     });
 
     expect(result.current.nextBooking?.id).toBe('b');
-    expect(result.current.nextBookingTitle).toBe('Kim — Color');
+    expect(result.current.nextSubtitle).toMatch(/Jun|2030|at/i);
 
     Date.now.mockRestore();
   });

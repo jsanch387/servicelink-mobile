@@ -181,7 +181,6 @@ export function HomeScreen() {
           isLoading={sectionLoading}
           nextBooking={dashboard.nextBooking}
           subtitle={dashboard.nextSubtitle}
-          title={dashboard.nextBookingTitle}
         />
 
         <AppText style={styles.sectionLabel}>Booking link</AppText>

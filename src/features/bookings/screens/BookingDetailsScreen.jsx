@@ -133,7 +133,6 @@ export function BookingDetailsScreen({ route }) {
         {!detailsQuery.isLoading && !detailsQuery.errorMessage ? (
           <>
             <ScheduleSection schedule={details.schedule} />
-            <PriceBreakdownSection formattedPrice={details.formattedPrice} />
 
             <InfoSection
               rows={[
@@ -148,6 +147,8 @@ export function BookingDetailsScreen({ route }) {
               ]}
               title="Customer"
             />
+
+            <PriceBreakdownSection formattedPrice={details.formattedPrice} />
 
             <InfoSection
               rows={[{ icon: 'location-outline', value: details.location.address }]}

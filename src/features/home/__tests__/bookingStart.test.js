@@ -1,4 +1,9 @@
-import { formatStartsRelative, localYyyyMmDd, parseBookingStartLocalMs } from '../utils/bookingStart';
+import {
+  formatNextUpWhenLine,
+  formatStartsRelative,
+  localYyyyMmDd,
+  parseBookingStartLocalMs,
+} from '../utils/bookingStart';
 
 describe('parseBookingStartLocalMs', () => {
   it('returns NaN when date missing', () => {
@@ -61,5 +66,44 @@ describe('formatStartsRelative', () => {
 
   it('uses days at 48+ hours', () => {
     expect(formatStartsRelative(72 * 60 * 60 * 1000, 0)).toBe('Starts in 3 days');
+  });
+});
+
+describe('formatNextUpWhenLine', () => {
+  it('returns empty for invalid times', () => {
+    expect(formatNextUpWhenLine(NaN, 0)).toBe('');
+    expect(formatNextUpWhenLine(1000, 2000)).toBe('');
+  });
+
+  it('shows soon under 45 seconds', () => {
+    expect(formatNextUpWhenLine(30_000, 0)).toBe('Starting soon');
+  });
+
+  it('shows time and minutes when same day and under one hour', () => {
+    const now = new Date(2026, 3, 29, 9, 30, 0).getTime();
+    const start = new Date(2026, 3, 29, 10, 0, 0).getTime();
+    expect(formatNextUpWhenLine(start, now)).toMatch(/min/);
+    expect(formatNextUpWhenLine(start, now)).toMatch(/10:00/);
+  });
+
+  it('shows Today when same calendar day and over an hour out', () => {
+    const now = new Date(2026, 3, 29, 6, 0, 0).getTime();
+    const start = new Date(2026, 3, 29, 15, 0, 0).getTime();
+    expect(formatNextUpWhenLine(start, now)).toMatch(/Today at/);
+  });
+
+  it('abbreviates the next calendar day as Tmrw', () => {
+    const now = new Date(2026, 3, 29, 20, 0, 0).getTime();
+    const start = new Date(2026, 3, 30, 9, 0, 0).getTime();
+    expect(formatNextUpWhenLine(start, now)).toMatch(/Tmrw at/);
+  });
+
+  it('shows weekday for appointments a few days out', () => {
+    const now = new Date(2026, 3, 29, 8, 0, 0).getTime();
+    const start = new Date(2026, 4, 2, 10, 30, 0).getTime();
+    const line = formatNextUpWhenLine(start, now);
+    expect(line).toMatch(/May/);
+    expect(line).toMatch(/10:30/);
+    expect(line).toMatch(/at/);
   });
 });

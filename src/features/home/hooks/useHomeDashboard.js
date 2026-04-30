@@ -1,9 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useAuth } from '../../auth';
 import {
-  bookingTitleLine,
   fetchBusinessProfileForUser,
   fetchConfirmedBookingsFromToday,
   partitionUpcomingConfirmed,
@@ -14,7 +13,7 @@ import {
   homeBookingsTodayQueryKey,
   homeBusinessProfileQueryKey,
 } from '../queryKeys';
-import { formatStartsRelative, parseBookingStartLocalMs } from '../utils/bookingStart';
+import { formatNextUpWhenLine, parseBookingStartLocalMs } from '../utils/bookingStart';
 import { fetchConfirmedBookingsForToday } from '../api/restOfToday';
 import { mapBookingsToRestOfTodayItems } from '../utils/restOfToday';
 
@@ -63,7 +62,7 @@ export function useHomeDashboard() {
       let nextSubtitle = '';
       if (next) {
         const startMs = parseBookingStartLocalMs(next.scheduled_date, next.start_time);
-        nextSubtitle = formatStartsRelative(startMs, nowMs);
+        nextSubtitle = formatNextUpWhenLine(startMs, nowMs);
       }
       return {
         next,
@@ -105,11 +104,6 @@ export function useHomeDashboard() {
   const nextSubtitle = bookingsQ.data?.nextSubtitle ?? '';
   const todayTimelineItems = todayBookingsQ.data ?? [];
 
-  const nextBookingTitle = useMemo(
-    () => (nextBooking ? bookingTitleLine(nextBooking) : ''),
-    [nextBooking],
-  );
-
   const isPendingBusiness = Boolean(userId) && businessQ.isPending;
   const isPendingBookings = hasBusinessRow && bookingsQ.isPending;
   const isPendingTodayBookings = hasBusinessRow && todayBookingsQ.isPending;
@@ -128,7 +122,6 @@ export function useHomeDashboard() {
     nextBooking,
     upcomingCount,
     nextSubtitle,
-    nextBookingTitle,
     todayTimelineItems,
     isPendingBusiness,
     isPendingBookings,

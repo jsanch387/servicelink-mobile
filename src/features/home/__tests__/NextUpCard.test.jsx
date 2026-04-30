@@ -19,7 +19,6 @@ describe('NextUpCard', () => {
         isLoading
         nextBooking={null}
         subtitle=""
-        title=""
       />,
     );
     expect(screen.queryByText('Next up')).toBeNull();
@@ -33,7 +32,6 @@ describe('NextUpCard', () => {
         isLoading={false}
         nextBooking={null}
         subtitle=""
-        title=""
       />,
     );
     expect(screen.getByText('Nothing scheduled yet')).toBeTruthy();
@@ -42,7 +40,7 @@ describe('NextUpCard', () => {
     expect(screen.queryByLabelText('Navigate')).toBeNull();
   });
 
-  it('shows title, subtitle, and enables actions when booking has phone and address', () => {
+  it('shows customer, service, subtitle, and enables actions when booking has phone and address', () => {
     const nextBooking = {
       id: '1',
       customer_name: 'Alex',
@@ -59,14 +57,42 @@ describe('NextUpCard', () => {
         businessError={null}
         isLoading={false}
         nextBooking={nextBooking}
-        subtitle="Starts in 30 mins"
-        title="Alex — Install"
+        subtitle="Today at 2:00 PM"
       />,
     );
-    expect(screen.getByText('Alex — Install')).toBeTruthy();
-    expect(screen.getByText('Starts in 30 mins')).toBeTruthy();
+    expect(screen.getByText('Alex')).toBeTruthy();
+    expect(screen.getByText('Install')).toBeTruthy();
+    expect(screen.getByText('Today at 2:00 PM')).toBeTruthy();
     expect(screen.getByLabelText('On my way')).not.toBeDisabled();
     expect(screen.getByLabelText('Navigate')).not.toBeDisabled();
+  });
+
+  it('shows tier on the service line and vehicle on the muted line when both exist', () => {
+    const nextBooking = {
+      id: '2',
+      customer_name: 'Jordan Lee',
+      service_name: 'Signature Shine — SUV',
+      customer_vehicle_year: '2017',
+      customer_vehicle_make: 'Toyota',
+      customer_vehicle_model: 'Tacoma',
+      customer_phone: '5551234567',
+      customer_street_address: '1 Main',
+      customer_city: 'Austin',
+      customer_state: 'TX',
+      customer_zip: '78701',
+    };
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={nextBooking}
+        subtitle="Tmrw at 9:00 AM"
+      />,
+    );
+    expect(screen.getByText('Jordan Lee')).toBeTruthy();
+    expect(screen.getByText('Signature Shine — SUV')).toBeTruthy();
+    expect(screen.getByText('2017 Toyota Tacoma')).toBeTruthy();
   });
 
   it('invokes SMS and maps helpers when buttons are pressed', () => {
@@ -87,7 +113,6 @@ describe('NextUpCard', () => {
         isLoading={false}
         nextBooking={nextBooking}
         subtitle=""
-        title="Alex — Install"
       />,
     );
     fireEvent.press(screen.getByLabelText('On my way'));
@@ -104,7 +129,6 @@ describe('NextUpCard', () => {
         isLoading={false}
         nextBooking={null}
         subtitle=""
-        title=""
       />,
     );
     expect(screen.getByText('Bookings failed')).toBeTruthy();

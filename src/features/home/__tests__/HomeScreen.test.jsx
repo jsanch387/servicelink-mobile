@@ -35,7 +35,6 @@ function baseDashboard(overrides = {}) {
     nextBooking: null,
     upcomingCount: 0,
     nextSubtitle: '',
-    nextBookingTitle: '',
     todayTimelineItems: [],
     isPendingBusiness: false,
     isPendingBookings: false,
