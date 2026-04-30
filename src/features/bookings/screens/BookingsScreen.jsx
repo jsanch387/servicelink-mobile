@@ -76,6 +76,15 @@ export function BookingsScreen() {
     });
   }, []);
 
+  const onPlannerBookingPress = useCallback(
+    (booking) => {
+      if (booking?.id) {
+        navigation.navigate(ROUTES.BOOKING_DETAILS, { bookingId: booking.id });
+      }
+    },
+    [navigation],
+  );
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -323,6 +332,7 @@ export function BookingsScreen() {
             dayError={planner.dayError}
             hasBusiness={Boolean(planner.business?.id)}
             isLoading={planner.isLoading}
+            onBookingPress={onPlannerBookingPress}
             onRefresh={onRefresh}
             onShiftDay={shiftPlannerDay}
             plannerDate={plannerDate}

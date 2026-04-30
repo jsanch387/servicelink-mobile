@@ -12,7 +12,8 @@ import {
 import { AppText, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
-import { layoutPlannerDay, isPlannerCancelledStatus } from '../utils/plannerDayLayout';
+import { getBookingStatusLabel, getBookingStatusVisualKind } from '../utils/bookingStatusVisual';
+import { layoutPlannerDay } from '../utils/plannerDayLayout';
 
 /** Wide enough for "12:00" at 10pt; clock is right-aligned inside so colons line up. */
 const HOUR_LABEL_CLOCK_WIDTH = 40;
@@ -41,6 +42,7 @@ function plannerHourClockMeridiem(_anchorDate, hour0to23) {
  *   onRefresh: () => void;
  *   refreshing: boolean;
  *   showNowLine?: boolean;
+ *   onBookingPress?: (booking: import('../api/bookings').BookingRow) => void;
  * }} props
  */
 export function BookingsDayPlanner({
@@ -54,8 +56,9 @@ export function BookingsDayPlanner({
   onRefresh,
   refreshing,
   showNowLine = true,
+  onBookingPress,
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   const todayStr = useMemo(() => localYyyyMmDd(), []);
   const dateStr = useMemo(() => localYyyyMmDd(plannerDate), [plannerDate]);
@@ -235,28 +238,56 @@ export function BookingsDayPlanner({
           opacity: 0.85,
         },
         block: {
-          borderRadius: 8,
+          alignItems: 'stretch',
+          borderRadius: 9,
+          flexDirection: 'row',
           overflow: 'hidden',
-          paddingHorizontal: 8,
-          paddingVertical: 6,
           position: 'absolute',
         },
-        blockDefault: {
-          backgroundColor: colors.shellElevated,
-          borderColor: colors.borderStrong,
+        blockRail: {
+          width: 6,
+        },
+        blockBody: {
+          flex: 1,
+          flexDirection: 'column',
+          minHeight: 0,
+          minWidth: 0,
+          paddingBottom: 4,
+          paddingHorizontal: 8,
+          paddingTop: 4,
+        },
+        blockBodyUpper: {
+          flexGrow: 1,
+          flexShrink: 1,
+          minHeight: 0,
+        },
+        /** Upcoming — green rail + mint fill (reads clearly on gray grid) */
+        blockScheduled: {
+          backgroundColor: isDark ? 'rgba(22,163,74,0.28)' : '#dcfce7',
+          borderColor: isDark ? 'rgba(74,222,128,0.55)' : '#86efac',
           borderWidth: 1,
         },
+        /** Completed — blue rail + sky fill */
+        blockCompleted: {
+          backgroundColor: isDark ? 'rgba(37,99,235,0.32)' : '#dbeafe',
+          borderColor: isDark ? 'rgba(147,197,253,0.55)' : '#93c5fd',
+          borderWidth: 1,
+        },
+        /** Cancelled — red rail + rose fill, dashed outline */
         blockCancelled: {
-          backgroundColor: colors.shell,
-          borderColor: colors.border,
+          backgroundColor: isDark ? 'rgba(127,29,29,0.45)' : '#fee2e2',
+          borderColor: isDark ? 'rgba(252,165,165,0.55)' : '#fca5a5',
           borderStyle: 'dashed',
           borderWidth: 1,
-          opacity: 0.75,
+          opacity: 0.95,
         },
         blockTitle: {
           color: colors.inputText,
           fontSize: 13,
           fontWeight: '700',
+        },
+        blockTitleCompleted: {
+          color: colors.textSecondary,
         },
         blockTitleCancelled: {
           color: colors.textMuted,
@@ -268,12 +299,28 @@ export function BookingsDayPlanner({
           fontWeight: '500',
           marginTop: 2,
         },
+        blockStatusRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          flexShrink: 0,
+          gap: 4,
+          marginTop: 'auto',
+          paddingTop: 2,
+        },
         blockStatus: {
-          color: colors.textMuted,
           fontSize: 10,
-          fontWeight: '700',
-          marginTop: 4,
+          fontWeight: '800',
+          letterSpacing: 0.35,
           textTransform: 'uppercase',
+        },
+        blockStatusScheduled: {
+          color: isDark ? '#bbf7d0' : '#166534',
+        },
+        blockStatusCompleted: {
+          color: isDark ? '#dbeafe' : '#1e40af',
+        },
+        blockStatusCancelled: {
+          color: isDark ? '#fecaca' : '#991b1b',
         },
         emptyWrap: {
           alignItems: 'center',
@@ -298,7 +345,7 @@ export function BookingsDayPlanner({
           marginTop: 48,
         },
       }),
-    [colors, layout.hourHeightPx],
+    [colors, isDark, layout.hourHeightPx],
   );
 
   if (!hasBusiness) {
@@ -418,36 +465,99 @@ export function BookingsDayPlanner({
             ) : null}
 
             {layout.blocks.map((b) => {
-              const cancelled = isPlannerCancelledStatus(b.booking.status);
+              const kind = getBookingStatusVisualKind(b.booking.status);
+              const statusLabel = getBookingStatusLabel(b.booking.status);
               const service = b.booking.service_name?.trim() || 'Service';
               const customer = b.booking.customer_name?.trim() || '';
+              const shellStyle =
+                kind === 'cancelled'
+                  ? styles.blockCancelled
+                  : kind === 'completed'
+                    ? styles.blockCompleted
+                    : styles.blockScheduled;
+              const railColor =
+                kind === 'cancelled'
+                  ? isDark
+                    ? '#f87171'
+                    : '#dc2626'
+                  : kind === 'completed'
+                    ? isDark
+                      ? '#60a5fa'
+                      : '#2563eb'
+                    : isDark
+                      ? '#4ade80'
+                      : '#16a34a';
+              const titleStyle = [
+                styles.blockTitle,
+                kind === 'cancelled' && styles.blockTitleCancelled,
+                kind === 'completed' && styles.blockTitleCompleted,
+              ];
+              const statusRowStyle =
+                kind === 'cancelled'
+                  ? styles.blockStatusCancelled
+                  : kind === 'completed'
+                    ? styles.blockStatusCompleted
+                    : styles.blockStatusScheduled;
+              const statusIconName =
+                kind === 'cancelled'
+                  ? 'close-circle'
+                  : kind === 'completed'
+                    ? 'checkmark-circle'
+                    : 'time-outline';
+              const statusIconColor =
+                kind === 'cancelled'
+                  ? isDark
+                    ? '#fecaca'
+                    : '#991b1b'
+                  : kind === 'completed'
+                    ? isDark
+                      ? '#bfdbfe'
+                      : '#1e40af'
+                    : isDark
+                      ? '#bbf7d0'
+                      : '#166534';
+              const showCustomerLine = Boolean(customer) && b.height >= 52;
+              /** Earlier start time stacks above later cards if geometry ever overlaps by a pixel. */
+              const stackZ = 25000 - (typeof b.startMin === 'number' ? b.startMin : 0);
+              const a11yLabel = [service, customer || null, statusLabel].filter(Boolean).join(', ');
               return (
-                <View
+                <Pressable
                   key={b.booking.id}
+                  accessibilityHint={onBookingPress ? 'Opens booking details' : undefined}
+                  accessibilityLabel={a11yLabel}
+                  accessibilityRole="button"
+                  disabled={!onBookingPress}
                   style={[
                     styles.block,
-                    cancelled ? styles.blockCancelled : styles.blockDefault,
+                    shellStyle,
                     {
                       height: b.height,
                       left: `${b.leftPct}%`,
                       top: b.top,
                       width: `${b.widthPct}%`,
+                      zIndex: stackZ,
                     },
                   ]}
+                  onPress={onBookingPress ? () => onBookingPress(b.booking) : undefined}
                 >
-                  <AppText
-                    numberOfLines={2}
-                    style={[styles.blockTitle, cancelled && styles.blockTitleCancelled]}
-                  >
-                    {service}
-                  </AppText>
-                  {customer ? (
-                    <AppText numberOfLines={1} style={styles.blockSub}>
-                      {customer}
-                    </AppText>
-                  ) : null}
-                  <AppText style={styles.blockStatus}>{String(b.booking.status ?? '')}</AppText>
-                </View>
+                  <View style={[styles.blockRail, { backgroundColor: railColor }]} />
+                  <View style={styles.blockBody}>
+                    <View style={styles.blockBodyUpper}>
+                      <AppText numberOfLines={2} style={titleStyle}>
+                        {service}
+                      </AppText>
+                      {showCustomerLine ? (
+                        <AppText numberOfLines={1} style={styles.blockSub}>
+                          {customer}
+                        </AppText>
+                      ) : null}
+                    </View>
+                    <View style={styles.blockStatusRow}>
+                      <Ionicons color={statusIconColor} name={statusIconName} size={12} />
+                      <AppText style={[styles.blockStatus, statusRowStyle]}>{statusLabel}</AppText>
+                    </View>
+                  </View>
+                </Pressable>
               );
             })}
           </View>

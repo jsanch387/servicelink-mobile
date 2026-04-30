@@ -1,6 +1,10 @@
 const DEFAULT_DURATION_MIN = 60;
 const MIN_BLOCK_MIN = 15;
 const HOUR_PAD = 1;
+/** Pixels trimmed from computed height so consecutive blocks never bleed together (subpixel / border). */
+const BLOCK_HEIGHT_SHRINK_PX = 1;
+/** Minimum vertical gap between stacked blocks in the same column after layout correction. */
+const BLOCK_STACK_GAP_PX = 2;
 
 /** First hour row (inclusive). Matches web `START_HOUR`. */
 export const PLANNER_DEFAULT_START_HOUR = 6;
@@ -164,7 +168,7 @@ function assignColumns(cluster, columnCount) {
  *   windowEndMin: number;
  *   windowSpanMin: number;
  *   pxPerMinute: number;
- *   blocks: { booking: BookingRow; top: number; height: number; leftPct: number; widthPct: number }[];
+ *   blocks: { booking: BookingRow; startMin: number; top: number; height: number; leftPct: number; widthPct: number }[];
  * }}
  */
 export function layoutPlannerDay(bookings, opts = {}) {
@@ -216,19 +220,40 @@ export function layoutPlannerDay(bookings, opts = {}) {
     const depth = maxOverlapDepth(cluster);
     const withCols = assignColumns(cluster, depth);
     for (const item of withCols) {
-      const top = (item.startMin - windowStartMin) * pxPerMinute;
+      const top = Math.round((item.startMin - windowStartMin) * pxPerMinute);
       const rawH = (item.endMin - item.startMin) * pxPerMinute;
-      const height = Math.max(rawH, 26);
+      const height = Math.max(Math.round(rawH) - BLOCK_HEIGHT_SHRINK_PX, 26);
       const gap = 1;
       const widthPct = (100 - gap * (item.columnCount - 1)) / item.columnCount;
       const leftPct = item.column * (widthPct + gap);
       blocks.push({
         booking: item.booking,
+        startMin: item.startMin,
         top,
         height,
         leftPct,
         widthPct,
       });
+    }
+  }
+
+  /** Same-column blocks: enforce a small gap so cards never visually overlap (float / border bleed). */
+  const byColumnKey = new Map();
+  for (const b of blocks) {
+    const key = `${b.leftPct}`;
+    if (!byColumnKey.has(key)) {
+      byColumnKey.set(key, []);
+    }
+    byColumnKey.get(key).push(b);
+  }
+  for (const col of byColumnKey.values()) {
+    col.sort((a, b) => a.top - b.top);
+    for (let i = 1; i < col.length; i++) {
+      const prev = col[i - 1];
+      const minTop = prev.top + prev.height + BLOCK_STACK_GAP_PX;
+      if (col[i].top < minTop) {
+        col[i].top = minTop;
+      }
     }
   }
 
