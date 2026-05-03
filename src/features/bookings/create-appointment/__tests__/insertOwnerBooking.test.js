@@ -46,6 +46,7 @@ describe('insertOwnerBooking', () => {
       vehicleYear: '2021',
       vehicleMake: 'Ford',
       vehicleModel: 'F-150',
+      customerNotes: null,
     };
 
     const { data, error } = await insertOwnerBooking(payload);
@@ -65,6 +66,7 @@ describe('insertOwnerBooking', () => {
         customer_id: 'cust-uuid',
         service_name: 'Wash',
         customer_email: 'p@ex.co',
+        customer_notes: null,
       }),
     );
 

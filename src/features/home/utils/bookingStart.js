@@ -98,7 +98,7 @@ export function formatNextUpWhenLine(startMs, nowMs) {
     return `Today at ${timePart}`;
   }
   if (dayDiff === 1) {
-    return `Tmrw at ${timePart}`;
+    return `Tomorrow at ${timePart}`;
   }
   if (dayDiff >= 2 && dayDiff <= 6) {
     const datePart = start.toLocaleDateString(undefined, {

@@ -14,7 +14,7 @@ export function DetailsSectionCard({ title, children }) {
           paddingVertical: 12,
         },
         section: {
-          rowGap: 8,
+          rowGap: 14,
         },
         title: {
           color: colors.textSecondary,

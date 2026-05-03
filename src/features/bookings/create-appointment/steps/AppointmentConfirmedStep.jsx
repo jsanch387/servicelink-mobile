@@ -44,8 +44,7 @@ export function AppointmentConfirmedStep() {
       </View>
       <AppText style={styles.title}>Appointment confirmed</AppText>
       <AppText style={styles.body}>
-        The appointment was saved to your schedule. You can change or cancel it from Bookings any
-        time.
+        You’re all set—it’s on your calendar. Check Bookings for details.
       </AppText>
     </View>
   );

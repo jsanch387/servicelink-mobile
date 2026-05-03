@@ -56,6 +56,7 @@ describe('buildOwnerBookingPayload', () => {
       customer: { fullName: 'Jane D', email: 'j@ex.co', phone: '(555) 123-4567' },
       address: { street: '1 Main', unit: '', city: 'Austin', state: 'TX', zip: '78701' },
       vehicle: { year: '2020', make: 'Honda', model: 'Civic' },
+      notes: '',
     };
 
     it('builds insert payload with trimmed fields and NANP phone digits', () => {
@@ -69,6 +70,15 @@ describe('buildOwnerBookingPayload', () => {
       expect(p.scheduledDate).toBe('2026-05-01');
       expect(p.durationMinutes).toBe(90);
       expect(p.addonDetails).toBeNull();
+      expect(p.customerNotes).toBe('');
+    });
+
+    it('trims notes into customerNotes for insert', () => {
+      const p = buildOwnerBookingInsertPayload({
+        ...base,
+        notes: '  Pull into bay 2  ',
+      });
+      expect(p.customerNotes).toBe('Pull into bay 2');
     });
 
     it('includes tier in service name when not Standard', () => {

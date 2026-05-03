@@ -21,7 +21,7 @@ import {
 function NextUpSkeleton({ bone }) {
   return (
     <SpotlightCard collapsable={false} style={styles.card}>
-      <View style={styles.skeletonHeadlineRow}>
+      <View style={styles.skeletonHeadBlock}>
         <SkeletonBox
           backgroundColor={bone}
           borderRadius={10}
@@ -32,7 +32,7 @@ function NextUpSkeleton({ bone }) {
         <SkeletonBox
           backgroundColor={bone}
           borderRadius={8}
-          height={34}
+          height={14}
           pulse
           style={styles.skeletonWhen}
         />
@@ -98,9 +98,10 @@ export function NextUpCard({ nextBooking, subtitle, isLoading, businessError, bo
 
   const a11ySummary = useMemo(() => {
     if (!headlines) return undefined;
-    const parts = [headlines.customerName, serviceDisplayLine];
-    if (vehicleOnlyLine) parts.push(vehicleOnlyLine);
+    const parts = [headlines.customerName];
     if (subtitle) parts.push(subtitle);
+    parts.push(serviceDisplayLine);
+    if (vehicleOnlyLine) parts.push(vehicleOnlyLine);
     return parts.join('. ');
   }, [headlines, serviceDisplayLine, subtitle, vehicleOnlyLine]);
 
@@ -155,28 +156,22 @@ export function NextUpCard({ nextBooking, subtitle, isLoading, businessError, bo
         </View>
       ) : (
         <View style={styles.contentColumn}>
-          <View style={styles.headlineRow}>
-            <View style={styles.customerNameCol}>
-              <AppText
-                ellipsizeMode="tail"
-                numberOfLines={2}
-                style={[styles.customerName, { color: colors.nextUpText }]}
-              >
-                {headlines?.customerName}
-              </AppText>
-            </View>
-            {subtitle ? (
-              <View style={styles.whenColumn}>
-                <AppText
-                  ellipsizeMode="tail"
-                  numberOfLines={3}
-                  style={[styles.whenInline, { color: colors.nextUpTextMuted }]}
-                >
-                  {subtitle}
-                </AppText>
-              </View>
-            ) : null}
-          </View>
+          <AppText
+            ellipsizeMode="tail"
+            numberOfLines={2}
+            style={[styles.customerName, { color: colors.nextUpText }]}
+          >
+            {headlines?.customerName}
+          </AppText>
+          {subtitle ? (
+            <AppText
+              ellipsizeMode="tail"
+              numberOfLines={2}
+              style={[styles.whenBelowName, { color: colors.nextUpTextMuted }]}
+            >
+              {subtitle}
+            </AppText>
+          ) : null}
 
           <AppText
             ellipsizeMode="tail"
@@ -232,21 +227,21 @@ export function NextUpCard({ nextBooking, subtitle, isLoading, businessError, bo
 }
 
 const styles = StyleSheet.create({
-  skeletonHeadlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    justifyContent: 'space-between',
+  skeletonHeadBlock: {
+    alignSelf: 'stretch',
+    gap: 10,
+    minWidth: 0,
   },
   skeletonName: {
-    flex: 1,
+    alignSelf: 'stretch',
+    maxWidth: '72%',
     minWidth: 0,
-    maxWidth: '58%',
   },
   skeletonWhen: {
-    width: '38%',
-    maxWidth: 120,
-    minHeight: 34,
+    alignSelf: 'flex-start',
+    maxWidth: 200,
+    minWidth: 0,
+    width: '48%',
   },
   card: {
     marginTop: 8,
@@ -285,38 +280,20 @@ const styles = StyleSheet.create({
     minWidth: 0,
     width: '100%',
   },
-  headlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    justifyContent: 'space-between',
-    minWidth: 0,
-  },
-  customerNameCol: {
-    flex: 1,
-    flexShrink: 1,
-    minWidth: 0,
-  },
-  whenColumn: {
-    flexShrink: 0,
-    maxWidth: '44%',
-    minWidth: 0,
-    paddingLeft: 6,
-    alignItems: 'flex-end',
-  },
-  whenInline: {
-    fontSize: 12,
-    fontWeight: '500',
-    letterSpacing: 0.15,
-    lineHeight: 15,
-    textAlign: 'right',
-    opacity: 0.92,
-  },
   customerName: {
     fontSize: 24,
     fontWeight: '600',
     letterSpacing: -0.55,
     lineHeight: 29,
+    width: '100%',
+  },
+  whenBelowName: {
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 0.02,
+    lineHeight: 16,
+    marginTop: 3,
+    opacity: 0.9,
     width: '100%',
   },
   servicePrimary: {
@@ -325,7 +302,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: -0.14,
     lineHeight: 21,
-    marginTop: 18,
+    marginTop: 14,
     minWidth: 0,
     opacity: 0.96,
   },

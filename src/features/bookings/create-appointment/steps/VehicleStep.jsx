@@ -49,10 +49,10 @@ export function VehicleStep({ vehicle, notes, onChangeVehicle, onChangeNotes }) 
       <SurfaceTextField
         compact
         containerStyle={styles.notesField}
-        label="Appointment notes"
+        label="Notes"
         multiline
         numberOfLines={5}
-        placeholder="Optional — internal notes for this booking."
+        placeholder="Optional — notes for this booking."
         value={notes}
         style={{ minHeight: 120, paddingTop: 10, textAlignVertical: 'top' }}
         onChangeText={onChangeNotes}

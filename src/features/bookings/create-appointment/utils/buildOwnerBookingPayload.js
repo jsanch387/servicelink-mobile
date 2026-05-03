@@ -44,6 +44,7 @@ export function buildAddonDetailsPayload(selectedAddonRows) {
  * @param {{ fullName: string; email: string; phone: string }} args.customer
  * @param {{ street: string; unit?: string; city: string; state: string; zip: string }} args.address
  * @param {{ year: string; make: string; model: string }} args.vehicle
+ * @param {string} [args.notes] trimmed into `bookings.customer_notes`
  */
 export function buildOwnerBookingInsertPayload({
   catalog,
@@ -57,7 +58,9 @@ export function buildOwnerBookingInsertPayload({
   customer,
   address,
   vehicle,
+  notes,
 }) {
+  const notesTrimmed = typeof notes === 'string' ? notes.trim() : '';
   return {
     businessId: catalog.businessId,
     businessSlug: catalog.businessSlug,
@@ -79,5 +82,6 @@ export function buildOwnerBookingInsertPayload({
     vehicleYear: vehicle.year.trim(),
     vehicleMake: vehicle.make.trim(),
     vehicleModel: vehicle.model.trim(),
+    customerNotes: notesTrimmed,
   };
 }

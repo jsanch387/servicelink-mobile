@@ -187,6 +187,7 @@ export function useCreateAppointmentController({ catalog, userId, navigation }) 
           customer,
           address,
           vehicle,
+          notes,
         }),
       );
 

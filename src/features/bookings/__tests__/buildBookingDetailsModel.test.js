@@ -17,6 +17,13 @@ describe('buildBookingDetailsModel', () => {
     expect(model.customer.phone).toBe('(305) 444-1212');
   });
 
+  it('maps customer_notes to notes for display', () => {
+    const model = buildBookingDetailsModel({
+      customer_notes: 'Please ring doorbell',
+    });
+    expect(model.notes).toBe('Please ring doorbell');
+  });
+
   it('parses addon_details for price breakdown rows', () => {
     const model = buildBookingDetailsModel({
       service_price_cents: 10000,

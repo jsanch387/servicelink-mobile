@@ -14,14 +14,14 @@ export function createAppointmentFlowStyles(colors) {
     content: {
       paddingBottom: 24,
       paddingHorizontal: 20,
-      paddingTop: 0,
+      paddingTop: 12,
     },
     title: {
       color: colors.text,
       fontSize: 22,
       fontWeight: '700',
       letterSpacing: -0.35,
-      marginBottom: 16,
+      marginBottom: 22,
     },
   });
 }

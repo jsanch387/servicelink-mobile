@@ -172,7 +172,7 @@ export function BookingDetailsScreen({ route }) {
 
             <InfoSection
               rows={[{ icon: 'document-text-outline', value: details.notes }]}
-              title="Customer notes"
+              title="Notes"
               hideIcons
             />
 

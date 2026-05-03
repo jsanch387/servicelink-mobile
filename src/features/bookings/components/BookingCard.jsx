@@ -191,21 +191,37 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
           fontWeight: '600',
           letterSpacing: 0.15,
         },
-        detailRow: {
-          alignItems: 'center',
+        metaRow: {
+          alignItems: 'stretch',
           flexDirection: 'row',
-          marginTop: 6,
+          marginTop: 10,
+          minWidth: 0,
         },
-        detailText: {
-          color: colors.textMuted,
+        metaStack: {
           flex: 1,
-          fontSize: 13,
+          minWidth: 0,
+        },
+        serviceMetaText: {
+          color: colors.text,
+          fontSize: 12,
+          fontWeight: '500',
+          letterSpacing: -0.08,
+          lineHeight: 16,
+          minWidth: 0,
+        },
+        vehicleMetaText: {
+          color: colors.textMuted,
+          fontSize: 12,
           fontWeight: '400',
-          lineHeight: 18,
-          flexShrink: 1,
+          letterSpacing: -0.05,
+          lineHeight: 16,
+          marginTop: 3,
+          minWidth: 0,
+          opacity: 0.92,
         },
         chevron: {
           alignItems: 'center',
+          alignSelf: 'stretch',
           justifyContent: 'center',
           marginLeft: 8,
           paddingHorizontal: 2,
@@ -255,15 +271,15 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
                 </AppText>
               </View>
             </View>
-            <View style={styles.detailRow}>
-              <AppText numberOfLines={1} style={styles.detailText}>
-                {serviceTitle}
-              </AppText>
-            </View>
-            <View style={styles.detailRow}>
-              <AppText numberOfLines={1} style={styles.detailText}>
-                {secondaryLine}
-              </AppText>
+            <View style={styles.metaRow}>
+              <View style={styles.metaStack}>
+                <AppText ellipsizeMode="tail" numberOfLines={2} style={styles.serviceMetaText}>
+                  {serviceTitle}
+                </AppText>
+                <AppText ellipsizeMode="tail" numberOfLines={2} style={styles.vehicleMetaText}>
+                  {secondaryLine}
+                </AppText>
+              </View>
               <View style={styles.chevron}>
                 <Ionicons color={colors.textMuted} name="chevron-forward" size={19} />
               </View>

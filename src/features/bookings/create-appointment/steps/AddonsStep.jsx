@@ -24,8 +24,8 @@ export function AddonsStep({
     ? `${selectedPricingOption.durationLabel} — ${selectedPricingOption.label}`
     : (service?.durationLabel ?? '—');
 
-  /** Tier price only — does not change when add-ons are toggled. */
-  const headerTierPrice =
+  /** Selected option base price only — does not change when add-ons are toggled. */
+  const headerOptionPrice =
     selectedPricingOption?.priceLabel ?? service?.priceLabel ?? formatUsdFromNumber(0);
 
   const selectedAddonRows = useMemo(() => {
@@ -80,7 +80,7 @@ export function AddonsStep({
           fontSize: 16,
           fontWeight: '600',
         },
-        tierLine: {
+        optionSummaryLine: {
           color: colors.textMuted,
           fontSize: 13,
           fontWeight: '500',
@@ -156,7 +156,7 @@ export function AddonsStep({
     return (
       <View>
         <CreateFlowServiceHeader
-          displayPrice={headerTierPrice}
+          displayPrice={headerOptionPrice}
           metaLine={metaLine}
           serviceName={service.name}
         />
@@ -170,7 +170,7 @@ export function AddonsStep({
   return (
     <View>
       <CreateFlowServiceHeader
-        displayPrice={headerTierPrice}
+        displayPrice={headerOptionPrice}
         metaLine={metaLine}
         serviceName={service.name}
       />
@@ -200,10 +200,10 @@ export function AddonsStep({
           <AppText numberOfLines={2} style={styles.serviceName}>
             {service.name}
           </AppText>
-          <AppText style={styles.servicePrice}>{headerTierPrice}</AppText>
+          <AppText style={styles.servicePrice}>{headerOptionPrice}</AppText>
         </View>
         {selectedPricingOption ? (
-          <AppText style={styles.tierLine}>{selectedPricingOption.label}</AppText>
+          <AppText style={styles.optionSummaryLine}>{selectedPricingOption.label}</AppText>
         ) : (
           <View style={{ height: 4 }} />
         )}

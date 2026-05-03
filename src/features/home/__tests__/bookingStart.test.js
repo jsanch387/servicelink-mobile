@@ -92,10 +92,10 @@ describe('formatNextUpWhenLine', () => {
     expect(formatNextUpWhenLine(start, now)).toMatch(/Today at/);
   });
 
-  it('abbreviates the next calendar day as Tmrw', () => {
+  it('spells out the next calendar day as Tomorrow', () => {
     const now = new Date(2026, 3, 29, 20, 0, 0).getTime();
     const start = new Date(2026, 3, 30, 9, 0, 0).getTime();
-    expect(formatNextUpWhenLine(start, now)).toMatch(/Tmrw at/);
+    expect(formatNextUpWhenLine(start, now)).toMatch(/Tomorrow at/);
   });
 
   it('shows weekday for appointments a few days out', () => {

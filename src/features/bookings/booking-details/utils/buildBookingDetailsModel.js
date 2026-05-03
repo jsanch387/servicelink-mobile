@@ -157,7 +157,7 @@ export function buildBookingDetailsModel(booking) {
       hasAddress,
     },
     vehicle: vehicleLine || 'Vehicle details not provided',
-    notes: 'Not provided',
+    notes: clean(booking?.customer_notes, 'Not provided'),
     formattedPrice: {
       servicePrice: formatMoneyOrFallback(servicePrice),
       addOnsTotal: formatMoney(addOnsTotal),

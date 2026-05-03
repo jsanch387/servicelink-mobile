@@ -30,6 +30,7 @@ export async function insertOwnerBooking(payload) {
     vehicleYear,
     vehicleMake,
     vehicleModel,
+    customerNotes,
   } = payload;
 
   const { data: customerRow, error: customerError } = await upsertCustomerForBooking(businessId, {
@@ -65,6 +66,7 @@ export async function insertOwnerBooking(payload) {
     customer_vehicle_year: vehicleYear || null,
     customer_vehicle_make: vehicleMake || null,
     customer_vehicle_model: vehicleModel || null,
+    customer_notes: customerNotes?.trim() ? customerNotes.trim() : null,
   };
 
   const { data, error } = await supabase.from('bookings').insert(row).select('id').maybeSingle();

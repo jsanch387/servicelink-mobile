@@ -87,7 +87,7 @@ describe('NextUpCard', () => {
         businessError={null}
         isLoading={false}
         nextBooking={nextBooking}
-        subtitle="Tmrw at 9:00 AM"
+        subtitle="Tomorrow at 9:00 AM"
       />,
     );
     expect(screen.getByText('Jordan Lee')).toBeTruthy();

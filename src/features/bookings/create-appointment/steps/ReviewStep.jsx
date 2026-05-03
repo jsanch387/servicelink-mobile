@@ -8,6 +8,7 @@ import {
 } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 import { formatPhoneForDisplay } from '../../../../utils/phone';
+import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
 
 function formatReviewDate(dateKey) {
   const d = parseLocalYyyyMmDd(dateKey);
@@ -21,10 +22,37 @@ function formatReviewDate(dateKey) {
 }
 
 /**
+ * Single-line mailing style, e.g. `14301 N IH 35, Pflugerville, TX, 78660`.
+ *
+ * @param {{ street?: string; unit?: string; city?: string; state?: string; zip?: string }} address
+ */
+function formatFullServiceAddress(address) {
+  const parts = [
+    address.street?.trim(),
+    address.unit?.trim(),
+    address.city?.trim(),
+    address.state?.trim(),
+    address.zip?.trim(),
+  ].filter(Boolean);
+  return parts.length ? parts.join(', ') : '—';
+}
+
+function ReviewField({ styles, label, value, emphasize = false, noTopMargin = false }) {
+  return (
+    <View style={[styles.reviewFieldRow, noTopMargin && styles.reviewFieldRowFirst]}>
+      <AppText style={styles.reviewFieldLabel}>{label}</AppText>
+      <AppText style={[styles.reviewFieldValue, emphasize && styles.reviewFieldValueEmphasized]}>
+        {value}
+      </AppText>
+    </View>
+  );
+}
+
+/**
  * @param {{
- *   selectedService: { name?: string } | null;
+ *   selectedService: { name?: string; durationLabel?: string; priceLabel?: string } | null;
  *   selectedPricingOption: { label: string; durationLabel: string; priceLabel: string } | null;
- *   serviceAddons: Array<{ id: string; name: string }>;
+ *   serviceAddons: Array<{ id: string; name: string; priceLabel?: string; price?: string | number }>;
  *   selectedAddonIds: string[];
  *   selectedDateKey: string | null;
  *   selectedTime: string | null;
@@ -48,25 +76,31 @@ export function ReviewStep({
 }) {
   const { colors } = useTheme();
 
-  const addonSummary = useMemo(() => {
+  const selectedAddonRows = useMemo(() => {
     const idSet = new Set((selectedAddonIds ?? []).map(String));
-    const names = (serviceAddons ?? []).filter((a) => idSet.has(String(a.id))).map((a) => a.name);
-    return names.length ? names.join(', ') : 'None';
+    return (serviceAddons ?? []).filter((a) => idSet.has(String(a.id)));
   }, [serviceAddons, selectedAddonIds]);
 
-  const streetLine = useMemo(() => {
-    const parts = [address.street?.trim(), address.unit?.trim()].filter(Boolean);
-    return parts.length ? parts.join(', ') : '—';
-  }, [address.street, address.unit]);
+  const baseUsd = useMemo(() => {
+    const label = selectedPricingOption?.priceLabel ?? selectedService?.priceLabel ?? '';
+    return parsePriceLabelToUsd(label);
+  }, [selectedPricingOption?.priceLabel, selectedService?.priceLabel]);
 
-  const cityLine = useMemo(() => {
-    const city = address.city?.trim();
-    const state = address.state?.trim();
-    const zip = address.zip?.trim();
-    const mid = [city, state].filter(Boolean).join(', ');
-    const tail = [mid, zip].filter(Boolean).join(' ');
-    return tail || '—';
-  }, [address.city, address.state, address.zip]);
+  const addonsUsdSum = useMemo(
+    () => selectedAddonRows.reduce((s, a) => s + parsePriceLabelToUsd(a.priceLabel ?? a.price), 0),
+    [selectedAddonRows],
+  );
+
+  const totalUsd = baseUsd + addonsUsdSum;
+
+  const serviceName = selectedService?.name?.trim() || '—';
+  const optionLabel = selectedPricingOption?.label?.trim() || '—';
+  const durationValue =
+    selectedPricingOption?.durationLabel?.trim() || selectedService?.durationLabel?.trim() || '—';
+  const priceValue =
+    selectedPricingOption?.priceLabel?.trim() || selectedService?.priceLabel?.trim() || '—';
+
+  const fullAddress = useMemo(() => formatFullServiceAddress(address), [address]);
 
   const vehicleLine = useMemo(() => {
     const parts = [vehicle.year?.trim(), vehicle.make?.trim(), vehicle.model?.trim()].filter(
@@ -75,12 +109,6 @@ export function ReviewStep({
     return parts.length ? parts.join(' ') : '—';
   }, [vehicle.year, vehicle.make, vehicle.model]);
 
-  const pricingLine = useMemo(() => {
-    if (!selectedPricingOption) return '—';
-    const { label, durationLabel, priceLabel } = selectedPricingOption;
-    return `${label} — ${durationLabel} — ${priceLabel}`;
-  }, [selectedPricingOption]);
-
   const notesTrimmed = (notes ?? '').trim();
 
   const styles = useMemo(
@@ -88,6 +116,38 @@ export function ReviewStep({
       StyleSheet.create({
         root: {
           gap: 18,
+        },
+        reviewFieldRow: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          gap: 12,
+          justifyContent: 'space-between',
+          marginTop: 10,
+        },
+        reviewFieldRowFirst: {
+          marginTop: 0,
+        },
+        reviewFieldLabel: {
+          color: colors.textMuted,
+          flexShrink: 0,
+          fontSize: 14,
+          lineHeight: 20,
+          maxWidth: '42%',
+        },
+        reviewFieldValue: {
+          color: colors.text,
+          flex: 1,
+          flexGrow: 1,
+          fontSize: 15,
+          fontWeight: '400',
+          lineHeight: 21,
+          minWidth: 0,
+          textAlign: 'right',
+        },
+        reviewFieldValueEmphasized: {
+          fontSize: 17,
+          fontWeight: '700',
+          lineHeight: 22,
         },
         notesBody: {
           color: colors.text,
@@ -100,6 +160,74 @@ export function ReviewStep({
           fontStyle: 'italic',
           lineHeight: 22,
         },
+        addressBody: {
+          color: colors.text,
+          fontSize: 15,
+          lineHeight: 22,
+        },
+        addonBlock: {
+          marginTop: 10,
+        },
+        addonHeadingRow: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          gap: 12,
+          justifyContent: 'space-between',
+        },
+        addonHeadingLabel: {
+          color: colors.textMuted,
+          flexShrink: 0,
+          fontSize: 14,
+          lineHeight: 20,
+          maxWidth: '42%',
+        },
+        addonHeadingValue: {
+          color: colors.text,
+          flex: 1,
+          fontSize: 15,
+          lineHeight: 21,
+          minWidth: 0,
+          textAlign: 'right',
+        },
+        addonSectionTitle: {
+          color: colors.textMuted,
+          fontSize: 14,
+          lineHeight: 20,
+          marginBottom: 6,
+        },
+        addonLineRow: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          gap: 10,
+          justifyContent: 'space-between',
+          marginTop: 8,
+          paddingLeft: 2,
+        },
+        addonLineRowFirst: {
+          marginTop: 0,
+        },
+        addonLineName: {
+          color: colors.text,
+          flex: 1,
+          fontSize: 14,
+          fontWeight: '500',
+          lineHeight: 19,
+          minWidth: 0,
+        },
+        addonLinePrice: {
+          color: colors.text,
+          flexShrink: 0,
+          fontSize: 14,
+          fontWeight: '600',
+          lineHeight: 19,
+        },
+        totalDivider: {
+          backgroundColor: colors.borderStrong,
+          borderRadius: 999,
+          height: 1,
+          marginTop: 14,
+          opacity: 0.85,
+        },
       }),
     [colors],
   );
@@ -107,9 +235,47 @@ export function ReviewStep({
   return (
     <View style={styles.root}>
       <DetailsSectionCard title="Service & pricing">
-        <LabelValueRow label="Service" noTopMargin value={selectedService?.name?.trim() || '—'} />
-        <LabelValueRow label="Tier" value={pricingLine} />
-        <LabelValueRow label="Add-ons" value={addonSummary} />
+        <ReviewField label="Service" noTopMargin styles={styles} value={serviceName} />
+        <ReviewField label="Option" styles={styles} value={optionLabel} />
+        <ReviewField label="Duration" styles={styles} value={durationValue} />
+        <ReviewField label="Price" styles={styles} value={priceValue} />
+
+        <View style={styles.addonBlock}>
+          {selectedAddonRows.length === 0 ? (
+            <View style={styles.addonHeadingRow}>
+              <AppText style={styles.addonHeadingLabel}>Add-ons</AppText>
+              <AppText style={styles.addonHeadingValue}>None</AppText>
+            </View>
+          ) : (
+            <>
+              <AppText style={styles.addonSectionTitle}>Add-ons</AppText>
+              {selectedAddonRows.map((a, index) => {
+                const addonPrice = formatUsdFromNumber(
+                  parsePriceLabelToUsd(a.priceLabel ?? a.price),
+                );
+                return (
+                  <View
+                    key={a.id}
+                    style={[styles.addonLineRow, index === 0 && styles.addonLineRowFirst]}
+                  >
+                    <AppText ellipsizeMode="tail" numberOfLines={3} style={styles.addonLineName}>
+                      {a.name}
+                    </AppText>
+                    <AppText style={styles.addonLinePrice}>{addonPrice}</AppText>
+                  </View>
+                );
+              })}
+            </>
+          )}
+        </View>
+
+        <View style={styles.totalDivider} />
+        <ReviewField
+          emphasize
+          label="Total"
+          styles={styles}
+          value={formatUsdFromNumber(totalUsd)}
+        />
       </DetailsSectionCard>
 
       <DetailsSectionCard title="Schedule">
@@ -124,15 +290,14 @@ export function ReviewStep({
       </DetailsSectionCard>
 
       <DetailsSectionCard title="Service address">
-        <LabelValueRow label="Street" noTopMargin value={streetLine} />
-        <LabelValueRow label="City & ZIP" value={cityLine} />
+        <AppText style={styles.addressBody}>{fullAddress}</AppText>
       </DetailsSectionCard>
 
       <DetailsSectionCard title="Vehicle">
         <LabelValueRow label="Vehicle" noTopMargin value={vehicleLine} />
       </DetailsSectionCard>
 
-      <DetailsSectionCard title="Appointment notes">
+      <DetailsSectionCard title="Notes">
         <AppText style={notesTrimmed ? styles.notesBody : styles.notesEmpty}>
           {notesTrimmed || 'None'}
         </AppText>
