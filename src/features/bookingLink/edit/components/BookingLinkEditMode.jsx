@@ -77,7 +77,10 @@ export function BookingLinkEditMode(props) {
           <View style={styles.divider} />
 
           <BookingLinkEditGallerySection
+            canAddGalleryImage={ctrl.canAddGalleryImage}
             colors={ctrl.colors}
+            galleryImageCount={ctrl.galleryImageCount}
+            galleryMaxImages={ctrl.galleryMaxImages}
             galleryTileStyle={ctrl.galleryTileStyle}
             localGalleryUris={ctrl.localGalleryUris}
             styles={styles}

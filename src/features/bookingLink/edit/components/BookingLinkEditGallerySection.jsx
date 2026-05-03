@@ -6,6 +6,9 @@ import { portfolioImageKey } from '../../utils/portfolio';
 export function BookingLinkEditGallerySection({
   styles,
   colors,
+  canAddGalleryImage,
+  galleryImageCount,
+  galleryMaxImages,
   onGalleryAddPress,
   visiblePortfolioImages,
   localGalleryUris,
@@ -13,32 +16,48 @@ export function BookingLinkEditGallerySection({
   onRemoveLocalGalleryItem,
   galleryTileStyle,
 }) {
+  const addDisabled = !canAddGalleryImage;
+
   return (
     <View style={styles.gallerySection}>
       <AppText style={styles.sectionTitle}>Gallery</AppText>
-      <AppText style={styles.sectionBody}>Add images so customers can see your work.</AppText>
+      <AppText style={styles.sectionBody}>
+        Add up to {galleryMaxImages} images so customers can see your work.
+      </AppText>
 
       <DashedBorderFrame
         borderRadius={20}
         dashGap={[8, 6]}
         strokeColor={colors.border}
         strokeWidth={2}
-        style={styles.galleryAddPhotoOuter}
+        style={[styles.galleryAddPhotoOuter, addDisabled && { opacity: 0.5 }]}
       >
         <Pressable
-          accessibilityHint="Choose an existing photo or take a new one"
+          accessibilityHint={
+            addDisabled
+              ? `Remove photos to add more (maximum ${galleryMaxImages}).`
+              : 'Choose an existing photo or take a new one'
+          }
           accessibilityLabel="Add gallery photo"
           accessibilityRole="button"
+          accessibilityState={{ disabled: addDisabled }}
+          disabled={addDisabled}
           onPress={onGalleryAddPress}
           style={({ pressed }) => [
             styles.galleryAddPhotoPressable,
-            pressed ? styles.galleryAddPhotoAreaPressed : null,
+            !addDisabled && pressed ? styles.galleryAddPhotoAreaPressed : null,
           ]}
         >
           <View style={styles.galleryAddStack}>
             <Ionicons name="camera-outline" size={32} color={colors.textMuted} />
-            <AppText style={styles.addPhotoTitle}>Add photo</AppText>
-            <AppText style={styles.addPhotoSubtitle}>Select photos to add to your gallery.</AppText>
+            <AppText style={styles.addPhotoTitle}>
+              {addDisabled ? 'Gallery full' : 'Add photo'}
+            </AppText>
+            <AppText style={styles.addPhotoSubtitle}>
+              {addDisabled
+                ? `You already have ${galleryMaxImages} photos. Remove one to add another.`
+                : `${galleryImageCount} of ${galleryMaxImages} used — select photos to add to your gallery.`}
+            </AppText>
           </View>
         </Pressable>
       </DashedBorderFrame>

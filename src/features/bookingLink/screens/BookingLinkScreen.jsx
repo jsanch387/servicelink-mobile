@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native'
 import { useTheme } from '../../../theme';
 import { BookingLinkEditMode } from '../edit';
 import { useBookingLinkProfile } from '../hooks/useBookingLinkProfile';
+import { BookingLinkEditFab } from '../preview/components/BookingLinkEditFab';
 import { BookingLinkPreview } from '../preview/BookingLinkPreview';
 import { BookingLinkScreenSkeleton } from '../preview/components/BookingLinkScreenSkeleton';
 import { mapServicesForCards } from '../utils/bookingLinkModel';
@@ -38,6 +39,11 @@ export function BookingLinkScreen() {
     () =>
       StyleSheet.create({
         container: {
+          backgroundColor: colors.shell,
+          flex: 1,
+        },
+        /** Same idea as home: `flex:1` wrapper so the FAB’s absolute position is relative to this layer. */
+        previewLayer: {
           backgroundColor: colors.shell,
           flex: 1,
         },
@@ -90,24 +96,26 @@ export function BookingLinkScreen() {
           <BookingLinkScreenSkeleton coverHeight={coverHeight} />
         </ScrollView>
       ) : (
-        <BookingLinkPreview
-          activeTab={activeTab}
-          bio={bio}
-          businessName={businessNameDisplay}
-          businessType={businessTypeDisplay}
-          coverHeight={coverHeight}
-          coverImageUrl={coverImageUrl}
-          galleryImages={galleryImages}
-          location={location}
-          logoUrl={logoUrl}
-          onChangeTab={setActiveTab}
-          onPressEdit={() => setIsEditMode(true)}
-          onRefresh={refetchBookingProfile}
-          phoneNumber={phoneNumber}
-          queryState={bookingProfile}
-          services={services}
-          showVerifiedBadge={profile?.showVerifiedBadge ?? false}
-        />
+        <View style={styles.previewLayer}>
+          <BookingLinkPreview
+            activeTab={activeTab}
+            bio={bio}
+            businessName={businessNameDisplay}
+            businessType={businessTypeDisplay}
+            coverHeight={coverHeight}
+            coverImageUrl={coverImageUrl}
+            galleryImages={galleryImages}
+            location={location}
+            logoUrl={logoUrl}
+            onChangeTab={setActiveTab}
+            onRefresh={refetchBookingProfile}
+            phoneNumber={phoneNumber}
+            queryState={bookingProfile}
+            services={services}
+            showVerifiedBadge={profile?.showVerifiedBadge ?? false}
+          />
+          <BookingLinkEditFab bottom={30} onPress={() => setIsEditMode(true)} />
+        </View>
       )}
     </View>
   );

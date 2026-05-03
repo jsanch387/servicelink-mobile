@@ -9,6 +9,7 @@ import { BUSINESS_TYPE_OPTIONS } from '../../constants/businessTypeOptions';
 import {
   BOOKING_LINK_EDIT_GALLERY_COLUMNS,
   BOOKING_LINK_EDIT_GALLERY_GAP,
+  BOOKING_LINK_GALLERY_MAX_IMAGES,
 } from '../constants/galleryLayout';
 import { useSaveBookingLinkText } from '../../hooks/useSaveBookingLinkText';
 import {
@@ -111,19 +112,33 @@ export function useBookingLinkEditController({
     await triggerImageHaptic();
   }, [triggerImageHaptic]);
 
-  const onGalleryAddPress = useCallback(async () => {
-    const uri = await pickGalleryPhotoUri();
-    if (!uri) return;
-    setLocalGalleryUris((prev) => [
-      ...prev,
-      { id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, uri },
-    ]);
-    await triggerImageHaptic();
-  }, [triggerImageHaptic]);
-
   const visiblePortfolioImages = useMemo(() => {
     return portfolioImages.filter((img) => !removedPortfolioKeys.has(portfolioImageKey(img)));
   }, [portfolioImages, removedPortfolioKeys]);
+
+  const galleryImageCount = visiblePortfolioImages.length + localGalleryUris.length;
+  const canAddGalleryImage = galleryImageCount < BOOKING_LINK_GALLERY_MAX_IMAGES;
+
+  const onGalleryAddPress = useCallback(async () => {
+    if (!canAddGalleryImage) {
+      Alert.alert(
+        'Gallery full',
+        `You can have up to ${BOOKING_LINK_GALLERY_MAX_IMAGES} images. Remove one to add another.`,
+      );
+      return;
+    }
+    const uri = await pickGalleryPhotoUri();
+    if (!uri) return;
+    setLocalGalleryUris((prev) => {
+      const nextCount = visiblePortfolioImages.length + prev.length;
+      if (nextCount >= BOOKING_LINK_GALLERY_MAX_IMAGES) return prev;
+      return [
+        ...prev,
+        { id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, uri },
+      ];
+    });
+    await triggerImageHaptic();
+  }, [canAddGalleryImage, triggerImageHaptic, visiblePortfolioImages.length]);
 
   const removePortfolioImage = useCallback((image) => {
     const key = portfolioImageKey(image);
@@ -202,6 +217,14 @@ export function useBookingLinkEditController({
       Alert.alert('Could not save', 'Your profile is still loading. Try again in a moment.');
       return;
     }
+    const galleryTotal = visiblePortfolioImages.length + localGalleryUris.length;
+    if (galleryTotal > BOOKING_LINK_GALLERY_MAX_IMAGES) {
+      Alert.alert(
+        'Too many photos',
+        `Please keep your gallery at ${BOOKING_LINK_GALLERY_MAX_IMAGES} images or fewer before saving.`,
+      );
+      return;
+    }
     try {
       const galleryPayload =
         hasGalleryChanges && businessId
@@ -276,6 +299,9 @@ export function useBookingLinkEditController({
     onCoverPhotoPress,
     onLogoPhotoPress,
     onGalleryAddPress,
+    canAddGalleryImage,
+    galleryImageCount,
+    galleryMaxImages: BOOKING_LINK_GALLERY_MAX_IMAGES,
     visiblePortfolioImages,
     localGalleryUris,
     removePortfolioImage,
