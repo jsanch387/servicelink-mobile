@@ -12,15 +12,18 @@ import { LinkStatsSection } from '../components/LinkStatsSection';
 import { NextUpCard } from '../components/NextUpCard';
 import { RestOfTodayCard } from '../components/restOfToday';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
+import { useHomeQuickMarkComplete } from '../hooks/useHomeQuickMarkComplete';
 import { computeHomeErrorPresentation } from '../utils/homeErrorPresentation';
 import { normalizeBusinessSlug } from '../utils/bookingLink';
 import { useTheme } from '../../../theme';
 import { serviceCardTitleStyle } from '../../../utils/serviceCardTypography';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 
 export function HomeScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const dashboard = useHomeDashboard();
+  const markCompleteMutation = useHomeQuickMarkComplete();
   const tabBarHeight = useBottomTabBarHeight();
   /** Extra space so content clears the custom tab bar (hook can be 0 with custom `tabBar`). */
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
@@ -66,6 +69,11 @@ export function HomeScreen() {
   );
 
   const sectionLoading = dashboard.isPendingBusiness || dashboard.isPendingBookings;
+
+  const nextUpSectionTitle = useMemo(
+    () => (dashboard.spotlightMode === 'in_progress' ? 'In progress' : 'Next Up'),
+    [dashboard.spotlightMode],
+  );
 
   const styles = useMemo(
     () =>
@@ -138,6 +146,21 @@ export function HomeScreen() {
     navigation.navigate(ROUTES.NOTIFICATIONS_INBOX);
   }, [navigation]);
 
+  const handleNextUpMarkComplete = useCallback(async () => {
+    const id = dashboard.nextBooking?.id;
+    if (!id) {
+      return;
+    }
+    try {
+      await markCompleteMutation.mutateAsync(id);
+    } catch (error) {
+      Alert.alert(
+        'Could not mark complete',
+        safeUserFacingMessage(error, { fallback: 'Please try again.' }),
+      );
+    }
+  }, [dashboard.nextBooking?.id, markCompleteMutation]);
+
   return (
     <SafeAreaView edges={['top']} style={styles.root}>
       <AppShellGlow />
@@ -174,12 +197,21 @@ export function HomeScreen() {
           <AppText style={[styles.syncHint, { color: colors.textMuted }]}>Updating…</AppText>
         ) : null}
         {homeErrors.bannerError ? <HomeErrorBanner message={homeErrors.bannerError} /> : null}
-        <AppText style={[styles.sectionLabel, styles.sectionLabelFirst]}>Next Up</AppText>
+        <AppText style={[styles.sectionLabel, styles.sectionLabelFirst]}>
+          {nextUpSectionTitle}
+        </AppText>
         <NextUpCard
           bookingsError={homeErrors.nextUpBookingsError}
           businessError={homeErrors.nextUpBusinessError}
           isLoading={sectionLoading}
+          markCompleteLoading={markCompleteMutation.isPending}
           nextBooking={dashboard.nextBooking}
+          onMarkComplete={
+            dashboard.spotlightMode === 'in_progress' && dashboard.nextBooking?.id
+              ? handleNextUpMarkComplete
+              : undefined
+          }
+          spotlightMode={dashboard.spotlightMode}
           subtitle={dashboard.nextSubtitle}
         />
 

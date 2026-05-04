@@ -35,6 +35,7 @@ function baseDashboard(overrides = {}) {
     nextBooking: null,
     upcomingCount: 0,
     nextSubtitle: '',
+    spotlightMode: 'none',
     todayTimelineItems: [],
     isPendingBusiness: false,
     isPendingBookings: false,
@@ -60,6 +61,28 @@ describe('HomeScreen', () => {
     expect(screen.getByText('Rest of Today')).toBeTruthy();
     expect(screen.getByText('Views')).toBeTruthy();
     expect(screen.getByText('12')).toBeTruthy();
+  });
+
+  it('uses In progress as the spotlight section title when a visit is underway', () => {
+    mockUseHomeDashboard.mockReturnValue(
+      baseDashboard({
+        spotlightMode: 'in_progress',
+        nextBooking: {
+          id: 'b1',
+          customer_name: 'Alex',
+          service_name: 'Detail',
+          customer_phone: '5551234567',
+          customer_street_address: '1 Main',
+          customer_city: 'Austin',
+          customer_state: 'TX',
+          customer_zip: '78701',
+        },
+        nextSubtitle: 'Started at 2:00 PM',
+      }),
+    );
+    renderWithProviders(<HomeScreen />);
+    expect(screen.getByText('In progress')).toBeTruthy();
+    expect(screen.queryByText('Next Up')).toBeNull();
   });
 
   it('shows Updating when background refetch runs with cached content', () => {

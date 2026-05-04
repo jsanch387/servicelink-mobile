@@ -2,7 +2,11 @@ jest.mock('../../../lib/supabase', () => ({
   supabase: { from: jest.fn() },
 }));
 
-import { bookingTitleLine, partitionUpcomingConfirmed } from '../api/homeDashboard';
+import {
+  bookingTitleLine,
+  partitionUpcomingConfirmed,
+  pickHomeSpotlight,
+} from '../api/homeDashboard';
 
 function booking(partial) {
   return {
@@ -18,6 +22,7 @@ function booking(partial) {
     customer_city: null,
     customer_state: null,
     customer_zip: null,
+    duration_minutes: partial.duration_minutes ?? null,
   };
 }
 
@@ -83,6 +88,65 @@ describe('partitionUpcomingConfirmed', () => {
   });
 });
 
+describe('pickHomeSpotlight', () => {
+  it('prefers an in-window confirmed visit over a later upcoming one', () => {
+    const nowMs = new Date('2026-06-15T15:00:00').getTime();
+    const rows = [
+      booking({
+        id: 'live',
+        scheduled_date: '2026-06-15',
+        start_time: '14:00:00',
+        duration_minutes: 120,
+      }),
+      booking({
+        id: 'later',
+        scheduled_date: '2026-06-15',
+        start_time: '18:00:00',
+        duration_minutes: 60,
+      }),
+    ];
+    const out = pickHomeSpotlight(rows, nowMs);
+    expect(out.spotlightMode).toBe('in_progress');
+    expect(out.spotlight?.id).toBe('live');
+    expect(out.upcomingCount).toBe(1);
+  });
+
+  it('falls back to next upcoming when nothing is in the in-progress window', () => {
+    const nowMs = new Date('2026-06-15T16:30:00').getTime();
+    const rows = [
+      booking({
+        id: 'ended',
+        scheduled_date: '2026-06-15',
+        start_time: '14:00:00',
+        duration_minutes: 60,
+      }),
+      booking({
+        id: 'later',
+        scheduled_date: '2026-06-15',
+        start_time: '18:00:00',
+        duration_minutes: 60,
+      }),
+    ];
+    const out = pickHomeSpotlight(rows, nowMs);
+    expect(out.spotlightMode).toBe('upcoming');
+    expect(out.spotlight?.id).toBe('later');
+  });
+
+  it('uses default duration when duration_minutes is missing so a recent start can still be live', () => {
+    const nowMs = new Date('2026-06-15T15:00:00').getTime();
+    const rows = [
+      booking({
+        id: 'live',
+        scheduled_date: '2026-06-15',
+        start_time: '14:00:00',
+      }),
+    ];
+    const out = pickHomeSpotlight(rows, nowMs);
+    expect(out.spotlightMode).toBe('in_progress');
+    expect(out.spotlight?.id).toBe('live');
+  });
+});
+
 describe('bookingTitleLine', () => {
   it('uses trimmed customer and service names', () => {
     expect(
@@ -94,6 +158,8 @@ describe('bookingTitleLine', () => {
   });
 
   it('falls back to Customer and Service when names missing', () => {
-    expect(bookingTitleLine({ customer_name: null, service_name: null })).toBe('Customer — Service');
+    expect(bookingTitleLine({ customer_name: null, service_name: null })).toBe(
+      'Customer — Service',
+    );
   });
 });

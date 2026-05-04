@@ -1,4 +1,5 @@
 import {
+  formatInProgressSubtitle,
   formatNextUpWhenLine,
   formatStartsRelative,
   localYyyyMmDd,
@@ -66,6 +67,18 @@ describe('formatStartsRelative', () => {
 
   it('uses days at 48+ hours', () => {
     expect(formatStartsRelative(72 * 60 * 60 * 1000, 0)).toBe('Starts in 3 days');
+  });
+});
+
+describe('formatInProgressSubtitle', () => {
+  it('returns empty for invalid start', () => {
+    expect(formatInProgressSubtitle(NaN)).toBe('');
+  });
+
+  it('returns Started at with local clock', () => {
+    const ms = new Date(2026, 4, 4, 14, 30, 0).getTime();
+    expect(formatInProgressSubtitle(ms)).toMatch(/^Started at /);
+    expect(formatInProgressSubtitle(ms)).toMatch(/2:30|14:30/);
   });
 });
 

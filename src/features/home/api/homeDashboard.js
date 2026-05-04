@@ -27,4 +27,5 @@ export {
   bookingTitleLine,
   fetchConfirmedBookingsFromToday,
   partitionUpcomingConfirmed,
+  pickHomeSpotlight,
 } from '../../bookings/api/bookings';

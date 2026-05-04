@@ -5,7 +5,7 @@ import { useAuth } from '../../auth';
 import {
   fetchBusinessProfileForUser,
   fetchConfirmedBookingsFromToday,
-  partitionUpcomingConfirmed,
+  pickHomeSpotlight,
 } from '../api/homeDashboard';
 import {
   HOME_QUERY_KEY,
@@ -13,7 +13,11 @@ import {
   homeBookingsTodayQueryKey,
   homeBusinessProfileQueryKey,
 } from '../queryKeys';
-import { formatNextUpWhenLine, parseBookingStartLocalMs } from '../utils/bookingStart';
+import {
+  formatInProgressSubtitle,
+  formatNextUpWhenLine,
+  parseBookingStartLocalMs,
+} from '../utils/bookingStart';
 import { fetchConfirmedBookingsForToday } from '../api/restOfToday';
 import { mapBookingsToRestOfTodayItems } from '../utils/restOfToday';
 
@@ -58,16 +62,23 @@ export function useHomeDashboard() {
         throw new Error(error.message ?? 'Could not load bookings');
       }
       const nowMs = Date.now();
-      const { upcoming, next } = partitionUpcomingConfirmed(rows ?? [], nowMs);
+      const pick = pickHomeSpotlight(rows ?? [], nowMs);
       let nextSubtitle = '';
-      if (next) {
-        const startMs = parseBookingStartLocalMs(next.scheduled_date, next.start_time);
-        nextSubtitle = formatNextUpWhenLine(startMs, nowMs);
+      if (pick.spotlight) {
+        const startMs = parseBookingStartLocalMs(
+          pick.spotlight.scheduled_date,
+          pick.spotlight.start_time,
+        );
+        nextSubtitle =
+          pick.spotlightMode === 'in_progress'
+            ? formatInProgressSubtitle(startMs)
+            : formatNextUpWhenLine(startMs, nowMs);
       }
       return {
-        next,
-        upcomingCount: upcoming.length,
+        next: pick.spotlight,
+        upcomingCount: pick.upcomingCount,
         nextSubtitle,
+        spotlightMode: pick.spotlightMode,
       };
     },
     enabled: hasBusinessRow,
@@ -102,6 +113,7 @@ export function useHomeDashboard() {
   const nextBooking = bookingsQ.data?.next ?? null;
   const upcomingCount = bookingsQ.data?.upcomingCount ?? 0;
   const nextSubtitle = bookingsQ.data?.nextSubtitle ?? '';
+  const spotlightMode = bookingsQ.data?.spotlightMode ?? 'none';
   const todayTimelineItems = todayBookingsQ.data ?? [];
 
   const isPendingBusiness = Boolean(userId) && businessQ.isPending;
@@ -122,6 +134,7 @@ export function useHomeDashboard() {
     nextBooking,
     upcomingCount,
     nextSubtitle,
+    spotlightMode,
     todayTimelineItems,
     isPendingBusiness,
     isPendingBookings,

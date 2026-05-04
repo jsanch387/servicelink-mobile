@@ -23,10 +23,10 @@ import { localYyyyMmDd, parseBookingStartLocalMs } from '../../home/utils/bookin
 
 /** Keep in sync with `formatBookingAddressForMaps` in `home/utils/bookingAddress.js`. */
 export const BOOKING_LIST_SELECT =
-  'id, scheduled_date, start_time, status, service_name, customer_name, customer_phone, customer_street_address, customer_unit_apt, customer_city, customer_state, customer_zip, customer_vehicle_year, customer_vehicle_make, customer_vehicle_model';
+  'id, scheduled_date, start_time, status, service_name, customer_name, customer_phone, customer_street_address, customer_unit_apt, customer_city, customer_state, customer_zip, customer_vehicle_year, customer_vehicle_make, customer_vehicle_model, duration_minutes';
 
-/** Planner day view — includes duration for timeline height. */
-export const PLANNER_BOOKING_SELECT = `${BOOKING_LIST_SELECT}, duration_minutes`;
+/** Planner day view — same columns as list (includes `duration_minutes`). */
+export const PLANNER_BOOKING_SELECT = BOOKING_LIST_SELECT;
 
 /**
  * Confirmed bookings from today onward (calendar date); filter to true “upcoming” instants in JS.
@@ -200,6 +200,85 @@ export function partitionUpcomingConfirmed(rows, nowMs) {
   return {
     upcoming,
     next: upcoming[0] ?? null,
+  };
+}
+
+const DEFAULT_DURATION_MINUTES_WHEN_MISSING = 120;
+
+/**
+ * @param {BookingRow} row
+ */
+function resolvedDurationMinutes(row) {
+  const n = Number(row?.duration_minutes);
+  if (Number.isFinite(n) && n > 0) {
+    return n;
+  }
+  return DEFAULT_DURATION_MINUTES_WHEN_MISSING;
+}
+
+/**
+ * Expected end instant (start + duration) in local time; used for “in progress” on Home.
+ *
+ * @param {BookingRow} row
+ * @returns {number}
+ */
+export function bookingExpectedEndMs(row) {
+  const start = parseBookingStartLocalMs(row.scheduled_date, row.start_time);
+  if (!Number.isFinite(start)) {
+    return NaN;
+  }
+  return start + resolvedDurationMinutes(row) * 60_000;
+}
+
+/**
+ * Home hero: show a confirmed visit that has started and is still within its expected window,
+ * otherwise the earliest future confirmed visit (same as {@link partitionUpcomingConfirmed} `next`).
+ *
+ * @param {BookingRow[]} rows
+ * @param {number} nowMs
+ * @returns {{
+ *   spotlight: BookingRow | null;
+ *   spotlightMode: 'in_progress' | 'upcoming' | 'none';
+ *   upcoming: BookingRow[];
+ *   upcomingCount: number;
+ * }}
+ */
+export function pickHomeSpotlight(rows, nowMs) {
+  const { upcoming, next: nextUpcoming } = partitionUpcomingConfirmed(rows, nowMs);
+  const upcomingCount = upcoming.length;
+
+  const confirmed = (rows ?? []).filter(
+    (r) => String(r.status ?? '').toLowerCase() === 'confirmed',
+  );
+  const inProgress = [];
+  for (const row of confirmed) {
+    const start = parseBookingStartLocalMs(row.scheduled_date, row.start_time);
+    if (!Number.isFinite(start) || start > nowMs) {
+      continue;
+    }
+    const end = bookingExpectedEndMs(row);
+    if (!Number.isFinite(end) || nowMs >= end) {
+      continue;
+    }
+    inProgress.push({ row, start });
+  }
+  inProgress.sort((a, b) => a.start - b.start);
+  const current = inProgress[0]?.row ?? null;
+
+  if (current) {
+    return {
+      spotlight: current,
+      spotlightMode: 'in_progress',
+      upcoming,
+      upcomingCount,
+    };
+  }
+
+  return {
+    spotlight: nextUpcoming,
+    spotlightMode: nextUpcoming ? 'upcoming' : 'none',
+    upcoming,
+    upcomingCount,
   };
 }
 

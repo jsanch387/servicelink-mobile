@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { HOME_QUERY_KEY } from '../../../home/queryKeys';
-import { BOOKINGS_QUERY_ROOT, bookingsDetailsQueryKey } from '../../queryKeys';
 import { cancelBookingById, markBookingCompletedById } from '../api/bookingDetails';
+import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
 
 export function useBookingActions(bookingId) {
   const queryClient = useQueryClient();
@@ -15,11 +14,7 @@ export function useBookingActions(bookingId) {
       return data;
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: bookingsDetailsQueryKey(bookingId) }),
-        queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_ROOT }),
-        queryClient.invalidateQueries({ queryKey: HOME_QUERY_KEY }),
-      ]);
+      await invalidateBookingCachesAfterMutation(queryClient, bookingId);
     },
   });
 
@@ -32,11 +27,7 @@ export function useBookingActions(bookingId) {
       return data;
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: bookingsDetailsQueryKey(bookingId) }),
-        queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_ROOT }),
-        queryClient.invalidateQueries({ queryKey: HOME_QUERY_KEY }),
-      ]);
+      await invalidateBookingCachesAfterMutation(queryClient, bookingId);
     },
   });
 

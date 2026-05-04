@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useCallback, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { Alert, Animated, StyleSheet, View } from 'react-native';
 import {
   AppText,
   Button,
@@ -65,8 +65,17 @@ function NextUpSkeleton({ bone }) {
   );
 }
 
-export function NextUpCard({ nextBooking, subtitle, isLoading, businessError, bookingsError }) {
-  const { colors, isDark } = useTheme();
+export function NextUpCard({
+  nextBooking,
+  subtitle,
+  isLoading,
+  businessError,
+  bookingsError,
+  spotlightMode = 'none',
+  onMarkComplete,
+  markCompleteLoading = false,
+}) {
+  const { colors } = useTheme();
   const scheduleError = businessError || bookingsError || null;
   const empty = !isLoading && !scheduleError && !nextBooking;
   const bone = colors.nextUpTextMuted;
@@ -96,14 +105,63 @@ export function NextUpCard({ nextBooking, subtitle, isLoading, businessError, bo
 
   const vehicleOnlyLine = useMemo(() => formatNextUpVehicleLine(vehicleLine), [vehicleLine]);
 
+  const livePulseDotColor = useMemo(() => {
+    const lightFace = String(colors.nextUpSurface ?? '').toLowerCase() === '#ffffff';
+    return lightFace ? '#059669' : '#34d399';
+  }, [colors.nextUpSurface]);
+
+  const inProgressPrimaryVariant = useMemo(() => {
+    const lightFace = String(colors.nextUpSurface ?? '').toLowerCase() === '#ffffff';
+    return lightFace ? 'surfaceDark' : 'surfaceLight';
+  }, [colors.nextUpSurface]);
+
+  const emptyCalendarBadge = useMemo(() => {
+    const lightFace = String(colors.nextUpSurface ?? '').toLowerCase() === '#ffffff';
+    return {
+      wrapBg: lightFace ? '#000000' : '#ffffff',
+      iconColor: lightFace ? '#ffffff' : '#0a0a0a',
+    };
+  }, [colors.nextUpSurface]);
+
+  const livePulseOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (spotlightMode !== 'in_progress') {
+      livePulseOpacity.setValue(1);
+      return undefined;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(livePulseOpacity, {
+          toValue: 0.38,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+        Animated.timing(livePulseOpacity, {
+          toValue: 1,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+    };
+  }, [spotlightMode, livePulseOpacity]);
+
   const a11ySummary = useMemo(() => {
     if (!headlines) return undefined;
-    const parts = [headlines.customerName];
+    const parts = [];
+    if (spotlightMode === 'in_progress') {
+      parts.push('In progress');
+    }
+    parts.push(headlines.customerName);
     if (subtitle) parts.push(subtitle);
     parts.push(serviceDisplayLine);
     if (vehicleOnlyLine) parts.push(vehicleOnlyLine);
     return parts.join('. ');
-  }, [headlines, serviceDisplayLine, subtitle, vehicleOnlyLine]);
+  }, [headlines, serviceDisplayLine, spotlightMode, subtitle, vehicleOnlyLine]);
 
   const canSms = useMemo(
     () => Boolean(nextBooking && phoneForSmsUri(nextBooking.customer_phone)),
@@ -123,6 +181,24 @@ export function NextUpCard({ nextBooking, subtitle, isLoading, businessError, bo
     }
   }, [nextBooking]);
 
+  const handleMarkCompletePress = useCallback(() => {
+    if (!onMarkComplete) {
+      return;
+    }
+    Alert.alert('Mark complete?', 'This will mark the booking as completed.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Mark complete',
+        style: 'default',
+        onPress: () => {
+          void onMarkComplete();
+        },
+      },
+    ]);
+  }, [onMarkComplete]);
+
+  const inProgressActions = spotlightMode === 'in_progress';
+
   if (isLoading) {
     return <NextUpSkeleton bone={bone} />;
   }
@@ -139,13 +215,8 @@ export function NextUpCard({ nextBooking, subtitle, isLoading, businessError, bo
         <InlineCardError message={scheduleError} />
       ) : empty ? (
         <View style={styles.emptyWrap}>
-          <View
-            style={[
-              styles.emptyIconWrap,
-              { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
-            ]}
-          >
-            <Ionicons color={colors.nextUpTextMuted} name="calendar-outline" size={20} />
+          <View style={[styles.emptyIconWrap, { backgroundColor: emptyCalendarBadge.wrapBg }]}>
+            <Ionicons color={emptyCalendarBadge.iconColor} name="calendar-outline" size={20} />
           </View>
           <AppText style={[styles.emptyTitle, { color: colors.nextUpText }]}>
             Nothing scheduled yet
@@ -156,13 +227,32 @@ export function NextUpCard({ nextBooking, subtitle, isLoading, businessError, bo
         </View>
       ) : (
         <View style={styles.contentColumn}>
-          <AppText
-            ellipsizeMode="tail"
-            numberOfLines={2}
-            style={[styles.customerName, { color: colors.nextUpText }]}
-          >
-            {headlines?.customerName}
-          </AppText>
+          {spotlightMode === 'in_progress' ? (
+            <View style={styles.nameRow}>
+              <AppText
+                ellipsizeMode="tail"
+                numberOfLines={2}
+                style={[styles.customerName, styles.customerNameFlex, { color: colors.nextUpText }]}
+              >
+                {headlines?.customerName}
+              </AppText>
+              <Animated.View
+                accessible={false}
+                style={[styles.livePulseWrap, { opacity: livePulseOpacity }]}
+                testID="next-up-live-pulse"
+              >
+                <View style={[styles.livePulseDot, { backgroundColor: livePulseDotColor }]} />
+              </Animated.View>
+            </View>
+          ) : (
+            <AppText
+              ellipsizeMode="tail"
+              numberOfLines={2}
+              style={[styles.customerName, { color: colors.nextUpText }]}
+            >
+              {headlines?.customerName}
+            </AppText>
+          )}
           {subtitle ? (
             <AppText
               ellipsizeMode="tail"
@@ -194,32 +284,50 @@ export function NextUpCard({ nextBooking, subtitle, isLoading, businessError, bo
       )}
 
       {showActions ? (
-        <View collapsable={false} style={styles.actions}>
-          <View collapsable={false} style={styles.actionCell}>
+        <View collapsable={false} style={inProgressActions ? styles.actionsSingle : styles.actions}>
+          {inProgressActions ? (
             <Button
-              accessibilityHint={canSms ? undefined : 'Phone number required on this booking'}
-              accessibilityLabel="On my way"
-              disabled={!canSms}
+              accessibilityHint={
+                onMarkComplete ? undefined : 'Mark complete is not available right now'
+              }
+              accessibilityLabel="Mark complete"
+              disabled={!onMarkComplete || markCompleteLoading}
               fullWidth
-              iconName="chatbubble-ellipses-outline"
-              title="On my way"
-              variant="surfaceDark"
-              onPress={onMyWay}
+              iconName="checkmark-done-outline"
+              loading={markCompleteLoading}
+              title="Mark complete"
+              variant={inProgressPrimaryVariant}
+              onPress={handleMarkCompletePress}
             />
-          </View>
-          <View collapsable={false} style={styles.actionCell}>
-            <Button
-              accessibilityHint={canMaps ? undefined : 'Address required on this booking'}
-              accessibilityLabel="Navigate"
-              disabled={!canMaps}
-              fullWidth
-              iconName="navigate-outline"
-              outlineColor={colors.nextUpText}
-              title="Navigate"
-              variant="outline"
-              onPress={navigate}
-            />
-          </View>
+          ) : (
+            <>
+              <View collapsable={false} style={styles.actionCell}>
+                <Button
+                  accessibilityHint={canSms ? undefined : 'Phone number required on this booking'}
+                  accessibilityLabel="On my way"
+                  disabled={!canSms}
+                  fullWidth
+                  iconName="chatbubble-ellipses-outline"
+                  title="On my way"
+                  variant="surfaceDark"
+                  onPress={onMyWay}
+                />
+              </View>
+              <View collapsable={false} style={styles.actionCell}>
+                <Button
+                  accessibilityHint={canMaps ? undefined : 'Address required on this booking'}
+                  accessibilityLabel="Navigate"
+                  disabled={!canMaps}
+                  fullWidth
+                  iconName="navigate-outline"
+                  outlineColor={colors.nextUpText}
+                  title="Navigate"
+                  variant="outline"
+                  onPress={navigate}
+                />
+              </View>
+            </>
+          )}
         </View>
       ) : null}
     </SpotlightCard>
@@ -280,6 +388,25 @@ const styles = StyleSheet.create({
     minWidth: 0,
     width: '100%',
   },
+  nameRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  customerNameFlex: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 12,
+  },
+  livePulseWrap: {
+    marginTop: 10,
+  },
+  livePulseDot: {
+    borderRadius: 99,
+    height: 12,
+    width: 12,
+  },
   customerName: {
     fontSize: 24,
     fontWeight: '600',
@@ -320,6 +447,11 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     flexDirection: 'row',
     gap: 12,
+    marginTop: 26,
+    width: '100%',
+  },
+  actionsSingle: {
+    alignSelf: 'stretch',
     marginTop: 26,
     width: '100%',
   },

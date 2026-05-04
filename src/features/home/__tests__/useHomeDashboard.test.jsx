@@ -76,6 +76,7 @@ describe('useHomeDashboard', () => {
     expect(result.current.nextBooking).toBeNull();
     expect(result.current.upcomingCount).toBe(0);
     expect(result.current.nextSubtitle).toBe('');
+    expect(result.current.spotlightMode).toBe('none');
   });
 
   it('derives next booking and count from confirmed future rows', async () => {
@@ -124,6 +125,59 @@ describe('useHomeDashboard', () => {
 
     expect(result.current.nextBooking?.id).toBe('b');
     expect(result.current.nextSubtitle).toMatch(/Jun|2030|at/i);
+
+    Date.now.mockRestore();
+  });
+
+  it('surfaces in-progress visit as next booking when start is in the past but within duration', async () => {
+    const nowMs = new Date('2026-06-15T15:00:00').getTime();
+    jest.spyOn(Date, 'now').mockReturnValue(nowMs);
+
+    homeApi.fetchConfirmedBookingsFromToday.mockResolvedValue({
+      data: [
+        {
+          id: 'live',
+          scheduled_date: '2026-06-15',
+          start_time: '14:00:00',
+          status: 'confirmed',
+          duration_minutes: 120,
+          service_name: 'Detail',
+          customer_name: 'Sam',
+          customer_phone: null,
+          customer_street_address: null,
+          customer_unit_apt: null,
+          customer_city: null,
+          customer_state: null,
+          customer_zip: null,
+        },
+        {
+          id: 'later',
+          scheduled_date: '2026-06-15',
+          start_time: '18:00:00',
+          status: 'confirmed',
+          duration_minutes: 60,
+          service_name: 'Wash',
+          customer_name: 'Kim',
+          customer_phone: null,
+          customer_street_address: null,
+          customer_unit_apt: null,
+          customer_city: null,
+          customer_state: null,
+          customer_zip: null,
+        },
+      ],
+      error: null,
+    });
+
+    const { result } = renderHook(() => useHomeDashboard(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.nextBooking?.id).toBe('live');
+    });
+
+    expect(result.current.spotlightMode).toBe('in_progress');
+    expect(result.current.upcomingCount).toBe(1);
+    expect(result.current.nextSubtitle).toMatch(/^Started at /);
 
     Date.now.mockRestore();
   });

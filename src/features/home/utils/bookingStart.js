@@ -118,3 +118,19 @@ export function formatNextUpWhenLine(startMs, nowMs) {
   });
   return `${datePart} at ${timePart}`;
 }
+
+/**
+ * Second line under the customer name when a visit is in progress (badge above shows “Happening now”).
+ *
+ * @param {number} startMs
+ */
+export function formatInProgressSubtitle(startMs) {
+  if (!Number.isFinite(startMs)) {
+    return '';
+  }
+  const timePart = new Date(startMs).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  return `Started at ${timePart}`;
+}

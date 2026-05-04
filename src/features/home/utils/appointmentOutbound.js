@@ -10,16 +10,21 @@ export function buildOnMyWaySmsBody(booking) {
   return `Hi ${name}, I'm on my way for your ServiceLink appointment. See you soon!`;
 }
 
+export function buildServiceStartingSmsBody(booking) {
+  const name = booking.customer_name?.trim() || 'there';
+  return `Hi ${name}, I'm starting your ServiceLink appointment now.`;
+}
+
 /**
  * @param {{ customer_name?: string | null; customer_phone?: string | null }} booking
+ * @param {string} body
  */
-export async function openSmsOnMyWay(booking) {
+async function openSmsToCustomer(booking, body) {
   const addr = phoneForSmsUri(booking.customer_phone);
   if (!addr) {
     Alert.alert('Missing phone number', 'Add a customer phone on this booking to send a text.');
     return;
   }
-  const body = buildOnMyWaySmsBody(booking);
   const join = Platform.OS === 'ios' ? '&' : '?';
   const url = `sms:${addr}${join}body=${encodeURIComponent(body)}`;
 
@@ -33,6 +38,22 @@ export async function openSmsOnMyWay(booking) {
   } catch {
     Alert.alert('Unable to open Messages', 'Something went wrong opening the messaging app.');
   }
+}
+
+/**
+ * @param {{ customer_name?: string | null; customer_phone?: string | null }} booking
+ */
+export async function openSmsOnMyWay(booking) {
+  await openSmsToCustomer(booking, buildOnMyWaySmsBody(booking));
+}
+
+/**
+ * Opens Messages with a “service is starting” text (Home in-progress spotlight).
+ *
+ * @param {{ customer_name?: string | null; customer_phone?: string | null }} booking
+ */
+export async function openSmsServiceStarting(booking) {
+  await openSmsToCustomer(booking, buildServiceStartingSmsBody(booking));
 }
 
 /**
