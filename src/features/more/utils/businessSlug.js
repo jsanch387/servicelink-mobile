@@ -1,6 +1,6 @@
 import { normalizeBusinessSlug } from '../../home/utils/bookingLink';
 
-const MAX_SLUG_LEN = 48;
+export const MAX_BUSINESS_SLUG_LEN = 40;
 
 /**
  * Normalizes user-typed slug for save: lowercase, hyphenated, safe charset.
@@ -16,8 +16,8 @@ export function sanitizeBusinessSlugForSave(raw) {
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '');
   s = normalizeBusinessSlug(s);
-  if (s.length > MAX_SLUG_LEN) {
-    s = s.slice(0, MAX_SLUG_LEN).replace(/-+$/g, '');
+  if (s.length > MAX_BUSINESS_SLUG_LEN) {
+    s = s.slice(0, MAX_BUSINESS_SLUG_LEN).replace(/-+$/g, '');
   }
   return s;
 }

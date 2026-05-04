@@ -1,14 +1,11 @@
+import { getWebAppOrigin } from '../../../lib/webAppOrigin';
+
 /**
  * Base URL for the Next.js app that serves **`/api/*`** (same origin as the logged-in dashboard if
  * marketing is on another domain). Set `EXPO_PUBLIC_WEB_APP_URL` in `.env` (no trailing slash).
  *
  * @see https://nextjs.org/docs/app/building-your-application/routing/route-handlers
  */
-
-function getWebAppOrigin() {
-  const raw = process.env.EXPO_PUBLIC_WEB_APP_URL ?? '';
-  return String(raw).trim().replace(/\/$/, '');
-}
 
 /**
  * POST `{origin}/api/stripe/connect/express-dashboard` — short-lived Express Dashboard URL.

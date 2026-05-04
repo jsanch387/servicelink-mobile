@@ -1,4 +1,5 @@
 import {
+  buildAvailabilityUiFromPreset,
   buildAvailabilityUiModel,
   buildWeeklySchedulePayloadFromUi,
   format24HourTo12Hour,
@@ -21,6 +22,30 @@ describe('availabilityModel', () => {
       expect(format24HourTo12Hour('12:00')).toBe('12:00 PM');
       expect(format24HourTo12Hour('00:00')).toBe('12:00 AM');
       expect(format24HourTo12Hour('18:30')).toBe('6:30 PM');
+    });
+  });
+
+  describe('buildAvailabilityUiFromPreset', () => {
+    it('enables Mon–Fri 9–5 for mon_fri_9_5', () => {
+      const ui = buildAvailabilityUiFromPreset('mon_fri_9_5');
+      expect(ui.selectedPreset).toBe('mon_fri_9_5');
+      expect(ui.dayEnabledMap.Monday).toBe(true);
+      expect(ui.dayEnabledMap.Saturday).toBe(false);
+      expect(ui.dayTimeRanges.Monday).toEqual({ start: '9:00 AM', end: '5:00 PM' });
+    });
+
+    it('enables Mon–Sat with 8–6 for mon_sat_8_6', () => {
+      const ui = buildAvailabilityUiFromPreset('mon_sat_8_6');
+      expect(ui.selectedPreset).toBe('mon_sat_8_6');
+      expect(ui.dayEnabledMap.Sunday).toBe(false);
+      expect(ui.dayTimeRanges.Monday).toEqual({ start: '8:00 AM', end: '6:00 PM' });
+    });
+
+    it('enables only weekends for weekends_only', () => {
+      const ui = buildAvailabilityUiFromPreset('weekends_only');
+      expect(ui.selectedPreset).toBe('weekends_only');
+      expect(ui.dayEnabledMap.Monday).toBe(false);
+      expect(ui.dayEnabledMap.Saturday).toBe(true);
     });
   });
 

@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/features/auth';
+import { OnboardingGateProvider } from './src/features/onboarding';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { queryClient } from './src/lib/queryClient';
 import { ThemeProvider, TypographyProvider, useTheme } from './src/theme';
@@ -15,7 +16,9 @@ function AppShell() {
     <View style={[styles.root, { backgroundColor: colors.shell }]}>
       <SafeAreaProvider style={[styles.provider, { backgroundColor: colors.shell }]}>
         <AuthProvider>
-          <AuthNavigator />
+          <OnboardingGateProvider>
+            <AuthNavigator />
+          </OnboardingGateProvider>
         </AuthProvider>
         <StatusBar style={isDark ? 'light' : 'dark'} />
       </SafeAreaProvider>

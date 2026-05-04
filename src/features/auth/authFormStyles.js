@@ -50,6 +50,7 @@ export function getAuthFormSharedStyles(colors) {
       color: colors.textMuted,
       textAlign: 'left',
     },
+    /** Stacked fields use {@link SurfaceTextField} default spacing (20px below each field). */
     form: {
       width: '100%',
     },
@@ -74,17 +75,6 @@ export function getAuthFormSharedStyles(colors) {
       marginHorizontal: 14,
       textTransform: 'lowercase',
     },
-    socialRow: {
-      alignSelf: 'stretch',
-      flexDirection: 'row',
-      gap: 12,
-      width: '100%',
-    },
-    socialHalf: {
-      flexBasis: 0,
-      flexGrow: 1,
-      minWidth: 0,
-    },
     footer: {
       alignItems: 'center',
       flexDirection: 'row',
@@ -95,8 +85,23 @@ export function getAuthFormSharedStyles(colors) {
     link: {
       color: colors.link,
     },
+    /** Muted line in footer row (e.g. “Already have an account?”). */
+    footerPrompt: {
+      color: colors.textMuted,
+      fontSize: 14,
+      fontWeight: '600',
+    },
     footerMuted: {
       color: colors.textMuted,
+      fontSize: 14,
+      fontWeight: '400',
+    },
+    /** Primary footer CTA (e.g. Create an account / Sign in). */
+    footerLinkStrong: {
+      color: colors.link,
+      fontSize: 15,
+      fontWeight: '700',
+      letterSpacing: -0.1,
     },
   };
 }

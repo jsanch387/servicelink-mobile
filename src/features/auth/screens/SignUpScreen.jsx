@@ -98,6 +98,7 @@ export function SignUpScreen() {
     }
     if (error) {
       setFormError(error);
+      return;
     }
   };
 
@@ -183,36 +184,19 @@ export function SignUpScreen() {
                   <View style={[styles.dividerLine, styles.dividerLineFill]} />
                 </View>
 
-                <View style={styles.socialRow}>
-                  <View style={styles.socialHalf}>
-                    <SocialSignInButton
-                      compact
-                      disabled={submitting || googleSubmitting}
-                      fullWidth
-                      onPress={handleGoogleSignIn}
-                      provider="google"
-                    />
-                  </View>
-                  <View style={styles.socialHalf}>
-                    <SocialSignInButton
-                      compact
-                      disabled={submitting || googleSubmitting}
-                      fullWidth
-                      provider="apple"
-                    />
-                  </View>
-                </View>
+                <SocialSignInButton
+                  disabled={submitting || googleSubmitting}
+                  fullWidth
+                  onPress={handleGoogleSignIn}
+                  provider="google"
+                />
               </View>
             </View>
 
             <View style={styles.footer}>
-              <AppText className="text-sm" style={styles.footerMuted}>
-                Already have an account?{' '}
-              </AppText>
+              <AppText style={styles.footerPrompt}>Already have an account? </AppText>
               <Pressable accessibilityRole="button" hitSlop={8} onPress={goToLogin}>
-                <AppText className="text-sm font-semibold" style={styles.link}>
-                  Sign in
-                </AppText>
+                <AppText style={styles.footerLinkStrong}>Sign in</AppText>
               </Pressable>
             </View>
           </ScrollView>

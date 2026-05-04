@@ -1,6 +1,6 @@
 export const PRESET_OPTIONS = [
-  { value: 'mon_fri_9_5', label: 'Mon-Fri 9-5' },
-  { value: 'mon_sat_8_6', label: 'Mon-Sat 8-6' },
+  { value: 'mon_fri_9_5', label: 'Mon–Fri 9–5' },
+  { value: 'mon_sat_8_6', label: 'Mon–Sat 8–6' },
   { value: 'weekends_only', label: 'Weekends' },
   { value: 'custom', label: 'Custom' },
 ];
@@ -71,6 +71,47 @@ function timeToMinutes(hhmm) {
   if (!parsed) return null;
   const [h, m] = parsed.split(':');
   return Number(h) * 60 + Number(m);
+}
+
+const z = (start, end) => ({
+  start: format24HourTo12Hour(start),
+  end: format24HourTo12Hour(end),
+});
+
+/**
+ * Build day toggles + 12h time ranges for a working-hours preset (onboarding + availability UI).
+ * @param {'mon_fri_9_5' | 'mon_sat_8_6' | 'weekends_only' | 'custom'} presetValue
+ */
+export function buildAvailabilityUiFromPreset(presetValue) {
+  if (presetValue === 'mon_sat_8_6') {
+    const dayEnabledMap = Object.fromEntries(
+      DAY_DEFINITIONS.map((d) => [d.label, d.key !== 'sunday']),
+    );
+    const dayTimeRanges = Object.fromEntries(
+      DAY_DEFINITIONS.map((d) => {
+        if (d.key === 'sunday') {
+          return [d.label, z('09:00', '17:00')];
+        }
+        return [d.label, z('08:00', '18:00')];
+      }),
+    );
+    return { selectedPreset: 'mon_sat_8_6', dayEnabledMap, dayTimeRanges };
+  }
+  if (presetValue === 'weekends_only') {
+    const dayEnabledMap = Object.fromEntries(
+      DAY_DEFINITIONS.map((d) => [d.label, d.key === 'saturday' || d.key === 'sunday']),
+    );
+    const dayTimeRanges = Object.fromEntries(
+      DAY_DEFINITIONS.map((d) => [d.label, z('09:00', '17:00')]),
+    );
+    return { selectedPreset: 'weekends_only', dayEnabledMap, dayTimeRanges };
+  }
+  const base = buildDefaultAvailabilityUiModel();
+  return {
+    selectedPreset: 'mon_fri_9_5',
+    dayEnabledMap: base.dayEnabledMap,
+    dayTimeRanges: base.dayTimeRanges,
+  };
 }
 
 export function buildDefaultAvailabilityUiModel() {

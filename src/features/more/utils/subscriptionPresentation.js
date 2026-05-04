@@ -73,10 +73,16 @@ export function hasProAccessFromProfile(row) {
 
 /**
  * @param {Record<string, unknown> | null | undefined} ownerRow
- * @returns {{ primary: string; period: string } | null}
+ * @returns {{ primary: string; period: string; isFreeTrial?: boolean } | null}
  */
 export function getSubscriptionPriceDisplay(ownerRow) {
   if (!hasProAccessFromProfile(ownerRow)) return null;
+  const status = String(ownerRow?.subscription_status ?? '')
+    .trim()
+    .toLowerCase();
+  if (status === 'trialing') {
+    return { primary: 'Free trial', period: '', isFreeTrial: true };
+  }
   return { primary: '$10', period: '/month' };
 }
 
@@ -84,7 +90,12 @@ export function getSubscriptionPriceDisplay(ownerRow) {
  * @param {Record<string, unknown> | null | undefined} ownerRow - `profiles` row
  */
 export function getSubscriptionPlanLabel(ownerRow) {
-  return hasProAccessFromProfile(ownerRow) ? 'Pro' : 'Free';
+  if (!hasProAccessFromProfile(ownerRow)) return 'Free';
+  const status = String(ownerRow?.subscription_status ?? '')
+    .trim()
+    .toLowerCase();
+  if (status === 'trialing') return 'Pro trial';
+  return 'Pro';
 }
 
 /**

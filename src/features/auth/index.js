@@ -1,4 +1,5 @@
 export { AuthProvider, useAuth } from './context/AuthContext';
+export { ensureUserProfileRow, pickFullNameFromUserMetadata } from './api/ensureUserProfile';
 export {
   getSession,
   onAuthStateChange,
@@ -6,5 +7,6 @@ export {
   signInWithGoogleOAuth,
   signOut,
   signUpWithEmailPassword,
+  validateSessionWithServerOrSignOut,
 } from './api/auth';
 export { getAuthErrorMessage } from './utils/authErrors';

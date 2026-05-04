@@ -5,6 +5,8 @@ import { AppText, Button, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
 const PRO_CROWN_COLOR = '#ca8a04';
+/** Trial price label — high-contrast green on dark shells (account subscription row). */
+const FREE_TRIAL_LABEL_COLOR = '#4ade80';
 
 export function AccountSubscriptionCard({
   planLabel,
@@ -86,6 +88,9 @@ export function AccountSubscriptionCard({
           fontSize: 13,
           fontWeight: '500',
         },
+        priceMainFreeTrial: {
+          color: FREE_TRIAL_LABEL_COLOR,
+        },
         accessHint: {
           color: colors.textMuted,
           fontSize: 13,
@@ -122,8 +127,17 @@ export function AccountSubscriptionCard({
           </View>
           {priceDisplay ? (
             <View style={styles.priceRow}>
-              <AppText style={styles.priceMain}>{priceDisplay.primary}</AppText>
-              <AppText style={styles.pricePeriod}>{priceDisplay.period}</AppText>
+              <AppText
+                style={[
+                  styles.priceMain,
+                  priceDisplay.isFreeTrial ? styles.priceMainFreeTrial : null,
+                ]}
+              >
+                {priceDisplay.primary}
+              </AppText>
+              {priceDisplay.period ? (
+                <AppText style={styles.pricePeriod}>{priceDisplay.period}</AppText>
+              ) : null}
             </View>
           ) : null}
         </View>

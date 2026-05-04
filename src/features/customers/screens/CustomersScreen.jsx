@@ -84,27 +84,48 @@ export function CustomersScreen() {
 
         {customersList.isLoading ? (
           <CustomersListSkeleton />
+        ) : customersList.business?.id && customersList.customers.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <AppText style={[styles.emptyTitle, { color: colors.textSecondary }]}>
+              No customers yet
+            </AppText>
+            <AppText style={[styles.emptyBody, { color: colors.textMuted }]}>
+              When someone schedules an appointment, a customer profile is created automatically
+              from their booking details.
+            </AppText>
+          </View>
         ) : (
           <>
             <AppText style={[styles.resultsText, { color: colors.textMuted }]}>
               Showing {visibleCustomers.length} of {customersList.customers.length} customers
             </AppText>
 
-            <View style={styles.list}>
-              {visibleCustomers.map((customer) => (
-                <CustomerCard
-                  customer={customer}
-                  key={customer.id}
-                  onPress={() =>
-                    navigation.navigate(ROUTES.CUSTOMER_DETAILS, {
-                      customerId: customer.id,
-                      customerName: customer.fullName,
-                      customerSegment: customer.segment,
-                    })
-                  }
-                />
-              ))}
-            </View>
+            {customersList.customers.length > 0 && visibleCustomers.length === 0 ? (
+              <View style={styles.emptyWrap}>
+                <AppText style={[styles.emptyTitle, { color: colors.textSecondary }]}>
+                  No matching customers
+                </AppText>
+                <AppText style={[styles.emptyBody, { color: colors.textMuted }]}>
+                  Try adjusting your search or filter.
+                </AppText>
+              </View>
+            ) : (
+              <View style={styles.list}>
+                {visibleCustomers.map((customer) => (
+                  <CustomerCard
+                    customer={customer}
+                    key={customer.id}
+                    onPress={() =>
+                      navigation.navigate(ROUTES.CUSTOMER_DETAILS, {
+                        customerId: customer.id,
+                        customerName: customer.fullName,
+                        customerSegment: customer.segment,
+                      })
+                    }
+                  />
+                ))}
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -136,6 +157,24 @@ const styles = StyleSheet.create({
   },
   errorBlock: {
     marginBottom: 16,
+  },
+  emptyWrap: {
+    alignItems: 'center',
+    marginTop: 28,
+    paddingHorizontal: 8,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    textAlign: 'center',
+  },
+  emptyBody: {
+    fontSize: 15,
+    fontWeight: '500',
+    lineHeight: 21,
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
 

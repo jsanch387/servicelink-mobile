@@ -12,7 +12,7 @@ export const BOOKINGS_FILTER_CANCELLED = 'cancelled';
 export const BOOKINGS_FILTER_OPTIONS = [
   { id: BOOKINGS_FILTER_UPCOMING, label: 'Upcoming' },
   { id: BOOKINGS_FILTER_PAST, label: 'Past' },
-  { id: BOOKINGS_FILTER_CANCELLED, label: 'Cancelled' },
+  { id: BOOKINGS_FILTER_CANCELLED, label: 'Canceled' },
 ];
 
 /** Horizontal inset for list mode (tabs + scroll content); cards span this width. */

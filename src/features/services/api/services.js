@@ -24,6 +24,12 @@ export async function deleteBusinessService({ businessId, serviceId }) {
   return { error };
 }
 
+/** Deletes every service row for the business (used by onboarding “replace all” saves). */
+export async function deleteAllBusinessServicesForBusiness(businessId) {
+  const { error } = await supabase.from('business_services').delete().eq('business_id', businessId);
+  return { error };
+}
+
 export async function updateBusinessServiceActive({ businessId, serviceId, isActive }) {
   const { error } = await supabase
     .from('business_services')
@@ -43,6 +49,7 @@ export async function insertBusinessService({
   description,
   priceInput,
   durationMinutes,
+  sortOrder,
 }) {
   const row = {
     business_id: businessId,
@@ -52,6 +59,9 @@ export async function insertBusinessService({
     duration_minutes: Math.max(30, Number(durationMinutes) || 30),
     is_active: true,
   };
+  if (Number.isFinite(sortOrder)) {
+    row.sort_order = sortOrder;
+  }
   const { data, error } = await supabase.from('business_services').insert(row).select('*');
   return { data: data?.[0] ?? null, error };
 }

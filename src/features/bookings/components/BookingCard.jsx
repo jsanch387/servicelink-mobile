@@ -81,7 +81,7 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
   const statusLabel = useMemo(() => {
     const raw = String(booking.status ?? 'confirmed').toLowerCase();
     if (raw === 'cancelled' || raw === 'canceled') {
-      return 'Cancelled';
+      return 'Canceled';
     }
     if (raw === 'completed' || raw === 'complete') {
       return 'Completed';
@@ -89,7 +89,7 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
     return 'Confirmed';
   }, [booking.status]);
   const statusStyle = useMemo(() => {
-    if (statusLabel === 'Cancelled') {
+    if (statusLabel === 'Canceled') {
       return {
         bg: 'rgba(248,113,113,0.16)',
         text: '#f87171',

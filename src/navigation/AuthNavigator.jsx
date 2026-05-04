@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from '../features/auth';
 import { LoginScreen } from '../features/auth/screens/LoginScreen';
 import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
+import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
 import { CreateAppointmentScreen } from '../features/bookings';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
 import { MainTabNavigator } from './MainTabNavigator';
@@ -15,6 +16,7 @@ const Stack = createNativeStackNavigator();
 export function AuthNavigator() {
   const { colors, isDark } = useTheme();
   const { session, isReady } = useAuth();
+  const { needsOnboarding, isGateReady } = useOnboardingGate();
 
   const navTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
@@ -29,7 +31,9 @@ export function AuthNavigator() {
     },
   };
 
-  if (!isReady) {
+  const boot = !isReady || (session && !isGateReady);
+
+  if (boot) {
     return (
       <View style={[styles.boot, { backgroundColor: colors.shell }]}>
         <ActivityIndicator color={colors.accent} size="large" />
@@ -37,16 +41,26 @@ export function AuthNavigator() {
     );
   }
 
+  const stackKey = session ? (needsOnboarding ? 'onboarding' : 'main') : 'auth';
+
   return (
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator
+        key={stackKey}
         screenOptions={{
           animation: 'slide_from_right',
           contentStyle: { backgroundColor: colors.shell },
           headerShown: false,
         }}
       >
-        {session ? (
+        {session && needsOnboarding ? (
+          <Stack.Screen
+            component={OnboardingScreen}
+            name={ROUTES.ONBOARDING}
+            options={{ gestureEnabled: false }}
+          />
+        ) : null}
+        {session && !needsOnboarding ? (
           <>
             <Stack.Screen component={MainTabNavigator} name={ROUTES.MAIN_APP} />
             <Stack.Screen
@@ -76,12 +90,13 @@ export function AuthNavigator() {
               }}
             />
           </>
-        ) : (
+        ) : null}
+        {!session ? (
           <>
             <Stack.Screen component={LoginScreen} name={ROUTES.LOGIN} />
             <Stack.Screen component={SignUpScreen} name={ROUTES.SIGN_UP} />
           </>
-        )}
+        ) : null}
       </Stack.Navigator>
     </NavigationContainer>
   );

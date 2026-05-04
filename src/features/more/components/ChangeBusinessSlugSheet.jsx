@@ -9,6 +9,7 @@ import {
   useSurfaceInputTextStyle,
 } from '../../../components/ui';
 import { BOOKING_LINK_HOST } from '../../home/utils/bookingLink';
+import { MAX_BUSINESS_SLUG_LEN } from '../utils/businessSlug';
 import { useTheme } from '../../../theme';
 
 /**
@@ -135,7 +136,7 @@ export function ChangeBusinessSlugSheet({
           <AppTextInput
             autoCapitalize="none"
             autoCorrect={false}
-            maxLength={48}
+            maxLength={MAX_BUSINESS_SLUG_LEN}
             placeholder="your-business-name"
             placeholderTextColor={colors.placeholder}
             returnKeyType="done"

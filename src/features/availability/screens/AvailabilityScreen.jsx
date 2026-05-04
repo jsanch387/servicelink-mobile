@@ -2,22 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  AppText,
-  Button,
-  InlineCardError,
-  SurfaceCard,
-  TimeSelectField,
-} from '../../../components/ui';
+import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { AvailabilityScreenSkeleton } from '../components/AvailabilityScreenSkeleton';
 import { TimeOffSheet } from '../components/TimeOffSheet';
+import { WeeklyScheduleSection } from '../components/WeeklyScheduleSection';
 import { useBusinessAvailability } from '../hooks/useBusinessAvailability';
 import { useSaveBusinessAvailability } from '../hooks/useSaveBusinessAvailability';
 import {
   buildWeeklySchedulePayloadFromUi,
-  DAY_DEFINITIONS,
   format24HourTo12Hour,
   normalizeTimeOffBlocksForSave,
   to24Hour,
@@ -65,6 +59,7 @@ export function AvailabilityScreen() {
   const [dayTimeRanges, setDayTimeRanges] = useState(() => ({}));
   const [dayEnabledMap, setDayEnabledMap] = useState(() => ({}));
   const [timeOffBlocks, setTimeOffBlocks] = useState([]);
+  const [schedulePreset, setSchedulePreset] = useState('mon_fri_9_5');
 
   useEffect(() => {
     const model = availability.model;
@@ -72,9 +67,16 @@ export function AvailabilityScreen() {
     setDayEnabledMap(model.dayEnabledMap ?? {});
     setDayTimeRanges(model.dayTimeRanges ?? {});
     setTimeOffBlocks(Array.isArray(model.timeOffBlocks) ? model.timeOffBlocks : []);
+    setSchedulePreset(model.selectedPreset ?? 'mon_fri_9_5');
   }, [availability.model]);
 
-  function updateDayTime(day, key, nextValue) {
+  function handleDayToggle(day, next) {
+    setSchedulePreset('custom');
+    setDayEnabledMap((prev) => ({ ...prev, [day]: next }));
+  }
+
+  function handleDayTimeChange(day, key, nextValue) {
+    setSchedulePreset('custom');
     setDayTimeRanges((prev) => ({
       ...prev,
       [day]: {
@@ -95,8 +97,16 @@ export function AvailabilityScreen() {
       JSON.stringify(dayTimeRanges ?? {}) === JSON.stringify(baseline.dayTimeRanges ?? {});
     const sameTimeOff =
       JSON.stringify(timeOffBlocks ?? []) === JSON.stringify(baseline.timeOffBlocks ?? []);
-    return !(sameAccept && sameEnabledMap && sameRanges && sameTimeOff);
-  }, [availability.model, dayEnabledMap, dayTimeRanges, isAcceptingRequests, timeOffBlocks]);
+    const samePreset = schedulePreset === (baseline.selectedPreset ?? 'mon_fri_9_5');
+    return !(sameAccept && samePreset && sameEnabledMap && sameRanges && sameTimeOff);
+  }, [
+    availability.model,
+    dayEnabledMap,
+    dayTimeRanges,
+    isAcceptingRequests,
+    schedulePreset,
+    timeOffBlocks,
+  ]);
 
   async function handleSave() {
     if (!availability.businessId) return;
@@ -108,7 +118,7 @@ export function AvailabilityScreen() {
     }
     await saveAvailability({
       acceptBookings: isAcceptingRequests,
-      selectedPreset: 'custom',
+      selectedPreset: schedulePreset,
       weeklySchedule: buildWeeklySchedulePayloadFromUi(dayEnabledMap, dayTimeRanges),
       timeOffBlocks: normalizedTimeOff,
       minimumNotice: availability.row?.minimum_notice ?? 'none',
@@ -162,61 +172,6 @@ export function AvailabilityScreen() {
         },
         sectionTitleSpaced: {
           marginTop: 14,
-        },
-        scheduleCard: {
-          borderRadius: 16,
-          paddingHorizontal: 0,
-          paddingVertical: 0,
-        },
-        dayRow: {
-          borderBottomColor: colors.border,
-          borderBottomWidth: 1,
-          paddingHorizontal: 14,
-          paddingVertical: 10,
-        },
-        dayRowLast: {
-          borderBottomWidth: 0,
-        },
-        dayHeaderRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-        },
-        dayShort: {
-          color: colors.text,
-          fontSize: 15,
-          fontWeight: '700',
-        },
-        dayDetailRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'flex-start',
-          marginTop: 10,
-        },
-        timeRangeWrap: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          gap: 8,
-          width: '100%',
-        },
-        timeSelectCell: {
-          flex: 1,
-          minWidth: 0,
-        },
-        timeSelectTrigger: {
-          borderRadius: 10,
-          minHeight: 38,
-          paddingHorizontal: 8,
-        },
-        toText: {
-          color: colors.text,
-          fontSize: 12,
-          fontWeight: '600',
-        },
-        unavailableText: {
-          color: colors.textMuted,
-          fontSize: 13,
-          fontWeight: '600',
         },
         timeOffCard: {
           borderRadius: 16,
@@ -350,54 +305,13 @@ export function AvailabilityScreen() {
               </View>
             </SurfaceCard>
 
-            <AppText style={styles.sectionTitle}>Weekly schedule</AppText>
-            <SurfaceCard style={styles.scheduleCard}>
-              {DAY_DEFINITIONS.map((entry, index) => (
-                <View
-                  key={entry.key}
-                  style={[styles.dayRow, index === DAY_DEFINITIONS.length - 1 && styles.dayRowLast]}
-                >
-                  <View style={styles.dayHeaderRow}>
-                    <AppText style={styles.dayShort}>{entry.label}</AppText>
-                    <Switch
-                      thumbColor="#f8fafc"
-                      trackColor={{ false: colors.borderStrong, true: '#10b981' }}
-                      value={Boolean(dayEnabledMap[entry.label])}
-                      onValueChange={(next) => {
-                        setDayEnabledMap((prev) => ({ ...prev, [entry.label]: next }));
-                      }}
-                    />
-                  </View>
-                  <View style={styles.dayDetailRow}>
-                    {Boolean(dayEnabledMap[entry.label]) ? (
-                      <View style={styles.timeRangeWrap}>
-                        <View style={styles.timeSelectCell}>
-                          <TimeSelectField
-                            placeholder="Start"
-                            title={`${entry.label} start time`}
-                            triggerStyle={styles.timeSelectTrigger}
-                            value={dayTimeRanges[entry.label]?.start ?? ''}
-                            onValueChange={(next) => updateDayTime(entry.label, 'start', next)}
-                          />
-                        </View>
-                        <AppText style={styles.toText}>to</AppText>
-                        <View style={styles.timeSelectCell}>
-                          <TimeSelectField
-                            placeholder="End"
-                            title={`${entry.label} end time`}
-                            triggerStyle={styles.timeSelectTrigger}
-                            value={dayTimeRanges[entry.label]?.end ?? ''}
-                            onValueChange={(next) => updateDayTime(entry.label, 'end', next)}
-                          />
-                        </View>
-                      </View>
-                    ) : (
-                      <AppText style={styles.unavailableText}>Unavailable</AppText>
-                    )}
-                  </View>
-                </View>
-              ))}
-            </SurfaceCard>
+            <WeeklyScheduleSection
+              dayEnabledMap={dayEnabledMap}
+              dayTimeRanges={dayTimeRanges}
+              style={{ marginBottom: 14 }}
+              onDayTimeChange={handleDayTimeChange}
+              onDayToggle={handleDayToggle}
+            />
 
             <AppText style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Time off</AppText>
             <SurfaceCard style={styles.timeOffCard}>

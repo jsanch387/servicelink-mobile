@@ -2,6 +2,7 @@ import {
   getSubscriptionAccessLine,
   getSubscriptionHeaderBadge,
   getSubscriptionPlanLabel,
+  getSubscriptionPriceDisplay,
 } from '../utils/subscriptionPresentation';
 
 describe('subscriptionPresentation', () => {
@@ -33,6 +34,12 @@ describe('subscriptionPresentation', () => {
     };
 
     expect(getSubscriptionHeaderBadge(row)).toBeNull();
+    expect(getSubscriptionPlanLabel(row)).toBe('Pro trial');
+    expect(getSubscriptionPriceDisplay(row)).toEqual({
+      primary: 'Free trial',
+      period: '',
+      isFreeTrial: true,
+    });
     expect(getSubscriptionAccessLine(row)).toMatch(/^Trial ends on /);
   });
 

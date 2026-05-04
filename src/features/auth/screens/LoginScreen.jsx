@@ -66,16 +66,18 @@ export function LoginScreen() {
           width: '100%',
         },
         passwordField: {
-          marginBottom: 6,
+          marginBottom: 0,
         },
         forgotLink: {
           alignSelf: 'flex-end',
           marginBottom: 16,
-          marginTop: 0,
+          marginTop: 4,
           paddingVertical: 2,
         },
         forgotLinkText: {
           color: colors.linkSubtle,
+          fontSize: 14,
+          fontWeight: '600',
         },
         formError: {
           color: colors.danger,
@@ -176,9 +178,7 @@ export function LoginScreen() {
                 />
                 {formError ? <AppText style={styles.formError}>{formError}</AppText> : null}
                 <Pressable accessibilityRole="button" hitSlop={12} style={styles.forgotLink}>
-                  <AppText className="text-sm font-semibold" style={styles.forgotLinkText}>
-                    Forgot password?
-                  </AppText>
+                  <AppText style={styles.forgotLinkText}>Forgot password?</AppText>
                 </Pressable>
                 <Button
                   accessibilityLabel="Log in"
@@ -204,13 +204,9 @@ export function LoginScreen() {
             </View>
 
             <View style={styles.footer}>
-              <AppText className="text-sm" style={styles.footerMuted}>
-                New to ServiceLink?{' '}
-              </AppText>
+              <AppText style={styles.footerMuted}>New to ServiceLink? </AppText>
               <Pressable accessibilityRole="button" hitSlop={8} onPress={goToSignUp}>
-                <AppText className="text-sm font-semibold" style={styles.link}>
-                  Create an account
-                </AppText>
+                <AppText style={styles.footerLinkStrong}>Create an account</AppText>
               </Pressable>
             </View>
           </ScrollView>

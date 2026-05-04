@@ -25,7 +25,7 @@ export function getBookingStatusVisualKind(status) {
 export function getBookingStatusLabel(status) {
   switch (getBookingStatusVisualKind(status)) {
     case 'cancelled':
-      return 'Cancelled';
+      return 'Canceled';
     case 'completed':
       return 'Completed';
     default:

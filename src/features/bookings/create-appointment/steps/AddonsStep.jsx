@@ -142,6 +142,27 @@ export function AddonsStep({
           fontWeight: '500',
           lineHeight: 20,
         },
+        emptyWrap: {
+          alignItems: 'center',
+          alignSelf: 'stretch',
+          marginTop: 24,
+          paddingHorizontal: 8,
+        },
+        emptyTitle: {
+          color: colors.textSecondary,
+          fontSize: 17,
+          fontWeight: '700',
+          letterSpacing: -0.2,
+          textAlign: 'center',
+        },
+        emptyBody: {
+          color: colors.textMuted,
+          fontSize: 15,
+          fontWeight: '500',
+          lineHeight: 21,
+          marginTop: 8,
+          textAlign: 'center',
+        },
       }),
     [colors],
   );
@@ -160,9 +181,12 @@ export function AddonsStep({
           metaLine={metaLine}
           serviceName={service.name}
         />
-        <AppText style={styles.empty}>
-          No add-ons are assigned to this service yet. Tap Continue.
-        </AppText>
+        <View style={styles.emptyWrap}>
+          <AppText style={styles.emptyTitle}>No add-ons for this service</AppText>
+          <AppText style={styles.emptyBody}>
+            None are set up for this service yet. Tap Continue to pick a date and time.
+          </AppText>
+        </View>
       </View>
     );
   }

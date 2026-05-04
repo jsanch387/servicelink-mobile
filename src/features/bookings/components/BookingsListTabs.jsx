@@ -6,7 +6,7 @@ import { BOOKINGS_FILTER_OPTIONS, BOOKINGS_LIST_SCREEN_PADDING } from '../consta
 
 const INDICATOR_HEIGHT = 3;
 
-/** Upcoming → Past → Cancelled, left-aligned; indicator matches text width. */
+/** Upcoming → Past → Canceled, left-aligned; indicator matches text width. */
 export function BookingsListTabs({ value, onChange }) {
   const { colors } = useTheme();
   const [measures, setMeasures] = useState({});

@@ -35,7 +35,7 @@ export function BookingActionsSection({
         loading={isCancellingBooking}
         onPress={onCancelBooking}
         style={styles.action}
-        title={isCancelDisabled ? 'Cancelled' : 'Cancel booking'}
+        title={isCancelDisabled ? 'Canceled' : 'Cancel booking'}
         variant="outline"
         outlineColor={colors.danger}
         iconColor={colors.danger}

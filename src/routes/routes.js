@@ -6,6 +6,8 @@
 export const ROUTES = {
   LOGIN: 'Login',
   SIGN_UP: 'SignUp',
+  /** First-time signup — blocks main tabs until finished */
+  ONBOARDING: 'Onboarding',
   /** Stack screen that hosts the bottom tab navigator */
   MAIN_APP: 'MainApp',
   HOME: 'Home',
@@ -40,6 +42,7 @@ export const ROUTES = {
 export const PATHS = {
   LOGIN: '/login',
   SIGN_UP: '/sign-up',
+  ONBOARDING: '/onboarding',
   HOME: '/',
   BOOKINGS: '/bookings',
   BOOKINGS_LIST: '/bookings/list',

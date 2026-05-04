@@ -176,6 +176,60 @@ export function getSession() {
   return supabase.auth.getSession();
 }
 
+/**
+ * True when a failed auth request is probably offline / transient — do not clear the session.
+ */
+function isLikelyTransientNetworkAuthError(error) {
+  if (!error) {
+    return false;
+  }
+  const name = String(error.name || '');
+  if (name === 'AuthRetryableFetchError') {
+    return true;
+  }
+  const msg = String(error.message || '').toLowerCase();
+  if (msg.includes('network request failed')) {
+    return true;
+  }
+  if (msg.includes('failed to fetch')) {
+    return true;
+  }
+  if (msg.includes('timeout')) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Validates the persisted session against Supabase (GET /user). If the account was removed
+ * or the JWT is no longer accepted, clears the local session. Returns whether the client
+ * was signed out.
+ */
+export async function validateSessionWithServerOrSignOut() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) {
+    return false;
+  }
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (!error && user) {
+    return false;
+  }
+
+  if (error && isLikelyTransientNetworkAuthError(error)) {
+    return false;
+  }
+
+  await supabase.auth.signOut({ scope: 'local' });
+  return true;
+}
+
 export function onAuthStateChange(callback) {
   return supabase.auth.onAuthStateChange(callback);
 }

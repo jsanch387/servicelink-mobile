@@ -17,6 +17,7 @@ describe('getBookingStatusLabel', () => {
   it('returns readable labels', () => {
     expect(getBookingStatusLabel('confirmed')).toBe('Upcoming');
     expect(getBookingStatusLabel('completed')).toBe('Completed');
-    expect(getBookingStatusLabel('cancelled')).toBe('Cancelled');
+    expect(getBookingStatusLabel('cancelled')).toBe('Canceled');
+    expect(getBookingStatusLabel('canceled')).toBe('Canceled');
   });
 });

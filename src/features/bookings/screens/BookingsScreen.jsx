@@ -267,17 +267,17 @@ export function BookingsScreen() {
         <View style={styles.emptyWrap}>
           <AppText style={styles.emptyTitle}>No past appointments</AppText>
           <AppText style={styles.emptyBody}>
-            Confirmed or completed visits that already ended show here (up to the last 250 prior
-            days loaded, plus today).
+            Confirmed or completed appointments that ended before the current date and time show
+            here.
           </AppText>
         </View>
       );
     }
     return (
       <View style={styles.emptyWrap}>
-        <AppText style={styles.emptyTitle}>No cancelled appointments</AppText>
+        <AppText style={styles.emptyTitle}>No canceled appointments</AppText>
         <AppText style={styles.emptyBody}>
-          Cancelled bookings (status cancelled or canceled) appear here, most recent first.
+          Canceled appointments appear here, most recent first.
         </AppText>
       </View>
     );

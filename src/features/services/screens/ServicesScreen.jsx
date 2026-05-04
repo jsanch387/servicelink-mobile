@@ -33,14 +33,18 @@ function sectionCopy(view) {
       title: 'Add-ons',
       subtitle: 'Build optional upgrades customers can add to any service.',
       addLabel: 'Add add-on',
-      emptyLabel: 'No add-ons yet.',
+      emptyTitle: 'No add-ons yet',
+      emptyBody:
+        'Optional upgrades you create will show here. Tap Add add-on above to create your first one.',
     };
   }
   return {
     title: 'Services',
     subtitle: 'Manage the core services your team offers and control availability.',
     addLabel: 'Add service',
-    emptyLabel: 'No services yet.',
+    emptyTitle: 'No services yet',
+    emptyBody:
+      'Services you add will show here and can be booked by customers. Tap Add service above to create your first one.',
   };
 }
 
@@ -476,14 +480,12 @@ export function ServicesScreen() {
           {catalog.isLoading ? (
             <ServicesCardsSkeleton />
           ) : displayItems.length === 0 ? (
-            <View
-              style={[
-                styles.emptyState,
-                { borderColor: colors.border, backgroundColor: colors.cardSurface },
-              ]}
-            >
-              <AppText style={[styles.emptyText, { color: colors.textMuted }]}>
-                {activeCopy.emptyLabel}
+            <View style={styles.emptyWrap}>
+              <AppText style={[styles.emptyTitle, { color: colors.textSecondary }]}>
+                {activeCopy.emptyTitle}
+              </AppText>
+              <AppText style={[styles.emptyBody, { color: colors.textMuted }]}>
+                {activeCopy.emptyBody}
               </AppText>
             </View>
           ) : (
@@ -568,18 +570,23 @@ const styles = StyleSheet.create({
     flexBasis: 0,
     minWidth: 0,
   },
-  emptyState: {
+  emptyWrap: {
     alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 6,
-    minHeight: 120,
-    paddingHorizontal: 16,
-    paddingVertical: 28,
+    marginTop: 28,
+    paddingHorizontal: 8,
   },
-  emptyText: {
-    fontSize: 14,
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    textAlign: 'center',
+  },
+  emptyBody: {
+    fontSize: 15,
     fontWeight: '500',
+    lineHeight: 21,
+    marginTop: 8,
+    textAlign: 'center',
   },
   errorBlock: {
     marginBottom: 12,

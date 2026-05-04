@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 import {
   getSession,
   onAuthStateChange,
@@ -6,7 +7,9 @@ import {
   signInWithGoogleOAuth,
   signOut as signOutRequest,
   signUpWithEmailPassword,
+  validateSessionWithServerOrSignOut,
 } from '../api/auth';
+import { ensureUserProfileRow } from '../api/ensureUserProfile';
 import { queryClient } from '../../../lib/queryClient';
 import { getAuthErrorMessage } from '../utils/authErrors';
 
@@ -19,23 +22,70 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let active = true;
 
-    getSession().then(({ data, error }) => {
+    async function bootstrap() {
+      const { data } = await getSession();
       if (!active) {
         return;
       }
-      setSession(data.session ?? null);
+      let nextSession = data.session ?? null;
+      if (nextSession) {
+        const cleared = await validateSessionWithServerOrSignOut();
+        if (!active) {
+          return;
+        }
+        if (cleared) {
+          nextSession = null;
+        }
+      }
+      if (nextSession) {
+        const ensured = await ensureUserProfileRow(nextSession);
+        if (!active) {
+          return;
+        }
+        if (!ensured.ok) {
+          await signOutRequest();
+          queryClient.clear();
+          nextSession = null;
+        }
+      }
+      setSession(nextSession);
       setIsReady(true);
-    });
+    }
+
+    void bootstrap();
 
     const { data } = onAuthStateChange((event, nextSession) => {
       if (event === 'SIGNED_OUT') {
         queryClient.clear();
       }
       setSession(nextSession);
+      if (nextSession?.user?.id) {
+        void ensureUserProfileRow(nextSession).then(async (r) => {
+          if (!r.ok) {
+            await signOutRequest();
+            queryClient.clear();
+            setSession(null);
+          }
+        });
+      }
+    });
+
+    const appSub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') {
+        return;
+      }
+      void (async () => {
+        const { data: live } = await getSession();
+        if (!live.session) {
+          return;
+        }
+        await validateSessionWithServerOrSignOut();
+      })();
     });
 
     return () => {
       active = false;
+      appSub.remove();
       data?.subscription?.unsubscribe?.();
     };
   }, []);
@@ -51,10 +101,11 @@ export function AuthProvider({ children }) {
   const signUp = useCallback(async (email, password) => {
     const { data, error } = await signUpWithEmailPassword(email, password);
     if (error) {
-      return { error: getAuthErrorMessage(error), needsEmailConfirmation: false };
+      return { error: getAuthErrorMessage(error), needsEmailConfirmation: false, userId: null };
     }
     const needsEmailConfirmation = !data.session;
-    return { error: null, needsEmailConfirmation };
+    const userId = data.user?.id ?? null;
+    return { error: null, needsEmailConfirmation, userId };
   }, []);
 
   const signInWithGoogle = useCallback(async () => {

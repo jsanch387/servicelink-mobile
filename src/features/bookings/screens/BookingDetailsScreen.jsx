@@ -21,8 +21,9 @@ export function BookingDetailsScreen({ route }) {
     () => buildBookingDetailsModel(detailsQuery.booking),
     [detailsQuery.booking],
   );
-  const isCompletedStatus = details.status.toLowerCase() === 'completed';
-  const isCancelledStatus = details.status.toLowerCase() === 'cancelled';
+  const statusLower = details.status.toLowerCase();
+  const isCompletedStatus = statusLower === 'completed';
+  const isCancelledStatus = statusLower === 'cancelled' || statusLower === 'canceled';
   const customerPhoneDigits = useMemo(
     () => String(details.customer.phone ?? '').replace(/\D/g, ''),
     [details.customer.phone],
@@ -75,7 +76,7 @@ export function BookingDetailsScreen({ route }) {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
       return;
     }
-    Alert.alert('Cancel booking?', 'This will mark the booking as cancelled.', [
+    Alert.alert('Cancel booking?', 'This will mark the booking as canceled.', [
       { text: 'Keep booking', style: 'cancel' },
       {
         text: 'Cancel booking',
