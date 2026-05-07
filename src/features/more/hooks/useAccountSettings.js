@@ -3,12 +3,13 @@ import { useCallback } from 'react';
 import { useAuth } from '../../auth';
 import { BOOKING_LINK_QUERY_KEY } from '../../bookingLink/queryKeys';
 import { HOME_QUERY_KEY } from '../../home/queryKeys';
+import { deleteAccountViaWeb } from '../api/deleteAccount';
 import { fetchAccountSettingsBundle } from '../api/fetchAccountSettings';
 import { updateBusinessSlug } from '../api/updateBusinessSlug';
 import { accountSettingsQueryKey } from '../queryKeys';
 
 export function useAccountSettings() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const userId = user?.id;
   const queryClient = useQueryClient();
 
@@ -42,6 +43,13 @@ export function useAccountSettings() {
     },
   });
 
+  const deleteAccountMutation = useMutation({
+    mutationFn: async ({ confirmEmail }) => {
+      const accessToken = session?.access_token ?? '';
+      await deleteAccountViaWeb({ accessToken, confirmEmail });
+    },
+  });
+
   const refetch = useCallback(async () => {
     await query.refetch();
   }, [query]);
@@ -56,6 +64,12 @@ export function useAccountSettings() {
     isSavingSlug: mutation.isPending,
     saveSlugError: mutation.isError ? (mutation.error?.message ?? 'Could not save') : null,
     resetSaveSlugError: mutation.reset,
+    deleteAccount: deleteAccountMutation.mutateAsync,
+    isDeletingAccount: deleteAccountMutation.isPending,
+    deleteAccountError: deleteAccountMutation.isError
+      ? (deleteAccountMutation.error?.message ?? 'Could not delete account')
+      : null,
+    resetDeleteAccountError: deleteAccountMutation.reset,
     refetch,
   };
 }

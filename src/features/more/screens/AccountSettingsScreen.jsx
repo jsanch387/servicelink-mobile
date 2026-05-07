@@ -1,15 +1,17 @@
 import { useNavigation } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useAuth } from '../../auth';
 import { ROUTES } from '../../../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { AccountBookingLinkCard } from '../components/AccountBookingLinkCard';
 import { AccountSettingsScreenSkeleton } from '../components/AccountSettingsScreenSkeleton';
 import { AccountSubscriptionCard } from '../components/AccountSubscriptionCard';
 import { ChangeBusinessSlugSheet } from '../components/ChangeBusinessSlugSheet';
+import { DeleteAccountConfirmSheet } from '../components/DeleteAccountConfirmSheet';
 import { useAccountSettings } from '../hooks/useAccountSettings';
 import {
   buildBookingLinkCardModel,
@@ -19,10 +21,12 @@ import {
 export function AccountSettingsScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const tabBarHeight = useBottomTabBarHeight();
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
   const [slugSheetVisible, setSlugSheetVisible] = useState(false);
+  const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
+  const [deleteEmailConfirmed, setDeleteEmailConfirmed] = useState(false);
 
   const {
     ownerProfile,
@@ -35,6 +39,10 @@ export function AccountSettingsScreen() {
     isSavingSlug,
     saveSlugError,
     resetSaveSlugError,
+    deleteAccount,
+    isDeletingAccount,
+    deleteAccountError,
+    resetDeleteAccountError,
   } = useAccountSettings();
 
   const signedInEmail = user?.email?.trim() || '—';
@@ -83,6 +91,12 @@ export function AccountSettingsScreen() {
           color: colors.textMuted,
           fontSize: 13,
           marginBottom: -8,
+        },
+        deleteHint: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          marginTop: -4,
         },
       }),
     [colors, scrollBottomPad],
@@ -204,7 +218,23 @@ export function AccountSettingsScreen() {
           onChangeLink={() => setSlugSheetVisible(true)}
         />
 
-        <Button fullWidth title="Delete account" variant="danger" onPress={() => {}} />
+        <Button
+          fullWidth
+          labelColor={colors.danger}
+          outlineBgPressed="rgba(220, 38, 38, 0.08)"
+          outlineColor={colors.danger}
+          title="Delete account"
+          variant="outline"
+          onPress={() => {
+            setDeleteSheetVisible(true);
+            setDeleteEmailConfirmed(false);
+          }}
+        />
+        {deleteEmailConfirmed ? (
+          <AppText style={styles.deleteHint}>
+            Email confirmed. Deletion request is not connected yet.
+          </AppText>
+        ) : null}
       </ScrollView>
 
       <ChangeBusinessSlugSheet
@@ -218,6 +248,31 @@ export function AccountSettingsScreen() {
           setSlugSheetVisible(false);
         }}
         onSave={handleSaveSlug}
+      />
+      <DeleteAccountConfirmSheet
+        deleteError={deleteAccountError}
+        expectedEmail={signedInEmail === '—' ? '' : signedInEmail}
+        isDeleting={isDeletingAccount}
+        visible={deleteSheetVisible}
+        onClearDeleteError={resetDeleteAccountError}
+        onConfirm={async (confirmEmail) => {
+          try {
+            await deleteAccount({ confirmEmail });
+            const { error } = await signOut();
+            if (error) {
+              Alert.alert('Sign out failed', safeUserFacingMessage(error));
+              return;
+            }
+            setDeleteEmailConfirmed(true);
+            setDeleteSheetVisible(false);
+          } catch {
+            /* surfaced via deleteAccountError */
+          }
+        }}
+        onRequestClose={() => {
+          resetDeleteAccountError();
+          setDeleteSheetVisible(false);
+        }}
       />
     </View>
   );
