@@ -63,3 +63,21 @@ export async function cancelBookingById(bookingId) {
 
   return { data, error };
 }
+
+/**
+ * @param {string} bookingId
+ * @param {{ scheduledDate: string; startTime: string }} payload
+ */
+export async function rescheduleBookingById(bookingId, payload) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .update({
+      scheduled_date: payload.scheduledDate,
+      start_time: payload.startTime,
+    })
+    .eq('id', bookingId)
+    .select('id, scheduled_date, start_time')
+    .maybeSingle();
+
+  return { data, error };
+}

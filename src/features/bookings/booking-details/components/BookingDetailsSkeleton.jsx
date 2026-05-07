@@ -58,8 +58,18 @@ export function BookingDetailsSkeleton() {
       <SectionSkeleton rows={1} titleWidth="20%" withButton />
       <SectionSkeleton rows={1} titleWidth="18%" />
       <SectionSkeleton rows={2} titleWidth="28%" />
-      <SkeletonBox borderRadius={14} height={52} pulse style={{ marginTop: 4 }} width="100%" />
-      <SkeletonBox borderRadius={14} height={52} pulse style={{ marginTop: 10 }} width="100%" />
+      <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 4 }} width={72} />
+      <View style={{ columnGap: 10, flexDirection: 'row', marginTop: 10 }}>
+        <View style={{ flex: 1 }}>
+          <SkeletonBox borderRadius={16} height={82} pulse width="100%" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <SkeletonBox borderRadius={16} height={82} pulse width="100%" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <SkeletonBox borderRadius={16} height={82} pulse width="100%" />
+        </View>
+      </View>
     </>
   );
 }

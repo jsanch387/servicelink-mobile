@@ -1,10 +1,12 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
+import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BookingActionsSection } from '../booking-details/components/BookingActionsSection';
+import { BookingRescheduleSheet } from '../booking-details/components/BookingRescheduleSheet';
 import { BookingDetailsSkeleton } from '../booking-details/components/BookingDetailsSkeleton';
 import { PriceBreakdownSection } from '../booking-details/components/PriceBreakdownSection';
 import { ScheduleSection } from '../booking-details/components/ScheduleSection';
@@ -15,6 +17,7 @@ import { buildBookingDetailsModel } from '../booking-details/utils/buildBookingD
 export function BookingDetailsScreen({ route }) {
   const { colors } = useTheme();
   const bookingId = route?.params?.bookingId;
+  const [rescheduleSheetOpen, setRescheduleSheetOpen] = useState(false);
   const detailsQuery = useBookingDetails(bookingId);
   const bookingActions = useBookingActions(bookingId);
   const details = useMemo(
@@ -72,6 +75,18 @@ export function BookingDetailsScreen({ route }) {
       );
     }
   }, [bookingActions, bookingId, isCancelledStatus, isCompletedStatus]);
+  const handleReschedule = useCallback(() => {
+    if (isCancelledStatus || isCompletedStatus || !bookingId) {
+      return;
+    }
+    setRescheduleSheetOpen(true);
+  }, [bookingId, isCancelledStatus, isCompletedStatus]);
+
+  const bookingStartMs = useMemo(() => {
+    const raw = detailsQuery.booking;
+    return parseBookingStartLocalMs(raw?.scheduled_date, raw?.start_time);
+  }, [detailsQuery.booking]);
+
   const handleCancelBooking = useCallback(() => {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
       return;
@@ -120,6 +135,13 @@ export function BookingDetailsScreen({ route }) {
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
+      <BookingRescheduleSheet
+        initialStartMs={Number.isFinite(bookingStartMs) ? bookingStartMs : undefined}
+        isSubmitting={bookingActions.isReschedulingBooking}
+        onSubmitReschedule={bookingActions.rescheduleBooking}
+        visible={rescheduleSheetOpen}
+        onRequestClose={() => setRescheduleSheetOpen(false)}
+      />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {detailsQuery.isLoading ? <BookingDetailsSkeleton /> : null}
 
@@ -183,8 +205,10 @@ export function BookingDetailsScreen({ route }) {
                 isCancellingBooking={bookingActions.isCancellingBooking}
                 isMarkCompletedDisabled={isCompletedStatus}
                 isMarkingCompleted={bookingActions.isMarkingCompleted}
+                isRescheduleDisabled={isCancelledStatus || isCompletedStatus}
                 onCancelBooking={handleCancelBooking}
                 onMarkCompleted={handleMarkCompleted}
+                onReschedule={handleReschedule}
               />
             </View>
           </>

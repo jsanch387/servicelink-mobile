@@ -1,5 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { cancelBookingById, markBookingCompletedById } from '../api/bookingDetails';
+import {
+  cancelBookingById,
+  markBookingCompletedById,
+  rescheduleBookingById,
+} from '../api/bookingDetails';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
 
 export function useBookingActions(bookingId) {
@@ -31,6 +35,22 @@ export function useBookingActions(bookingId) {
     },
   });
 
+  const rescheduleBookingMutation = useMutation({
+    mutationFn: async ({ scheduledDate, startTime }) => {
+      const { data, error } = await rescheduleBookingById(bookingId, {
+        scheduledDate,
+        startTime,
+      });
+      if (error) {
+        throw new Error(error.message ?? 'Could not reschedule booking');
+      }
+      return data;
+    },
+    onSuccess: async () => {
+      await invalidateBookingCachesAfterMutation(queryClient, bookingId);
+    },
+  });
+
   return {
     markCompleted: markCompletedMutation.mutateAsync,
     isMarkingCompleted: markCompletedMutation.isPending,
@@ -38,5 +58,8 @@ export function useBookingActions(bookingId) {
     cancelBooking: cancelBookingMutation.mutateAsync,
     isCancellingBooking: cancelBookingMutation.isPending,
     cancelBookingError: cancelBookingMutation.error?.message ?? null,
+    rescheduleBooking: rescheduleBookingMutation.mutateAsync,
+    isReschedulingBooking: rescheduleBookingMutation.isPending,
+    rescheduleBookingError: rescheduleBookingMutation.error?.message ?? null,
   };
 }
