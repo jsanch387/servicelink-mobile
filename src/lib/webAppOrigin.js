@@ -31,3 +31,16 @@ export function getWebForgotPasswordUrl() {
   const origin = getWebAppOrigin() || PROD_WEB_ORIGIN;
   return `${origin.replace(/\/$/, '')}${PATHS.AUTH_FORGOT_PASSWORD}`;
 }
+
+/**
+ * Full URL for the hosted privacy policy page.
+ * Override with `EXPO_PUBLIC_WEB_PRIVACY_URL` when needed.
+ */
+export function getWebPrivacyPolicyUrl() {
+  const explicit = String(process.env.EXPO_PUBLIC_WEB_PRIVACY_URL ?? '').trim();
+  if (explicit) {
+    return explicit;
+  }
+  const origin = getWebAppOrigin() || PROD_WEB_ORIGIN;
+  return `${origin.replace(/\/$/, '')}/privacy`;
+}

@@ -1,17 +1,15 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, SettingsNavRow, SettingsSection } from '../../../components/ui';
 import { getAppVersionLine } from '../../../constants/appInfo';
+import { getWebPrivacyPolicyUrl } from '../../../lib/webAppOrigin';
 import { ROUTES } from '../../../routes/routes';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { useAuth } from '../../auth';
 import { useTheme } from '../../../theme';
-
-/** Placeholder until each destination has its own screen. */
-function noopNav() {}
 
 export function MoreScreen() {
   const { signOut } = useAuth();
@@ -66,6 +64,19 @@ export function MoreScreen() {
     setSigningOut(false);
     if (error) {
       Alert.alert('Sign out failed', safeUserFacingMessage(error));
+    }
+  };
+
+  const handleOpenExternal = async (url, label) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert('Unable to open link', `Could not open ${label}.`);
+        return;
+      }
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert('Unable to open link', safeUserFacingMessage(error));
     }
   };
 
@@ -131,7 +142,9 @@ export function MoreScreen() {
             icon="shield-checkmark-outline"
             label="Privacy policy"
             showDividerBelow={false}
-            onPress={noopNav}
+            onPress={() => {
+              void handleOpenExternal(getWebPrivacyPolicyUrl(), 'Privacy policy');
+            }}
           />
         </SettingsSection>
 
