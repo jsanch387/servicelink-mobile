@@ -6,6 +6,7 @@ import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BookingActionsSection } from '../booking-details/components/BookingActionsSection';
+import { BookingDetailsStatusBanner } from '../booking-details/components/BookingDetailsStatusBanner';
 import { BookingRescheduleSheet } from '../booking-details/components/BookingRescheduleSheet';
 import { BookingDetailsSkeleton } from '../booking-details/components/BookingDetailsSkeleton';
 import { PriceBreakdownSection } from '../booking-details/components/PriceBreakdownSection';
@@ -25,7 +26,7 @@ export function BookingDetailsScreen({ route }) {
     [detailsQuery.booking],
   );
   const statusLower = details.status.toLowerCase();
-  const isCompletedStatus = statusLower === 'completed';
+  const isCompletedStatus = statusLower === 'completed' || statusLower === 'complete';
   const isCancelledStatus = statusLower === 'cancelled' || statusLower === 'canceled';
   const customerPhoneDigits = useMemo(
     () => String(details.customer.phone ?? '').replace(/\D/g, ''),
@@ -155,6 +156,11 @@ export function BookingDetailsScreen({ route }) {
 
         {!detailsQuery.isLoading && !detailsQuery.errorMessage ? (
           <>
+            <BookingDetailsStatusBanner
+              isCanceled={isCancelledStatus}
+              isCompleted={isCompletedStatus}
+            />
+
             <ScheduleSection schedule={details.schedule} />
 
             <InfoSection
