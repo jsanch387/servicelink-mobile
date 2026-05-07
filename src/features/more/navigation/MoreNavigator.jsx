@@ -10,6 +10,7 @@ import { ServiceEditScreen } from '../../services/screens/ServiceEditScreen';
 import { AccountSettingsScreen } from '../screens/AccountSettingsScreen';
 import { MoreScreen } from '../screens/MoreScreen';
 import { HelpScreen } from '../screens/HelpScreen';
+import { LegalScreen } from '../screens/LegalScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
 
 const Stack = createNativeStackNavigator();
@@ -55,6 +56,15 @@ export function MoreNavigator() {
         name={ROUTES.HELP}
         options={{
           title: 'Help',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={LegalScreen}
+        name={ROUTES.LEGAL}
+        options={{
+          title: 'Privacy & terms',
           headerBackButtonDisplayMode: 'minimal',
           headerBackTitleVisible: false,
         }}

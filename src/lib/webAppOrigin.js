@@ -42,5 +42,18 @@ export function getWebPrivacyPolicyUrl() {
     return explicit;
   }
   const origin = getWebAppOrigin() || PROD_WEB_ORIGIN;
-  return `${origin.replace(/\/$/, '')}/privacy`;
+  return `${origin.replace(/\/$/, '')}${PATHS.PRIVACY_POLICY}`;
+}
+
+/**
+ * Full URL for the hosted Terms of Service page.
+ * Override with `EXPO_PUBLIC_WEB_TERMS_URL` when needed.
+ */
+export function getWebTermsOfServiceUrl() {
+  const explicit = String(process.env.EXPO_PUBLIC_WEB_TERMS_URL ?? '').trim();
+  if (explicit) {
+    return explicit;
+  }
+  const origin = getWebAppOrigin() || PROD_WEB_ORIGIN;
+  return `${origin.replace(/\/$/, '')}${PATHS.TERMS_OF_SERVICE}`;
 }
