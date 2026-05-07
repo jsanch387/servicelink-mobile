@@ -12,9 +12,9 @@ const mono = Platform.select({
 /**
  * Final step — go-live / activation (UI until Stripe Checkout is wired).
  *
- * @param {{ activationLink: string; onStartTrialPress?: () => void }} props
+ * @param {{ activationLink: string; onStartTrialPress?: () => void; activateSubmitting?: boolean }} props
  */
-export function OnboardingTrialStep({ activationLink, onStartTrialPress }) {
+export function OnboardingTrialStep({ activationLink, onStartTrialPress, activateSubmitting }) {
   const { colors } = useTheme();
 
   const displayLink =
@@ -119,6 +119,7 @@ export function OnboardingTrialStep({ activationLink, onStartTrialPress }) {
         iconColor="#000000"
         iconName="arrow-forward"
         iconPosition="right"
+        loading={Boolean(activateSubmitting)}
         title="Activate my link"
         variant="primary"
         onPress={onStartTrialPress ?? (() => {})}

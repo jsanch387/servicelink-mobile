@@ -4,6 +4,7 @@ import { getSession, signOut as signOutRequest } from '../../auth/api/auth';
 import { ensureUserProfileRow } from '../../auth/api/ensureUserProfile';
 import { useAuth } from '../../auth';
 import { queryClient } from '../../../lib/queryClient';
+import { accountSettingsQueryKey } from '../../more/queryKeys';
 import { fetchProfilesOnboardingState } from '../api/fetchProfilesOnboardingState';
 import { markOnboardingCompleted } from '../api/onboardingV2Api';
 
@@ -75,6 +76,7 @@ export function OnboardingGateProvider({ children }) {
     }
     const result = await markOnboardingCompleted(userId);
     await qc.invalidateQueries({ queryKey: ['profiles-onboarding', userId] });
+    await qc.invalidateQueries({ queryKey: accountSettingsQueryKey(userId) });
     return result;
   }, [qc, userId]);
 

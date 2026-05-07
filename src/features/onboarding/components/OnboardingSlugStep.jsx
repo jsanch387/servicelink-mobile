@@ -91,7 +91,7 @@ export function OnboardingSlugStep({ value, onChangeValue }) {
 
   return (
     <SurfaceCard>
-      <AppText style={styles.cardTitle}>Your link</AppText>
+      <AppText style={styles.cardTitle}>Your path</AppText>
       <View style={styles.slugShell}>
         <View style={styles.prefixRow}>
           <AppText style={styles.prefixText}>{BOOKING_LINK_HOST}/</AppText>

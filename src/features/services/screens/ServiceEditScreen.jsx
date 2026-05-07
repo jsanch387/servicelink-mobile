@@ -13,7 +13,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button, DurationSelectField, SurfaceTextField } from '../../../components/ui';
+import {
+  AppText,
+  Button,
+  DurationSelectField,
+  ProCrownIcon,
+  SurfaceTextField,
+} from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import {
@@ -21,6 +27,7 @@ import {
   serviceDurationHHmmToMinutes,
 } from '../../../components/ui/durationTime';
 import { useAuth } from '../../auth';
+import { useSubscription } from '../../subscription';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
 import { CollapsibleEditorSectionCard } from '../components/CollapsibleEditorSectionCard';
 import { SelectableAddonCard } from '../components/SelectableAddonCard';
@@ -107,11 +114,27 @@ function patchEditorSnapshotAddons(prevSnapshot, addonOptions, selectedAddonIds)
   }
 }
 
-function validateEditorInput({ serviceName, description, price, durationHHmm, pricingOptions }) {
+/** Dimmed preview for non‑Pro users when they have no saved price options yet. */
+const MOCK_PRICING_OPTION_PREVIEW = {
+  label: 'Larger vehicle',
+  price: '180',
+  durationHHmm: '04:00',
+};
+
+function validateEditorInput({
+  serviceName,
+  description,
+  price,
+  durationHHmm,
+  pricingOptions,
+  skipPricingOptionValidation,
+}) {
   if (!String(serviceName ?? '').trim()) return 'Service name is required.';
   if (!String(description ?? '').trim()) return 'Service description is required.';
   if (!String(price ?? '').trim()) return 'Service price is required.';
   if (!String(durationHHmm ?? '').trim()) return 'Service duration is required.';
+
+  if (skipPricingOptionValidation) return null;
 
   for (const option of pricingOptions ?? []) {
     if (!String(option.label ?? '').trim()) return 'Each pricing option requires a name.';
@@ -137,6 +160,11 @@ function validateAddonInput(addonOptions) {
 
 export function ServiceEditScreen({ route }) {
   const { user } = useAuth();
+  const {
+    hasProAccess,
+    isReady: subscriptionReady,
+    isLoading: subscriptionLoading,
+  } = useSubscription();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const stickyBarHeight = 84;
@@ -220,6 +248,19 @@ export function ServiceEditScreen({ route }) {
   const [hydratedServiceId, setHydratedServiceId] = useState('');
   const canAddPricingOption = pricingOptionDraftName.trim().length > 0;
   const allowPricingModalBackdropClose = false;
+
+  const blockPricingControls = Boolean(user?.id) && (!subscriptionReady || !hasProAccess);
+
+  const pricingCollapsedSubtitle = useMemo(() => {
+    if (pricingExpanded) return null;
+    if (blockPricingControls) {
+      if (pricingOptions.length > 0) {
+        return `${pricingOptions.length} saved (hidden without Pro)`;
+      }
+      return 'Multiple prices';
+    }
+    return `${pricingOptions.length} option${pricingOptions.length === 1 ? '' : 's'}`;
+  }, [blockPricingControls, pricingExpanded, pricingOptions.length]);
   const { saveChanges, isSaving, saveError } = useSaveServiceEdits({
     businessId,
     serviceId: routeServiceId,
@@ -287,6 +328,7 @@ export function ServiceEditScreen({ route }) {
   }
 
   function openAddPricingOptionSheet() {
+    if (blockPricingControls) return;
     setPricingOptionDraftName('New option');
     setPricingOptionDraftPrice('');
     setPricingOptionDraftDurationHHmm('');
@@ -295,6 +337,7 @@ export function ServiceEditScreen({ route }) {
   }
 
   function openEditPricingOptionSheet(option) {
+    if (blockPricingControls) return;
     setEditingPricingOptionId(option.id);
     setPricingOptionDraftName(option.label);
     setPricingOptionDraftPrice(option.price);
@@ -303,6 +346,7 @@ export function ServiceEditScreen({ route }) {
   }
 
   function savePricingOptionDraft() {
+    if (blockPricingControls) return;
     if (!canAddPricingOption) return;
     if (editingPricingOptionId) {
       setPricingOptions((current) =>
@@ -424,6 +468,7 @@ export function ServiceEditScreen({ route }) {
   }
 
   function confirmDeletePricingOption(option) {
+    if (blockPricingControls) return;
     Alert.alert(
       'Remove pricing option?',
       'This will be removed from the service. This cannot be undone.',
@@ -461,6 +506,7 @@ export function ServiceEditScreen({ route }) {
       price,
       durationHHmm,
       pricingOptions,
+      skipPricingOptionValidation: blockPricingControls,
     });
     if (validationError) {
       setSaveFeedback(validationError);
@@ -530,6 +576,12 @@ export function ServiceEditScreen({ route }) {
   useEffect(() => {
     setHydratedServiceId('');
   }, [routeServiceId]);
+
+  useEffect(() => {
+    if (!blockPricingControls || !pricingOptionSheetOpen) return;
+    setPricingOptionSheetOpen(false);
+    setEditingPricingOptionId(null);
+  }, [blockPricingControls, pricingOptionSheetOpen]);
 
   useEffect(() => {
     if (!fetchedEditorData || !routeServiceId || hydratedServiceId === routeServiceId) return;
@@ -638,12 +690,13 @@ export function ServiceEditScreen({ route }) {
             contentStyle={styles.pricingContent}
             expanded={pricingExpanded}
             onToggle={() => setPricingExpanded((v) => !v)}
-            subtitle={
-              !pricingExpanded
-                ? `${pricingOptions.length} option${pricingOptions.length === 1 ? '' : 's'}`
-                : null
-            }
+            subtitle={pricingCollapsedSubtitle}
             title="Pricing options"
+            titleAccessory={
+              blockPricingControls ? (
+                <ProCrownIcon accessibilityLabel="Pro feature" size={22} />
+              ) : null
+            }
           >
             <View style={[styles.switchCard, { borderColor: colors.border }]}>
               <AppText style={[styles.switchText, { color: colors.text }]}>
@@ -651,59 +704,118 @@ export function ServiceEditScreen({ route }) {
               </AppText>
               <View style={styles.switchControlWrap}>
                 <Switch
-                  onValueChange={setMultiPriceEnabled}
-                  thumbColor={multiPriceEnabled ? '#f8fafc' : '#f4f4f5'}
+                  disabled={blockPricingControls}
+                  thumbColor={
+                    (blockPricingControls ? false : multiPriceEnabled) ? '#f8fafc' : '#f4f4f5'
+                  }
                   trackColor={{ false: colors.borderStrong, true: '#10b981' }}
-                  value={multiPriceEnabled}
+                  value={blockPricingControls ? false : multiPriceEnabled}
+                  onValueChange={blockPricingControls ? () => {} : setMultiPriceEnabled}
                 />
               </View>
             </View>
 
             <AppText style={[styles.pricingHint, { color: colors.textMuted }]}>
-              The price and time at the top should be your lowest one. That is your starting at
-              value.
+              {subscriptionLoading
+                ? 'Loading…'
+                : blockPricingControls
+                  ? 'Upgrade to add multiple pricing options to your services.'
+                  : 'The price and time at the top should be your lowest one. That is your starting at value.'}
             </AppText>
 
-            <Button
-              fullWidth
-              iconName="add"
-              title="Add option"
-              variant="outline"
-              onPress={openAddPricingOptionSheet}
-            />
+            {blockPricingControls ? (
+              <Button
+                fullWidth
+                iconNode={<ProCrownIcon accessibilityLabel="Pro" color="#000000" size={20} />}
+                style={styles.upgradeProButtonSpacing}
+                title="Upgrade to Pro"
+                variant="primary"
+                onPress={() => {}}
+              />
+            ) : null}
+
+            {!blockPricingControls ? (
+              <Button
+                fullWidth
+                iconName="add"
+                title="Add option"
+                variant="outline"
+                onPress={openAddPricingOptionSheet}
+              />
+            ) : null}
+
+            {blockPricingControls && pricingOptions.length === 0 ? (
+              <View
+                accessible={false}
+                pointerEvents="none"
+                style={[styles.optionCard, styles.mockOptionCard, { borderColor: colors.border }]}
+              >
+                <View style={styles.optionHeaderRow}>
+                  <View style={[styles.optionHeaderTap, styles.optionReadOnlyTap]}>
+                    <View style={styles.optionMain}>
+                      <AppText style={[styles.optionTitle, { color: colors.text }]}>
+                        {MOCK_PRICING_OPTION_PREVIEW.label}
+                      </AppText>
+                      <AppText style={[styles.optionMeta, { color: colors.textMuted }]}>
+                        ${MOCK_PRICING_OPTION_PREVIEW.price} -{' '}
+                        {formatServiceDurationSelectLabel(MOCK_PRICING_OPTION_PREVIEW.durationHHmm)}
+                      </AppText>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            ) : null}
 
             {pricingOptions.map((option) => {
               return (
                 <View key={option.id} style={[styles.optionCard, { borderColor: colors.border }]}>
                   <View style={styles.optionHeaderRow}>
-                    <Pressable
-                      accessibilityLabel="Delete pricing option"
-                      accessibilityRole="button"
-                      disabled={isDeletingPriceOption}
-                      hitSlop={10}
-                      onPress={() => confirmDeletePricingOption(option)}
-                      style={styles.optionTrashHit}
-                    >
-                      <Ionicons color="#fb7185" name="trash-outline" size={20} />
-                    </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => openEditPricingOptionSheet(option)}
-                      style={styles.optionHeaderTap}
-                    >
-                      <View style={styles.optionMain}>
-                        <AppText style={[styles.optionTitle, { color: colors.text }]}>
-                          {option.label}
-                        </AppText>
-                        <AppText style={[styles.optionMeta, { color: colors.textMuted }]}>
-                          {option.price ? `$${option.price}` : 'No price'} -{' '}
-                          {option.durationHHmm
-                            ? formatServiceDurationSelectLabel(option.durationHHmm)
-                            : 'No duration'}
-                        </AppText>
+                    {blockPricingControls ? null : (
+                      <Pressable
+                        accessibilityLabel="Delete pricing option"
+                        accessibilityRole="button"
+                        disabled={isDeletingPriceOption}
+                        hitSlop={10}
+                        onPress={() => confirmDeletePricingOption(option)}
+                        style={styles.optionTrashHit}
+                      >
+                        <Ionicons color="#fb7185" name="trash-outline" size={20} />
+                      </Pressable>
+                    )}
+                    {blockPricingControls ? (
+                      <View style={[styles.optionHeaderTap, styles.optionReadOnlyTap]}>
+                        <View style={styles.optionMain}>
+                          <AppText style={[styles.optionTitle, { color: colors.text }]}>
+                            {option.label}
+                          </AppText>
+                          <AppText style={[styles.optionMeta, { color: colors.textMuted }]}>
+                            {option.price ? `$${option.price}` : 'No price'} -{' '}
+                            {option.durationHHmm
+                              ? formatServiceDurationSelectLabel(option.durationHHmm)
+                              : 'No duration'}
+                          </AppText>
+                        </View>
                       </View>
-                      <Ionicons color={colors.textMuted} name="chevron-forward" size={22} />
-                    </Pressable>
+                    ) : (
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => openEditPricingOptionSheet(option)}
+                        style={styles.optionHeaderTap}
+                      >
+                        <View style={styles.optionMain}>
+                          <AppText style={[styles.optionTitle, { color: colors.text }]}>
+                            {option.label}
+                          </AppText>
+                          <AppText style={[styles.optionMeta, { color: colors.textMuted }]}>
+                            {option.price ? `$${option.price}` : 'No price'} -{' '}
+                            {option.durationHHmm
+                              ? formatServiceDurationSelectLabel(option.durationHHmm)
+                              : 'No duration'}
+                          </AppText>
+                        </View>
+                        <Ionicons color={colors.textMuted} name="chevron-forward" size={22} />
+                      </Pressable>
+                    )}
                   </View>
                 </View>
               );
@@ -1048,6 +1160,16 @@ const styles = StyleSheet.create({
     paddingRight: 4,
   },
   optionMain: { flex: 1, marginRight: 8 },
+  optionReadOnlyTap: {
+    flex: 1,
+  },
+  upgradeProButtonSpacing: {
+    marginBottom: 12,
+  },
+  mockOptionCard: {
+    marginTop: 4,
+    opacity: 0.5,
+  },
   optionTitle: {
     fontSize: 18,
     fontWeight: '700',

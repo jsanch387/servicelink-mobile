@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, SelectField, SurfaceCard, SurfaceTextField } from '../../../components/ui';
+import { SelectField, SurfaceCard, SurfaceTextField } from '../../../components/ui';
 import { BUSINESS_TYPE_OPTIONS } from '../../../constants/businessTypeOptions';
-import { useTheme } from '../../../theme';
 
 /**
  * Step 1: business display name + type (values held by parent until persistence exists).
@@ -13,24 +12,9 @@ export function OnboardingBusinessStepCard({
   businessType,
   onBusinessTypeChange,
 }) {
-  const { colors } = useTheme();
-
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        cardTitle: {
-          color: colors.text,
-          fontSize: 17,
-          fontWeight: '700',
-          letterSpacing: -0.2,
-          marginBottom: 4,
-        },
-        cardHint: {
-          color: colors.textMuted,
-          fontSize: 14,
-          lineHeight: 20,
-          marginBottom: 18,
-        },
         nameField: {
           marginBottom: 4,
         },
@@ -41,16 +25,11 @@ export function OnboardingBusinessStepCard({
           marginTop: 0,
         },
       }),
-    [colors],
+    [],
   );
 
   return (
     <SurfaceCard>
-      <AppText style={styles.cardTitle}>Business details</AppText>
-      <AppText style={styles.cardHint}>
-        What should we call your business, and what do you do?
-      </AppText>
-
       <SurfaceTextField
         autoCapitalize="words"
         containerStyle={styles.nameField}

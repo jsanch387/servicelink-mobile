@@ -1,10 +1,14 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, Button, SurfaceCard } from '../../../components/ui';
+import {
+  AppText,
+  Button,
+  ProCrownIcon,
+  PRO_CROWN_COLOR_ACCOUNT,
+  SurfaceCard,
+} from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
-const PRO_CROWN_COLOR = '#ca8a04';
 /** Trial price label — high-contrast green on dark shells (account subscription row). */
 const FREE_TRIAL_LABEL_COLOR = '#4ade80';
 
@@ -117,10 +121,9 @@ export function AccountSubscriptionCard({
           <View style={styles.planNameRow}>
             <AppText style={styles.planName}>{planLabel}</AppText>
             {showProCrown ? (
-              <MaterialCommunityIcons
+              <ProCrownIcon
                 accessibilityLabel="Pro plan"
-                color={PRO_CROWN_COLOR}
-                name="crown-outline"
+                color={PRO_CROWN_COLOR_ACCOUNT}
                 size={18}
               />
             ) : null}

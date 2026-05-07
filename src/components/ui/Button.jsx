@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
@@ -22,6 +22,8 @@ const DANGER_TEXT = '#ffffff';
  * `outline` (transparent + 2px border by default, uses `outlineColor` or theme text), and `danger`.
  * Use `outlineThin` for a 1px outline (e.g. muted border + primary label via `labelColor`).
  * Optional `outlineBg` adds a tone behind outline pills (pair with `outlineBgPressed` or defaults to `buttonSecondaryBgPressed`).
+ * `iconLibrary` selects the icon set for `iconName` (default Ionicons; use `material-community` for other glyphs).
+ * When `iconNode` is set, it is shown instead of `iconName` / `iconLibrary` for that side.
  */
 export function Button({
   title,
@@ -39,6 +41,10 @@ export function Button({
   outlineBgPressed,
   outlineColor,
   iconName,
+  /** `'ionicons'` (default) or `'material-community'` for `iconName`. */
+  iconLibrary = 'ionicons',
+  /** Renders instead of `iconName` when set (e.g. `<ProCrownIcon />`). */
+  iconNode = null,
   iconPosition = 'left',
   iconSize = 18,
   iconColor,
@@ -160,6 +166,30 @@ export function Button({
             ? '#3f3f46'
             : (labelColor ?? textColor);
 
+        const resolvedIconColor = iconColor ?? resolvedTextColor;
+        const renderIcon = (position) => {
+          if (!iconName) return null;
+          const iconStyle = position === 'left' ? styles.iconLeft : styles.iconRight;
+          if (iconLibrary === 'material-community') {
+            return (
+              <MaterialCommunityIcons
+                color={resolvedIconColor}
+                name={iconName}
+                size={iconSize}
+                style={iconStyle}
+              />
+            );
+          }
+          return (
+            <Ionicons color={resolvedIconColor} name={iconName} size={iconSize} style={iconStyle} />
+          );
+        };
+
+        const showLeftIcon = iconNode && iconPosition === 'left';
+        const showRightIcon = iconNode && iconPosition === 'right';
+        const showLeftNamed = !showLeftIcon && iconName && iconPosition === 'left';
+        const showRightNamed = !showRightIcon && iconName && iconPosition === 'right';
+
         return (
           <View
             style={[
@@ -172,23 +202,11 @@ export function Button({
               <ActivityIndicator color={spinnerColor} />
             ) : (
               <View style={styles.contentRow}>
-                {iconName && iconPosition === 'left' ? (
-                  <Ionicons
-                    color={iconColor ?? resolvedTextColor}
-                    name={iconName}
-                    size={iconSize}
-                    style={styles.iconLeft}
-                  />
-                ) : null}
+                {showLeftIcon ? <View style={styles.iconLeft}>{iconNode}</View> : null}
+                {showLeftNamed ? renderIcon('left') : null}
                 <AppText style={[styles.label, { color: resolvedTextColor }]}>{title}</AppText>
-                {iconName && iconPosition === 'right' ? (
-                  <Ionicons
-                    color={iconColor ?? resolvedTextColor}
-                    name={iconName}
-                    size={iconSize}
-                    style={styles.iconRight}
-                  />
-                ) : null}
+                {showRightIcon ? <View style={styles.iconRight}>{iconNode}</View> : null}
+                {showRightNamed ? renderIcon('right') : null}
               </View>
             )}
           </View>

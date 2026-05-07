@@ -203,12 +203,6 @@ export async function saveOnboardingStep1({ businessName, businessType }) {
   return { ok: true };
 }
 
-/**
- * Marks onboarding complete on `profiles` (non-Stripe / dev path until checkout is wired).
- *
- * @param {string} userId
- * @returns {Promise<{ ok: true } | { ok: false; error: Error }>}
- */
 async function requireBusinessProfileId(userId) {
   const { data, error } = await supabase
     .from('business_profiles')
@@ -384,6 +378,12 @@ export async function saveOnboardingStep4Slug({ slugRaw }) {
   return { ok: true };
 }
 
+/**
+ * Marks onboarding complete on `profiles`, sets `subscription_tier` to `free` (Stripe deferred).
+ *
+ * @param {string} userId
+ * @returns {Promise<{ ok: true } | { ok: false; error: Error }>}
+ */
 export async function markOnboardingCompleted(userId) {
   if (!userId) {
     return { ok: false, error: new Error('Not signed in') };
@@ -394,6 +394,7 @@ export async function markOnboardingCompleted(userId) {
     .update({
       onboarding_status: 'completed',
       onboarding_step: 5,
+      subscription_tier: 'free',
     })
     .eq('user_id', userId);
 

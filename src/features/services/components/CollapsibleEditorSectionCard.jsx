@@ -5,6 +5,8 @@ import { useTheme } from '../../../theme';
 
 export function CollapsibleEditorSectionCard({
   title,
+  /** Rendered inline after the title (e.g. Pro crown). */
+  titleAccessory = null,
   subtitle,
   expanded,
   onToggle,
@@ -17,7 +19,10 @@ export function CollapsibleEditorSectionCard({
     <SurfaceCard padding="none" style={[styles.card, { borderColor: colors.border }]}>
       <Pressable accessibilityRole="button" onPress={onToggle} style={styles.header}>
         <View style={styles.headerTextWrap}>
-          <AppText style={[styles.title, { color: colors.text }]}>{title}</AppText>
+          <View style={styles.titleRow}>
+            <AppText style={[styles.title, { color: colors.text }]}>{title}</AppText>
+            {titleAccessory ? <View style={styles.titleAccessory}>{titleAccessory}</View> : null}
+          </View>
           {subtitle ? (
             <AppText style={[styles.subtitle, { color: colors.textMuted }]}>{subtitle}</AppText>
           ) : null}
@@ -54,10 +59,20 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  titleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 4,
+  },
   title: {
     fontSize: 18,
     fontWeight: '800',
-    marginBottom: 4,
+  },
+  titleAccessory: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   subtitle: {
     fontSize: 14,

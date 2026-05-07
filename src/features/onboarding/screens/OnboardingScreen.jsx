@@ -28,18 +28,18 @@ import { useOnboardingGate } from '../context/OnboardingGateContext';
 const STEP_COUNT = 5;
 
 const STEP_TITLES = [
-  'Your business',
+  'Business details',
   'Add at least one service',
   'When do you work?',
-  'Choose your link',
+  'Claim your link',
   'Go live',
 ];
 
 const STEP_SUBTITLES = [
-  'Add the name customers see and the category that best fits you.',
+  '',
   'Add one service to continue — you can add the rest after onboarding.',
   'Pick your usual hours. Customers will only see times when you are free.',
-  'This is the link you will share with customers. Pick something short and easy to remember.',
+  'This will be the booking link you share with customers.',
   'Your booking link is ready.',
 ];
 
@@ -244,9 +244,21 @@ export function OnboardingScreen() {
         },
         scrollContent: {
           flexGrow: 1,
-          paddingBottom: 28,
+          paddingBottom: 12,
           paddingHorizontal: 16,
           paddingTop: 0,
+        },
+        mainBody: {
+          flex: 1,
+        },
+        actionsBar: {
+          backgroundColor: colors.shell,
+          borderTopColor: colors.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          gap: 12,
+          paddingBottom: 8,
+          paddingHorizontal: 16,
+          paddingTop: 12,
         },
         loadErrorBox: {
           backgroundColor: colors.shellElevated,
@@ -316,10 +328,6 @@ export function OnboardingScreen() {
           fontSize: 14,
           marginBottom: 12,
           textAlign: 'left',
-        },
-        actions: {
-          gap: 12,
-          marginTop: 24,
         },
         row: {
           flexDirection: 'row',
@@ -462,8 +470,9 @@ export function OnboardingScreen() {
 
   const nextButtonLoading =
     (stepIndex === 0 && step1Submitting) ||
-    ((stepIndex === 1 || stepIndex === 2 || stepIndex === 3) && remoteStepSaving) ||
-    (isLast && finishSubmitting);
+    ((stepIndex === 1 || stepIndex === 2 || stepIndex === 3) && remoteStepSaving);
+
+  const nextDisabled = stepIndex === 1 && servicesList.length === 0;
 
   return (
     <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={styles.safe}>
@@ -475,83 +484,92 @@ export function OnboardingScreen() {
         <View style={styles.stepperHeader}>
           <OnboardingProgressStepper currentIndex={stepIndex} totalSteps={STEP_COUNT} />
         </View>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          style={styles.scroll}
-        >
-          {profileLoadError ? (
-            <View style={styles.loadErrorBox}>
-              <AppText style={styles.loadErrorText}>
-                {String(profileLoadError?.message ?? 'Could not load your onboarding status.')}
-              </AppText>
-              <Button onPress={() => refetchOnboarding()} title="Try again" variant="secondary" />
-            </View>
-          ) : null}
-
-          {stepIndex === 4 ? (
-            <>
-              <AppText style={styles.goLiveHeadline}>GO LIVE!</AppText>
-              <View style={styles.goLiveSublineRow}>
-                <AppText style={styles.goLiveReadyPart} numberOfLines={1}>
-                  Your booking link is ready.{' '}
+        <View style={styles.mainBody}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            style={styles.scroll}
+          >
+            {profileLoadError ? (
+              <View style={styles.loadErrorBox}>
+                <AppText style={styles.loadErrorText}>
+                  {String(profileLoadError?.message ?? 'Could not load your onboarding status.')}
                 </AppText>
-                <AppText style={styles.goLiveNoCardPart} numberOfLines={1}>
-                  No card required.
-                </AppText>
+                <Button onPress={() => refetchOnboarding()} title="Try again" variant="secondary" />
               </View>
-            </>
-          ) : (
-            <>
-              <AppText style={styles.title}>{STEP_TITLES[stepIndex]}</AppText>
-              <AppText style={styles.subtitle}>{STEP_SUBTITLES[stepIndex]}</AppText>
-            </>
-          )}
-          {stepError ? <AppText style={styles.stepError}>{stepError}</AppText> : null}
+            ) : null}
 
-          {stepIndex === 0 ? (
-            <OnboardingBusinessStepCard
-              businessName={businessName}
-              businessType={businessType}
-              onBusinessNameChange={onBusinessNameChange}
-              onBusinessTypeChange={onBusinessTypeChange}
-            />
-          ) : null}
+            {stepIndex === 4 ? (
+              <>
+                <AppText style={styles.goLiveHeadline}>GO LIVE!</AppText>
+                <View style={styles.goLiveSublineRow}>
+                  <AppText style={styles.goLiveReadyPart} numberOfLines={1}>
+                    Your booking link is ready.{' '}
+                  </AppText>
+                  <AppText style={styles.goLiveNoCardPart} numberOfLines={1}>
+                    No card required.
+                  </AppText>
+                </View>
+              </>
+            ) : (
+              <>
+                <AppText style={styles.title}>{STEP_TITLES[stepIndex]}</AppText>
+                {STEP_SUBTITLES[stepIndex] ? (
+                  <AppText style={styles.subtitle}>{STEP_SUBTITLES[stepIndex]}</AppText>
+                ) : null}
+              </>
+            )}
+            {stepError ? <AppText style={styles.stepError}>{stepError}</AppText> : null}
 
-          {stepIndex === 1 ? (
-            <OnboardingServicesStep services={servicesList} onServicesChange={setServicesList} />
-          ) : null}
+            {stepIndex === 0 ? (
+              <OnboardingBusinessStepCard
+                businessName={businessName}
+                businessType={businessType}
+                onBusinessNameChange={onBusinessNameChange}
+                onBusinessTypeChange={onBusinessTypeChange}
+              />
+            ) : null}
 
-          {stepIndex === 2 ? (
-            <WeeklyScheduleSection
-              dayEnabledMap={dayEnabledMap}
-              dayTimeRanges={dayTimeRanges}
-              style={{ marginBottom: 14 }}
-              onDayTimeChange={(day, key, val) => {
-                setSchedulePreset('custom');
-                setDayTimeRanges((prev) => ({
-                  ...prev,
-                  [day]: { ...prev[day], [key]: val },
-                }));
-              }}
-              onDayToggle={(day, next) => {
-                setSchedulePreset('custom');
-                setDayEnabledMap((prev) => ({ ...prev, [day]: next }));
-              }}
-            />
-          ) : null}
+            {stepIndex === 1 ? (
+              <OnboardingServicesStep services={servicesList} onServicesChange={setServicesList} />
+            ) : null}
 
-          {stepIndex === 3 ? (
-            <OnboardingSlugStep value={linkSlugDraft} onChangeValue={setLinkSlugDraft} />
-          ) : null}
+            {stepIndex === 2 ? (
+              <WeeklyScheduleSection
+                dayEnabledMap={dayEnabledMap}
+                dayTimeRanges={dayTimeRanges}
+                style={{ marginBottom: 14 }}
+                onDayTimeChange={(day, key, val) => {
+                  setSchedulePreset('custom');
+                  setDayTimeRanges((prev) => ({
+                    ...prev,
+                    [day]: { ...prev[day], [key]: val },
+                  }));
+                }}
+                onDayToggle={(day, next) => {
+                  setSchedulePreset('custom');
+                  setDayEnabledMap((prev) => ({ ...prev, [day]: next }));
+                }}
+              />
+            ) : null}
 
-          {stepIndex === 4 ? (
-            <OnboardingTrialStep activationLink={getBookingLinkDisplay(linkSlugDraft)} />
-          ) : null}
+            {stepIndex === 3 ? (
+              <OnboardingSlugStep value={linkSlugDraft} onChangeValue={setLinkSlugDraft} />
+            ) : null}
 
-          <View style={styles.actions}>
-            {stepIndex > 0 ? (
+            {stepIndex === 4 ? (
+              <OnboardingTrialStep
+                activateSubmitting={finishSubmitting}
+                activationLink={getBookingLinkDisplay(linkSlugDraft)}
+                onStartTrialPress={() => void goNext()}
+              />
+            ) : null}
+          </ScrollView>
+          <View style={styles.actionsBar}>
+            {stepIndex === 4 ? (
+              <Button fullWidth title="Back" variant="secondary" onPress={goBack} />
+            ) : stepIndex > 0 ? (
               <View style={styles.row}>
                 <Button
                   fullWidth
@@ -561,23 +579,25 @@ export function OnboardingScreen() {
                   variant="secondary"
                 />
                 <Button
+                  disabled={nextDisabled}
                   fullWidth
                   loading={nextButtonLoading}
                   onPress={() => void goNext()}
                   style={styles.flex}
-                  title={isLast ? 'Finish' : 'Next'}
+                  title="Next"
                 />
               </View>
             ) : (
               <Button
+                disabled={nextDisabled}
                 fullWidth
                 loading={nextButtonLoading}
                 onPress={() => void goNext()}
-                title={isLast ? 'Finish' : 'Next'}
+                title="Next"
               />
             )}
           </View>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

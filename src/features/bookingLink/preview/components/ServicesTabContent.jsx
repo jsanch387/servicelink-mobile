@@ -4,6 +4,8 @@ import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../../
 import { ServicePreviewCard } from '../../../services/components/ServicePreviewCard';
 import { useTheme } from '../../../../theme';
 
+const SERVICES_CARD_GUTTER = 5;
+
 export function ServicesTabContent({ services, isLoading, error }) {
   const { colors } = useTheme();
 
@@ -12,8 +14,11 @@ export function ServicesTabContent({ services, isLoading, error }) {
       StyleSheet.create({
         wrap: {
           paddingBottom: 28,
-          paddingHorizontal: 16,
           paddingTop: 16,
+        },
+        /** Booking-link services: horizontal inset for errors, skeletons, and preview cards. */
+        cardsGutter: {
+          paddingHorizontal: SERVICES_CARD_GUTTER,
         },
         profileErrorWrap: {
           marginBottom: 12,
@@ -35,52 +40,90 @@ export function ServicesTabContent({ services, isLoading, error }) {
 
   return (
     <View style={styles.wrap}>
-      {error ? (
-        <View style={styles.profileErrorWrap}>
-          <InlineCardError message={error} />
-        </View>
-      ) : null}
+      <View style={styles.cardsGutter}>
+        {error ? (
+          <View style={styles.profileErrorWrap}>
+            <InlineCardError message={error} />
+          </View>
+        ) : null}
 
-      {isLoading ? (
-        <>
+        {isLoading ? (
+          <>
+            <SurfaceCard outlined={false} padding="none" style={styles.serviceCard}>
+              <SkeletonBox borderRadius={8} height={18} pulse width="48%" />
+              <SkeletonBox
+                borderRadius={8}
+                height={14}
+                pulse
+                style={{ marginTop: 10 }}
+                width="36%"
+              />
+              <SkeletonBox
+                borderRadius={8}
+                height={14}
+                pulse
+                style={{ marginTop: 12 }}
+                width="88%"
+              />
+              <SkeletonBox
+                borderRadius={8}
+                height={14}
+                pulse
+                style={{ marginTop: 8 }}
+                width="72%"
+              />
+              <SkeletonBox
+                borderRadius={12}
+                height={42}
+                pulse
+                style={{ marginTop: 18 }}
+                width="100%"
+              />
+            </SurfaceCard>
+            <SurfaceCard outlined={false} padding="none" style={styles.serviceCard}>
+              <SkeletonBox borderRadius={8} height={18} pulse width="48%" />
+              <SkeletonBox
+                borderRadius={8}
+                height={14}
+                pulse
+                style={{ marginTop: 10 }}
+                width="36%"
+              />
+              <SkeletonBox
+                borderRadius={8}
+                height={14}
+                pulse
+                style={{ marginTop: 12 }}
+                width="88%"
+              />
+              <SkeletonBox
+                borderRadius={8}
+                height={14}
+                pulse
+                style={{ marginTop: 8 }}
+                width="72%"
+              />
+              <SkeletonBox
+                borderRadius={12}
+                height={42}
+                pulse
+                style={{ marginTop: 18 }}
+                width="100%"
+              />
+            </SurfaceCard>
+          </>
+        ) : null}
+
+        {!isLoading && services.length === 0 ? (
           <SurfaceCard outlined={false} padding="none" style={styles.serviceCard}>
-            <SkeletonBox borderRadius={8} height={18} pulse width="48%" />
-            <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 10 }} width="36%" />
-            <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 12 }} width="88%" />
-            <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 8 }} width="72%" />
-            <SkeletonBox
-              borderRadius={12}
-              height={42}
-              pulse
-              style={{ marginTop: 18 }}
-              width="100%"
-            />
+            <AppText style={styles.emptyStateText}>No active services yet.</AppText>
           </SurfaceCard>
-          <SurfaceCard outlined={false} padding="none" style={styles.serviceCard}>
-            <SkeletonBox borderRadius={8} height={18} pulse width="48%" />
-            <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 10 }} width="36%" />
-            <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 12 }} width="88%" />
-            <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 8 }} width="72%" />
-            <SkeletonBox
-              borderRadius={12}
-              height={42}
-              pulse
-              style={{ marginTop: 18 }}
-              width="100%"
-            />
-          </SurfaceCard>
-        </>
-      ) : null}
+        ) : null}
 
-      {!isLoading && services.length === 0 ? (
-        <SurfaceCard outlined={false} padding="none" style={styles.serviceCard}>
-          <AppText style={styles.emptyStateText}>No active services yet.</AppText>
-        </SurfaceCard>
-      ) : null}
-
-      {!isLoading
-        ? services.map((service) => <ServicePreviewCard key={service.id} service={service} />)
-        : null}
+        {!isLoading
+          ? services.map((service) => <ServicePreviewCard key={service.id} service={service} />)
+          : null}
+      </View>
     </View>
   );
 }

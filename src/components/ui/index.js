@@ -4,6 +4,12 @@ export { BottomSheetModal } from './BottomSheetModal';
 export { CalendarMonthPicker } from './CalendarMonthPicker';
 export { toLocalYyyyMmDd, parseLocalYyyyMmDd, startOfLocalDay } from './calendarDateKey';
 export { Button } from './Button';
+export {
+  ProCrownIcon,
+  PRO_CROWN_COLOR_ACCOUNT,
+  PRO_CROWN_COLOR_FEATURE,
+  PRO_CROWN_ICON_NAME,
+} from './ProCrownIcon';
 export { DetailsSectionCard } from './DetailsSectionCard';
 export { InfoSection } from './InfoSection';
 export { LabelValueRow } from './LabelValueRow';

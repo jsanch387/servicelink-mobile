@@ -205,10 +205,12 @@ export function BookingProfileHeader({
           )}
         </View>
         <AppText style={styles.businessType}>{businessType}</AppText>
-        <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={14} color={colors.textMuted} />
-          <AppText style={styles.locationText}>{location}</AppText>
-        </View>
+        {location ? (
+          <View style={styles.locationRow}>
+            <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+            <AppText style={styles.locationText}>{location}</AppText>
+          </View>
+        ) : null}
 
         <Pressable
           disabled={!phoneNumber}

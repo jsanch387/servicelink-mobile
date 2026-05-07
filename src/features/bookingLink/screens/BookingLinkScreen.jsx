@@ -26,7 +26,8 @@ export function BookingLinkScreen() {
   const businessTypeDisplay = profile?.business_type?.trim() || 'Business type';
   const businessNameEdit = profile?.business_name?.trim() ?? '';
   const businessTypeEdit = profile?.business_type?.trim() ?? '';
-  const location = profile?.service_area?.trim() || 'Service area';
+  const serviceAreaTrimmed = profile?.service_area?.trim() ?? '';
+  const location = serviceAreaTrimmed.length > 0 ? serviceAreaTrimmed : null;
   const bio = profile?.bio?.trim() || '';
   const [city, state] = splitServiceAreaCityState(profile?.service_area);
   const phoneNumber = profile?.phone_number_call?.trim() || '';
