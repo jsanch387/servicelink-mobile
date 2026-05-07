@@ -2,6 +2,7 @@ import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from '../features/auth';
+import { ForgotPasswordScreen } from '../features/auth/screens/ForgotPasswordScreen';
 import { LoginScreen } from '../features/auth/screens/LoginScreen';
 import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
 import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
@@ -95,6 +96,7 @@ export function AuthNavigator() {
           <>
             <Stack.Screen component={LoginScreen} name={ROUTES.LOGIN} />
             <Stack.Screen component={SignUpScreen} name={ROUTES.SIGN_UP} />
+            <Stack.Screen component={ForgotPasswordScreen} name={ROUTES.FORGOT_PASSWORD} />
           </>
         ) : null}
       </Stack.Navigator>

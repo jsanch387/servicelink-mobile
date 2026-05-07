@@ -6,6 +6,8 @@
 export const ROUTES = {
   LOGIN: 'Login',
   SIGN_UP: 'SignUp',
+  /** Opens ServiceLink forgot-password in the system browser */
+  FORGOT_PASSWORD: 'ForgotPassword',
   /** First-time signup — blocks main tabs until finished */
   ONBOARDING: 'Onboarding',
   /** Stack screen that hosts the bottom tab navigator */
@@ -42,6 +44,8 @@ export const ROUTES = {
 export const PATHS = {
   LOGIN: '/login',
   SIGN_UP: '/sign-up',
+  /** Next.js public route (opened in system browser from mobile). */
+  AUTH_FORGOT_PASSWORD: '/auth/forgot-password',
   ONBOARDING: '/onboarding',
   HOME: '/',
   BOOKINGS: '/bookings',

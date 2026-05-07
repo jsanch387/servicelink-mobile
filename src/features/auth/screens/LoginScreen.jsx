@@ -177,7 +177,13 @@ export function LoginScreen() {
                   value={password}
                 />
                 {formError ? <AppText style={styles.formError}>{formError}</AppText> : null}
-                <Pressable accessibilityRole="button" hitSlop={12} style={styles.forgotLink}>
+                <Pressable
+                  accessibilityLabel="Forgot password"
+                  accessibilityRole="button"
+                  hitSlop={12}
+                  onPress={() => navigation.navigate(ROUTES.FORGOT_PASSWORD)}
+                  style={styles.forgotLink}
+                >
                   <AppText style={styles.forgotLinkText}>Forgot password?</AppText>
                 </Pressable>
                 <Button
