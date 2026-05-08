@@ -27,6 +27,9 @@ export function SubscriptionProvider({ children }) {
   const ownerProfile = query.data?.ownerProfile ?? null;
   const hasProAccess = useMemo(() => hasProAccessFromProfile(ownerProfile), [ownerProfile]);
 
+  /** Account bundle fetch succeeded — safe to apply subscription-driven UI (e.g. paywall). */
+  const isOwnerProfileLoaded = Boolean(userId) && query.isSuccess;
+
   const isReady = !userId || query.isSuccess || query.isError;
 
   const refetchSubscription = useCallback(async () => {
@@ -38,6 +41,7 @@ export function SubscriptionProvider({ children }) {
     () => ({
       ownerProfile,
       hasProAccess,
+      isOwnerProfileLoaded,
       isReady,
       isLoading: Boolean(userId) && query.isPending,
       loadError: query.isError ? (query.error?.message ?? 'Could not load subscription') : null,
@@ -46,6 +50,7 @@ export function SubscriptionProvider({ children }) {
     [
       ownerProfile,
       hasProAccess,
+      isOwnerProfileLoaded,
       isReady,
       userId,
       query.isPending,

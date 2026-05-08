@@ -10,6 +10,9 @@
  *
  * Optional — must match prefix of Stripe mobile onboarding return URLs on the server:
  * EXPO_PUBLIC_STRIPE_ONBOARDING_AUTH_RETURN_URL=servicelinkmobile://onboarding/stripe
+ *
+ * Optional — paywall upgrade checkout (`STRIPE_MOBILE_UPGRADE_*` on server):
+ * EXPO_PUBLIC_STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL=servicelinkmobile://paywall/stripe
  */
 const DEFAULT_WEB_APP_URL = 'https://myservicelink.app';
 

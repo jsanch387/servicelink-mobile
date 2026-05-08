@@ -4,12 +4,26 @@ import {
 } from '../../../lib/stripeMobileCheckoutOrigin';
 
 /**
- * POST `/api/stripe/create-checkout-session` — mobile onboarding free trial (Stripe Checkout).
+ * Paywall upgrade — Stripe Checkout (post-onboarding).
+ *
+ * **Endpoint:** `POST /api/stripe/create-checkout-session` (same path as onboarding; different body).
+ *
+ * **Auth:** `Authorization: Bearer <Supabase access_token>`
+ *
+ * **Body (JSON):** `{ "client": "mobile" }` only — do **not** send `onboarding_trial_bridge`
+ * (that flow uses trial + onboarding completion in the webhook).
+ *
+ * **Server env (upgrade):** `STRIPE_MOBILE_UPGRADE_SUCCESS_URL` and `STRIPE_MOBILE_UPGRADE_CANCEL_URL`
+ * must be set when `client: mobile` for this non-onboarding checkout (see web
+ * `mobile-upgrade-stripe-checkout.md`).
+ *
+ * **After checkout:** refetch profile / subscription from the app; do not trust only the deep-link
+ * query for entitlements (webhook updates `profiles`).
  *
  * @param {string | null | undefined} accessToken - Supabase `session.access_token`
  * @returns {Promise<{ url: string } | { error: Error; httpStatus: number }>}
  */
-export async function createOnboardingCheckoutSession(accessToken) {
+export async function createPaywallUpgradeCheckoutSession(accessToken) {
   const origin = resolveStripeMobileCheckoutOrigin();
   if (!origin) {
     return { error: new Error('EXPO_PUBLIC_WEB_APP_URL is not set'), httpStatus: 0 };
@@ -25,6 +39,7 @@ export async function createOnboardingCheckoutSession(accessToken) {
       httpStatus: 0,
     };
   }
+
   let res;
   try {
     res = await fetch(`${origin}/api/stripe/create-checkout-session`, {
@@ -34,10 +49,7 @@ export async function createOnboardingCheckoutSession(accessToken) {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        source: 'onboarding_trial_bridge',
-        client: 'mobile',
-      }),
+      body: JSON.stringify({ client: 'mobile' }),
     });
   } catch (error) {
     return {

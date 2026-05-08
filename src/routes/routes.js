@@ -38,6 +38,8 @@ export const ROUTES = {
   NOTIFICATIONS_INBOX: 'NotificationsInbox',
   /** Root stack — new appointment from home FAB (back returns to tabs). */
   CREATE_APPOINTMENT: 'CreateAppointment',
+  /** Root stack — future global subscription gate/paywall. */
+  UPGRADE_PAYWALL: 'UpgradePaywall',
   HELP: 'Help',
   /** More stack — privacy policy & terms of service (hosted web links). */
   LEGAL: 'Legal',
@@ -70,6 +72,7 @@ export const PATHS = {
   NOTIFICATIONS: '/more/notifications',
   NOTIFICATIONS_INBOX: '/notifications',
   CREATE_APPOINTMENT: '/create-appointment',
+  UPGRADE_PAYWALL: '/upgrade',
   HELP: '/more/help',
   LEGAL: '/more/legal',
   /** Hosted legal pages on the Next.js site (opened from More tab). */
