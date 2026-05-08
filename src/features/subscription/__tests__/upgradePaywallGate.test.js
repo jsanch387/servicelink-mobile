@@ -1,4 +1,5 @@
 import {
+  shouldShowFullScreenSubscriptionPaywall,
   shouldShowUpgradePaywallFromProfile,
   shouldUseUpgradePaywallHomeTab,
 } from '../upgradePaywallGate';
@@ -55,5 +56,18 @@ describe('upgradePaywallGate', () => {
         hasProAccess: true,
       }),
     ).toBe(false);
+  });
+
+  it('shouldShowFullScreenSubscriptionPaywall matches shouldUseUpgradePaywallHomeTab', () => {
+    const cases = [
+      { isOwnerProfileLoaded: false, hasProAccess: false },
+      { isOwnerProfileLoaded: true, hasProAccess: false },
+      { isOwnerProfileLoaded: true, hasProAccess: true },
+    ];
+    for (const args of cases) {
+      expect(shouldShowFullScreenSubscriptionPaywall(args)).toBe(
+        shouldUseUpgradePaywallHomeTab(args),
+      );
+    }
   });
 });

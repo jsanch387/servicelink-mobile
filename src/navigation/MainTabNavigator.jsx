@@ -1,37 +1,26 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useMemo } from 'react';
 import { BookingsNavigator } from '../features/bookings';
 import { CustomersNavigator } from '../features/customers/navigation/CustomersNavigator';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { MoreNavigator } from '../features/more';
 import { PaymentsScreen } from '../features/payments/screens/PaymentsScreen';
-import { shouldUseUpgradePaywallHomeTab, useSubscription } from '../features/subscription';
-import { UpgradePaywallScreen } from '../features/subscription/screens/UpgradePaywallScreen';
 import { MAIN_TAB_CONFIG, ROUTES } from '../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../theme';
 import { MainTabBar } from './MainTabBar';
 
 const Tab = createBottomTabNavigator();
 
+const tabScreens = {
+  [ROUTES.HOME]: HomeScreen,
+  [ROUTES.BOOKINGS]: BookingsNavigator,
+  [ROUTES.CUSTOMERS]: CustomersNavigator,
+  [ROUTES.PAYMENTS]: PaymentsScreen,
+  [ROUTES.MORE]: MoreNavigator,
+};
+
 export function MainTabNavigator() {
   const { colors } = useTheme();
-  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
-  const showUpgradePaywallOnHome = shouldUseUpgradePaywallHomeTab({
-    hasProAccess,
-    isOwnerProfileLoaded,
-  });
-
-  const tabScreens = useMemo(
-    () => ({
-      [ROUTES.HOME]: showUpgradePaywallOnHome ? UpgradePaywallScreen : HomeScreen,
-      [ROUTES.BOOKINGS]: BookingsNavigator,
-      [ROUTES.CUSTOMERS]: CustomersNavigator,
-      [ROUTES.PAYMENTS]: PaymentsScreen,
-      [ROUTES.MORE]: MoreNavigator,
-    }),
-    [showUpgradePaywallOnHome],
-  );
 
   return (
     <Tab.Navigator

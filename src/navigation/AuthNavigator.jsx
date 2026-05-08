@@ -8,16 +8,40 @@ import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
 import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
 import { CreateAppointmentScreen } from '../features/bookings';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
+import { useSubscription } from '../features/subscription';
+import { UpgradePaywallScreen } from '../features/subscription/screens/UpgradePaywallScreen';
+import { shouldShowFullScreenSubscriptionPaywall } from '../features/subscription/upgradePaywallGate';
 import { MainTabNavigator } from './MainTabNavigator';
 import { ROUTES } from '../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../theme';
 
 const Stack = createNativeStackNavigator();
 
+function MainAppSubscriptionBootScreen() {
+  const { colors } = useTheme();
+  return (
+    <View
+      accessibilityLabel="Loading subscription status"
+      style={[styles.boot, { backgroundColor: colors.shell }]}
+      testID="subscription-boot"
+    >
+      <ActivityIndicator color={colors.accent} size="large" />
+    </View>
+  );
+}
+
 export function AuthNavigator() {
   const { colors, isDark } = useTheme();
-  const { session, isReady } = useAuth();
+  const { session, isReady, user } = useAuth();
   const { needsOnboarding, isGateReady } = useOnboardingGate();
+  const { hasProAccess, isOwnerProfileLoaded, isLoading } = useSubscription();
+
+  const isPaywallBlocking =
+    Boolean(session && !needsOnboarding) &&
+    shouldShowFullScreenSubscriptionPaywall({ isOwnerProfileLoaded, hasProAccess });
+
+  const mainAppSubscriptionBooting =
+    Boolean(session && !needsOnboarding && user?.id) && isLoading && !isPaywallBlocking;
 
   const navTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
@@ -42,7 +66,15 @@ export function AuthNavigator() {
     );
   }
 
-  const stackKey = session ? (needsOnboarding ? 'onboarding' : 'main') : 'auth';
+  const stackKey = session
+    ? needsOnboarding
+      ? 'onboarding'
+      : isPaywallBlocking
+        ? 'main-paywall'
+        : mainAppSubscriptionBooting
+          ? 'main-subscription-boot'
+          : 'main'
+    : 'auth';
 
   return (
     <NavigationContainer theme={navTheme}>
@@ -61,7 +93,17 @@ export function AuthNavigator() {
             options={{ gestureEnabled: false }}
           />
         ) : null}
-        {session && !needsOnboarding ? (
+        {session && !needsOnboarding && mainAppSubscriptionBooting ? (
+          <Stack.Screen component={MainAppSubscriptionBootScreen} name="MainAppSubscriptionBoot" />
+        ) : null}
+        {session && !needsOnboarding && !mainAppSubscriptionBooting && isPaywallBlocking ? (
+          <Stack.Screen
+            component={UpgradePaywallScreen}
+            name={ROUTES.UPGRADE_PAYWALL}
+            options={{ gestureEnabled: false }}
+          />
+        ) : null}
+        {session && !needsOnboarding && !mainAppSubscriptionBooting && !isPaywallBlocking ? (
           <>
             <Stack.Screen component={MainTabNavigator} name={ROUTES.MAIN_APP} />
             <Stack.Screen

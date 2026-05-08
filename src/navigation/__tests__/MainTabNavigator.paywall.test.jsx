@@ -29,14 +29,6 @@ jest.mock('../../features/more', () => ({
   MoreNavigator: () => null,
 }));
 
-jest.mock('../../features/subscription/screens/UpgradePaywallScreen', () => ({
-  UpgradePaywallScreen: function MockUpgradePaywallScreen() {
-    const React = require('react');
-    const { Text } = require('react-native');
-    return <Text testID="paywall-tab-screen">PAYWALL_TAB</Text>;
-  },
-}));
-
 jest.mock('../MainTabBar', () => ({
   MainTabBar: () => null,
 }));
@@ -49,41 +41,18 @@ function renderTabs() {
   );
 }
 
-describe('MainTabNavigator paywall gate (Home tab)', () => {
+describe('MainTabNavigator Home tab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('mounts Home when profile is not loaded yet (avoid paywall flash)', () => {
-    useSubscription.mockReturnValue({
-      hasProAccess: false,
-      isOwnerProfileLoaded: false,
-    });
-
-    renderTabs();
-    expect(screen.getByTestId('home-tab-screen')).toBeTruthy();
-    expect(screen.queryByTestId('paywall-tab-screen')).toBeNull();
-  });
-
-  it('mounts upgrade paywall on Home when profile loaded and user lacks Pro access', () => {
+  it('always mounts Home on Home tab (paywall is full-screen in AuthNavigator)', () => {
     useSubscription.mockReturnValue({
       hasProAccess: false,
       isOwnerProfileLoaded: true,
     });
 
     renderTabs();
-    expect(screen.getByTestId('paywall-tab-screen')).toBeTruthy();
-    expect(screen.queryByTestId('home-tab-screen')).toBeNull();
-  });
-
-  it('mounts Home when user has Pro access', () => {
-    useSubscription.mockReturnValue({
-      hasProAccess: true,
-      isOwnerProfileLoaded: true,
-    });
-
-    renderTabs();
     expect(screen.getByTestId('home-tab-screen')).toBeTruthy();
-    expect(screen.queryByTestId('paywall-tab-screen')).toBeNull();
   });
 });

@@ -18,10 +18,11 @@ import { hasProAccessFromProfile } from '../more/utils/subscriptionPresentation'
  *   status outside that list) **does not** have Pro access → **paywall applies** (same as web
  *   gating for post-trial / unpaid).
  *
- * **Home tab**
- * Mount the paywall only when `query.isSuccess` for the account bundle (`isOwnerProfileLoaded` from
- * `SubscriptionContext`) so we do not flash the paywall during loading or fall back incorrectly on
- * fetch errors.
+ * **Full-screen gate (`AuthNavigator`)**
+ * When the paywall applies, the stack shows **only** `UpgradePaywallScreen` (no tab bar, no other
+ * stack screens) until `hasProAccess` becomes true. While the account bundle is still loading
+ * (`isLoading` and not yet paywalled), a boot spinner is shown so users cannot switch tabs on a
+ * stale Home screen.
  *
  * **Upgrade checkout (after onboarding)**
  * **Upgrade to Pro** uses `createPaywallUpgradeCheckoutSession`: `POST /api/stripe/create-checkout-session`
@@ -34,8 +35,8 @@ import { hasProAccessFromProfile } from '../more/utils/subscriptionPresentation'
  */
 
 /**
- * UI iteration only — when `true`, the Home tab always shows `UpgradePaywallScreen`
- * (ignores profile / subscription gate). Ship with `false`.
+ * UI iteration only — when `true`, the **entire main app** shows `UpgradePaywallScreen` (same as
+ * production paywall) even before profile load. Ship with `false`.
  *
  * @type {boolean}
  */
@@ -50,10 +51,22 @@ export function shouldShowUpgradePaywallFromProfile(ownerProfile) {
 }
 
 /**
+ * When `true`, the signed-in main app should show **only** the upgrade paywall (no tabs).
+ *
  * @param {{ isOwnerProfileLoaded: boolean; hasProAccess: boolean }} args
  * @returns {boolean}
  */
-export function shouldUseUpgradePaywallHomeTab({ isOwnerProfileLoaded, hasProAccess }) {
+export function shouldShowFullScreenSubscriptionPaywall({ isOwnerProfileLoaded, hasProAccess }) {
   if (DEV_FORCE_UPGRADE_PAYWALL_IN_HOME_TAB) return true;
   return Boolean(isOwnerProfileLoaded) && !hasProAccess;
+}
+
+/**
+ * @deprecated Paywall moved to `AuthNavigator`; Home tab always uses `HomeScreen`. Prefer
+ * `shouldShowFullScreenSubscriptionPaywall`.
+ * @param {{ isOwnerProfileLoaded: boolean; hasProAccess: boolean }} args
+ * @returns {boolean}
+ */
+export function shouldUseUpgradePaywallHomeTab(args) {
+  return shouldShowFullScreenSubscriptionPaywall(args);
 }
