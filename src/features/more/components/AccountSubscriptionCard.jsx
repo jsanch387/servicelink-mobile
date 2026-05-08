@@ -18,6 +18,8 @@ export function AccountSubscriptionCard({
   priceDisplay,
   accessLine,
   showProCrown,
+  manageSubscriptionLoading = false,
+  onManageSubscriptionPress,
 }) {
   const { colors } = useTheme();
 
@@ -148,7 +150,13 @@ export function AccountSubscriptionCard({
 
       {accessLine ? <AppText style={styles.accessHint}>{accessLine}</AppText> : null}
 
-      <Button fullWidth title="Manage subscription" variant="secondary" onPress={() => {}} />
+      <Button
+        fullWidth
+        loading={manageSubscriptionLoading}
+        title="Manage subscription"
+        variant="secondary"
+        onPress={onManageSubscriptionPress ?? (() => {})}
+      />
     </SurfaceCard>
   );
 }

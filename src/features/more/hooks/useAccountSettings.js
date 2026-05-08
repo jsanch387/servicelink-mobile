@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useAuth } from '../../auth';
 import { BOOKING_LINK_QUERY_KEY } from '../../bookingLink/queryKeys';
 import { HOME_QUERY_KEY } from '../../home/queryKeys';
+import { createBillingPortalSession } from '../api/createBillingPortalSession';
 import { deleteAccountViaWeb } from '../api/deleteAccount';
 import { fetchAccountSettingsBundle } from '../api/fetchAccountSettings';
 import { updateBusinessSlug } from '../api/updateBusinessSlug';
@@ -50,6 +51,13 @@ export function useAccountSettings() {
     },
   });
 
+  const billingPortalMutation = useMutation({
+    mutationFn: async () => {
+      const accessToken = session?.access_token ?? '';
+      return createBillingPortalSession(accessToken);
+    },
+  });
+
   const refetch = useCallback(async () => {
     await query.refetch();
   }, [query]);
@@ -70,6 +78,12 @@ export function useAccountSettings() {
       ? (deleteAccountMutation.error?.message ?? 'Could not delete account')
       : null,
     resetDeleteAccountError: deleteAccountMutation.reset,
+    createBillingPortalSession: billingPortalMutation.mutateAsync,
+    isCreatingBillingPortalSession: billingPortalMutation.isPending,
+    billingPortalError: billingPortalMutation.isError
+      ? (billingPortalMutation.error?.message ?? 'Could not open billing portal')
+      : null,
+    resetBillingPortalError: billingPortalMutation.reset,
     refetch,
   };
 }

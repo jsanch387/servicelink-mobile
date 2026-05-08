@@ -1,3 +1,4 @@
+import * as WebBrowser from 'expo-web-browser';
 import { useNavigation } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useMemo, useState } from 'react';
@@ -13,6 +14,8 @@ import { AccountSubscriptionCard } from '../components/AccountSubscriptionCard';
 import { ChangeBusinessSlugSheet } from '../components/ChangeBusinessSlugSheet';
 import { DeleteAccountConfirmSheet } from '../components/DeleteAccountConfirmSheet';
 import { useAccountSettings } from '../hooks/useAccountSettings';
+import { STRIPE_BILLING_PORTAL_AUTH_RETURN_URL } from '../constants/stripeBillingPortalReturnUrl';
+import { refetchAccountAfterPortal } from '../utils/refetchAccountAfterPortal';
 import {
   buildBookingLinkCardModel,
   buildSubscriptionCardModel,
@@ -21,18 +24,18 @@ import {
 export function AccountSettingsScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
-  const { user, signOut } = useAuth();
+  const { user, session, signOut } = useAuth();
   const tabBarHeight = useBottomTabBarHeight();
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
   const [slugSheetVisible, setSlugSheetVisible] = useState(false);
   const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
   const [deleteEmailConfirmed, setDeleteEmailConfirmed] = useState(false);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
   const {
     ownerProfile,
     business,
     isLoading,
-    isFetching,
     loadError,
     refetch,
     updateSlug,
@@ -43,6 +46,8 @@ export function AccountSettingsScreen() {
     isDeletingAccount,
     deleteAccountError,
     resetDeleteAccountError,
+    createBillingPortalSession,
+    isCreatingBillingPortalSession,
   } = useAccountSettings();
 
   const signedInEmail = user?.email?.trim() || '—';
@@ -115,16 +120,47 @@ export function AccountSettingsScreen() {
     [resetSaveSlugError, updateSlug],
   );
 
+  const handleManageSubscription = useCallback(async () => {
+    const token = session?.access_token ?? null;
+    const userId = user?.id ?? null;
+    if (!token || !userId) {
+      Alert.alert('Sign in required', 'Please sign in again to continue.');
+      return;
+    }
+
+    const created = await createBillingPortalSession();
+    if ('error' in created) {
+      Alert.alert(
+        'Could not open billing portal',
+        safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
+      );
+      return;
+    }
+
+    try {
+      await WebBrowser.openAuthSessionAsync(created.url, STRIPE_BILLING_PORTAL_AUTH_RETURN_URL);
+    } finally {
+      await refetchAccountAfterPortal({ userId });
+    }
+  }, [createBillingPortalSession, session?.access_token, user?.id]);
+
   const refreshControl = useMemo(
     () => (
       <RefreshControl
         colors={[colors.accent]}
-        onRefresh={refetch}
-        refreshing={Boolean(isFetching && !isLoading)}
+        onRefresh={async () => {
+          setIsManualRefreshing(true);
+          try {
+            await refetch();
+          } finally {
+            setIsManualRefreshing(false);
+          }
+        }}
+        refreshing={isManualRefreshing}
         tintColor={colors.accent}
       />
     ),
-    [colors.accent, isFetching, isLoading, refetch],
+    [colors.accent, isManualRefreshing, refetch],
   );
 
   if (isLoading) {
@@ -200,7 +236,7 @@ export function AccountSettingsScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
-        {isFetching && !isLoading ? <AppText style={styles.updatingHint}>Updating…</AppText> : null}
+        {isManualRefreshing ? <AppText style={styles.updatingHint}>Updating…</AppText> : null}
         <View style={styles.signedInBlock}>
           <AppText style={styles.signedInLabel}>Signed in as</AppText>
           <AppText selectable style={styles.signedInEmail}>
@@ -208,7 +244,11 @@ export function AccountSettingsScreen() {
           </AppText>
         </View>
 
-        <AccountSubscriptionCard {...subscriptionModel} />
+        <AccountSubscriptionCard
+          {...subscriptionModel}
+          manageSubscriptionLoading={isCreatingBillingPortalSession}
+          onManageSubscriptionPress={() => void handleManageSubscription()}
+        />
 
         <AccountBookingLinkCard
           canEditSlug={canEditSlug}
