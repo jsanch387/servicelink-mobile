@@ -8,6 +8,7 @@ import { DEPOSIT_AMOUNT_MODE } from '../constants/depositAmount';
 const mockUsePaymentDashboardRead = jest.fn();
 const mockUseSavePaymentSettings = jest.fn();
 const mockSavePaymentSettings = jest.fn();
+const mockUseSubscription = jest.fn();
 
 jest.mock('../hooks/usePaymentDashboardRead', () => ({
   usePaymentDashboardRead: (...args) => mockUsePaymentDashboardRead(...args),
@@ -15,6 +16,10 @@ jest.mock('../hooks/usePaymentDashboardRead', () => ({
 
 jest.mock('../hooks/useSavePaymentSettings', () => ({
   useSavePaymentSettings: (...args) => mockUseSavePaymentSettings(...args),
+}));
+
+jest.mock('../../subscription', () => ({
+  useSubscription: (...args) => mockUseSubscription(...args),
 }));
 
 jest.mock('../../auth', () => ({
@@ -26,6 +31,7 @@ jest.mock('../../auth', () => ({
 
 jest.mock('expo-web-browser', () => ({
   openBrowserAsync: jest.fn(),
+  openAuthSessionAsync: jest.fn(),
   WebBrowserPresentationStyle: { PAGE_SHEET: 'pageSheet' },
 }));
 
@@ -57,6 +63,13 @@ function loadedRead(overrides = {}) {
 describe('PaymentsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseSubscription.mockReturnValue({
+      hasProAccess: true,
+      isOwnerProfileLoaded: true,
+      isLoading: false,
+      loadError: null,
+      refetchSubscription: jest.fn(),
+    });
     mockUsePaymentDashboardRead.mockReturnValue(loadedRead());
     mockSavePaymentSettings.mockResolvedValue({ business_id: 'biz-1' });
     mockUseSavePaymentSettings.mockReturnValue({
@@ -171,18 +184,56 @@ describe('PaymentsScreen', () => {
     );
     renderWithProviders(<PaymentsScreen />);
     await waitFor(() => {
-      expect(screen.getByText('Turn on ServiceLink checkout on the web')).toBeTruthy();
+      expect(screen.getByText('Turn on ServiceLink payments')).toBeTruthy();
     });
+    expect(screen.getByText('You are connected to Stripe.')).toBeTruthy();
+    expect(screen.queryByText('Accept payments on ServiceLink')).toBeNull();
+    expect(screen.queryByText('Open Stripe Dashboard')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Turn on payments' })).toBeTruthy();
     expect(
       screen.getByRole('button', { name: 'Save changes' }).props.accessibilityState?.disabled,
     ).toBe(true);
   });
 
-  it('keeps save disabled without payment_settings row even after edits', async () => {
+  it('shows Pro upsell only when user does not have Pro access (no Connect setup)', () => {
+    mockUseSubscription.mockReturnValue({
+      hasProAccess: false,
+      isOwnerProfileLoaded: true,
+      isLoading: false,
+      loadError: null,
+      refetchSubscription: jest.fn(),
+    });
+    mockUsePaymentDashboardRead.mockReturnValue(loadedRead());
+    renderWithProviders(<PaymentsScreen />);
+    expect(screen.getByText('Payments are a Pro feature')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Upgrade to Pro' })).toBeTruthy();
+    expect(screen.queryByText('Set up payments')).toBeNull();
+  });
+
+  it('shows Stripe Connect setup card when Pro but Connect is not ready', async () => {
     mockUsePaymentDashboardRead.mockReturnValue(
       loadedRead({
-        hasPaymentSettingsRow: false,
+        stripeConnectReady: false,
         gateServicelinkCheckout: false,
+        paymentAccount: null,
+        hasPaymentSettingsRow: false,
+        paymentSettings: null,
+      }),
+    );
+    renderWithProviders(<PaymentsScreen />);
+    await waitFor(() => {
+      expect(screen.getByText('Set up payments')).toBeTruthy();
+    });
+    expect(screen.getByRole('button', { name: 'Connect with Stripe' })).toBeTruthy();
+    expect(screen.getByText('Collect deposits')).toBeTruthy();
+  });
+
+  it('disables save while gate is on (Stripe ready but no payment_settings row)', async () => {
+    mockUsePaymentDashboardRead.mockReturnValue(
+      loadedRead({
+        stripeConnectReady: true,
+        hasPaymentSettingsRow: false,
+        gateServicelinkCheckout: true,
         paymentSettings: null,
         formHydration: {
           paymentsEnabled: false,
@@ -194,8 +245,7 @@ describe('PaymentsScreen', () => {
       }),
     );
     renderWithProviders(<PaymentsScreen />);
-    await waitFor(() => expect(screen.getByText('How customers pay')).toBeTruthy());
-    fireEvent.press(screen.getByRole('radio', { name: 'In person only' }));
+    await waitFor(() => expect(screen.getByText('Turn on ServiceLink payments')).toBeTruthy());
     expect(
       screen.getByRole('button', { name: 'Save changes' }).props.accessibilityState?.disabled,
     ).toBe(true);

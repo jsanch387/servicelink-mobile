@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SkeletonBox } from '../../../../components/ui';
+import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { useTheme } from '../../../../theme';
 
 /**
@@ -80,7 +81,7 @@ export function BookingLinkScreenSkeleton({ coverHeight }) {
           flexDirection: 'row',
           gap: 24,
           marginTop: 26,
-          paddingHorizontal: 20,
+          paddingHorizontal: SCREEN_GUTTER,
           paddingBottom: 14,
         },
         tabBone: {

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useMemo, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Vibration } from 'react-native';
+import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { useTheme } from '../../../../theme';
 
 const FAB_SIZE = 56;
@@ -37,7 +38,7 @@ export function BookingLinkEditFab({ onPress, bottom = 30 }) {
           height: FAB_SIZE,
           justifyContent: 'center',
           position: 'absolute',
-          right: 20,
+          right: SCREEN_GUTTER,
           width: FAB_SIZE,
           zIndex: 30,
         },

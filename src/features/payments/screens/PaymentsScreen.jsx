@@ -1,9 +1,17 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import { useAuth } from '../../auth';
+import { createPaywallUpgradeCheckoutSession } from '../../subscription/api/createPaywallUpgradeCheckoutSession';
+import { STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL } from '../../subscription/constants/stripePaywallCheckoutReturnUrl';
+import { useSubscription } from '../../subscription';
 import { PaymentAcceptServicelinkCard } from '../components/PaymentAcceptServicelinkCard';
+import { PaymentsNonProUpsell } from '../components/PaymentsNonProUpsell';
+import { PaymentsStripeConnectSetupCard } from '../components/PaymentsStripeConnectSetupCard';
 import { PaymentDepositsSection } from '../components/PaymentDepositsSection';
 import { PaymentHowCustomersPayCard } from '../components/PaymentHowCustomersPayCard';
 import { PaymentStripeDashboardCard } from '../components/PaymentStripeDashboardCard';
@@ -12,14 +20,33 @@ import {
   CUSTOMER_PAYMENT_METHOD,
   CUSTOMER_PAYMENT_METHOD_OPTIONS,
 } from '../constants/customerPaymentMethods';
+import { postPaymentsServicelinkEnable } from '../api/postPaymentsServicelinkEnable';
+import { postStripeConnectOnboard } from '../api/postStripeConnectOnboard';
+import { postStripeConnectSync } from '../api/postStripeConnectSync';
+import { STRIPE_CONNECT_ONBOARDING_AUTH_RETURN_URL } from '../constants/stripeConnectReturnUrl';
 import { usePaymentDashboardRead } from '../hooks/usePaymentDashboardRead';
 import { useSavePaymentSettings } from '../hooks/useSavePaymentSettings';
-import { showUserFacingErrorAlert } from '../../../utils/safeUserFacingMessage';
+import {
+  safeUserFacingMessage,
+  showUserFacingErrorAlert,
+} from '../../../utils/safeUserFacingMessage';
 import { getPaymentSaveUserMessage } from '../utils/paymentSaveUserMessage';
+import {
+  getStripeConnectSetupCopy,
+  resolveStripeConnectSetupPresentation,
+} from '../utils/stripeConnectSetupCopy';
 
 export function PaymentsScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { user, session } = useAuth();
+  const {
+    hasProAccess,
+    isOwnerProfileLoaded,
+    isLoading: subscriptionLoading,
+    loadError: subscriptionLoadError,
+    refetchSubscription,
+  } = useSubscription();
   const payment = usePaymentDashboardRead();
   const businessId = payment.business?.id ?? null;
   const { savePaymentSettings, isSaving, saveError } = useSavePaymentSettings({ businessId });
@@ -45,6 +72,105 @@ export function PaymentsScreen() {
   }));
 
   const appliedHydrationBusinessId = useRef(null);
+
+  const [connectSubmitting, setConnectSubmitting] = useState(false);
+  const [enableSubmitting, setEnableSubmitting] = useState(false);
+  const [upgradeSubmitting, setUpgradeSubmitting] = useState(false);
+
+  const onStripeConnectPress = useCallback(async () => {
+    const token = session?.access_token ?? null;
+    if (!token) {
+      Alert.alert('Sign in required', 'Please sign in again to continue.');
+      return;
+    }
+    setConnectSubmitting(true);
+    try {
+      const created = await postStripeConnectOnboard(token);
+      if ('error' in created) {
+        Alert.alert(
+          'Could not open Stripe',
+          safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
+        );
+        return;
+      }
+      try {
+        await WebBrowser.openAuthSessionAsync(
+          created.url,
+          STRIPE_CONNECT_ONBOARDING_AUTH_RETURN_URL,
+        );
+      } finally {
+        await postStripeConnectSync(token).catch(() => {});
+        await payment.refetchPayments();
+        await refetchSubscription();
+      }
+    } catch (e) {
+      Alert.alert(
+        'Stripe',
+        safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
+      );
+    } finally {
+      setConnectSubmitting(false);
+    }
+  }, [payment, refetchSubscription, session?.access_token]);
+
+  const onServicelinkEnablePress = useCallback(async () => {
+    const token = session?.access_token ?? null;
+    if (!token) {
+      Alert.alert('Sign in required', 'Please sign in again to continue.');
+      return;
+    }
+    setEnableSubmitting(true);
+    try {
+      const out = await postPaymentsServicelinkEnable(token);
+      if ('error' in out) {
+        const msg = safeUserFacingMessage(out.error, {
+          fallback: 'Could not turn on payments. Try again.',
+        });
+        Alert.alert('Turn on payments', msg);
+        return;
+      }
+      await payment.refetchPayments();
+      await refetchSubscription();
+    } catch (e) {
+      Alert.alert(
+        'Turn on payments',
+        safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
+      );
+    } finally {
+      setEnableSubmitting(false);
+    }
+  }, [payment, refetchSubscription, session?.access_token]);
+
+  const onUpgradeToProPress = useCallback(async () => {
+    const token = session?.access_token ?? null;
+    if (!token) {
+      Alert.alert('Sign in required', 'Please sign in again to continue.');
+      return;
+    }
+    setUpgradeSubmitting(true);
+    try {
+      const created = await createPaywallUpgradeCheckoutSession(token);
+      if ('error' in created) {
+        Alert.alert(
+          'Could not start checkout',
+          safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
+        );
+        return;
+      }
+      try {
+        await WebBrowser.openAuthSessionAsync(created.url, STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL);
+      } finally {
+        await refetchSubscription();
+      }
+    } catch (e) {
+      Alert.alert(
+        'Checkout',
+        safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
+      );
+    } finally {
+      setUpgradeSubmitting(false);
+    }
+  }, [refetchSubscription, session?.access_token]);
 
   useEffect(() => {
     const bid = payment.business?.id;
@@ -132,14 +258,14 @@ export function PaymentsScreen() {
         content: {
           gap: 16,
           paddingBottom: scrollBottomPad,
-          paddingHorizontal: 20,
+          paddingHorizontal: 16,
           paddingTop: 16,
         },
         saveBar: {
           bottom: Math.max(insets.bottom - 12, 0),
-          left: 20,
+          left: 16,
           position: 'absolute',
-          right: 20,
+          right: 16,
         },
         boot: {
           alignItems: 'center',
@@ -149,6 +275,20 @@ export function PaymentsScreen() {
         },
         gateCard: {
           gap: 8,
+        },
+        connectedRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 10,
+          paddingHorizontal: 2,
+          paddingVertical: 2,
+        },
+        connectedTitle: {
+          color: colors.text,
+          flex: 1,
+          fontSize: 13,
+          fontWeight: '700',
+          lineHeight: 18,
         },
         gateTitle: {
           color: colors.text,
@@ -197,7 +337,7 @@ export function PaymentsScreen() {
 
   if (payment.businessError) {
     return (
-      <View style={[styles.root, { paddingHorizontal: 20, paddingTop: 16 }]}>
+      <View style={[styles.root, { paddingHorizontal: 16, paddingTop: 16 }]}>
         <InlineCardError message={payment.businessError} />
       </View>
     );
@@ -205,7 +345,7 @@ export function PaymentsScreen() {
 
   if (!payment.business?.id) {
     return (
-      <View style={[styles.root, { paddingHorizontal: 20, paddingTop: 16 }]}>
+      <View style={[styles.root, { paddingHorizontal: 16, paddingTop: 16 }]}>
         <SurfaceCard>
           <AppText style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>
             Add a business profile to manage payments.
@@ -215,7 +355,113 @@ export function PaymentsScreen() {
     );
   }
 
-  const blockingPayments = payment.isPendingPayments;
+  const verifyingSubscription = Boolean(user?.id) && subscriptionLoading && !isOwnerProfileLoaded;
+  if (verifyingSubscription) {
+    return (
+      <View style={[styles.root, styles.boot]}>
+        <ActivityIndicator
+          accessibilityLabel="Loading subscription status"
+          color={colors.accent}
+          size="large"
+        />
+      </View>
+    );
+  }
+
+  const subscriptionVerifyFailed =
+    Boolean(user?.id) && Boolean(subscriptionLoadError) && !isOwnerProfileLoaded;
+  if (subscriptionVerifyFailed) {
+    return (
+      <View style={[styles.root, { gap: 16, paddingHorizontal: 16, paddingTop: 16 }]}>
+        <SurfaceCard>
+          <InlineCardError message={subscriptionLoadError ?? 'Could not verify subscription'} />
+        </SurfaceCard>
+        <Button
+          title="Try again"
+          variant="secondary"
+          onPress={() => {
+            void refetchSubscription();
+          }}
+        />
+      </View>
+    );
+  }
+
+  if (!hasProAccess) {
+    const upsellBottomPad = Math.max(insets.bottom, 24) + 48;
+    return (
+      <View style={styles.root}>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: upsellBottomPad }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          <PaymentsNonProUpsell
+            upgradeSubmitting={upgradeSubmitting}
+            onUpgradePress={() => {
+              void onUpgradeToProPress();
+            }}
+          />
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (payment.isPendingPayments) {
+    return (
+      <View style={[styles.root, styles.boot]}>
+        <ActivityIndicator
+          accessibilityLabel="Loading payment settings"
+          color={colors.accent}
+          size="large"
+        />
+      </View>
+    );
+  }
+
+  if (payment.paymentLoadError) {
+    return (
+      <View style={[styles.root, { gap: 16, paddingHorizontal: 16, paddingTop: 16 }]}>
+        <SurfaceCard>
+          <InlineCardError message={payment.paymentLoadError} />
+        </SurfaceCard>
+        <Button
+          title="Try again"
+          variant="secondary"
+          onPress={() => {
+            void payment.refetchPayments();
+          }}
+        />
+      </View>
+    );
+  }
+
+  if (!payment.stripeConnectReady) {
+    const copy = getStripeConnectSetupCopy(payment.paymentAccount);
+    const pres = resolveStripeConnectSetupPresentation(payment.paymentAccount, copy);
+    const connectBottomPad = Math.max(insets.bottom, 24) + 32;
+    return (
+      <View style={styles.root}>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: connectBottomPad }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          <PaymentsStripeConnectSetupCard
+            buttonTitle={pres.buttonTitle}
+            description={pres.description}
+            loading={connectSubmitting}
+            title={pres.title}
+            onConnectPress={() => {
+              void onStripeConnectPress();
+            }}
+          />
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -225,78 +471,81 @@ export function PaymentsScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
-        {payment.paymentLoadError ? (
-          <SurfaceCard>
-            <InlineCardError message={payment.paymentLoadError} />
-          </SurfaceCard>
-        ) : null}
-
         {saveError ? (
           <SurfaceCard>
             <InlineCardError message={getPaymentSaveUserMessage(saveError)} />
           </SurfaceCard>
         ) : null}
 
-        {blockingPayments ? (
-          <View style={styles.boot}>
-            <ActivityIndicator
-              accessibilityLabel="Loading payment settings"
-              color={colors.accent}
-            />
-          </View>
-        ) : (
-          <View style={styles.loadedStack}>
-            {payment.gateServicelinkCheckout ? (
-              <SurfaceCard outlined padding="sm" style={styles.gateCard}>
-                <AppText style={styles.gateTitle}>Turn on ServiceLink checkout on the web</AppText>
-                <AppText style={styles.gateBody}>
-                  Stripe is connected, but there is no payment settings row yet. Finish enabling
-                  ServiceLink payments in the web dashboard; then these controls will stay in sync
-                  with your database.
-                </AppText>
-              </SurfaceCard>
-            ) : null}
+        <View style={styles.loadedStack}>
+          {payment.gateServicelinkCheckout ? (
+            <View style={styles.connectedRow}>
+              <Ionicons color="#22c55e" name="checkmark-circle" size={22} />
+              <AppText style={styles.connectedTitle}>You are connected to Stripe.</AppText>
+            </View>
+          ) : null}
 
-            <View
-              pointerEvents={settingsLocked ? 'none' : 'auto'}
-              style={[styles.cardsColumn, settingsLocked && styles.cardsColumnLocked]}
-            >
+          {payment.gateServicelinkCheckout ? (
+            <SurfaceCard outlined padding="sm" style={styles.gateCard}>
+              <AppText style={styles.gateTitle}>Turn on ServiceLink payments</AppText>
+              <AppText style={styles.gateBody}>
+                Turn on payments to start accepting checkout payments in ServiceLink.
+              </AppText>
+              <Button
+                fullWidth
+                loading={enableSubmitting}
+                title={enableSubmitting ? 'Enabling…' : 'Turn on payments'}
+                variant="surfaceLight"
+                onPress={() => {
+                  void onServicelinkEnablePress();
+                }}
+              />
+            </SurfaceCard>
+          ) : null}
+
+          <View
+            pointerEvents={settingsLocked ? 'none' : 'auto'}
+            style={[styles.cardsColumn, settingsLocked && styles.cardsColumnLocked]}
+          >
+            {!payment.gateServicelinkCheckout ? (
               <PaymentAcceptServicelinkCard
                 value={acceptServicelinkPayments}
                 onValueChange={setAcceptServicelinkPayments}
               />
+            ) : null}
+            {!payment.gateServicelinkCheckout ? (
               <PaymentStripeDashboardCard
                 stripeAccountId={payment.paymentAccount?.stripe_account_id ?? null}
               />
-              <View
-                pointerEvents={settingsLocked || !acceptServicelinkPayments ? 'none' : 'auto'}
-                style={[
-                  styles.checkoutDepositsStack,
-                  !settingsLocked && !acceptServicelinkPayments && styles.checkoutDepositsMuted,
-                ]}
-                testID="payments-checkout-deposits-stack"
-              >
-                <PaymentHowCustomersPayCard
-                  options={CUSTOMER_PAYMENT_METHOD_OPTIONS}
-                  selectedId={selectedMethodId}
-                  onSelectId={setSelectedMethodId}
-                />
-                <PaymentDepositsSection
-                  depositAmount={depositAmount}
-                  depositMode={depositMode}
-                  requireDeposits={requireDeposits}
-                  onDepositAmountChange={setDepositAmount}
-                  onDepositModeChange={setDepositMode}
-                  onRequireDepositsChange={setRequireDeposits}
-                />
-              </View>
+            ) : null}
+            <View
+              pointerEvents={settingsLocked || !acceptServicelinkPayments ? 'none' : 'auto'}
+              style={[
+                styles.checkoutDepositsStack,
+                !settingsLocked && !acceptServicelinkPayments && styles.checkoutDepositsMuted,
+              ]}
+              testID="payments-checkout-deposits-stack"
+            >
+              <PaymentHowCustomersPayCard
+                options={CUSTOMER_PAYMENT_METHOD_OPTIONS}
+                selectedId={selectedMethodId}
+                onSelectId={setSelectedMethodId}
+              />
+              <PaymentDepositsSection
+                depositAmount={depositAmount}
+                depositMode={depositMode}
+                requireDeposits={requireDeposits}
+                onDepositAmountChange={setDepositAmount}
+                onDepositModeChange={setDepositMode}
+                onRequireDepositsChange={setRequireDeposits}
+              />
             </View>
           </View>
-        )}
+        </View>
       </ScrollView>
       <View style={styles.saveBar}>
         <Button
-          disabled={saveDisabled || settingsLocked || blockingPayments}
+          disabled={saveDisabled || settingsLocked}
           fullWidth
           loading={isSaving}
           title={isSaving ? 'Saving…' : 'Save changes'}

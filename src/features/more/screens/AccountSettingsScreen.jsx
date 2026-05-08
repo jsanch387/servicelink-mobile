@@ -20,6 +20,7 @@ import {
   buildBookingLinkCardModel,
   buildSubscriptionCardModel,
 } from '../utils/accountSettingsModel';
+import { SCREEN_GUTTER } from '../../../constants/layout';
 
 export function AccountSettingsScreen() {
   const { colors } = useTheme();
@@ -72,7 +73,7 @@ export function AccountSettingsScreen() {
           alignItems: 'stretch',
           gap: 16,
           paddingBottom: scrollBottomPad,
-          paddingHorizontal: 20,
+          paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
           width: '100%',
         },

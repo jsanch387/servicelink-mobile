@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../../../components/ui';
+import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { useTheme } from '../../../../theme';
 
 export function BookingLinkTabs({ activeTab, onChangeTab }) {
@@ -14,7 +15,7 @@ export function BookingLinkTabs({ activeTab, onChangeTab }) {
           borderBottomWidth: 1,
           flexDirection: 'row',
           marginTop: 26,
-          paddingHorizontal: 20,
+          paddingHorizontal: SCREEN_GUTTER,
         },
         tab: {
           marginRight: 24,

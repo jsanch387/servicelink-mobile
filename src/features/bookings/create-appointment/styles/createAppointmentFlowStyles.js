@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { SCREEN_GUTTER } from '../../../../constants/layout';
 
 /**
  * @param {{ text: string; border: string }} colors theme colors subset
@@ -13,7 +14,7 @@ export function createAppointmentFlowStyles(colors) {
     },
     content: {
       paddingBottom: 24,
-      paddingHorizontal: 20,
+      paddingHorizontal: SCREEN_GUTTER,
       paddingTop: 12,
     },
     title: {

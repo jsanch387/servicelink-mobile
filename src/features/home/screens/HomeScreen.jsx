@@ -18,6 +18,7 @@ import { normalizeBusinessSlug } from '../utils/bookingLink';
 import { useTheme } from '../../../theme';
 import { serviceCardTitleStyle } from '../../../utils/serviceCardTypography';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
+import { SCREEN_GUTTER } from '../../../constants/layout';
 
 export function HomeScreen() {
   const { colors } = useTheme();
@@ -87,7 +88,7 @@ export function HomeScreen() {
         },
         content: {
           paddingBottom: scrollBottomPad,
-          paddingHorizontal: 20,
+          paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 8,
         },
         sectionLabel: {

@@ -9,6 +9,7 @@ import { ROUTES } from '../../../routes/routes';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { useAuth } from '../../auth';
 import { useTheme } from '../../../theme';
+import { SCREEN_GUTTER } from '../../../constants/layout';
 
 export function MoreScreen() {
   const { signOut } = useAuth();
@@ -31,7 +32,7 @@ export function MoreScreen() {
         content: {
           alignItems: 'stretch',
           paddingBottom: scrollBottomPad,
-          paddingHorizontal: 20,
+          paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 12,
           width: '100%',
         },

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button } from '../../../../components/ui';
+import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { useTheme } from '../../../../theme';
 
 /**
@@ -38,7 +39,7 @@ export function CreateFlowFooter({
           borderTopWidth: StyleSheet.hairlineWidth,
           flexDirection: 'row',
           gap: 12,
-          paddingHorizontal: 20,
+          paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 12,
         },
         footerDone: {

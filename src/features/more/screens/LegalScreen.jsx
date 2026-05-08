@@ -2,6 +2,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useMemo } from 'react';
 import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { SettingsNavRow, SettingsSection } from '../../../components/ui';
+import { SCREEN_GUTTER } from '../../../constants/layout';
 import { getWebPrivacyPolicyUrl, getWebTermsOfServiceUrl } from '../../../lib/webAppOrigin';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { useTheme } from '../../../theme';
@@ -23,7 +24,7 @@ export function LegalScreen() {
         },
         content: {
           paddingBottom: scrollBottomPad,
-          paddingHorizontal: 20,
+          paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
           width: '100%',
         },

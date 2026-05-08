@@ -2,6 +2,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useMemo } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { AppText, InlineCardError, SurfaceCard } from '../../../components/ui';
+import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { NotificationSettingsScreenSkeleton } from '../components/NotificationSettingsScreenSkeleton';
 import { useNotificationSettings } from '../hooks/useNotificationSettings';
@@ -82,7 +83,7 @@ export function NotificationSettingsScreen() {
         content: {
           gap: 16,
           paddingBottom: scrollBottomPad,
-          paddingHorizontal: 20,
+          paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
         },
         card: {

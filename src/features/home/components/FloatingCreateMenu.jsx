@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
 import { useTheme } from '../../../theme';
+import { SCREEN_GUTTER } from '../../../constants/layout';
 
 const FAB_SIZE = 56;
 const ACTION_GAP = 10;
@@ -94,7 +95,7 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
           bottom: bottom + FAB_SIZE + ACTION_GAP,
           gap: ROW_GAP,
           position: 'absolute',
-          right: 20,
+          right: SCREEN_GUTTER,
           zIndex: 21,
         },
         actionRow: {
@@ -141,7 +142,7 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
           height: FAB_SIZE,
           justifyContent: 'center',
           position: 'absolute',
-          right: 20,
+          right: SCREEN_GUTTER,
           width: FAB_SIZE,
           zIndex: 30,
         },

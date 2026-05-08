@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMemo } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
+import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { NotificationsInboxSkeleton } from '../components/NotificationsInboxSkeleton';
 import { useNotificationsInbox } from '../hooks/useNotificationsInbox';
@@ -126,7 +127,7 @@ export function NotificationsInboxScreen() {
         },
         content: {
           paddingBottom: 28,
-          paddingHorizontal: 20,
+          paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
         },
         inboxCard: {

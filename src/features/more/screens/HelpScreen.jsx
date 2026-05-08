@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText, Button, SurfaceCard } from '../../../components/ui';
 import { SUPPORT_EMAIL, SUPPORT_MAILTO_URI } from '../../../constants/supportContact';
+import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 
 export function HelpScreen() {
@@ -22,7 +23,7 @@ export function HelpScreen() {
         content: {
           gap: 16,
           paddingBottom: 28,
-          paddingHorizontal: 20,
+          paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
         },
         card: {
