@@ -1,4 +1,16 @@
-import { buildCustomerCards } from '../api/customers';
+import { buildCustomerCards, mapCustomerInsertError } from '../api/customers';
+
+describe('mapCustomerInsertError', () => {
+  it('maps Postgres unique violation to a friendly message', () => {
+    const err = mapCustomerInsertError({ code: '23505', message: 'duplicate key value' });
+    expect(err.message).toMatch(/already exists/i);
+  });
+
+  it('passes through other messages', () => {
+    const err = mapCustomerInsertError({ message: 'RLS policy' });
+    expect(err.message).toBe('RLS policy');
+  });
+});
 
 describe('buildCustomerCards', () => {
   const nowMs = new Date('2026-04-20T12:00:00').getTime();

@@ -93,7 +93,11 @@ export function CustomerProfileContactCard({
   const initials = useMemo(() => customerInitials(fullName), [fullName]);
   const tag = customerSegmentLabel(segment);
   const accent = customerSegmentColor(segment);
-  const phoneDisplay = formatPhoneForDisplay(phone) || 'No phone number';
+  const phoneDisplay = formatPhoneForDisplay(phone);
+  const showPhone = Boolean(String(phoneDisplay ?? '').trim());
+  const emailTrim = String(email ?? '').trim();
+  const showEmail = Boolean(emailTrim);
+  const showContactSection = showPhone || showEmail;
 
   const styles = useMemo(
     () =>
@@ -170,25 +174,33 @@ export function CustomerProfileContactCard({
         </View>
       </View>
 
-      <View style={styles.dividerWrap}>
-        <Divider />
-      </View>
+      {showContactSection ? (
+        <>
+          <View style={styles.dividerWrap}>
+            <Divider />
+          </View>
 
-      <View style={styles.contactBlock}>
-        <ContactLine
-          accessibilityLabel={hasCallablePhone ? 'Call phone number' : undefined}
-          disabled={!hasCallablePhone}
-          icon="call-outline"
-          onPress={hasCallablePhone ? onCall : undefined}
-          value={phoneDisplay}
-        />
-        <ContactLine
-          accessibilityLabel="Compose email"
-          icon="mail-outline"
-          onPress={onEmail}
-          value={email}
-        />
-      </View>
+          <View style={styles.contactBlock}>
+            {showPhone ? (
+              <ContactLine
+                accessibilityLabel={hasCallablePhone ? 'Call phone number' : undefined}
+                disabled={!hasCallablePhone}
+                icon="call-outline"
+                onPress={hasCallablePhone ? onCall : undefined}
+                value={phoneDisplay}
+              />
+            ) : null}
+            {showEmail ? (
+              <ContactLine
+                accessibilityLabel="Compose email"
+                icon="mail-outline"
+                onPress={onEmail}
+                value={emailTrim}
+              />
+            ) : null}
+          </View>
+        </>
+      ) : null}
     </SurfaceCard>
   );
 }

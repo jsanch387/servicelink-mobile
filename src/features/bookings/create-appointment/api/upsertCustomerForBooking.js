@@ -1,19 +1,8 @@
 import { supabase } from '../../../../lib/supabase';
+import { normalizeEmailForDedupe } from '../../../../utils/email';
 import { normalizePhoneForDatabase } from '../../../../utils/phone';
 
 const PG_UNIQUE_VIOLATION = '23505';
-
-/**
- * Lowercase trimmed email for dedupe (matches web `email_normalized` lookups).
- * @param {string | null | undefined} email
- * @returns {string | null}
- */
-export function normalizeEmailForDedupe(email) {
-  const t = String(email ?? '')
-    .trim()
-    .toLowerCase();
-  return t || null;
-}
 
 /**
  * @param {import('@supabase/supabase-js').PostgrestError | Error | null | undefined} error

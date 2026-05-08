@@ -17,6 +17,15 @@ describe('buildBookingDetailsModel', () => {
     expect(model.customer.phone).toBe('(305) 444-1212');
   });
 
+  it('leaves customer phone and email empty when not on the booking', () => {
+    const model = buildBookingDetailsModel({
+      customer_name: 'Alex Rivera',
+    });
+    expect(model.customer.name).toBe('Alex Rivera');
+    expect(model.customer.phone).toBe('');
+    expect(model.customer.email).toBe('');
+  });
+
   it('maps customer_notes to notes for display', () => {
     const model = buildBookingDetailsModel({
       customer_notes: 'Please ring doorbell',

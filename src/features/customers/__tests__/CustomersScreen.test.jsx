@@ -1,5 +1,7 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { TextInput } from 'react-native';
 import { CustomersScreen } from '../screens/CustomersScreen';
+import { useCreateCustomer } from '../hooks/useCreateCustomer';
 import { useCustomersList } from '../hooks/useCustomersList';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
 
@@ -17,7 +19,14 @@ jest.mock('../hooks/useCustomersList', () => ({
   useCustomersList: jest.fn(),
 }));
 
+jest.mock('../hooks/useCreateCustomer');
+
+jest.mock('@react-navigation/bottom-tabs', () => ({
+  useBottomTabBarHeight: () => 80,
+}));
+
 const mockUseCustomersList = useCustomersList;
+const mockUseCreateCustomer = useCreateCustomer;
 
 function baseHook(overrides = {}) {
   return {
@@ -38,6 +47,11 @@ describe('CustomersScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseCustomersList.mockReturnValue(baseHook());
+    mockUseCreateCustomer.mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue({ id: 'cust-new' }),
+      reset: jest.fn(),
+      isPending: false,
+    });
   });
 
   it('renders loading skeleton while loading', () => {
@@ -85,6 +99,49 @@ describe('CustomersScreen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('Search by customer name...'), 'zzz');
     expect(screen.getByText('No matching customers')).toBeTruthy();
     expect(screen.getByText(/Try adjusting your search or filter/i)).toBeTruthy();
+  });
+
+  it('opens add-customer sheet from the floating action button', () => {
+    renderWithProviders(<CustomersScreen />);
+    fireEvent.press(screen.getByLabelText('Add customer'));
+    expect(screen.getByText('Add customer')).toBeTruthy();
+    expect(screen.getByText('Add a new customer to your list.')).toBeTruthy();
+    expect(screen.getByText('Name *')).toBeTruthy();
+    expect(screen.getByText('Phone number (optional)')).toBeTruthy();
+    expect(screen.getByText('Email (optional)')).toBeTruthy();
+    expect(screen.getByText('Notes (optional)')).toBeTruthy();
+    fireEvent.press(screen.getByText('Cancel'));
+  });
+
+  it('shows confirmation after Add, then closes on Done', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue({ id: 'cust-new' });
+    mockUseCreateCustomer.mockReturnValue({
+      mutateAsync,
+      reset: jest.fn(),
+      isPending: false,
+    });
+
+    const view = renderWithProviders(<CustomersScreen />);
+    fireEvent.press(screen.getByLabelText('Add customer'));
+    const inputs = view.UNSAFE_getAllByType(TextInput);
+    /** [0] search bar; [1] name in add-customer sheet */
+    fireEvent.changeText(inputs[1], 'Jamie Chen');
+    fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith({
+        fullName: 'Jamie Chen',
+        phone: '',
+        email: '',
+        notes: '',
+      });
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Customer added')).toBeTruthy();
+    });
+    expect(screen.getByText(/Jamie Chen is on your list/)).toBeTruthy();
+    fireEvent.press(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByText('Customer added')).toBeNull();
   });
 
   it('navigates to customer details when card is pressed', () => {

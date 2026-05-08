@@ -1,10 +1,5 @@
+import { isValidEmailFormat } from '../../../../utils/email';
 import { normalizePhoneForDatabase } from '../../../../utils/phone';
-
-function isValidEmailFormat(email) {
-  const t = String(email ?? '').trim();
-  if (!t) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
-}
 
 /** Customer step: name, email, complete US phone (10 NANP digits). */
 export function isCustomerStepComplete(customer) {

@@ -133,6 +133,10 @@ export function buildBookingDetailsModel(booking) {
   const addressLine = addressParts.join(', ');
   const hasAddress = Boolean(addressLine);
 
+  const customerPhoneDisplay = String(formatPhoneForDisplay(booking?.customer_phone) ?? '').trim();
+  const customerEmailRaw = booking?.customer_email;
+  const customerEmailDisplay = typeof customerEmailRaw === 'string' ? customerEmailRaw.trim() : '';
+
   return {
     bookingId: booking?.id || '',
     status: clean(booking?.status, 'confirmed'),
@@ -149,8 +153,8 @@ export function buildBookingDetailsModel(booking) {
     },
     customer: {
       name: clean(booking?.customer_name, 'Walk-in customer'),
-      phone: clean(formatPhoneForDisplay(booking?.customer_phone)),
-      email: clean(booking?.customer_email),
+      phone: customerPhoneDisplay,
+      email: customerEmailDisplay,
     },
     location: {
       address: addressLine || 'Address not provided',

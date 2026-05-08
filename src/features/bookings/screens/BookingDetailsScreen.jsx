@@ -33,6 +33,7 @@ export function BookingDetailsScreen({ route }) {
     [details.customer.phone],
   );
   const hasCallablePhone = customerPhoneDigits.length >= 10;
+
   const handleOpenMaps = useCallback(async () => {
     if (!details.location.hasAddress) {
       return;
@@ -63,6 +64,41 @@ export function BookingDetailsScreen({ route }) {
     }
     await Linking.openURL(telUrl);
   }, [customerPhoneDigits, hasCallablePhone]);
+
+  const customerSectionRows = useMemo(() => {
+    const rows = [
+      {
+        key: 'customer-name',
+        icon: 'person-outline',
+        value: details.customer.name,
+        emphasize: true,
+      },
+    ];
+    if (details.customer.phone?.trim()) {
+      rows.push({
+        key: 'customer-phone',
+        icon: 'call-outline',
+        value: details.customer.phone,
+        onPress: hasCallablePhone ? handleCallCustomer : undefined,
+        accessibilityLabel: hasCallablePhone ? 'Call customer' : undefined,
+      });
+    }
+    if (details.customer.email?.trim()) {
+      rows.push({
+        key: 'customer-email',
+        icon: 'mail-outline',
+        value: details.customer.email,
+      });
+    }
+    return rows;
+  }, [
+    details.customer.name,
+    details.customer.phone,
+    details.customer.email,
+    hasCallablePhone,
+    handleCallCustomer,
+  ]);
+
   const handleMarkCompleted = useCallback(async () => {
     if (isCompletedStatus || isCancelledStatus || !bookingId) {
       return;
@@ -163,19 +199,7 @@ export function BookingDetailsScreen({ route }) {
 
             <ScheduleSection schedule={details.schedule} />
 
-            <InfoSection
-              rows={[
-                { icon: 'person-outline', value: details.customer.name, emphasize: true },
-                {
-                  icon: 'call-outline',
-                  value: details.customer.phone,
-                  onPress: hasCallablePhone ? handleCallCustomer : undefined,
-                  accessibilityLabel: hasCallablePhone ? 'Call customer' : undefined,
-                },
-                { icon: 'mail-outline', value: details.customer.email },
-              ]}
-              title="Customer"
-            />
+            <InfoSection rows={customerSectionRows} title="Customer" />
 
             <PriceBreakdownSection formattedPrice={details.formattedPrice} />
 

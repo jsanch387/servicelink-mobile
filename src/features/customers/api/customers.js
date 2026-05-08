@@ -1,4 +1,6 @@
 import { supabase } from '../../../lib/supabase';
+import { normalizeEmailForDedupe } from '../../../utils/email';
+import { normalizePhoneForDatabase } from '../../../utils/phone';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import {
   CUSTOMER_FILTER_DUE,
@@ -8,6 +10,28 @@ import {
 } from '../constants';
 
 const CUSTOMER_SELECT = 'id, full_name, phone, email, notes, created_at';
+
+const PG_UNIQUE_VIOLATION = '23505';
+
+/**
+ * @param {import('@supabase/supabase-js').PostgrestError | Error | null | undefined} error
+ * @returns {Error}
+ */
+export function mapCustomerInsertError(error) {
+  if (!error) {
+    return new Error('Could not add customer');
+  }
+  const code = /** @type {{ code?: string }} */ (error).code;
+  const msg = String(error.message ?? '');
+  if (
+    code === PG_UNIQUE_VIOLATION ||
+    msg.includes('duplicate key') ||
+    msg.includes('unique constraint')
+  ) {
+    return new Error('A customer with that phone or email already exists.');
+  }
+  return new Error(msg || 'Could not add customer');
+}
 
 const BOOKING_CUSTOMER_METRICS_SELECT =
   'customer_id, service_price_cents, addon_details, scheduled_date, start_time, status, created_at';
@@ -44,6 +68,43 @@ const BOOKING_CUSTOMER_METRICS_SELECT =
 /**
  * @param {string} businessId
  */
+/**
+ * Inserts a CRM customer row. `id` (and any DB defaults) are assigned by Postgres — not sent from the client.
+ *
+ * @param {string} businessId
+ * @param {{ fullName: string; phone?: string | null; email?: string | null; notes?: string | null }} input
+ */
+export async function insertCustomerForBusiness(businessId, input) {
+  const full_name = String(input.fullName ?? '').trim();
+  const phone_normalized = normalizePhoneForDatabase(input.phone ?? '') ?? null;
+  const emailTrim = String(input.email ?? '').trim();
+  const email = emailTrim || null;
+  const email_normalized = normalizeEmailForDedupe(emailTrim);
+  const notesRaw = String(input.notes ?? '').trim();
+  const notes = notesRaw || null;
+
+  const insertRow = {
+    business_id: businessId,
+    full_name: full_name || null,
+    email,
+    phone: phone_normalized,
+    phone_normalized,
+    email_normalized,
+    notes,
+  };
+
+  const { data, error } = await supabase
+    .from('customers')
+    .insert(insertRow)
+    .select(CUSTOMER_SELECT)
+    .maybeSingle();
+
+  if (error) {
+    return { data: null, error: mapCustomerInsertError(error) };
+  }
+  return { data, error: null };
+}
+
 export async function fetchCustomersForBusiness(businessId) {
   const { data, error } = await supabase
     .from('customers')
