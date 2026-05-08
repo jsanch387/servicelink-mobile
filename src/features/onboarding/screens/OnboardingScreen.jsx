@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button } from '../../../components/ui';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BUSINESS_TYPE_OPTIONS } from '../../../constants/businessTypeOptions';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
@@ -11,12 +13,15 @@ import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { getBookingLinkDisplay } from '../../home/utils/bookingLink';
 import { sanitizeBusinessSlugForSave } from '../../more/utils/businessSlug';
 import { fetchBusinessServices } from '../../services/api/services';
+import { createOnboardingCheckoutSession } from '../api/createOnboardingCheckoutSession';
 import {
   saveOnboardingStep1,
   saveOnboardingStep2Services,
   saveOnboardingStep3Availability,
   saveOnboardingStep4Slug,
 } from '../api/onboardingV2Api';
+import { STRIPE_ONBOARDING_CHECKOUT_AUTH_RETURN_URL } from '../constants/stripeOnboardingReturnUrl';
+import { refetchOnboardingAfterStripe } from '../utils/refetchOnboardingAfterStripe';
 import { WeeklyScheduleSection } from '../../availability/components/WeeklyScheduleSection';
 import { OnboardingBusinessStepCard } from '../components/OnboardingBusinessStepCard';
 import { OnboardingProgressStepper } from '../components/OnboardingProgressStepper';
@@ -58,21 +63,16 @@ function centsToPriceInput(cents) {
 
 export function OnboardingScreen() {
   const { colors } = useTheme();
-  const { user } = useAuth();
+  const { session, user } = useAuth();
   const userId = user?.id ?? null;
-  const {
-    completeOnboarding,
-    refetchOnboarding,
-    onboardingStep,
-    isOnboardingProfileLoaded,
-    profileLoadError,
-  } = useOnboardingGate();
+  const { refetchOnboarding, onboardingStep, isOnboardingProfileLoaded, profileLoadError } =
+    useOnboardingGate();
   const [stepIndex, setStepIndex] = useState(0);
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [stepError, setStepError] = useState('');
   const [step1Submitting, setStep1Submitting] = useState(false);
-  const [finishSubmitting, setFinishSubmitting] = useState(false);
+  const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
   const [remoteStepSaving, setRemoteStepSaving] = useState(false);
 
   const availabilityBoot = useBusinessAvailability();
@@ -87,8 +87,6 @@ export function OnboardingScreen() {
   const slugSeededRef = useRef(false);
   const prevStepIndexRef = useRef(0);
   const didHydrateStepFromServerRef = useRef(false);
-
-  const isLast = stepIndex === STEP_COUNT - 1;
 
   useEffect(() => {
     didHydrateStepFromServerRef.current = false;
@@ -431,20 +429,52 @@ export function OnboardingScreen() {
       return;
     }
 
-    if (isLast) {
-      setFinishSubmitting(true);
-      const result = await completeOnboarding();
-      setFinishSubmitting(false);
-      if (!result.ok) {
-        Alert.alert(
-          'Could not finish onboarding',
-          result.error?.message ?? 'Something went wrong. You can try again from settings later.',
-        );
-      }
+    // Step 5 opens Stripe Checkout from the trial card, not this handler.
+    if (stepIndex >= STEP_COUNT - 1) {
       return;
     }
     setStepIndex((i) => Math.min(i + 1, STEP_COUNT - 1));
   };
+
+  const onActivateTrialPress = useCallback(async () => {
+    const token = session?.access_token ?? null;
+    if (!token) {
+      Alert.alert('Sign in required', 'Please sign in again to continue.');
+      return;
+    }
+    if (!userId) {
+      Alert.alert('Sign in required', 'Please sign in again to continue.');
+      return;
+    }
+
+    setCheckoutSubmitting(true);
+    try {
+      const created = await createOnboardingCheckoutSession(token);
+      if ('error' in created) {
+        Alert.alert(
+          'Could not start checkout',
+          safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
+        );
+        return;
+      }
+
+      try {
+        await WebBrowser.openAuthSessionAsync(
+          created.url,
+          STRIPE_ONBOARDING_CHECKOUT_AUTH_RETURN_URL,
+        );
+      } finally {
+        await refetchOnboardingAfterStripe({ userId });
+      }
+    } catch (e) {
+      Alert.alert(
+        'Checkout',
+        safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
+      );
+    } finally {
+      setCheckoutSubmitting(false);
+    }
+  }, [session?.access_token, userId]);
 
   const goBack = () => {
     setStepError('');
@@ -560,9 +590,9 @@ export function OnboardingScreen() {
 
             {stepIndex === 4 ? (
               <OnboardingTrialStep
-                activateSubmitting={finishSubmitting}
+                activateSubmitting={checkoutSubmitting}
                 activationLink={getBookingLinkDisplay(linkSlugDraft)}
-                onStartTrialPress={() => void goNext()}
+                onStartTrialPress={() => void onActivateTrialPress()}
               />
             ) : null}
           </ScrollView>

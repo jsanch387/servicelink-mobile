@@ -10,7 +10,7 @@ const mono = Platform.select({
 });
 
 /**
- * Final step — go-live / activation (UI until Stripe Checkout is wired).
+ * Final step — opens Stripe Checkout for the 7-day trial (`onStartTrialPress`).
  *
  * @param {{ activationLink: string; onStartTrialPress?: () => void; activateSubmitting?: boolean }} props
  */

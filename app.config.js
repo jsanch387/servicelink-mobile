@@ -7,6 +7,9 @@
  *
  * Override locally with `.env` / `.env.local`:
  * EXPO_PUBLIC_WEB_APP_URL=http://localhost:3000
+ *
+ * Optional — must match prefix of Stripe mobile onboarding return URLs on the server:
+ * EXPO_PUBLIC_STRIPE_ONBOARDING_AUTH_RETURN_URL=servicelinkmobile://onboarding/stripe
  */
 const DEFAULT_WEB_APP_URL = 'https://myservicelink.app';
 
