@@ -140,8 +140,8 @@ export function HomeScreen() {
   }, [navigation]);
 
   const handleCreateQuote = useCallback(() => {
-    Alert.alert('Create quote', 'Quote creation flow coming next.');
-  }, []);
+    navigation.navigate(ROUTES.CREATE_QUOTE);
+  }, [navigation]);
 
   const handleOpenNotifications = useCallback(() => {
     navigation.navigate(ROUTES.NOTIFICATIONS_INBOX);

@@ -8,6 +8,7 @@ import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
 import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
 import { CreateAppointmentScreen } from '../features/bookings';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
+import { CreateQuoteScreen } from '../features/quotes/screens/CreateQuoteScreen';
 import { useSubscription } from '../features/subscription';
 import { UpgradePaywallScreen } from '../features/subscription/screens/UpgradePaywallScreen';
 import { shouldShowFullScreenSubscriptionPaywall } from '../features/subscription/upgradePaywallGate';
@@ -125,6 +126,18 @@ export function AuthNavigator() {
               options={{
                 headerShown: true,
                 title: 'New appointment',
+                headerBackButtonDisplayMode: 'minimal',
+                headerBackTitleVisible: false,
+                headerTitleStyle: {
+                  fontFamily: FONT_FAMILIES.semibold,
+                },
+              }}
+            />
+            <Stack.Screen
+              component={CreateQuoteScreen}
+              name={ROUTES.CREATE_QUOTE}
+              options={{
+                headerShown: true,
                 headerBackButtonDisplayMode: 'minimal',
                 headerBackTitleVisible: false,
                 headerTitleStyle: {

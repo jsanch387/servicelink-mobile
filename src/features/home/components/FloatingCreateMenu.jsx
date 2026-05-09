@@ -9,6 +9,9 @@ const FAB_SIZE = 56;
 const ACTION_GAP = 10;
 const ROW_GAP = 12;
 
+/** Extra inset from screen right so speed-dial rows sit closer to the main FAB center. */
+const ACTION_MENU_RIGHT_NUDGE = Math.round(FAB_SIZE * 0.05);
+
 /** Secondary action color (distinct from accent), matches speed-dial style. */
 const QUOTE_ACTION_ORANGE = '#ea580c';
 
@@ -88,14 +91,14 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
         },
         backdrop: {
           ...StyleSheet.absoluteFillObject,
-          backgroundColor: 'rgba(0,0,0,0.28)',
+          backgroundColor: 'rgba(0,0,0,0.52)',
         },
         actionColumn: {
           alignItems: 'flex-end',
           bottom: bottom + FAB_SIZE + ACTION_GAP,
           gap: ROW_GAP,
           position: 'absolute',
-          right: SCREEN_GUTTER,
+          right: SCREEN_GUTTER + ACTION_MENU_RIGHT_NUDGE,
           zIndex: 21,
         },
         actionRow: {
@@ -196,14 +199,18 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
           >
             {MENU_ITEMS.map((item) => (
               <View key={item.key} style={styles.actionRow}>
-                <View style={styles.labelPill}>
-                  <Text allowFontScaling={false} numberOfLines={1} style={styles.labelText}>
-                    {item.label}
-                  </Text>
-                </View>
                 <Pressable
                   accessibilityLabel={item.label}
                   accessibilityRole="button"
+                  style={styles.labelPill}
+                  onPress={() => handleSelect(item.key)}
+                >
+                  <Text allowFontScaling={false} numberOfLines={1} style={styles.labelText}>
+                    {item.label}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessible={false}
                   style={[
                     styles.actionIconOuter,
                     { backgroundColor: circleBackground(colors, item.colorToken) },

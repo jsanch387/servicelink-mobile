@@ -109,6 +109,13 @@ describe('HomeScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith(ROUTES.CREATE_APPOINTMENT);
   });
 
+  it('navigates to create quote when FAB menu quote is pressed', () => {
+    renderWithProviders(<HomeScreen />);
+    fireEvent.press(screen.getByLabelText('Open create menu'));
+    fireEvent.press(screen.getByLabelText('Create quote'));
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.CREATE_QUOTE);
+  });
+
   it('does not show Updating during initial load', () => {
     mockUseHomeDashboard.mockReturnValue(
       baseDashboard({

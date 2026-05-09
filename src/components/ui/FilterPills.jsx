@@ -1,9 +1,16 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { AppText } from '../../../components/ui';
-import { useTheme } from '../../../theme';
+import { useTheme } from '../../theme';
+import { AppText } from './AppText';
 
-export function CustomerFilterPills({ options, selectedKey, onSelect }) {
+/**
+ * Horizontal chip selector (e.g. filter tabs). Used on Customers, Quotes, etc.
+ *
+ * @param {{ key: string; label: string }[]} options
+ * @param {string} selectedKey
+ * @param {(key: string) => void} onSelect
+ */
+export function FilterPills({ options, selectedKey, onSelect }) {
   const { colors } = useTheme();
 
   const styles = useMemo(
@@ -40,12 +47,15 @@ export function CustomerFilterPills({ options, selectedKey, onSelect }) {
   );
 
   return (
-    <View style={styles.row}>
+    <View accessibilityRole="tablist" style={styles.row}>
       {options.map((option) => {
         const isSelected = option.key === selectedKey;
         return (
           <Pressable
             key={option.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isSelected }}
+            hitSlop={{ top: 6, bottom: 6 }}
             onPress={() => onSelect(option.key)}
             style={[styles.pill, isSelected && styles.pillActive]}
           >

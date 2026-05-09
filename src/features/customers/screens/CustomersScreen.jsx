@@ -3,13 +3,18 @@ import { useNavigation } from '@react-navigation/native';
 import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import {
+  AppText,
+  FilterPills,
+  InlineCardError,
+  SkeletonBox,
+  SurfaceCard,
+} from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { AddCustomerFab } from '../components/AddCustomerFab';
 import { AddCustomerSheet } from '../components/AddCustomerSheet';
 import { CustomerCard } from '../components/CustomerCard';
-import { CustomerFilterPills } from '../components/CustomerFilterPills';
 import { CustomersSearchBar } from '../components/CustomersSearchBar';
 import { CUSTOMER_FILTER_ALL, CUSTOMER_FILTER_OPTIONS } from '../constants';
 import { useCustomersList } from '../hooks/useCustomersList';
@@ -72,7 +77,7 @@ export function CustomersScreen() {
         >
           <View style={styles.controlsSection}>
             <CustomersSearchBar onChangeText={setSearchText} value={searchText} />
-            <CustomerFilterPills
+            <FilterPills
               onSelect={setSelectedFilter}
               options={CUSTOMER_FILTER_OPTIONS}
               selectedKey={selectedFilter}

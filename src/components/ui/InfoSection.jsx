@@ -12,9 +12,14 @@ function InfoRow({
   emphasize = false,
   onPress,
   accessibilityLabel,
+  /** `'underline'` when tappable (default). Use `'none'` for e.g. copy rows with a trailing icon. */
+  interactionStyle,
+  trailing = null,
 }) {
   const { colors } = useTheme();
   const interactive = typeof onPress === 'function';
+  const underline =
+    interactive && (interactionStyle === undefined || interactionStyle === 'underline');
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -27,17 +32,43 @@ function InfoRow({
           paddingHorizontal: 2,
           paddingVertical: 1,
         },
+        valueRow: {
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          marginLeft: 0,
+        },
         text: {
           color: interactive ? colors.text : colors.textSecondary,
-          flex: 1,
+          flexGrow: 1,
+          flexShrink: 1,
           fontSize: 15,
           fontWeight: emphasize ? '600' : '400',
           lineHeight: 21,
           marginLeft: hideIcon ? 0 : 10,
-          textDecorationLine: interactive ? 'underline' : 'none',
+          textDecorationLine: underline ? 'underline' : 'none',
+        },
+        textNoTrailing: {
+          flex: 1,
+        },
+        trailingWrap: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 4,
+          marginLeft: 8,
+          marginTop: 1,
         },
       }),
-    [colors, emphasize, hideIcon, interactive],
+    [colors, emphasize, hideIcon, interactive, underline],
+  );
+
+  const textBlock = trailing ? (
+    <View style={styles.valueRow}>
+      <AppText style={styles.text}>{value}</AppText>
+      <View style={styles.trailingWrap}>{trailing}</View>
+    </View>
+  ) : (
+    <AppText style={[styles.text, styles.textNoTrailing]}>{value}</AppText>
   );
 
   const content = (
@@ -45,7 +76,7 @@ function InfoRow({
       {hideIcon ? null : (
         <Ionicons color={colors.textMuted} name={icon} size={16} style={{ marginTop: 2 }} />
       )}
-      <AppText style={styles.text}>{value}</AppText>
+      {textBlock}
     </View>
   );
 
@@ -65,18 +96,18 @@ function InfoRow({
   );
 }
 
-export function InfoSection({ title, rows, hideIcons = false, footer = null }) {
+export function InfoSection({ title, rows, hideIcons = false, footer = null, rowGap = 9 }) {
   const styles = useMemo(
     () =>
       StyleSheet.create({
         rowsWrap: {
-          rowGap: 9,
+          rowGap,
         },
         footerWrap: {
           marginTop: 12,
         },
       }),
-    [],
+    [rowGap],
   );
 
   return (
@@ -88,6 +119,8 @@ export function InfoSection({ title, rows, hideIcons = false, footer = null }) {
             hideIcon={hideIcons || Boolean(row.hideIcon)}
             key={row.key ?? `${title}-${index}`}
             icon={row.icon}
+            interactionStyle={row.interactionStyle}
+            trailing={row.trailing}
             value={row.value}
             onPress={row.onPress}
             accessibilityLabel={row.accessibilityLabel}

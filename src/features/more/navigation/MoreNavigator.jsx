@@ -4,6 +4,7 @@ import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { AvailabilityScreen } from '../../availability/screens/AvailabilityScreen';
 import { BookingLinkScreen } from '../../bookingLink/screens/BookingLinkScreen';
 import { PaymentsScreen } from '../../payments/screens/PaymentsScreen';
+import { QuoteDetailScreen } from '../../quotes/screens/QuoteDetailScreen';
 import { QuotesScreen } from '../../quotes/screens/QuotesScreen';
 import { ServicesScreen } from '../../services';
 import { ServiceEditScreen } from '../../services/screens/ServiceEditScreen';
@@ -101,6 +102,14 @@ export function MoreNavigator() {
         name={ROUTES.QUOTES}
         options={{
           title: 'Quotes',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={QuoteDetailScreen}
+        name={ROUTES.QUOTE_DETAIL}
+        options={{
           headerBackButtonDisplayMode: 'minimal',
           headerBackTitleVisible: false,
         }}

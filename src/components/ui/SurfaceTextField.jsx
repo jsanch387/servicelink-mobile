@@ -9,11 +9,21 @@ import { SurfaceInputRow, useSurfaceInputTextStyle } from './SurfaceInputRow';
 /**
  * Labeled input inside the same `cardSurface` shell as the customers search bar.
  * Optional `showPasswordToggle` adds an eye icon to reveal / hide text (`secureTextEntry`).
+ * Optional `rightAccessory` adds a trailing node (e.g. calendar); ignored when `showPasswordToggle` is true.
+ * Optional `onShellPress` wraps the input row in a pressable (e.g. open a picker); use with `editable={false}` so taps reach the shell.
+ * Optional `errorText` — small red line under the row (takes precedence over `helperText` for visibility).
+ * Optional `helperText` — muted hint under the row (hidden when `errorText` is set).
  */
 export function SurfaceTextField({
   label,
   leftIcon,
+  errorText,
+  helperText,
   showPasswordToggle = false,
+  /** Trailing slot inside the row (e.g. icon button). Ignored when `showPasswordToggle` is true. */
+  rightAccessory = null,
+  /** When set, the whole input row is tappable (e.g. date field + calendar). */
+  onShellPress,
   value,
   onChangeText,
   placeholder,
@@ -32,6 +42,7 @@ export function SurfaceTextField({
   const [focused, setFocused] = useState(false);
 
   const secureTextEntry = showPasswordToggle ? !passwordVisible : (secureTextEntryProp ?? false);
+  const hasError = Boolean(errorText?.trim());
 
   const styles = useMemo(
     () =>
@@ -45,8 +56,12 @@ export function SurfaceTextField({
           marginBottom: compact ? 6 : 8,
         },
         rowShell: {
-          borderColor: focused ? colors.borderStrong : colors.inputBorder,
-          borderWidth: focused ? 1.5 : 1,
+          borderColor: hasError
+            ? colors.danger
+            : focused
+              ? colors.borderStrong
+              : colors.inputBorder,
+          borderWidth: focused || hasError ? 1.5 : 1,
         },
         iconPad: {
           marginRight: 2,
@@ -58,8 +73,14 @@ export function SurfaceTextField({
           marginLeft: 2,
           width: 40,
         },
+        helperLine: {
+          fontSize: 12,
+          fontWeight: '500',
+          lineHeight: 16,
+          marginTop: 6,
+        },
       }),
-    [colors, compact, focused],
+    [colors, compact, focused, hasError],
   );
 
   const leftNode =
@@ -83,33 +104,58 @@ export function SurfaceTextField({
         size={20}
       />
     </Pressable>
-  ) : null;
+  ) : (
+    rightAccessory
+  );
+
+  const inputRow = (
+    <SurfaceInputRow left={leftNode} right={rightNode} style={styles.rowShell}>
+      <AppTextInput
+        {...inputRest}
+        pointerEvents={onShellPress ? 'none' : inputRest.pointerEvents}
+        onBlur={(e) => {
+          setFocused(false);
+          inputRest.onBlur?.(e);
+        }}
+        onChangeText={onChangeText}
+        onFocus={(e) => {
+          setFocused(true);
+          inputRest.onFocus?.(e);
+        }}
+        placeholder={placeholder}
+        placeholderTextColor={colors.placeholder}
+        secureTextEntry={secureTextEntry}
+        style={[inputTextStyle, restInputStyle]}
+        value={value}
+        maxLength={maxLength}
+      />
+    </SurfaceInputRow>
+  );
 
   return (
     <View style={[styles.field, containerStyle]}>
       {label ? (
         <AppText style={[styles.label, { color: colors.textMuted }]}>{label}</AppText>
       ) : null}
-      <SurfaceInputRow left={leftNode} right={rightNode} style={styles.rowShell}>
-        <AppTextInput
-          {...inputRest}
-          onBlur={(e) => {
-            setFocused(false);
-            inputRest.onBlur?.(e);
-          }}
-          onChangeText={onChangeText}
-          onFocus={(e) => {
-            setFocused(true);
-            inputRest.onFocus?.(e);
-          }}
-          placeholder={placeholder}
-          placeholderTextColor={colors.placeholder}
-          secureTextEntry={secureTextEntry}
-          style={[inputTextStyle, restInputStyle]}
-          value={value}
-          maxLength={maxLength}
-        />
-      </SurfaceInputRow>
+      {onShellPress ? (
+        <Pressable accessibilityRole="button" onPress={onShellPress}>
+          {inputRow}
+        </Pressable>
+      ) : (
+        inputRow
+      )}
+      {hasError ? (
+        <AppText
+          accessibilityLiveRegion="polite"
+          style={[styles.helperLine, { color: colors.danger }]}
+        >
+          {errorText.trim()}
+        </AppText>
+      ) : helperText?.trim() ? (
+        <AppText style={[styles.helperLine, { color: colors.textMuted }]}>
+          {helperText.trim()}
+        </AppText>
+      ) : null}
     </View>
   );
 }

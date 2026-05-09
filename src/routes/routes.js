@@ -24,6 +24,10 @@ export const ROUTES = {
   SERVICES_EDIT: 'ServicesEdit',
   AVAILABILITY: 'Availability',
   QUOTES: 'Quotes',
+  /** More stack — quote request or sent quote detail. */
+  QUOTE_DETAIL: 'QuoteDetail',
+  /** Root stack — build & send quote (hides tab bar; same pattern as CREATE_APPOINTMENT). */
+  CREATE_QUOTE: 'CreateQuote',
   BOOKING_LINK: 'BookingLink',
   MORE_PAYMENTS: 'MorePayments',
   PAYMENTS: 'Payments',
@@ -63,6 +67,8 @@ export const PATHS = {
   SERVICES_EDIT: '/services/:serviceId/edit',
   AVAILABILITY: '/availability',
   QUOTES: '/quotes',
+  QUOTE_DETAIL: '/quotes/detail',
+  CREATE_QUOTE: '/quotes/create',
   BOOKING_LINK: '/booking-link',
   MORE_PAYMENTS: '/more/payments',
   PAYMENTS: '/payments',
