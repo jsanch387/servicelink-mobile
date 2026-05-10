@@ -15,5 +15,5 @@ It currently re-exports Stripe APIs/constants from existing feature-first locati
 
 ## Sources of truth
 
-- Product/flow map: `docs/mobile-stripe-feature-map.md`
+- Product/flow map: [`docs/mobile-stripe-feature-map.md`](./docs/mobile-stripe-feature-map.md)
 - Re-exports: `src/features/stripe/index.js`

@@ -4,6 +4,8 @@ import { BookingsNavigator } from '../features/bookings';
 import { CustomersNavigator } from '../features/customers/navigation/CustomersNavigator';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { MoreNavigator } from '../features/more';
+import { NotificationsRealtimeBridge } from '../features/notifications/components/NotificationsRealtimeBridge';
+import { PushTokenRegistration } from '../features/notifications/components/PushTokenRegistration';
 import { PaymentsScreen } from '../features/payments/screens/PaymentsScreen';
 import { MAIN_TAB_CONFIG, ROUTES } from '../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../theme';
@@ -23,32 +25,36 @@ export function MainTabNavigator() {
   const { colors } = useTheme();
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        sceneStyle: { backgroundColor: colors.shell },
-        tabBarActiveTintColor: colors.tabBarActive,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: {
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 11,
-        },
-      }}
-      tabBar={(props) => <MainTabBar {...props} />}
-    >
-      {MAIN_TAB_CONFIG.map(({ route, label, icon }) => (
-        <Tab.Screen
-          key={route}
-          component={tabScreens[route]}
-          name={route}
-          options={{
-            tabBarIcon: ({ color, focused, size }) => (
-              <Ionicons color={color} name={icon} size={focused ? 24 : 22} />
-            ),
-            tabBarLabel: label,
-          }}
-        />
-      ))}
-    </Tab.Navigator>
+    <>
+      <NotificationsRealtimeBridge />
+      <PushTokenRegistration />
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          sceneStyle: { backgroundColor: colors.shell },
+          tabBarActiveTintColor: colors.tabBarActive,
+          tabBarInactiveTintColor: colors.textMuted,
+          tabBarLabelStyle: {
+            fontFamily: FONT_FAMILIES.semibold,
+            fontSize: 11,
+          },
+        }}
+        tabBar={(props) => <MainTabBar {...props} />}
+      >
+        {MAIN_TAB_CONFIG.map(({ route, label, icon }) => (
+          <Tab.Screen
+            key={route}
+            component={tabScreens[route]}
+            name={route}
+            options={{
+              tabBarIcon: ({ color, focused, size }) => (
+                <Ionicons color={color} name={icon} size={focused ? 24 : 22} />
+              ),
+              tabBarLabel: label,
+            }}
+          />
+        ))}
+      </Tab.Navigator>
+    </>
   );
 }

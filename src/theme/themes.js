@@ -66,6 +66,9 @@ export const darkTheme = {
 
   /** Form validation / auth errors */
   danger: '#f87171',
+
+  /** Unread notification affordance on the home bell (same hue in both schemes) */
+  notificationBellDot: '#f97316',
 };
 
 export const lightTheme = {
@@ -116,6 +119,8 @@ export const lightTheme = {
   spinnerOnSecondary: '#0a0a0a',
 
   danger: '#dc2626',
+
+  notificationBellDot: '#f97316',
 };
 
 /** @type {{ light: ThemeColors; dark: ThemeColors }} */

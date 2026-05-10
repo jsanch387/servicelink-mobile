@@ -8,6 +8,7 @@
     "plugins": [
       "expo-secure-store",
       "expo-asset",
+      "expo-notifications",
       "expo-web-browser",
       [
         "expo-image-picker",
@@ -16,6 +17,13 @@
           "cameraPermission": "Allow Servicelink to use your camera so you can take photos for your profile."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "webAppUrl": "https://myservicelink.app",
+      "eas": {
+        "projectId": "0bcb9f83-d0dc-4157-a81c-ecc3e1a069ee"
+      }
+    },
+    "owner": "jsanch-dev"
   }
 }

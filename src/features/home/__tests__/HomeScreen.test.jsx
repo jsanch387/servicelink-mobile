@@ -24,6 +24,10 @@ jest.mock('../hooks/useHomeDashboard', () => ({
   useHomeDashboard: jest.fn(),
 }));
 
+jest.mock('../../notifications/hooks/useNotificationUnreadCount', () => ({
+  useNotificationUnreadCount: () => ({ unreadCount: 0 }),
+}));
+
 const mockUseHomeDashboard = useHomeDashboard;
 
 function baseDashboard(overrides = {}) {

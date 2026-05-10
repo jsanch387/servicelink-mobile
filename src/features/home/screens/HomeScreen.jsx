@@ -19,10 +19,12 @@ import { useTheme } from '../../../theme';
 import { serviceCardTitleStyle } from '../../../utils/serviceCardTypography';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import { useNotificationUnreadCount } from '../../notifications/hooks/useNotificationUnreadCount';
 
 export function HomeScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
+  const { unreadCount } = useNotificationUnreadCount();
   const dashboard = useHomeDashboard();
   const markCompleteMutation = useHomeQuickMarkComplete();
   const tabBarHeight = useBottomTabBarHeight();
@@ -121,6 +123,21 @@ export function HomeScreen() {
           justifyContent: 'center',
           width: 32,
         },
+        bellIconWrap: {
+          alignItems: 'center',
+          height: 24,
+          justifyContent: 'center',
+          position: 'relative',
+          width: 24,
+        },
+        bellBadge: {
+          borderRadius: 99,
+          height: 8,
+          position: 'absolute',
+          right: -2,
+          top: -2,
+          width: 8,
+        },
         headerDivider: {
           marginBottom: 8,
         },
@@ -134,6 +151,9 @@ export function HomeScreen() {
       }),
     [colors, scrollBottomPad],
   );
+
+  const hasUnreadNotifications = unreadCount > 0;
+  const notificationsA11yLabel = hasUnreadNotifications ? 'Notifications, unread' : 'Notifications';
 
   const handleCreateAppointment = useCallback(() => {
     navigation.navigate(ROUTES.CREATE_APPOINTMENT);
@@ -184,13 +204,18 @@ export function HomeScreen() {
             {businessDisplayName}
           </AppText>
           <Pressable
-            accessibilityHint="Opens notification settings"
-            accessibilityLabel="Notifications"
+            accessibilityHint="Opens your notifications"
+            accessibilityLabel={notificationsA11yLabel}
             accessibilityRole="button"
             style={styles.bellButton}
             onPress={handleOpenNotifications}
           >
-            <Ionicons color={colors.textMuted} name="notifications-outline" size={22} />
+            <View style={styles.bellIconWrap}>
+              <Ionicons color={colors.textMuted} name="notifications-outline" size={22} />
+              {hasUnreadNotifications ? (
+                <View style={[styles.bellBadge, { backgroundColor: colors.notificationBellDot }]} />
+              ) : null}
+            </View>
           </Pressable>
         </View>
         <Divider style={styles.headerDivider} />

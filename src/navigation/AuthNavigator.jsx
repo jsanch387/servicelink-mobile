@@ -1,4 +1,5 @@
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
+import { PushNotificationsBootstrap } from '../features/notifications/components/PushNotificationsBootstrap';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from '../features/auth';
@@ -15,6 +16,7 @@ import { shouldShowFullScreenSubscriptionPaywall } from '../features/subscriptio
 import { MainTabNavigator } from './MainTabNavigator';
 import { ROUTES } from '../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../theme';
+import { navigationRef } from './navigationRef';
 
 const Stack = createNativeStackNavigator();
 
@@ -78,7 +80,8 @@ export function AuthNavigator() {
     : 'auth';
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
+      <PushNotificationsBootstrap />
       <Stack.Navigator
         key={stackKey}
         screenOptions={{

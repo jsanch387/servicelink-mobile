@@ -1,8 +1,11 @@
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { getWebAppOrigin } from './webAppOrigin';
 
 const PROD_WEB_ORIGIN = 'https://myservicelink.app';
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '10.0.2.2']);
+
+let warnedPhysicalDeviceDevFallback = false;
 
 /**
  * Base URL for Next.js `/api/stripe/create-checkout-session` (onboarding trial, paywall upgrade, etc.).
@@ -16,10 +19,14 @@ export function resolveStripeMobileCheckoutOrigin() {
   if (origin && origin !== PROD_WEB_ORIGIN) {
     return origin;
   }
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:3000';
+  const fallback = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+  if (!warnedPhysicalDeviceDevFallback && Constants.isDevice) {
+    warnedPhysicalDeviceDevFallback = true;
+    console.warn(
+      '[dev] Physical device is using emulator-style localhost for Next.js API. Set EXPO_PUBLIC_WEB_APP_URL=http://<your-mac-LAN-ip>:3000 in .env.local (and restart Metro) so booking/quote/push flows hit your machine.',
+    );
   }
-  return 'http://localhost:3000';
+  return fallback;
 }
 
 /**

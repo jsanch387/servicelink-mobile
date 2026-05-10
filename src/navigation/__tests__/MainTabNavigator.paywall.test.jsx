@@ -33,6 +33,14 @@ jest.mock('../MainTabBar', () => ({
   MainTabBar: () => null,
 }));
 
+jest.mock('../../features/notifications/components/NotificationsRealtimeBridge', () => ({
+  NotificationsRealtimeBridge: () => null,
+}));
+
+jest.mock('../../features/notifications/components/PushTokenRegistration', () => ({
+  PushTokenRegistration: () => null,
+}));
+
 function renderTabs() {
   return renderWithProviders(
     <NavigationContainer>

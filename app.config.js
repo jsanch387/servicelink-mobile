@@ -14,6 +14,9 @@
  * Optional — paywall upgrade checkout (`STRIPE_MOBILE_UPGRADE_*` on server):
  * EXPO_PUBLIC_STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL=servicelinkmobile://paywall/stripe
  *
+ * Optional — Expo push token (`getExpoPushTokenAsync`); set after `eas init` / from Expo dashboard:
+ * EXPO_PUBLIC_EAS_PROJECT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+ *
  * Optional — Stripe Connect onboarding redirect prefix used by app auth session:
  * EXPO_PUBLIC_STRIPE_CONNECT_ONBOARDING_AUTH_RETURN_URL=servicelinkmobile://payments/connect
  *
@@ -39,10 +42,29 @@ if (!envWebRaw) {
   process.env.EXPO_PUBLIC_WEB_APP_URL = DEFAULT_WEB_APP_URL;
 }
 
-module.exports = ({ config }) => ({
-  ...config,
-  extra: {
-    ...(config.extra ?? {}),
-    webAppUrl: resolvedWebAppUrl,
-  },
-});
+/** EAS / Expo push expects a canonical UUID; invalid env must not override app.json. */
+function isEasProjectUuid(value) {
+  const s = String(value ?? '').trim();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+}
+
+module.exports = ({ config }) => {
+  const envEas = String(process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '').trim();
+  const jsonEas = String(config?.extra?.eas?.projectId ?? '').trim();
+  const resolvedEasProjectId = isEasProjectUuid(envEas)
+    ? envEas
+    : isEasProjectUuid(jsonEas)
+      ? jsonEas
+      : '';
+
+  return {
+    ...config,
+    extra: {
+      ...(config.extra ?? {}),
+      webAppUrl: resolvedWebAppUrl,
+      ...(resolvedEasProjectId
+        ? { eas: { ...(config.extra?.eas ?? {}), projectId: resolvedEasProjectId } }
+        : {}),
+    },
+  };
+};

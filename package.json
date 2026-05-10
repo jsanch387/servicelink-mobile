@@ -39,6 +39,7 @@
     "expo-image-picker": "~17.0.11",
     "expo-linear-gradient": "^55.0.13",
     "expo-linking": "~8.0.11",
+    "expo-notifications": "~0.32.17",
     "expo-secure-store": "~15.0.8",
     "expo-status-bar": "~3.0.9",
     "expo-web-browser": "~15.0.10",
@@ -61,6 +62,7 @@
   "private": true,
   "devDependencies": {
     "@testing-library/react-native": "^13.3.3",
+    "eas-cli": "^18.11.0",
     "eslint": "^9.39.4",
     "eslint-config-expo": "^55.0.0",
     "eslint-config-prettier": "^10.1.8",
