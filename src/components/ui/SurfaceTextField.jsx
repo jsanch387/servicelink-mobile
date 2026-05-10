@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useMemo, useState } from 'react';
+import { forwardRef, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
@@ -10,30 +10,34 @@ import { SurfaceInputRow, useSurfaceInputTextStyle } from './SurfaceInputRow';
  * Labeled input inside the same `cardSurface` shell as the customers search bar.
  * Optional `showPasswordToggle` adds an eye icon to reveal / hide text (`secureTextEntry`).
  * Optional `rightAccessory` adds a trailing node (e.g. calendar); ignored when `showPasswordToggle` is true.
- * Optional `onShellPress` wraps the input row in a pressable (e.g. open a picker); use with `editable={false}` so taps reach the shell.
+ * Optional `onShellPress` wraps the input row in a pressable (e.g. date field + calendar). Use with `editable={false}` so taps reach the shell.
  * Optional `errorText` — small red line under the row (takes precedence over `helperText` for visibility).
  * Optional `helperText` — muted hint under the row (hidden when `errorText` is set).
+ * Ref is forwarded to the inner `TextInput` (e.g. focus chaining).
  */
-export function SurfaceTextField({
-  label,
-  leftIcon,
-  errorText,
-  helperText,
-  showPasswordToggle = false,
-  /** Trailing slot inside the row (e.g. icon button). Ignored when `showPasswordToggle` is true. */
-  rightAccessory = null,
-  /** When set, the whole input row is tappable (e.g. date field + calendar). */
-  onShellPress,
-  value,
-  onChangeText,
-  placeholder,
-  secureTextEntry: secureTextEntryProp,
-  containerStyle,
-  maxLength: maxLengthProp,
-  /** Tighter vertical rhythm for dense forms (e.g. create-appointment). */
-  compact = false,
-  ...rest
-}) {
+export const SurfaceTextField = forwardRef(function SurfaceTextField(
+  {
+    label,
+    leftIcon,
+    errorText,
+    helperText,
+    showPasswordToggle = false,
+    /** Trailing slot inside the row (e.g. icon button). Ignored when `showPasswordToggle` is true. */
+    rightAccessory = null,
+    /** When set, the whole input row is tappable (e.g. date field + calendar). */
+    onShellPress,
+    value,
+    onChangeText,
+    placeholder,
+    secureTextEntry: secureTextEntryProp,
+    containerStyle,
+    maxLength: maxLengthProp,
+    /** Tighter vertical rhythm for dense forms (e.g. create-appointment). */
+    compact = false,
+    ...rest
+  },
+  ref,
+) {
   const { style: restInputStyle, maxLength: maxLengthFromRest, ...inputRest } = rest;
   const maxLength = maxLengthProp ?? maxLengthFromRest;
   const { colors } = useTheme();
@@ -111,6 +115,7 @@ export function SurfaceTextField({
   const inputRow = (
     <SurfaceInputRow left={leftNode} right={rightNode} style={styles.rowShell}>
       <AppTextInput
+        ref={ref}
         {...inputRest}
         pointerEvents={onShellPress ? 'none' : inputRest.pointerEvents}
         onBlur={(e) => {
@@ -158,4 +163,4 @@ export function SurfaceTextField({
       ) : null}
     </View>
   );
-}
+});

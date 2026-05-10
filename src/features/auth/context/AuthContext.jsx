@@ -48,6 +48,9 @@ export function AuthProvider({ children }) {
           nextSession = null;
         }
       }
+      if (!active) {
+        return;
+      }
       setSession(nextSession);
       setIsReady(true);
     }

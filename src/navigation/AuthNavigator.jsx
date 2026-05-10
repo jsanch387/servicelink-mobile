@@ -1,7 +1,8 @@
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { PushNotificationsBootstrap } from '../features/notifications/components/PushNotificationsBootstrap';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
+import { AppFontLoadingShell } from '../components/ui/AppFontLoadingShell';
 import { useAuth } from '../features/auth';
 import { ForgotPasswordScreen } from '../features/auth/screens/ForgotPasswordScreen';
 import { LoginScreen } from '../features/auth/screens/LoginScreen';
@@ -23,13 +24,17 @@ const Stack = createNativeStackNavigator();
 function MainAppSubscriptionBootScreen() {
   const { colors } = useTheme();
   return (
-    <View
+    <AppFontLoadingShell
       accessibilityLabel="Loading subscription status"
-      style={[styles.boot, { backgroundColor: colors.shell }]}
-      testID="subscription-boot"
-    >
-      <ActivityIndicator color={colors.accent} size="large" />
-    </View>
+      bottomSlot={
+        <ActivityIndicator
+          accessibilityLabel="Loading subscription status"
+          color={colors.accent}
+          size="small"
+          testID="subscription-boot"
+        />
+      }
+    />
   );
 }
 
@@ -61,14 +66,6 @@ export function AuthNavigator() {
 
   const boot = !isReady || (session && !isGateReady);
 
-  if (boot) {
-    return (
-      <View style={[styles.boot, { backgroundColor: colors.shell }]}>
-        <ActivityIndicator color={colors.accent} size="large" />
-      </View>
-    );
-  }
-
   const stackKey = session
     ? needsOnboarding
       ? 'onboarding'
@@ -79,93 +76,98 @@ export function AuthNavigator() {
           : 'main'
     : 'auth';
 
+  if (boot) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.shell }}>
+        <AppFontLoadingShell accessibilityLabel="Loading" />
+      </View>
+    );
+  }
+
   return (
-    <NavigationContainer ref={navigationRef} theme={navTheme}>
-      <PushNotificationsBootstrap />
-      <Stack.Navigator
-        key={stackKey}
-        screenOptions={{
-          animation: 'slide_from_right',
-          contentStyle: { backgroundColor: colors.shell },
-          headerShown: false,
-        }}
-      >
-        {session && needsOnboarding ? (
-          <Stack.Screen
-            component={OnboardingScreen}
-            name={ROUTES.ONBOARDING}
-            options={{ gestureEnabled: false }}
-          />
-        ) : null}
-        {session && !needsOnboarding && mainAppSubscriptionBooting ? (
-          <Stack.Screen component={MainAppSubscriptionBootScreen} name="MainAppSubscriptionBoot" />
-        ) : null}
-        {session && !needsOnboarding && !mainAppSubscriptionBooting && isPaywallBlocking ? (
-          <Stack.Screen
-            component={UpgradePaywallScreen}
-            name={ROUTES.UPGRADE_PAYWALL}
-            options={{ gestureEnabled: false }}
-          />
-        ) : null}
-        {session && !needsOnboarding && !mainAppSubscriptionBooting && !isPaywallBlocking ? (
-          <>
-            <Stack.Screen component={MainTabNavigator} name={ROUTES.MAIN_APP} />
+    <View style={{ flex: 1, backgroundColor: colors.shell }}>
+      <NavigationContainer ref={navigationRef} theme={navTheme}>
+        <PushNotificationsBootstrap />
+        <Stack.Navigator
+          key={stackKey}
+          screenOptions={{
+            animation: stackKey === 'auth' ? 'fade' : 'slide_from_right',
+            contentStyle: { backgroundColor: colors.shell },
+            headerShown: false,
+          }}
+        >
+          {session && needsOnboarding ? (
             <Stack.Screen
-              component={NotificationsInboxScreen}
-              name={ROUTES.NOTIFICATIONS_INBOX}
-              options={{
-                headerShown: true,
-                title: 'Notifications',
-                headerBackButtonDisplayMode: 'minimal',
-                headerBackTitleVisible: false,
-                headerTitleStyle: {
-                  fontFamily: FONT_FAMILIES.semibold,
-                },
-              }}
+              component={OnboardingScreen}
+              name={ROUTES.ONBOARDING}
+              options={{ gestureEnabled: false }}
             />
+          ) : null}
+          {session && !needsOnboarding && mainAppSubscriptionBooting ? (
             <Stack.Screen
-              component={CreateAppointmentScreen}
-              name={ROUTES.CREATE_APPOINTMENT}
-              options={{
-                headerShown: true,
-                title: 'New appointment',
-                headerBackButtonDisplayMode: 'minimal',
-                headerBackTitleVisible: false,
-                headerTitleStyle: {
-                  fontFamily: FONT_FAMILIES.semibold,
-                },
-              }}
+              component={MainAppSubscriptionBootScreen}
+              name="MainAppSubscriptionBoot"
             />
+          ) : null}
+          {session && !needsOnboarding && !mainAppSubscriptionBooting && isPaywallBlocking ? (
             <Stack.Screen
-              component={CreateQuoteScreen}
-              name={ROUTES.CREATE_QUOTE}
-              options={{
-                headerShown: true,
-                headerBackButtonDisplayMode: 'minimal',
-                headerBackTitleVisible: false,
-                headerTitleStyle: {
-                  fontFamily: FONT_FAMILIES.semibold,
-                },
-              }}
+              component={UpgradePaywallScreen}
+              name={ROUTES.UPGRADE_PAYWALL}
+              options={{ gestureEnabled: false }}
             />
-          </>
-        ) : null}
-        {!session ? (
-          <>
-            <Stack.Screen component={LoginScreen} name={ROUTES.LOGIN} />
-            <Stack.Screen component={SignUpScreen} name={ROUTES.SIGN_UP} />
-            <Stack.Screen component={ForgotPasswordScreen} name={ROUTES.FORGOT_PASSWORD} />
-          </>
-        ) : null}
-      </Stack.Navigator>
-    </NavigationContainer>
+          ) : null}
+          {session && !needsOnboarding && !mainAppSubscriptionBooting && !isPaywallBlocking ? (
+            <>
+              <Stack.Screen component={MainTabNavigator} name={ROUTES.MAIN_APP} />
+              <Stack.Screen
+                component={NotificationsInboxScreen}
+                name={ROUTES.NOTIFICATIONS_INBOX}
+                options={{
+                  headerShown: true,
+                  title: 'Notifications',
+                  headerBackButtonDisplayMode: 'minimal',
+                  headerBackTitleVisible: false,
+                  headerTitleStyle: {
+                    fontFamily: FONT_FAMILIES.semibold,
+                  },
+                }}
+              />
+              <Stack.Screen
+                component={CreateAppointmentScreen}
+                name={ROUTES.CREATE_APPOINTMENT}
+                options={{
+                  headerShown: true,
+                  title: 'New appointment',
+                  headerBackButtonDisplayMode: 'minimal',
+                  headerBackTitleVisible: false,
+                  headerTitleStyle: {
+                    fontFamily: FONT_FAMILIES.semibold,
+                  },
+                }}
+              />
+              <Stack.Screen
+                component={CreateQuoteScreen}
+                name={ROUTES.CREATE_QUOTE}
+                options={{
+                  headerShown: true,
+                  headerBackButtonDisplayMode: 'minimal',
+                  headerBackTitleVisible: false,
+                  headerTitleStyle: {
+                    fontFamily: FONT_FAMILIES.semibold,
+                  },
+                }}
+              />
+            </>
+          ) : null}
+          {!session ? (
+            <>
+              <Stack.Screen component={LoginScreen} name={ROUTES.LOGIN} />
+              <Stack.Screen component={SignUpScreen} name={ROUTES.SIGN_UP} />
+              <Stack.Screen component={ForgotPasswordScreen} name={ROUTES.FORGOT_PASSWORD} />
+            </>
+          ) : null}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  boot: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-  },
-});

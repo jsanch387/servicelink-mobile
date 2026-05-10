@@ -133,7 +133,7 @@ export function BookingDetailsScreen({ route }) {
         tintColor={colors.accent}
       />
     ),
-    [colors.accent, detailsQuery.isFetching, detailsQuery.isLoading, detailsQuery.refetch],
+    [colors.accent, detailsQuery],
   );
 
   const handleCancelBooking = useCallback(() => {

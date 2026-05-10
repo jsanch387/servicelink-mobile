@@ -239,16 +239,7 @@ export function BookingsScreen() {
         ) : null}
       </View>
     ),
-    [
-      list.business?.id,
-      list.businessError,
-      list.isFetching,
-      list.isLoading,
-      list.listError,
-      list.refetch,
-      styles.errorBlock,
-      styles.errorRetry,
-    ],
+    [list, styles.errorBlock, styles.errorRetry],
   );
 
   const listEmpty = useMemo(() => {

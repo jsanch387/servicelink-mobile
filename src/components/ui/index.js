@@ -13,6 +13,7 @@ export {
 export { DetailsSectionCard } from './DetailsSectionCard';
 export { InfoSection } from './InfoSection';
 export { LabelValueRow } from './LabelValueRow';
+export { AppFontLoadingShell } from './AppFontLoadingShell';
 export { AppShellGlow } from './AppShellGlow';
 export { Divider } from './Divider';
 export { FilterPills } from './FilterPills';

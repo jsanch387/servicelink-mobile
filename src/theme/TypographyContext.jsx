@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { useTheme } from './ThemeContext';
+import { View } from 'react-native';
+import { AppFontLoadingShell } from '../components/ui/AppFontLoadingShell';
 import { useLoadAppFonts } from './loadAppFonts';
 import { FONT_FAMILIES } from './typographyPresets';
 
@@ -15,7 +15,6 @@ const isTestEnv = process.env.NODE_ENV === 'test';
  * @param {{ children: import('react').ReactNode }} props
  */
 export function TypographyProvider({ children }) {
-  const { colors } = useTheme();
   const [fontsLoaded, fontError] = useLoadAppFonts();
   const [fontsApplied, setFontsApplied] = useState(isTestEnv);
 
@@ -36,18 +35,7 @@ export function TypographyProvider({ children }) {
   );
 
   if (!fontsLoaded || !fontsApplied) {
-    return (
-      <View
-        style={{
-          alignItems: 'center',
-          backgroundColor: colors.shell,
-          flex: 1,
-          justifyContent: 'center',
-        }}
-      >
-        <ActivityIndicator color={colors.accent} size="large" />
-      </View>
-    );
+    return <AppFontLoadingShell accessibilityLabel="Loading fonts" animateEntrance={true} />;
   }
 
   return (
