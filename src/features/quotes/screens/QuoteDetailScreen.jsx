@@ -19,6 +19,7 @@ import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { canonicalNanpDigits, formatPhoneForDisplay } from '../../../utils/phone';
+import { showUserFacingErrorAlert } from '../../../utils/safeUserFacingMessage';
 import { deleteQuoteForBusiness } from '../api/quotes';
 import {
   QuoteRequestActivitySection,
@@ -97,7 +98,9 @@ export function QuoteDetailScreen() {
               try {
                 const { deleted, error } = await deleteQuoteForBusiness(businessId, quoteId);
                 if (error || !deleted) {
-                  Alert.alert('Could not delete', error?.message ?? 'Try again in a moment.');
+                  showUserFacingErrorAlert('Could not delete', error, {
+                    fallback: 'Try again in a moment.',
+                  });
                   return;
                 }
                 const detailKey = quoteDetailQueryKey(businessId, quoteId);

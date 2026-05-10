@@ -8,14 +8,18 @@ describe('navigateFromPushPayload', () => {
       reference_type: 'booking',
       reference_id: 'push-bid-1',
     });
-    expect(navigation.navigate).toHaveBeenCalledWith(
-      ROUTES.MAIN_APP,
-      expect.objectContaining({
-        params: expect.objectContaining({
-          params: { bookingId: 'push-bid-1' },
-        }),
-      }),
-    );
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.BOOKINGS,
+      params: {
+        state: {
+          routes: [
+            { name: ROUTES.BOOKINGS_LIST },
+            { name: ROUTES.BOOKING_DETAILS, params: { bookingId: 'push-bid-1' } },
+          ],
+          index: 1,
+        },
+      },
+    });
   });
 
   it('maps camelCase keys', () => {
@@ -27,8 +31,13 @@ describe('navigateFromPushPayload', () => {
     expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
       screen: ROUTES.MORE,
       params: {
-        screen: ROUTES.QUOTE_DETAIL,
-        params: { quoteId: 'q-99' },
+        state: {
+          routes: [
+            { name: ROUTES.MORE_HOME },
+            { name: ROUTES.QUOTE_DETAIL, params: { quoteId: 'q-99' } },
+          ],
+          index: 1,
+        },
       },
     });
   });

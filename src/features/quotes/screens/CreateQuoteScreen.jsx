@@ -19,6 +19,7 @@ import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { formatPhoneForDisplay } from '../../../utils/phone';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { isValidCalendarYyyyMmDd } from '../utils/formatScheduledDateDisplay';
 import { CreateQuoteSendSuccess } from '../components/create-quote/CreateQuoteSendSuccess';
 import { CreateQuoteStepContent } from '../components/create-quote/CreateQuoteStepContent';
@@ -253,7 +254,11 @@ export function CreateQuoteScreen() {
 
       if (!result.ok) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-        setSendError(result.error.message);
+        setSendError(
+          safeUserFacingMessage(result.error, {
+            fallback: 'Could not send quote. Please try again.',
+          }),
+        );
         return;
       }
 

@@ -1,7 +1,6 @@
 /**
  * Quotes feature diagnostics — dev / debug builds only (`__DEV__`).
- * Use for API-style breadcrumbs (Supabase + send-quote HTTP): start/ok/fail tags,
- * ids and HTTP status — not full payloads (avoid PII in logs).
+ * Prefer `quotesDebugError` / `quotesDebugWarn` for failures; avoid routine success `console.log`.
  */
 
 /**

@@ -44,7 +44,7 @@ export function PaymentStripeDashboardCard({ stripeAccountId = null }) {
         const safeApi = safeUserFacingMessage(baseMsg, { fallback: 'Something went wrong.' });
         const statusHint =
           result.httpStatus === 401
-            ? '\n\nThis API still expects a web cookie session. Open Stripe from the web dashboard, or add Bearer JWT support on this route for mobile.'
+            ? '\n\nPlease sign in again and try once more, or open Stripe in your browser.'
             : '';
         Alert.alert('Could not open Stripe', `${safeApi}${statusHint}`, [
           {

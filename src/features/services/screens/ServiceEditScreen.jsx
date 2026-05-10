@@ -976,7 +976,11 @@ export function ServiceEditScreen({ route }) {
 
       {(saveFeedback && saveFeedback !== 'Saved') || saveError ? (
         <View style={[styles.saveFeedbackWrap, { backgroundColor: 'rgba(127,29,29,0.9)' }]}>
-          <AppText style={styles.saveFeedbackText}>{saveError || saveFeedback}</AppText>
+          <AppText style={styles.saveFeedbackText}>
+            {safeUserFacingMessage(saveError || saveFeedback, {
+              fallback: 'Something went wrong. Please try again.',
+            })}
+          </AppText>
         </View>
       ) : null}
     </SafeAreaView>

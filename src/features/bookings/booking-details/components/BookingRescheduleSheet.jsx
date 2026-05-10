@@ -2,8 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { AppText, BottomSheetModal, Button, TimeSelectField } from '../../../../components/ui';
+import {
+  AppText,
+  BottomSheetModal,
+  Button,
+  InlineCardError,
+  TimeSelectField,
+} from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
+import { safeUserFacingMessage } from '../../../../utils/safeUserFacingMessage';
 
 function formatDateForDisplay(date) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
@@ -206,9 +213,7 @@ export function BookingRescheduleSheet({
           lineHeight: 21,
           textAlign: 'center',
         },
-        errorText: {
-          color: colors.danger,
-          fontSize: 13,
+        submitErrorWrap: {
           marginTop: 12,
         },
       }),
@@ -254,8 +259,7 @@ export function BookingRescheduleSheet({
       });
       setShowSuccessState(true);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Could not reschedule booking.';
-      setSubmitError(msg || 'Could not reschedule booking.');
+      setSubmitError(safeUserFacingMessage(error, { fallback: 'Could not reschedule booking.' }));
     }
   }
 
@@ -344,7 +348,11 @@ export function BookingRescheduleSheet({
             value={timeValue}
             onValueChange={handleTimeChange}
           />
-          {submitError ? <AppText style={styles.errorText}>{submitError}</AppText> : null}
+          {submitError ? (
+            <View style={styles.submitErrorWrap}>
+              <InlineCardError message={submitError} />
+            </View>
+          ) : null}
         </>
       )}
     </BottomSheetModal>

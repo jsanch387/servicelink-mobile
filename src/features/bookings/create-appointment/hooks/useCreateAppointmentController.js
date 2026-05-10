@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+import { showUserFacingErrorAlert } from '../../../../utils/safeUserFacingMessage';
 import { useTheme } from '../../../../theme';
 import { customersListQueryKey } from '../../../customers/queryKeys';
 import { homeBookingsTodayQueryKey, homeBookingsUpcomingQueryKey } from '../../../home/queryKeys';
@@ -214,7 +214,7 @@ export function useCreateAppointmentController({ catalog, userId, navigation }) 
       setAppointmentConfirmed(true);
     },
     onError: (e) => {
-      Alert.alert('Could not create booking', e?.message ?? 'Try again.');
+      showUserFacingErrorAlert('Could not create booking', e, { fallback: 'Try again.' });
     },
   });
 

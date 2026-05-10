@@ -1,10 +1,5 @@
 import { supabase } from '../../../lib/supabase';
-import {
-  quotesDebug,
-  quotesDebugError,
-  quotesDebugWarn,
-  quotesFormatSupabaseError,
-} from '../utils/quotesDebug';
+import { quotesDebugError, quotesDebugWarn, quotesFormatSupabaseError } from '../utils/quotesDebug';
 
 /**
  * Owner-visible columns — align with prod `quotes` (not identical to `bookings`).
@@ -18,11 +13,6 @@ export const QUOTE_OWNER_LIST_COLUMNS =
  * @returns {Promise<{ data: object[] | null; error: Error | null }>}
  */
 export async function fetchQuotesForBusiness(businessId) {
-  quotesDebug('fetchQuotesForBusiness:start', {
-    businessId,
-    columns: QUOTE_OWNER_LIST_COLUMNS,
-  });
-
   const { data, error } = await supabase
     .from('quotes')
     .select(QUOTE_OWNER_LIST_COLUMNS)
@@ -33,11 +23,6 @@ export async function fetchQuotesForBusiness(businessId) {
     quotesDebugError('fetchQuotesForBusiness:failed', error.message ?? 'unknown', {
       formatted: quotesFormatSupabaseError(error),
       businessId,
-    });
-  } else {
-    quotesDebug('fetchQuotesForBusiness:ok', {
-      businessId,
-      rowCount: Array.isArray(data) ? data.length : 0,
     });
   }
 
@@ -51,7 +36,6 @@ export async function fetchQuotesForBusiness(businessId) {
  */
 export async function fetchQuoteByIdForBusiness(businessId, quoteId) {
   const id = String(quoteId ?? '').trim();
-  quotesDebug('fetchQuoteByIdForBusiness:start', { businessId, quoteId: id });
 
   if (!id) {
     return { data: null, error: new Error('Missing quote id') };
@@ -70,12 +54,6 @@ export async function fetchQuoteByIdForBusiness(businessId, quoteId) {
       businessId,
       quoteId: id,
     });
-  } else {
-    quotesDebug('fetchQuoteByIdForBusiness:ok', {
-      businessId,
-      quoteId: id,
-      found: Boolean(data),
-    });
   }
 
   return { data, error };
@@ -88,8 +66,6 @@ export async function fetchQuoteByIdForBusiness(businessId, quoteId) {
  * @returns {Promise<{ data: { expires_at: string } | null; error: Error | null }>}
  */
 export async function fetchActiveQuoteLinkExpiry(quoteId) {
-  quotesDebug('fetchActiveQuoteLinkExpiry:start', { quoteId });
-
   const { data, error } = await supabase
     .from('quote_public_links')
     .select('expires_at')
@@ -103,11 +79,6 @@ export async function fetchActiveQuoteLinkExpiry(quoteId) {
     quotesDebugWarn('fetchActiveQuoteLinkExpiry:failed', error.message ?? 'unknown', {
       formatted: quotesFormatSupabaseError(error),
       quoteId,
-    });
-  } else {
-    quotesDebug('fetchActiveQuoteLinkExpiry:ok', {
-      quoteId,
-      expires_at: data?.expires_at ?? null,
     });
   }
 
@@ -124,7 +95,6 @@ export async function fetchActiveQuoteLinkExpiry(quoteId) {
  */
 export async function deleteQuoteForBusiness(businessId, quoteId) {
   const id = String(quoteId ?? '').trim();
-  quotesDebug('deleteQuoteForBusiness:start', { businessId, quoteId: id });
 
   if (!id) {
     return { deleted: false, error: new Error('Missing quote id') };
@@ -152,8 +122,6 @@ export async function deleteQuoteForBusiness(businessId, quoteId) {
       businessId,
       quoteId: id,
     });
-  } else {
-    quotesDebug('deleteQuoteForBusiness:ok', { businessId, quoteId: id });
   }
 
   return { deleted, error: deleted ? null : new Error('Quote could not be deleted') };

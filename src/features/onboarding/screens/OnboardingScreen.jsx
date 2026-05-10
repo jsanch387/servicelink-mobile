@@ -2,7 +2,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, Button } from '../../../components/ui';
+import { AppText, Button, InlineCardError } from '../../../components/ui';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BUSINESS_TYPE_OPTIONS } from '../../../constants/businessTypeOptions';
 import { useTheme } from '../../../theme';
@@ -259,18 +259,10 @@ export function OnboardingScreen() {
           paddingTop: 12,
         },
         loadErrorBox: {
-          backgroundColor: colors.shellElevated,
-          borderColor: colors.border,
-          borderRadius: 12,
-          borderWidth: 1,
           marginBottom: 16,
-          padding: 16,
         },
-        loadErrorText: {
-          color: colors.danger,
-          fontSize: 14,
-          lineHeight: 20,
-          marginBottom: 12,
+        loadErrorRetry: {
+          marginTop: 12,
         },
         title: {
           color: colors.text,
@@ -321,11 +313,8 @@ export function OnboardingScreen() {
           lineHeight: 24,
           textAlign: 'left',
         },
-        stepError: {
-          color: colors.danger,
-          fontSize: 14,
+        stepErrorWrap: {
           marginBottom: 12,
-          textAlign: 'left',
         },
         row: {
           flexDirection: 'row',
@@ -357,7 +346,7 @@ export function OnboardingScreen() {
       });
       setStep1Submitting(false);
       if (!res.ok) {
-        setStepError(res.error?.message ?? 'Could not save. Try again.');
+        setStepError(safeUserFacingMessage(res.error, { fallback: 'Could not save. Try again.' }));
         return;
       }
       await refetchOnboarding();
@@ -382,7 +371,7 @@ export function OnboardingScreen() {
       });
       setRemoteStepSaving(false);
       if (!res.ok) {
-        setStepError(res.error?.message ?? 'Could not save services.');
+        setStepError(safeUserFacingMessage(res.error, { fallback: 'Could not save services.' }));
         return;
       }
       await refetchOnboarding();
@@ -400,7 +389,9 @@ export function OnboardingScreen() {
       });
       setRemoteStepSaving(false);
       if (!res.ok) {
-        setStepError(res.error?.message ?? 'Could not save availability.');
+        setStepError(
+          safeUserFacingMessage(res.error, { fallback: 'Could not save availability.' }),
+        );
         return;
       }
       await refetchOnboarding();
@@ -420,7 +411,7 @@ export function OnboardingScreen() {
       const res = await saveOnboardingStep4Slug({ slugRaw: linkSlugDraft });
       setRemoteStepSaving(false);
       if (!res.ok) {
-        setStepError(res.error?.message ?? 'Could not save link.');
+        setStepError(safeUserFacingMessage(res.error, { fallback: 'Could not save link.' }));
         return;
       }
       await refetchOnboarding();
@@ -523,10 +514,17 @@ export function OnboardingScreen() {
           >
             {profileLoadError ? (
               <View style={styles.loadErrorBox}>
-                <AppText style={styles.loadErrorText}>
-                  {String(profileLoadError?.message ?? 'Could not load your onboarding status.')}
-                </AppText>
-                <Button onPress={() => refetchOnboarding()} title="Try again" variant="secondary" />
+                <InlineCardError
+                  message={safeUserFacingMessage(profileLoadError, {
+                    fallback: 'Could not load your onboarding status.',
+                  })}
+                />
+                <Button
+                  style={styles.loadErrorRetry}
+                  title="Try again"
+                  variant="secondary"
+                  onPress={() => refetchOnboarding()}
+                />
               </View>
             ) : null}
 
@@ -550,7 +548,11 @@ export function OnboardingScreen() {
                 ) : null}
               </>
             )}
-            {stepError ? <AppText style={styles.stepError}>{stepError}</AppText> : null}
+            {stepError ? (
+              <View style={styles.stepErrorWrap}>
+                <InlineCardError message={stepError} />
+              </View>
+            ) : null}
 
             {stepIndex === 0 ? (
               <OnboardingBusinessStepCard

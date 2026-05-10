@@ -10,6 +10,7 @@ import { PaymentsScreen } from '../features/payments/screens/PaymentsScreen';
 import { MAIN_TAB_CONFIG, ROUTES } from '../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../theme';
 import { MainTabBar } from './MainTabBar';
+import { nestedTabPressResetToRootListeners } from './nestedTabPressResetToRoot';
 
 const Tab = createBottomTabNavigator();
 
@@ -41,19 +42,36 @@ export function MainTabNavigator() {
         }}
         tabBar={(props) => <MainTabBar {...props} />}
       >
-        {MAIN_TAB_CONFIG.map(({ route, label, icon }) => (
-          <Tab.Screen
-            key={route}
-            component={tabScreens[route]}
-            name={route}
-            options={{
-              tabBarIcon: ({ color, focused, size }) => (
-                <Ionicons color={color} name={icon} size={focused ? 24 : 22} />
-              ),
-              tabBarLabel: label,
-            }}
-          />
-        ))}
+        {MAIN_TAB_CONFIG.map(({ route, label, icon }) => {
+          const nestedRootByTab =
+            route === ROUTES.BOOKINGS
+              ? ROUTES.BOOKINGS_LIST
+              : route === ROUTES.CUSTOMERS
+                ? ROUTES.CUSTOMERS_LIST
+                : route === ROUTES.MORE
+                  ? ROUTES.MORE_HOME
+                  : null;
+
+          return (
+            <Tab.Screen
+              key={route}
+              component={tabScreens[route]}
+              listeners={
+                nestedRootByTab
+                  ? (props) =>
+                      nestedTabPressResetToRootListeners(props, { rootScreen: nestedRootByTab })
+                  : undefined
+              }
+              name={route}
+              options={{
+                tabBarIcon: ({ color, focused, size }) => (
+                  <Ionicons color={color} name={icon} size={focused ? 24 : 22} />
+                ),
+                tabBarLabel: label,
+              }}
+            />
+          );
+        })}
       </Tab.Navigator>
     </>
   );

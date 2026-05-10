@@ -10,7 +10,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button, DurationSelectField, SurfaceTextField } from '../../../components/ui';
+import {
+  AppText,
+  Button,
+  DurationSelectField,
+  InlineCardError,
+  SurfaceTextField,
+} from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
 function normalizePriceInput(rawText) {
@@ -165,7 +171,9 @@ export function ServiceCreateSheet({
             ) : null}
 
             {submitError ? (
-              <AppText style={[styles.submitError, { color: '#fca5a5' }]}>{submitError}</AppText>
+              <View style={styles.submitErrorWrap}>
+                <InlineCardError message={submitError} />
+              </View>
             ) : null}
 
             <View style={styles.actions}>
@@ -262,9 +270,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginTop: 8,
   },
-  submitError: {
-    fontSize: 13,
-    fontWeight: '600',
+  submitErrorWrap: {
     marginTop: 8,
   },
   actions: {

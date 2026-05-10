@@ -1,7 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, CalendarMonthPicker, SurfaceCard } from '../../../../components/ui';
+import {
+  AppText,
+  CalendarMonthPicker,
+  InlineCardError,
+  SurfaceCard,
+} from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 
 const TIME_GRID_COLUMNS = 3;
@@ -110,10 +115,9 @@ export function ScheduleStep({
           fontWeight: '500',
           lineHeight: 20,
         },
-        err: {
-          color: colors.danger,
-          fontSize: 14,
+        scheduleErrorWrap: {
           marginBottom: 8,
+          marginTop: 10,
         },
         loadingRow: {
           alignItems: 'center',
@@ -142,7 +146,11 @@ export function ScheduleStep({
         />
       </SurfaceCard>
 
-      {scheduleError ? <AppText style={styles.err}>{scheduleError}</AppText> : null}
+      {scheduleError ? (
+        <View style={styles.scheduleErrorWrap}>
+          <InlineCardError message={scheduleError} />
+        </View>
+      ) : null}
 
       {selectedDateKey ? (
         <>

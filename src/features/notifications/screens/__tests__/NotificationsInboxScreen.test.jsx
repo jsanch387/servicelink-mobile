@@ -119,8 +119,13 @@ describe('NotificationsInboxScreen', () => {
       expect(mockNavigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
         screen: ROUTES.BOOKINGS,
         params: {
-          screen: ROUTES.BOOKING_DETAILS,
-          params: { bookingId: 'booking-uuid-1' },
+          state: {
+            routes: [
+              { name: ROUTES.BOOKINGS_LIST },
+              { name: ROUTES.BOOKING_DETAILS, params: { bookingId: 'booking-uuid-1' } },
+            ],
+            index: 1,
+          },
         },
       });
     });
