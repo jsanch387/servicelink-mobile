@@ -7,6 +7,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
@@ -17,7 +18,9 @@ import {
   AppText,
   Button,
   DurationSelectField,
+  InlineCardError,
   ProCrownIcon,
+  SurfaceCard,
   SurfaceTextField,
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
@@ -216,8 +219,10 @@ export function ServiceEditScreen({ route }) {
   const {
     data: fetchedEditorData,
     isLoading: isEditorLoading,
+    isFetching: isEditorFetching,
     errorMessage: editorErrorMessage,
     businessId,
+    refetch: refetchServiceEditor,
   } = useServiceEditData(routeServiceId, routeService);
   const [serviceName, setServiceName] = useState(initialDraft.serviceName);
   const [description, setDescription] = useState(initialDraft.description);
@@ -281,6 +286,18 @@ export function ServiceEditScreen({ route }) {
     userId: user?.id,
     serviceId: routeServiceId,
   });
+
+  const editorRefreshControl = useMemo(
+    () => (
+      <RefreshControl
+        colors={[colors.accent]}
+        onRefresh={() => void refetchServiceEditor()}
+        refreshing={Boolean(isEditorFetching && !isEditorLoading)}
+        tintColor={colors.accent}
+      />
+    ),
+    [colors.accent, isEditorFetching, isEditorLoading, refetchServiceEditor],
+  );
 
   const editingAddon = useMemo(
     () => (editingAddonId ? (addonOptions.find((a) => a.id === editingAddonId) ?? null) : null),
@@ -625,6 +642,7 @@ export function ServiceEditScreen({ route }) {
             { paddingBottom: Math.max(insets.bottom, 16) + stickyBarHeight + 20 },
           ]}
           keyboardShouldPersistTaps="handled"
+          refreshControl={editorRefreshControl}
           showsVerticalScrollIndicator={false}
         >
           {isEditorLoading ? (
@@ -632,10 +650,20 @@ export function ServiceEditScreen({ route }) {
               Loading latest service details...
             </AppText>
           ) : null}
-          {editorErrorMessage ? (
-            <AppText style={[styles.loadStateText, { color: '#fca5a5' }]}>
-              {editorErrorMessage}
-            </AppText>
+          {!isEditorLoading && editorErrorMessage ? (
+            <SurfaceCard style={styles.loadErrorCard}>
+              <InlineCardError message={editorErrorMessage} />
+              <Button
+                accessibilityHint="Attempts to load service details again"
+                accessibilityLabel="Try again"
+                fullWidth
+                loading={Boolean(isEditorFetching && !isEditorLoading)}
+                style={styles.loadErrorRetry}
+                title="Try again"
+                variant="secondary"
+                onPress={() => void refetchServiceEditor()}
+              />
+            </SurfaceCard>
           ) : null}
 
           <CollapsibleEditorSectionCard
@@ -996,6 +1024,12 @@ const styles = StyleSheet.create({
   loadStateText: {
     fontSize: 13,
     marginBottom: 8,
+  },
+  loadErrorCard: {
+    marginBottom: 12,
+  },
+  loadErrorRetry: {
+    marginTop: 12,
   },
   descriptionInput: {
     minHeight: 140,

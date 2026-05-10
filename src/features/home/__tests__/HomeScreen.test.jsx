@@ -89,17 +89,6 @@ describe('HomeScreen', () => {
     expect(screen.queryByText('Next Up')).toBeNull();
   });
 
-  it('shows Updating when background refetch runs with cached content', () => {
-    mockUseHomeDashboard.mockReturnValue(
-      baseDashboard({
-        isFetching: true,
-        isLoading: false,
-      }),
-    );
-    renderWithProviders(<HomeScreen />);
-    expect(screen.getByText('Updating…')).toBeTruthy();
-  });
-
   it('navigates to notifications inbox when bell is pressed', () => {
     renderWithProviders(<HomeScreen />);
     fireEvent.press(screen.getByLabelText('Notifications'));
@@ -118,17 +107,5 @@ describe('HomeScreen', () => {
     fireEvent.press(screen.getByLabelText('Open create menu'));
     fireEvent.press(screen.getByLabelText('Create quote'));
     expect(mockNavigate).toHaveBeenCalledWith(ROUTES.CREATE_QUOTE);
-  });
-
-  it('does not show Updating during initial load', () => {
-    mockUseHomeDashboard.mockReturnValue(
-      baseDashboard({
-        isPendingBusiness: true,
-        isLoading: true,
-        isFetching: true,
-      }),
-    );
-    renderWithProviders(<HomeScreen />);
-    expect(screen.queryByText('Updating…')).toBeNull();
   });
 });

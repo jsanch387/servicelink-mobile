@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { useAuth } from '../../auth';
 import { buildCustomerDetailsFromApi } from '../customer-details/utils/buildCustomerDetailsFromApi';
 import { fetchBookingsForCustomerMetrics, fetchCustomerForBusiness } from '../api/customers';
@@ -72,6 +73,12 @@ export function useCustomerDetails(customerId) {
   const notFound = Boolean(payload?.notFound);
   const model = payload?.model ?? null;
 
+  const refetch = useCallback(async () => {
+    await Promise.all([businessQ.refetch(), detailQ.refetch()]);
+  }, [businessQ, detailQ]);
+
+  const isFetching = businessQ.isFetching || detailQ.isFetching;
+
   return {
     businessId,
     businessError,
@@ -79,7 +86,9 @@ export function useCustomerDetails(customerId) {
     detailError,
     invalidId,
     isLoading,
+    isFetching,
     model,
     notFound,
+    refetch,
   };
 }

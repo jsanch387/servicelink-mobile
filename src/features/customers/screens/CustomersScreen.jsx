@@ -5,6 +5,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AppText,
+  Button,
   FilterPills,
   InlineCardError,
   SkeletonBox,
@@ -88,6 +89,16 @@ export function CustomersScreen() {
             <View style={styles.errorBlock}>
               <SurfaceCard>
                 <InlineCardError message={customersList.businessError} />
+                <Button
+                  accessibilityHint="Attempts to load customers again"
+                  accessibilityLabel="Try again"
+                  fullWidth
+                  loading={Boolean(customersList.isFetching && !customersList.isLoading)}
+                  style={styles.errorRetry}
+                  title="Try again"
+                  variant="secondary"
+                  onPress={() => void customersList.refetch()}
+                />
               </SurfaceCard>
             </View>
           ) : null}
@@ -95,6 +106,16 @@ export function CustomersScreen() {
             <View style={styles.errorBlock}>
               <SurfaceCard>
                 <InlineCardError message={customersList.listError} />
+                <Button
+                  accessibilityHint="Attempts to load customers again"
+                  accessibilityLabel="Try again"
+                  fullWidth
+                  loading={Boolean(customersList.isFetching && !customersList.isLoading)}
+                  style={styles.errorRetry}
+                  title="Try again"
+                  variant="secondary"
+                  onPress={() => void customersList.refetch()}
+                />
               </SurfaceCard>
             </View>
           ) : null}
@@ -184,6 +205,9 @@ const styles = StyleSheet.create({
   },
   errorBlock: {
     marginBottom: 16,
+  },
+  errorRetry: {
+    marginTop: 12,
   },
   emptyWrap: {
     alignItems: 'center',

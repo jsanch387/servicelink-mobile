@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { AppText, Button, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { BookingCard } from '../components/BookingCard';
@@ -106,12 +106,8 @@ export function BookingsScreen() {
           position: 'relative',
           zIndex: 24,
         },
-        syncHint: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontWeight: '600',
-          marginBottom: 8,
-          textAlign: 'center',
+        errorRetry: {
+          marginTop: 12,
         },
         listContent: {
           flexGrow: 1,
@@ -167,7 +163,6 @@ export function BookingsScreen() {
     [colors, bottomPad, insets.bottom, insets.left, insets.right],
   );
 
-  const showSyncHint = viewMode === BOOKINGS_VIEW_LIST && list.isFetching && !list.isLoading;
   const scheduleError = list.businessError || list.listError;
   const showRelativeLine = list.listFilter === BOOKINGS_FILTER_UPCOMING;
 
@@ -208,11 +203,20 @@ export function BookingsScreen() {
   const listHeader = useMemo(
     () => (
       <View>
-        {showSyncHint ? <AppText style={styles.syncHint}>Updating…</AppText> : null}
         {list.businessError ? (
           <View style={styles.errorBlock}>
             <SurfaceCard>
               <InlineCardError message={list.businessError} />
+              <Button
+                accessibilityHint="Attempts to load bookings again"
+                accessibilityLabel="Try again"
+                fullWidth
+                loading={list.isFetching && !list.isLoading}
+                style={styles.errorRetry}
+                title="Try again"
+                variant="secondary"
+                onPress={() => void list.refetch()}
+              />
             </SurfaceCard>
           </View>
         ) : null}
@@ -220,6 +224,16 @@ export function BookingsScreen() {
           <View style={styles.errorBlock}>
             <SurfaceCard>
               <InlineCardError message={list.listError} />
+              <Button
+                accessibilityHint="Attempts to load bookings again"
+                accessibilityLabel="Try again"
+                fullWidth
+                loading={list.isFetching && !list.isLoading}
+                style={styles.errorRetry}
+                title="Try again"
+                variant="secondary"
+                onPress={() => void list.refetch()}
+              />
             </SurfaceCard>
           </View>
         ) : null}
@@ -228,10 +242,12 @@ export function BookingsScreen() {
     [
       list.business?.id,
       list.businessError,
+      list.isFetching,
+      list.isLoading,
       list.listError,
-      showSyncHint,
+      list.refetch,
       styles.errorBlock,
-      styles.syncHint,
+      styles.errorRetry,
     ],
   );
 
@@ -334,8 +350,10 @@ export function BookingsScreen() {
             isLoading={planner.isLoading}
             onBookingPress={onPlannerBookingPress}
             onRefresh={onRefresh}
+            onRetryRefetch={() => void planner.refetch()}
             onShiftDay={shiftPlannerDay}
             plannerDate={plannerDate}
+            retryLoading={planner.isFetching && !planner.isLoading}
             refreshing={refreshing}
           />
         </View>

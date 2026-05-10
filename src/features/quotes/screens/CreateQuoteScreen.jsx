@@ -5,13 +5,14 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { InlineCardError } from '../../../components/ui';
+import { Button, InlineCardError } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
@@ -317,6 +318,18 @@ export function CreateQuoteScreen() {
 
   const sendButtonTitle = 'Send quote';
 
+  const businessLoadRefreshControl = useMemo(
+    () => (
+      <RefreshControl
+        colors={[colors.accent]}
+        onRefresh={() => void businessQ.refetch()}
+        refreshing={Boolean(businessQ.isFetching && !businessQ.isLoading)}
+        tintColor={colors.accent}
+      />
+    ),
+    [businessQ, colors.accent],
+  );
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -366,6 +379,9 @@ export function CreateQuoteScreen() {
           alignItems: 'center',
           paddingVertical: 24,
         },
+        businessErrorRetry: {
+          marginTop: 12,
+        },
       }),
     [colors],
   );
@@ -373,9 +389,13 @@ export function CreateQuoteScreen() {
   if (businessQ.isLoading) {
     return (
       <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.root}>
-        <View style={styles.loadingBox}>
+        <ScrollView
+          contentContainerStyle={styles.loadingBox}
+          refreshControl={businessLoadRefreshControl}
+          style={styles.scroll}
+        >
           <ActivityIndicator color={colors.textMuted} />
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -383,8 +403,22 @@ export function CreateQuoteScreen() {
   if (businessQ.isError) {
     return (
       <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.root}>
-        <ScrollView contentContainerStyle={styles.content} style={styles.scroll}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={businessLoadRefreshControl}
+          style={styles.scroll}
+        >
           <InlineCardError message={businessQ.error?.message ?? 'Could not load your business.'} />
+          <Button
+            accessibilityHint="Attempts to load your business again"
+            accessibilityLabel="Try again"
+            fullWidth
+            loading={Boolean(businessQ.isFetching && !businessQ.isLoading)}
+            style={styles.businessErrorRetry}
+            title="Try again"
+            variant="secondary"
+            onPress={() => void businessQ.refetch()}
+          />
         </ScrollView>
       </SafeAreaView>
     );

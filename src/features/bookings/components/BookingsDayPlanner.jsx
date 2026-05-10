@@ -9,7 +9,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { AppText, InlineCardError, SurfaceCard } from '../../../components/ui';
+import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { getBookingStatusLabel, getBookingStatusVisualKind } from '../utils/bookingStatusVisual';
@@ -40,6 +40,8 @@ function plannerHourClockMeridiem(_anchorDate, hour0to23) {
  *   dayError: string | null;
  *   hasBusiness: boolean;
  *   onRefresh: () => void;
+ *   onRetryRefetch?: () => void;
+ *   retryLoading?: boolean;
  *   refreshing: boolean;
  *   showNowLine?: boolean;
  *   onBookingPress?: (booking: import('../api/bookings').BookingRow) => void;
@@ -54,6 +56,8 @@ export function BookingsDayPlanner({
   dayError,
   hasBusiness,
   onRefresh,
+  onRetryRefetch,
+  retryLoading = false,
   refreshing,
   showNowLine = true,
   onBookingPress,
@@ -131,6 +135,10 @@ export function BookingsDayPlanner({
         },
         errorBlock: {
           marginBottom: 12,
+        },
+        errorRetryWrap: {
+          marginBottom: 12,
+          paddingHorizontal: 8,
         },
         scroll: {
           flex: 1,
@@ -414,6 +422,20 @@ export function BookingsDayPlanner({
           <SurfaceCard>
             <InlineCardError message={dayError} />
           </SurfaceCard>
+        </View>
+      ) : null}
+
+      {businessError || dayError ? (
+        <View style={styles.errorRetryWrap}>
+          <Button
+            accessibilityHint="Attempts to load the planner again"
+            accessibilityLabel="Try again"
+            fullWidth
+            loading={retryLoading}
+            title="Try again"
+            variant="secondary"
+            onPress={() => onRetryRefetch?.()}
+          />
         </View>
       ) : null}
 

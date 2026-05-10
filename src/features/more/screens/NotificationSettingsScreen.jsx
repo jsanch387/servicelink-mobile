@@ -1,7 +1,7 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useMemo } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Switch, View } from 'react-native';
-import { AppText, InlineCardError, SurfaceCard } from '../../../components/ui';
+import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { NotificationSettingsScreenSkeleton } from '../components/NotificationSettingsScreenSkeleton';
@@ -102,10 +102,8 @@ export function NotificationSettingsScreen() {
           lineHeight: 19,
           marginBottom: 12,
         },
-        updatingHint: {
-          color: colors.textMuted,
-          fontSize: 13,
-          marginBottom: -8,
+        loadErrorRetry: {
+          marginTop: 12,
         },
       }),
     [colors, scrollBottomPad],
@@ -149,6 +147,16 @@ export function NotificationSettingsScreen() {
           style={styles.scroll}
         >
           <InlineCardError message={loadError} />
+          <Button
+            accessibilityHint="Attempts to load notification settings again"
+            accessibilityLabel="Try again"
+            fullWidth
+            loading={Boolean(isFetching && !isLoading)}
+            style={styles.loadErrorRetry}
+            title="Try again"
+            variant="secondary"
+            onPress={() => void refetch()}
+          />
         </ScrollView>
       </View>
     );
@@ -167,7 +175,6 @@ export function NotificationSettingsScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
-        {isFetching && !isLoading ? <AppText style={styles.updatingHint}>Updating…</AppText> : null}
         <SurfaceCard style={styles.card}>
           <AppText style={styles.title}>Push notifications</AppText>
           <AppText style={styles.helper}>

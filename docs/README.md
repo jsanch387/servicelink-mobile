@@ -13,9 +13,10 @@ Integration and product docs live **with their features** under `src/features/<f
 
 ## Repo-wide (stays in `/docs`)
 
-| Doc                                           | Purpose                        |
-| --------------------------------------------- | ------------------------------ |
-| [App launch checklist](./app-launch-todos.md) | Pre–App Store progress tracker |
+| Doc                                                                           | Purpose                                             |
+| ----------------------------------------------------------------------------- | --------------------------------------------------- |
+| [App launch checklist](./app-launch-todos.md)                                 | Pre–App Store progress tracker                      |
+| [Offline / load-error Phase 2 checklist](./offline-error-phase2-checklist.md) | Per-screen skeleton · error · retry vs inbox/quotes |
 
 ## Redirect
 

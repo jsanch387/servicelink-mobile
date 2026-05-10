@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
@@ -124,6 +124,18 @@ export function BookingDetailsScreen({ route }) {
     return parseBookingStartLocalMs(raw?.scheduled_date, raw?.start_time);
   }, [detailsQuery.booking]);
 
+  const detailsRefreshControl = useMemo(
+    () => (
+      <RefreshControl
+        colors={[colors.accent]}
+        onRefresh={() => void detailsQuery.refetch()}
+        refreshing={Boolean(detailsQuery.isFetching && !detailsQuery.isLoading)}
+        tintColor={colors.accent}
+      />
+    ),
+    [colors.accent, detailsQuery.isFetching, detailsQuery.isLoading, detailsQuery.refetch],
+  );
+
   const handleCancelBooking = useCallback(() => {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
       return;
@@ -166,6 +178,9 @@ export function BookingDetailsScreen({ route }) {
         errorWrap: {
           marginTop: 8,
         },
+        errorRetry: {
+          marginTop: 12,
+        },
       }),
     [colors],
   );
@@ -179,13 +194,27 @@ export function BookingDetailsScreen({ route }) {
         visible={rescheduleSheetOpen}
         onRequestClose={() => setRescheduleSheetOpen(false)}
       />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={detailsRefreshControl}
+        showsVerticalScrollIndicator={false}
+      >
         {detailsQuery.isLoading ? <BookingDetailsSkeleton /> : null}
 
         {detailsQuery.errorMessage ? (
           <View style={styles.errorWrap}>
             <SurfaceCard>
               <InlineCardError message={detailsQuery.errorMessage} />
+              <Button
+                accessibilityHint="Attempts to load this booking again"
+                accessibilityLabel="Try again"
+                fullWidth
+                loading={Boolean(detailsQuery.isFetching && !detailsQuery.isLoading)}
+                style={styles.errorRetry}
+                title="Try again"
+                variant="secondary"
+                onPress={() => void detailsQuery.refetch()}
+              />
             </SurfaceCard>
           </View>
         ) : null}

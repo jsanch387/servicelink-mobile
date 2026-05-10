@@ -353,11 +353,6 @@ export function NotificationsInboxScreen() {
         markAllTextDisabled: {
           opacity: 0.35,
         },
-        updatingHint: {
-          color: colors.textMuted,
-          fontSize: 13,
-          marginBottom: 6,
-        },
         emptyTitle: {
           color: colors.text,
           fontFamily: FONT_FAMILIES.semibold,
@@ -416,7 +411,6 @@ export function NotificationsInboxScreen() {
   const listHeader = useMemo(
     () => (
       <View style={styles.headerBlock}>
-        {isFetching && !isLoading ? <AppText style={styles.updatingHint}>Updating…</AppText> : null}
         <InboxSegment activeScope={scope} onSelect={setScope} />
         <View style={styles.actionsRow}>
           <Pressable
@@ -442,15 +436,12 @@ export function NotificationsInboxScreen() {
     ),
     [
       handleMarkAllRead,
-      isFetching,
-      isLoading,
       markAllMutation.isPending,
       scope,
       styles.actionsRow,
       styles.headerBlock,
       styles.markAllText,
       styles.markAllTextDisabled,
-      styles.updatingHint,
       unreadCount,
     ],
   );

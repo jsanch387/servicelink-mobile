@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { minutesToServiceDurationHHmm } from '../../../components/ui/durationTime';
 import { useAuth } from '../../auth';
 import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
@@ -161,14 +162,22 @@ export function useServiceEditData(serviceId, routeService) {
     gcTime: 10 * 60 * 1000,
   });
 
+  const refetch = useCallback(async () => {
+    await Promise.all([businessQ.refetch(), editorQ.refetch()]);
+  }, [businessQ, editorQ]);
+
+  const isFetching = businessQ.isFetching || editorQ.isFetching;
+
   return {
     businessId,
     isLoading: businessQ.isPending || editorQ.isPending,
+    isFetching,
     errorMessage: editorQ.isError
       ? (editorQ.error?.message ?? 'Could not load service details')
       : businessQ.isError
         ? (businessQ.error?.message ?? 'Could not load business')
         : null,
     data: editorQ.data ?? null,
+    refetch,
   };
 }

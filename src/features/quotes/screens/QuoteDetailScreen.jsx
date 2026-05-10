@@ -125,6 +125,18 @@ export function QuoteDetailScreen() {
     navigation.goBack();
   }, [navigation, queryClient]);
 
+  const quoteDetailRefreshControl = useMemo(
+    () => (
+      <RefreshControl
+        colors={[colors.accent]}
+        onRefresh={() => void refetch()}
+        refreshing={Boolean(isFetching && !isLoading)}
+        tintColor={colors.accent}
+      />
+    ),
+    [colors.accent, isFetching, isLoading, refetch],
+  );
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -150,6 +162,9 @@ export function QuoteDetailScreen() {
           flex: 1,
           justifyContent: 'center',
           paddingHorizontal: SCREEN_GUTTER,
+        },
+        errorRetry: {
+          marginTop: 12,
         },
         errorFooter: {
           gap: 14,
@@ -233,11 +248,26 @@ export function QuoteDetailScreen() {
   if (businessError) {
     return (
       <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.root}>
-        <View style={[styles.content, { paddingTop: 20 }]}>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingTop: 20 }]}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={quoteDetailRefreshControl}
+          style={styles.scroll}
+        >
           <SurfaceCard padding="md">
             <InlineCardError message={businessError} />
+            <Button
+              accessibilityHint="Attempts to load this quote again"
+              accessibilityLabel="Try again"
+              fullWidth
+              loading={Boolean(isFetching && !isLoading)}
+              style={styles.errorRetry}
+              title="Try again"
+              variant="secondary"
+              onPress={() => void refetch()}
+            />
           </SurfaceCard>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -259,12 +289,27 @@ export function QuoteDetailScreen() {
   if (detailError || !model || !kind) {
     return (
       <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.root}>
-        <View style={[styles.content, { paddingTop: 20 }]}>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingTop: 20 }]}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={quoteDetailRefreshControl}
+          style={styles.scroll}
+        >
           <SurfaceCard padding="md">
             <InlineCardError
               message={
                 detailError ?? 'We could not load this quote. Go back to Quotes and try again.'
               }
+            />
+            <Button
+              accessibilityHint="Attempts to load this quote again"
+              accessibilityLabel="Try again"
+              fullWidth
+              loading={Boolean(isFetching && !isLoading)}
+              style={styles.errorRetry}
+              title="Try again"
+              variant="secondary"
+              onPress={() => void refetch()}
             />
           </SurfaceCard>
           <View style={styles.errorFooter}>
@@ -275,7 +320,7 @@ export function QuoteDetailScreen() {
               onPress={handleBackToQuotes}
             />
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }

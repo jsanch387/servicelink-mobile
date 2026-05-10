@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -92,9 +92,11 @@ export function CustomerDetailsScreen() {
     customerId: detailCustomerId,
     detailError,
     invalidId,
+    isFetching,
     isLoading,
     model,
     notFound,
+    refetch,
   } = useCustomerDetails(customerId);
 
   const customerPhoneDigits = useMemo(
@@ -245,6 +247,18 @@ export function CustomerDetailsScreen() {
     }
   }, [businessId, detailCustomerId, notesDraft, notesSaving, queryClient]);
 
+  const refreshControl = useMemo(
+    () => (
+      <RefreshControl
+        colors={[colors.accent]}
+        onRefresh={() => void refetch()}
+        refreshing={Boolean(isFetching && !isLoading)}
+        tintColor={colors.accent}
+      />
+    ),
+    [colors.accent, isFetching, isLoading, refetch],
+  );
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -275,8 +289,12 @@ export function CustomerDetailsScreen() {
           textAlign: 'center',
         },
         errorBlock: {
+          flexGrow: 1,
           paddingHorizontal: 16,
           paddingTop: 16,
+        },
+        errorRetry: {
+          marginTop: 12,
         },
       }),
     [colors],
@@ -299,11 +317,26 @@ export function CustomerDetailsScreen() {
   if (businessError) {
     return (
       <SafeAreaView edges={['left', 'right']} style={styles.root}>
-        <View style={styles.errorBlock}>
+        <ScrollView
+          contentContainerStyle={styles.errorBlock}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={refreshControl}
+          showsVerticalScrollIndicator={false}
+        >
           <SurfaceCard>
             <InlineCardError message={businessError} />
+            <Button
+              accessibilityHint="Attempts to load this customer again"
+              accessibilityLabel="Try again"
+              fullWidth
+              loading={Boolean(isFetching && !isLoading)}
+              style={styles.errorRetry}
+              title="Try again"
+              variant="secondary"
+              onPress={() => void refetch()}
+            />
           </SurfaceCard>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -311,11 +344,26 @@ export function CustomerDetailsScreen() {
   if (detailError) {
     return (
       <SafeAreaView edges={['left', 'right']} style={styles.root}>
-        <View style={styles.errorBlock}>
+        <ScrollView
+          contentContainerStyle={styles.errorBlock}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={refreshControl}
+          showsVerticalScrollIndicator={false}
+        >
           <SurfaceCard>
             <InlineCardError message={detailError} />
+            <Button
+              accessibilityHint="Attempts to load this customer again"
+              accessibilityLabel="Try again"
+              fullWidth
+              loading={Boolean(isFetching && !isLoading)}
+              style={styles.errorRetry}
+              title="Try again"
+              variant="secondary"
+              onPress={() => void refetch()}
+            />
           </SurfaceCard>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -323,7 +371,11 @@ export function CustomerDetailsScreen() {
   if (isLoading || !model) {
     return (
       <SafeAreaView edges={['left', 'right']} style={styles.root}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={refreshControl}
+          showsVerticalScrollIndicator={false}
+        >
           <CustomerDetailsSkeleton />
         </ScrollView>
       </SafeAreaView>
@@ -332,7 +384,11 @@ export function CustomerDetailsScreen() {
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={refreshControl}
+        showsVerticalScrollIndicator={false}
+      >
         <CustomerProfileContactCard
           email={model.email}
           fullName={model.fullName}

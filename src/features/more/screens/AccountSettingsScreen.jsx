@@ -37,6 +37,7 @@ export function AccountSettingsScreen() {
     ownerProfile,
     business,
     isLoading,
+    isFetching,
     loadError,
     refetch,
     updateSlug,
@@ -93,10 +94,8 @@ export function AccountSettingsScreen() {
           fontWeight: '600',
           letterSpacing: -0.2,
         },
-        updatingHint: {
-          color: colors.textMuted,
-          fontSize: 13,
-          marginBottom: -8,
+        loadErrorRetry: {
+          marginTop: 12,
         },
         deleteHint: {
           color: colors.textMuted,
@@ -190,6 +189,16 @@ export function AccountSettingsScreen() {
           style={styles.scroll}
         >
           <InlineCardError message={loadError} />
+          <Button
+            accessibilityHint="Attempts to load account settings again"
+            accessibilityLabel="Try again"
+            fullWidth
+            loading={Boolean(isFetching && !isLoading)}
+            style={styles.loadErrorRetry}
+            title="Try again"
+            variant="secondary"
+            onPress={() => void refetch()}
+          />
         </ScrollView>
       </View>
     );
@@ -237,7 +246,6 @@ export function AccountSettingsScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
-        {isManualRefreshing ? <AppText style={styles.updatingHint}>Updating…</AppText> : null}
         <View style={styles.signedInBlock}>
           <AppText style={styles.signedInLabel}>Signed in as</AppText>
           <AppText selectable style={styles.signedInEmail}>

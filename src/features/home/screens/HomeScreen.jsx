@@ -141,13 +141,6 @@ export function HomeScreen() {
         headerDivider: {
           marginBottom: 8,
         },
-        syncHint: {
-          fontSize: 12,
-          fontWeight: '600',
-          marginBottom: 4,
-          marginTop: 0,
-          textAlign: 'left',
-        },
       }),
     [colors, scrollBottomPad],
   );
@@ -219,9 +212,6 @@ export function HomeScreen() {
           </Pressable>
         </View>
         <Divider style={styles.headerDivider} />
-        {dashboard.isFetching && !dashboard.isLoading ? (
-          <AppText style={[styles.syncHint, { color: colors.textMuted }]}>Updating…</AppText>
-        ) : null}
         {homeErrors.bannerError ? <HomeErrorBanner message={homeErrors.bannerError} /> : null}
         <AppText style={[styles.sectionLabel, styles.sectionLabelFirst]}>
           {nextUpSectionTitle}

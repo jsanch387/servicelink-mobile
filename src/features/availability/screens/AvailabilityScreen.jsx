@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
@@ -51,6 +59,23 @@ export function AvailabilityScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const availability = useBusinessAvailability();
+  const {
+    refetch: refetchAvailability,
+    isFetching: availabilityIsFetching,
+    isLoading: availabilityIsLoading,
+  } = availability;
+
+  const availabilityRefreshControl = useMemo(
+    () => (
+      <RefreshControl
+        colors={[colors.accent]}
+        onRefresh={() => void refetchAvailability()}
+        refreshing={Boolean(availabilityIsFetching && !availabilityIsLoading)}
+        tintColor={colors.accent}
+      />
+    ),
+    [availabilityIsFetching, availabilityIsLoading, colors.accent, refetchAvailability],
+  );
   const { saveAvailability, isSaving, saveError } = useSaveBusinessAvailability({
     businessId: availability.businessId,
   });
@@ -271,7 +296,11 @@ export function AvailabilityScreen() {
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={availabilityRefreshControl}
+        showsVerticalScrollIndicator={false}
+      >
         {availability.businessError ? (
           <SurfaceCard style={{ marginBottom: 10 }}>
             <InlineCardError message={availability.businessError} />
@@ -281,6 +310,18 @@ export function AvailabilityScreen() {
           <SurfaceCard style={{ marginBottom: 10 }}>
             <InlineCardError message={availability.availabilityError} />
           </SurfaceCard>
+        ) : null}
+        {availability.businessError || availability.availabilityError ? (
+          <Button
+            accessibilityHint="Attempts to load availability again"
+            accessibilityLabel="Try again"
+            fullWidth
+            loading={Boolean(availabilityIsFetching && !availabilityIsLoading)}
+            style={{ marginBottom: 14 }}
+            title="Try again"
+            variant="secondary"
+            onPress={() => void refetchAvailability()}
+          />
         ) : null}
         {availability.isLoading ? (
           <AvailabilityScreenSkeleton />
