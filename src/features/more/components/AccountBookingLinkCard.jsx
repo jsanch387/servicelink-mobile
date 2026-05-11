@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { useCallback, useMemo, useState } from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
@@ -19,29 +19,6 @@ export function AccountBookingLinkCard({
     () =>
       StyleSheet.create({
         card: { gap: 14 },
-        cardHeaderRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          minHeight: 24,
-        },
-        cardTitle: {
-          color: colors.text,
-          flex: 1,
-          fontSize: 16,
-          fontWeight: '700',
-          letterSpacing: -0.2,
-        },
-        iconHit: {
-          alignItems: 'center',
-          height: 28,
-          justifyContent: 'center',
-          opacity: 1,
-          width: 28,
-        },
-        iconHitDisabled: {
-          opacity: 0.35,
-        },
         linkDescription: {
           color: colors.textMuted,
           fontSize: 13,
@@ -107,28 +84,8 @@ export function AccountBookingLinkCard({
     setTimeout(() => setCopied(false), 2000);
   }, [httpsUrl]);
 
-  const handleOpenPublicPage = useCallback(() => {
-    if (!httpsUrl) return;
-    void Linking.openURL(httpsUrl);
-  }, [httpsUrl]);
-
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.cardHeaderRow}>
-        <AppText style={styles.cardTitle}>Your Link</AppText>
-        <Pressable
-          accessibilityLabel="Open public booking page"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !hasSlug }}
-          disabled={!hasSlug}
-          hitSlop={8}
-          style={[styles.iconHit, !hasSlug && styles.iconHitDisabled]}
-          onPress={handleOpenPublicPage}
-        >
-          <Ionicons color={colors.textMuted} name="open-outline" size={20} />
-        </Pressable>
-      </View>
-
       <AppText style={styles.linkDescription}>
         This is your public booking link. Share it anywhere customers find you.
       </AppText>

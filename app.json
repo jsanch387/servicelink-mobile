@@ -24,6 +24,15 @@
         "projectId": "0bcb9f83-d0dc-4157-a81c-ecc3e1a069ee"
       }
     },
-    "owner": "jsanch-dev"
+    "owner": "jsanch-dev",
+    "ios": {
+      "bundleIdentifier": "com.jsanchdev.servicelinkmobile",
+      "buildNumber": "1",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.jsanchdev.servicelinkmobile",
+      "versionCode": 1
+    }
   }
 }

@@ -14,6 +14,11 @@ import {
   serviceDurationHHmmToMinutes,
 } from '../../../components/ui/durationTime';
 import { useTheme } from '../../../theme';
+import {
+  MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH,
+  MAX_ONBOARDING_SERVICE_NAME_LENGTH,
+  MAX_ONBOARDING_SERVICE_PRICE_INPUT_LENGTH,
+} from '../constants/onboardingInputLimits';
 
 function normalizePriceInput(rawText) {
   const input = String(rawText ?? '').replace(/\$/g, '');
@@ -28,6 +33,9 @@ function normalizePriceInput(rawText) {
       out += ch;
       dotSeen = true;
     }
+  }
+  if (out.length > MAX_ONBOARDING_SERVICE_PRICE_INPUT_LENGTH) {
+    return out.slice(0, MAX_ONBOARDING_SERVICE_PRICE_INPUT_LENGTH);
   }
   return out;
 }
@@ -73,21 +81,27 @@ export function OnboardingServicesStep({ services, onServicesChange }) {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        cardTitle: {
+        addServiceTitle: {
+          alignSelf: 'stretch',
           color: colors.text,
           fontSize: 17,
           fontWeight: '700',
-          marginBottom: 4,
+          letterSpacing: -0.2,
+          marginBottom: 10,
         },
-        fieldBlock: {
-          marginBottom: 4,
+        /** Same vertical gap after each logical group (name / description / price+time). */
+        formSection: {
+          marginBottom: 16,
+        },
+        fieldFlush: {
+          marginBottom: 0,
         },
         descriptionToolbar: {
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'space-between',
-          marginBottom: 12,
-          marginTop: -8,
+          marginBottom: 0,
+          marginTop: 8,
         },
         charCount: {
           fontSize: 13,
@@ -137,6 +151,14 @@ export function OnboardingServicesStep({ services, onServicesChange }) {
           height: 36,
           justifyContent: 'center',
           width: 36,
+        },
+        /** Space between price row and duration row inside the same section. */
+        priceFieldContainer: {
+          marginBottom: 12,
+        },
+        durationFieldContainer: {
+          marginBottom: 0,
+          marginTop: 0,
         },
       }),
     [colors],
@@ -191,24 +213,26 @@ export function OnboardingServicesStep({ services, onServicesChange }) {
 
   return (
     <>
+      <AppText style={styles.addServiceTitle}>Service details</AppText>
       <SurfaceCard>
-        <AppText style={styles.cardTitle}>Add a service</AppText>
-
-        <View style={styles.fieldBlock}>
+        <View style={styles.formSection}>
           <RequiredLabel colors={colors}>Service name</RequiredLabel>
           <SurfaceTextField
+            containerStyle={styles.fieldFlush}
             label={null}
+            maxLength={MAX_ONBOARDING_SERVICE_NAME_LENGTH}
             placeholder="e.g. Full detail, Lawn mowing"
             value={name}
             onChangeText={setName}
           />
         </View>
 
-        <View style={styles.fieldBlock}>
+        <View style={styles.formSection}>
           <RequiredLabel colors={colors}>Description</RequiredLabel>
           <SurfaceTextField
+            containerStyle={styles.fieldFlush}
             label={null}
-            maxLength={800}
+            maxLength={MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH}
             multiline
             placeholder="Tell customers what they get."
             style={{ minHeight: 100 }}
@@ -226,29 +250,31 @@ export function OnboardingServicesStep({ services, onServicesChange }) {
               <Ionicons color={colors.textMuted} name="list-outline" size={18} />
             </Pressable>
             <AppText style={[styles.charCount, { color: colors.textMuted }]}>
-              {description.length}/800
+              {description.length}/{MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH}
             </AppText>
           </View>
         </View>
 
-        <View style={styles.fieldBlock}>
+        <View style={styles.formSection}>
           <RequiredLabel colors={colors}>Price</RequiredLabel>
           <SurfaceTextField
+            containerStyle={[styles.fieldFlush, styles.priceFieldContainer]}
             keyboardType="decimal-pad"
             label={null}
+            maxLength={MAX_ONBOARDING_SERVICE_PRICE_INPUT_LENGTH + 1}
             placeholder="$0"
             value={price ? `$${price}` : ''}
             onChangeText={(text) => setPrice(normalizePriceInput(text))}
           />
+          <RequiredLabel colors={colors}>Duration</RequiredLabel>
+          <DurationSelectField
+            containerStyle={styles.durationFieldContainer}
+            label={null}
+            placeholder="How long does it take?"
+            value={durationHHmm}
+            onValueChange={setDurationHHmm}
+          />
         </View>
-
-        <DurationSelectField
-          containerStyle={{ marginBottom: 16 }}
-          label="Duration"
-          placeholder="How long does it take?"
-          value={durationHHmm}
-          onValueChange={setDurationHHmm}
-        />
 
         <Button
           disabled={!canAdd}

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
+import { clearPendingBookingLinkNavigation } from '../../onboarding/constants/postOnboardingNavigation';
 import {
   getSession,
   onAuthStateChange,
@@ -60,6 +61,7 @@ export function AuthProvider({ children }) {
     const { data } = onAuthStateChange((event, nextSession) => {
       if (event === 'SIGNED_OUT') {
         queryClient.clear();
+        void clearPendingBookingLinkNavigation();
       }
       setSession(nextSession);
       if (nextSession?.user?.id) {
@@ -128,6 +130,7 @@ export function AuthProvider({ children }) {
       return { error: getAuthErrorMessage(error) };
     }
     queryClient.clear();
+    await clearPendingBookingLinkNavigation();
     return { error: null };
   }, []);
 

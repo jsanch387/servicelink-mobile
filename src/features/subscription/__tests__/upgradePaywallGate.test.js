@@ -31,38 +31,47 @@ describe('upgradePaywallGate', () => {
     ).toBe(true);
   });
 
-  it('shouldUseUpgradePaywallHomeTab is false until profile bundle has loaded', () => {
+  it('shouldUseUpgradePaywallHomeTab is false until paywall data is stable', () => {
     expect(
       shouldUseUpgradePaywallHomeTab({
-        isOwnerProfileLoaded: false,
+        isPaywallDataStable: false,
         hasProAccess: false,
       }),
     ).toBe(false);
   });
 
-  it('shouldUseUpgradePaywallHomeTab is true when loaded and no pro access', () => {
+  it('shouldUseUpgradePaywallHomeTab is true when stable and no pro access', () => {
     expect(
       shouldUseUpgradePaywallHomeTab({
-        isOwnerProfileLoaded: true,
+        isPaywallDataStable: true,
         hasProAccess: false,
       }),
     ).toBe(true);
   });
 
-  it('shouldUseUpgradePaywallHomeTab is false when loaded and user has pro access', () => {
+  it('shouldUseUpgradePaywallHomeTab is false when stable and user has pro access', () => {
     expect(
       shouldUseUpgradePaywallHomeTab({
-        isOwnerProfileLoaded: true,
+        isPaywallDataStable: true,
         hasProAccess: true,
+      }),
+    ).toBe(false);
+  });
+
+  it('does not show paywall when data is not stable (e.g. account refetch after onboarding)', () => {
+    expect(
+      shouldShowFullScreenSubscriptionPaywall({
+        isPaywallDataStable: false,
+        hasProAccess: false,
       }),
     ).toBe(false);
   });
 
   it('shouldShowFullScreenSubscriptionPaywall matches shouldUseUpgradePaywallHomeTab', () => {
     const cases = [
-      { isOwnerProfileLoaded: false, hasProAccess: false },
-      { isOwnerProfileLoaded: true, hasProAccess: false },
-      { isOwnerProfileLoaded: true, hasProAccess: true },
+      { isPaywallDataStable: false, hasProAccess: false },
+      { isPaywallDataStable: true, hasProAccess: false },
+      { isPaywallDataStable: true, hasProAccess: true },
     ];
     for (const args of cases) {
       expect(shouldShowFullScreenSubscriptionPaywall(args)).toBe(

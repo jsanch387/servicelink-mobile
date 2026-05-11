@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMemo } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { AppText, Button, SurfaceCard } from '../../../components/ui';
@@ -10,11 +11,11 @@ const mono = Platform.select({
 });
 
 /**
- * Final step — opens Stripe Checkout for the 7-day trial (`onStartTrialPress`).
+ * Final step — one tap activates the booking link (server creates Stripe trial subscription, no redirect).
  *
- * @param {{ activationLink: string; onStartTrialPress?: () => void; activateSubmitting?: boolean }} props
+ * @param {{ activationLink: string; onActivatePress?: () => void; activateSubmitting?: boolean }} props
  */
-export function OnboardingTrialStep({ activationLink, onStartTrialPress, activateSubmitting }) {
+export function OnboardingTrialStep({ activationLink, onActivatePress, activateSubmitting }) {
   const { colors } = useTheme();
 
   const displayLink =
@@ -52,43 +53,39 @@ export function OnboardingTrialStep({ activationLink, onStartTrialPress, activat
           borderColor: colors.border,
           borderRadius: 12,
           borderWidth: 1,
+          flexDirection: 'row',
+          gap: 14,
           marginBottom: 20,
           paddingHorizontal: 14,
-          paddingVertical: 14,
+          paddingVertical: 16,
         },
-        proRow: {
+        flashBadge: {
           alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginBottom: 12,
-          width: '100%',
-        },
-        proTitle: {
-          color: colors.text,
-          flex: 1,
-          fontSize: 17,
-          fontWeight: '700',
-          marginRight: 12,
-          paddingRight: 4,
-        },
-        freeTag: {
           alignSelf: 'flex-start',
-          backgroundColor: '#10b981',
-          borderRadius: 8,
-          paddingHorizontal: 10,
-          paddingVertical: 4,
+          backgroundColor: colors.buttonPrimaryBg,
+          borderRadius: 14,
+          height: 48,
+          justifyContent: 'center',
+          width: 48,
         },
-        freeTagText: {
-          color: '#ffffff',
-          fontSize: 12,
+        grabCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+        },
+        grabTitle: {
+          color: colors.text,
+          fontSize: 17,
           fontWeight: '800',
-          letterSpacing: 0.6,
+          letterSpacing: -0.3,
+          lineHeight: 22,
         },
-        featureSummary: {
+        grabSub: {
           color: colors.textMuted,
-          fontSize: 14,
+          fontSize: 15,
           fontWeight: '500',
-          lineHeight: 21,
+          lineHeight: 22,
+          marginTop: 6,
         },
       }),
     [colors],
@@ -100,18 +97,15 @@ export function OnboardingTrialStep({ activationLink, onStartTrialPress, activat
       <AppText style={styles.linkMono}>{displayLink}</AppText>
 
       <View style={styles.highlightBox}>
-        <View style={styles.proRow}>
-          <AppText style={styles.proTitle} numberOfLines={2}>
-            7-Day Pro Access
-          </AppText>
-          <View style={styles.freeTag}>
-            <AppText style={styles.freeTagText}>FREE</AppText>
-          </View>
+        <View style={styles.flashBadge}>
+          <Ionicons color={colors.buttonPrimaryText} name="flash" size={26} />
         </View>
-        <AppText style={styles.featureSummary}>
-          Unlimited bookings, deposit integrations, and more Pro tools—all included for your first
-          week.
-        </AppText>
+        <View style={styles.grabCol}>
+          <AppText style={styles.grabTitle}>Ready to go live?</AppText>
+          <AppText style={styles.grabSub}>
+            Tap below, then share your link so clients can book you.
+          </AppText>
+        </View>
       </View>
 
       <Button
@@ -122,7 +116,7 @@ export function OnboardingTrialStep({ activationLink, onStartTrialPress, activat
         loading={Boolean(activateSubmitting)}
         title="Activate my link"
         variant="primary"
-        onPress={onStartTrialPress ?? (() => {})}
+        onPress={onActivatePress ?? (() => {})}
       />
     </SurfaceCard>
   );

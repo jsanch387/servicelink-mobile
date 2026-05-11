@@ -1,22 +1,60 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useAuth } from '../../auth';
 import { useTheme } from '../../../theme';
+import { markProfileWelcomeModalSeen } from '../api/bookingLink';
 import { BookingLinkEditMode } from '../edit';
 import { useBookingLinkProfile } from '../hooks/useBookingLinkProfile';
+import { BookingLinkWelcomeModal } from '../components/BookingLinkWelcomeModal';
 import { BookingLinkEditFab } from '../preview/components/BookingLinkEditFab';
 import { BookingLinkPreview } from '../preview/BookingLinkPreview';
 import { BookingLinkScreenSkeleton } from '../preview/components/BookingLinkScreenSkeleton';
+import { bookingLinkOwnerProfileQueryKey } from '../queryKeys';
 import { mapServicesForCards } from '../utils/bookingLinkModel';
 import { splitServiceAreaCityState } from '../utils/serviceArea';
 
 export function BookingLinkScreen() {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const queryClient = useQueryClient();
   const bookingProfile = useBookingLinkProfile();
   const { profile, refetch: refetchBookingProfile } = bookingProfile;
   const coverHeight = width >= 768 ? 256 : width >= 640 ? 224 : 192;
   const [activeTab, setActiveTab] = useState('services');
   const [isEditMode, setIsEditMode] = useState(false);
+
+  const welcomeSeenMutation = useMutation({
+    mutationFn: async () => {
+      if (!userId) throw new Error('Not signed in');
+      const { error } = await markProfileWelcomeModalSeen(userId);
+      if (error) throw error;
+    },
+    onMutate: async () => {
+      if (!userId) return {};
+      await queryClient.cancelQueries({ queryKey: bookingLinkOwnerProfileQueryKey(userId) });
+      const previous = queryClient.getQueryData(bookingLinkOwnerProfileQueryKey(userId));
+      queryClient.setQueryData(bookingLinkOwnerProfileQueryKey(userId), (old) => {
+        if (!old || typeof old !== 'object') return old;
+        return { ...old, profileWelcomeModalSeen: true };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (!userId || context?.previous == null) return;
+      queryClient.setQueryData(bookingLinkOwnerProfileQueryKey(userId), context.previous);
+    },
+    onSettled: () => {
+      if (!userId) return;
+      queryClient.invalidateQueries({ queryKey: bookingLinkOwnerProfileQueryKey(userId) });
+    },
+  });
+
+  /** `profiles.profile_welcome_modal_seen` → `profile.profileWelcomeModalSeen` (true = hide modal). */
+  const bookingWelcomeVisible = Boolean(profile?.id && profile.profileWelcomeModalSeen !== true);
   const services = useMemo(() => mapServicesForCards(profile?.services), [profile?.services]);
   const galleryImages = useMemo(
     () => (profile?.images ?? []).filter((image) => Boolean(image?.preview_url)),
@@ -68,6 +106,19 @@ export function BookingLinkScreen() {
     setIsEditMode(false);
   }, []);
 
+  const handleWelcomeDismiss = useCallback(() => {
+    if (!userId) return;
+    welcomeSeenMutation.mutate();
+  }, [userId, welcomeSeenMutation]);
+
+  /** Tabs keep this screen mounted — refetch so `profiles.profile_welcome_modal_seen` matches DB when you return. */
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      void refetchBookingProfile();
+    }, [userId, refetchBookingProfile]),
+  );
+
   return (
     <View style={styles.container}>
       {isEditMode ? (
@@ -116,6 +167,10 @@ export function BookingLinkScreen() {
             showVerifiedBadge={profile?.showVerifiedBadge ?? false}
           />
           <BookingLinkEditFab bottom={30} onPress={() => setIsEditMode(true)} />
+          <BookingLinkWelcomeModal
+            visible={bookingWelcomeVisible}
+            onDismiss={handleWelcomeDismiss}
+          />
         </View>
       )}
     </View>

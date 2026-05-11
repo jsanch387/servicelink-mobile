@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SelectField, SurfaceCard, SurfaceTextField } from '../../../components/ui';
 import { BUSINESS_TYPE_OPTIONS } from '../../../constants/businessTypeOptions';
+import { MAX_ONBOARDING_BUSINESS_NAME_LENGTH } from '../constants/onboardingInputLimits';
 
 /**
  * Step 1: business display name + type (values held by parent until persistence exists).
@@ -34,6 +35,7 @@ export function OnboardingBusinessStepCard({
         autoCapitalize="words"
         containerStyle={styles.nameField}
         label="Business name"
+        maxLength={MAX_ONBOARDING_BUSINESS_NAME_LENGTH}
         onChangeText={onBusinessNameChange}
         placeholder="e.g. Sparkle Mobile Detailing"
         value={businessName}

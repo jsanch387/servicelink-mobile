@@ -1,12 +1,21 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as WebBrowser from 'expo-web-browser';
 import { useNavigation } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Alert,
+  Linking,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useAuth } from '../../auth';
 import { ROUTES } from '../../../routes/routes';
-import { FONT_FAMILIES, useTheme } from '../../../theme';
+import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { AccountBookingLinkCard } from '../components/AccountBookingLinkCard';
 import { AccountSettingsScreenSkeleton } from '../components/AccountSettingsScreenSkeleton';
@@ -72,27 +81,89 @@ export function AccountSettingsScreen() {
         },
         content: {
           alignItems: 'stretch',
-          gap: 16,
           paddingBottom: scrollBottomPad,
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
           width: '100%',
         },
-        signedInBlock: {
-          gap: 4,
+        section: {
+          alignSelf: 'stretch',
+          marginTop: 22,
         },
-        signedInLabel: {
+        sectionFirst: {
+          marginTop: 0,
+        },
+        sectionTitleRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginBottom: 8,
+          minHeight: 24,
+        },
+        sectionTitle: {
+          color: colors.textSecondary,
+          fontSize: 15,
+          fontWeight: '600',
+          letterSpacing: -0.2,
+        },
+        sectionTitleInRow: {
+          flex: 1,
+          marginRight: 8,
+        },
+        sectionBadge: {
+          backgroundColor: colors.buttonSecondaryBg,
+          borderRadius: 999,
+          paddingHorizontal: 10,
+          paddingVertical: 4,
+        },
+        sectionBadgeText: {
           color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.semibold,
           fontSize: 12,
-          letterSpacing: 0.4,
-          textTransform: 'uppercase',
+          fontWeight: '600',
+        },
+        iconHit: {
+          alignItems: 'center',
+          height: 32,
+          justifyContent: 'center',
+          marginLeft: 8,
+          width: 32,
+        },
+        iconHitDisabled: {
+          opacity: 0.35,
+        },
+        signedInCard: {
+          flexDirection: 'row',
+          gap: 10,
+          paddingVertical: 0,
+        },
+        signedInIconWrap: {
+          alignItems: 'center',
+          backgroundColor: colors.shellElevated,
+          borderColor: colors.border,
+          borderRadius: 10,
+          borderWidth: 1,
+          height: 40,
+          justifyContent: 'center',
+          width: 40,
+        },
+        signedInTextCol: {
+          flex: 1,
+          gap: 2,
+          justifyContent: 'center',
+          minWidth: 0,
         },
         signedInEmail: {
           color: colors.text,
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: '600',
           letterSpacing: -0.2,
+          lineHeight: 20,
+        },
+        signedInHint: {
+          color: colors.textMuted,
+          fontSize: 12,
+          fontWeight: '500',
+          lineHeight: 16,
         },
         loadErrorRetry: {
           marginTop: 12,
@@ -143,6 +214,11 @@ export function AccountSettingsScreen() {
       await refetchAccountAfterPortal({ userId });
     }
   }, [createBillingPortalSession, session?.access_token, user?.id]);
+
+  const handleOpenBookingPage = useCallback(() => {
+    if (!linkModel.httpsUrl) return;
+    void Linking.openURL(linkModel.httpsUrl);
+  }, [linkModel.httpsUrl]);
 
   const refreshControl = useMemo(
     () => (
@@ -214,24 +290,44 @@ export function AccountSettingsScreen() {
           showsVerticalScrollIndicator={false}
           style={styles.scroll}
         >
-          <View style={styles.signedInBlock}>
-            <AppText style={styles.signedInLabel}>Signed in as</AppText>
-            <AppText selectable style={styles.signedInEmail}>
-              {signedInEmail}
-            </AppText>
+          <View style={[styles.section, styles.sectionFirst]}>
+            <View style={styles.sectionTitleRow}>
+              <AppText style={styles.sectionTitle}>Signed in</AppText>
+            </View>
+            <SurfaceCard padding="sm">
+              <View style={styles.signedInCard}>
+                <View style={styles.signedInIconWrap}>
+                  <Ionicons color={colors.textMuted} name="person-circle-outline" size={22} />
+                </View>
+                <View style={styles.signedInTextCol}>
+                  <AppText selectable numberOfLines={2} style={styles.signedInEmail}>
+                    {signedInEmail}
+                  </AppText>
+                  <AppText style={styles.signedInHint}>Sign in with this email</AppText>
+                </View>
+              </View>
+            </SurfaceCard>
           </View>
-          <SurfaceCard>
-            <AppText style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>
-              Add a business profile to manage your booking link and subscription.
-            </AppText>
-            <Button
-              fullWidth
-              style={{ marginTop: 16 }}
-              title="Open booking link"
-              variant="secondary"
-              onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
-            />
-          </SurfaceCard>
+
+          <View style={styles.section}>
+            <View style={styles.sectionTitleRow}>
+              <AppText style={styles.sectionTitle}>Business</AppText>
+            </View>
+            <SurfaceCard>
+              <AppText
+                style={{ color: colors.text, fontSize: 15, fontWeight: '600', lineHeight: 22 }}
+              >
+                Add a business profile to manage your booking link and subscription.
+              </AppText>
+              <Button
+                fullWidth
+                style={{ marginTop: 16 }}
+                title="Open booking link"
+                variant="secondary"
+                onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
+              />
+            </SurfaceCard>
+          </View>
         </ScrollView>
       </View>
     );
@@ -246,44 +342,92 @@ export function AccountSettingsScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
-        <View style={styles.signedInBlock}>
-          <AppText style={styles.signedInLabel}>Signed in as</AppText>
-          <AppText selectable style={styles.signedInEmail}>
-            {signedInEmail}
-          </AppText>
+        <View style={[styles.section, styles.sectionFirst]}>
+          <View style={styles.sectionTitleRow}>
+            <AppText style={styles.sectionTitle}>Signed in</AppText>
+          </View>
+          <SurfaceCard padding="sm">
+            <View style={styles.signedInCard}>
+              <View style={styles.signedInIconWrap}>
+                <Ionicons color={colors.textMuted} name="person-circle-outline" size={22} />
+              </View>
+              <View style={styles.signedInTextCol}>
+                <AppText selectable numberOfLines={2} style={styles.signedInEmail}>
+                  {signedInEmail}
+                </AppText>
+                <AppText style={styles.signedInHint}>Sign in with this email</AppText>
+              </View>
+            </View>
+          </SurfaceCard>
         </View>
 
-        <AccountSubscriptionCard
-          {...subscriptionModel}
-          manageSubscriptionLoading={isCreatingBillingPortalSession}
-          onManageSubscriptionPress={() => void handleManageSubscription()}
-        />
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <AppText style={[styles.sectionTitle, styles.sectionTitleInRow]}>
+              Subscription plan
+            </AppText>
+            {subscriptionModel.headerBadge ? (
+              <View style={styles.sectionBadge}>
+                <AppText style={styles.sectionBadgeText}>{subscriptionModel.headerBadge}</AppText>
+              </View>
+            ) : null}
+          </View>
+          <AccountSubscriptionCard
+            accessLine={subscriptionModel.accessLine}
+            manageSubscriptionLoading={isCreatingBillingPortalSession}
+            planLabel={subscriptionModel.planLabel}
+            priceDisplay={subscriptionModel.priceDisplay}
+            showProCrown={subscriptionModel.showProCrown}
+            onManageSubscriptionPress={() => void handleManageSubscription()}
+          />
+        </View>
 
-        <AccountBookingLinkCard
-          canEditSlug={canEditSlug}
-          displayLink={linkModel.displayLink}
-          hasSlug={linkModel.hasSlug}
-          httpsUrl={linkModel.httpsUrl}
-          onChangeLink={() => setSlugSheetVisible(true)}
-        />
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <AppText style={[styles.sectionTitle, styles.sectionTitleInRow]}>Your link</AppText>
+            <Pressable
+              accessibilityLabel="Open public booking page"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !linkModel.hasSlug }}
+              disabled={!linkModel.hasSlug}
+              hitSlop={8}
+              style={[styles.iconHit, !linkModel.hasSlug && styles.iconHitDisabled]}
+              onPress={handleOpenBookingPage}
+            >
+              <Ionicons color={colors.textMuted} name="open-outline" size={22} />
+            </Pressable>
+          </View>
+          <AccountBookingLinkCard
+            canEditSlug={canEditSlug}
+            displayLink={linkModel.displayLink}
+            hasSlug={linkModel.hasSlug}
+            httpsUrl={linkModel.httpsUrl}
+            onChangeLink={() => setSlugSheetVisible(true)}
+          />
+        </View>
 
-        <Button
-          fullWidth
-          labelColor={colors.danger}
-          outlineBgPressed="rgba(220, 38, 38, 0.08)"
-          outlineColor={colors.danger}
-          title="Delete account"
-          variant="outline"
-          onPress={() => {
-            setDeleteSheetVisible(true);
-            setDeleteEmailConfirmed(false);
-          }}
-        />
-        {deleteEmailConfirmed ? (
-          <AppText style={styles.deleteHint}>
-            Email confirmed. Deletion request is not connected yet.
-          </AppText>
-        ) : null}
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <AppText style={styles.sectionTitle}>Danger zone</AppText>
+          </View>
+          <Button
+            fullWidth
+            labelColor={colors.danger}
+            outlineBgPressed="rgba(220, 38, 38, 0.08)"
+            outlineColor={colors.danger}
+            title="Delete account"
+            variant="outline"
+            onPress={() => {
+              setDeleteSheetVisible(true);
+              setDeleteEmailConfirmed(false);
+            }}
+          />
+          {deleteEmailConfirmed ? (
+            <AppText style={styles.deleteHint}>
+              Email confirmed. Deletion request is not connected yet.
+            </AppText>
+          ) : null}
+        </View>
       </ScrollView>
 
       <ChangeBusinessSlugSheet

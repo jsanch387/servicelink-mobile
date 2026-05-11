@@ -62,7 +62,7 @@ describe('AuthNavigator subscription gate', () => {
   it('shows boot view while account bundle is loading (no tabs yet)', () => {
     useSubscription.mockReturnValue({
       hasProAccess: false,
-      isOwnerProfileLoaded: false,
+      isPaywallDataStable: false,
       isLoading: true,
     });
 
@@ -72,10 +72,10 @@ describe('AuthNavigator subscription gate', () => {
     expect(screen.queryByTestId('fullscreen-paywall')).toBeNull();
   });
 
-  it('shows full-screen paywall when loaded and user lacks Pro access', () => {
+  it('shows full-screen paywall when stable and user lacks Pro access', () => {
     useSubscription.mockReturnValue({
       hasProAccess: false,
-      isOwnerProfileLoaded: true,
+      isPaywallDataStable: true,
       isLoading: false,
     });
 
@@ -88,7 +88,20 @@ describe('AuthNavigator subscription gate', () => {
   it('shows main tabs when user has Pro access', () => {
     useSubscription.mockReturnValue({
       hasProAccess: true,
-      isOwnerProfileLoaded: true,
+      isPaywallDataStable: true,
+      isLoading: false,
+    });
+
+    renderWithProviders(<AuthNavigator />);
+    expect(screen.getByTestId('main-tabs')).toBeTruthy();
+    expect(screen.queryByTestId('fullscreen-paywall')).toBeNull();
+    expect(screen.queryByTestId('subscription-boot')).toBeNull();
+  });
+
+  it('does not flash paywall while subscription data is revalidating (unstable, no Pro yet)', () => {
+    useSubscription.mockReturnValue({
+      hasProAccess: false,
+      isPaywallDataStable: false,
       isLoading: false,
     });
 

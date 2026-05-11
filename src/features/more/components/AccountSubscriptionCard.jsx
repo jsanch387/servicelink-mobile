@@ -14,7 +14,6 @@ const FREE_TRIAL_LABEL_COLOR = '#4ade80';
 
 export function AccountSubscriptionCard({
   planLabel,
-  headerBadge,
   priceDisplay,
   accessLine,
   showProCrown,
@@ -27,30 +26,6 @@ export function AccountSubscriptionCard({
     () =>
       StyleSheet.create({
         card: { gap: 14 },
-        cardHeaderRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          minHeight: 24,
-        },
-        cardTitle: {
-          color: colors.text,
-          flex: 1,
-          fontSize: 16,
-          fontWeight: '700',
-          letterSpacing: -0.2,
-        },
-        badge: {
-          backgroundColor: colors.buttonSecondaryBg,
-          borderRadius: 999,
-          paddingHorizontal: 10,
-          paddingVertical: 4,
-        },
-        badgeText: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontWeight: '600',
-        },
         planInner: {
           backgroundColor: colors.inputBg,
           borderColor: colors.border,
@@ -109,15 +84,6 @@ export function AccountSubscriptionCard({
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.cardHeaderRow}>
-        <AppText style={styles.cardTitle}>Subscription plan</AppText>
-        {headerBadge ? (
-          <View style={styles.badge}>
-            <AppText style={styles.badgeText}>{headerBadge}</AppText>
-          </View>
-        ) : null}
-      </View>
-
       <View style={styles.planInner}>
         <View style={[styles.planTierRow, !priceDisplay && styles.planTierRowSingle]}>
           <View style={styles.planNameRow}>

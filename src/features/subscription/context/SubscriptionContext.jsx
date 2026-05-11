@@ -27,8 +27,23 @@ export function SubscriptionProvider({ children }) {
   const ownerProfile = query.data?.ownerProfile ?? null;
   const hasProAccess = useMemo(() => hasProAccessFromProfile(ownerProfile), [ownerProfile]);
 
-  /** Account bundle fetch succeeded — safe to apply subscription-driven UI (e.g. paywall). */
+  /** Account bundle fetch succeeded — safe for screens that read `ownerProfile` (e.g. Payments). */
   const isOwnerProfileLoaded = Boolean(userId) && query.isSuccess;
+
+  /**
+   * When false, defer the full-screen upgrade paywall: after onboarding we invalidate the account
+   * bundle while `isSuccess` stays true with a stale "free" row until refetch finishes, which
+   * used to flash `UpgradePaywallScreen` before trialing/pro arrived.
+   */
+  const isPaywallDataStable = useMemo(() => {
+    if (!userId || !query.isSuccess) {
+      return false;
+    }
+    if (hasProAccess) {
+      return true;
+    }
+    return !query.isFetching;
+  }, [userId, query.isSuccess, query.isFetching, hasProAccess]);
 
   const isReady = !userId || query.isSuccess || query.isError;
 
@@ -42,6 +57,7 @@ export function SubscriptionProvider({ children }) {
       ownerProfile,
       hasProAccess,
       isOwnerProfileLoaded,
+      isPaywallDataStable,
       isReady,
       isLoading: Boolean(userId) && query.isPending,
       loadError: query.isError ? (query.error?.message ?? 'Could not load subscription') : null,
@@ -51,6 +67,7 @@ export function SubscriptionProvider({ children }) {
       ownerProfile,
       hasProAccess,
       isOwnerProfileLoaded,
+      isPaywallDataStable,
       isReady,
       userId,
       query.isPending,

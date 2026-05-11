@@ -2,6 +2,12 @@ import { supabase } from '../../../lib/supabase';
 import { BUSINESS_TYPE_OPTIONS } from '../../../constants/businessTypeOptions';
 import { getSession } from '../../auth/api/auth';
 import {
+  MAX_ONBOARDING_BUSINESS_NAME_LENGTH,
+  MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH,
+  MAX_ONBOARDING_SERVICE_NAME_LENGTH,
+  MAX_ONBOARDING_SERVICE_PRICE_INPUT_LENGTH,
+} from '../constants/onboardingInputLimits';
+import {
   fetchBusinessAvailability,
   saveBusinessAvailability,
 } from '../../availability/api/availability';
@@ -90,6 +96,14 @@ export async function saveOnboardingStep1({ businessName, businessType }) {
   const type = String(businessType ?? '').trim();
   if (!name || !type || !isAllowedBusinessType(type)) {
     return { ok: false, error: new Error('Enter a valid business name and type.') };
+  }
+  if (name.length > MAX_ONBOARDING_BUSINESS_NAME_LENGTH) {
+    return {
+      ok: false,
+      error: new Error(
+        `Business name must be ${MAX_ONBOARDING_BUSINESS_NAME_LENGTH} characters or fewer.`,
+      ),
+    };
   }
 
   const { data: sessWrap } = await getSession();
@@ -243,9 +257,34 @@ export async function saveOnboardingStep2Services({ services }) {
     if (!name || !description) {
       return { ok: false, error: new Error('Each service needs a name and description.') };
     }
+    if (name.length > MAX_ONBOARDING_SERVICE_NAME_LENGTH) {
+      return {
+        ok: false,
+        error: new Error(
+          `Each service name must be ${MAX_ONBOARDING_SERVICE_NAME_LENGTH} characters or fewer.`,
+        ),
+      };
+    }
+    if (description.length > MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH) {
+      return {
+        ok: false,
+        error: new Error(
+          `Each description must be ${MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH} characters or fewer.`,
+        ),
+      };
+    }
     const priceRaw = s?.priceInput ?? s?.price ?? '';
-    if (!String(priceRaw).trim()) {
+    const priceDigits = String(priceRaw ?? '')
+      .replace(/\$/g, '')
+      .trim();
+    if (!priceDigits) {
       return { ok: false, error: new Error('Each service needs a price.') };
+    }
+    if (priceDigits.length > MAX_ONBOARDING_SERVICE_PRICE_INPUT_LENGTH) {
+      return {
+        ok: false,
+        error: new Error('Each service price is too long. Enter a smaller amount.'),
+      };
     }
     const durationMinutes = Math.max(30, Number(s?.durationMinutes) || 0);
     if (!Number.isFinite(durationMinutes) || durationMinutes < 30) {

@@ -22,7 +22,9 @@ import { hasProAccessFromProfile } from '../more/utils/subscriptionPresentation'
  * When the paywall applies, the stack shows **only** `UpgradePaywallScreen` (no tab bar, no other
  * stack screens) until `hasProAccess` becomes true. While the account bundle is still loading
  * (`isLoading` and not yet paywalled), a boot spinner is shown so users cannot switch tabs on a
- * stale Home screen.
+ * stale Home screen. Use **`isPaywallDataStable`** from `SubscriptionContext` (not raw
+ * `isOwnerProfileLoaded`) for the first argument so a background refetch after onboarding does not
+ * briefly treat stale "free" cache as final and flash the paywall.
  *
  * **Upgrade checkout (after onboarding)**
  * **Upgrade to Pro** uses `createPaywallUpgradeCheckoutSession`: `POST /api/stripe/create-checkout-session`
@@ -53,18 +55,18 @@ export function shouldShowUpgradePaywallFromProfile(ownerProfile) {
 /**
  * When `true`, the signed-in main app should show **only** the upgrade paywall (no tabs).
  *
- * @param {{ isOwnerProfileLoaded: boolean; hasProAccess: boolean }} args
+ * @param {{ isPaywallDataStable: boolean; hasProAccess: boolean }} args
  * @returns {boolean}
  */
-export function shouldShowFullScreenSubscriptionPaywall({ isOwnerProfileLoaded, hasProAccess }) {
+export function shouldShowFullScreenSubscriptionPaywall({ isPaywallDataStable, hasProAccess }) {
   if (DEV_FORCE_UPGRADE_PAYWALL_IN_HOME_TAB) return true;
-  return Boolean(isOwnerProfileLoaded) && !hasProAccess;
+  return Boolean(isPaywallDataStable) && !hasProAccess;
 }
 
 /**
  * @deprecated Paywall moved to `AuthNavigator`; Home tab always uses `HomeScreen`. Prefer
  * `shouldShowFullScreenSubscriptionPaywall`.
- * @param {{ isOwnerProfileLoaded: boolean; hasProAccess: boolean }} args
+ * @param {{ isPaywallDataStable: boolean; hasProAccess: boolean }} args
  * @returns {boolean}
  */
 export function shouldUseUpgradePaywallHomeTab(args) {

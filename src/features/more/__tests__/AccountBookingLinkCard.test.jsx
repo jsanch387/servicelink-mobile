@@ -1,6 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
 import { act, fireEvent, screen } from '@testing-library/react-native';
-import { Linking } from 'react-native';
 import { AccountBookingLinkCard } from '../components/AccountBookingLinkCard';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
 
@@ -12,7 +11,6 @@ describe('AccountBookingLinkCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-    jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -39,24 +37,6 @@ describe('AccountBookingLinkCard', () => {
     });
 
     expect(Clipboard.setStringAsync).toHaveBeenCalledWith('https://myservicelink.app/demo');
-  });
-
-  it('opens public link when icon is pressed', async () => {
-    renderWithProviders(
-      <AccountBookingLinkCard
-        canEditSlug
-        displayLink="myservicelink.app/demo"
-        hasSlug
-        httpsUrl="https://myservicelink.app/demo"
-        onChangeLink={jest.fn()}
-      />,
-    );
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('Open public booking page'));
-    });
-
-    expect(Linking.openURL).toHaveBeenCalledWith('https://myservicelink.app/demo');
   });
 
   it('calls change-link action', () => {

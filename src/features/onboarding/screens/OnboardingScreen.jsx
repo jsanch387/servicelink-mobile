@@ -1,4 +1,5 @@
 import * as WebBrowser from 'expo-web-browser';
+import Constants from 'expo-constants';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,14 +14,28 @@ import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { getBookingLinkDisplay } from '../../home/utils/bookingLink';
 import { sanitizeBusinessSlugForSave } from '../../more/utils/businessSlug';
 import { fetchBusinessServices } from '../../services/api/services';
+import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileCheckoutOrigin';
+import { confirmOnboardingTrialUntilReady } from '../utils/confirmOnboardingTrialUntilReady';
 import { createOnboardingCheckoutSession } from '../api/createOnboardingCheckoutSession';
+import { parseCheckoutSessionIdFromOnboardingReturnUrl } from '../utils/parseOnboardingStripeReturnUrl';
+import { startOnboardingTrial } from '../api/startOnboardingTrial';
+import {
+  MAX_ONBOARDING_BUSINESS_NAME_LENGTH,
+  MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH,
+  MAX_ONBOARDING_SERVICE_NAME_LENGTH,
+  MAX_ONBOARDING_SERVICE_PRICE_INPUT_LENGTH,
+} from '../constants/onboardingInputLimits';
+import {
+  clearPendingBookingLinkNavigation,
+  setPendingNavigateToBookingLink,
+} from '../constants/postOnboardingNavigation';
+import { STRIPE_ONBOARDING_CHECKOUT_AUTH_RETURN_URL } from '../constants/stripeOnboardingReturnUrl';
 import {
   saveOnboardingStep1,
   saveOnboardingStep2Services,
   saveOnboardingStep3Availability,
   saveOnboardingStep4Slug,
 } from '../api/onboardingV2Api';
-import { STRIPE_ONBOARDING_CHECKOUT_AUTH_RETURN_URL } from '../constants/stripeOnboardingReturnUrl';
 import { refetchOnboardingAfterStripe } from '../utils/refetchOnboardingAfterStripe';
 import { WeeklyScheduleSection } from '../../availability/components/WeeklyScheduleSection';
 import { OnboardingBusinessStepCard } from '../components/OnboardingBusinessStepCard';
@@ -34,7 +49,7 @@ const STEP_COUNT = 5;
 
 const STEP_TITLES = [
   'Business details',
-  'Add at least one service',
+  'Add a service',
   'When do you work?',
   'Claim your link',
   'Go live',
@@ -42,10 +57,10 @@ const STEP_TITLES = [
 
 const STEP_SUBTITLES = [
   '',
-  'Add one service to continue — you can add the rest after onboarding.',
+  'Add at least one service — you can add the rest later.',
   'Pick your usual hours. Customers will only see times when you are free.',
   'This will be the booking link you share with customers.',
-  'Your booking link is ready.',
+  'Go live, share your link, get bookings.',
 ];
 
 function isValidBusinessType(value) {
@@ -65,8 +80,14 @@ export function OnboardingScreen() {
   const { colors } = useTheme();
   const { session, user } = useAuth();
   const userId = user?.id ?? null;
-  const { refetchOnboarding, onboardingStep, isOnboardingProfileLoaded, profileLoadError } =
-    useOnboardingGate();
+  const {
+    refetchOnboarding,
+    onboardingStep,
+    isOnboardingProfileLoaded,
+    profileLoadError,
+    beginPostActivationHandoff,
+    endPostActivationHandoff,
+  } = useOnboardingGate();
   const [stepIndex, setStepIndex] = useState(0);
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
@@ -279,33 +300,13 @@ export function OnboardingScreen() {
           marginBottom: 20,
           textAlign: 'left',
         },
-        goLiveHeadline: {
-          color: colors.text,
-          fontSize: 28,
+        /** Same size as `title`; one weight step heavier (800 vs 700). */
+        goLiveTitle: {
           fontWeight: '800',
-          letterSpacing: 0.5,
-          marginBottom: 8,
-          textAlign: 'left',
         },
-        goLiveSublineRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          flexWrap: 'nowrap',
-          marginBottom: 20,
-        },
-        goLiveReadyPart: {
-          color: colors.textMuted,
-          flexShrink: 1,
-          fontSize: 16,
-          fontWeight: '500',
-          lineHeight: 22,
-        },
-        goLiveNoCardPart: {
+        goLiveInlineEmph: {
           color: colors.text,
-          flexShrink: 0,
-          fontSize: 16,
           fontWeight: '700',
-          lineHeight: 22,
         },
         copy: {
           color: colors.textMuted,
@@ -323,6 +324,13 @@ export function OnboardingScreen() {
         flex: {
           flex: 1,
         },
+        businessTypeHint: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          lineHeight: 18,
+          marginTop: 12,
+        },
       }),
     [colors],
   );
@@ -332,6 +340,12 @@ export function OnboardingScreen() {
       const name = businessName.trim();
       if (!name) {
         setStepError('Enter your business name.');
+        return;
+      }
+      if (name.length > MAX_ONBOARDING_BUSINESS_NAME_LENGTH) {
+        setStepError(
+          `Business name must be ${MAX_ONBOARDING_BUSINESS_NAME_LENGTH} characters or fewer.`,
+        );
         return;
       }
       if (!isValidBusinessType(businessType)) {
@@ -358,6 +372,29 @@ export function OnboardingScreen() {
       if (servicesList.length === 0) {
         setStepError('Add at least one service to continue.');
         return;
+      }
+      for (const s of servicesList) {
+        const n = String(s?.name ?? '').trim();
+        const d = String(s?.description ?? '').trim();
+        const p = String(s?.priceInput ?? '')
+          .replace(/\$/g, '')
+          .trim();
+        if (n.length > MAX_ONBOARDING_SERVICE_NAME_LENGTH) {
+          setStepError(
+            `Each service name must be ${MAX_ONBOARDING_SERVICE_NAME_LENGTH} characters or fewer.`,
+          );
+          return;
+        }
+        if (d.length > MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH) {
+          setStepError(
+            `Each description must be ${MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH} characters or fewer.`,
+          );
+          return;
+        }
+        if (p.length > MAX_ONBOARDING_SERVICE_PRICE_INPUT_LENGTH) {
+          setStepError('One of your prices is too long. Enter a smaller amount.');
+          return;
+        }
       }
       setStepError('');
       setRemoteStepSaving(true);
@@ -420,14 +457,14 @@ export function OnboardingScreen() {
       return;
     }
 
-    // Step 5 opens Stripe Checkout from the trial card, not this handler.
+    // Step 5 activates the link from the trial card, not this handler.
     if (stepIndex >= STEP_COUNT - 1) {
       return;
     }
     setStepIndex((i) => Math.min(i + 1, STEP_COUNT - 1));
   };
 
-  const onActivateTrialPress = useCallback(async () => {
+  const onActivateLinkPress = useCallback(async () => {
     const token = session?.access_token ?? null;
     if (!token) {
       Alert.alert('Sign in required', 'Please sign in again to continue.');
@@ -440,32 +477,95 @@ export function OnboardingScreen() {
 
     setCheckoutSubmitting(true);
     try {
-      const created = await createOnboardingCheckoutSession(token);
-      if ('error' in created) {
-        Alert.alert(
-          'Could not start checkout',
-          safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
-        );
+      const started = await startOnboardingTrial(token);
+
+      if ('error' in started) {
+        let body = safeUserFacingMessage(started.error, {
+          fallback: 'Something went wrong. Try again.',
+        });
+        if (__DEV__ && started.httpStatus === 404) {
+          body +=
+            '\n\nDev: add POST /api/stripe/start-onboarding-trial on your web app (see docs/nextjs-onboarding-trial-contract.md).';
+        }
+        if (__DEV__ && started.httpStatus === 0 && Constants.isDevice) {
+          const tried = resolveStripeMobileCheckoutOrigin() ?? '(no origin)';
+          body += `\n\nDev: could not reach your web API (${tried}). On a physical phone, set EXPO_PUBLIC_WEB_APP_URL to your computer's LAN IP (not localhost) and restart Expo.`;
+        }
+        Alert.alert('Could not activate your link', body);
         return;
       }
 
-      try {
-        await WebBrowser.openAuthSessionAsync(
-          created.url,
+      /** Server asks for Checkout + confirm (contract §C `fallbackToCheckout`). */
+      if (started.fallbackToCheckout === true) {
+        const checkout = await createOnboardingCheckoutSession(token);
+        if ('error' in checkout) {
+          Alert.alert(
+            'Could not activate your link',
+            safeUserFacingMessage(checkout.error, { fallback: 'Something went wrong. Try again.' }),
+          );
+          return;
+        }
+        const browser = await WebBrowser.openAuthSessionAsync(
+          checkout.url,
           STRIPE_ONBOARDING_CHECKOUT_AUTH_RETURN_URL,
         );
-      } finally {
-        await refetchOnboardingAfterStripe({ userId });
+        const sessionId =
+          browser.type === 'success' && typeof browser.url === 'string'
+            ? parseCheckoutSessionIdFromOnboardingReturnUrl(browser.url)
+            : null;
+        const confirmed = await confirmOnboardingTrialUntilReady({
+          accessToken: token,
+          userId,
+          checkoutSessionId: sessionId,
+        });
+        if ('error' in confirmed) {
+          Alert.alert(
+            'Could not activate your link',
+            safeUserFacingMessage(confirmed.error, {
+              fallback: 'Something went wrong. Try again.',
+            }),
+          );
+          return;
+        }
+        await setPendingNavigateToBookingLink();
+        beginPostActivationHandoff();
+        const { completed } = await refetchOnboardingAfterStripe({
+          userId,
+          trial_confirmation: confirmed.trial_confirmation,
+          maxAttempts: 5,
+          delayMs: 600,
+        });
+        if (!completed) {
+          endPostActivationHandoff();
+          await clearPendingBookingLinkNavigation();
+          Alert.alert('Almost there', 'Pull to refresh on Home in a moment.');
+        }
+        return;
+      }
+
+      await setPendingNavigateToBookingLink();
+      beginPostActivationHandoff();
+      const { completed } = await refetchOnboardingAfterStripe({
+        userId,
+        trial_confirmation: started.trial_confirmation,
+        maxAttempts: 5,
+        delayMs: 600,
+      });
+      if (!completed) {
+        endPostActivationHandoff();
+        await clearPendingBookingLinkNavigation();
+        Alert.alert('Almost there', 'Pull to refresh on Home in a moment.');
       }
     } catch (e) {
+      endPostActivationHandoff();
       Alert.alert(
-        'Checkout',
+        'Activation',
         safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
       );
     } finally {
       setCheckoutSubmitting(false);
     }
-  }, [session?.access_token, userId]);
+  }, [session?.access_token, userId, beginPostActivationHandoff, endPostActivationHandoff]);
 
   const goBack = () => {
     setStepError('');
@@ -530,15 +630,11 @@ export function OnboardingScreen() {
 
             {stepIndex === 4 ? (
               <>
-                <AppText style={styles.goLiveHeadline}>GO LIVE!</AppText>
-                <View style={styles.goLiveSublineRow}>
-                  <AppText style={styles.goLiveReadyPart} numberOfLines={1}>
-                    Your booking link is ready.{' '}
-                  </AppText>
-                  <AppText style={styles.goLiveNoCardPart} numberOfLines={1}>
-                    No card required.
-                  </AppText>
-                </View>
+                <AppText style={[styles.title, styles.goLiveTitle]}>Go live</AppText>
+                <AppText style={styles.subtitle}>
+                  Your link goes live next.{' '}
+                  <AppText style={styles.goLiveInlineEmph}>Share it. Get booked.</AppText>
+                </AppText>
               </>
             ) : (
               <>
@@ -555,12 +651,18 @@ export function OnboardingScreen() {
             ) : null}
 
             {stepIndex === 0 ? (
-              <OnboardingBusinessStepCard
-                businessName={businessName}
-                businessType={businessType}
-                onBusinessNameChange={onBusinessNameChange}
-                onBusinessTypeChange={onBusinessTypeChange}
-              />
+              <View>
+                <OnboardingBusinessStepCard
+                  businessName={businessName}
+                  businessType={businessType}
+                  onBusinessNameChange={onBusinessNameChange}
+                  onBusinessTypeChange={onBusinessTypeChange}
+                />
+                <AppText style={styles.businessTypeHint}>
+                  The business type you choose affects which settings and options you see in the
+                  app.
+                </AppText>
+              </View>
             ) : null}
 
             {stepIndex === 1 ? (
@@ -594,7 +696,7 @@ export function OnboardingScreen() {
               <OnboardingTrialStep
                 activateSubmitting={checkoutSubmitting}
                 activationLink={getBookingLinkDisplay(linkSlugDraft)}
-                onStartTrialPress={() => void onActivateTrialPress()}
+                onActivatePress={() => void onActivateLinkPress()}
               />
             ) : null}
           </ScrollView>

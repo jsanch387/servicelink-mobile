@@ -1,6 +1,29 @@
 import { CommonActions } from '@react-navigation/native';
 
 /**
+ * Nested stack screen currently shown for a tab route, when the child navigator state
+ * is missing from the parent (e.g. deep link from root: `MainApp` → `More` → `BookingLink`
+ * leaves `route.params.screen` before `route.state` is populated).
+ *
+ * @param {import('@react-navigation/native').Route<string> | undefined} activeRoute
+ * @returns {string | null}
+ */
+function getNestedFocusedScreenName(activeRoute) {
+  const nestedState = activeRoute?.state;
+  if (nestedState?.routes?.length) {
+    const idx =
+      typeof nestedState.index === 'number' ? nestedState.index : nestedState.routes.length - 1;
+    const name = nestedState.routes[idx]?.name;
+    return typeof name === 'string' ? name : null;
+  }
+  const fromParams = activeRoute?.params?.screen;
+  if (typeof fromParams === 'string' && fromParams.length > 0) {
+    return fromParams;
+  }
+  return null;
+}
+
+/**
  * Bottom-tab helper: when the user taps the tab that is already focused, pop the tab's
  * nested stack to its root (e.g. BookingsList after opening BookingDetails from notifications).
  *
@@ -20,14 +43,8 @@ export function nestedTabPressResetToRootListeners({ navigation, route }, { root
         return;
       }
 
-      const nestedState = activeRoute.state;
-      if (!nestedState?.routes?.length) {
-        return;
-      }
-
-      const focusedNested = nestedState.routes[nestedState.index];
-      /** Covers [List, Details] and the edge case [Details] only (index 0, no list under back). */
-      if (focusedNested?.name === rootScreen) {
+      const focusedNestedName = getNestedFocusedScreenName(activeRoute);
+      if (!focusedNestedName || focusedNestedName === rootScreen) {
         return;
       }
 
@@ -35,6 +52,7 @@ export function nestedTabPressResetToRootListeners({ navigation, route }, { root
       navigation.dispatch(
         CommonActions.navigate({
           name: route.name,
+          merge: true,
           params: { screen: rootScreen },
         }),
       );

@@ -138,7 +138,9 @@ export function DurationSelectField({
 
   return (
     <View style={[styles.field, containerStyle]}>
-      <AppText style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</AppText>
+      {label ? (
+        <AppText style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</AppText>
+      ) : null}
 
       <TouchableOpacity
         activeOpacity={0.85}

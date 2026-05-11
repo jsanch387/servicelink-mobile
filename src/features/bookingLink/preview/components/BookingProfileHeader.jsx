@@ -36,6 +36,10 @@ export function BookingProfileHeader({
           backgroundColor: colors.shellElevated,
           justifyContent: 'center',
         },
+        /** Nudge empty-state icon slightly above true center (reads better in the hero band). */
+        heroPhotoFallbackIcon: {
+          marginTop: -Math.min(28, Math.round(coverHeight * 0.12)),
+        },
         heroFade: {
           bottom: 0,
           height: 128,
@@ -169,7 +173,9 @@ export function BookingProfileHeader({
           <Image source={{ uri: coverImageUrl }} style={StyleSheet.absoluteFillObject} />
         ) : (
           <View style={styles.heroPhotoFallback}>
-            <Ionicons name="image-outline" size={40} color={colors.textMuted} />
+            <View style={styles.heroPhotoFallbackIcon}>
+              <Ionicons name="image-outline" size={40} color={colors.textMuted} />
+            </View>
           </View>
         )}
         <LinearGradient

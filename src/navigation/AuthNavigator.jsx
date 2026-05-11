@@ -1,7 +1,8 @@
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { PushNotificationsBootstrap } from '../features/notifications/components/PushNotificationsBootstrap';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, View } from 'react-native';
+import { useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { AppFontLoadingShell } from '../components/ui/AppFontLoadingShell';
 import { useAuth } from '../features/auth';
 import { ForgotPasswordScreen } from '../features/auth/screens/ForgotPasswordScreen';
@@ -41,12 +42,24 @@ function MainAppSubscriptionBootScreen() {
 export function AuthNavigator() {
   const { colors, isDark } = useTheme();
   const { session, isReady, user } = useAuth();
-  const { needsOnboarding, isGateReady } = useOnboardingGate();
-  const { hasProAccess, isOwnerProfileLoaded, isLoading } = useSubscription();
+  const { needsOnboarding, isGateReady, postActivationHandoff, endPostActivationHandoff } =
+    useOnboardingGate();
+  const { hasProAccess, isPaywallDataStable, isLoading } = useSubscription();
+
+  /** After activation, keep branded loader over the stack until main app has mounted, then brief hold so deep-link doesn’t flash. */
+  useEffect(() => {
+    if (!postActivationHandoff || needsOnboarding) {
+      return undefined;
+    }
+    const id = setTimeout(() => {
+      endPostActivationHandoff();
+    }, 700);
+    return () => clearTimeout(id);
+  }, [postActivationHandoff, needsOnboarding, endPostActivationHandoff]);
 
   const isPaywallBlocking =
     Boolean(session && !needsOnboarding) &&
-    shouldShowFullScreenSubscriptionPaywall({ isOwnerProfileLoaded, hasProAccess });
+    shouldShowFullScreenSubscriptionPaywall({ isPaywallDataStable, hasProAccess });
 
   const mainAppSubscriptionBooting =
     Boolean(session && !needsOnboarding && user?.id) && isLoading && !isPaywallBlocking;
@@ -168,6 +181,21 @@ export function AuthNavigator() {
           ) : null}
         </Stack.Navigator>
       </NavigationContainer>
+      {session && postActivationHandoff ? (
+        <View
+          pointerEvents="auto"
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              backgroundColor: colors.shell,
+              elevation: 32,
+              zIndex: 9999,
+            },
+          ]}
+        >
+          <AppFontLoadingShell accessibilityLabel="Loading" />
+        </View>
+      ) : null}
     </View>
   );
 }

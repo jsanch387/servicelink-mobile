@@ -21,6 +21,7 @@ const MEDIA_BUCKET_NAME = 'business_images';
  * @property {Array<Record<string, unknown> & { preview_url: string | null }>} images
  * @property {boolean} showVerifiedBadge
  * @property {boolean} showRequestQuoteCta
+ * @property {boolean} profileWelcomeModalSeen — `profiles.profile_welcome_modal_seen`
  */
 
 const BUSINESS_PROFILE_SELECT = [
@@ -39,7 +40,46 @@ const BUSINESS_PROFILE_SELECT = [
 ].join(', ');
 
 export async function fetchOwnerProfileRow(userId) {
+  // `*` must include `profile_welcome_modal_seen` (booking-link welcome modal gate).
   return supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle();
+}
+
+/**
+ * Maps `profiles.profile_welcome_modal_seen` for the welcome modal: **only** treat as seen when
+ * the value is clearly true (boolean, 1, or common string forms). Anything else → show modal.
+ *
+ * @param {Record<string, unknown> | null | undefined} row - `profiles` row from Supabase
+ * @returns {boolean}
+ */
+export function readProfileWelcomeModalSeenFromRow(row) {
+  if (!row || typeof row !== 'object') return false;
+  const v = row.profile_welcome_modal_seen;
+  if (v === true || v === 1) return true;
+  if (v === false || v === 0 || v === null) return false;
+  if (typeof v === 'string') {
+    const s = v.trim().toLowerCase();
+    return s === 'true' || s === 't' || s === '1';
+  }
+  return false;
+}
+
+/**
+ * Persists booking-link welcome tour completion (`profiles.profile_welcome_modal_seen`).
+ * @param {string} userId
+ * @returns {Promise<{ error: Error | null }>}
+ */
+export async function markProfileWelcomeModalSeen(userId) {
+  if (!userId) {
+    return { error: new Error('Not signed in') };
+  }
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      profile_welcome_modal_seen: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId);
+  return { error: error ? new Error(error.message ?? 'Update failed') : null };
 }
 
 export async function fetchBusinessProfileForOwner(userId) {
@@ -169,6 +209,7 @@ export async function normalizeMobileBusinessProfile({
 
   return {
     id: String(businessProfileRow?.id ?? ''),
+    profileWelcomeModalSeen: readProfileWelcomeModalSeenFromRow(ownerProfileRow),
     business_name: cleanTextOrNull(businessProfileRow?.business_name),
     business_type: cleanTextOrNull(businessProfileRow?.business_type),
     service_area: cleanTextOrNull(businessProfileRow?.service_area),

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { getSession, signOut as signOutRequest } from '../../auth/api/auth';
 import { ensureUserProfileRow } from '../../auth/api/ensureUserProfile';
 import { useAuth } from '../../auth';
@@ -14,6 +14,22 @@ export function OnboardingGateProvider({ children }) {
   const { session, user } = useAuth();
   const userId = user?.id ?? null;
   const qc = useQueryClient();
+  /** Full-screen handoff after step 5 “Activate” — hides stack swap / deep-link flash until main app is ready. */
+  const [postActivationHandoff, setPostActivationHandoff] = useState(false);
+
+  const beginPostActivationHandoff = useCallback(() => {
+    setPostActivationHandoff(true);
+  }, []);
+
+  const endPostActivationHandoff = useCallback(() => {
+    setPostActivationHandoff(false);
+  }, []);
+
+  useEffect(() => {
+    if (!session) {
+      setPostActivationHandoff(false);
+    }
+  }, [session]);
 
   const profileQuery = useQuery({
     queryKey: ['profiles-onboarding', userId],
@@ -90,6 +106,9 @@ export function OnboardingGateProvider({ children }) {
       refetchOnboarding,
       completeOnboarding,
       profileLoadError: profileQuery.isError ? profileQuery.error : null,
+      postActivationHandoff,
+      beginPostActivationHandoff,
+      endPostActivationHandoff,
     }),
     [
       needsOnboarding,
@@ -101,6 +120,9 @@ export function OnboardingGateProvider({ children }) {
       completeOnboarding,
       profileQuery.isError,
       profileQuery.error,
+      postActivationHandoff,
+      beginPostActivationHandoff,
+      endPostActivationHandoff,
     ],
   );
 

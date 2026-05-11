@@ -48,19 +48,27 @@ export function LoginScreen() {
         forgotLink: {
           alignSelf: 'flex-end',
           marginBottom: 16,
-          marginTop: 4,
+          marginTop: 6,
           paddingVertical: 2,
+        },
+        forgotLinkTightTop: {
+          marginTop: 2,
         },
         forgotLinkText: {
           color: colors.linkSubtle,
           fontSize: 14,
           fontWeight: '600',
         },
+        /** Sits directly under the password field; left-aligned with labels / field column. */
         formError: {
+          alignSelf: 'stretch',
           color: colors.danger,
-          fontSize: 14,
-          marginBottom: 12,
-          textAlign: 'center',
+          fontSize: 13,
+          fontWeight: '500',
+          lineHeight: 18,
+          marginBottom: 8,
+          marginTop: 6,
+          textAlign: 'left',
         },
       }),
     [colors],
@@ -164,13 +172,17 @@ export function LoginScreen() {
                       textContentType="password"
                       value={password}
                     />
-                    {formError ? <AppText style={styles.formError}>{formError}</AppText> : null}
+                    {formError ? (
+                      <AppText accessibilityLiveRegion="polite" style={styles.formError}>
+                        {formError}
+                      </AppText>
+                    ) : null}
                     <Pressable
                       accessibilityLabel="Forgot password"
                       accessibilityRole="button"
                       hitSlop={12}
                       onPress={() => navigation.navigate(ROUTES.FORGOT_PASSWORD)}
-                      style={styles.forgotLink}
+                      style={[styles.forgotLink, formError ? styles.forgotLinkTightTop : null]}
                     >
                       <AppText style={styles.forgotLinkText}>Forgot password?</AppText>
                     </Pressable>

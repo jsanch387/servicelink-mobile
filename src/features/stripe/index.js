@@ -1,7 +1,9 @@
 // Stripe mobile domain hub (non-breaking re-exports).
 // Keep existing imports working while giving one discoverable Stripe entrypoint.
 
-// Onboarding checkout
+// Onboarding trial (silent start + confirm-after-checkout; see docs/nextjs-onboarding-trial-contract.md)
+export { startOnboardingTrial } from '../onboarding/api/startOnboardingTrial';
+export { confirmOnboardingTrial } from '../onboarding/api/confirmOnboardingTrial';
 export { createOnboardingCheckoutSession } from '../onboarding/api/createOnboardingCheckoutSession';
 export { STRIPE_ONBOARDING_CHECKOUT_AUTH_RETURN_URL } from '../onboarding/constants/stripeOnboardingReturnUrl';
 

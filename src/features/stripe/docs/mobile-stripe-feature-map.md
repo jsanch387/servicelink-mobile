@@ -4,10 +4,10 @@ Single source of truth for Stripe-related mobile flows, code paths, env vars, an
 
 ## Live flows
 
-1. **Onboarding free trial checkout**
-   - Endpoint: `POST /api/stripe/create-checkout-session`
-   - Body: `{ "source": "onboarding_trial_bridge", "client": "mobile" }`
-   - App behavior: open Stripe checkout via `openAuthSessionAsync`, then refetch onboarding/profile.
+1. **Onboarding Pro trial (step 5)**
+   - Primary: `POST /api/stripe/start-onboarding-trial` (Bearer, `{}`) — silent trial; response includes `trial_confirmation`.
+   - If `fallbackToCheckout`: `POST /api/stripe/create-checkout-session` with `{ "source": "onboarding_trial_bridge", "client": "mobile" }`, open `url`, then `POST /api/stripe/confirm-onboarding-trial` (poll with `checkout_session_id` from return URL) until synced.
+   - Full contract: `docs/nextjs-onboarding-trial-contract.md`.
 
 2. **Subscription upgrade from paywall**
    - Endpoint: `POST /api/stripe/create-checkout-session`
@@ -42,13 +42,18 @@ Single source of truth for Stripe-related mobile flows, code paths, env vars, an
 - `src/lib/stripeMobileCheckoutOrigin.js`
   - Shared origin resolution + production URL safety checks.
 
-### Onboarding (free trial)
+### Onboarding (Pro trial)
 
+- `src/features/onboarding/api/startOnboardingTrial.js`
+- `src/features/onboarding/api/confirmOnboardingTrial.js`
 - `src/features/onboarding/api/createOnboardingCheckoutSession.js`
+- `src/features/onboarding/utils/confirmOnboardingTrialUntilReady.js`
+- `src/features/onboarding/utils/applyTrialConfirmationToOnboardingCache.js`
+- `src/features/onboarding/utils/parseOnboardingStripeReturnUrl.js`
 - `src/features/onboarding/constants/stripeOnboardingReturnUrl.js`
 - `src/features/onboarding/utils/refetchOnboardingAfterStripe.js`
 - `src/features/onboarding/screens/OnboardingScreen.jsx`
-- Tests: `src/features/onboarding/__tests__/createOnboardingCheckoutSession.test.js`
+- Tests: `createOnboardingCheckoutSession`, `startOnboardingTrial`, `confirmOnboardingTrial`, `parseOnboardingStripeReturnUrl`
 
 ### Subscription (paywall + upgrade gate)
 
