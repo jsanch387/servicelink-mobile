@@ -37,7 +37,7 @@ describe('insertOwnerBooking', () => {
       startTimeHhMmSs: '10:00:00',
       customerName: 'Pat',
       customerEmail: 'p@ex.co',
-      customerPhoneDigits: '5551234567',
+      customerPhoneDigits: '5552345678',
       street: '1 Main',
       unit: '',
       city: 'Austin',
@@ -54,7 +54,7 @@ describe('insertOwnerBooking', () => {
     expect(upsertCustomerForBooking).toHaveBeenCalledWith('biz-1', {
       fullName: 'Pat',
       email: 'p@ex.co',
-      phone: '5551234567',
+      phone: '5552345678',
     });
 
     expect(supabase.from).toHaveBeenCalledWith('bookings');

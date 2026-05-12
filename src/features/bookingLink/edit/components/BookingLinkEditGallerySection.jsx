@@ -17,6 +17,7 @@ export function BookingLinkEditGallerySection({
   galleryTileStyle,
 }) {
   const addDisabled = !canAddGalleryImage;
+  const hasGalleryImages = visiblePortfolioImages.length + localGalleryUris.length > 0;
 
   return (
     <View style={styles.gallerySection}>
@@ -62,44 +63,44 @@ export function BookingLinkEditGallerySection({
         </Pressable>
       </DashedBorderFrame>
 
-      <AppText style={styles.portfolioHeading}>Your portfolio</AppText>
-      <AppText style={styles.portfolioSub}>Tap X to remove.</AppText>
-
-      {visiblePortfolioImages.length || localGalleryUris.length ? (
-        <View style={styles.portfolioGrid}>
-          {visiblePortfolioImages.map((image) => (
-            <View
-              key={portfolioImageKey(image)}
-              style={[styles.portfolioTileWrap, galleryTileStyle]}
-            >
-              <Image source={{ uri: image.preview_url }} style={styles.portfolioTileImage} />
-              <Pressable
-                accessibilityLabel="Remove photo"
-                hitSlop={10}
-                style={styles.portfolioRemove}
-                onPress={() => onRemovePortfolioImage(image)}
+      {hasGalleryImages ? (
+        <>
+          <AppText style={styles.galleryImagesHeading}>Your gallery</AppText>
+          <View style={styles.portfolioGrid}>
+            {visiblePortfolioImages.map((image) => (
+              <View
+                key={portfolioImageKey(image)}
+                style={[styles.portfolioTileWrap, galleryTileStyle]}
               >
-                <Ionicons name="close" size={15} color="#ffffff" />
-              </Pressable>
-            </View>
-          ))}
-          {localGalleryUris.map((item) => (
-            <View key={item.id} style={[styles.portfolioTileWrap, galleryTileStyle]}>
-              <Image source={{ uri: item.uri }} style={styles.portfolioTileImage} />
-              <Pressable
-                accessibilityLabel="Remove photo"
-                hitSlop={10}
-                style={styles.portfolioRemove}
-                onPress={() => onRemoveLocalGalleryItem(item.id)}
-              >
-                <Ionicons name="close" size={15} color="#ffffff" />
-              </Pressable>
-            </View>
-          ))}
-        </View>
-      ) : (
-        <AppText style={styles.portfolioEmpty}>No photos in your portfolio yet.</AppText>
-      )}
+                <Image source={{ uri: image.preview_url }} style={styles.portfolioTileImage} />
+                <Pressable
+                  accessibilityHint="Removes this image from your gallery"
+                  accessibilityLabel="Remove photo"
+                  hitSlop={10}
+                  style={styles.portfolioRemove}
+                  onPress={() => onRemovePortfolioImage(image)}
+                >
+                  <Ionicons name="close" size={15} color="#ffffff" />
+                </Pressable>
+              </View>
+            ))}
+            {localGalleryUris.map((item) => (
+              <View key={item.id} style={[styles.portfolioTileWrap, galleryTileStyle]}>
+                <Image source={{ uri: item.uri }} style={styles.portfolioTileImage} />
+                <Pressable
+                  accessibilityHint="Removes this image from your gallery"
+                  accessibilityLabel="Remove photo"
+                  hitSlop={10}
+                  style={styles.portfolioRemove}
+                  onPress={() => onRemoveLocalGalleryItem(item.id)}
+                >
+                  <Ionicons name="close" size={15} color="#ffffff" />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : null}
     </View>
   );
 }

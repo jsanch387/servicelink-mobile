@@ -245,21 +245,13 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       lineHeight: 18,
       textAlign: 'center',
     },
-    portfolioHeading: {
+    galleryImagesHeading: {
       color: colors.textSecondary,
       fontSize: 15,
       fontWeight: '600',
       letterSpacing: -0.2,
-      marginBottom: 4,
-      marginTop: 20,
-    },
-    portfolioSub: {
-      color: colors.textMuted,
-      fontSize: 12,
-      fontWeight: '500',
-      letterSpacing: -0.1,
-      lineHeight: 17,
       marginBottom: 12,
+      marginTop: 20,
     },
     portfolioGrid: {
       alignContent: 'flex-start',
@@ -290,12 +282,6 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       right: 6,
       top: 6,
       width: 26,
-    },
-    portfolioEmpty: {
-      color: colors.textMuted,
-      fontSize: 13,
-      fontWeight: '500',
-      marginTop: 4,
     },
     bioInput: {
       minHeight: 128,

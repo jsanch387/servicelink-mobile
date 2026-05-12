@@ -53,7 +53,7 @@ describe('buildOwnerBookingPayload', () => {
       totalDurationMinutes: 90,
       selectedDateKey: '2026-05-01',
       selectedTime: '2:00 PM',
-      customer: { fullName: 'Jane D', email: 'j@ex.co', phone: '(555) 123-4567' },
+      customer: { fullName: 'Jane D', email: 'j@ex.co', phone: '(555) 234-5678' },
       address: { street: '1 Main', unit: '', city: 'Austin', state: 'TX', zip: '78701' },
       vehicle: { year: '2020', make: 'Honda', model: 'Civic' },
       notes: '',
@@ -65,7 +65,7 @@ describe('buildOwnerBookingPayload', () => {
       expect(p.businessSlug).toBe('acme');
       expect(p.serviceId).toBe('svc-1');
       expect(p.serviceName).toBe('Detail');
-      expect(p.customerPhoneDigits).toBe('5551234567');
+      expect(p.customerPhoneDigits).toBe('5552345678');
       expect(p.startTimeHhMmSs).toBe('14:00:00');
       expect(p.scheduledDate).toBe('2026-05-01');
       expect(p.durationMinutes).toBe(90);

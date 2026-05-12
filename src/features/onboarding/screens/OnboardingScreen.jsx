@@ -108,6 +108,15 @@ export function OnboardingScreen() {
   const slugSeededRef = useRef(false);
   const prevStepIndexRef = useRef(0);
   const didHydrateStepFromServerRef = useRef(false);
+  const scrollViewRef = useRef(null);
+
+  /** One ScrollView for all steps — reset offset on step change so each step starts at the top. */
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [stepIndex]);
 
   useEffect(() => {
     didHydrateStepFromServerRef.current = false;
@@ -607,6 +616,7 @@ export function OnboardingScreen() {
         </View>
         <View style={styles.mainBody}>
           <ScrollView
+            ref={scrollViewRef}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}

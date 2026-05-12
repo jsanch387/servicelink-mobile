@@ -11,6 +11,80 @@ function digitsOnly(raw) {
   return String(raw ?? '').replace(/\D/g, '');
 }
 
+/** First digit of US NANP area code or exchange (NXX): N is 2–9. */
+function isNanpNxxLeadingDigit(char) {
+  return char >= '2' && char <= '9';
+}
+
+/**
+ * True when `digits10` is exactly 10 digits and satisfies basic NANP NXX–NXX rules
+ * (leading digit of area code and of exchange are 2–9).
+ *
+ * @param {string} digits10
+ * @returns {boolean}
+ */
+export function isValidUsNanpTenDigits(digits10) {
+  if (digits10 == null || typeof digits10 !== 'string' || digits10.length !== 10) {
+    return false;
+  }
+  if (!/^\d{10}$/.test(digits10)) {
+    return false;
+  }
+  return isNanpNxxLeadingDigit(digits10[0]) && isNanpNxxLeadingDigit(digits10[3]);
+}
+
+/**
+ * Reduce a digit string (max 10) so every filled prefix satisfies NANP NXX rules; fixes bad pastes
+ * by trimming trailing digits or stripping invalid leading area-code digits.
+ *
+ * @param {string} digitsOnlyRaw digits only, already truncated to ≤10 and leading country 1 stripped
+ * @returns {string}
+ */
+function sanitizeNanpDigitsProgressive(digitsOnlyRaw) {
+  let d = digitsOnlyRaw.slice(0, 10);
+  for (;;) {
+    if (d.length === 0) break;
+    if (!isNanpNxxLeadingDigit(d[0])) {
+      d = d.slice(1);
+      continue;
+    }
+    if (d.length >= 4 && !isNanpNxxLeadingDigit(d[3])) {
+      d = d.slice(0, -1);
+      continue;
+    }
+    if (d.length === 10 && !isValidUsNanpTenDigits(d)) {
+      d = d.slice(0, -1);
+      continue;
+    }
+    break;
+  }
+  return d;
+}
+
+/**
+ * Empty → OK to save (clears phone). Digits only: must be exactly 10 valid NANP or user must clear the field.
+ *
+ * @param {string | null | undefined} raw
+ * @returns {string | null} error message, or null when input is acceptable for save
+ */
+export function getPhoneInputValidationMessage(raw) {
+  const trimmed = String(raw ?? '').trim();
+  if (!trimmed) {
+    return null;
+  }
+  const d = canonicalNanpDigits(trimmed);
+  if (d.length === 0) {
+    return null;
+  }
+  if (d.length < 10) {
+    return 'Enter a complete 10-digit U.S. phone number, or clear this field.';
+  }
+  if (!isValidUsNanpTenDigits(d)) {
+    return 'That is not a valid U.S. phone number.';
+  }
+  return null;
+}
+
 /**
  * Compare NANP numbers consistently: `(555) …`, `5551234567`, `+15551234567`, `15551234567` → same 10-digit string.
  *
@@ -26,7 +100,7 @@ export function canonicalNanpDigits(raw) {
 }
 
 /**
- * US NANP while typing: **at most 10 digits**, formatted as `(555) 123-4567` (no +1).
+ * US NANP while typing: **at most 10 digits**, formatted as `(212) 555-1234` (no +1).
  * Extra pasted digits are dropped. A single leading `1` (country code) is removed when it produces 11+ digits.
  *
  * @param {string | null | undefined} text
@@ -38,6 +112,7 @@ export function formatPhoneInputAsYouType(text) {
     d = d.slice(1);
   }
   d = d.slice(0, 10);
+  d = sanitizeNanpDigitsProgressive(d);
   return formatPartialUsNanp(d);
 }
 
@@ -99,7 +174,7 @@ export function normalizePhoneForDatabase(raw) {
     d = d.slice(1);
   }
   if (d.length === 10) {
-    return d;
+    return isValidUsNanpTenDigits(d) ? d : null;
   }
   return null;
 }
@@ -125,7 +200,7 @@ export function phoneForSmsUri(raw) {
   }
   const digits = digitsOnly(t);
   if (digits.length === 10) {
-    return `+1${digits}`;
+    return isValidUsNanpTenDigits(digits) ? `+1${digits}` : null;
   }
   if (digits.length >= 11) {
     return `+${digits}`;

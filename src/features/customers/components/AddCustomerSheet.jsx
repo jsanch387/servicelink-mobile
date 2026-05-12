@@ -185,8 +185,7 @@ export function AddCustomerSheet({ businessId, visible, onRequestClose }) {
   return (
     <BottomSheetModal
       footer={footer}
-      maxHeight="92%"
-      minHeight={phase === 'form' ? '72%' : '44%'}
+      sheetHeightPercent={phase === 'form' ? 92 : 44}
       title={sheetTitle}
       visible={visible}
       onRequestClose={handleClose}

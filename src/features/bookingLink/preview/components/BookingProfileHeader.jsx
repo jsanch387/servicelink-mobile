@@ -4,7 +4,11 @@ import { useMemo } from 'react';
 import { Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SkeletonBox } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
-import { phoneForSmsUri } from '../../../../utils/phone';
+import {
+  canonicalNanpDigits,
+  isValidUsNanpTenDigits,
+  phoneForSmsUri,
+} from '../../../../utils/phone';
 import { bookingLinkProfileBusinessNameStyle } from '../../../../utils/serviceCardTypography';
 
 export function BookingProfileHeader({
@@ -19,6 +23,11 @@ export function BookingProfileHeader({
   isLoading,
 }) {
   const { colors } = useTheme();
+
+  const showContactButton = useMemo(() => {
+    const d = canonicalNanpDigits(phoneNumber);
+    return d.length === 10 && isValidUsNanpTenDigits(d);
+  }, [phoneNumber]);
 
   const styles = useMemo(
     () =>
@@ -218,14 +227,17 @@ export function BookingProfileHeader({
           </View>
         ) : null}
 
-        <Pressable
-          disabled={!phoneNumber}
-          style={styles.contactButton}
-          onPress={() => void handleCall()}
-        >
-          <Ionicons name="call-outline" size={17} color={colors.textSecondary} />
-          <AppText style={styles.contactButtonText}>Contact</AppText>
-        </Pressable>
+        {showContactButton ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Call business"
+            style={styles.contactButton}
+            onPress={() => void handleCall()}
+          >
+            <Ionicons name="call-outline" size={17} color={colors.textSecondary} />
+            <AppText style={styles.contactButtonText}>Contact</AppText>
+          </Pressable>
+        ) : null}
       </View>
     </>
   );

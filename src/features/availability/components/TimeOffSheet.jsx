@@ -135,8 +135,7 @@ export function TimeOffSheet({ visible, onRequestClose, onAddTimeOff }) {
   return (
     <BottomSheetModal
       allowBackdropClose
-      maxHeight="96%"
-      minHeight="88%"
+      sheetHeightPercent={92}
       title="Add time off"
       visible={visible}
       onRequestClose={onRequestClose}

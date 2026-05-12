@@ -117,10 +117,8 @@ export function ChangeBusinessSlugSheet({
 
   return (
     <BottomSheetModal
-      disableKeyboardAvoiding
       footer={footer}
-      maxHeight="94%"
-      minHeight="84%"
+      sheetHeightPercent={92}
       title="Change your link"
       visible={visible}
       onRequestClose={onRequestClose}

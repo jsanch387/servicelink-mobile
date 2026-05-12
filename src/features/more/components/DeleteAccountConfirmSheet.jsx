@@ -135,10 +135,8 @@ export function DeleteAccountConfirmSheet({
 
   return (
     <BottomSheetModal
-      disableKeyboardAvoiding
       footer={footer}
-      maxHeight="92%"
-      minHeight="80%"
+      sheetHeightPercent={92}
       title="Confirm your email"
       visible={visible}
       onRequestClose={onRequestClose}

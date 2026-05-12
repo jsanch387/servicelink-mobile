@@ -5,7 +5,7 @@ const reviewReady = {
   selectedPricingId: 'p1',
   selectedDateKey: '2026-06-01',
   selectedTime: '9:00 AM',
-  customer: { fullName: 'A B', email: 'a@b.co', phone: '(555) 111-2222' },
+  customer: { fullName: 'A B', email: 'a@b.co', phone: '(555) 234-5678' },
   address: { street: '1 St', city: 'X', state: 'TX', zip: '11111' },
   vehicle: { year: '2020', make: 'Y', model: 'Z' },
 };

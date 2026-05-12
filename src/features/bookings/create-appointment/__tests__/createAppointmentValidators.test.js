@@ -11,16 +11,16 @@ describe('createAppointmentValidators', () => {
       isCustomerStepComplete({
         fullName: 'A',
         email: 'a@b.co',
-        phone: '(555) 123-4567',
+        phone: '(555) 234-5678',
       }),
     ).toBe(true);
-    expect(isCustomerStepComplete({ fullName: '', email: 'a@b.co', phone: '(555) 123-4567' })).toBe(
+    expect(isCustomerStepComplete({ fullName: '', email: 'a@b.co', phone: '(555) 234-5678' })).toBe(
       false,
     );
     expect(
-      isCustomerStepComplete({ fullName: 'A', email: 'not-an-email', phone: '(555) 123-4567' }),
+      isCustomerStepComplete({ fullName: 'A', email: 'not-an-email', phone: '(555) 234-5678' }),
     ).toBe(false);
-    expect(isCustomerStepComplete({ fullName: 'A', email: 'a@b.co', phone: '(555) 123' })).toBe(
+    expect(isCustomerStepComplete({ fullName: 'A', email: 'a@b.co', phone: '(555) 234' })).toBe(
       false,
     );
   });
@@ -51,7 +51,7 @@ describe('createAppointmentValidators', () => {
       selectedPricingId: 'p1',
       selectedDateKey: '2026-04-29',
       selectedTime: '9:00 AM',
-      customer: { fullName: 'A', email: 'a@b.co', phone: '(555) 123-4567' },
+      customer: { fullName: 'A', email: 'a@b.co', phone: '(555) 234-5678' },
       address: { street: '1', city: 'c', state: 'TX', zip: '1' },
       vehicle: { year: '2020', make: 'x', model: 'y' },
     };

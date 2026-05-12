@@ -68,6 +68,7 @@ export function BookingLinkEditMode(props) {
 
           <BookingLinkEditContactSection
             phoneInput={ctrl.phoneInput}
+            phoneInputError={ctrl.phoneInputError}
             styles={styles}
             onPhoneInputChange={ctrl.onPhoneInputChange}
           />

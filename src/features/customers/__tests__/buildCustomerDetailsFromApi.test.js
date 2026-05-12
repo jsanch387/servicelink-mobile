@@ -6,7 +6,7 @@ describe('buildCustomerDetailsFromApi', () => {
   const baseRow = {
     id: 'c1',
     full_name: 'Jane Fuller',
-    phone: '(555) 000-0000',
+    phone: '(555) 200-0000',
     email: 'jane@example.com',
     notes: 'Gate code 1234',
   };

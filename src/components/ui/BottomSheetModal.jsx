@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Animated,
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -14,6 +14,12 @@ import { useTheme } from '../../theme';
 import { AppText } from './AppText';
 import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
 
+/**
+ * Bottom sheet: fixed height from the bottom (`sheetHeightPercent` of the screen),
+ * small backdrop strip at the top. Keyboard does not move the sheet — it overlays;
+ * on iOS we add extra scroll padding so fields can be scrolled above the keyboard.
+ * Android relies on `adjustResize` window height; no extra keyboard padding here.
+ */
 export function BottomSheetModal({
   visible,
   onRequestClose,
@@ -21,19 +27,18 @@ export function BottomSheetModal({
   children,
   footer = null,
   allowBackdropClose = true,
-  minHeight = '64%',
-  maxHeight = '90%',
-  keyboardBehavior,
-  disableKeyboardAvoiding = false,
+  /** 30–100: portion of the screen height filled by the sheet (remainder = top backdrop). */
+  sheetHeightPercent = 92,
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const resolvedKeyboardBehavior =
-    keyboardBehavior ?? (Platform.OS === 'ios' ? 'padding' : 'height');
+  const [iosKeyboardScrollPadding, setIosKeyboardScrollPadding] = useState(0);
 
   const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
     useModalFadeBackdropSlideSheet();
   const [mounted, setMounted] = useState(visible);
+
+  const sheetHeight = `${Math.min(100, Math.max(30, sheetHeightPercent))}%`;
 
   useEffect(() => {
     if (visible) {
@@ -52,10 +57,36 @@ export function BottomSheetModal({
     return undefined;
   }, [mounted, visible, runOpen, runClose]);
 
+  useEffect(() => {
+    if (!visible) setIosKeyboardScrollPadding(0);
+  }, [visible]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return undefined;
+    const onShow = (e) => {
+      setIosKeyboardScrollPadding(Math.max(0, e?.endCoordinates?.height ?? 0));
+    };
+    const onHide = () => setIosKeyboardScrollPadding(0);
+    const subShow = Keyboard.addListener('keyboardWillShow', onShow);
+    const subHide = Keyboard.addListener('keyboardWillHide', onHide);
+    return () => {
+      subShow.remove();
+      subHide.remove();
+    };
+  }, []);
+
   function closeFromBackdrop() {
     if (!allowBackdropClose) return;
     onRequestClose?.();
   }
+
+  const scrollContentStyle = useMemo(
+    () => [
+      styles.sheetContent,
+      { paddingBottom: Math.max(insets.bottom, 16) + 12 + iosKeyboardScrollPadding },
+    ],
+    [insets.bottom, iosKeyboardScrollPadding],
+  );
 
   const content = (
     <>
@@ -72,16 +103,19 @@ export function BottomSheetModal({
           sheetStyle,
           {
             backgroundColor: colors.shellElevated,
-            maxHeight,
-            minHeight,
-            paddingBottom: Math.max(insets.bottom, 16),
+            height: sheetHeight,
+            maxHeight: sheetHeight,
+            paddingHorizontal: 16,
+            paddingTop: 16,
           },
         ]}
       >
         <ScrollView
-          contentContainerStyle={styles.sheetContent}
+          contentContainerStyle={scrollContentStyle}
+          keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          style={styles.sheetScroll}
         >
           {title ? (
             <AppText style={[styles.sheetTitle, { color: colors.text }]}>{title}</AppText>
@@ -98,17 +132,7 @@ export function BottomSheetModal({
 
   return (
     <Modal animationType="none" transparent visible={mounted} onRequestClose={onRequestClose}>
-      {disableKeyboardAvoiding ? (
-        <View style={styles.modalRoot}>{content}</View>
-      ) : (
-        <KeyboardAvoidingView
-          behavior={resolvedKeyboardBehavior}
-          keyboardVerticalOffset={0}
-          style={styles.modalRoot}
-        >
-          {content}
-        </KeyboardAvoidingView>
-      )}
+      <View style={styles.modalRoot}>{content}</View>
     </Modal>
   );
 }
@@ -130,12 +154,14 @@ const styles = StyleSheet.create({
   sheetWrap: {
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    flexDirection: 'column',
     width: '100%',
   },
+  sheetScroll: {
+    flex: 1,
+  },
   sheetContent: {
-    paddingBottom: 6,
+    flexGrow: 1,
   },
   sheetTitle: {
     fontSize: 18,

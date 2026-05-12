@@ -3,7 +3,11 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert, useWindowDimensions } from 'react-native';
 import { useAuth } from '../../../auth';
 import { useTheme } from '../../../../theme';
-import { formatPhoneForDisplay, formatPhoneInputAsYouType } from '../../../../utils/phone';
+import {
+  formatPhoneForDisplay,
+  formatPhoneInputAsYouType,
+  getPhoneInputValidationMessage,
+} from '../../../../utils/phone';
 import { safeUserFacingMessage } from '../../../../utils/safeUserFacingMessage';
 import { BUSINESS_TYPE_OPTIONS } from '../../constants/businessTypeOptions';
 import {
@@ -204,11 +208,14 @@ export function useBookingLinkEditController({
 
   const hasRequiredNameType = Boolean(nameInput.trim() && typeInput.trim());
 
+  const phoneInputError = useMemo(() => getPhoneInputValidationMessage(phoneInput), [phoneInput]);
+
   const canSave = Boolean(
     businessId &&
     user?.id &&
     (hasTextChanges || hasImageChanges || hasGalleryChanges) &&
     !saveMutation.isPending &&
+    !phoneInputError &&
     (hasRequiredNameType || hasImageChanges || hasGalleryChanges),
   );
 
@@ -223,6 +230,11 @@ export function useBookingLinkEditController({
         'Too many photos',
         `Please keep your gallery at ${BOOKING_LINK_GALLERY_MAX_IMAGES} images or fewer before saving.`,
       );
+      return;
+    }
+    const phoneErr = getPhoneInputValidationMessage(phoneInput);
+    if (phoneErr) {
+      Alert.alert('Phone number', phoneErr);
       return;
     }
     try {
@@ -295,6 +307,7 @@ export function useBookingLinkEditController({
     bioInput,
     setBioInput,
     phoneInput,
+    phoneInputError,
     onPhoneInputChange,
     onCoverPhotoPress,
     onLogoPhotoPress,

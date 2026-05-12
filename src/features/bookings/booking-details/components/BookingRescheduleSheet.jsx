@@ -270,8 +270,7 @@ export function BookingRescheduleSheet({
   return (
     <BottomSheetModal
       allowBackdropClose
-      maxHeight="92%"
-      minHeight="58%"
+      sheetHeightPercent={92}
       title="Reschedule"
       visible={visible}
       onRequestClose={onRequestClose}

@@ -1,24 +1,14 @@
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {
-  Animated,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, View } from 'react-native';
 import {
   AppText,
+  BottomSheetModal,
   Button,
   DurationSelectField,
   InlineCardError,
   SurfaceTextField,
 } from '../../../components/ui';
-import { useModalFadeBackdropSlideSheet } from '../../../components/ui/useModalFadeBackdropSlideSheet';
 import { useTheme } from '../../../theme';
 
 function normalizePriceInput(rawText) {
@@ -47,32 +37,11 @@ export function ServiceCreateSheet({
   submitError = '',
 }) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
-  const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
-    useModalFadeBackdropSlideSheet();
-  const [mounted, setMounted] = useState(visible);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [durationHHmm, setDurationHHmm] = useState('01:00');
-
-  useEffect(() => {
-    if (visible) {
-      prepareOpen();
-      setMounted(true);
-    }
-  }, [visible, prepareOpen]);
-
-  useEffect(() => {
-    if (!mounted) return undefined;
-    if (visible) {
-      const id = requestAnimationFrame(() => runOpen());
-      return () => cancelAnimationFrame(id);
-    }
-    runClose(() => setMounted(false));
-    return undefined;
-  }, [mounted, visible, runOpen, runClose]);
 
   useEffect(() => {
     if (!visible) return;
@@ -87,11 +56,6 @@ export function ServiceCreateSheet({
     description.trim().length > 0 &&
     price.trim().length > 0 &&
     String(durationHHmm ?? '').trim().length > 0;
-
-  function closeFromBackdrop() {
-    if (!allowBackdropClose) return;
-    onRequestClose?.();
-  }
 
   function insertBulletPoint() {
     setDescription((current) => {
@@ -115,159 +79,101 @@ export function ServiceCreateSheet({
   }
 
   return (
-    <Modal animationType="none" transparent visible={mounted} onRequestClose={onRequestClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-        style={styles.modalRoot}
-      >
-        <Animated.View pointerEvents="box-none" style={[styles.sheetBackdrop, backdropStyle]}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={closeFromBackdrop}
-            style={StyleSheet.absoluteFillObject}
+    <BottomSheetModal
+      allowBackdropClose={allowBackdropClose}
+      onRequestClose={onRequestClose}
+      title="Add new service"
+      visible={visible}
+      footer={
+        <View style={styles.actions}>
+          <Button
+            fullWidth
+            labelColor="#ffffff"
+            outlineColor="rgba(255,255,255,0.52)"
+            style={styles.actionBtn}
+            title="Cancel"
+            variant="outline"
+            onPress={onRequestClose}
           />
-        </Animated.View>
-        <Animated.View
-          style={[
-            styles.sheetWrap,
-            sheetStyle,
-            {
-              backgroundColor: colors.shellElevated,
-              paddingBottom: Math.max(insets.bottom, 16),
-            },
-          ]}
+          <Button
+            disabled={!canSave || isSaving}
+            fullWidth
+            loading={isSaving}
+            style={styles.actionBtn}
+            title="Save service"
+            variant="surfaceLight"
+            onPress={() => {
+              void handlePrimary();
+            }}
+          />
+        </View>
+      }
+    >
+      <SurfaceTextField
+        containerStyle={styles.field}
+        label="Service name"
+        onChangeText={setName}
+        value={name}
+      />
+      <SurfaceTextField
+        containerStyle={[styles.field, styles.descriptionField]}
+        label="Description"
+        multiline
+        onChangeText={setDescription}
+        style={styles.descriptionInput}
+        textAlignVertical="top"
+        value={description}
+      />
+      <View style={styles.descriptionToolbar}>
+        <Pressable
+          accessibilityLabel="Insert bullet point"
+          accessibilityRole="button"
+          hitSlop={8}
+          style={styles.bulletButton}
+          onPress={insertBulletPoint}
         >
-          <ScrollView
-            contentContainerStyle={styles.sheetContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <AppText style={[styles.sheetTitle, { color: colors.text }]}>Add new service</AppText>
-            <View style={[styles.headerDivider, { backgroundColor: colors.border }]} />
+          <Ionicons color={colors.textMuted} name="list-outline" size={18} />
+        </Pressable>
+        <AppText style={[styles.charCount, { color: colors.textMuted }]}>
+          {description.length}/800
+        </AppText>
+      </View>
+      <SurfaceTextField
+        containerStyle={styles.field}
+        keyboardType="decimal-pad"
+        label="Price"
+        onChangeText={(text) => setPrice(normalizePriceInput(text))}
+        value={`$${price}`}
+      />
+      <DurationSelectField
+        containerStyle={styles.durationField}
+        label="Duration"
+        onValueChange={setDurationHHmm}
+        triggerStyle={{ borderColor: 'rgba(255,255,255,0.24)', borderWidth: 1 }}
+        value={durationHHmm}
+      />
 
-            <SurfaceTextField
-              containerStyle={styles.field}
-              label="Service name"
-              onChangeText={setName}
-              value={name}
-            />
-            <SurfaceTextField
-              containerStyle={styles.field}
-              label="Description"
-              multiline
-              onChangeText={setDescription}
-              style={styles.descriptionInput}
-              textAlignVertical="top"
-              value={description}
-            />
-            <View style={styles.descriptionToolbar}>
-              <Pressable
-                accessibilityLabel="Insert bullet point"
-                accessibilityRole="button"
-                hitSlop={8}
-                style={styles.bulletButton}
-                onPress={insertBulletPoint}
-              >
-                <Ionicons color={colors.textMuted} name="list-outline" size={18} />
-              </Pressable>
-              <AppText style={[styles.charCount, { color: colors.textMuted }]}>
-                {description.length}/800
-              </AppText>
-            </View>
-            <SurfaceTextField
-              containerStyle={styles.field}
-              keyboardType="decimal-pad"
-              label="Price"
-              onChangeText={(text) => setPrice(normalizePriceInput(text))}
-              value={`$${price}`}
-            />
-            <DurationSelectField
-              containerStyle={styles.durationField}
-              label="Duration"
-              onValueChange={setDurationHHmm}
-              triggerStyle={{ borderColor: 'rgba(255,255,255,0.24)', borderWidth: 1 }}
-              value={durationHHmm}
-            />
+      {!name.trim() || !description.trim() ? (
+        <AppText style={[styles.requiredHint, { color: colors.textMuted }]}>
+          Name and description are required.
+        </AppText>
+      ) : null}
 
-            {!name.trim() || !description.trim() ? (
-              <AppText style={[styles.requiredHint, { color: colors.textMuted }]}>
-                Name and description are required.
-              </AppText>
-            ) : null}
-
-            {submitError ? (
-              <View style={styles.submitErrorWrap}>
-                <InlineCardError message={submitError} />
-              </View>
-            ) : null}
-
-            <View style={styles.actions}>
-              <Button
-                fullWidth
-                labelColor="#ffffff"
-                outlineColor="rgba(255,255,255,0.52)"
-                style={styles.actionBtn}
-                title="Cancel"
-                variant="outline"
-                onPress={onRequestClose}
-              />
-              <Button
-                disabled={!canSave || isSaving}
-                fullWidth
-                loading={isSaving}
-                style={styles.actionBtn}
-                title="Save service"
-                variant="surfaceLight"
-                onPress={() => {
-                  void handlePrimary();
-                }}
-              />
-            </View>
-          </ScrollView>
-        </Animated.View>
-      </KeyboardAvoidingView>
-    </Modal>
+      {submitError ? (
+        <View style={styles.submitErrorWrap}>
+          <InlineCardError message={submitError} />
+        </View>
+      ) : null}
+    </BottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalRoot: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    position: 'relative',
-  },
-  sheetBackdrop: {
-    backgroundColor: 'rgba(0,0,0,0.76)',
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  sheetWrap: {
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    maxHeight: '96%',
-    minHeight: '92%',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    width: '100%',
-  },
-  sheetContent: {
-    paddingBottom: 6,
-  },
-  sheetTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 16,
-  },
-  headerDivider: {
-    height: 1,
-    marginBottom: 16,
-  },
   field: {
     marginBottom: 14,
+  },
+  descriptionField: {
+    marginBottom: 4,
   },
   descriptionInput: {
     minHeight: 110,
@@ -277,7 +183,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 12,
+    marginTop: -6,
   },
   bulletButton: {
     alignItems: 'center',

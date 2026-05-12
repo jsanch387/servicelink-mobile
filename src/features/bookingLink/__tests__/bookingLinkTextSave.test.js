@@ -34,7 +34,7 @@ describe('bookingLinkTextSave', () => {
       businessCity: 'Austin',
       businessState: 'tx',
       businessBio: '',
-      phoneNumber: '+15551234567',
+      phoneNumber: '+15552345678',
     };
     expect(
       bookingLinkTextDirtyVsProps(baseProps, {
@@ -43,7 +43,7 @@ describe('bookingLinkTextSave', () => {
         cityInput: 'Austin',
         stateInput: 'TX',
         bioInput: '',
-        phoneInput: '(555) 123-4567',
+        phoneInput: '(555) 234-5678',
       }),
     ).toBe(false);
   });

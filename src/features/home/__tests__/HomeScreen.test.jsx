@@ -75,7 +75,7 @@ describe('HomeScreen', () => {
           id: 'b1',
           customer_name: 'Alex',
           service_name: 'Detail',
-          customer_phone: '5551234567',
+          customer_phone: '5552345678',
           customer_street_address: '1 Main',
           customer_city: 'Austin',
           customer_state: 'TX',

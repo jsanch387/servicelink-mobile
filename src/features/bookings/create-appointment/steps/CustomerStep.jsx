@@ -30,7 +30,7 @@ export function CustomerStep({ customer, onChangeCustomer }) {
         label="Phone"
         leftIcon="call-outline"
         maxLength={US_NANP_FORMATTED_MAX_LENGTH}
-        placeholder="(555) 123-4567"
+        placeholder="(555) 234-5678"
         value={customer.phone}
         onChangeText={(t) => onChangeCustomer({ ...customer, phone: formatPhoneInputAsYouType(t) })}
       />
