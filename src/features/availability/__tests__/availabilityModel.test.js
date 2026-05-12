@@ -2,6 +2,7 @@ import {
   buildAvailabilityUiFromPreset,
   buildAvailabilityUiModel,
   buildWeeklySchedulePayloadFromUi,
+  dayEnabledMapHasAtLeastOneEnabled,
   format24HourTo12Hour,
   normalizeTimeOffBlocksForSave,
   to24Hour,
@@ -9,6 +10,27 @@ import {
 } from '../utils/availabilityModel';
 
 describe('availabilityModel', () => {
+  describe('dayEnabledMapHasAtLeastOneEnabled', () => {
+    it('is false when every day is off or missing', () => {
+      expect(dayEnabledMapHasAtLeastOneEnabled({})).toBe(false);
+      expect(
+        dayEnabledMapHasAtLeastOneEnabled({
+          Monday: false,
+          Tuesday: false,
+          Wednesday: false,
+          Thursday: false,
+          Friday: false,
+          Saturday: false,
+          Sunday: false,
+        }),
+      ).toBe(false);
+    });
+
+    it('is true when any canonical day is on', () => {
+      expect(dayEnabledMapHasAtLeastOneEnabled({ Wednesday: true })).toBe(true);
+    });
+  });
+
   describe('time conversion', () => {
     it('converts 12-hour time to 24-hour time', () => {
       expect(to24Hour('9:00 AM')).toBe('09:00');

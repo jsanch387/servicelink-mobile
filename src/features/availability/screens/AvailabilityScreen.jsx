@@ -20,6 +20,7 @@ import { useBusinessAvailability } from '../hooks/useBusinessAvailability';
 import { useSaveBusinessAvailability } from '../hooks/useSaveBusinessAvailability';
 import {
   buildWeeklySchedulePayloadFromUi,
+  dayEnabledMapHasAtLeastOneEnabled,
   format24HourTo12Hour,
   normalizeTimeOffBlocksForSave,
   to24Hour,
@@ -88,16 +89,28 @@ export function AvailabilityScreen() {
 
   useEffect(() => {
     const model = availability.model;
-    setIsAcceptingRequests(model.acceptBookings);
+    const hasActiveDay = dayEnabledMapHasAtLeastOneEnabled(model.dayEnabledMap ?? {});
+    setIsAcceptingRequests(Boolean(hasActiveDay && model.acceptBookings));
     setDayEnabledMap(model.dayEnabledMap ?? {});
     setDayTimeRanges(model.dayTimeRanges ?? {});
     setTimeOffBlocks(Array.isArray(model.timeOffBlocks) ? model.timeOffBlocks : []);
     setSchedulePreset(model.selectedPreset ?? 'mon_fri_9_5');
   }, [availability.model]);
 
+  const hasActiveDay = useMemo(
+    () => dayEnabledMapHasAtLeastOneEnabled(dayEnabledMap),
+    [dayEnabledMap],
+  );
+
   function handleDayToggle(day, next) {
     setSchedulePreset('custom');
-    setDayEnabledMap((prev) => ({ ...prev, [day]: next }));
+    setDayEnabledMap((prev) => {
+      const merged = { ...prev, [day]: next };
+      if (!dayEnabledMapHasAtLeastOneEnabled(merged)) {
+        setIsAcceptingRequests(false);
+      }
+      return merged;
+    });
   }
 
   function handleDayTimeChange(day, key, nextValue) {
@@ -142,7 +155,7 @@ export function AvailabilityScreen() {
       return;
     }
     await saveAvailability({
-      acceptBookings: isAcceptingRequests,
+      acceptBookings: dayEnabledMapHasAtLeastOneEnabled(dayEnabledMap) && isAcceptingRequests,
       selectedPreset: schedulePreset,
       weeklySchedule: buildWeeklySchedulePayloadFromUi(dayEnabledMap, dayTimeRanges),
       timeOffBlocks: normalizedTimeOff,
@@ -204,72 +217,98 @@ export function AvailabilityScreen() {
           paddingHorizontal: 0,
           paddingVertical: 0,
         },
-        timeOffHeader: {
-          borderBottomColor: colors.border,
-          borderBottomWidth: 1,
-          paddingHorizontal: 14,
-          paddingVertical: 14,
+        timeOffEmptyWrap: {
+          alignItems: 'center',
+          paddingBottom: 22,
+          paddingHorizontal: 20,
+          paddingTop: 10,
         },
-        timeOffSubtext: {
-          color: colors.textMuted,
-          fontSize: 13,
-          textAlign: 'left',
-        },
-        timeOffAddButton: {
+        timeOffEmptyIconCircle: {
           alignItems: 'center',
           backgroundColor: colors.cardSurface,
-          borderColor: colors.borderStrong,
-          borderRadius: 14,
-          borderWidth: 1,
-          flexDirection: 'row',
+          borderRadius: 999,
+          height: 64,
           justifyContent: 'center',
-          marginTop: 14,
-          minHeight: 52,
+          marginBottom: 6,
+          width: 64,
         },
-        timeOffAddText: {
+        timeOffEmptyHeadline: {
           color: colors.text,
           fontSize: 16,
           fontWeight: '700',
-          marginLeft: 8,
+          marginBottom: 8,
+          textAlign: 'center',
         },
-        timeOffEmpty: {
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: 130,
-          paddingHorizontal: 14,
-          paddingVertical: 20,
-        },
-        timeOffEmptyText: {
+        timeOffEmptySub: {
           color: colors.textMuted,
-          fontSize: 18,
+          fontSize: 13,
           fontWeight: '500',
+          lineHeight: 18,
+          textAlign: 'center',
+        },
+        timeOffEmptyButton: {
+          marginTop: 20,
+        },
+        timeOffListHeader: {
+          alignItems: 'center',
+          borderBottomColor: colors.border,
+          borderBottomWidth: 1,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          paddingBottom: 12,
+          paddingHorizontal: 14,
+          paddingTop: 14,
+        },
+        timeOffListHeaderLabel: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '600',
+        },
+        timeOffToolbarAdd: {
+          alignItems: 'center',
+          borderRadius: 12,
+          borderWidth: 1,
+          flexDirection: 'row',
+          gap: 6,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+        },
+        timeOffToolbarAddLabel: {
+          fontSize: 14,
+          fontWeight: '600',
         },
         timeOffList: {
           paddingHorizontal: 0,
-          paddingVertical: 8,
+          paddingVertical: 4,
         },
         timeOffItem: {
           alignItems: 'center',
           borderBottomColor: colors.border,
           borderBottomWidth: 1,
           flexDirection: 'row',
-          justifyContent: 'space-between',
+          gap: 12,
           paddingHorizontal: 14,
-          paddingVertical: 10,
+          paddingVertical: 12,
         },
         timeOffItemLast: {
           borderBottomWidth: 0,
         },
+        timeOffItemIconWrap: {
+          alignItems: 'center',
+          backgroundColor: colors.cardSurface,
+          borderRadius: 10,
+          height: 40,
+          justifyContent: 'center',
+          width: 40,
+        },
         timeOffItemInfo: {
           flex: 1,
           minWidth: 0,
-          paddingLeft: 2,
-          paddingRight: 12,
         },
         timeOffItemDate: {
           color: colors.text,
-          fontSize: 13,
-          fontWeight: '700',
+          fontSize: 14,
+          fontWeight: '600',
           marginBottom: 4,
         },
         timeOffItemTime: {
@@ -280,9 +319,9 @@ export function AvailabilityScreen() {
         timeOffDeleteButton: {
           alignItems: 'center',
           alignSelf: 'center',
-          height: 30,
+          height: 36,
           justifyContent: 'center',
-          width: 30,
+          width: 36,
         },
         saveBar: {
           bottom: Math.max(insets.bottom - 12, 0),
@@ -332,13 +371,20 @@ export function AvailabilityScreen() {
                 <View style={styles.toggleTextWrap}>
                   <AppText style={styles.toggleTitle}>Accept booking requests</AppText>
                   <AppText style={styles.toggleHint}>
-                    {isAcceptingRequests
-                      ? 'Turn this off to stop accepting appointments.'
-                      : 'Turn this on to start accepting appointments.'}
+                    {!hasActiveDay
+                      ? 'Turn on at least one day below before you can accept booking requests.'
+                      : isAcceptingRequests
+                        ? 'Turn this off to stop accepting appointments.'
+                        : 'Turn this on to start accepting appointments.'}
                   </AppText>
                 </View>
                 <Switch
-                  onValueChange={setIsAcceptingRequests}
+                  accessibilityLabel="Accept booking requests"
+                  disabled={!hasActiveDay && !isAcceptingRequests}
+                  onValueChange={(next) => {
+                    if (next && !dayEnabledMapHasAtLeastOneEnabled(dayEnabledMap)) return;
+                    setIsAcceptingRequests(next);
+                  }}
                   thumbColor={isAcceptingRequests ? '#f8fafc' : '#f4f4f5'}
                   trackColor={{ false: colors.borderStrong, true: '#10b981' }}
                   value={isAcceptingRequests}
@@ -356,54 +402,81 @@ export function AvailabilityScreen() {
 
             <AppText style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Time off</AppText>
             <SurfaceCard style={styles.timeOffCard}>
-              <View style={styles.timeOffHeader}>
-                <AppText style={styles.timeOffSubtext}>
-                  Block times when you can&apos;t take bookings.
-                </AppText>
-                <Pressable
-                  style={styles.timeOffAddButton}
-                  onPress={() => setIsTimeOffSheetOpen(true)}
-                >
-                  <Ionicons color={colors.text} name="add" size={26} />
-                  <AppText style={styles.timeOffAddText}>Add</AppText>
-                </Pressable>
-              </View>
               {timeOffBlocks.length === 0 ? (
-                <View style={styles.timeOffEmpty}>
-                  <AppText style={styles.timeOffEmptyText}>No time off scheduled.</AppText>
+                <View style={styles.timeOffEmptyWrap}>
+                  <View style={styles.timeOffEmptyIconCircle}>
+                    <Ionicons color={colors.textMuted} name="calendar-outline" size={30} />
+                  </View>
+                  <AppText style={styles.timeOffEmptyHeadline}>No time off scheduled</AppText>
+                  <AppText style={styles.timeOffEmptySub}>
+                    Add blocks for vacations, partial days, or hours when you are not taking
+                    bookings.
+                  </AppText>
+                  <Button
+                    accessibilityLabel="Add time off"
+                    fullWidth
+                    iconName="add"
+                    style={styles.timeOffEmptyButton}
+                    title="Add time off"
+                    variant="outline"
+                    onPress={() => setIsTimeOffSheetOpen(true)}
+                  />
                 </View>
               ) : (
-                <View style={styles.timeOffList}>
-                  {timeOffBlocks.map((block, index) => (
-                    <View
-                      key={`${block?.date ?? 'date'}-${index}`}
-                      style={[
-                        styles.timeOffItem,
-                        index === timeOffBlocks.length - 1 && styles.timeOffItemLast,
-                      ]}
+                <>
+                  <View style={styles.timeOffListHeader}>
+                    <AppText style={styles.timeOffListHeaderLabel}>
+                      {timeOffBlocks.length} {timeOffBlocks.length === 1 ? 'block' : 'blocks'}
+                    </AppText>
+                    <Pressable
+                      accessibilityLabel="Add time off"
+                      accessibilityRole="button"
+                      style={[styles.timeOffToolbarAdd, { borderColor: colors.borderStrong }]}
+                      onPress={() => setIsTimeOffSheetOpen(true)}
                     >
-                      <View style={styles.timeOffItemInfo}>
-                        <AppText style={styles.timeOffItemDate}>
-                          {formatTimeOffDateDisplay(block?.date)}
-                        </AppText>
-                        <AppText style={styles.timeOffItemTime}>
-                          {format24HourTo12Hour(block?.start_time) ?? '--'} -{' '}
-                          {format24HourTo12Hour(block?.end_time) ?? '--'}
-                        </AppText>
-                      </View>
-                      <Pressable
-                        accessibilityLabel="Delete time off"
-                        accessibilityRole="button"
-                        style={styles.timeOffDeleteButton}
-                        onPress={() =>
-                          setTimeOffBlocks((prev) => prev.filter((_, itemIdx) => itemIdx !== index))
-                        }
+                      <Ionicons color={colors.text} name="add" size={18} />
+                      <AppText style={[styles.timeOffToolbarAddLabel, { color: colors.text }]}>
+                        Add time
+                      </AppText>
+                    </Pressable>
+                  </View>
+                  <View style={styles.timeOffList}>
+                    {timeOffBlocks.map((block, index) => (
+                      <View
+                        key={`${block?.date ?? 'date'}-${index}`}
+                        style={[
+                          styles.timeOffItem,
+                          index === timeOffBlocks.length - 1 && styles.timeOffItemLast,
+                        ]}
                       >
-                        <Ionicons color="#f87171" name="trash-outline" size={20} />
-                      </Pressable>
-                    </View>
-                  ))}
-                </View>
+                        <View style={styles.timeOffItemIconWrap}>
+                          <Ionicons color={colors.textMuted} name="time-outline" size={20} />
+                        </View>
+                        <View style={styles.timeOffItemInfo}>
+                          <AppText style={styles.timeOffItemDate}>
+                            {formatTimeOffDateDisplay(block?.date)}
+                          </AppText>
+                          <AppText style={styles.timeOffItemTime}>
+                            {format24HourTo12Hour(block?.start_time) ?? '--'} ·{' '}
+                            {format24HourTo12Hour(block?.end_time) ?? '--'}
+                          </AppText>
+                        </View>
+                        <Pressable
+                          accessibilityLabel="Delete time off"
+                          accessibilityRole="button"
+                          style={styles.timeOffDeleteButton}
+                          onPress={() =>
+                            setTimeOffBlocks((prev) =>
+                              prev.filter((_, itemIdx) => itemIdx !== index),
+                            )
+                          }
+                        >
+                          <Ionicons color="#f87171" name="trash-outline" size={20} />
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                </>
               )}
             </SurfaceCard>
           </>

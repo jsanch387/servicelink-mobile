@@ -98,4 +98,65 @@ describe('AvailabilityScreen', () => {
     expect(payload.weeklySchedule.monday).toBeDefined();
     expect(Array.isArray(payload.timeOffBlocks)).toBe(true);
   });
+
+  it('disables accept switch when no day is enabled', () => {
+    mockUseBusinessAvailability.mockReturnValue({
+      businessId: 'biz-1',
+      isLoading: false,
+      isFetching: false,
+      businessError: null,
+      availabilityError: null,
+      refetch: jest.fn(),
+      row: { minimum_notice: 'none' },
+      model: {
+        ...BASE_MODEL,
+        acceptBookings: false,
+        dayEnabledMap: {
+          Monday: false,
+          Tuesday: false,
+          Wednesday: false,
+          Thursday: false,
+          Friday: false,
+          Saturday: false,
+          Sunday: false,
+        },
+      },
+    });
+    renderWithProviders(<AvailabilityScreen />);
+    const acceptSwitch = screen.getByLabelText('Accept booking requests');
+    expect(acceptSwitch.props.disabled).toBe(true);
+  });
+
+  it('turns off accept when the last active day is disabled', async () => {
+    mockUseBusinessAvailability.mockReturnValue({
+      businessId: 'biz-1',
+      isLoading: false,
+      isFetching: false,
+      businessError: null,
+      availabilityError: null,
+      refetch: jest.fn(),
+      row: { minimum_notice: 'none' },
+      model: {
+        ...BASE_MODEL,
+        acceptBookings: true,
+        dayEnabledMap: {
+          Monday: true,
+          Tuesday: false,
+          Wednesday: false,
+          Thursday: false,
+          Friday: false,
+          Saturday: false,
+          Sunday: false,
+        },
+      },
+    });
+    renderWithProviders(<AvailabilityScreen />);
+    const switches = screen.UNSAFE_getAllByType(require('react-native').Switch);
+    expect(switches[0].props.value).toBe(true);
+    fireEvent(switches[1], 'valueChange', false);
+    await waitFor(() => {
+      const next = screen.UNSAFE_getAllByType(require('react-native').Switch);
+      expect(next[0].props.value).toBe(false);
+    });
+  });
 });

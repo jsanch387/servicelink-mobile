@@ -15,6 +15,11 @@ export const DAY_DEFINITIONS = [
   { key: 'sunday', label: 'Sunday' },
 ];
 
+/** True if at least one weekday row is toggled on in the availability UI. */
+export function dayEnabledMapHasAtLeastOneEnabled(dayEnabledMap) {
+  return DAY_DEFINITIONS.some((d) => Boolean(dayEnabledMap?.[d.label]));
+}
+
 const DEFAULT_WEEKLY_SCHEDULE = {
   monday: { start: '09:00', end: '17:00', enabled: true },
   tuesday: { start: '09:00', end: '17:00', enabled: true },

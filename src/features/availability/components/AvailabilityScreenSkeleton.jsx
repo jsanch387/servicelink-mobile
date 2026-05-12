@@ -52,11 +52,12 @@ export function AvailabilityScreenSkeleton() {
       />
 
       <SurfaceCard style={styles.card}>
-        <View style={styles.timeOffHeader}>
-          <SkeletonBox borderRadius={8} height={14} pulse width="70%" />
-          <SkeletonBox borderRadius={12} height={36} pulse width={72} />
+        <View style={styles.timeOffSkeletonInner}>
+          <SkeletonBox borderRadius={999} height={64} pulse width={64} />
+          <SkeletonBox borderRadius={8} height={16} pulse style={{ marginTop: 6 }} width="55%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 8 }} width="88%" />
+          <SkeletonBox borderRadius={12} height={52} pulse style={{ marginTop: 18 }} width="100%" />
         </View>
-        <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 14 }} width="55%" />
       </SurfaceCard>
     </View>
   );
@@ -87,10 +88,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 4,
   },
-  timeOffHeader: {
+  timeOffSkeletonInner: {
     alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    paddingBottom: 22,
+    paddingHorizontal: 20,
+    paddingTop: 10,
   },
   toggleRow: {
     alignItems: 'center',

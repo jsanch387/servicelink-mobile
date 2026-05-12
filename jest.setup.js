@@ -1,5 +1,26 @@
 import '@testing-library/react-native';
 
+const { act } = require('@testing-library/react-native');
+const { notifyManager } = require('@tanstack/query-core');
+
+/**
+ * Query cache updates are scheduled on a microtask/setTimeout; without this, tests that
+ * unmount before the flush can log "not wrapped in act(...)" (HookContainer / useSyncExternalStore).
+ */
+beforeAll(() => {
+  notifyManager.setNotifyFunction((fn) => {
+    act(() => {
+      fn();
+    });
+  });
+});
+
+afterAll(() => {
+  notifyManager.setNotifyFunction((fn) => {
+    fn();
+  });
+});
+
 process.env.EXPO_PUBLIC_SUPABASE_URL =
   process.env.EXPO_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY =

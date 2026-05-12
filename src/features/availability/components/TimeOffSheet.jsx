@@ -82,9 +82,12 @@ export function TimeOffSheet({ visible, onRequestClose, onAddTimeOff }) {
           paddingHorizontal: 10,
           paddingVertical: 6,
         },
+        dateTriggerTextWrap: {
+          flex: 1,
+          minWidth: 0,
+        },
         dateTriggerText: {
           color: colors.text,
-          flex: 1,
           fontSize: 15,
           fontWeight: '500',
           minHeight: 34,
@@ -161,10 +164,19 @@ export function TimeOffSheet({ visible, onRequestClose, onAddTimeOff }) {
         </View>
       }
     >
-      <Pressable style={styles.dateTrigger} onPress={() => setShowDatePicker(true)}>
-        <AppText style={styles.dateTriggerText}>{dateLabel}</AppText>
-        <Ionicons color={colors.textMuted} name="calendar-outline" size={20} />
-      </Pressable>
+      <View style={styles.dateTrigger}>
+        <Pressable style={styles.dateTriggerTextWrap} onPress={() => setShowDatePicker(true)}>
+          <AppText style={styles.dateTriggerText}>{dateLabel}</AppText>
+        </Pressable>
+        <Pressable
+          accessibilityLabel={showDatePicker ? 'Hide calendar' : 'Show calendar'}
+          accessibilityRole="button"
+          hitSlop={10}
+          onPress={() => setShowDatePicker((open) => !open)}
+        >
+          <Ionicons color={colors.textMuted} name="calendar-outline" size={20} />
+        </Pressable>
+      </View>
       {showDatePicker ? (
         <View style={styles.pickerInlineWrap}>
           <DateTimePicker
