@@ -1,10 +1,4 @@
 import '@testing-library/react-native';
-import { notifyManager } from '@tanstack/query-core';
-
-/** Synchronous batches: avoids stray microtasks and act() noise from TanStack Query in Jest. */
-notifyManager.setBatchNotifyFunction((fn) => {
-  fn();
-});
 
 process.env.EXPO_PUBLIC_SUPABASE_URL =
   process.env.EXPO_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';

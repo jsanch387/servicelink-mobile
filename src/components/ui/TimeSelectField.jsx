@@ -1,9 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  FlatList,
+  Modal,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
+import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
 
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1));
 const MINUTES = ['00', '30'];
@@ -54,6 +63,18 @@ export function TimeSelectField({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
+  const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
+    useModalFadeBackdropSlideSheet();
+
+  const close = useCallback(() => {
+    runClose(() => setOpen(false));
+  }, [runClose]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const id = requestAnimationFrame(() => runOpen());
+    return () => cancelAnimationFrame(id);
+  }, [open, runOpen]);
 
   const hoursRef = useRef(null);
   const minutesRef = useRef(null);
@@ -108,12 +129,13 @@ export function TimeSelectField({
     setDraftHour(parsed.hour);
     setDraftMinute(parsed.minute);
     setDraftPeriod(parsed.period);
+    prepareOpen();
     setOpen(true);
   }
 
   function applySelection() {
     onValueChange(formatTime(draftHour, draftMinute, draftPeriod));
-    setOpen(false);
+    runClose(() => setOpen(false));
   }
 
   function renderWheel({ values, draftValue, paddedData, listRef, onSnap, width }) {
@@ -181,63 +203,71 @@ export function TimeSelectField({
         <Ionicons color={colors.textMuted} name="chevron-down" size={20} />
       </TouchableOpacity>
 
-      <Modal animationType="slide" onRequestClose={() => setOpen(false)} transparent visible={open}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setOpen(false)}
-          style={styles.backdrop}
-        />
-        <View
-          style={[
-            styles.sheetWrap,
-            {
-              backgroundColor: colors.shellElevated,
-              borderTopColor: colors.borderStrong,
-              paddingBottom: Math.max(insets.bottom, 14) + 8,
-            },
-          ]}
-        >
-          <View style={styles.sheet}>
-            <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
-              <AppText style={[styles.sheetTitle, { color: colors.textMuted }]}>{title}</AppText>
-              <TouchableOpacity hitSlop={8} onPress={() => setOpen(false)}>
-                <Ionicons color={colors.textMuted} name="close" size={20} />
+      <Modal animationType="none" onRequestClose={close} transparent visible={open}>
+        <View style={styles.modalRoot}>
+          <Animated.View
+            pointerEvents="box-none"
+            style={[StyleSheet.absoluteFillObject, backdropStyle, styles.backdropFill]}
+          >
+            <Pressable
+              accessibilityRole="button"
+              onPress={close}
+              style={StyleSheet.absoluteFillObject}
+            />
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.sheetWrap,
+              sheetStyle,
+              {
+                backgroundColor: colors.shellElevated,
+                borderTopColor: colors.borderStrong,
+                paddingBottom: Math.max(insets.bottom, 14) + 8,
+              },
+            ]}
+          >
+            <View style={styles.sheet}>
+              <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
+                <AppText style={[styles.sheetTitle, { color: colors.textMuted }]}>{title}</AppText>
+                <TouchableOpacity hitSlop={8} onPress={close}>
+                  <Ionicons color={colors.textMuted} name="close" size={20} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.dialsRow}>
+                {renderWheel({
+                  values: HOURS,
+                  draftValue: draftHour,
+                  paddedData: paddedHours,
+                  listRef: hoursRef,
+                  onSnap: snapHour,
+                  width: 72,
+                })}
+                <AppText style={[styles.colon, { color: colors.textMuted }]}>:</AppText>
+                {renderWheel({
+                  values: MINUTES,
+                  draftValue: draftMinute,
+                  paddedData: paddedMinutes,
+                  listRef: minutesRef,
+                  onSnap: snapMinute,
+                  width: 72,
+                })}
+                <View style={styles.minuteToPeriodGap} />
+                {renderWheel({
+                  values: PERIODS,
+                  draftValue: draftPeriod,
+                  paddedData: paddedPeriods,
+                  listRef: periodsRef,
+                  onSnap: snapPeriod,
+                  width: 84,
+                })}
+              </View>
+
+              <TouchableOpacity activeOpacity={0.9} onPress={applySelection} style={styles.cta}>
+                <AppText style={styles.ctaText}>Set time</AppText>
               </TouchableOpacity>
             </View>
-
-            <View style={styles.dialsRow}>
-              {renderWheel({
-                values: HOURS,
-                draftValue: draftHour,
-                paddedData: paddedHours,
-                listRef: hoursRef,
-                onSnap: snapHour,
-                width: 72,
-              })}
-              <AppText style={[styles.colon, { color: colors.textMuted }]}>:</AppText>
-              {renderWheel({
-                values: MINUTES,
-                draftValue: draftMinute,
-                paddedData: paddedMinutes,
-                listRef: minutesRef,
-                onSnap: snapMinute,
-                width: 72,
-              })}
-              <View style={styles.minuteToPeriodGap} />
-              {renderWheel({
-                values: PERIODS,
-                draftValue: draftPeriod,
-                paddedData: paddedPeriods,
-                listRef: periodsRef,
-                onSnap: snapPeriod,
-                width: 84,
-              })}
-            </View>
-
-            <TouchableOpacity activeOpacity={0.9} onPress={applySelection} style={styles.cta}>
-              <AppText style={styles.ctaText}>Set time</AppText>
-            </TouchableOpacity>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </View>
@@ -263,7 +293,12 @@ const styles = StyleSheet.create({
     paddingRight: 10,
     paddingVertical: 8,
   },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.60)' },
+  modalRoot: {
+    flex: 1,
+  },
+  backdropFill: {
+    backgroundColor: 'rgba(0,0,0,0.60)',
+  },
   sheetWrap: {
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,

@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import {
+  Animated,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -10,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
+import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
 
 export function BottomSheetModal({
   visible,
@@ -28,6 +31,27 @@ export function BottomSheetModal({
   const resolvedKeyboardBehavior =
     keyboardBehavior ?? (Platform.OS === 'ios' ? 'padding' : 'height');
 
+  const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
+    useModalFadeBackdropSlideSheet();
+  const [mounted, setMounted] = useState(visible);
+
+  useEffect(() => {
+    if (visible) {
+      prepareOpen();
+      setMounted(true);
+    }
+  }, [visible, prepareOpen]);
+
+  useEffect(() => {
+    if (!mounted) return undefined;
+    if (visible) {
+      const id = requestAnimationFrame(() => runOpen());
+      return () => cancelAnimationFrame(id);
+    }
+    runClose(() => setMounted(false));
+    return undefined;
+  }, [mounted, visible, runOpen, runClose]);
+
   function closeFromBackdrop() {
     if (!allowBackdropClose) return;
     onRequestClose?.();
@@ -35,14 +59,17 @@ export function BottomSheetModal({
 
   const content = (
     <>
-      <Pressable
-        accessibilityRole="button"
-        onPress={closeFromBackdrop}
-        style={styles.sheetBackdrop}
-      />
-      <View
+      <Animated.View pointerEvents="box-none" style={[styles.sheetBackdrop, backdropStyle]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={closeFromBackdrop}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </Animated.View>
+      <Animated.View
         style={[
           styles.sheetWrap,
+          sheetStyle,
           {
             backgroundColor: colors.shellElevated,
             maxHeight,
@@ -65,12 +92,12 @@ export function BottomSheetModal({
           {children}
           {footer}
         </ScrollView>
-      </View>
+      </Animated.View>
     </>
   );
 
   return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={onRequestClose}>
+    <Modal animationType="none" transparent visible={mounted} onRequestClose={onRequestClose}>
       {disableKeyboardAvoiding ? (
         <View style={styles.modalRoot}>{content}</View>
       ) : (

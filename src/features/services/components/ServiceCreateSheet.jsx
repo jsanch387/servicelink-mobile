@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
+  Animated,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -17,6 +18,7 @@ import {
   InlineCardError,
   SurfaceTextField,
 } from '../../../components/ui';
+import { useModalFadeBackdropSlideSheet } from '../../../components/ui/useModalFadeBackdropSlideSheet';
 import { useTheme } from '../../../theme';
 
 function normalizePriceInput(rawText) {
@@ -46,10 +48,31 @@ export function ServiceCreateSheet({
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
+    useModalFadeBackdropSlideSheet();
+  const [mounted, setMounted] = useState(visible);
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [durationHHmm, setDurationHHmm] = useState('01:00');
+
+  useEffect(() => {
+    if (visible) {
+      prepareOpen();
+      setMounted(true);
+    }
+  }, [visible, prepareOpen]);
+
+  useEffect(() => {
+    if (!mounted) return undefined;
+    if (visible) {
+      const id = requestAnimationFrame(() => runOpen());
+      return () => cancelAnimationFrame(id);
+    }
+    runClose(() => setMounted(false));
+    return undefined;
+  }, [mounted, visible, runOpen, runClose]);
 
   useEffect(() => {
     if (!visible) return;
@@ -92,20 +115,23 @@ export function ServiceCreateSheet({
   }
 
   return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={onRequestClose}>
+    <Modal animationType="none" transparent visible={mounted} onRequestClose={onRequestClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         style={styles.modalRoot}
       >
-        <Pressable
-          accessibilityRole="button"
-          onPress={closeFromBackdrop}
-          style={styles.sheetBackdrop}
-        />
-        <View
+        <Animated.View pointerEvents="box-none" style={[styles.sheetBackdrop, backdropStyle]}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={closeFromBackdrop}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+        <Animated.View
           style={[
             styles.sheetWrap,
+            sheetStyle,
             {
               backgroundColor: colors.shellElevated,
               paddingBottom: Math.max(insets.bottom, 16),
@@ -199,7 +225,7 @@ export function ServiceCreateSheet({
               />
             </View>
           </ScrollView>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );

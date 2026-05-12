@@ -43,7 +43,6 @@ export function BookingLinkEditMode(props) {
             styles={styles}
             onCoverPhotoPress={ctrl.onCoverPhotoPress}
           />
-          <View style={styles.divider} />
 
           <BookingLinkEditLogoSection
             colors={ctrl.colors}
@@ -51,7 +50,6 @@ export function BookingLinkEditMode(props) {
             styles={styles}
             onLogoPhotoPress={ctrl.onLogoPhotoPress}
           />
-          <View style={styles.divider} />
 
           <BookingLinkEditBusinessInfoSection
             bioInput={ctrl.bioInput}
@@ -67,14 +65,12 @@ export function BookingLinkEditMode(props) {
             onStateInputChange={ctrl.onStateInputChange}
             onTypeInputChange={ctrl.setTypeInput}
           />
-          <View style={styles.divider} />
 
           <BookingLinkEditContactSection
             phoneInput={ctrl.phoneInput}
             styles={styles}
             onPhoneInputChange={ctrl.onPhoneInputChange}
           />
-          <View style={styles.divider} />
 
           <BookingLinkEditGallerySection
             canAddGalleryImage={ctrl.canAddGalleryImage}

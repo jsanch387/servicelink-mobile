@@ -1,5 +1,8 @@
 import { StyleSheet } from 'react-native';
 
+/** Vertical gap between stacked edit sections (no hairline dividers). */
+const SECTION_STACK_GAP = 24;
+
 /** @param {object} colors Theme palette from `useTheme()`. */
 export function createBookingLinkEditStyles(colors, galleryGap) {
   return StyleSheet.create({
@@ -122,7 +125,7 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       width: 40,
     },
     logoSection: {
-      marginTop: 18,
+      marginTop: SECTION_STACK_GAP,
     },
     logoSurfaceCard: {
       alignSelf: 'stretch',
@@ -185,10 +188,13 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       width: 38,
     },
     infoSection: {
-      marginTop: 18,
+      marginTop: SECTION_STACK_GAP,
     },
-    infoSectionIntro: {
-      marginBottom: 10,
+    editSectionCard: {
+      alignSelf: 'stretch',
+      marginTop: 10,
+      paddingHorizontal: 16,
+      width: '100%',
     },
     infoField: {
       marginBottom: 14,
@@ -200,13 +206,10 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       marginTop: 0,
     },
     contactSection: {
-      marginTop: 0,
-    },
-    contactSectionTitle: {
-      marginBottom: 10,
+      marginTop: SECTION_STACK_GAP,
     },
     gallerySection: {
-      marginTop: 0,
+      marginTop: SECTION_STACK_GAP,
     },
     galleryAddPhotoOuter: {
       alignSelf: 'stretch',
@@ -298,12 +301,6 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       minHeight: 128,
       paddingTop: 12,
       textAlignVertical: 'top',
-    },
-    divider: {
-      backgroundColor: colors.border,
-      height: 1,
-      marginBottom: 10,
-      marginTop: 14,
     },
   });
 }

@@ -164,15 +164,16 @@ export function UpgradePaywallScreen() {
         letterSpacing: 0.25,
       },
       planCardInner: {
-        paddingBottom: 22,
-        paddingHorizontal: 22,
+        gap: 14,
+        paddingBottom: 20,
+        paddingHorizontal: 20,
         paddingTop: 18,
       },
       planCardHeader: {
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 12,
+        width: '100%',
       },
       planPill: {
         backgroundColor: 'rgba(255,255,255,0.1)',
@@ -192,39 +193,43 @@ export function UpgradePaywallScreen() {
         fontSize: 14,
         fontWeight: '600',
       },
+      /** Stacked list price then hero price — left-aligned under header (ribbon stays centered). */
       priceBlock: {
-        alignItems: 'baseline',
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 0,
-        marginBottom: 10,
+        alignItems: 'flex-start',
+        width: '100%',
       },
       planCompare: {
         color: '#6b7280',
-        fontSize: 22,
-        fontWeight: '700',
-        letterSpacing: -0.4,
-        marginRight: 12,
+        fontSize: 13,
+        fontWeight: '600',
+        letterSpacing: 0.15,
+        marginBottom: 4,
         textDecorationLine: 'line-through',
+      },
+      priceMainRow: {
+        alignItems: 'baseline',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-start',
       },
       planPrice: {
         color: '#ecfdf5',
-        fontSize: 38,
+        fontSize: 36,
         fontWeight: '800',
-        letterSpacing: -1.1,
+        letterSpacing: -1,
       },
       planPeriod: {
         color: '#9ca3af',
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
-        marginLeft: 6,
+        marginLeft: 5,
       },
       planFoot: {
         color: '#6b7280',
         fontSize: 13,
         fontWeight: '500',
-        lineHeight: 20,
-        marginTop: 2,
+        lineHeight: 19,
+        width: '100%',
       },
       ctaBtn: {
         backgroundColor: '#ffffff',
@@ -286,9 +291,11 @@ export function UpgradePaywallScreen() {
                       <AppText style={styles.planCadence}>Billed monthly</AppText>
                     </View>
                     <View style={styles.priceBlock}>
-                      <AppText style={styles.planCompare}>$15</AppText>
-                      <AppText style={styles.planPrice}>$10</AppText>
-                      <AppText style={styles.planPeriod}>/ month</AppText>
+                      <AppText style={styles.planCompare}>$15/mo</AppText>
+                      <View style={styles.priceMainRow}>
+                        <AppText style={styles.planPrice}>$10</AppText>
+                        <AppText style={styles.planPeriod}>/ month</AppText>
+                      </View>
                     </View>
                     <AppText style={styles.planFoot}>
                       Cancel anytime from Account in the app.

@@ -53,6 +53,7 @@ export function AccountSubscriptionCard({
           fontSize: 17,
           fontWeight: '700',
           letterSpacing: -0.2,
+          textAlign: 'left',
         },
         priceRow: {
           alignItems: 'baseline',
@@ -63,20 +64,25 @@ export function AccountSubscriptionCard({
           color: colors.text,
           fontSize: 18,
           fontWeight: '700',
+          textAlign: 'left',
         },
         pricePeriod: {
           color: colors.textMuted,
           fontSize: 13,
           fontWeight: '500',
+          textAlign: 'left',
         },
         priceMainFreeTrial: {
           color: FREE_TRIAL_LABEL_COLOR,
         },
         accessHint: {
+          alignSelf: 'stretch',
           color: colors.textMuted,
           fontSize: 13,
           fontWeight: '500',
           lineHeight: 18,
+          marginTop: 4,
+          textAlign: 'left',
         },
       }),
     [colors],
@@ -112,9 +118,8 @@ export function AccountSubscriptionCard({
             </View>
           ) : null}
         </View>
+        {accessLine ? <AppText style={styles.accessHint}>{accessLine}</AppText> : null}
       </View>
-
-      {accessLine ? <AppText style={styles.accessHint}>{accessLine}</AppText> : null}
 
       <Button
         fullWidth

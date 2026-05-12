@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { useCallback, useMemo, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Animated, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
+import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
 
 /**
  * Opens a bottom sheet to pick one option. Trigger matches {@link TextField} outline styling.
@@ -56,7 +57,18 @@ export function SelectField({
 
   const sheetTitle = title ?? label ?? 'Choose';
 
-  const close = useCallback(() => setOpen(false), []);
+  const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
+    useModalFadeBackdropSlideSheet();
+
+  const close = useCallback(() => {
+    runClose(() => setOpen(false));
+  }, [runClose]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const id = requestAnimationFrame(() => runOpen());
+    return () => cancelAnimationFrame(id);
+  }, [open, runOpen]);
 
   const styles = useMemo(
     () =>
@@ -102,10 +114,6 @@ export function SelectField({
         },
         modalRoot: {
           flex: 1,
-        },
-        backdrop: {
-          ...StyleSheet.absoluteFillObject,
-          backgroundColor: useWheel ? 'rgba(0,0,0,0.60)' : 'rgba(0,0,0,0.55)',
         },
         sheetWrap: {
           bottom: 0,
@@ -224,10 +232,12 @@ export function SelectField({
           fontWeight: '600',
           letterSpacing: -0.2,
           marginRight: 12,
+          textAlign: 'left',
         },
         rowLabelDim: {
           color: colors.textMuted,
           fontWeight: '500',
+          textAlign: 'left',
         },
         triggerIconWrap: {
           alignItems: 'center',
@@ -252,9 +262,9 @@ export function SelectField({
   const onSelect = useCallback(
     (v) => {
       onValueChange(v);
-      setOpen(false);
+      runClose(() => setOpen(false));
     },
-    [onValueChange],
+    [onValueChange, runClose],
   );
 
   return (
@@ -269,7 +279,10 @@ export function SelectField({
         accessibilityState={{ expanded: open }}
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
-        onPress={() => setOpen(true)}
+        onPress={() => {
+          prepareOpen();
+          setOpen(true);
+        }}
         style={({ pressed: pressedState }) => [styles.trigger, pressedState && { opacity: 0.9 }]}
       >
         <View style={[styles.triggerShell, triggerStyle]}>
@@ -286,21 +299,36 @@ export function SelectField({
       </Pressable>
 
       <Modal
-        animationType={useWheel ? 'slide' : 'fade'}
+        animationType="none"
         onRequestClose={close}
         statusBarTranslucent
         transparent
         visible={open}
       >
         <View style={styles.modalRoot}>
-          <Pressable
-            accessibilityLabel={useWheel ? 'Dismiss picker' : 'Close list'}
-            accessibilityRole="button"
-            onPress={close}
-            style={styles.backdrop}
-          />
-          <View
-            style={[styles.sheetWrap, useWheel ? styles.sheetWrapWheel : styles.sheetWrapInset]}
+          <Animated.View
+            pointerEvents="box-none"
+            style={[
+              StyleSheet.absoluteFillObject,
+              backdropStyle,
+              {
+                backgroundColor: useWheel ? 'rgba(0,0,0,0.60)' : 'rgba(0,0,0,0.55)',
+              },
+            ]}
+          >
+            <Pressable
+              accessibilityLabel={useWheel ? 'Dismiss picker' : 'Close list'}
+              accessibilityRole="button"
+              onPress={close}
+              style={StyleSheet.absoluteFillObject}
+            />
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.sheetWrap,
+              useWheel ? styles.sheetWrapWheel : styles.sheetWrapInset,
+              sheetStyle,
+            ]}
           >
             <View style={[styles.sheet, useWheel && styles.sheetWheelBody]}>
               {!useWheel ? <View style={styles.grabber} /> : null}
@@ -348,6 +376,7 @@ export function SelectField({
                             color: colors.text,
                             fontSize: 20,
                             fontWeight: '600',
+                            textAlign: 'left',
                           }
                         : undefined
                     }
@@ -394,7 +423,7 @@ export function SelectField({
                 })
               )}
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </View>

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { NotificationsInboxScreen } from '../NotificationsInboxScreen';
 import { renderWithProviders } from '../../../home/__tests__/testUtils';
 import { ROUTES } from '../../../../routes/routes';
@@ -68,6 +68,14 @@ describe('NotificationsInboxScreen', () => {
     fetchNotificationUnreadCount.mockResolvedValue(0);
     fetchUnreadNotificationsInbox.mockResolvedValue([]);
     fetchRecentNotificationsPage.mockResolvedValue([]);
+  });
+
+  /** TanStack Query flushes on `setTimeout(0)`; drain so updates are inside `act` (no HookContainer warnings). */
+  afterEach(async () => {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
   });
 
   it('shows loading skeleton while unread query is pending', async () => {
