@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
@@ -69,6 +69,7 @@ export function ServicesScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const catalog = useServicesCatalog();
+  const { refetch: refetchCatalog } = catalog;
   const [selectedView, setSelectedView] = useState(ENTITY_VIEW_SERVICES);
   const [isSortMode, setIsSortMode] = useState(false);
   const [servicesDraft, setServicesDraft] = useState([]);
@@ -77,13 +78,16 @@ export function ServicesScreen() {
   const [addonSheetError, setAddonSheetError] = useState('');
   const [serviceSheetOpen, setServiceSheetOpen] = useState(false);
   const [serviceSheetError, setServiceSheetError] = useState('');
+  const [catalogManualRefreshing, setCatalogManualRefreshing] = useState(false);
   const isServicesView = selectedView === ENTITY_VIEW_SERVICES;
   const activeItems = isServicesView ? servicesDraft : catalog.addons;
   const activeCopy = sectionCopy(selectedView);
 
+  /** While sorting, `servicesDraft` is the source of truth — do not overwrite from query refetches (new array refs cause a visible flash on drop). */
   useEffect(() => {
+    if (isServicesView && isSortMode) return;
     setServicesDraft(catalog.services);
-  }, [catalog.services]);
+  }, [catalog.services, isServicesView, isSortMode]);
 
   const titleLabel = useMemo(
     () => `${activeItems.length} ${selectedView === ENTITY_VIEW_SERVICES ? 'services' : 'add-ons'}`,
@@ -117,6 +121,27 @@ export function ServicesScreen() {
     businessId: catalog.businessId,
     userId: user?.id,
   });
+
+  const handleCatalogPullRefresh = useCallback(async () => {
+    setCatalogManualRefreshing(true);
+    try {
+      await refetchCatalog();
+    } finally {
+      setCatalogManualRefreshing(false);
+    }
+  }, [refetchCatalog]);
+
+  const catalogRefreshControl = useMemo(
+    () => (
+      <RefreshControl
+        colors={[colors.accent]}
+        onRefresh={handleCatalogPullRefresh}
+        refreshing={catalogManualRefreshing}
+        tintColor={colors.accent}
+      />
+    ),
+    [colors.accent, catalogManualRefreshing, handleCatalogPullRefresh],
+  );
 
   const editingAddon = useMemo(() => {
     if (isServicesView || !editingAddonId) return null;
@@ -448,15 +473,14 @@ export function ServicesScreen() {
           keyExtractor={(item) => item.id}
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={renderHeader}
-          onDragEnd={({ data }) => setServicesDraft(data)}
-          refreshControl={
-            <RefreshControl
-              colors={[colors.accent]}
-              onRefresh={catalog.refetch}
-              refreshing={catalog.isFetching && !catalog.isLoading}
-              tintColor={colors.accent}
-            />
-          }
+          onDragEnd={({ data }) => {
+            // Defer until after the library's drop frame so indices/layout don't fight one frame.
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                setServicesDraft(data);
+              });
+            });
+          }}
           renderItem={({ item, getIndex, drag, isActive }) =>
             renderCard(item, getIndex?.() ?? 0, drag, isActive)
           }
@@ -466,14 +490,7 @@ export function ServicesScreen() {
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
-          refreshControl={
-            <RefreshControl
-              colors={[colors.accent]}
-              onRefresh={catalog.refetch}
-              refreshing={catalog.isFetching && !catalog.isLoading}
-              tintColor={colors.accent}
-            />
-          }
+          refreshControl={catalogRefreshControl}
           showsVerticalScrollIndicator={false}
         >
           {renderHeader()}

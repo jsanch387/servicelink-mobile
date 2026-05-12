@@ -1,9 +1,29 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
 import { deleteServiceAddon } from '../api/services';
-import { serviceEditorQueryKey, SERVICES_QUERY_ROOT, servicesCatalogQueryKey } from '../queryKeys';
+import {
+  SERVICES_QUERY_ROOT,
+  serviceEditorAllServicesQueryKey,
+  servicesCatalogQueryKey,
+} from '../queryKeys';
 
-export function useDeleteServiceAddon({ businessId, userId, serviceId }) {
+function stripDeletedAddonFromCachedEditorModel(old, addonId) {
+  if (!old || typeof old !== 'object') return old;
+  const idStr = String(addonId ?? '');
+  const prevAddons = old.addonOptions ?? [];
+  const prevSelected = old.selectedAddonIds ?? [];
+  const addonOptions = prevAddons.filter((a) => String(a?.id ?? '') !== idStr);
+  const selectedAddonIds = prevSelected.filter((id) => String(id ?? '') !== idStr);
+  if (
+    addonOptions.length === prevAddons.length &&
+    selectedAddonIds.length === prevSelected.length
+  ) {
+    return old;
+  }
+  return { ...old, addonOptions, selectedAddonIds };
+}
+
+export function useDeleteServiceAddon({ businessId, userId, serviceId: _serviceId }) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -11,18 +31,20 @@ export function useDeleteServiceAddon({ businessId, userId, serviceId }) {
       const { error } = await deleteServiceAddon({ businessId, addonId });
       if (error) throw new Error(error.message ?? 'Could not delete add-on');
     },
-    onSuccess: async () => {
-      const invalidations = [
+    onSuccess: async (_data, variables) => {
+      const addonId = variables?.addonId;
+      if (businessId != null && addonId != null) {
+        queryClient.setQueriesData(
+          { queryKey: serviceEditorAllServicesQueryKey(businessId) },
+          (old) => stripDeletedAddonFromCachedEditorModel(old, addonId),
+        );
+      }
+      await Promise.all([
         queryClient.invalidateQueries({ queryKey: servicesCatalogQueryKey(businessId) }),
         queryClient.invalidateQueries({ queryKey: SERVICES_QUERY_ROOT }),
         queryClient.invalidateQueries({ queryKey: homeBusinessProfileQueryKey(userId) }),
-      ];
-      if (serviceId) {
-        invalidations.push(
-          queryClient.invalidateQueries({ queryKey: serviceEditorQueryKey(businessId, serviceId) }),
-        );
-      }
-      await Promise.all(invalidations);
+        queryClient.invalidateQueries({ queryKey: serviceEditorAllServicesQueryKey(businessId) }),
+      ]);
     },
   });
 

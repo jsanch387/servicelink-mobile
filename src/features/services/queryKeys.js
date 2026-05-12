@@ -8,3 +8,8 @@ export function servicesCatalogQueryKey(businessId) {
 export function serviceEditorQueryKey(businessId, serviceId) {
   return [...SERVICES_QUERY_ROOT, 'editor', businessId ?? 'none', serviceId ?? 'none'];
 }
+
+/** Invalidate all `serviceEditorQueryKey(businessId, *)` rows for one business (e.g. global add-on catalog changed). */
+export function serviceEditorAllServicesQueryKey(businessId) {
+  return [...SERVICES_QUERY_ROOT, 'editor', businessId ?? 'none'];
+}

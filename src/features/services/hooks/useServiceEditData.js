@@ -172,6 +172,8 @@ export function useServiceEditData(serviceId, routeService) {
     businessId,
     isLoading: businessQ.isPending || editorQ.isPending,
     isFetching,
+    /** Bumps when the editor query successfully refetches — use to sync local add-on UI. */
+    editorDataUpdatedAt: editorQ.dataUpdatedAt,
     errorMessage: editorQ.isError
       ? (editorQ.error?.message ?? 'Could not load service details')
       : businessQ.isError

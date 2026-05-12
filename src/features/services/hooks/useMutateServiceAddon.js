@@ -2,10 +2,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { serviceDurationHHmmToMinutes } from '../../../components/ui/durationTime';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
 import { insertServiceAddon, updateServiceAddon } from '../api/services';
-import { serviceEditorQueryKey, SERVICES_QUERY_ROOT, servicesCatalogQueryKey } from '../queryKeys';
+import {
+  SERVICES_QUERY_ROOT,
+  serviceEditorAllServicesQueryKey,
+  servicesCatalogQueryKey,
+} from '../queryKeys';
 import { mapServiceAddonRowToEditorOption } from '../utils/serviceAddonModel';
 
-export function useMutateServiceAddon({ businessId, userId, serviceId }) {
+export function useMutateServiceAddon({ businessId, userId, serviceId: _serviceId }) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -35,17 +39,13 @@ export function useMutateServiceAddon({ businessId, userId, serviceId }) {
       return { addon: mapServiceAddonRowToEditorOption(data) };
     },
     onSuccess: async () => {
-      const invalidations = [
+      await Promise.all([
         queryClient.invalidateQueries({ queryKey: servicesCatalogQueryKey(businessId) }),
         queryClient.invalidateQueries({ queryKey: SERVICES_QUERY_ROOT }),
         queryClient.invalidateQueries({ queryKey: homeBusinessProfileQueryKey(userId) }),
-      ];
-      if (serviceId) {
-        invalidations.push(
-          queryClient.invalidateQueries({ queryKey: serviceEditorQueryKey(businessId, serviceId) }),
-        );
-      }
-      await Promise.all(invalidations);
+        // Every service editor loads the business add-on catalog — refresh when add-ons change from any screen.
+        queryClient.invalidateQueries({ queryKey: serviceEditorAllServicesQueryKey(businessId) }),
+      ]);
     },
   });
 

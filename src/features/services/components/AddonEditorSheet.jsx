@@ -1,22 +1,11 @@
 import { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  AppText,
-  Button,
   DurationSelectField,
+  FormBottomSheetModal,
   InlineCardError,
   SurfaceTextField,
 } from '../../../components/ui';
-import { useTheme } from '../../../theme';
 
 function normalizePriceInput(rawText) {
   const input = String(rawText ?? '').replace(/\$/g, '');
@@ -36,7 +25,7 @@ function normalizePriceInput(rawText) {
 }
 
 /**
- * Bottom-sheet style modal for creating or editing a business add-on (same shell as pricing option editor).
+ * Create / edit business add-on — same tall bottom sheet shell as add service (`FormBottomSheetModal`).
  */
 export function AddonEditorSheet({
   visible,
@@ -51,8 +40,6 @@ export function AddonEditorSheet({
   isSaving = false,
   submitError = '',
 }) {
-  const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [durationHHmm, setDurationHHmm] = useState('');
@@ -66,11 +53,6 @@ export function AddonEditorSheet({
 
   const canSave = name.trim().length > 0 && price.trim().length > 0;
 
-  function closeFromBackdrop() {
-    if (!allowBackdropClose) return;
-    onRequestClose?.();
-  }
-
   async function handlePrimary() {
     if (!canSave || !onSave) return;
     await onSave({
@@ -81,126 +63,49 @@ export function AddonEditorSheet({
   }
 
   return (
-    <Modal animationType="fade" transparent visible={visible} onRequestClose={onRequestClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
-        style={styles.modalRoot}
-      >
-        <Pressable
-          accessibilityRole="button"
-          onPress={closeFromBackdrop}
-          style={styles.sheetBackdrop}
-        />
-        <View
-          style={[
-            styles.sheetWrap,
-            {
-              backgroundColor: colors.shellElevated,
-              paddingBottom: Math.max(insets.bottom, 12),
-            },
-          ]}
-        >
-          <ScrollView
-            contentContainerStyle={styles.sheetContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <AppText style={[styles.sheetTitle, { color: colors.text }]}>{title}</AppText>
+    <FormBottomSheetModal
+      allowBackdropClose={allowBackdropClose}
+      primaryDisabled={!canSave || isSaving}
+      primaryLoading={isSaving}
+      primaryTitle={primaryButtonTitle}
+      title={title}
+      visible={visible}
+      onPrimaryPress={handlePrimary}
+      onRequestClose={onRequestClose}
+    >
+      <SurfaceTextField
+        containerStyle={styles.field}
+        label="Name"
+        onChangeText={setName}
+        value={name}
+      />
+      <SurfaceTextField
+        containerStyle={styles.field}
+        keyboardType="decimal-pad"
+        label="Price"
+        onChangeText={(text) => setPrice(normalizePriceInput(text))}
+        value={`$${price}`}
+      />
+      <DurationSelectField
+        containerStyle={styles.durationField}
+        label="Duration"
+        mode="addon"
+        placeholder="No extra time"
+        onValueChange={setDurationHHmm}
+        triggerStyle={{ borderColor: 'rgba(255,255,255,0.24)', borderWidth: 1 }}
+        value={durationHHmm}
+      />
 
-            <SurfaceTextField
-              containerStyle={styles.field}
-              label="Name"
-              onChangeText={setName}
-              value={name}
-            />
-            <SurfaceTextField
-              containerStyle={styles.field}
-              keyboardType="decimal-pad"
-              label="Price"
-              onChangeText={(text) => setPrice(normalizePriceInput(text))}
-              value={`$${price}`}
-            />
-            <DurationSelectField
-              containerStyle={styles.durationField}
-              label="Duration"
-              mode="addon"
-              placeholder="No extra time"
-              onValueChange={setDurationHHmm}
-              triggerStyle={{ borderColor: 'rgba(255,255,255,0.24)', borderWidth: 1 }}
-              value={durationHHmm}
-            />
-
-            {submitError ? (
-              <View style={styles.submitErrorWrap}>
-                <InlineCardError message={submitError} />
-              </View>
-            ) : null}
-
-            <View style={styles.actions}>
-              <Button
-                fullWidth
-                labelColor="#ffffff"
-                outlineColor="rgba(255,255,255,0.52)"
-                style={styles.actionBtn}
-                title="Cancel"
-                variant="outline"
-                onPress={onRequestClose}
-              />
-              <Button
-                disabled={!canSave || isSaving}
-                fullWidth
-                loading={isSaving}
-                style={styles.actionBtn}
-                title={primaryButtonTitle}
-                variant="surfaceLight"
-                onPress={() => {
-                  void handlePrimary();
-                }}
-              />
-            </View>
-          </ScrollView>
+      {submitError ? (
+        <View style={styles.submitErrorWrap}>
+          <InlineCardError message={submitError} />
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      ) : null}
+    </FormBottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalRoot: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    position: 'relative',
-  },
-  sheetBackdrop: {
-    backgroundColor: 'rgba(0,0,0,0.76)',
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  sheetWrap: {
-    alignSelf: 'center',
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    maxHeight: '78%',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    width: '100%',
-  },
-  sheetContent: {
-    paddingBottom: 6,
-  },
-  sheetTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 16,
-  },
   field: {
     marginBottom: 14,
   },
@@ -209,13 +114,5 @@ const styles = StyleSheet.create({
   },
   submitErrorWrap: {
     marginTop: 8,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 22,
-  },
-  actionBtn: {
-    flex: 1,
   },
 });

@@ -233,7 +233,7 @@ export function ServiceEntityCard({
           borderColor: 'rgba(34,197,94,0.45)',
           borderStyle: 'dashed',
         },
-        isDragActive && { transform: [{ scale: 1.01 }], opacity: 0.92 },
+        isDragActive && { opacity: 0.96 },
       ]}
     >
       {isSortMode ? (

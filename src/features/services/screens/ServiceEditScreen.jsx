@@ -1,5 +1,6 @@
+import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -219,11 +220,17 @@ export function ServiceEditScreen({ route }) {
   const {
     data: fetchedEditorData,
     isLoading: isEditorLoading,
-    isFetching: isEditorFetching,
     errorMessage: editorErrorMessage,
     businessId,
+    editorDataUpdatedAt,
     refetch: refetchServiceEditor,
   } = useServiceEditData(routeServiceId, routeService);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refetchServiceEditor();
+    }, [refetchServiceEditor]),
+  );
   const [serviceName, setServiceName] = useState(initialDraft.serviceName);
   const [description, setDescription] = useState(initialDraft.description);
   const [price, setPrice] = useState(initialDraft.price);
@@ -251,6 +258,7 @@ export function ServiceEditScreen({ route }) {
     }),
   );
   const [hydratedServiceId, setHydratedServiceId] = useState('');
+  const [editorManualRefreshing, setEditorManualRefreshing] = useState(false);
   const canAddPricingOption = pricingOptionDraftName.trim().length > 0;
   const allowPricingModalBackdropClose = false;
 
@@ -287,16 +295,25 @@ export function ServiceEditScreen({ route }) {
     serviceId: routeServiceId,
   });
 
+  const handleEditorPullRefresh = useCallback(async () => {
+    setEditorManualRefreshing(true);
+    try {
+      await refetchServiceEditor();
+    } finally {
+      setEditorManualRefreshing(false);
+    }
+  }, [refetchServiceEditor]);
+
   const editorRefreshControl = useMemo(
     () => (
       <RefreshControl
         colors={[colors.accent]}
-        onRefresh={() => void refetchServiceEditor()}
-        refreshing={Boolean(isEditorFetching && !isEditorLoading)}
+        onRefresh={handleEditorPullRefresh}
+        refreshing={editorManualRefreshing}
         tintColor={colors.accent}
       />
     ),
-    [colors.accent, isEditorFetching, isEditorLoading, refetchServiceEditor],
+    [colors.accent, editorManualRefreshing, handleEditorPullRefresh],
   );
 
   const editingAddon = useMemo(
@@ -581,6 +598,52 @@ export function ServiceEditScreen({ route }) {
     }
   }
 
+  const serverAddonCatalogKey = useMemo(
+    () =>
+      (fetchedEditorData?.addonOptions ?? [])
+        .map((a) => String(a.id))
+        .sort()
+        .join('|'),
+    [fetchedEditorData?.addonOptions],
+  );
+
+  /**
+   * After initial hydrate, keep add-ons + selection aligned with the server (e.g. add-on deleted on Services).
+   * `editorDataUpdatedAt` ensures we re-run after refetch even if list identity is reused.
+   */
+  useEffect(() => {
+    if (!fetchedEditorData || !routeServiceId) return;
+    if (hydratedServiceId !== routeServiceId) return;
+
+    const nextAddons = fetchedEditorData.addonOptions ?? [];
+    const prevCatalogKey = addonOptions
+      .map((a) => String(a.id))
+      .sort()
+      .join('|');
+    const catalogChanged = prevCatalogKey !== serverAddonCatalogKey;
+
+    const mergedSelected = selectedAddonIds.filter((id) =>
+      nextAddons.some((a) => String(a.id) === String(id)),
+    );
+    const hadOrphanSelection = mergedSelected.length !== selectedAddonIds.length;
+
+    if (!catalogChanged && !hadOrphanSelection) return;
+
+    if (catalogChanged) {
+      setAddonOptions(nextAddons);
+    }
+    setSelectedAddonIds(mergedSelected);
+    setInitialSnapshot((snap) => patchEditorSnapshotAddons(snap, nextAddons, mergedSelected));
+  }, [
+    addonOptions,
+    editorDataUpdatedAt,
+    fetchedEditorData,
+    hydratedServiceId,
+    routeServiceId,
+    selectedAddonIds,
+    serverAddonCatalogKey,
+  ]);
+
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
     const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
@@ -645,11 +708,6 @@ export function ServiceEditScreen({ route }) {
           refreshControl={editorRefreshControl}
           showsVerticalScrollIndicator={false}
         >
-          {isEditorLoading ? (
-            <AppText style={[styles.loadStateText, { color: colors.textMuted }]}>
-              Loading latest service details...
-            </AppText>
-          ) : null}
           {!isEditorLoading && editorErrorMessage ? (
             <SurfaceCard style={styles.loadErrorCard}>
               <InlineCardError message={editorErrorMessage} />
@@ -657,7 +715,7 @@ export function ServiceEditScreen({ route }) {
                 accessibilityHint="Attempts to load service details again"
                 accessibilityLabel="Try again"
                 fullWidth
-                loading={Boolean(isEditorFetching && !isEditorLoading)}
+                loading={editorManualRefreshing}
                 style={styles.loadErrorRetry}
                 title="Try again"
                 variant="secondary"
@@ -1019,11 +1077,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   content: {
     paddingHorizontal: 16,
-    paddingTop: 10,
-  },
-  loadStateText: {
-    fontSize: 13,
-    marginBottom: 8,
+    paddingTop: 6,
   },
   loadErrorCard: {
     marginBottom: 12,

@@ -33,7 +33,6 @@ export function SelectableAddonCard({
             <AppText style={[styles.title, { color: colors.text }]}>{addon.name}</AppText>
             <AppText style={[styles.meta, { color: colors.textMuted }]}>{metaLine}</AppText>
           </View>
-          <Ionicons color={colors.textMuted} name="chevron-forward" size={22} />
         </Pressable>
 
         <Pressable
@@ -84,16 +83,14 @@ const styles = StyleSheet.create({
     paddingRight: 2,
   },
   editHit: {
-    alignItems: 'center',
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     minHeight: 56,
     paddingRight: 4,
   },
   main: {
     flex: 1,
-    marginRight: 8,
+    marginRight: 4,
   },
   title: {
     fontSize: 16,
