@@ -9,6 +9,16 @@ import {
 } from '../queryKeys';
 import { mapServiceAddonRowToEditorOption } from '../utils/serviceAddonModel';
 
+function mergeAddonIntoEditorCaches(old, addon) {
+  if (!old || typeof old !== 'object' || addon == null) return old;
+  const idStr = String(addon.id ?? '');
+  if (!idStr) return old;
+  const prev = Array.isArray(old.addonOptions) ? old.addonOptions : [];
+  const idx = prev.findIndex((a) => String(a?.id ?? '') === idStr);
+  const addonOptions = idx >= 0 ? prev.map((a, i) => (i === idx ? addon : a)) : [...prev, addon];
+  return { ...old, addonOptions };
+}
+
 export function useMutateServiceAddon({ businessId, userId, serviceId: _serviceId }) {
   const queryClient = useQueryClient();
 
@@ -38,7 +48,7 @@ export function useMutateServiceAddon({ businessId, userId, serviceId: _serviceI
       if (!data) throw new Error('Could not update add-on');
       return { addon: mapServiceAddonRowToEditorOption(data) };
     },
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: servicesCatalogQueryKey(businessId) }),
         queryClient.invalidateQueries({ queryKey: SERVICES_QUERY_ROOT }),
@@ -46,6 +56,12 @@ export function useMutateServiceAddon({ businessId, userId, serviceId: _serviceI
         // Every service editor loads the business add-on catalog — refresh when add-ons change from any screen.
         queryClient.invalidateQueries({ queryKey: serviceEditorAllServicesQueryKey(businessId) }),
       ]);
+      if (businessId != null && data?.addon != null) {
+        queryClient.setQueriesData(
+          { queryKey: serviceEditorAllServicesQueryKey(businessId) },
+          (old) => mergeAddonIntoEditorCaches(old, data.addon),
+        );
+      }
     },
   });
 

@@ -25,13 +25,17 @@ export function SelectableAddonCard({
           onPress={onDelete}
           style={styles.trashHit}
         >
-          <Ionicons color="#fb7185" name="trash-outline" size={20} />
+          <Ionicons color="#fb7185" name="trash-outline" size={18} />
         </Pressable>
 
         <Pressable accessibilityRole="button" onPress={onEdit} style={styles.editHit}>
           <View style={styles.main}>
-            <AppText style={[styles.title, { color: colors.text }]}>{addon.name}</AppText>
-            <AppText style={[styles.meta, { color: colors.textMuted }]}>{metaLine}</AppText>
+            <AppText numberOfLines={2} style={[styles.title, { color: colors.text }]}>
+              {addon.name}
+            </AppText>
+            <AppText numberOfLines={1} style={[styles.meta, { color: colors.textMuted }]}>
+              {metaLine}
+            </AppText>
           </View>
         </Pressable>
 
@@ -52,7 +56,7 @@ export function SelectableAddonCard({
             ]}
           >
             {selected ? (
-              <Ionicons color="rgba(255,255,255,0.92)" name="checkmark" size={14} />
+              <Ionicons color="rgba(255,255,255,0.92)" name="checkmark" size={12} />
             ) : null}
           </View>
         </Pressable>
@@ -63,56 +67,60 @@ export function SelectableAddonCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    marginBottom: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   row: {
-    alignItems: 'center',
+    alignItems: 'stretch',
     flexDirection: 'row',
-    gap: 2,
-    minHeight: 56,
+    gap: 4,
+    minHeight: 48,
   },
   trashHit: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
-    minWidth: 44,
-    paddingRight: 2,
+    minWidth: 40,
+    width: 40,
   },
   editHit: {
     flex: 1,
-    justifyContent: 'center',
-    minHeight: 56,
-    paddingRight: 4,
+    flexDirection: 'column',
+    minWidth: 0,
+    paddingRight: 2,
   },
   main: {
     flex: 1,
-    marginRight: 4,
+    justifyContent: 'center',
+    marginRight: 2,
+    minWidth: 0,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.15,
+    lineHeight: 18,
+    marginBottom: 1,
   },
   meta: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
+    lineHeight: 14,
   },
   checkboxHit: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
-    minWidth: 44,
+    minWidth: 40,
+    width: 40,
   },
   checkbox: {
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
-    height: 34,
+    height: 26,
     justifyContent: 'center',
-    width: 34,
+    width: 26,
   },
 });

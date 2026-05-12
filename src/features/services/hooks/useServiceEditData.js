@@ -95,6 +95,14 @@ function mapServiceEditModel({
     (priceOptionRows ?? []).find((row) => row && typeof row === 'object') ?? null;
   const priceOptionLabelKey = detectPriceOptionLabelColumn(samplePriceOptionRow);
 
+  const priceOptionsEnabledRaw = pick(serviceRow, ['price_options_enabled', 'priceOptionsEnabled']);
+  const multiPriceEnabled =
+    pricingOptions.length === 0
+      ? false
+      : priceOptionsEnabledRaw != null
+        ? Boolean(priceOptionsEnabledRaw)
+        : pricingOptions.length > 1;
+
   return {
     serviceId,
     serviceName,
@@ -104,7 +112,7 @@ function mapServiceEditModel({
     pricingOptions,
     addonOptions,
     selectedAddonIds,
-    multiPriceEnabled: pricingOptions.length > 1,
+    multiPriceEnabled,
     priceOptionLabelKey,
   };
 }

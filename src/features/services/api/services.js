@@ -235,6 +235,7 @@ export async function saveServiceEditorChanges({
   serviceId,
   serviceDetails,
   pricingOptions,
+  multiPriceEnabled = false,
   addonOptions: _addonOptions,
   selectedAddonIds,
   priceOptionLabelKey = 'label',
@@ -244,6 +245,7 @@ export async function saveServiceEditorChanges({
     description: serviceDetails.description.trim(),
     price_cents: centsFromInput(serviceDetails.price),
     duration_minutes: serviceDetails.durationMinutes,
+    price_options_enabled: Boolean(multiPriceEnabled),
     updated_at: new Date().toISOString(),
   };
 
@@ -253,6 +255,27 @@ export async function saveServiceEditorChanges({
     .eq('business_id', businessId)
     .eq('id', serviceId);
   if (serviceUpdateError) return { error: serviceUpdateError };
+
+  const { data: existingPriceOptionRows, error: existingReadError } = await supabase
+    .from('service_price_options')
+    .select('id')
+    .eq('service_id', serviceId);
+  if (existingReadError) return { error: existingReadError };
+
+  const keepPersistedIds = new Set(
+    (pricingOptions ?? []).filter((o) => !isUnsavedPricingOptionId(o.id)).map((o) => String(o.id)),
+  );
+  const priceOptionIdsToDelete = (existingPriceOptionRows ?? [])
+    .map((row) => row.id)
+    .filter((id) => id != null && !keepPersistedIds.has(String(id)));
+
+  if (priceOptionIdsToDelete.length) {
+    const { error: deleteOrphansError } = await supabase
+      .from('service_price_options')
+      .delete()
+      .in('id', priceOptionIdsToDelete);
+    if (deleteOrphansError) return { error: deleteOrphansError };
+  }
 
   const resolvedSelectedAddonIds = [...selectedAddonIds].map(String);
 
