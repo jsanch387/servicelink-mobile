@@ -47,7 +47,7 @@ async function findCustomerIdByEmail(businessId, email_normalized) {
  * Order: match `phone_normalized` → else `email_normalized` → else insert; on unique conflict, re-fetch.
  *
  * @param {string} businessId
- * @param {{ fullName: string; email: string; phone: string }} input `phone` may be formatted or 10-digit storage form.
+ * @param {{ fullName: string; email?: string | null; phone: string }} input `phone` may be formatted or 10-digit storage form. `email` optional.
  * @returns {Promise<{ data: { id: string } | null; error: Error | null }>}
  */
 export async function upsertCustomerForBooking(businessId, { fullName, email, phone }) {

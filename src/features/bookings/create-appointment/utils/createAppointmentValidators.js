@@ -1,11 +1,12 @@
 import { isValidEmailFormat } from '../../../../utils/email';
 import { normalizePhoneForDatabase } from '../../../../utils/phone';
 
-/** Customer step: name, email, complete US phone (10 NANP digits). */
+/** Customer step: name, complete US phone (10 NANP digits); email optional but must be valid when present. */
 export function isCustomerStepComplete(customer) {
   const c = customer ?? {};
   if (!String(c.fullName ?? '').trim()) return false;
-  if (!isValidEmailFormat(c.email)) return false;
+  const emailTrim = String(c.email ?? '').trim();
+  if (emailTrim && !isValidEmailFormat(emailTrim)) return false;
   if (normalizePhoneForDatabase(c.phone ?? '') == null) return false;
   return true;
 }

@@ -41,7 +41,7 @@ export function buildAddonDetailsPayload(selectedAddonRows) {
  * @param {number} args.totalDurationMinutes
  * @param {string | null} args.selectedDateKey
  * @param {string | null} args.selectedTime
- * @param {{ fullName: string; email: string; phone: string }} args.customer
+ * @param {{ fullName: string; email?: string; phone: string }} args.customer
  * @param {{ street: string; unit?: string; city: string; state: string; zip: string }} args.address
  * @param {{ year: string; make: string; model: string }} args.vehicle
  * @param {string} [args.notes] trimmed into `bookings.customer_notes`
@@ -72,7 +72,7 @@ export function buildOwnerBookingInsertPayload({
     scheduledDate: selectedDateKey,
     startTimeHhMmSs: startTimeToSqlTime(selectedTime),
     customerName: customer.fullName.trim(),
-    customerEmail: customer.email.trim(),
+    customerEmail: String(customer.email ?? '').trim() || null,
     customerPhoneDigits: bookingCustomerPhoneDigits(customer.phone),
     street: address.street.trim(),
     unit: address.unit?.trim() ?? '',

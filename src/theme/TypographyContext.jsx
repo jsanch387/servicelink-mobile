@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
-import { AppFontLoadingShell } from '../components/ui/AppFontLoadingShell';
+import { useTheme } from './ThemeContext';
 import { useLoadAppFonts } from './loadAppFonts';
 import { FONT_FAMILIES } from './typographyPresets';
 
@@ -15,6 +15,7 @@ const isTestEnv = process.env.NODE_ENV === 'test';
  * @param {{ children: import('react').ReactNode }} props
  */
 export function TypographyProvider({ children }) {
+  const { colors } = useTheme();
   const [fontsLoaded, fontError] = useLoadAppFonts();
   const [fontsApplied, setFontsApplied] = useState(isTestEnv);
 
@@ -35,7 +36,10 @@ export function TypographyProvider({ children }) {
   );
 
   if (!fontsLoaded || !fontsApplied) {
-    return <AppFontLoadingShell accessibilityLabel="Loading fonts" animateEntrance={true} />;
+    // Native splash stays visible (see index.js + AuthNavigator hideAsync); avoid a second branded screen.
+    return (
+      <View accessibilityLabel="Loading fonts" style={{ backgroundColor: colors.shell, flex: 1 }} />
+    );
   }
 
   return (

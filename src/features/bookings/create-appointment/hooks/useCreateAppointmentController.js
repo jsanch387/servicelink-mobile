@@ -385,6 +385,7 @@ export function useCreateAppointmentController({ catalog, userId, navigation }) 
 
   return {
     styles,
+    step,
     progressPercent,
     appointmentConfirmed,
     showMainTitle: createAppointmentStepShowsMainTitle(step) && !appointmentConfirmed,

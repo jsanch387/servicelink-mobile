@@ -1,39 +1,84 @@
-import { View } from 'react-native';
-import { SurfaceTextField } from '../../../../components/ui';
-import { formatPhoneInputAsYouType, US_NANP_FORMATTED_MAX_LENGTH } from '../../../../utils/phone';
+import { useMemo } from 'react';
+import { StyleSheet, View } from 'react-native';
+import {
+  AppText,
+  DetailsSectionCard,
+  SurfaceEmailField,
+  SurfacePhoneField,
+  SurfaceTextField,
+} from '../../../../components/ui';
+import { useTheme } from '../../../../theme';
+import { isValidEmailFormat } from '../../../../utils/email';
 
+const FIELD_SHELL = { marginBottom: 0 };
+
+/**
+ * @param {object} props
+ * @param {{ fullName: string; email: string; phone: string }} props.customer
+ * @param {(next: object) => void} props.onChangeCustomer
+ */
 export function CustomerStep({ customer, onChangeCustomer }) {
+  const { colors } = useTheme();
+
+  const emailTrim = String(customer.email ?? '').trim();
+  const emailError = useMemo(() => {
+    if (!emailTrim) return undefined;
+    if (!isValidEmailFormat(emailTrim)) return 'Enter a valid email address.';
+    return undefined;
+  }, [emailTrim]);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        fieldStack: {
+          gap: 18,
+        },
+        footnote: {
+          color: colors.textMuted,
+          fontSize: 13,
+          lineHeight: 18,
+          marginTop: 4,
+        },
+      }),
+    [colors.textMuted],
+  );
+
   return (
-    <View>
-      <SurfaceTextField
-        autoCapitalize="words"
-        compact
-        label="Full name"
-        placeholder="Jordan Lee"
-        value={customer.fullName}
-        onChangeText={(t) => onChangeCustomer({ ...customer, fullName: t })}
-      />
-      <SurfaceTextField
-        autoCapitalize="none"
-        autoCorrect={false}
-        compact
-        keyboardType="email-address"
-        label="Email"
-        leftIcon="mail-outline"
-        placeholder="jordan@email.com"
-        value={customer.email}
-        onChangeText={(t) => onChangeCustomer({ ...customer, email: t })}
-      />
-      <SurfaceTextField
-        compact
-        keyboardType="phone-pad"
-        label="Phone"
-        leftIcon="call-outline"
-        maxLength={US_NANP_FORMATTED_MAX_LENGTH}
-        placeholder="(555) 234-5678"
-        value={customer.phone}
-        onChangeText={(t) => onChangeCustomer({ ...customer, phone: formatPhoneInputAsYouType(t) })}
-      />
-    </View>
+    <DetailsSectionCard bodyPadding="roomy" title="Customer information">
+      <View style={styles.fieldStack}>
+        <SurfaceTextField
+          autoCapitalize="words"
+          compact
+          containerStyle={FIELD_SHELL}
+          label="Full name"
+          placeholder="Jordan Lee"
+          value={customer.fullName}
+          onChangeText={(t) => onChangeCustomer({ ...customer, fullName: t })}
+        />
+        <SurfacePhoneField
+          compact
+          containerStyle={FIELD_SHELL}
+          label="Phone"
+          leftIcon="call-outline"
+          placeholder="(555) 234-5678"
+          value={customer.phone}
+          onChangeText={(t) => onChangeCustomer({ ...customer, phone: t })}
+        />
+        <SurfaceEmailField
+          compact
+          containerStyle={FIELD_SHELL}
+          errorText={emailError}
+          label="Email (optional)"
+          leftIcon="mail-outline"
+          placeholder="jordan@email.com"
+          value={customer.email}
+          onChangeText={(t) => onChangeCustomer({ ...customer, email: t })}
+        />
+        <AppText style={styles.footnote}>
+          If you don&apos;t add an email, your customer won&apos;t receive an email confirmation for
+          this appointment.
+        </AppText>
+      </View>
+    </DetailsSectionCard>
   );
 }

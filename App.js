@@ -31,7 +31,7 @@ function AppShell() {
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={styles.root}>
+    <GestureHandlerRootView style={[styles.root, { backgroundColor: '#0a0a0a' }]}>
       <ThemeProvider initialScheme="dark">
         <TypographyProvider>
           <QueryClientProvider client={queryClient}>

@@ -1,6 +1,7 @@
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { PushNotificationsBootstrap } from '../features/notifications/components/PushNotificationsBootstrap';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { AppFontLoadingShell } from '../components/ui/AppFontLoadingShell';
@@ -79,6 +80,13 @@ export function AuthNavigator() {
 
   const boot = !isReady || (session && !isGateReady);
 
+  useEffect(() => {
+    if (boot) {
+      return;
+    }
+    void SplashScreen.hideAsync();
+  }, [boot]);
+
   const stackKey = session
     ? needsOnboarding
       ? 'onboarding'
@@ -90,11 +98,7 @@ export function AuthNavigator() {
     : 'auth';
 
   if (boot) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.shell }}>
-        <AppFontLoadingShell accessibilityLabel="Loading" />
-      </View>
-    );
+    return <View accessibilityLabel="Loading" style={{ backgroundColor: colors.shell, flex: 1 }} />;
   }
 
   return (

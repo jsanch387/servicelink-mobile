@@ -23,6 +23,12 @@ public class AppDelegate: ExpoAppDelegate {
 
 #if os(iOS) || os(tvOS)
     window = UIWindow(frame: UIScreen.main.bounds)
+    window?.backgroundColor = UIColor(
+      red: 10 / 255,
+      green: 10 / 255,
+      blue: 10 / 255,
+      alpha: 1
+    )
     factory.startReactNative(
       withModuleName: "main",
       in: window,

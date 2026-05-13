@@ -34,6 +34,13 @@ jest.mock('./src/theme/loadAppFonts', () => ({
   useLoadAppFonts: () => [true],
 }));
 
+jest.mock('expo-splash-screen', () => ({
+  preventAutoHideAsync: jest.fn(() => Promise.resolve(true)),
+  hideAsync: jest.fn(() => Promise.resolve()),
+  hide: jest.fn(),
+  setOptions: jest.fn(),
+}));
+
 jest.mock('@expo/vector-icons', () => {
   const React = require('react');
   const { Text } = require('react-native');

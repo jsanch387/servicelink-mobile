@@ -4,6 +4,9 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 
+/** Same green as quote send success & add-customer success — readable on light + dark shells. */
+const SUCCESS_GREEN = '#22c55e';
+
 export function AppointmentConfirmedStep() {
   const { colors } = useTheme();
 
@@ -40,7 +43,7 @@ export function AppointmentConfirmedStep() {
   return (
     <View style={styles.wrap}>
       <View accessibilityLabel="Success" accessibilityRole="image" style={styles.icon}>
-        <Ionicons color={colors.accent} name="checkmark-circle" size={56} />
+        <Ionicons color={SUCCESS_GREEN} name="checkmark-circle" size={56} />
       </View>
       <AppText style={styles.title}>Appointment confirmed</AppText>
       <AppText style={styles.body}>

@@ -1,61 +1,88 @@
-import { View } from 'react-native';
-import { SurfaceTextField } from '../../../../components/ui';
+import { useMemo } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { DetailsSectionCard, SurfaceTextField } from '../../../../components/ui';
+
+const FIELD_SHELL = { marginBottom: 0 };
 
 export function AddressStep({ address, onChangeAddress }) {
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        fieldStack: {
+          gap: 18,
+        },
+        row: {
+          flexDirection: 'row',
+          gap: 12,
+        },
+        rowItem: {
+          flex: 1,
+        },
+      }),
+    [],
+  );
+
   return (
-    <View>
-      <SurfaceTextField
-        compact
-        label="Street address"
-        placeholder="123 Main Street"
-        value={address.street}
-        onChangeText={(t) => onChangeAddress({ ...address, street: t })}
-      />
-      <SurfaceTextField
-        compact
-        label="Unit or apartment (optional)"
-        placeholder="Apt 4B"
-        value={address.unit}
-        onChangeText={(t) => onChangeAddress({ ...address, unit: t })}
-      />
-      <SurfaceTextField
-        compact
-        label="City"
-        placeholder="Austin"
-        value={address.city}
-        onChangeText={(t) => onChangeAddress({ ...address, city: t })}
-      />
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <View style={{ flex: 1 }}>
-          <SurfaceTextField
-            autoCapitalize="characters"
-            compact
-            label="State"
-            maxLength={2}
-            placeholder="TX"
-            value={address.state}
-            onChangeText={(t) =>
-              onChangeAddress({
-                ...address,
-                state: t
-                  .replace(/[^a-zA-Z]/g, '')
-                  .toUpperCase()
-                  .slice(0, 2),
-              })
-            }
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <SurfaceTextField
-            compact
-            keyboardType="number-pad"
-            label="ZIP code"
-            placeholder="78701"
-            value={address.zip}
-            onChangeText={(t) => onChangeAddress({ ...address, zip: t })}
-          />
+    <DetailsSectionCard bodyPadding="roomy" title="Service address">
+      <View style={styles.fieldStack}>
+        <SurfaceTextField
+          compact
+          containerStyle={FIELD_SHELL}
+          label="Street address"
+          placeholder="123 Main Street"
+          value={address.street}
+          onChangeText={(t) => onChangeAddress({ ...address, street: t })}
+        />
+        <SurfaceTextField
+          compact
+          containerStyle={FIELD_SHELL}
+          label="Unit or apartment (optional)"
+          placeholder="Apt 4B"
+          value={address.unit}
+          onChangeText={(t) => onChangeAddress({ ...address, unit: t })}
+        />
+        <SurfaceTextField
+          compact
+          containerStyle={FIELD_SHELL}
+          label="City"
+          placeholder="Austin"
+          value={address.city}
+          onChangeText={(t) => onChangeAddress({ ...address, city: t })}
+        />
+        <View style={styles.row}>
+          <View style={styles.rowItem}>
+            <SurfaceTextField
+              autoCapitalize="characters"
+              compact
+              containerStyle={FIELD_SHELL}
+              label="State"
+              maxLength={2}
+              placeholder="TX"
+              value={address.state}
+              onChangeText={(t) =>
+                onChangeAddress({
+                  ...address,
+                  state: t
+                    .replace(/[^a-zA-Z]/g, '')
+                    .toUpperCase()
+                    .slice(0, 2),
+                })
+              }
+            />
+          </View>
+          <View style={styles.rowItem}>
+            <SurfaceTextField
+              compact
+              containerStyle={FIELD_SHELL}
+              keyboardType="number-pad"
+              label="ZIP code"
+              placeholder="78701"
+              value={address.zip}
+              onChangeText={(t) => onChangeAddress({ ...address, zip: t })}
+            />
+          </View>
         </View>
       </View>
-    </View>
+    </DetailsSectionCard>
   );
 }

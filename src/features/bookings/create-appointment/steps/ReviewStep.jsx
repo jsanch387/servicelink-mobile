@@ -1,25 +1,24 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 import {
   AppText,
   DetailsSectionCard,
+  Divider,
+  InfoSection,
   LabelValueRow,
-  parseLocalYyyyMmDd,
 } from '../../../../components/ui';
-import { useTheme } from '../../../../theme';
-import { formatPhoneForDisplay } from '../../../../utils/phone';
+import {
+  formatScheduledDateUserFacing,
+  isValidCalendarYyyyMmDd,
+} from '../../../quotes/utils/formatScheduledDateDisplay';
+import { FONT_FAMILIES, useTheme } from '../../../../theme';
+import {
+  canonicalNanpDigits,
+  formatPhoneForDisplay,
+  isValidUsNanpTenDigits,
+} from '../../../../utils/phone';
 import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
-
-function formatReviewDate(dateKey) {
-  const d = parseLocalYyyyMmDd(dateKey);
-  if (!d) return '—';
-  return d.toLocaleString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
 
 /**
  * Single-line mailing style, e.g. `14301 N IH 35, Pflugerville, TX, 78660`.
@@ -37,17 +36,6 @@ function formatFullServiceAddress(address) {
   return parts.length ? parts.join(', ') : '—';
 }
 
-function ReviewField({ styles, label, value, emphasize = false, noTopMargin = false }) {
-  return (
-    <View style={[styles.reviewFieldRow, noTopMargin && styles.reviewFieldRowFirst]}>
-      <AppText style={styles.reviewFieldLabel}>{label}</AppText>
-      <AppText style={[styles.reviewFieldValue, emphasize && styles.reviewFieldValueEmphasized]}>
-        {value}
-      </AppText>
-    </View>
-  );
-}
-
 /**
  * @param {{
  *   selectedService: { name?: string; durationLabel?: string; priceLabel?: string } | null;
@@ -56,7 +44,7 @@ function ReviewField({ styles, label, value, emphasize = false, noTopMargin = fa
  *   selectedAddonIds: string[];
  *   selectedDateKey: string | null;
  *   selectedTime: string | null;
- *   customer: { fullName: string; email: string; phone: string };
+ *   customer: { fullName: string; email?: string; phone: string };
  *   address: { street: string; unit: string; city: string; state: string; zip: string };
  *   vehicle: { year: string; make: string; model: string };
  *   notes: string;
@@ -97,7 +85,7 @@ export function ReviewStep({
   const optionLabel = selectedPricingOption?.label?.trim() || '—';
   const durationValue =
     selectedPricingOption?.durationLabel?.trim() || selectedService?.durationLabel?.trim() || '—';
-  const priceValue =
+  const priceLabelDisplay =
     selectedPricingOption?.priceLabel?.trim() || selectedService?.priceLabel?.trim() || '—';
 
   const fullAddress = useMemo(() => formatFullServiceAddress(address), [address]);
@@ -106,94 +94,158 @@ export function ReviewStep({
     const parts = [vehicle.year?.trim(), vehicle.make?.trim(), vehicle.model?.trim()].filter(
       Boolean,
     );
-    return parts.length ? parts.join(' ') : '—';
+    return parts.length ? parts.join(' ') : '';
   }, [vehicle.year, vehicle.make, vehicle.model]);
 
+  const hasVehicle = vehicleLine.length > 0;
+
   const notesTrimmed = (notes ?? '').trim();
+
+  const scheduleDateDisplay = useMemo(() => {
+    const raw = String(selectedDateKey ?? '').trim();
+    if (!isValidCalendarYyyyMmDd(raw)) return null;
+    return formatScheduledDateUserFacing(raw) || null;
+  }, [selectedDateKey]);
+
+  const scheduleTimeDisplay = useMemo(() => {
+    const t = String(selectedTime ?? '').trim();
+    return t.length > 0 ? t : null;
+  }, [selectedTime]);
+
+  const showScheduleSection = Boolean(scheduleDateDisplay || scheduleTimeDisplay);
+
+  const phoneDigits10 = useMemo(() => {
+    const d = canonicalNanpDigits(customer.phone);
+    return isValidUsNanpTenDigits(d) ? d : null;
+  }, [customer.phone]);
+
+  const phoneLine = useMemo(
+    () => (phoneDigits10 ? formatPhoneForDisplay(phoneDigits10) : null),
+    [phoneDigits10],
+  );
+
+  const customerRows = useMemo(() => {
+    const rows = [];
+    const name = String(customer.fullName ?? '').trim();
+    if (name) {
+      rows.push({
+        key: 'name',
+        icon: 'person-outline',
+        value: name,
+        emphasize: true,
+      });
+    }
+    if (phoneLine && phoneDigits10) {
+      rows.push({
+        key: 'phone',
+        icon: 'call-outline',
+        value: phoneLine,
+        accessibilityLabel: `Call ${phoneLine}`,
+        onPress: () => {
+          void Linking.openURL(`tel:+1${phoneDigits10}`);
+        },
+      });
+    }
+    const email = String(customer.email ?? '').trim();
+    if (email) {
+      rows.push({ key: 'email', icon: 'mail-outline', value: email });
+    }
+    return rows;
+  }, [customer.email, customer.fullName, phoneDigits10, phoneLine]);
+
+  const showCustomerSection = customerRows.length > 0;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: {
-          gap: 18,
+        reviewRoot: {
+          gap: 22,
         },
-        reviewFieldRow: {
-          alignItems: 'flex-start',
-          flexDirection: 'row',
-          gap: 12,
-          justifyContent: 'space-between',
-          marginTop: 10,
-        },
-        reviewFieldRowFirst: {
-          marginTop: 0,
-        },
-        reviewFieldLabel: {
+        heroSub: {
           color: colors.textMuted,
-          flexShrink: 0,
+          fontFamily: FONT_FAMILIES.medium,
           fontSize: 14,
-          lineHeight: 20,
-          maxWidth: '42%',
-        },
-        reviewFieldValue: {
-          color: colors.text,
-          flex: 1,
-          flexGrow: 1,
-          fontSize: 15,
-          fontWeight: '400',
+          fontWeight: '500',
+          letterSpacing: -0.1,
           lineHeight: 21,
-          minWidth: 0,
-          textAlign: 'right',
         },
-        reviewFieldValueEmphasized: {
-          fontSize: 17,
-          fontWeight: '700',
-          lineHeight: 22,
+        proposalInner: {
+          paddingVertical: 4,
         },
-        notesBody: {
+        serviceTitle: {
           color: colors.text,
-          fontSize: 15,
-          lineHeight: 22,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 22,
+          letterSpacing: -0.35,
+          lineHeight: 28,
         },
-        notesEmpty: {
-          color: colors.textMuted,
-          fontSize: 15,
-          fontStyle: 'italic',
-          lineHeight: 22,
-        },
-        addressBody: {
-          color: colors.text,
-          fontSize: 15,
-          lineHeight: 22,
+        breakdownBlock: {
+          marginTop: 18,
         },
         addonBlock: {
-          marginTop: 10,
+          marginTop: 16,
         },
-        addonHeadingRow: {
-          alignItems: 'flex-start',
+        totalDividerWrap: {
+          marginBottom: 12,
+          marginTop: 18,
+        },
+        totalRow: {
+          alignItems: 'baseline',
           flexDirection: 'row',
-          gap: 12,
           justifyContent: 'space-between',
         },
-        addonHeadingLabel: {
+        totalLabel: {
           color: colors.textMuted,
-          flexShrink: 0,
-          fontSize: 14,
-          lineHeight: 20,
-          maxWidth: '42%',
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 12,
+          fontWeight: '600',
+          letterSpacing: 0.2,
+          textTransform: 'uppercase',
         },
-        addonHeadingValue: {
+        totalValue: {
           color: colors.text,
-          flex: 1,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 28,
+          letterSpacing: -0.55,
+          lineHeight: 34,
+        },
+        activityStack: {
+          gap: 16,
+          paddingTop: 2,
+        },
+        activityRow: {
+          flexDirection: 'row',
+          gap: 14,
+        },
+        activityIconWrap: {
+          paddingTop: 2,
+          width: 22,
+        },
+        activityLabel: {
+          color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 12,
+          fontWeight: '600',
+          letterSpacing: 0.2,
+          marginBottom: 4,
+          textTransform: 'uppercase',
+        },
+        activityValue: {
+          color: colors.textSecondary,
+          fontFamily: FONT_FAMILIES.medium,
           fontSize: 15,
-          lineHeight: 21,
-          minWidth: 0,
-          textAlign: 'right',
+          fontWeight: '500',
+          letterSpacing: -0.15,
+          lineHeight: 22,
         },
         addonSectionTitle: {
           color: colors.textMuted,
-          fontSize: 14,
-          lineHeight: 20,
-          marginBottom: 6,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 12,
+          fontWeight: '600',
+          letterSpacing: 0.2,
+          marginBottom: 10,
+          textTransform: 'uppercase',
         },
         addonLineRow: {
           alignItems: 'flex-start',
@@ -201,106 +253,209 @@ export function ReviewStep({
           gap: 10,
           justifyContent: 'space-between',
           marginTop: 8,
-          paddingLeft: 2,
         },
         addonLineRowFirst: {
           marginTop: 0,
         },
         addonLineName: {
-          color: colors.text,
+          color: colors.textSecondary,
           flex: 1,
-          fontSize: 14,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 15,
           fontWeight: '500',
-          lineHeight: 19,
+          letterSpacing: -0.15,
+          lineHeight: 22,
           minWidth: 0,
         },
         addonLinePrice: {
           color: colors.text,
           flexShrink: 0,
+          fontFamily: FONT_FAMILIES.semibold,
           fontSize: 14,
           fontWeight: '600',
-          lineHeight: 19,
+          lineHeight: 20,
         },
-        totalDivider: {
-          backgroundColor: colors.borderStrong,
-          borderRadius: 999,
-          height: 1,
-          marginTop: 14,
-          opacity: 0.85,
+        addressRow: {
+          flexDirection: 'row',
+          gap: 14,
+          paddingTop: 2,
+        },
+        addressTextWrap: {
+          flex: 1,
+          paddingTop: 1,
+        },
+        addressBody: {
+          color: colors.textSecondary,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 15,
+          fontWeight: '500',
+          letterSpacing: -0.15,
+          lineHeight: 22,
+        },
+        vehicleRow: {
+          flexDirection: 'row',
+          gap: 14,
+          paddingTop: 2,
+        },
+        vehicleTextWrap: {
+          flex: 1,
+          paddingTop: 1,
+        },
+        vehicleBody: {
+          color: colors.textSecondary,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 15,
+          fontWeight: '500',
+          letterSpacing: -0.15,
+          lineHeight: 22,
+        },
+        notesStack: {
+          gap: 0,
+          paddingVertical: 2,
+        },
+        noteReadonlyBody: {
+          color: colors.textSecondary,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 15,
+          fontWeight: '500',
+          letterSpacing: -0.1,
+          lineHeight: 22,
         },
       }),
     [colors],
   );
 
+  const serviceHeadline = serviceName.trim() || 'Service';
+
   return (
-    <View style={styles.root}>
-      <DetailsSectionCard title="Service & pricing">
-        <ReviewField label="Service" noTopMargin styles={styles} value={serviceName} />
-        <ReviewField label="Option" styles={styles} value={optionLabel} />
-        <ReviewField label="Duration" styles={styles} value={durationValue} />
-        <ReviewField label="Price" styles={styles} value={priceValue} />
+    <View style={styles.reviewRoot}>
+      <AppText style={styles.heroSub}>
+        Confirm the details below, then create the appointment.
+      </AppText>
 
-        <View style={styles.addonBlock}>
-          {selectedAddonRows.length === 0 ? (
-            <View style={styles.addonHeadingRow}>
-              <AppText style={styles.addonHeadingLabel}>Add-ons</AppText>
-              <AppText style={styles.addonHeadingValue}>None</AppText>
-            </View>
-          ) : (
-            <>
-              <AppText style={styles.addonSectionTitle}>Add-ons</AppText>
-              {selectedAddonRows.map((a, index) => {
-                const addonPrice = formatUsdFromNumber(
-                  parsePriceLabelToUsd(a.priceLabel ?? a.price),
-                );
-                return (
-                  <View
-                    key={a.id}
-                    style={[styles.addonLineRow, index === 0 && styles.addonLineRowFirst]}
-                  >
-                    <AppText ellipsizeMode="tail" numberOfLines={3} style={styles.addonLineName}>
-                      {a.name}
-                    </AppText>
-                    <AppText style={styles.addonLinePrice}>{addonPrice}</AppText>
-                  </View>
-                );
-              })}
-            </>
-          )}
+      <DetailsSectionCard bodyPadding="roomy" title="Proposal">
+        <View style={styles.proposalInner}>
+          <AppText style={styles.serviceTitle}>{serviceHeadline}</AppText>
+
+          <View style={styles.breakdownBlock}>
+            <LabelValueRow
+              label="Option"
+              labelAppearance="caption"
+              noTopMargin
+              value={optionLabel}
+            />
+            <LabelValueRow label="Duration" labelAppearance="caption" value={durationValue} />
+            <LabelValueRow
+              label="Service price"
+              labelAppearance="caption"
+              value={priceLabelDisplay}
+            />
+          </View>
+
+          <View style={styles.addonBlock}>
+            {selectedAddonRows.length === 0 ? (
+              <LabelValueRow label="Add-ons" labelAppearance="caption" noTopMargin value="None" />
+            ) : (
+              <>
+                <AppText style={styles.addonSectionTitle}>Add-ons</AppText>
+                {selectedAddonRows.map((a, index) => {
+                  const addonPrice = formatUsdFromNumber(
+                    parsePriceLabelToUsd(a.priceLabel ?? a.price),
+                  );
+                  return (
+                    <View
+                      key={a.id}
+                      style={[styles.addonLineRow, index === 0 && styles.addonLineRowFirst]}
+                    >
+                      <AppText ellipsizeMode="tail" numberOfLines={3} style={styles.addonLineName}>
+                        {a.name}
+                      </AppText>
+                      <AppText style={styles.addonLinePrice}>{addonPrice}</AppText>
+                    </View>
+                  );
+                })}
+              </>
+            )}
+          </View>
+
+          <View style={styles.totalDividerWrap}>
+            <Divider />
+          </View>
+          <View style={styles.totalRow}>
+            <AppText style={styles.totalLabel}>Total</AppText>
+            <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>
+          </View>
         </View>
-
-        <View style={styles.totalDivider} />
-        <ReviewField
-          emphasize
-          label="Total"
-          styles={styles}
-          value={formatUsdFromNumber(totalUsd)}
-        />
       </DetailsSectionCard>
 
-      <DetailsSectionCard title="Schedule">
-        <LabelValueRow label="Date" noTopMargin value={formatReviewDate(selectedDateKey)} />
-        <LabelValueRow label="Time" value={selectedTime?.trim() || '—'} />
+      {showScheduleSection ? (
+        <DetailsSectionCard bodyPadding="roomy" title="Schedule">
+          <View style={styles.activityStack}>
+            {scheduleDateDisplay ? (
+              <View style={styles.activityRow}>
+                <View style={styles.activityIconWrap}>
+                  <Ionicons color={colors.accentMuted} name="calendar-outline" size={19} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <AppText style={styles.activityLabel}>Date</AppText>
+                  <AppText style={styles.activityValue}>{scheduleDateDisplay}</AppText>
+                </View>
+              </View>
+            ) : null}
+            {scheduleTimeDisplay ? (
+              <View style={styles.activityRow}>
+                <View style={styles.activityIconWrap}>
+                  <Ionicons color={colors.accentMuted} name="time-outline" size={19} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <AppText style={styles.activityLabel}>Time</AppText>
+                  <AppText style={styles.activityValue}>{scheduleTimeDisplay}</AppText>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        </DetailsSectionCard>
+      ) : null}
+
+      {showCustomerSection ? (
+        <InfoSection bodyPadding="roomy" rowGap={14} rows={customerRows} title="Customer" />
+      ) : null}
+
+      <DetailsSectionCard bodyPadding="roomy" title="Service address">
+        <View style={styles.addressRow}>
+          <View style={styles.activityIconWrap}>
+            <Ionicons color={colors.accentMuted} name="location-outline" size={21} />
+          </View>
+          <View style={styles.addressTextWrap}>
+            <AppText style={styles.addressBody}>{fullAddress}</AppText>
+          </View>
+        </View>
       </DetailsSectionCard>
 
-      <DetailsSectionCard title="Customer">
-        <LabelValueRow label="Name" noTopMargin value={customer.fullName?.trim() || '—'} />
-        <LabelValueRow label="Email" value={customer.email?.trim() || '—'} />
-        <LabelValueRow label="Phone" value={formatPhoneForDisplay(customer.phone) || '—'} />
-      </DetailsSectionCard>
+      {hasVehicle ? (
+        <DetailsSectionCard bodyPadding="roomy" title="Vehicle">
+          <View style={styles.vehicleRow}>
+            <View style={styles.activityIconWrap}>
+              <Ionicons color={colors.accentMuted} name="car-sport" size={21} />
+            </View>
+            <View style={styles.vehicleTextWrap}>
+              <AppText style={styles.vehicleBody}>{vehicleLine}</AppText>
+            </View>
+          </View>
+        </DetailsSectionCard>
+      ) : null}
 
-      <DetailsSectionCard title="Service address">
-        <AppText style={styles.addressBody}>{fullAddress}</AppText>
-      </DetailsSectionCard>
-
-      <DetailsSectionCard title="Vehicle">
-        <LabelValueRow label="Vehicle" noTopMargin value={vehicleLine} />
-      </DetailsSectionCard>
-
-      <DetailsSectionCard title="Notes">
-        <AppText style={notesTrimmed ? styles.notesBody : styles.notesEmpty}>
-          {notesTrimmed || 'None'}
-        </AppText>
+      <DetailsSectionCard bodyPadding="roomy" title="Notes">
+        <View style={styles.notesStack}>
+          <AppText
+            style={[
+              styles.noteReadonlyBody,
+              !notesTrimmed && { color: colors.textMuted, fontStyle: 'italic' },
+            ]}
+          >
+            {notesTrimmed || 'None'}
+          </AppText>
+        </View>
       </DetailsSectionCard>
     </View>
   );

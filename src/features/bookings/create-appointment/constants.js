@@ -4,9 +4,9 @@ export const CREATE_APPOINTMENT_STEP_META = [
   { key: 'pricing', title: 'Pricing' },
   { key: 'addons', title: 'Add-ons' },
   { key: 'schedule', title: 'Date and time' },
-  { key: 'customer', title: 'Customer' },
-  { key: 'address', title: 'Service address' },
-  { key: 'vehicle', title: 'Vehicle' },
+  { key: 'customer', title: "Who's it for?" },
+  { key: 'address', title: 'Where is the service?' },
+  { key: 'vehicle', title: "What's the vehicle?" },
   { key: 'review', title: 'Review appointment' },
 ];
 

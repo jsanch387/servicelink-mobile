@@ -1,14 +1,25 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Divider, SurfaceTextField } from '../../../../components/ui';
+import { DetailsSectionCard, SurfaceTextField } from '../../../../components/ui';
+
+const FIELD_SHELL = { marginBottom: 0 };
+
+/** US model years are typically 4 digits; strip anything that is not 0–9. */
+function sanitizeVehicleYearInput(raw) {
+  return String(raw ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 4);
+}
 
 export function VehicleStep({ vehicle, notes, onChangeVehicle, onChangeNotes }) {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        dividerWrap: {
-          marginBottom: 12,
-          marginTop: 4,
+        root: {
+          gap: 18,
+        },
+        fieldStack: {
+          gap: 18,
         },
         notesField: {
           marginBottom: 0,
@@ -18,34 +29,42 @@ export function VehicleStep({ vehicle, notes, onChangeVehicle, onChangeNotes }) 
   );
 
   return (
-    <View>
-      <SurfaceTextField
-        compact
-        keyboardType="number-pad"
-        label="Year"
-        placeholder="2022"
-        value={vehicle.year}
-        onChangeText={(t) => onChangeVehicle({ ...vehicle, year: t })}
-      />
-      <SurfaceTextField
-        autoCapitalize="words"
-        compact
-        label="Make"
-        placeholder="Toyota"
-        value={vehicle.make}
-        onChangeText={(t) => onChangeVehicle({ ...vehicle, make: t })}
-      />
-      <SurfaceTextField
-        autoCapitalize="words"
-        compact
-        label="Model"
-        placeholder="Camry"
-        value={vehicle.model}
-        onChangeText={(t) => onChangeVehicle({ ...vehicle, model: t })}
-      />
-      <View style={styles.dividerWrap}>
-        <Divider />
-      </View>
+    <View style={styles.root}>
+      <DetailsSectionCard bodyPadding="roomy" title="Vehicle">
+        <View style={styles.fieldStack}>
+          <SurfaceTextField
+            autoCapitalize="none"
+            autoCorrect={false}
+            compact
+            containerStyle={FIELD_SHELL}
+            inputMode="numeric"
+            keyboardType="number-pad"
+            label="Year"
+            maxLength={4}
+            placeholder="2022"
+            value={vehicle.year}
+            onChangeText={(t) => onChangeVehicle({ ...vehicle, year: sanitizeVehicleYearInput(t) })}
+          />
+          <SurfaceTextField
+            autoCapitalize="words"
+            compact
+            containerStyle={FIELD_SHELL}
+            label="Make"
+            placeholder="Toyota"
+            value={vehicle.make}
+            onChangeText={(t) => onChangeVehicle({ ...vehicle, make: t })}
+          />
+          <SurfaceTextField
+            autoCapitalize="words"
+            compact
+            containerStyle={FIELD_SHELL}
+            label="Model"
+            placeholder="Camry"
+            value={vehicle.model}
+            onChangeText={(t) => onChangeVehicle({ ...vehicle, model: t })}
+          />
+        </View>
+      </DetailsSectionCard>
       <SurfaceTextField
         compact
         containerStyle={styles.notesField}

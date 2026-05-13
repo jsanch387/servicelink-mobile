@@ -24,5 +24,9 @@ export function createAppointmentFlowStyles(colors) {
       letterSpacing: -0.35,
       marginBottom: 22,
     },
+    /** Review step: main title sits just above the subtitle (~5px gap). */
+    titleTightToSubtitle: {
+      marginBottom: 5,
+    },
   });
 }

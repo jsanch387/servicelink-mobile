@@ -4,9 +4,16 @@ import 'react-native-get-random-values';
 import './global.css';
 
 import * as Notifications from 'expo-notifications';
-import { registerRootComponent } from 'expo';
+import { isRunningInExpoGo, registerRootComponent } from 'expo';
+import * as SplashScreen from 'expo-splash-screen';
 
 import App from './App';
+
+// Expo Go does not support splash control; preventAutoHide without a working hide leaves you stuck.
+if (!isRunningInExpoGo()) {
+  SplashScreen.setOptions({ duration: 0, fade: false });
+  SplashScreen.preventAutoHideAsync().catch(() => {});
+}
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

@@ -81,6 +81,14 @@ describe('buildOwnerBookingPayload', () => {
       expect(p.customerNotes).toBe('Pull into bay 2');
     });
 
+    it('uses null customerEmail when email omitted', () => {
+      const p = buildOwnerBookingInsertPayload({
+        ...base,
+        customer: { fullName: 'Jane D', email: '  ', phone: '(555) 234-5678' },
+      });
+      expect(p.customerEmail).toBeNull();
+    });
+
     it('includes tier in service name when not Standard', () => {
       const p = buildOwnerBookingInsertPayload({
         ...base,

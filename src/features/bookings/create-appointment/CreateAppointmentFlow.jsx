@@ -7,6 +7,7 @@ import { useServicesCatalog } from '../../services/hooks/useServicesCatalog';
 import { CreateAppointmentStepContent } from './components/CreateAppointmentStepContent';
 import { CreateFlowFooter } from './components/CreateFlowFooter';
 import { CreateFlowProgressBar } from './components/CreateFlowProgressBar';
+import { CREATE_APPOINTMENT_STEP } from './constants';
 import { useCreateAppointmentController } from './hooks/useCreateAppointmentController';
 
 /**
@@ -25,6 +26,11 @@ export function CreateAppointmentFlow() {
     navigation,
   });
 
+  const titleStyle = [
+    flow.styles.title,
+    flow.step === CREATE_APPOINTMENT_STEP.REVIEW && flow.styles.titleTightToSubtitle,
+  ];
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -37,7 +43,7 @@ export function CreateAppointmentFlow() {
         showsVerticalScrollIndicator={false}
         style={flow.styles.scroll}
       >
-        {flow.showMainTitle ? <AppText style={flow.styles.title}>{flow.mainTitle}</AppText> : null}
+        {flow.showMainTitle ? <AppText style={titleStyle}>{flow.mainTitle}</AppText> : null}
         <CreateAppointmentStepContent {...flow.stepContentProps} />
       </ScrollView>
 
