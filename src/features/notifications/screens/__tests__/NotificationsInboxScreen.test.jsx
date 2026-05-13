@@ -70,11 +70,12 @@ describe('NotificationsInboxScreen', () => {
     fetchRecentNotificationsPage.mockResolvedValue([]);
   });
 
-  /** TanStack Query flushes on `setTimeout(0)`; drain so updates are inside `act` (no HookContainer warnings). */
+  /** TanStack Query + `VirtualizedList` flush deferred updates (`updateCellsBatchingPeriod` defaults to 50ms). */
   afterEach(async () => {
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
       await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 60));
     });
   });
 
