@@ -1,27 +1,27 @@
-function vehicleLabel(row) {
-  const parts = [
-    row?.customer_vehicle_year,
-    row?.customer_vehicle_make?.trim(),
-    row?.customer_vehicle_model?.trim(),
-  ].filter(Boolean);
-  return parts.join(' ');
-}
+import { getBookingStatusVisualKind } from '../../bookings/utils/bookingStatusVisual';
 
 /**
- * Convert bookings rows into UI timeline items.
+ * @typedef {'scheduled' | 'completed' | 'cancelled'} RestOfTodayStatusKind
+ */
+
+/**
+ * Convert bookings rows into UI timeline items (full day: upcoming, completed, canceled).
  *
  * @param {object[] | null | undefined} rows
- * @returns {{ id: string; time: string; title: string; vehicle: string }[]}
+ * @returns {{ id: string; time: string; title: string; statusKind: RestOfTodayStatusKind }[]}
  */
 export function mapBookingsToRestOfTodayItems(rows) {
   return (rows ?? []).map((row) => {
-    const time = new Date(`${row.scheduled_date}T${row.start_time}`)
-      .toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    const time = new Date(`${row.scheduled_date}T${row.start_time}`).toLocaleTimeString(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+    const statusKind = getBookingStatusVisualKind(row?.status);
     return {
       id: row.id,
       time,
       title: row.service_name?.trim() || 'Service',
-      vehicle: vehicleLabel(row),
+      statusKind,
     };
   });
 }

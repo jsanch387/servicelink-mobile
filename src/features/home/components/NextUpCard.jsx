@@ -163,7 +163,7 @@ export function NextUpCard({
     return parts.join('. ');
   }, [headlines, serviceDisplayLine, spotlightMode, subtitle, vehicleOnlyLine]);
 
-  const canSms = useMemo(
+  const hasCustomerSmsNumber = useMemo(
     () => Boolean(nextBooking && phoneForSmsUri(nextBooking.customer_phone)),
     [nextBooking],
   );
@@ -303,9 +303,12 @@ export function NextUpCard({
             <>
               <View collapsable={false} style={styles.actionCell}>
                 <Button
-                  accessibilityHint={canSms ? undefined : 'Phone number required on this booking'}
+                  accessibilityHint={
+                    hasCustomerSmsNumber
+                      ? undefined
+                      : 'Opens Messages with your text; add a phone on this booking to include the customer number.'
+                  }
                   accessibilityLabel="On my way"
-                  disabled={!canSms}
                   fullWidth
                   iconName="chatbubble-ellipses-outline"
                   title="On my way"

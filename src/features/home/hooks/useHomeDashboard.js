@@ -16,9 +16,11 @@ import {
 import {
   formatInProgressSubtitle,
   formatNextUpWhenLine,
+  filterBookingsToCalendarDay,
+  localYyyyMmDd,
   parseBookingStartLocalMs,
 } from '../utils/bookingStart';
-import { fetchConfirmedBookingsForToday } from '../api/restOfToday';
+import { fetchBookingsForTodayTimeline } from '../api/restOfToday';
 import { mapBookingsToRestOfTodayItems } from '../utils/restOfToday';
 
 export function useHomeDashboard() {
@@ -87,13 +89,18 @@ export function useHomeDashboard() {
   });
 
   const todayBookingsQ = useQuery({
-    queryKey: homeBookingsTodayQueryKey(businessId),
-    queryFn: async () => {
-      const { data: rows, error } = await fetchConfirmedBookingsForToday(businessId);
+    queryKey: homeBookingsTodayQueryKey(businessId, localYyyyMmDd()),
+    queryFn: async ({ queryKey }) => {
+      const calendarDay = queryKey.at(-1);
+      if (typeof calendarDay !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(calendarDay)) {
+        throw new Error('Home today bookings query key missing YYYY-MM-DD');
+      }
+      const { data: rows, error } = await fetchBookingsForTodayTimeline(businessId, calendarDay);
       if (error) {
         throw new Error(error.message ?? 'Could not load today bookings');
       }
-      return mapBookingsToRestOfTodayItems(rows);
+      const filtered = filterBookingsToCalendarDay(rows, calendarDay);
+      return mapBookingsToRestOfTodayItems(filtered);
     },
     enabled: hasBusinessRow,
     staleTime: 45 * 1000,

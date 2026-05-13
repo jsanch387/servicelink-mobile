@@ -29,6 +29,18 @@ It is a **read-only reference** for implementation alignment and should not be e
   - `customer_vehicle_model`
 - `status` in `confirmed | completed | cancelled`
 
+### `booking_payments`
+
+One row per booking when the public checkout / Stripe flow created payment state (mirrors web `GET /api/availability/bookings` merge). Mobile booking details loads this table in parallel with `bookings` and attaches a camelCase `payment` object when a row exists.
+
+- `booking_id` (FK → `bookings.id`)
+- `payment_status` (text; web defaults missing to `not_required`)
+- `payment_method_selected` — `pay_now` | `pay_in_person` | `none` (lowercase in practice)
+- `currency` — lowercase ISO 4217 (e.g. `usd`)
+- `total_amount_cents`, `paid_online_amount_cents`, `remaining_amount_cents` (integers ≥ 0)
+
+UI copy for the Payment block follows the web dashboard: variant from `payment_method_selected` plus `paid_online_amount_cents` / `remaining_amount_cents` (see `buildBookingPaymentSection` in the mobile repo).
+
 ### `booking_requests`
 
 - lead/request intake table before confirmation

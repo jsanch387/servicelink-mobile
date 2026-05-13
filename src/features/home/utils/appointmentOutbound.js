@@ -21,17 +21,26 @@ export function buildServiceStartingSmsBody(booking) {
  */
 async function openSmsToCustomer(booking, body) {
   const addr = phoneForSmsUri(booking.customer_phone);
-  if (!addr) {
-    Alert.alert('Missing phone number', 'Add a customer phone on this booking to send a text.');
-    return;
+  const encodedBody = encodeURIComponent(body);
+
+  let url;
+  if (addr) {
+    const join = Platform.OS === 'ios' ? '&' : '?';
+    url = `sms:${addr}${join}body=${encodedBody}`;
+  } else {
+    // No usable number on file — still open compose with the message so the owner can pick a thread.
+    url = `sms:?body=${encodedBody}`;
   }
-  const join = Platform.OS === 'ios' ? '&' : '?';
-  const url = `sms:${addr}${join}body=${encodeURIComponent(body)}`;
 
   try {
     const supported = await Linking.canOpenURL(url);
     if (!supported) {
-      Alert.alert('Unable to open Messages', 'Open your SMS app manually to contact the customer.');
+      Alert.alert(
+        'Unable to open Messages',
+        addr
+          ? 'Open your SMS app manually to contact the customer.'
+          : 'Open your SMS app manually. Add a customer phone on this booking to prefill their number next time.',
+      );
       return;
     }
     await Linking.openURL(url);

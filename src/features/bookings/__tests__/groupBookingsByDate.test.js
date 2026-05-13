@@ -32,4 +32,21 @@ describe('formatBookingSectionTitle', () => {
   it('returns raw string for invalid input', () => {
     expect(formatBookingSectionTitle('')).toBe('');
   });
+
+  it('returns Today when the section date is the reference calendar day', () => {
+    const ref = new Date(2026, 4, 13, 16, 30, 0);
+    expect(formatBookingSectionTitle('2026-05-13', ref)).toBe('Today');
+  });
+
+  it('returns Tomorrow when the section date is the day after the reference', () => {
+    const ref = new Date(2026, 4, 13, 16, 30, 0);
+    expect(formatBookingSectionTitle('2026-05-14', ref)).toBe('Tomorrow');
+  });
+
+  it('uses long weekday date for other calendar days', () => {
+    const ref = new Date(2026, 4, 13, 16, 30, 0);
+    const title = formatBookingSectionTitle('2026-05-18', ref);
+    expect(title).not.toMatch(/Today|Tomorrow/);
+    expect(title.length).toBeGreaterThan(4);
+  });
 });

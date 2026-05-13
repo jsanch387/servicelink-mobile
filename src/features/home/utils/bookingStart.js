@@ -38,6 +38,39 @@ export function localYyyyMmDd(d = new Date()) {
 }
 
 /**
+ * Normalize Postgres `date` or ISO datetime strings to a calendar `YYYY-MM-DD` for comparisons.
+ *
+ * @param {unknown} scheduledDate
+ * @returns {string} `YYYY-MM-DD` or `''` if not parseable
+ */
+export function calendarYyyyMmDdFromScheduledDate(scheduledDate) {
+  if (scheduledDate == null) {
+    return '';
+  }
+  const s = String(scheduledDate).trim();
+  if (s.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(s)) {
+    return s.slice(0, 10);
+  }
+  return '';
+}
+
+/**
+ * Keep only rows whose `scheduled_date` falls on the given local calendar day.
+ *
+ * @param {object[] | null | undefined} rows
+ * @param {string} yyyyMmDd
+ * @returns {object[]}
+ */
+export function filterBookingsToCalendarDay(rows, yyyyMmDd) {
+  if (yyyyMmDd == null || typeof yyyyMmDd !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(yyyyMmDd)) {
+    return [];
+  }
+  return (rows ?? []).filter(
+    (r) => calendarYyyyMmDdFromScheduledDate(r?.scheduled_date) === yyyyMmDd,
+  );
+}
+
+/**
  * @param {number} startMs
  * @param {number} nowMs
  */

@@ -3,13 +3,26 @@ import { StyleSheet, View } from 'react-native';
 import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 
+function timelineDotColor(statusKind, colors) {
+  if (statusKind === 'cancelled') {
+    return colors.danger;
+  }
+  return colors.text;
+}
+
 function RestOfTodaySkeleton() {
   return (
     <SurfaceCard style={styles.card}>
       {[0, 1].map((k) => (
         <View key={k} style={styles.row}>
           <View style={styles.railCol}>
-            <SkeletonBox borderRadius={5} height={10} pulse width={10} />
+            <SkeletonBox
+              borderRadius={7}
+              height={14}
+              pulse
+              style={styles.markerCircle}
+              width={14}
+            />
             {k === 0 ? (
               <SkeletonBox borderRadius={2} height={40} pulse style={{ marginTop: 6 }} width={2} />
             ) : null}
@@ -44,11 +57,13 @@ export function RestOfTodayCard({ items, isLoading, error }) {
       <SurfaceCard style={styles.card}>
         <View style={styles.emptyWrap}>
           <View style={[styles.emptyIconWrap, { backgroundColor: colors.cardSurface }]}>
-            <Ionicons color={colors.textMuted} name="checkmark-done-outline" size={18} />
+            <Ionicons color={colors.textMuted} name="calendar-outline" size={18} />
           </View>
-          <AppText style={[styles.emptyTitle, { color: colors.text }]}>All clear for today</AppText>
+          <AppText style={[styles.emptyTitle, { color: colors.text }]}>
+            Nothing on the calendar
+          </AppText>
           <AppText style={[styles.emptyBody, { color: colors.textMuted }]}>
-            No more bookings are scheduled for the rest of today.
+            You do not have any appointments scheduled for today.
           </AppText>
         </View>
       </SurfaceCard>
@@ -59,22 +74,54 @@ export function RestOfTodayCard({ items, isLoading, error }) {
     <SurfaceCard style={styles.card}>
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
+        const cancelled = item.statusKind === 'cancelled';
+        const completed = item.statusKind === 'completed';
+        const dotColor = timelineDotColor(item.statusKind, colors);
+        const a11yStatus =
+          item.statusKind === 'completed'
+            ? 'Completed'
+            : item.statusKind === 'cancelled'
+              ? 'Canceled'
+              : 'Upcoming';
         return (
-          <View key={item.id} style={styles.row}>
+          <View
+            key={item.id}
+            accessibilityLabel={`${item.time}. ${item.title}. ${a11yStatus}`}
+            accessibilityRole="text"
+            style={styles.row}
+          >
             <View style={styles.railCol}>
-              <View style={[styles.dot, { backgroundColor: colors.accent }]} />
+              <View
+                style={[
+                  styles.markerCircle,
+                  { backgroundColor: completed ? colors.textSuccess : dotColor },
+                ]}
+              >
+                {completed ? (
+                  <Ionicons
+                    color="#0a0a0a"
+                    importantForAccessibility="no"
+                    name="checkmark"
+                    size={9}
+                  />
+                ) : null}
+              </View>
               {!isLast ? (
                 <View style={[styles.rail, { backgroundColor: colors.borderStrong }]} />
               ) : null}
             </View>
             <View style={styles.content}>
               <AppText style={[styles.time, { color: colors.textSecondary }]}>{item.time}</AppText>
-              <AppText style={[styles.title, { color: colors.text }]}>{item.title}</AppText>
-              {item.vehicle ? (
-                <AppText numberOfLines={1} style={[styles.vehicle, { color: colors.textMuted }]}>
-                  {item.vehicle}
-                </AppText>
-              ) : null}
+              <AppText
+                numberOfLines={2}
+                style={[
+                  styles.title,
+                  { color: colors.text },
+                  cancelled && { color: colors.textMuted, textDecorationLine: 'line-through' },
+                ]}
+              >
+                {item.title}
+              </AppText>
             </View>
           </View>
         );
@@ -96,11 +143,14 @@ const styles = StyleSheet.create({
     marginRight: 12,
     width: 14,
   },
-  dot: {
-    borderRadius: 5,
-    height: 10,
-    marginTop: 4,
-    width: 10,
+  /** Same outer size for upcoming / canceled dots and completed (green + check). */
+  markerCircle: {
+    alignItems: 'center',
+    borderRadius: 7,
+    height: 14,
+    justifyContent: 'center',
+    marginTop: 2,
+    width: 14,
   },
   rail: {
     flex: 1,
@@ -119,15 +169,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginTop: 4,
-  },
-  vehicle: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 4,
-  },
-  empty: {
-    fontSize: 14,
-    fontWeight: '500',
   },
   emptyWrap: {
     alignItems: 'center',

@@ -32,7 +32,7 @@ jest.mock('../api/homeDashboard', () => {
 });
 
 jest.mock('../api/restOfToday', () => ({
-  fetchConfirmedBookingsForToday: jest.fn(),
+  fetchBookingsForTodayTimeline: jest.fn(),
 }));
 
 const mockedUseAuth = useAuth;
@@ -57,7 +57,7 @@ describe('useHomeDashboard', () => {
       error: null,
     });
     homeApi.fetchConfirmedBookingsFromToday.mockResolvedValue({ data: [], error: null });
-    restOfTodayApi.fetchConfirmedBookingsForToday.mockResolvedValue({
+    restOfTodayApi.fetchBookingsForTodayTimeline.mockResolvedValue({
       data: [],
       error: null,
     });
@@ -208,7 +208,7 @@ describe('useHomeDashboard', () => {
 
     expect(homeApi.fetchBusinessProfileForUser).not.toHaveBeenCalled();
     expect(homeApi.fetchConfirmedBookingsFromToday).not.toHaveBeenCalled();
-    expect(restOfTodayApi.fetchConfirmedBookingsForToday).not.toHaveBeenCalled();
+    expect(restOfTodayApi.fetchBookingsForTodayTimeline).not.toHaveBeenCalled();
   });
 
   it('refetch forces API calls again', async () => {

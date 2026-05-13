@@ -1,16 +1,31 @@
+import { localYyyyMmDd } from '../../home/utils/bookingStart';
+
 /**
  * @param {string} yyyyMmDd - Postgres date string e.g. "2026-03-31"
- * @returns {string} e.g. "Monday, March 31" or includes year when not the current calendar year
+ * @param {Date} [nowForRelativeLabels] - defaults to `new Date()`; used for "Today" / "Tomorrow" only
+ * @returns {string} e.g. "Today", "Tomorrow", or "Monday, March 31" (year when not same calendar year as `nowForRelativeLabels`)
  */
-export function formatBookingSectionTitle(yyyyMmDd) {
+export function formatBookingSectionTitle(yyyyMmDd, nowForRelativeLabels = new Date()) {
   const raw = String(yyyyMmDd).slice(0, 10);
   const [y, m, d] = raw.split('-').map((n) => parseInt(n, 10));
   if (!y || !m || !d) {
     return raw;
   }
+
+  const ref = nowForRelativeLabels;
+  const todayKey = localYyyyMmDd(ref);
+  const tomorrowD = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + 1);
+  const tomorrowKey = localYyyyMmDd(tomorrowD);
+
+  if (raw === todayKey) {
+    return 'Today';
+  }
+  if (raw === tomorrowKey) {
+    return 'Tomorrow';
+  }
+
   const date = new Date(y, m - 1, d);
-  const now = new Date();
-  const sameYear = date.getFullYear() === now.getFullYear();
+  const sameYear = date.getFullYear() === ref.getFullYear();
   return date.toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'long',

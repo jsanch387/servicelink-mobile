@@ -80,4 +80,117 @@ describe('buildBookingDetailsModel', () => {
     );
     expect(model.formattedPrice.total).toBe('$140.00');
   });
+
+  it('hides payment section when booking has no merged payment summary', () => {
+    const model = buildBookingDetailsModel({
+      service_price_cents: 8000,
+    });
+    expect(model.payment.visible).toBe(false);
+  });
+
+  it('shows pay in person variant when method is pay_in_person and no online paid', () => {
+    const model = buildBookingDetailsModel({
+      payment: {
+        paymentMethodSelected: 'pay_in_person',
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 10000,
+        totalAmountCents: 10000,
+        currency: 'usd',
+      },
+    });
+    expect(model.payment.visible).toBe(true);
+    expect(model.payment.rows[0].value).toBe('Pay in person');
+    expect(model.payment.rows[1].value).toMatch(/^Amount due: /);
+    expect(model.payment.rows[1].value).toMatch(/100\.00/);
+  });
+
+  it('pay in person with zero total shows no amount due copy', () => {
+    const model = buildBookingDetailsModel({
+      payment: {
+        paymentMethodSelected: 'pay_in_person',
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 0,
+        totalAmountCents: 0,
+        currency: 'usd',
+      },
+    });
+    expect(model.payment.rows[1].value).toBe('No amount due for this appointment.');
+  });
+
+  it('shows deposit variant when online paid and remaining are both positive', () => {
+    const model = buildBookingDetailsModel({
+      payment: {
+        paymentMethodSelected: 'pay_now',
+        paidOnlineAmountCents: 5000,
+        remainingAmountCents: 5000,
+        totalAmountCents: 10000,
+        currency: 'usd',
+      },
+    });
+    expect(model.payment.visible).toBe(true);
+    expect(model.payment.rows.map((r) => r.value)).toEqual([
+      'Deposit paid',
+      expect.stringMatching(/^Amount paid: /),
+      expect.stringMatching(/^Amount due: /),
+    ]);
+    expect(model.payment.rows[1].value).toMatch(/50\.00/);
+    expect(model.payment.rows[2].value).toMatch(/50\.00/);
+  });
+
+  it('shows paid in full when online paid positive and no remaining', () => {
+    const model = buildBookingDetailsModel({
+      payment: {
+        paymentMethodSelected: 'pay_now',
+        paidOnlineAmountCents: 12500,
+        remainingAmountCents: 0,
+        totalAmountCents: 12500,
+        currency: 'usd',
+      },
+    });
+    expect(model.payment.visible).toBe(true);
+    expect(model.payment.rows[0].value).toBe('Paid');
+    expect(model.payment.rows[0].emphasize).toBe(true);
+    expect(model.payment.rows[1].value).toMatch(/^Amount paid: /);
+    expect(model.payment.rows[1].value).toMatch(/125\.00/);
+  });
+
+  it('pay_in_person with online paid uses deposit or paid_full, not pay_in_person headline', () => {
+    const model = buildBookingDetailsModel({
+      payment: {
+        paymentMethodSelected: 'pay_in_person',
+        paidOnlineAmountCents: 3000,
+        remainingAmountCents: 7000,
+        totalAmountCents: 10000,
+        currency: 'usd',
+      },
+    });
+    expect(model.payment.rows[0].value).toBe('Deposit paid');
+  });
+
+  it('shows other variant for pay_now with no online payment', () => {
+    const model = buildBookingDetailsModel({
+      payment: {
+        paymentMethodSelected: 'pay_now',
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 10000,
+        totalAmountCents: 10000,
+        currency: 'usd',
+      },
+    });
+    expect(model.payment.visible).toBe(true);
+    expect(model.payment.rows[0].value).toBe('No card payment through the app for this booking.');
+  });
+
+  it('accepts snake_case payment fields from raw rows', () => {
+    const model = buildBookingDetailsModel({
+      payment: {
+        payment_method_selected: 'pay_in_person',
+        paid_online_amount_cents: 0,
+        remaining_amount_cents: 5000,
+        total_amount_cents: 5000,
+        currency: 'usd',
+      },
+    });
+    expect(model.payment.rows[0].value).toBe('Pay in person');
+  });
 });

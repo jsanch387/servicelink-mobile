@@ -299,6 +299,30 @@ describe('NextUpCard', () => {
     expect(screen.getByText('2017 Toyota Tacoma')).toBeTruthy();
   });
 
+  it('upcoming: On my way stays enabled without a customer phone (compose opens with prefilled text)', () => {
+    const nextBooking = {
+      id: '1',
+      customer_name: 'Alex',
+      service_name: 'Install',
+      customer_phone: null,
+      customer_street_address: '1 Main',
+      customer_city: 'Austin',
+      customer_state: 'TX',
+      customer_zip: '78701',
+    };
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={nextBooking}
+        spotlightMode="upcoming"
+        subtitle="Today at 2:00 PM"
+      />,
+    );
+    expect(screen.getByLabelText('On my way')).not.toBeDisabled();
+  });
+
   it('invokes SMS and maps helpers when buttons are pressed', () => {
     const nextBooking = {
       id: '1',

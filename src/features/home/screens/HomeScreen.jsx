@@ -78,6 +78,19 @@ export function HomeScreen() {
     [dashboard.spotlightMode],
   );
 
+  /** Omit the block when today has no rows so we do not imply a “timeline” exists (e.g. next booking is tomorrow). */
+  const showTodayTimelineSection = useMemo(
+    () =>
+      dashboard.isPendingTodayBookings ||
+      Boolean(homeErrors.restOfTodayError) ||
+      dashboard.todayTimelineItems.length > 0,
+    [
+      dashboard.isPendingTodayBookings,
+      homeErrors.restOfTodayError,
+      dashboard.todayTimelineItems.length,
+    ],
+  );
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -240,12 +253,16 @@ export function HomeScreen() {
           slug={slug}
         />
 
-        <AppText style={styles.sectionLabel}>Rest of Today</AppText>
-        <RestOfTodayCard
-          error={homeErrors.restOfTodayError}
-          isLoading={dashboard.isPendingTodayBookings}
-          items={dashboard.todayTimelineItems}
-        />
+        {showTodayTimelineSection ? (
+          <>
+            <AppText style={styles.sectionLabel}>Today&apos;s timeline</AppText>
+            <RestOfTodayCard
+              error={homeErrors.restOfTodayError}
+              isLoading={dashboard.isPendingTodayBookings}
+              items={dashboard.todayTimelineItems}
+            />
+          </>
+        ) : null}
       </ScrollView>
       <FloatingCreateMenu
         bottom={30}

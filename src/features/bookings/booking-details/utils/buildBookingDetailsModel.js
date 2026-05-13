@@ -10,6 +10,31 @@ function formatMoney(amount) {
   }).format(safe);
 }
 
+/**
+ * @param {number} cents
+ * @param {string} [currencyLower] lowercase ISO 4217 from `booking_payments.currency`
+ */
+function formatMoneyFromCents(cents, currencyLower = 'usd') {
+  const safe = Math.max(0, Math.round(Number(cents) || 0));
+  const code =
+    String(currencyLower ?? 'usd')
+      .trim()
+      .toUpperCase() || 'USD';
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: code,
+      maximumFractionDigits: 2,
+    }).format(safe / 100);
+  } catch {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 2,
+    }).format(safe / 100);
+  }
+}
+
 function clean(value, fallback = 'Not provided') {
   const str = typeof value === 'string' ? value.trim() : '';
   return str || fallback;
@@ -49,6 +74,126 @@ function safeJsonParse(value) {
 function numberOrZero(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Accepts camelCase (merged API / client) or snake_case (raw Supabase embed).
+ *
+ * @param {Record<string, unknown> | null | undefined} raw
+ */
+function normalizeBookingPaymentSummary(raw) {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const p = /** @type {Record<string, unknown>} */ (raw);
+  const read = (camel, snake) => p[camel] ?? p[snake];
+  const curRaw = read('currency', 'currency');
+  const cur = typeof curRaw === 'string' && curRaw.trim() ? curRaw.trim().toLowerCase() : 'usd';
+  return {
+    paymentStatus: String(read('paymentStatus', 'payment_status') ?? 'not_required'),
+    paymentMethodSelected: String(
+      read('paymentMethodSelected', 'payment_method_selected') ?? 'none',
+    ),
+    currency: cur,
+    totalAmountCents: Math.max(0, Number(read('totalAmountCents', 'total_amount_cents') ?? 0) || 0),
+    paidOnlineAmountCents: Math.max(
+      0,
+      Number(read('paidOnlineAmountCents', 'paid_online_amount_cents') ?? 0) || 0,
+    ),
+    remainingAmountCents: Math.max(
+      0,
+      Number(read('remainingAmountCents', 'remaining_amount_cents') ?? 0) || 0,
+    ),
+  };
+}
+
+/**
+ * Booking details Payment block — mirrors web `AvailabilityBookingDetailPanel` variant order.
+ * Show section only when `payment` is present (merged `booking_payments` row), same as `showPaymentSection = Boolean(payment)`.
+ *
+ * @param {Record<string, unknown> | null | undefined} paymentRaw
+ * @returns {{ visible: boolean; rows: { key: string; icon: string; value: string; emphasize?: boolean }[] }}
+ */
+export function buildBookingPaymentSection(paymentRaw) {
+  const payment = normalizeBookingPaymentSummary(paymentRaw);
+  if (!payment) {
+    return { visible: false, rows: [] };
+  }
+
+  const paid = Math.max(0, Math.round(payment.paidOnlineAmountCents));
+  const rem = Math.max(0, Math.round(payment.remainingAmountCents));
+  const method = String(payment.paymentMethodSelected ?? '')
+    .trim()
+    .toLowerCase();
+  const total = Math.max(0, Math.round(payment.totalAmountCents));
+  const fmt = (cents) => formatMoneyFromCents(cents, payment.currency);
+
+  /** @type {'pay_in_person' | 'deposit' | 'paid_full' | 'other'} */
+  let variant;
+  if (method === 'pay_in_person' && paid <= 0) {
+    variant = 'pay_in_person';
+  } else if (paid > 0 && rem > 0) {
+    variant = 'deposit';
+  } else if (paid > 0 && rem <= 0) {
+    variant = 'paid_full';
+  } else {
+    variant = 'other';
+  }
+
+  if (variant === 'pay_in_person') {
+    const rows = [{ key: 'pip-title', icon: 'cash-outline', value: 'Pay in person' }];
+    if (total > 0) {
+      rows.push({
+        key: 'pip-due',
+        icon: 'wallet-outline',
+        value: `Amount due: ${fmt(rem)}`,
+      });
+    } else {
+      rows.push({
+        key: 'pip-none',
+        icon: 'information-circle-outline',
+        value: 'No amount due for this appointment.',
+      });
+    }
+    return { visible: true, rows };
+  }
+
+  if (variant === 'deposit') {
+    return {
+      visible: true,
+      rows: [
+        { key: 'dep-title', icon: 'wallet-outline', value: 'Deposit paid', emphasize: true },
+        { key: 'dep-paid', icon: 'card-outline', value: `Amount paid: ${fmt(paid)}` },
+        { key: 'dep-due', icon: 'wallet-outline', value: `Amount due: ${fmt(rem)}` },
+      ],
+    };
+  }
+
+  if (variant === 'paid_full') {
+    return {
+      visible: true,
+      rows: [
+        {
+          key: 'full-title',
+          icon: 'checkmark-circle-outline',
+          value: 'Paid',
+          emphasize: true,
+        },
+        { key: 'full-paid', icon: 'card-outline', value: `Amount paid: ${fmt(paid)}` },
+      ],
+    };
+  }
+
+  return {
+    visible: true,
+    rows: [
+      {
+        key: 'other',
+        icon: 'phone-portrait-outline',
+        value: 'No card payment through the app for this booking.',
+      },
+    ],
+  };
 }
 
 /**
@@ -192,5 +337,6 @@ export function buildBookingDetailsModel(booking) {
       total: formatMoneyOrFallback(total),
       addOns: addOns.map((item) => ({ ...item, priceLabel: formatMoney(item.price) })),
     },
+    payment: buildBookingPaymentSection(booking?.payment),
   };
 }

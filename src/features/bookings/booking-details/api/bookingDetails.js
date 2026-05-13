@@ -23,17 +23,69 @@ export const BOOKING_DETAILS_SELECT = [
   'customer_notes',
 ].join(', ');
 
+const BOOKING_PAYMENTS_SELECT = [
+  'payment_status',
+  'payment_method_selected',
+  'currency',
+  'total_amount_cents',
+  'paid_online_amount_cents',
+  'remaining_amount_cents',
+].join(', ');
+
+/**
+ * Maps a `booking_payments` row to the same camelCase shape the web dashboard uses
+ * (`BookingPaymentSummaryDisplay`).
+ *
+ * @param {Record<string, unknown> | null | undefined} row
+ */
+export function mapBookingPaymentRowToSummary(row) {
+  if (!row) {
+    return undefined;
+  }
+  return {
+    paymentStatus: row.payment_status ?? 'not_required',
+    paymentMethodSelected: String(row.payment_method_selected ?? 'none'),
+    currency:
+      String(row.currency ?? 'usd')
+        .trim()
+        .toLowerCase() || 'usd',
+    totalAmountCents: Math.max(0, Math.round(Number(row.total_amount_cents ?? 0) || 0)),
+    paidOnlineAmountCents: Math.max(0, Math.round(Number(row.paid_online_amount_cents ?? 0) || 0)),
+    remainingAmountCents: Math.max(0, Math.round(Number(row.remaining_amount_cents ?? 0) || 0)),
+  };
+}
+
 /**
  * @param {string} bookingId
  */
 export async function fetchBookingDetailsById(bookingId) {
-  const { data, error } = await supabase
+  const bookingQuery = supabase
     .from('bookings')
     .select(BOOKING_DETAILS_SELECT)
     .eq('id', bookingId)
     .maybeSingle();
 
-  return { data, error };
+  const paymentQuery = supabase
+    .from('booking_payments')
+    .select(BOOKING_PAYMENTS_SELECT)
+    .eq('booking_id', bookingId)
+    .maybeSingle();
+
+  const [{ data: booking, error: bookingError }, { data: payRow, error: payError }] =
+    await Promise.all([bookingQuery, paymentQuery]);
+
+  if (bookingError) {
+    return { data: null, error: bookingError };
+  }
+  if (!booking) {
+    return { data: null, error: null };
+  }
+
+  // If the payments row cannot be read (RLS, missing table), still show booking details without Payment.
+  const payment = payError ? undefined : mapBookingPaymentRowToSummary(payRow);
+  const merged = payment !== undefined ? { ...booking, payment } : { ...booking };
+
+  return { data: merged, error: null };
 }
 
 /**

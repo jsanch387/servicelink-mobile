@@ -243,6 +243,15 @@ export function BookingDetailsScreen({ route }) {
               title="Customer"
             />
 
+            {details.payment.visible ? (
+              <InfoSection
+                bodyPadding="roomy"
+                rowGap={14}
+                rows={details.payment.rows}
+                title="Payment"
+              />
+            ) : null}
+
             <PriceBreakdownSection formattedPrice={details.formattedPrice} />
 
             {details.location.hasAddress ? (

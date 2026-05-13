@@ -62,9 +62,22 @@ describe('HomeScreen', () => {
     renderWithProviders(<HomeScreen />);
     expect(screen.getByText('Booking link')).toBeTruthy();
     expect(screen.getByText('Next Up')).toBeTruthy();
-    expect(screen.getByText('Rest of Today')).toBeTruthy();
+    expect(screen.queryByText("Today's timeline")).toBeNull();
     expect(screen.getByText('Views')).toBeTruthy();
     expect(screen.getByText('12')).toBeTruthy();
+  });
+
+  it('shows today timeline section when there is at least one item for today', () => {
+    mockUseHomeDashboard.mockReturnValue(
+      baseDashboard({
+        todayTimelineItems: [
+          { id: 't1', time: '9:00 AM', title: 'Detail', statusKind: 'scheduled' },
+        ],
+      }),
+    );
+    renderWithProviders(<HomeScreen />);
+    expect(screen.getByText("Today's timeline")).toBeTruthy();
+    expect(screen.getByText('9:00 AM')).toBeTruthy();
   });
 
   it('uses In progress as the spotlight section title when a visit is underway', () => {
