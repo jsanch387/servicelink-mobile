@@ -118,15 +118,11 @@ export function PaymentDepositsSection({
         <AppText style={[paymentTextStyles.fieldLabel, { color: colors.text }]}>
           Deposit amount
         </AppText>
-        <View
-          pointerEvents={requireDeposits ? 'auto' : 'none'}
-          style={[styles.amountRowWrap, !requireDeposits && styles.amountRowDisabled]}
-        >
+        <View style={styles.amountRowWrap}>
           <View style={styles.amountRow}>
             <View style={styles.amountInputFlex}>
               <SurfaceInputRow left={amountLeft} right={amountRight} style={rowShellStyle}>
                 <AppTextInput
-                  editable={requireDeposits}
                   keyboardType="decimal-pad"
                   placeholder={placeholder}
                   placeholderTextColor={colors.placeholder}
@@ -138,11 +134,7 @@ export function PaymentDepositsSection({
                 />
               </SurfaceInputRow>
             </View>
-            <PaymentDepositUnitSegment
-              disabled={!requireDeposits}
-              value={depositMode}
-              onChange={setDepositModeAndClamp}
-            />
+            <PaymentDepositUnitSegment value={depositMode} onChange={setDepositModeAndClamp} />
           </View>
         </View>
         <AppText
@@ -196,9 +188,6 @@ const styles = StyleSheet.create({
   },
   amountRowWrap: {
     alignSelf: 'stretch',
-  },
-  amountRowDisabled: {
-    opacity: 0.4,
   },
   amountRow: {
     alignItems: 'center',

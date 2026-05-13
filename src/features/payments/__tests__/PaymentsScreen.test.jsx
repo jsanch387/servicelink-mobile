@@ -1,5 +1,8 @@
+import * as WebBrowser from 'expo-web-browser';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
+import { postStripeConnectOnboard } from '../api/postStripeConnectOnboard';
+import { postStripeConnectSync } from '../api/postStripeConnectSync';
 import { PaymentsScreen } from '../screens/PaymentsScreen';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
 import { CUSTOMER_PAYMENT_METHOD } from '../constants/customerPaymentMethods';
@@ -33,6 +36,19 @@ jest.mock('expo-web-browser', () => ({
   openBrowserAsync: jest.fn(),
   openAuthSessionAsync: jest.fn(),
   WebBrowserPresentationStyle: { PAGE_SHEET: 'pageSheet' },
+}));
+
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(() => Promise.resolve()),
+  ImpactFeedbackStyle: { Light: 'light' },
+}));
+
+jest.mock('../api/postStripeConnectOnboard', () => ({
+  postStripeConnectOnboard: jest.fn(),
+}));
+
+jest.mock('../api/postStripeConnectSync', () => ({
+  postStripeConnectSync: jest.fn(),
 }));
 
 function loadedRead(overrides = {}) {
@@ -226,6 +242,44 @@ describe('PaymentsScreen', () => {
     });
     expect(screen.getByRole('button', { name: 'Connect with Stripe' })).toBeTruthy();
     expect(screen.getByText('Collect deposits')).toBeTruthy();
+  });
+
+  it('does not sync or refetch when the Stripe auth session is cancelled', async () => {
+    const refetchPayments = jest.fn();
+    const refetchSubscription = jest.fn();
+    mockUseSubscription.mockReturnValue({
+      hasProAccess: true,
+      isOwnerProfileLoaded: true,
+      isLoading: false,
+      loadError: null,
+      refetchSubscription,
+    });
+    mockUsePaymentDashboardRead.mockReturnValue(
+      loadedRead({
+        stripeConnectReady: false,
+        gateServicelinkCheckout: false,
+        paymentAccount: null,
+        hasPaymentSettingsRow: false,
+        paymentSettings: null,
+        refetchPayments,
+      }),
+    );
+    postStripeConnectOnboard.mockResolvedValue({
+      url: 'https://connect.stripe.com/setup/e/acct_test',
+    });
+    WebBrowser.openAuthSessionAsync.mockResolvedValue({ type: 'cancel' });
+
+    renderWithProviders(<PaymentsScreen />);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Connect with Stripe' })).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByRole('button', { name: 'Connect with Stripe' }));
+
+    await waitFor(() => expect(WebBrowser.openAuthSessionAsync).toHaveBeenCalled());
+    await waitFor(() => expect(postStripeConnectOnboard).toHaveBeenCalled());
+    expect(postStripeConnectSync).not.toHaveBeenCalled();
+    expect(refetchPayments).not.toHaveBeenCalled();
+    expect(refetchSubscription).not.toHaveBeenCalled();
   });
 
   it('disables save while gate is on (Stripe ready but no payment_settings row)', async () => {

@@ -70,6 +70,25 @@ export function sanitizePercentageDepositInput(input) {
 }
 
 /**
+ * True when `depositAmount` parses to a value strictly greater than 0 for the current mode.
+ * Used when deposits are required: toggle on, save, and clearing the field.
+ *
+ * @param {string} depositMode - `DEPOSIT_AMOUNT_MODE`
+ * @param {string | number} depositAmount
+ */
+export function isPositiveDepositAmount(depositMode, depositAmount) {
+  const normalized = String(depositAmount ?? '')
+    .replace(/,/g, '')
+    .trim();
+  if (normalized === '' || normalized === '.') return false;
+  const parseable = normalized.endsWith('.') ? normalized.slice(0, -1) : normalized;
+  if (parseable === '') return false;
+  const n = parseFloat(parseable);
+  if (Number.isNaN(n)) return false;
+  return n > 0;
+}
+
+/**
  * Save payload shape (reference for API). `depositValue`: cents when fixed, whole percent when percent.
  */
 export function buildDepositSavePayload({ depositsEnabled, depositMode, depositAmount }) {

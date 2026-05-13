@@ -1,43 +1,55 @@
-import { getWebAppOrigin } from '../../../lib/webAppOrigin';
+import {
+  assertStripeCheckoutOriginAllowed,
+  resolveStripeMobileCheckoutOrigin,
+} from '../../../lib/stripeMobileCheckoutOrigin';
 
 /**
- * Base URL for the Next.js app that serves **`/api/*`** (same origin as the logged-in dashboard if
- * marketing is on another domain). Set `EXPO_PUBLIC_WEB_APP_URL` in `.env` (no trailing slash).
+ * Stripe Connect **Express Dashboard** (Login Link) for the current business’s connected account.
  *
- * @see https://nextjs.org/docs/app/building-your-application/routing/route-handlers
- */
-
-/**
- * POST `{origin}/api/stripe/connect/express-dashboard` — short-lived Express Dashboard URL.
+ * **Request:** `POST /api/stripe/connect/express-dashboard` with `Authorization: Bearer <supabase_access_token>`,
+ * `Content-Type: application/json`, body `{ "client": "mobile" }` (optional on server; we send it for parity).
  *
- * **Auth (web repo today):** the route uses **Supabase cookie session only** (`createServerClient`
- * + `cookies()`). It does **not** read `Authorization: Bearer` yet. We still send Bearer so the
- * server can opt in later without an app update. Until then, expect **401** from this call from
- * mobile; use the web dashboard to open Stripe, or add Bearer JWT verification on that route.
+ * **Response:** `{ success: true, url }` — open `url` with `WebBrowser.openBrowserAsync` (no `return_url` on Login Links).
  *
- * **Responses** (from web): success `{ success: true, url }`; errors JSON `{ success: false, error }`
- * with 401 / 403 / 404 / 500 / 502 as documented on the server.
+ * **Errors:** 404 when no `stripe_account_id`; 401/403 when not allowed.
  *
- * @param {string | null | undefined} accessToken - `session.access_token` (for future Bearer support)
+ * @param {string | null | undefined} accessToken
  * @returns {Promise<{ url: string } | { error: Error; httpStatus: number }>}
  */
 export async function fetchStripeExpressDashboardUrl(accessToken) {
-  const origin = getWebAppOrigin();
+  const origin = resolveStripeMobileCheckoutOrigin();
   if (!origin) {
     return { error: new Error('EXPO_PUBLIC_WEB_APP_URL is not set'), httpStatus: 0 };
   }
   if (!accessToken) {
     return { error: new Error('Not signed in'), httpStatus: 0 };
   }
+  try {
+    assertStripeCheckoutOriginAllowed(origin);
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error : new Error('Invalid web origin'),
+      httpStatus: 0,
+    };
+  }
 
-  const res = await fetch(`${origin}/api/stripe/connect/express-dashboard`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  let res;
+  try {
+    res = await fetch(`${origin}/api/stripe/connect/express-dashboard`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ client: 'mobile' }),
+    });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error : new Error('Network request failed'),
+      httpStatus: 0,
+    };
+  }
 
   let body = {};
   try {

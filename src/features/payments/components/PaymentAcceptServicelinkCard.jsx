@@ -9,18 +9,22 @@ import { paymentTextStyles } from '../constants/paymentTypography';
 export function PaymentAcceptServicelinkCard({ value, onValueChange }) {
   const { colors } = useTheme();
 
+  const title = 'Accept payments on ServiceLink';
+  const hint = value
+    ? 'Turn off to pause payments through the app.'
+    : 'Turn on to accept payments through the app.';
+
   return (
     <SurfaceCard style={styles.card}>
       <View style={styles.row}>
         <View style={styles.textWrap}>
-          <AppText style={[paymentTextStyles.toggleTitle, { color: colors.text }]}>
-            Accept payments on ServiceLink
-          </AppText>
+          <AppText style={[paymentTextStyles.toggleTitle, { color: colors.text }]}>{title}</AppText>
           <AppText style={[paymentTextStyles.toggleHint, { color: colors.textMuted }]}>
-            Turn off to pause ServiceLink checkout.
+            {hint}
           </AppText>
         </View>
         <Switch
+          accessibilityLabel={value ? 'Checkout on' : 'Checkout off'}
           thumbColor={value ? '#f8fafc' : '#f4f4f5'}
           trackColor={{ false: colors.borderStrong, true: '#10b981' }}
           value={value}

@@ -8,8 +8,8 @@ import {
  *
  * POST `/api/payments/servicelink/enable` with `{}`.
  *
- * **Note:** Web may still be cookie-session-only for this route; mobile sends Bearer. If the server
- * returns **401**, extend the Next handler to accept JWT like onboard/sync, or use an authenticated WebView.
+ * **Mobile:** Prefer `enableServicelinkPaymentsViaSupabase` — this route often returns **401** when
+ * the Next.js handler only validates cookie sessions and ignores `Authorization: Bearer`.
  *
  * @param {string | null | undefined} accessToken
  * @returns {Promise<{ ok: true } | { error: Error; httpStatus: number }>}

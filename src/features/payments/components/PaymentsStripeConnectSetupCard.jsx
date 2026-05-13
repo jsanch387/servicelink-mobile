@@ -52,10 +52,11 @@ export function PaymentsStripeConnectSetupCard({
         <AppText style={[styles.cardBody, { color: colors.textMuted }]}>{description}</AppText>
       </View>
       <Button
+        disabled={loading}
         fullWidth
         labelColor="#0b0c0f"
-        loading={loading}
-        title={buttonTitle}
+        loading={false}
+        title={loading ? 'Connecting…' : buttonTitle}
         variant="surfaceLight"
         onPress={onConnectPress}
       />

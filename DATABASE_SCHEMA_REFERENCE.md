@@ -56,8 +56,15 @@ It is a **read-only reference** for implementation alignment and should not be e
 
 ### `payment_settings`
 
-- per-business checkout/deposit behavior
-- includes `payments_enabled`, `deposit_type`, `deposit_value`
+One row per business (`business_id` UNIQUE). Key columns:
+
+- `payments_enabled`, `checkout_mode` (nullable; allowed: `in_person` | `in_app` | `customer_choice`)
+- `payment_account_id` (nullable, UNIQUE per non-null value, FK → `payment_accounts.id` ON DELETE SET NULL)
+- `deposits_enabled` (default true), `deposit_type` (`fixed` | `percent`), `deposit_value` (cents for fixed, 0–100 for percent)
+- `collect_remaining_balance` (default true), `currency` (default `usd`, lowercase ISO 4217)
+- `updated_by` (nullable, FK → `auth.users`), `created_at` / `updated_at` (trigger `trg_payment_settings_set_updated_at` on update)
+
+Mobile gate (“Turn on payments”): `enableServicelinkPaymentsViaSupabase` inserts the row with `payments_enabled` **false** so the main Payments screen toggle controls checkout; deposit columns use table defaults (`deposits_enabled` true, `deposit_type` fixed, `deposit_value` 0 until adjusted).
 
 ## Quotes
 

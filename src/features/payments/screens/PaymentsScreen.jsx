@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
@@ -10,8 +11,10 @@ import { createPaywallUpgradeCheckoutSession } from '../../subscription/api/crea
 import { STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL } from '../../subscription/constants/stripePaywallCheckoutReturnUrl';
 import { useSubscription } from '../../subscription';
 import { PaymentAcceptServicelinkCard } from '../components/PaymentAcceptServicelinkCard';
+import { PaymentsScreenSkeleton } from '../components/PaymentsScreenSkeleton';
 import { PaymentsNonProUpsell } from '../components/PaymentsNonProUpsell';
 import { PaymentsStripeConnectSetupCard } from '../components/PaymentsStripeConnectSetupCard';
+import { StripeConnectLaunchOverlay } from '../components/StripeConnectLaunchOverlay';
 import { PaymentDepositsSection } from '../components/PaymentDepositsSection';
 import { PaymentHowCustomersPayCard } from '../components/PaymentHowCustomersPayCard';
 import { PaymentStripeDashboardCard } from '../components/PaymentStripeDashboardCard';
@@ -20,7 +23,7 @@ import {
   CUSTOMER_PAYMENT_METHOD,
   CUSTOMER_PAYMENT_METHOD_OPTIONS,
 } from '../constants/customerPaymentMethods';
-import { postPaymentsServicelinkEnable } from '../api/postPaymentsServicelinkEnable';
+import { enableServicelinkPaymentsViaSupabase } from '../api/enableServicelinkPaymentsViaSupabase';
 import { postStripeConnectOnboard } from '../api/postStripeConnectOnboard';
 import { postStripeConnectSync } from '../api/postStripeConnectSync';
 import { STRIPE_CONNECT_ONBOARDING_AUTH_RETURN_URL } from '../constants/stripeConnectReturnUrl';
@@ -35,6 +38,7 @@ import {
   getStripeConnectSetupCopy,
   resolveStripeConnectSetupPresentation,
 } from '../utils/stripeConnectSetupCopy';
+import { isPositiveDepositAmount } from '../utils/depositAmountModel';
 
 export function PaymentsScreen() {
   const { colors } = useTheme();
@@ -83,6 +87,7 @@ export function PaymentsScreen() {
       Alert.alert('Sign in required', 'Please sign in again to continue.');
       return;
     }
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setConnectSubmitting(true);
     try {
       const created = await postStripeConnectOnboard(token);
@@ -93,12 +98,12 @@ export function PaymentsScreen() {
         );
         return;
       }
-      try {
-        await WebBrowser.openAuthSessionAsync(
-          created.url,
-          STRIPE_CONNECT_ONBOARDING_AUTH_RETURN_URL,
-        );
-      } finally {
+      const authResult = await WebBrowser.openAuthSessionAsync(
+        created.url,
+        STRIPE_CONNECT_ONBOARDING_AUTH_RETURN_URL,
+      );
+      /** Only sync after a completed redirect. Cancel/dismiss (e.g. iOS “use stripe.com” sheet) should leave UI unchanged. */
+      if (authResult?.type === 'success') {
         await postStripeConnectSync(token).catch(() => {});
         await payment.refetchPayments();
         await refetchSubscription();
@@ -114,14 +119,21 @@ export function PaymentsScreen() {
   }, [payment, refetchSubscription, session?.access_token]);
 
   const onServicelinkEnablePress = useCallback(async () => {
-    const token = session?.access_token ?? null;
-    if (!token) {
-      Alert.alert('Sign in required', 'Please sign in again to continue.');
+    const bid = payment.business?.id ?? null;
+    const paymentAccountId = payment.paymentAccount?.id ?? null;
+    if (!bid || !paymentAccountId) {
+      Alert.alert(
+        'Turn on payments',
+        'Your business or Stripe account is not ready yet. Try again in a moment.',
+      );
       return;
     }
     setEnableSubmitting(true);
     try {
-      const out = await postPaymentsServicelinkEnable(token);
+      const out = await enableServicelinkPaymentsViaSupabase({
+        businessId: bid,
+        paymentAccountId,
+      });
       if ('error' in out) {
         const msg = safeUserFacingMessage(out.error, {
           fallback: 'Could not turn on payments. Try again.',
@@ -139,7 +151,7 @@ export function PaymentsScreen() {
     } finally {
       setEnableSubmitting(false);
     }
-  }, [payment, refetchSubscription, session?.access_token]);
+  }, [payment, refetchSubscription]);
 
   const onUpgradeToProPress = useCallback(async () => {
     const token = session?.access_token ?? null;
@@ -186,15 +198,37 @@ export function PaymentsScreen() {
     setSavedAcceptServicelinkPayments(h.paymentsEnabled);
     setSelectedMethodId(h.selectedMethodId);
     setSavedMethodId(h.selectedMethodId);
-    setRequireDeposits(h.requireDeposits);
+    const depositAmountOk = isPositiveDepositAmount(h.depositMode, h.depositAmount);
+    const appliedRequireDeposits = Boolean(h.requireDeposits && depositAmountOk);
+    setRequireDeposits(appliedRequireDeposits);
     setDepositAmount(h.depositAmount);
     setDepositMode(h.depositMode);
     setSavedDeposits({
-      requireDeposits: h.requireDeposits,
+      requireDeposits: appliedRequireDeposits,
       depositAmount: h.depositAmount.trim(),
       depositMode: h.depositMode,
     });
   }, [payment.business?.id, payment.formHydration, payment.paymentsQuerySuccess]);
+
+  useEffect(() => {
+    if (requireDeposits && depositAmount.trim() === '') {
+      setRequireDeposits(false);
+    }
+  }, [depositAmount, requireDeposits]);
+
+  const handleRequireDepositsChange = useCallback(
+    (next) => {
+      if (next && !isPositiveDepositAmount(depositMode, depositAmount)) {
+        Alert.alert(
+          'Deposits',
+          'Enter a deposit amount greater than zero before requiring deposits.',
+        );
+        return;
+      }
+      setRequireDeposits(next);
+    },
+    [depositAmount, depositMode],
+  );
 
   const methodDirty = selectedMethodId !== savedMethodId;
   const acceptDirty = acceptServicelinkPayments !== savedAcceptServicelinkPayments;
@@ -208,10 +242,15 @@ export function PaymentsScreen() {
 
   const hasChanges = methodDirty || acceptDirty || depositsDirty;
   const canPersist = Boolean(payment.hasPaymentSettingsRow);
-  const saveDisabled = !hasChanges || !canPersist || isSaving;
+  const depositsSaveValid = !requireDeposits || isPositiveDepositAmount(depositMode, depositAmount);
+  const saveDisabled = !hasChanges || !canPersist || isSaving || !depositsSaveValid;
 
   const handleSaveAll = useCallback(async () => {
     if (!businessId || !canPersist) return;
+    if (requireDeposits && !isPositiveDepositAmount(depositMode, depositAmount)) {
+      Alert.alert('Deposits', 'Enter a deposit amount greater than zero to save.');
+      return;
+    }
     try {
       await savePaymentSettings({
         currency: payment.paymentSettings?.currency,
@@ -266,12 +305,6 @@ export function PaymentsScreen() {
           left: 16,
           position: 'absolute',
           right: 16,
-        },
-        boot: {
-          alignItems: 'center',
-          flex: 1,
-          justifyContent: 'center',
-          paddingHorizontal: 24,
         },
         gateCard: {
           gap: 8,
@@ -328,11 +361,7 @@ export function PaymentsScreen() {
   );
 
   if (payment.isPendingBusiness) {
-    return (
-      <View style={[styles.root, styles.boot]}>
-        <ActivityIndicator accessibilityLabel="Loading" color={colors.accent} size="large" />
-      </View>
-    );
+    return <PaymentsScreenSkeleton accessibilityLabel="Loading" />;
   }
 
   if (payment.businessError) {
@@ -357,15 +386,7 @@ export function PaymentsScreen() {
 
   const verifyingSubscription = Boolean(user?.id) && subscriptionLoading && !isOwnerProfileLoaded;
   if (verifyingSubscription) {
-    return (
-      <View style={[styles.root, styles.boot]}>
-        <ActivityIndicator
-          accessibilityLabel="Loading subscription status"
-          color={colors.accent}
-          size="large"
-        />
-      </View>
-    );
+    return <PaymentsScreenSkeleton accessibilityLabel="Loading subscription status" />;
   }
 
   const subscriptionVerifyFailed =
@@ -409,15 +430,7 @@ export function PaymentsScreen() {
   }
 
   if (payment.isPendingPayments) {
-    return (
-      <View style={[styles.root, styles.boot]}>
-        <ActivityIndicator
-          accessibilityLabel="Loading payment settings"
-          color={colors.accent}
-          size="large"
-        />
-      </View>
-    );
+    return <PaymentsScreenSkeleton accessibilityLabel="Loading payment settings" />;
   }
 
   if (payment.paymentLoadError) {
@@ -459,6 +472,7 @@ export function PaymentsScreen() {
             }}
           />
         </ScrollView>
+        <StripeConnectLaunchOverlay visible={connectSubmitting} />
       </View>
     );
   }
@@ -537,7 +551,7 @@ export function PaymentsScreen() {
                 requireDeposits={requireDeposits}
                 onDepositAmountChange={setDepositAmount}
                 onDepositModeChange={setDepositMode}
-                onRequireDepositsChange={setRequireDeposits}
+                onRequireDepositsChange={handleRequireDepositsChange}
               />
             </View>
           </View>

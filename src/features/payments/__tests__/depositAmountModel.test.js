@@ -1,6 +1,7 @@
 import { DEPOSIT_AMOUNT_MODE, DEPOSIT_TYPE_API } from '../constants/depositAmount';
 import {
   buildDepositSavePayload,
+  isPositiveDepositAmount,
   sanitizeFixedDepositInput,
   sanitizePercentageDepositInput,
 } from '../utils/depositAmountModel';
@@ -15,6 +16,23 @@ describe('sanitizeFixedDepositInput', () => {
 describe('sanitizePercentageDepositInput', () => {
   it('clamps whole part above 100', () => {
     expect(sanitizePercentageDepositInput('101')).toBe('100');
+  });
+});
+
+describe('isPositiveDepositAmount', () => {
+  it('rejects empty, zero, and non-numeric', () => {
+    expect(isPositiveDepositAmount(DEPOSIT_AMOUNT_MODE.FIXED, '')).toBe(false);
+    expect(isPositiveDepositAmount(DEPOSIT_AMOUNT_MODE.FIXED, '0')).toBe(false);
+    expect(isPositiveDepositAmount(DEPOSIT_AMOUNT_MODE.FIXED, '0.00')).toBe(false);
+    expect(isPositiveDepositAmount(DEPOSIT_AMOUNT_MODE.PERCENTAGE, '0')).toBe(false);
+    expect(isPositiveDepositAmount(DEPOSIT_AMOUNT_MODE.FIXED, 'abc')).toBe(false);
+  });
+
+  it('accepts values greater than zero', () => {
+    expect(isPositiveDepositAmount(DEPOSIT_AMOUNT_MODE.FIXED, '0.01')).toBe(true);
+    expect(isPositiveDepositAmount(DEPOSIT_AMOUNT_MODE.FIXED, '25')).toBe(true);
+    expect(isPositiveDepositAmount(DEPOSIT_AMOUNT_MODE.PERCENTAGE, '10')).toBe(true);
+    expect(isPositiveDepositAmount(DEPOSIT_AMOUNT_MODE.PERCENTAGE, '0.5')).toBe(true);
   });
 });
 

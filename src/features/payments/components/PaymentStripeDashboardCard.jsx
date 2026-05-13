@@ -43,9 +43,11 @@ export function PaymentStripeDashboardCard({ stripeAccountId = null }) {
         const baseMsg = result.error?.message ?? 'Something went wrong.';
         const safeApi = safeUserFacingMessage(baseMsg, { fallback: 'Something went wrong.' });
         const statusHint =
-          result.httpStatus === 401
-            ? '\n\nPlease sign in again and try once more, or open Stripe in your browser.'
-            : '';
+          result.httpStatus === 404
+            ? '\n\nNo Stripe account is linked for this business yet.'
+            : result.httpStatus === 401
+              ? '\n\nPlease sign in again and try once more, or open Stripe in your browser.'
+              : '';
         Alert.alert('Could not open Stripe', `${safeApi}${statusHint}`, [
           {
             text: 'Open stripe.com',
