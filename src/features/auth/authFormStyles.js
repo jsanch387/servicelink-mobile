@@ -127,6 +127,19 @@ export function getAuthFormSharedStyles(colors) {
       marginHorizontal: 16,
       textTransform: 'uppercase',
     },
+    /** Google + Apple: equal-width halves (`oauthHalf` wraps each control). */
+    oauthRow: {
+      alignSelf: 'stretch',
+      flexDirection: 'row',
+      gap: 12,
+      width: '100%',
+    },
+    oauthHalf: {
+      alignSelf: 'stretch',
+      flexBasis: 0,
+      flexGrow: 1,
+      minWidth: 0,
+    },
     footer: {
       alignItems: 'center',
       flexDirection: 'row',

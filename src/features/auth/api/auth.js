@@ -26,11 +26,17 @@ function getWebOAuthRedirectUrl() {
   return `${origin}${pathname.replace(/\/$/, '')}`;
 }
 
-export function getGoogleOAuthRedirectUrl() {
+/** Web + native redirect for Supabase OAuth (Google, Apple, etc.). */
+export function getOAuthRedirectUrl() {
   if (Platform.OS === 'web') {
-    return getWebOAuthRedirectUrl();
+    return getWebOAuthRedirectUrl() || '';
   }
   return AUTH_SESSION_CALLBACK_URL;
+}
+
+/** @deprecated Use {@link getOAuthRedirectUrl}; kept for call sites that still import the old name. */
+export function getGoogleOAuthRedirectUrl() {
+  return getOAuthRedirectUrl();
 }
 
 /**
@@ -157,14 +163,17 @@ export async function completeAuthSessionFromUrl(url) {
 }
 
 /**
- * Google OAuth via Supabase Auth (PKCE on native, browser redirect on web).
+ * Supabase OAuth (PKCE on native, browser redirect on web). Same flow for Google and Apple.
+ *
+ * @param {'google' | 'apple'} provider
+ * @param {string} providerLabel User-facing name for errors ("Google", "Apple").
  */
-export async function signInWithGoogleOAuth() {
-  const redirectTo = getGoogleOAuthRedirectUrl();
+export async function signInWithOAuthProvider(provider, providerLabel) {
+  const redirectTo = getOAuthRedirectUrl();
 
   if (Platform.OS === 'web') {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider,
       options: {
         redirectTo: redirectTo || undefined,
       },
@@ -173,13 +182,13 @@ export async function signInWithGoogleOAuth() {
   }
 
   const { data, error: oauthUrlError } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
+    provider,
     options: {
       redirectTo,
       skipBrowserRedirect: true,
       // @supabase/auth-js does not forward skipBrowserRedirect onto the authorize
       // URL; GoTrue needs skip_http_redirect so the in-app browser follows the
-      // provider (Google) instead of an immediate HTTP redirect chain.
+      // provider instead of an immediate HTTP redirect chain.
       queryParams: {
         skip_http_redirect: 'true',
       },
@@ -190,7 +199,7 @@ export async function signInWithGoogleOAuth() {
     return { error: oauthUrlError, cancelled: false };
   }
   if (!data?.url) {
-    return { error: new Error('Could not start Google sign-in.'), cancelled: false };
+    return { error: new Error(`Could not start ${providerLabel} sign-in.`), cancelled: false };
   }
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
@@ -200,11 +209,19 @@ export async function signInWithGoogleOAuth() {
   }
 
   if (result.type !== 'success' || !result.url) {
-    return { error: new Error('Google sign-in was not completed.'), cancelled: false };
+    return { error: new Error(`${providerLabel} sign-in was not completed.`), cancelled: false };
   }
 
   const { error: sessionError } = await finishOAuthFromUrl(result.url);
   return { error: sessionError, cancelled: false };
+}
+
+export async function signInWithGoogleOAuth() {
+  return signInWithOAuthProvider('google', 'Google');
+}
+
+export async function signInWithAppleOAuth() {
+  return signInWithOAuthProvider('apple', 'Apple');
 }
 
 /**

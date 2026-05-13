@@ -35,6 +35,7 @@
       "bundleIdentifier": "com.jsanchdev.servicelinkmobile",
       "buildNumber": "1",
       "supportsTablet": true,
+      "usesAppleSignIn": true,
       "infoPlist": {
         "CFBundleDisplayName": "ServiceLink"
       }

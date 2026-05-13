@@ -25,11 +25,11 @@ import { getAuthFormSharedStyles } from '../authFormStyles';
 export function LoginScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, signInWithApple } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const [socialBusy, setSocialBusy] = useState(null);
   const [formError, setFormError] = useState('');
   const passwordFieldRef = useRef(null);
 
@@ -97,9 +97,23 @@ export function LoginScreen() {
   const handleGoogleSignIn = async () => {
     Keyboard.dismiss();
     setFormError('');
-    setGoogleSubmitting(true);
+    setSocialBusy('google');
     const { error, cancelled } = await signInWithGoogle();
-    setGoogleSubmitting(false);
+    setSocialBusy(null);
+    if (cancelled) {
+      return;
+    }
+    if (error) {
+      setFormError(error);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    Keyboard.dismiss();
+    setFormError('');
+    setSocialBusy('apple');
+    const { error, cancelled } = await signInWithApple();
+    setSocialBusy(null);
     if (cancelled) {
       return;
     }
@@ -200,12 +214,28 @@ export function LoginScreen() {
                       <View style={[styles.dividerLine, styles.dividerLineFill]} />
                     </View>
 
-                    <SocialSignInButton
-                      disabled={submitting || googleSubmitting}
-                      fullWidth
-                      onPress={handleGoogleSignIn}
-                      provider="google"
-                    />
+                    <View style={styles.oauthRow}>
+                      <View style={styles.oauthHalf}>
+                        <SocialSignInButton
+                          compact
+                          disabled={submitting || socialBusy !== null}
+                          fullWidth={false}
+                          loading={socialBusy === 'google'}
+                          onPress={handleGoogleSignIn}
+                          provider="google"
+                        />
+                      </View>
+                      <View style={styles.oauthHalf}>
+                        <SocialSignInButton
+                          compact
+                          disabled={submitting || socialBusy !== null}
+                          fullWidth={false}
+                          loading={socialBusy === 'apple'}
+                          onPress={handleAppleSignIn}
+                          provider="apple"
+                        />
+                      </View>
+                    </View>
                   </View>
                 </View>
               </View>

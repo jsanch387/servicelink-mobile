@@ -15,6 +15,7 @@ import {
   getSession,
   onAuthStateChange,
   resendSignupConfirmationEmail,
+  signInWithAppleOAuth,
   signInWithEmailPassword,
   signInWithGoogleOAuth,
   signOut as signOutRequest,
@@ -190,6 +191,17 @@ export function AuthProvider({ children }) {
     return { error: null, cancelled: false };
   }, []);
 
+  const signInWithApple = useCallback(async () => {
+    const { error, cancelled } = await signInWithAppleOAuth();
+    if (cancelled) {
+      return { error: null, cancelled: true };
+    }
+    if (error) {
+      return { error: getAuthErrorMessage(error), cancelled: false };
+    }
+    return { error: null, cancelled: false };
+  }, []);
+
   const signOut = useCallback(async () => {
     const { error } = await signOutRequest();
     if (error) {
@@ -207,11 +219,21 @@ export function AuthProvider({ children }) {
       isReady,
       signIn,
       signInWithGoogle,
+      signInWithApple,
       signUp,
       resendSignupConfirmation,
       signOut,
     }),
-    [session, isReady, signIn, signInWithGoogle, signUp, resendSignupConfirmation, signOut],
+    [
+      session,
+      isReady,
+      signIn,
+      signInWithGoogle,
+      signInWithApple,
+      signUp,
+      resendSignupConfirmation,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

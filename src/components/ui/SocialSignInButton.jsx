@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
 
@@ -10,6 +10,8 @@ export function SocialSignInButton({
   fullWidth = true,
   /** Shorter label + tighter padding for side-by-side rows */
   compact = false,
+  disabled = false,
+  loading = false,
   style,
   ...rest
 }) {
@@ -34,10 +36,12 @@ export function SocialSignInButton({
       style={({ pressed }) => [
         fullWidth && styles.fullWidth,
         !fullWidth && styles.flexInRow,
-        pressed && styles.pressed,
+        (pressed || loading) && styles.pressed,
         style,
       ]}
       {...rest}
+      accessibilityState={{ busy: loading, disabled: disabled || loading }}
+      disabled={disabled || loading}
     >
       <View
         style={[
@@ -51,7 +55,11 @@ export function SocialSignInButton({
           },
         ]}
       >
-        <Ionicons color={colors.text} name={icon} size={isGoogle ? 22 : 24} />
+        {loading ? (
+          <ActivityIndicator color={colors.text} size="small" />
+        ) : (
+          <Ionicons color={colors.text} name={icon} size={isGoogle ? 22 : 24} />
+        )}
         <AppText
           ellipsizeMode="tail"
           numberOfLines={1}
@@ -75,9 +83,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   flexInRow: {
+    alignSelf: 'stretch',
     flexBasis: 0,
     flexGrow: 1,
     minWidth: 0,
+    width: '100%',
   },
   pressed: {
     opacity: 0.88,
