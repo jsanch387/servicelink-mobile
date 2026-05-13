@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
+import { SCREEN_GUTTER } from '../../../constants/layout';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
@@ -74,20 +75,22 @@ export function BookingDetailsScreen({ route }) {
         emphasize: true,
       },
     ];
-    if (details.customer.phone?.trim()) {
+    const phoneDisplay = String(details.customer.phone ?? '').trim();
+    if (phoneDisplay.length > 0) {
       rows.push({
         key: 'customer-phone',
         icon: 'call-outline',
-        value: details.customer.phone,
+        value: phoneDisplay,
         onPress: hasCallablePhone ? handleCallCustomer : undefined,
         accessibilityLabel: hasCallablePhone ? 'Call customer' : undefined,
       });
     }
-    if (details.customer.email?.trim()) {
+    const emailDisplay = String(details.customer.email ?? '').trim();
+    if (emailDisplay.length > 0) {
       rows.push({
         key: 'customer-email',
         icon: 'mail-outline',
-        value: details.customer.email,
+        value: emailDisplay,
       });
     }
     return rows;
@@ -98,6 +101,11 @@ export function BookingDetailsScreen({ route }) {
     hasCallablePhone,
     handleCallCustomer,
   ]);
+
+  const notesDisplay = useMemo(() => {
+    const n = String(details.notes ?? '').trim();
+    return n.length > 0 ? n : 'No notes';
+  }, [details.notes]);
 
   const handleMarkCompleted = useCallback(async () => {
     if (isCompletedStatus || isCancelledStatus || !bookingId) {
@@ -167,10 +175,10 @@ export function BookingDetailsScreen({ route }) {
           flex: 1,
         },
         content: {
-          paddingBottom: 34,
-          paddingHorizontal: 16,
-          paddingTop: 14,
-          rowGap: 16,
+          gap: 22,
+          paddingBottom: 36,
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingTop: 16,
         },
         actionsWrap: {
           marginTop: 4,
@@ -228,34 +236,48 @@ export function BookingDetailsScreen({ route }) {
 
             <ScheduleSection schedule={details.schedule} />
 
-            <InfoSection rows={customerSectionRows} title="Customer" />
+            <InfoSection
+              bodyPadding="roomy"
+              rowGap={14}
+              rows={customerSectionRows}
+              title="Customer"
+            />
 
             <PriceBreakdownSection formattedPrice={details.formattedPrice} />
 
-            <InfoSection
-              rows={[{ icon: 'location-outline', value: details.location.address }]}
-              footer={
-                <Button
-                  disabled={!details.location.hasAddress}
-                  fullWidth
-                  iconName="navigate-outline"
-                  onPress={handleOpenMaps}
-                  title="Open in Maps"
-                  variant="secondary"
-                />
-              }
-              title="Location"
-            />
+            {details.location.hasAddress ? (
+              <InfoSection
+                bodyPadding="roomy"
+                footer={
+                  <Button
+                    fullWidth
+                    iconName="navigate-outline"
+                    onPress={handleOpenMaps}
+                    title="Open in Maps"
+                    variant="secondary"
+                  />
+                }
+                rowGap={14}
+                rows={[{ icon: 'location-outline', value: details.location.address }]}
+                title="Location"
+              />
+            ) : null}
+
+            {details.hasVehicle ? (
+              <InfoSection
+                bodyPadding="roomy"
+                rowGap={14}
+                rows={[{ icon: 'car-sport-outline', value: details.vehicle }]}
+                title="Vehicle"
+              />
+            ) : null}
 
             <InfoSection
-              rows={[{ icon: 'car-sport-outline', value: details.vehicle }]}
-              title="Vehicle"
-            />
-
-            <InfoSection
-              rows={[{ icon: 'document-text-outline', value: details.notes }]}
-              title="Notes"
+              bodyPadding="roomy"
               hideIcons
+              rowGap={14}
+              rows={[{ icon: 'document-text-outline', value: notesDisplay }]}
+              title="Notes"
             />
 
             <View style={styles.actionsWrap}>

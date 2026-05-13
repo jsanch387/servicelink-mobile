@@ -23,16 +23,16 @@ export function BookingDetailsStatusBanner({ isCanceled, isCompleted }) {
         inner: {
           alignItems: 'center',
           flexDirection: 'row',
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+          gap: 10,
+          paddingHorizontal: 16,
+          paddingVertical: 14,
         },
         title: {
           color: colors.text,
           flex: 1,
-          fontSize: 16,
-          fontWeight: '700',
-          letterSpacing: -0.2,
+          fontSize: 15,
+          fontWeight: '600',
+          letterSpacing: -0.25,
           minWidth: 0,
         },
       }),
@@ -62,7 +62,7 @@ export function BookingDetailsStatusBanner({ isCanceled, isCompleted }) {
           accessibilityElementsHidden
           color={iconColor}
           name={isCanceledVariant ? 'close-circle' : 'checkmark-done-circle'}
-          size={28}
+          size={24}
         />
         <AppText style={styles.title}>{title}</AppText>
       </View>

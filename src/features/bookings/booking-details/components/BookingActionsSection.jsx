@@ -108,11 +108,11 @@ export function BookingActionsSection({
     () =>
       StyleSheet.create({
         sectionTitle: {
-          color: colors.textMuted,
-          fontSize: 12,
+          color: colors.textSecondary,
+          fontSize: 15,
           fontWeight: '600',
-          letterSpacing: 0.2,
-          marginBottom: 10,
+          letterSpacing: -0.2,
+          marginBottom: 8,
         },
         row: {
           alignItems: 'stretch',

@@ -51,6 +51,32 @@ function numberOrZero(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+/**
+ * Vehicle line for detail UI — mirrors list card logic so we do not drop legacy fields.
+ * @param {Record<string, unknown> | null | undefined} booking
+ */
+function buildVehicleDisplayLine(booking) {
+  const parts = [
+    booking?.customer_vehicle_year,
+    clean(booking?.customer_vehicle_make, '').trim(),
+    clean(booking?.customer_vehicle_model, '').trim(),
+    booking?.vehicle_year,
+    clean(booking?.vehicle_make, '').trim(),
+    clean(booking?.vehicle_model, '').trim(),
+    clean(booking?.vehicle_color, '').trim(),
+  ].filter(Boolean);
+  if (parts.length > 0) {
+    return parts.join(' ').trim();
+  }
+  const single =
+    (typeof booking?.vehicle === 'string' && booking.vehicle.trim()) ||
+    (typeof booking?.vehicle_name === 'string' && booking.vehicle_name.trim()) ||
+    (typeof booking?.car === 'string' && booking.car.trim()) ||
+    (typeof booking?.car_name === 'string' && booking.car_name.trim()) ||
+    '';
+  return single.trim();
+}
+
 function normalizeAddonItems(addonDetails) {
   if (!addonDetails) {
     return [];
@@ -115,13 +141,8 @@ export function buildBookingDetailsModel(booking) {
   const addOnsTotal = addOns.reduce((sum, item) => sum + item.price, 0);
   const total = Number.isFinite(servicePrice) ? servicePrice + addOnsTotal : null;
 
-  const vehicleLine = [
-    booking?.customer_vehicle_year,
-    clean(booking?.customer_vehicle_make, '').trim(),
-    clean(booking?.customer_vehicle_model, '').trim(),
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const vehicleLine = buildVehicleDisplayLine(booking);
+  const hasVehicle = vehicleLine.length > 0;
 
   const addressParts = [
     clean(booking?.customer_street_address, ''),
@@ -136,6 +157,7 @@ export function buildBookingDetailsModel(booking) {
   const customerPhoneDisplay = String(formatPhoneForDisplay(booking?.customer_phone) ?? '').trim();
   const customerEmailRaw = booking?.customer_email;
   const customerEmailDisplay = typeof customerEmailRaw === 'string' ? customerEmailRaw.trim() : '';
+  const notesRaw = typeof booking?.customer_notes === 'string' ? booking.customer_notes.trim() : '';
 
   return {
     bookingId: booking?.id || '',
@@ -157,11 +179,12 @@ export function buildBookingDetailsModel(booking) {
       email: customerEmailDisplay,
     },
     location: {
-      address: addressLine || 'Address not provided',
+      address: addressLine,
       hasAddress,
     },
-    vehicle: vehicleLine || 'Vehicle details not provided',
-    notes: clean(booking?.customer_notes, 'Not provided'),
+    vehicle: vehicleLine,
+    hasVehicle,
+    notes: notesRaw,
     formattedPrice: {
       servicePrice: formatMoneyOrFallback(servicePrice),
       addOnsTotal: formatMoney(addOnsTotal),

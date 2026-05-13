@@ -1,22 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, DetailsSectionCard, Divider } from '../../../components/ui';
+import { AppText, DetailIconFieldRow, DetailsSectionCard, Divider } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
-
-function QuoteRequestFieldRow({ colors, styles, icon, label, value }) {
-  return (
-    <View style={styles.activityRow}>
-      <View style={styles.activityIconWrap}>
-        <Ionicons color={colors.accentMuted} name={icon} size={19} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <AppText style={styles.activityLabel}>{label}</AppText>
-        <AppText style={styles.activityValue}>{value}</AppText>
-      </View>
-    </View>
-  );
-}
 
 /**
  * @param {string} message
@@ -65,31 +50,6 @@ export function QuoteRequestDetailBody({ model }) {
           gap: 18,
           paddingVertical: 2,
         },
-        activityRow: {
-          flexDirection: 'row',
-          gap: 14,
-        },
-        activityIconWrap: {
-          paddingTop: 2,
-          width: 22,
-        },
-        activityLabel: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontWeight: '600',
-          letterSpacing: 0.2,
-          marginBottom: 4,
-          textTransform: 'uppercase',
-        },
-        activityValue: {
-          color: colors.textSecondary,
-          fontSize: 15,
-          fontFamily: FONT_FAMILIES.medium,
-          fontWeight: '500',
-          letterSpacing: -0.15,
-          lineHeight: 22,
-        },
         dividerWrap: {
           marginTop: 2,
         },
@@ -127,31 +87,17 @@ export function QuoteRequestDetailBody({ model }) {
     <DetailsSectionCard title="Request">
       <View style={styles.requestStack}>
         {serviceName.length > 0 ? (
-          <QuoteRequestFieldRow
-            colors={colors}
-            icon="construct-outline"
-            label="Service"
-            styles={styles}
-            value={serviceName}
-          />
+          <DetailIconFieldRow icon="construct-outline" label="Service" value={serviceName} />
         ) : null}
         {preferredTiming.length > 0 ? (
-          <QuoteRequestFieldRow
-            colors={colors}
+          <DetailIconFieldRow
             icon="calendar-outline"
             label="Preferred timing"
-            styles={styles}
             value={preferredTiming}
           />
         ) : null}
         {vehicleDisplay.length > 0 ? (
-          <QuoteRequestFieldRow
-            colors={colors}
-            icon="car-sport-outline"
-            label="Vehicle"
-            styles={styles}
-            value={vehicleDisplay}
-          />
+          <DetailIconFieldRow icon="car-sport-outline" label="Vehicle" value={vehicleDisplay} />
         ) : null}
 
         {hasTopRows ? (
@@ -174,56 +120,10 @@ export function QuoteRequestDetailBody({ model }) {
  * @param {{ receivedAt?: string }} props.model
  */
 export function QuoteRequestActivitySection({ model }) {
-  const { colors } = useTheme();
-
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        activityStack: {
-          gap: 14,
-          paddingTop: 2,
-        },
-        activityRow: {
-          flexDirection: 'row',
-          gap: 14,
-        },
-        activityIconWrap: {
-          paddingTop: 2,
-          width: 22,
-        },
-        activityLabel: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontWeight: '600',
-          letterSpacing: 0.2,
-          marginBottom: 4,
-          textTransform: 'uppercase',
-        },
-        activityValue: {
-          color: colors.textSecondary,
-          fontSize: 15,
-          fontFamily: FONT_FAMILIES.medium,
-          fontWeight: '500',
-          letterSpacing: -0.15,
-          lineHeight: 22,
-        },
-      }),
-    [colors],
-  );
-
   return (
     <DetailsSectionCard title="Activity">
-      <View style={styles.activityStack}>
-        <View style={styles.activityRow}>
-          <View style={styles.activityIconWrap}>
-            <Ionicons color={colors.accentMuted} name="time-outline" size={19} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <AppText style={styles.activityLabel}>Received</AppText>
-            <AppText style={styles.activityValue}>{model.receivedAt ?? '—'}</AppText>
-          </View>
-        </View>
+      <View style={{ gap: 14, paddingTop: 2 }}>
+        <DetailIconFieldRow icon="time-outline" label="Received" value={model.receivedAt ?? '—'} />
       </View>
     </DetailsSectionCard>
   );

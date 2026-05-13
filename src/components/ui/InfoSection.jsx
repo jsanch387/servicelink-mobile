@@ -96,7 +96,20 @@ function InfoRow({
   );
 }
 
-export function InfoSection({ title, rows, hideIcons = false, footer = null, rowGap = 9 }) {
+/**
+ * @param {object} props
+ * @param {'default' | 'overline'} [props.titleTone] — forwarded to `DetailsSectionCard`.
+ * @param {'default' | 'roomy'} [props.bodyPadding] — forwarded to `DetailsSectionCard`.
+ */
+export function InfoSection({
+  title,
+  rows,
+  hideIcons = false,
+  footer = null,
+  rowGap = 9,
+  titleTone = 'default',
+  bodyPadding = 'default',
+}) {
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -111,7 +124,7 @@ export function InfoSection({ title, rows, hideIcons = false, footer = null, row
   );
 
   return (
-    <DetailsSectionCard title={title}>
+    <DetailsSectionCard bodyPadding={bodyPadding} title={title} titleTone={titleTone}>
       <View style={styles.rowsWrap}>
         {rows.map((row, index) => (
           <InfoRow

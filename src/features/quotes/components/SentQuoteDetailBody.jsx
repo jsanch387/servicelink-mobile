@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, DetailsSectionCard, Divider } from '../../../components/ui';
+import { AppText, DetailIconFieldRow, DetailsSectionCard, Divider } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { getQuoteStatusPillTheme } from '../utils/quoteStatusPillTheme';
 
@@ -88,31 +88,6 @@ export function SentQuoteDetailBody({ model, betweenProposalAndActivity = null }
           gap: 18,
           paddingTop: 4,
         },
-        activityRow: {
-          flexDirection: 'row',
-          gap: 14,
-        },
-        activityIconWrap: {
-          paddingTop: 2,
-          width: 22,
-        },
-        activityLabel: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontWeight: '600',
-          letterSpacing: 0.2,
-          marginBottom: 4,
-          textTransform: 'uppercase',
-        },
-        activityValue: {
-          color: colors.textSecondary,
-          fontSize: 15,
-          fontFamily: FONT_FAMILIES.medium,
-          fontWeight: '500',
-          letterSpacing: -0.15,
-          lineHeight: 22,
-        },
         linkCallout: {
           backgroundColor: isDark ? 'rgba(250,250,250,0.05)' : 'rgba(10,10,10,0.04)',
           borderColor: colors.border,
@@ -197,25 +172,8 @@ export function SentQuoteDetailBody({ model, betweenProposalAndActivity = null }
 
       <DetailsSectionCard title="Activity">
         <View style={styles.activityStack}>
-          <View style={styles.activityRow}>
-            <View style={styles.activityIconWrap}>
-              <Ionicons color={colors.accentMuted} name="paper-plane-outline" size={19} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <AppText style={styles.activityLabel}>Sent</AppText>
-              <AppText style={styles.activityValue}>{model.sentAt ?? '—'}</AppText>
-            </View>
-          </View>
-
-          <View style={styles.activityRow}>
-            <View style={styles.activityIconWrap}>
-              <Ionicons color={colors.accentMuted} name="hourglass-outline" size={19} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <AppText style={styles.activityLabel}>Link</AppText>
-              <AppText style={styles.activityValue}>{expiresCopy}</AppText>
-            </View>
-          </View>
+          <DetailIconFieldRow icon="paper-plane-outline" label="Sent" value={model.sentAt ?? '—'} />
+          <DetailIconFieldRow icon="hourglass-outline" label="Link" value={expiresCopy} />
 
           <Divider />
 

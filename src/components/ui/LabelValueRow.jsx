@@ -2,16 +2,28 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText } from './AppText';
-import { useTheme } from '../../theme';
+import { FONT_FAMILIES, useTheme } from '../../theme';
 
+/**
+ * @param {object} props
+ * @param {string} props.label
+ * @param {string} props.value
+ * @param {boolean} [props.emphasize]
+ * @param {boolean} [props.noTopMargin]
+ * @param {import('@expo/vector-icons').IconProps['name']} [props.labelPrefixIcon]
+ * @param {'default' | 'caption'} [props.labelAppearance] — `caption`: uppercase micro label (booking price / quote-style).
+ */
 export function LabelValueRow({
   label,
   value,
   emphasize = false,
   noTopMargin = false,
   labelPrefixIcon,
+  labelAppearance = 'default',
 }) {
   const { colors } = useTheme();
+  const isCaption = labelAppearance === 'caption';
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -19,13 +31,23 @@ export function LabelValueRow({
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'space-between',
-          marginTop: noTopMargin ? 0 : 8,
+          marginTop: noTopMargin ? 0 : isCaption ? 12 : 8,
         },
-        label: {
+        labelDefault: {
           color: colors.textMuted,
           flex: 1,
           fontSize: 14,
           marginRight: 12,
+        },
+        labelCaption: {
+          color: colors.textMuted,
+          flex: 1,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 12,
+          fontWeight: '600',
+          letterSpacing: 0.2,
+          marginRight: 12,
+          textTransform: 'uppercase',
         },
         labelWithIcon: {
           alignItems: 'center',
@@ -37,15 +59,32 @@ export function LabelValueRow({
         prefixIcon: {
           marginRight: 6,
         },
-        value: {
+        valueDefault: {
           color: colors.text,
-          fontSize: emphasize ? 17 : 15,
-          fontWeight: emphasize ? '700' : '400',
+          fontSize: emphasize ? 16 : 15,
+          fontWeight: emphasize ? '600' : '400',
           textAlign: 'right',
         },
+        valueCaption: {
+          color: colors.textSecondary,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: emphasize ? 16 : 15,
+          fontWeight: emphasize ? '600' : '500',
+          letterSpacing: emphasize ? -0.2 : -0.1,
+          textAlign: 'right',
+        },
+        valueCaptionStrong: {
+          color: colors.text,
+        },
       }),
-    [colors, emphasize, noTopMargin],
+    [colors, emphasize, isCaption, noTopMargin],
   );
+
+  const labelStyle = isCaption ? styles.labelCaption : styles.labelDefault;
+  const valueStyle = [
+    isCaption ? styles.valueCaption : styles.valueDefault,
+    emphasize && isCaption ? styles.valueCaptionStrong : null,
+  ];
 
   return (
     <View style={styles.row}>
@@ -57,14 +96,14 @@ export function LabelValueRow({
             size={13}
             style={styles.prefixIcon}
           />
-          <AppText numberOfLines={1} style={styles.label}>
+          <AppText numberOfLines={1} style={labelStyle}>
             {label}
           </AppText>
         </View>
       ) : (
-        <AppText style={styles.label}>{label}</AppText>
+        <AppText style={labelStyle}>{label}</AppText>
       )}
-      <AppText style={styles.value}>{value}</AppText>
+      <AppText style={valueStyle}>{value}</AppText>
     </View>
   );
 }

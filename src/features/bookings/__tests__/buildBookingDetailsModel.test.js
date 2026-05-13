@@ -33,6 +33,33 @@ describe('buildBookingDetailsModel', () => {
     expect(model.notes).toBe('Please ring doorbell');
   });
 
+  it('returns empty notes when missing or whitespace', () => {
+    expect(buildBookingDetailsModel({}).notes).toBe('');
+    expect(buildBookingDetailsModel({ customer_notes: '   ' }).notes).toBe('');
+  });
+
+  it('exposes hasVehicle false and empty vehicle when no vehicle fields', () => {
+    const model = buildBookingDetailsModel({ customer_name: 'Pat' });
+    expect(model.hasVehicle).toBe(false);
+    expect(model.vehicle).toBe('');
+  });
+
+  it('sets hasVehicle from customer vehicle fields', () => {
+    const model = buildBookingDetailsModel({
+      customer_vehicle_year: 2022,
+      customer_vehicle_make: 'Honda',
+      customer_vehicle_model: 'Civic',
+    });
+    expect(model.hasVehicle).toBe(true);
+    expect(model.vehicle).toContain('Honda');
+  });
+
+  it('sets hasVehicle from legacy vehicle string', () => {
+    const model = buildBookingDetailsModel({ vehicle: ' 2019 Ford F-150 ' });
+    expect(model.hasVehicle).toBe(true);
+    expect(model.vehicle).toBe('2019 Ford F-150');
+  });
+
   it('parses addon_details for price breakdown rows', () => {
     const model = buildBookingDetailsModel({
       service_price_cents: 10000,
