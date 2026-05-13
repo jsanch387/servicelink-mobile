@@ -14,6 +14,10 @@ export function getAuthErrorMessage(error) {
   }
   const msg = error.message?.trim();
   if (msg) {
+    const lower = msg.toLowerCase();
+    if (lower.includes('email not confirmed')) {
+      return 'Confirm your email first, then sign in.';
+    }
     return safeUserFacingMessage(msg, { fallback: AUTH_FALLBACK });
   }
   return AUTH_FALLBACK;

@@ -1,9 +1,20 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { AppState } from 'react-native';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import * as Linking from 'expo-linking';
+import { Alert, AppState, Platform } from 'react-native';
 import { clearPendingBookingLinkNavigation } from '../../onboarding/constants/postOnboardingNavigation';
 import {
+  completeAuthSessionFromUrl,
   getSession,
   onAuthStateChange,
+  resendSignupConfirmationEmail,
   signInWithEmailPassword,
   signInWithGoogleOAuth,
   signOut as signOutRequest,
@@ -19,6 +30,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [isReady, setIsReady] = useState(false);
+  const lastAuthDeepLinkUrlRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -95,6 +107,52 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let busy = false;
+
+    async function handleUrl(url) {
+      if (!url || cancelled || busy) {
+        return;
+      }
+      if (lastAuthDeepLinkUrlRef.current === url) {
+        return;
+      }
+      busy = true;
+      try {
+        const { error, handled } = await completeAuthSessionFromUrl(url);
+        if (handled) {
+          lastAuthDeepLinkUrlRef.current = url;
+        }
+        if (cancelled || !error) {
+          return;
+        }
+        Alert.alert('Sign-in link', getAuthErrorMessage(error));
+      } finally {
+        busy = false;
+      }
+    }
+
+    void Linking.getInitialURL().then((url) => {
+      if (url) {
+        void handleUrl(url);
+      }
+    });
+
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      void handleUrl(url);
+    });
+
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
+  }, []);
+
   const signIn = useCallback(async (email, password) => {
     const { error } = await signInWithEmailPassword(email, password);
     if (error) {
@@ -111,6 +169,14 @@ export function AuthProvider({ children }) {
     const needsEmailConfirmation = !data.session;
     const userId = data.user?.id ?? null;
     return { error: null, needsEmailConfirmation, userId };
+  }, []);
+
+  const resendSignupConfirmation = useCallback(async (email) => {
+    const { error } = await resendSignupConfirmationEmail(email);
+    if (error) {
+      return { error: getAuthErrorMessage(error) };
+    }
+    return { error: null };
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
@@ -142,9 +208,10 @@ export function AuthProvider({ children }) {
       signIn,
       signInWithGoogle,
       signUp,
+      resendSignupConfirmation,
       signOut,
     }),
-    [session, isReady, signIn, signInWithGoogle, signUp, signOut],
+    [session, isReady, signIn, signInWithGoogle, signUp, resendSignupConfirmation, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

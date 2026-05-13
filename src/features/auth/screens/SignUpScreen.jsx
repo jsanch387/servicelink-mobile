@@ -1,7 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import { useMemo, useRef, useState } from 'react';
 import {
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -74,11 +73,8 @@ export function SignUpScreen() {
       return;
     }
     if (needsEmailConfirmation) {
-      Alert.alert(
-        'Check your email',
-        'We sent you a confirmation link. After you confirm, you can sign in.',
-        [{ text: 'OK', onPress: () => navigation.navigate(ROUTES.LOGIN) }],
-      );
+      navigation.navigate(ROUTES.CHECK_YOUR_EMAIL, { email: trimmedEmail });
+      return;
     }
   };
 

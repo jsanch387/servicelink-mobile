@@ -5,14 +5,15 @@ import { supabase } from '../../../lib/supabase';
 WebBrowser.maybeCompleteAuthSession();
 
 /**
- * Must match Android intent-filter / iOS URL scheme and a row in Supabase Auth
+ * Native deep link for OAuth return and email-confirmation return.
+ * Must match Android intent-filter / iOS URL scheme and Supabase Auth
  * → URL Configuration → Additional Redirect URLs (exactly this string).
  *
  * Use a fixed native URL (not Linking.createURL) so Supabase never receives a dev
  * URL that is not allowlisted — unlisted redirects fall back to your Site URL
  * (e.g. https://myservicelink.app), which looks like "Google sent me to my site".
  */
-const NATIVE_OAUTH_REDIRECT = 'servicelinkmobile://auth/callback';
+export const AUTH_SESSION_CALLBACK_URL = 'servicelinkmobile://auth/callback';
 
 function getWebOAuthRedirectUrl() {
   if (typeof window === 'undefined') {
@@ -29,7 +30,38 @@ export function getGoogleOAuthRedirectUrl() {
   if (Platform.OS === 'web') {
     return getWebOAuthRedirectUrl();
   }
-  return NATIVE_OAUTH_REDIRECT;
+  return AUTH_SESSION_CALLBACK_URL;
+}
+
+/**
+ * Where Supabase sends the user after they tap "confirm email" (and similar auth links).
+ * Native uses the app scheme; web uses the current origin (allowlist those URLs in Supabase).
+ */
+export function getEmailConfirmationRedirectUrl() {
+  if (Platform.OS === 'web') {
+    const u = getWebOAuthRedirectUrl();
+    return u || undefined;
+  }
+  return AUTH_SESSION_CALLBACK_URL;
+}
+
+/**
+ * True when `url` is our auth session callback (e.g. email confirmation or OAuth return on native).
+ */
+export function isAuthSessionDeepLink(url) {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+  try {
+    const u = new URL(url.trim());
+    if (u.protocol !== 'servicelinkmobile:') {
+      return false;
+    }
+    const path = u.pathname.replace(/\/$/, '') || '/';
+    return u.hostname === 'auth' && path === '/callback';
+  } catch {
+    return false;
+  }
 }
 
 function parseOAuthUrlParams(url) {
@@ -87,6 +119,12 @@ async function finishOAuthFromUrl(url) {
   if (params.code) {
     return supabase.auth.exchangeCodeForSession(params.code);
   }
+  if (params.token_hash && params.type) {
+    return supabase.auth.verifyOtp({
+      type: params.type,
+      token_hash: params.token_hash,
+    });
+  }
   if (params.access_token && params.refresh_token) {
     return supabase.auth.setSession({
       access_token: params.access_token,
@@ -95,6 +133,27 @@ async function finishOAuthFromUrl(url) {
   }
 
   return { error: new Error('Sign in did not return a valid session.') };
+}
+
+/**
+ * Completes email confirmation (or other Supabase redirects) on native when the app opens
+ * {@link AUTH_SESSION_CALLBACK_URL}. No-ops for other URLs. Web uses `detectSessionInUrl` on the Supabase client.
+ */
+export async function completeAuthSessionFromUrl(url) {
+  if (!url || typeof url !== 'string') {
+    return { error: null, handled: false };
+  }
+  if (Platform.OS === 'web') {
+    return { error: null, handled: false };
+  }
+  if (!isAuthSessionDeepLink(url)) {
+    return { error: null, handled: false };
+  }
+  const result = await finishOAuthFromUrl(url);
+  if (result?.error) {
+    return { error: result.error, handled: true };
+  }
+  return { error: null, handled: true };
 }
 
 /**
@@ -160,11 +219,30 @@ export async function signInWithEmailPassword(email, password) {
   });
 }
 
-export async function signUpWithEmailPassword(email, password, options = {}) {
+export async function signUpWithEmailPassword(email, password, caller = {}) {
+  const { options: userOptions, ...ignored } = caller;
+  void ignored;
+  const emailRedirectTo = userOptions?.emailRedirectTo ?? getEmailConfirmationRedirectUrl();
   return supabase.auth.signUp({
     email: email.trim(),
     password,
-    ...options,
+    options: {
+      ...(userOptions ?? {}),
+      emailRedirectTo,
+    },
+  });
+}
+
+export async function resendSignupConfirmationEmail(email) {
+  const trimmed = String(email ?? '').trim();
+  if (!trimmed) {
+    return { data: null, error: new Error('Email is required.') };
+  }
+  const emailRedirectTo = getEmailConfirmationRedirectUrl();
+  return supabase.auth.resend({
+    type: 'signup',
+    email: trimmed,
+    options: emailRedirectTo ? { emailRedirectTo } : undefined,
   });
 }
 

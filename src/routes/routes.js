@@ -6,6 +6,8 @@
 export const ROUTES = {
   LOGIN: 'Login',
   SIGN_UP: 'SignUp',
+  /** After email/password sign-up when Supabase requires email confirmation */
+  CHECK_YOUR_EMAIL: 'CheckYourEmail',
   /** Opens ServiceLink forgot-password in the system browser */
   FORGOT_PASSWORD: 'ForgotPassword',
   /** First-time signup — blocks main tabs until finished */

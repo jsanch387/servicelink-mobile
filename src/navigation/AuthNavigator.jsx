@@ -9,6 +9,7 @@ import { useAuth } from '../features/auth';
 import { ForgotPasswordScreen } from '../features/auth/screens/ForgotPasswordScreen';
 import { LoginScreen } from '../features/auth/screens/LoginScreen';
 import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
+import { CheckYourEmailScreen } from '../features/auth/screens/CheckYourEmailScreen';
 import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
 import { CreateAppointmentScreen } from '../features/bookings';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
@@ -180,6 +181,7 @@ export function AuthNavigator() {
             <>
               <Stack.Screen component={LoginScreen} name={ROUTES.LOGIN} />
               <Stack.Screen component={SignUpScreen} name={ROUTES.SIGN_UP} />
+              <Stack.Screen component={CheckYourEmailScreen} name={ROUTES.CHECK_YOUR_EMAIL} />
               <Stack.Screen component={ForgotPasswordScreen} name={ROUTES.FORGOT_PASSWORD} />
             </>
           ) : null}
