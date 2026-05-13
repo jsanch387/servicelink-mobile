@@ -2,10 +2,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { AppText, SurfaceTextField, TimeSelectField } from '../../../../components/ui';
+import { SurfaceTextField, TimeSelectField } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 import { formatScheduledDateUserFacing } from '../../utils/formatScheduledDateDisplay';
 import { CreateQuoteFieldStack } from './CreateQuoteFieldStack';
+import { QuoteRequiredFieldLabel } from './QuoteRequiredFieldLabel';
 
 const FIELD_SHELL = { marginBottom: 0 };
 
@@ -102,17 +103,14 @@ export function CreateQuoteStepSchedule({
           marginTop: 12,
           overflow: 'hidden',
         },
-        timeFieldLabel: {
-          color: colors.textMuted,
-          fontSize: 13,
-          fontWeight: '600',
+        timeFieldLabelWrap: {
           marginBottom: 10,
         },
         timeFieldBlock: {
           marginBottom: 0,
         },
       }),
-    [colors],
+    [],
   );
 
   function handleDateDismiss() {
@@ -148,7 +146,7 @@ export function CreateQuoteStepSchedule({
           autoCapitalize="none"
           containerStyle={FIELD_SHELL}
           editable={false}
-          label="Scheduled date *"
+          label={<QuoteRequiredFieldLabel text="Scheduled date" />}
           placeholder="Choose a date"
           rightAccessory={
             <Pressable
@@ -179,7 +177,9 @@ export function CreateQuoteStepSchedule({
       </View>
 
       <View style={styles.timeFieldBlock}>
-        <AppText style={styles.timeFieldLabel}>Start time *</AppText>
+        <View style={styles.timeFieldLabelWrap}>
+          <QuoteRequiredFieldLabel compact text="Start time" />
+        </View>
         <TimeSelectField
           placeholder="Select time"
           title="Start time"

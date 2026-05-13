@@ -162,7 +162,11 @@ export function DurationSelectField({
   return (
     <View style={[styles.field, containerStyle]}>
       {label ? (
-        <AppText style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</AppText>
+        typeof label === 'string' ? (
+          <AppText style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</AppText>
+        ) : (
+          <View style={styles.fieldLabelNodeWrap}>{label}</View>
+        )
       ) : null}
 
       <TouchableOpacity
@@ -334,6 +338,9 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 14,
     fontWeight: '500',
+    marginBottom: 8,
+  },
+  fieldLabelNodeWrap: {
     marginBottom: 8,
   },
   trigger: {

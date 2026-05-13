@@ -4,6 +4,7 @@ import {
   QUOTE_SERVICE_NAME_MAX,
 } from '../../constants/createQuoteFieldLimits';
 import { CreateQuoteFieldStack } from './CreateQuoteFieldStack';
+import { QuoteRequiredFieldLabel } from './QuoteRequiredFieldLabel';
 
 const FIELD_SHELL = { marginBottom: 0 };
 const DURATION_SHELL = { marginBottom: 0, marginTop: 0 };
@@ -49,7 +50,7 @@ export function CreateQuoteStepService({
     <CreateQuoteFieldStack>
       <SurfaceTextField
         containerStyle={FIELD_SHELL}
-        label="Service *"
+        label={<QuoteRequiredFieldLabel text="Service" />}
         maxLength={QUOTE_SERVICE_NAME_MAX}
         onChangeText={onServiceNameChange}
         placeholder="e.g. Full interior + exterior"
@@ -58,7 +59,7 @@ export function CreateQuoteStepService({
       <SurfaceTextField
         containerStyle={FIELD_SHELL}
         keyboardType="decimal-pad"
-        label="Price (USD) *"
+        label={<QuoteRequiredFieldLabel text="Price (USD)" />}
         maxLength={PRICE_DISPLAY_MAX}
         onChangeText={(t) => onPriceUsdTextChange(normalizePriceInput(t))}
         placeholder="0.00"
@@ -66,7 +67,7 @@ export function CreateQuoteStepService({
       />
       <DurationSelectField
         containerStyle={DURATION_SHELL}
-        label="Duration *"
+        label={<QuoteRequiredFieldLabel text="Duration" />}
         mode="service"
         onValueChange={onDurationHhMmChange}
         value={durationHhMm}

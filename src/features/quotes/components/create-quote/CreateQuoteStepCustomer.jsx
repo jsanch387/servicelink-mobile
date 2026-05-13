@@ -7,6 +7,7 @@ import {
   QUOTE_CUSTOMER_NAME_MAX,
 } from '../../constants/createQuoteFieldLimits';
 import { CreateQuoteFieldStack } from './CreateQuoteFieldStack';
+import { QuoteRequiredFieldLabel } from './QuoteRequiredFieldLabel';
 
 const FIELD_SHELL = { marginBottom: 0 };
 
@@ -62,7 +63,7 @@ export function CreateQuoteStepCustomer({
       <SurfaceTextField
         containerStyle={FIELD_SHELL}
         errorText={nameError}
-        label="Customer name *"
+        label={<QuoteRequiredFieldLabel text="Customer name" />}
         maxLength={QUOTE_CUSTOMER_NAME_MAX}
         onBlur={() => setNameBlurred(true)}
         onChangeText={onCustomerNameChange}
@@ -72,7 +73,7 @@ export function CreateQuoteStepCustomer({
       <SurfaceEmailField
         containerStyle={FIELD_SHELL}
         errorText={emailError}
-        label="Customer email *"
+        label={<QuoteRequiredFieldLabel text="Customer email" />}
         maxLength={QUOTE_CUSTOMER_EMAIL_MAX}
         onChangeText={onCustomerEmailChange}
         placeholder="jane@email.com"

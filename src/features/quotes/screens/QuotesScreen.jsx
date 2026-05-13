@@ -1,6 +1,6 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -13,6 +13,7 @@ import {
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
+import { navigationRef } from '../../../navigation/navigationRef';
 import { useAuth } from '../../auth';
 import { AddQuoteFab } from '../components/AddQuoteFab';
 import { QuoteRequestCard } from '../components/QuoteRequestCard';
@@ -49,6 +50,21 @@ export function QuotesScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const quotesList = useQuotesInbox();
   const [listTab, setListTab] = useState(QUOTES_TAB_REQUESTS);
+  /** Root stack can show Create quote (etc.) above tabs; this scene may stay mounted and steal touches from the native header. */
+  const [rootTopRoute, setRootTopRoute] = useState(undefined);
+
+  useEffect(() => {
+    const sync = () => {
+      if (!navigationRef.isReady()) {
+        setRootTopRoute(undefined);
+        return;
+      }
+      const s = navigationRef.getRootState();
+      setRootTopRoute(s?.routes?.[s.index]?.name);
+    };
+    sync();
+    return navigationRef.addListener('state', sync);
+  }, []);
 
   const handleAcceptQuoteRequestsChange = useCallback(
     (next) => {
@@ -146,9 +162,11 @@ export function QuotesScreen() {
     Boolean(userId) &&
     !quotesList.business?.id;
 
+  const rootOverlayCoversTabs = rootTopRoute !== undefined && rootTopRoute !== ROUTES.MAIN_APP;
+
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
-      <View style={styles.body}>
+      <View pointerEvents={rootOverlayCoversTabs ? 'none' : 'auto'} style={styles.body}>
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"

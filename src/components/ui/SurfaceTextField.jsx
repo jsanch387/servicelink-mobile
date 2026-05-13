@@ -13,6 +13,7 @@ import { SurfaceInputRow, useSurfaceInputTextStyle } from './SurfaceInputRow';
  * Optional `onShellPress` wraps the input row in a pressable (e.g. date field + calendar). Use with `editable={false}` so taps reach the shell.
  * Optional `errorText` — small red line under the row (takes precedence over `helperText` for visibility).
  * Optional `helperText` — muted hint under the row (hidden when `errorText` is set).
+ * `label` may be a string or a React node (e.g. custom label styling).
  * Ref is forwarded to the inner `TextInput` (e.g. focus chaining).
  */
 export const SurfaceTextField = forwardRef(function SurfaceTextField(
@@ -54,10 +55,12 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
         field: {
           marginBottom: compact ? 12 : 20,
         },
-        label: {
+        labelWrap: {
+          marginBottom: compact ? 6 : 8,
+        },
+        labelText: {
           fontSize: 14,
           fontWeight: '500',
-          marginBottom: compact ? 6 : 8,
         },
         rowShell: {
           borderColor: hasError
@@ -139,8 +142,14 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
 
   return (
     <View style={[styles.field, containerStyle]}>
-      {label ? (
-        <AppText style={[styles.label, { color: colors.textMuted }]}>{label}</AppText>
+      {label != null ? (
+        <View style={styles.labelWrap}>
+          {typeof label === 'string' ? (
+            <AppText style={[styles.labelText, { color: colors.textMuted }]}>{label}</AppText>
+          ) : (
+            label
+          )}
+        </View>
       ) : null}
       {onShellPress ? (
         <Pressable accessibilityRole="button" onPress={onShellPress}>

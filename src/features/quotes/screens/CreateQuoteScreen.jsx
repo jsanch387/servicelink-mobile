@@ -425,10 +425,9 @@ export function CreateQuoteScreen() {
   }
 
   return (
-    <SafeAreaView edges={['left', 'right']} style={styles.root}>
+    <View style={styles.root}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
         style={styles.flex}
       >
         <View style={styles.column}>
@@ -480,6 +479,6 @@ export function CreateQuoteScreen() {
           />
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }

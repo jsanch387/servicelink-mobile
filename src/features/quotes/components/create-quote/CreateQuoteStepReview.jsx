@@ -56,7 +56,7 @@ export function CreateQuoteStepReview({
   businessNote,
   onBusinessNoteChange,
 }) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const priceDisplay = useMemo(() => {
     const raw = String(priceUsdText ?? '')
@@ -238,36 +238,6 @@ export function CreateQuoteStepReview({
           letterSpacing: -0.15,
           lineHeight: 22,
         },
-        linkCallout: {
-          backgroundColor: isDark ? 'rgba(250,250,250,0.05)' : 'rgba(10,10,10,0.04)',
-          borderColor: colors.border,
-          borderRadius: 12,
-          borderWidth: 1,
-          flexDirection: 'row',
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 14,
-        },
-        linkCalloutIcon: {
-          paddingTop: 2,
-        },
-        linkCalloutTitle: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 11,
-          fontWeight: '600',
-          letterSpacing: 0.35,
-          marginBottom: 6,
-          textTransform: 'uppercase',
-        },
-        linkCalloutBody: {
-          color: colors.textSecondary,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 15,
-          fontWeight: '500',
-          letterSpacing: -0.1,
-          lineHeight: 22,
-        },
         noteInput: {
           color: colors.textSecondary,
           fontFamily: FONT_FAMILIES.medium,
@@ -304,7 +274,7 @@ export function CreateQuoteStepReview({
           marginVertical: 16,
         },
       }),
-    [colors, isDark],
+    [colors],
   );
 
   const serviceHeadline = serviceName.trim() || 'Quoted service';
@@ -413,18 +383,6 @@ export function CreateQuoteStepReview({
           </View>
         </View>
       </DetailsSectionCard>
-
-      <View style={styles.linkCallout}>
-        <View style={styles.linkCalloutIcon}>
-          <Ionicons color={colors.accent} name="link-outline" size={20} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <AppText style={styles.linkCalloutTitle}>Shareable link</AppText>
-          <AppText style={styles.linkCalloutBody}>
-            When you send, we save this quote and create a link for your customer (about 14 days).
-          </AppText>
-        </View>
-      </View>
     </View>
   );
 }
