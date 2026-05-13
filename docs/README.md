@@ -16,6 +16,7 @@ Integration and product docs live **with their features** under `src/features/<f
 | Doc                                                                           | Purpose                                             |
 | ----------------------------------------------------------------------------- | --------------------------------------------------- |
 | [App launch checklist](./app-launch-todos.md)                                 | Pre–App Store progress tracker                      |
+| [Deploy to TestFlight](./deploy-testflight.md)                                | Ship iOS builds to internal TestFlight (EAS)        |
 | [Offline / load-error Phase 2 checklist](./offline-error-phase2-checklist.md) | Per-screen skeleton · error · retry vs inbox/quotes |
 
 ## Redirect
