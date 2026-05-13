@@ -2,6 +2,7 @@
   "expo": {
     "name": "servicelink-mobile",
     "slug": "servicelink-mobile",
+    "icon": "./assets/images/app-icon.png",
     "version": "1.0.0",
     "scheme": "servicelinkmobile",
     "userInterfaceStyle": "dark",
