@@ -78,18 +78,8 @@ export function HomeScreen() {
     [dashboard.spotlightMode],
   );
 
-  /** Omit the block when today has no rows so we do not imply a “timeline” exists (e.g. next booking is tomorrow). */
-  const showTodayTimelineSection = useMemo(
-    () =>
-      dashboard.isPendingTodayBookings ||
-      Boolean(homeErrors.restOfTodayError) ||
-      dashboard.todayTimelineItems.length > 0,
-    [
-      dashboard.isPendingTodayBookings,
-      homeErrors.restOfTodayError,
-      dashboard.todayTimelineItems.length,
-    ],
-  );
+  /** Show whenever we have a business so empty days still get the “nothing on the calendar” card. */
+  const showTodayTimelineSection = Boolean(dashboard.business?.id);
 
   const styles = useMemo(
     () =>

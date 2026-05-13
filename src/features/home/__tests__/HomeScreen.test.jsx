@@ -58,16 +58,17 @@ describe('HomeScreen', () => {
     mockUseHomeDashboard.mockReturnValue(baseDashboard());
   });
 
-  it('renders section labels and link stats when loaded', () => {
+  it('renders section labels, link stats, and empty today timeline when loaded', () => {
     renderWithProviders(<HomeScreen />);
     expect(screen.getByText('Booking link')).toBeTruthy();
     expect(screen.getByText('Next Up')).toBeTruthy();
-    expect(screen.queryByText("Today's timeline")).toBeNull();
+    expect(screen.getByText("Today's timeline")).toBeTruthy();
+    expect(screen.getByText('Nothing on the calendar')).toBeTruthy();
     expect(screen.getByText('Views')).toBeTruthy();
     expect(screen.getByText('12')).toBeTruthy();
   });
 
-  it('shows today timeline section when there is at least one item for today', () => {
+  it('shows today timeline rows when there is at least one item for today', () => {
     mockUseHomeDashboard.mockReturnValue(
       baseDashboard({
         todayTimelineItems: [
