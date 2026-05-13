@@ -91,10 +91,6 @@ export function getSubscriptionPriceDisplay(ownerRow) {
  */
 export function getSubscriptionPlanLabel(ownerRow) {
   if (!hasProAccessFromProfile(ownerRow)) return 'Free';
-  const status = String(ownerRow?.subscription_status ?? '')
-    .trim()
-    .toLowerCase();
-  if (status === 'trialing') return 'Pro trial';
   return 'Pro';
 }
 

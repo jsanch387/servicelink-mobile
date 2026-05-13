@@ -34,7 +34,7 @@ describe('subscriptionPresentation', () => {
     };
 
     expect(getSubscriptionHeaderBadge(row)).toBeNull();
-    expect(getSubscriptionPlanLabel(row)).toBe('Pro trial');
+    expect(getSubscriptionPlanLabel(row)).toBe('Pro');
     expect(getSubscriptionPriceDisplay(row)).toEqual({
       primary: 'Free trial',
       period: '',

@@ -172,7 +172,24 @@ export function AccountSettingsScreen() {
           color: colors.textMuted,
           fontSize: 13,
           fontWeight: '500',
-          marginTop: -4,
+          marginTop: 12,
+        },
+        dangerTitle: {
+          color: colors.text,
+          fontSize: 16,
+          fontWeight: '700',
+          letterSpacing: -0.25,
+        },
+        dangerBody: {
+          color: colors.textMuted,
+          fontSize: 14,
+          fontWeight: '500',
+          letterSpacing: -0.05,
+          lineHeight: 20,
+          marginTop: 8,
+        },
+        dangerButton: {
+          marginTop: 18,
         },
       }),
     [colors, scrollBottomPad],
@@ -384,7 +401,7 @@ export function AccountSettingsScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
-            <AppText style={[styles.sectionTitle, styles.sectionTitleInRow]}>Your link</AppText>
+            <AppText style={[styles.sectionTitle, styles.sectionTitleInRow]}>Booking link</AppText>
             <Pressable
               accessibilityLabel="Open public booking page"
               accessibilityRole="button"
@@ -410,23 +427,31 @@ export function AccountSettingsScreen() {
           <View style={styles.sectionTitleRow}>
             <AppText style={styles.sectionTitle}>Danger zone</AppText>
           </View>
-          <Button
-            fullWidth
-            labelColor={colors.danger}
-            outlineBgPressed="rgba(220, 38, 38, 0.08)"
-            outlineColor={colors.danger}
-            title="Delete account"
-            variant="outline"
-            onPress={() => {
-              setDeleteSheetVisible(true);
-              setDeleteEmailConfirmed(false);
-            }}
-          />
-          {deleteEmailConfirmed ? (
-            <AppText style={styles.deleteHint}>
-              Email confirmed. Deletion request is not connected yet.
+          <SurfaceCard>
+            <AppText style={styles.dangerTitle}>Delete your account</AppText>
+            <AppText style={styles.dangerBody}>
+              This permanently removes your ServiceLink data. You can confirm details in the next
+              step.
             </AppText>
-          ) : null}
+            <Button
+              fullWidth
+              labelColor={colors.danger}
+              outlineBgPressed="rgba(220, 38, 38, 0.08)"
+              outlineColor={colors.danger}
+              style={styles.dangerButton}
+              title="Delete account"
+              variant="outline"
+              onPress={() => {
+                setDeleteSheetVisible(true);
+                setDeleteEmailConfirmed(false);
+              }}
+            />
+            {deleteEmailConfirmed ? (
+              <AppText style={styles.deleteHint}>
+                Email confirmed. Deletion request is not connected yet.
+              </AppText>
+            ) : null}
+          </SurfaceCard>
         </View>
       </ScrollView>
 

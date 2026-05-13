@@ -9,9 +9,6 @@ import {
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
-/** Trial price label — high-contrast green on dark shells (account subscription row). */
-const FREE_TRIAL_LABEL_COLOR = '#4ade80';
-
 export function AccountSubscriptionCard({
   planLabel,
   priceDisplay,
@@ -51,7 +48,7 @@ export function AccountSubscriptionCard({
         planName: {
           color: colors.text,
           fontSize: 17,
-          fontWeight: '700',
+          fontWeight: '600',
           letterSpacing: -0.2,
           textAlign: 'left',
         },
@@ -63,7 +60,13 @@ export function AccountSubscriptionCard({
         priceMain: {
           color: colors.text,
           fontSize: 18,
-          fontWeight: '700',
+          fontWeight: '500',
+          textAlign: 'left',
+        },
+        priceMainTrial: {
+          color: colors.textSuccess,
+          fontSize: 18,
+          fontWeight: '500',
           textAlign: 'left',
         },
         pricePeriod: {
@@ -71,9 +74,6 @@ export function AccountSubscriptionCard({
           fontSize: 13,
           fontWeight: '500',
           textAlign: 'left',
-        },
-        priceMainFreeTrial: {
-          color: FREE_TRIAL_LABEL_COLOR,
         },
         accessHint: {
           alignSelf: 'stretch',
@@ -105,10 +105,7 @@ export function AccountSubscriptionCard({
           {priceDisplay ? (
             <View style={styles.priceRow}>
               <AppText
-                style={[
-                  styles.priceMain,
-                  priceDisplay.isFreeTrial ? styles.priceMainFreeTrial : null,
-                ]}
+                style={[styles.priceMain, priceDisplay.isFreeTrial ? styles.priceMainTrial : null]}
               >
                 {priceDisplay.primary}
               </AppText>

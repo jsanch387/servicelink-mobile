@@ -67,6 +67,9 @@ export const darkTheme = {
   /** Form validation / auth errors */
   danger: '#f87171',
 
+  /** Positive / success text on dark surfaces (e.g. trial, confirmations) */
+  textSuccess: '#6ee7b7',
+
   /** Unread notification affordance on the home bell (same hue in both schemes) */
   notificationBellDot: '#f97316',
 };
@@ -119,6 +122,9 @@ export const lightTheme = {
   spinnerOnSecondary: '#0a0a0a',
 
   danger: '#dc2626',
+
+  /** Positive / success text on light surfaces */
+  textSuccess: '#047857',
 
   notificationBellDot: '#f97316',
 };
