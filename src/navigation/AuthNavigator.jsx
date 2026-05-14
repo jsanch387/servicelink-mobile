@@ -99,7 +99,7 @@ export function AuthNavigator() {
     : 'auth';
 
   if (boot) {
-    return <View accessibilityLabel="Loading" style={{ backgroundColor: colors.shell, flex: 1 }} />;
+    return <AppFontLoadingShell accessibilityLabel="Loading" animateEntrance testID="auth-boot" />;
   }
 
   return (
