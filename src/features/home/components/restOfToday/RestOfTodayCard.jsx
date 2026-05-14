@@ -94,12 +94,12 @@ export function RestOfTodayCard({ items, isLoading, error }) {
               <View
                 style={[
                   styles.markerCircle,
-                  { backgroundColor: completed ? colors.textSuccess : dotColor },
+                  { backgroundColor: completed ? colors.timelineCompletedFill : dotColor },
                 ]}
               >
                 {completed ? (
                   <Ionicons
-                    color="#0a0a0a"
+                    color={colors.timelineCompletedCheck}
                     importantForAccessibility="no"
                     name="checkmark"
                     size={9}

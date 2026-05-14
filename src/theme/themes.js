@@ -70,6 +70,10 @@ export const darkTheme = {
   /** Positive / success text on dark surfaces (e.g. trial, confirmations) */
   textSuccess: '#6ee7b7',
 
+  /** Home “today” timeline — completed visit marker (fill + check); tuned for `cardSurface` on dark */
+  timelineCompletedFill: '#2bbf7a',
+  timelineCompletedCheck: '#0a0a0a',
+
   /** Unread notification affordance on the home bell (same hue in both schemes) */
   notificationBellDot: '#f97316',
 };
@@ -125,6 +129,10 @@ export const lightTheme = {
 
   /** Positive / success text on light surfaces */
   textSuccess: '#047857',
+
+  /** Home “today” timeline — completed marker on light cards */
+  timelineCompletedFill: '#15803d',
+  timelineCompletedCheck: '#fafafa',
 
   notificationBellDot: '#f97316',
 };
