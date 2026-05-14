@@ -1,74 +1,98 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { useMemo } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Switch, View } from 'react-native';
-import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
+import { useCallback, useMemo, useState } from 'react';
+import { Linking, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { AppText, Button, Divider, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import { usePushNotificationPermission } from '../../notifications/hooks/usePushNotificationPermission';
 import { useTheme } from '../../../theme';
 import { NotificationSettingsScreenSkeleton } from '../components/NotificationSettingsScreenSkeleton';
-import { useNotificationSettings } from '../hooks/useNotificationSettings';
 
-function NotificationToggleRow({ title, subtitle, value, onValueChange, showDivider = true }) {
-  const { colors } = useTheme();
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        row: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          gap: 14,
-          paddingVertical: 12,
-        },
-        textBlock: {
-          flex: 1,
-          minWidth: 0,
-        },
-        title: {
-          color: colors.text,
-          fontSize: 15,
-          fontWeight: '600',
-        },
-        subtitle: {
-          color: colors.textMuted,
-          fontSize: 13,
-          lineHeight: 18,
-          marginTop: 4,
-        },
-        divider: {
-          backgroundColor: colors.border,
-          height: StyleSheet.hairlineWidth,
-          marginTop: 2,
-          opacity: 0.7,
-        },
-      }),
-    [colors],
-  );
-
-  return (
-    <View>
-      <View style={styles.row}>
-        <View style={styles.textBlock}>
-          <AppText style={styles.title}>{title}</AppText>
-          {subtitle ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
-        </View>
-        <Switch
-          thumbColor={value ? '#f8fafc' : '#f4f4f5'}
-          trackColor={{ false: colors.borderStrong, true: '#10b981' }}
-          value={value}
-          onValueChange={onValueChange}
-        />
-      </View>
-      {showDivider ? <View style={styles.divider} /> : null}
-    </View>
-  );
-}
-
-/** More tab — notification preferences (loads via query; toggles update cache until API exists). */
+/** More tab — device push permission and what ServiceLink uses it for. */
 export function NotificationSettingsScreen() {
   const { colors } = useTheme();
   const tabBarHeight = useBottomTabBarHeight();
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
+  const { status, loadError, isLoading, refresh, requestPermission } =
+    usePushNotificationPermission();
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
-  const { prefs, isLoading, isFetching, loadError, refetch, setPref } = useNotificationSettings();
+  const onRefresh = useCallback(async () => {
+    setIsManualRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  }, [refresh]);
+
+  const refreshControl = useMemo(
+    () => (
+      <RefreshControl
+        colors={[colors.accent]}
+        onRefresh={() => void onRefresh()}
+        refreshing={isManualRefreshing}
+        tintColor={colors.accent}
+      />
+    ),
+    [colors.accent, isManualRefreshing, onRefresh],
+  );
+
+  const statusLabel = useMemo(() => {
+    if (Platform.OS === 'web' || status === 'unavailable') {
+      return 'Not available here';
+    }
+    if (status === 'granted') {
+      return 'On';
+    }
+    if (status === 'denied') {
+      return 'Off';
+    }
+    if (status === 'undetermined') {
+      return 'Not set';
+    }
+    return '—';
+  }, [status]);
+
+  const statusIsOn = status === 'granted';
+
+  const primaryAction = useMemo(() => {
+    if (Platform.OS === 'web' || status === 'unavailable') {
+      return null;
+    }
+    if (status === 'denied') {
+      return {
+        title: 'Open system settings',
+        hint: 'Opens ServiceLink in iOS or Android settings so you can allow notifications.',
+        onPress: () => void Linking.openSettings(),
+      };
+    }
+    if (status === 'undetermined') {
+      return {
+        title: 'Allow notifications',
+        hint: 'Shows the system prompt to allow ServiceLink to send alerts.',
+        onPress: async () => {
+          setIsRequesting(true);
+          try {
+            await requestPermission();
+          } finally {
+            setIsRequesting(false);
+          }
+        },
+      };
+    }
+    return null;
+  }, [requestPermission, status]);
+
+  const footnote = useMemo(() => {
+    if (Platform.OS === 'web' || status === 'unavailable') {
+      return 'Push notifications are only on our iOS and Android apps.';
+    }
+    if (status === 'denied') {
+      return "If you previously chose Don't allow, use the button below. Your phone will not show the permission popup again.";
+    }
+    return null;
+  }, [status]);
 
   const styles = useMemo(
     () =>
@@ -81,44 +105,105 @@ export function NotificationSettingsScreen() {
           flex: 1,
         },
         content: {
-          gap: 16,
+          alignItems: 'stretch',
           paddingBottom: scrollBottomPad,
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
+          width: '100%',
+        },
+        section: {
+          alignSelf: 'stretch',
+          marginTop: 22,
+        },
+        sectionFirst: {
+          marginTop: 0,
+        },
+        sectionTitleRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginBottom: 8,
+          minHeight: 24,
+        },
+        sectionTitle: {
+          color: colors.textSecondary,
+          fontSize: 15,
+          fontWeight: '600',
+          letterSpacing: -0.2,
         },
         card: {
-          gap: 2,
+          gap: 0,
         },
-        title: {
+        notifyRow: {
+          gap: 4,
+          paddingVertical: 14,
+        },
+        notifyTitle: {
           color: colors.text,
           fontSize: 16,
-          fontWeight: '700',
+          fontWeight: '600',
           letterSpacing: -0.2,
-          marginBottom: 4,
+          lineHeight: 21,
         },
-        helper: {
+        notifySub: {
           color: colors.textMuted,
-          fontSize: 13,
-          lineHeight: 19,
+          fontSize: 12,
+          fontWeight: '500',
+          letterSpacing: -0.05,
+          lineHeight: 16,
+        },
+        listDivider: {
+          marginVertical: 0,
+        },
+        statusRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          gap: 12,
+          paddingVertical: 4,
+        },
+        statusKey: {
+          color: colors.textSecondary,
+          fontSize: 15,
+          fontWeight: '600',
+        },
+        statusValue: {
+          fontSize: 15,
+          fontWeight: '700',
+          letterSpacing: -0.1,
+        },
+        statusOn: {
+          color: colors.textSuccess,
+        },
+        statusOff: {
+          color: colors.textMuted,
+        },
+        footnoteDivider: {
+          marginTop: 12,
           marginBottom: 12,
         },
+        footnote: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          letterSpacing: -0.05,
+          lineHeight: 19,
+        },
+        actions: {
+          alignSelf: 'stretch',
+          gap: 10,
+          marginTop: 22,
+        },
         loadErrorRetry: {
-          marginTop: 12,
+          marginTop: 8,
         },
       }),
     [colors, scrollBottomPad],
   );
 
-  const refreshControl = useMemo(
-    () => (
-      <RefreshControl
-        colors={[colors.accent]}
-        onRefresh={refetch}
-        refreshing={Boolean(isFetching && !isLoading)}
-        tintColor={colors.accent}
-      />
-    ),
-    [colors.accent, isFetching, isLoading, refetch],
+  const statusValueStyle = useMemo(
+    () => [styles.statusValue, statusIsOn ? styles.statusOn : styles.statusOff],
+    [statusIsOn, styles.statusOff, styles.statusOn, styles.statusValue],
   );
 
   if (isLoading) {
@@ -148,23 +233,21 @@ export function NotificationSettingsScreen() {
         >
           <InlineCardError message={loadError} />
           <Button
-            accessibilityHint="Attempts to load notification settings again"
+            accessibilityHint="Attempts to read notification permission again"
             accessibilityLabel="Try again"
             fullWidth
-            loading={Boolean(isFetching && !isLoading)}
+            loading={isManualRefreshing}
             style={styles.loadErrorRetry}
             title="Try again"
             variant="secondary"
-            onPress={() => void refetch()}
+            onPress={() => void onRefresh()}
           />
         </ScrollView>
       </View>
     );
   }
 
-  if (!prefs) {
-    return null;
-  }
+  const showNativeDevice = Platform.OS !== 'web' && status !== 'unavailable';
 
   return (
     <View style={styles.root}>
@@ -175,38 +258,65 @@ export function NotificationSettingsScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
-        <SurfaceCard style={styles.card}>
-          <AppText style={styles.title}>Push notifications</AppText>
-          <AppText style={styles.helper}>
-            Choose what you want to hear about. These controls are mock UI for now.
-          </AppText>
+        <View style={styles.sectionFirst}>
+          <View style={styles.sectionTitleRow}>
+            <AppText style={styles.sectionTitle}>What we send</AppText>
+          </View>
+          <SurfaceCard style={styles.card}>
+            <View style={styles.notifyRow}>
+              <AppText style={styles.notifyTitle}>New appointments</AppText>
+              <AppText style={styles.notifySub}>When a customer books with you.</AppText>
+            </View>
+            <Divider style={styles.listDivider} />
+            <View style={styles.notifyRow}>
+              <AppText style={styles.notifyTitle}>Quote requests</AppText>
+              <AppText style={styles.notifySub}>When someone asks for a quote.</AppText>
+            </View>
+          </SurfaceCard>
+        </View>
 
-          <NotificationToggleRow
-            subtitle="Get notified as soon as a customer books."
-            title="New bookings"
-            value={prefs.newBookings}
-            onValueChange={(v) => setPref('newBookings', v)}
-          />
-          <NotificationToggleRow
-            subtitle="Reschedules, cancellations, and confirmations."
-            title="Booking changes"
-            value={prefs.bookingChanges}
-            onValueChange={(v) => setPref('bookingChanges', v)}
-          />
-          <NotificationToggleRow
-            subtitle="Successful payments and payout activity."
-            title="Payments"
-            value={prefs.paymentUpdates}
-            onValueChange={(v) => setPref('paymentUpdates', v)}
-          />
-          <NotificationToggleRow
-            showDivider={false}
-            subtitle="Product tips and optional announcements."
-            title="Tips and updates"
-            value={prefs.marketingTips}
-            onValueChange={(v) => setPref('marketingTips', v)}
-          />
-        </SurfaceCard>
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <AppText style={styles.sectionTitle}>This device</AppText>
+          </View>
+          <SurfaceCard style={styles.card}>
+            <View style={styles.statusRow}>
+              <AppText style={styles.statusKey}>Push alerts</AppText>
+              <AppText style={statusValueStyle}>{statusLabel}</AppText>
+            </View>
+            {footnote ? (
+              <>
+                <Divider style={styles.footnoteDivider} />
+                <AppText style={styles.footnote}>{footnote}</AppText>
+              </>
+            ) : null}
+          </SurfaceCard>
+        </View>
+
+        {showNativeDevice ? (
+          <View style={styles.actions}>
+            {primaryAction ? (
+              <Button
+                accessibilityHint={primaryAction.hint}
+                accessibilityLabel={primaryAction.title}
+                fullWidth
+                loading={isRequesting}
+                title={primaryAction.title}
+                onPress={() => void primaryAction.onPress()}
+              />
+            ) : null}
+            {status === 'granted' ? (
+              <Button
+                accessibilityHint="Opens ServiceLink notification options in system settings"
+                accessibilityLabel="Open system notification settings"
+                fullWidth
+                title="Open system settings"
+                variant="secondary"
+                onPress={() => void Linking.openSettings()}
+              />
+            ) : null}
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );

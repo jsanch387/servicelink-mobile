@@ -3,23 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
-function ToggleRowSkeleton({ dividerStyle, showDivider }) {
-  return (
-    <View>
-      <View style={styles.row}>
-        <View style={styles.textBlock}>
-          <SkeletonBox borderRadius={8} height={16} pulse width="48%" />
-          <SkeletonBox borderRadius={6} height={12} pulse style={{ marginTop: 6 }} width="92%" />
-          <SkeletonBox borderRadius={6} height={12} pulse style={{ marginTop: 6 }} width="78%" />
-        </View>
-        <SkeletonBox borderRadius={16} height={28} pulse width={50} />
-      </View>
-      {showDivider ? <View style={dividerStyle} /> : null}
-    </View>
-  );
-}
-
-/** Placeholder while notification preferences load (matches push card + toggle rows). */
+/** Placeholder while notification permission is read. */
 export function NotificationSettingsScreenSkeleton() {
   const { colors } = useTheme();
   const dividerStyle = useMemo(
@@ -33,38 +17,64 @@ export function NotificationSettingsScreenSkeleton() {
   );
 
   return (
-    <SurfaceCard accessibilityLabel="Loading notification settings" style={styles.card}>
-      <SkeletonBox borderRadius={8} height={18} pulse width="56%" />
-      <SkeletonBox borderRadius={8} height={13} pulse style={{ marginTop: 10 }} width="100%" />
-      <SkeletonBox borderRadius={8} height={13} pulse style={{ marginTop: 8 }} width="88%" />
-      <View style={styles.blockSpacer} />
-      {[0, 1, 2, 3].map((k) => (
-        <ToggleRowSkeleton key={k} dividerStyle={dividerStyle} showDivider={k < 3} />
-      ))}
-    </SurfaceCard>
+    <View style={styles.root}>
+      <View style={styles.sectionFirst}>
+        <SkeletonBox borderRadius={6} height={15} pulse style={styles.sectionLabel} width="36%" />
+        <SurfaceCard accessibilityLabel="Loading notification settings" style={styles.card}>
+          <View style={styles.notifyRow}>
+            <SkeletonBox borderRadius={6} height={16} pulse width="56%" />
+            <SkeletonBox borderRadius={6} height={12} pulse style={{ marginTop: 6 }} width="88%" />
+          </View>
+          <View style={dividerStyle} />
+          <View style={styles.notifyRow}>
+            <SkeletonBox borderRadius={6} height={16} pulse width="44%" />
+            <SkeletonBox borderRadius={6} height={12} pulse style={{ marginTop: 6 }} width="72%" />
+          </View>
+        </SurfaceCard>
+      </View>
+
+      <View style={styles.section}>
+        <SkeletonBox borderRadius={6} height={15} pulse style={styles.sectionLabel} width="32%" />
+        <SurfaceCard style={styles.card}>
+          <View style={styles.statusRow}>
+            <SkeletonBox borderRadius={6} height={15} pulse width="36%" />
+            <SkeletonBox borderRadius={6} height={15} pulse width="22%" />
+          </View>
+        </SurfaceCard>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  blockSpacer: {
-    height: 12,
+  root: {
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  sectionFirst: {
+    marginTop: 0,
+  },
+  section: {
+    marginTop: 22,
+  },
+  sectionLabel: {
+    marginBottom: 8,
   },
   card: {
-    gap: 2,
+    gap: 0,
+  },
+  notifyRow: {
+    paddingVertical: 14,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    marginTop: 2,
-    opacity: 0.7,
+    opacity: 0.55,
+    width: '100%',
   },
-  row: {
+  statusRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 14,
-    paddingVertical: 12,
-  },
-  textBlock: {
-    flex: 1,
-    minWidth: 0,
+    justifyContent: 'space-between',
+    paddingVertical: 4,
   },
 });
