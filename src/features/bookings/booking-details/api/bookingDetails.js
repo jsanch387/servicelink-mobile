@@ -117,6 +117,33 @@ export async function cancelBookingById(bookingId) {
 }
 
 /**
+ * Permanently deletes the booking row. Does not delete CRM `customers` rows (bookings only store
+ * snapshot fields on the row). Removes `booking_payments` first when present so FK constraints
+ * do not block the booking delete.
+ *
+ * @param {string} bookingId
+ */
+export async function deleteBookingById(bookingId) {
+  const { error: paymentDeleteError } = await supabase
+    .from('booking_payments')
+    .delete()
+    .eq('booking_id', bookingId);
+
+  if (paymentDeleteError) {
+    return { data: null, error: paymentDeleteError };
+  }
+
+  const { data, error } = await supabase
+    .from('bookings')
+    .delete()
+    .eq('id', bookingId)
+    .select('id')
+    .maybeSingle();
+
+  return { data, error };
+}
+
+/**
  * @param {string} bookingId
  * @param {{ scheduledDate: string; startTime: string }} payload
  */

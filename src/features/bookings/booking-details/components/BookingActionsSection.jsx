@@ -95,6 +95,7 @@ function ActionSurfaceTile({
 
 export function BookingActionsSection({
   isCancellingBooking = false,
+  isDeletingBooking = false,
   isCancelDisabled = false,
   isMarkingCompleted = false,
   isMarkCompletedDisabled = false,
@@ -102,6 +103,7 @@ export function BookingActionsSection({
   onCancelBooking,
   onMarkCompleted,
   onReschedule,
+  isReschedulingBooking = false,
 }) {
   const { colors } = useTheme();
   const styles = useMemo(
@@ -124,7 +126,8 @@ export function BookingActionsSection({
     [colors],
   );
 
-  const actionsBusy = isCancellingBooking || isMarkingCompleted;
+  const actionsBusy =
+    isCancellingBooking || isMarkingCompleted || isReschedulingBooking || isDeletingBooking;
 
   return (
     <View>

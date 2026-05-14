@@ -1,9 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   cancelBookingById,
+  deleteBookingById,
   markBookingCompletedById,
   rescheduleBookingById,
 } from '../api/bookingDetails';
+import { bookingsDetailsQueryKey } from '../../queryKeys';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
 
 export function useBookingActions(bookingId) {
@@ -51,6 +53,20 @@ export function useBookingActions(bookingId) {
     },
   });
 
+  const deleteBookingMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await deleteBookingById(bookingId);
+      if (error) {
+        throw new Error(error.message ?? 'Could not delete booking');
+      }
+      return data;
+    },
+    onSuccess: async () => {
+      await invalidateBookingCachesAfterMutation(queryClient, bookingId);
+      queryClient.removeQueries({ queryKey: bookingsDetailsQueryKey(bookingId) });
+    },
+  });
+
   return {
     markCompleted: markCompletedMutation.mutateAsync,
     isMarkingCompleted: markCompletedMutation.isPending,
@@ -61,5 +77,8 @@ export function useBookingActions(bookingId) {
     rescheduleBooking: rescheduleBookingMutation.mutateAsync,
     isReschedulingBooking: rescheduleBookingMutation.isPending,
     rescheduleBookingError: rescheduleBookingMutation.error?.message ?? null,
+    deleteBooking: deleteBookingMutation.mutateAsync,
+    isDeletingBooking: deleteBookingMutation.isPending,
+    deleteBookingError: deleteBookingMutation.error?.message ?? null,
   };
 }

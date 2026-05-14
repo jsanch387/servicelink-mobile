@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Button, InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
@@ -18,6 +19,7 @@ import { buildBookingDetailsModel } from '../booking-details/utils/buildBookingD
 
 export function BookingDetailsScreen({ route }) {
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const bookingId = route?.params?.bookingId;
   const [rescheduleSheetOpen, setRescheduleSheetOpen] = useState(false);
   const detailsQuery = useBookingDetails(bookingId);
@@ -167,6 +169,40 @@ export function BookingDetailsScreen({ route }) {
     ]);
   }, [bookingActions, bookingId, isCancelledStatus, isCompletedStatus]);
 
+  const actionsBusy =
+    bookingActions.isCancellingBooking ||
+    bookingActions.isMarkingCompleted ||
+    bookingActions.isReschedulingBooking ||
+    bookingActions.isDeletingBooking;
+
+  const handleDeleteBooking = useCallback(() => {
+    if (!bookingId || actionsBusy) {
+      return;
+    }
+    Alert.alert(
+      'Delete this appointment?',
+      "It will be removed from your calendar. This can't be undone.",
+      [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await bookingActions.deleteBooking();
+              navigation.goBack();
+            } catch (error) {
+              Alert.alert(
+                'Could not delete booking',
+                safeUserFacingMessage(error, { fallback: 'Please try again.' }),
+              );
+            }
+          },
+        },
+      ],
+    );
+  }, [actionsBusy, bookingActions, bookingId, navigation]);
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -188,6 +224,9 @@ export function BookingDetailsScreen({ route }) {
         },
         errorRetry: {
           marginTop: 12,
+        },
+        deleteSection: {
+          marginTop: 6,
         },
       }),
     [colors],
@@ -293,12 +332,29 @@ export function BookingDetailsScreen({ route }) {
               <BookingActionsSection
                 isCancelDisabled={isCancelledStatus || isCompletedStatus}
                 isCancellingBooking={bookingActions.isCancellingBooking}
+                isDeletingBooking={bookingActions.isDeletingBooking}
                 isMarkCompletedDisabled={isCompletedStatus}
                 isMarkingCompleted={bookingActions.isMarkingCompleted}
                 isRescheduleDisabled={isCancelledStatus || isCompletedStatus}
+                isReschedulingBooking={bookingActions.isReschedulingBooking}
                 onCancelBooking={handleCancelBooking}
                 onMarkCompleted={handleMarkCompleted}
                 onReschedule={handleReschedule}
+              />
+            </View>
+            <View style={styles.deleteSection}>
+              <Button
+                accessibilityHint="Removes this appointment from your calendar. This can\'t be undone."
+                accessibilityLabel="Delete booking permanently"
+                disabled={actionsBusy || !bookingId}
+                fullWidth
+                iconName="trash-outline"
+                loading={bookingActions.isDeletingBooking}
+                outlineColor={colors.danger}
+                outlineThin
+                title="Delete booking"
+                variant="outline"
+                onPress={handleDeleteBooking}
               />
             </View>
           </>
