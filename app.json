@@ -13,6 +13,15 @@
     "userInterfaceStyle": "dark",
     "plugins": [
       "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0a0a0a",
+          "image": "./assets/images/servicelink-logo.png",
+          "resizeMode": "contain",
+          "imageWidth": 220
+        }
+      ],
       "expo-asset",
       "expo-notifications",
       "expo-web-browser",

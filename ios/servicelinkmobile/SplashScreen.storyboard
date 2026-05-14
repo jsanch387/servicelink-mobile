@@ -6,7 +6,7 @@
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24053.1"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
-        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="System colors in storyboards" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -16,11 +16,17 @@
                     <view key="view" userInteractionEnabled="NO" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" id="EXPO-ContainerView" userLabel="ContainerView">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                        <subviews/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="SplashScreenLogo" translatesAutoresizingMaskIntoConstraints="NO" id="EXPO-SplashScreen" userLabel="SplashScreenLogo">
+                                <rect key="frame" x="46.5" y="351" width="300" height="300"/>
+                            </imageView>
+                        </subviews>
                         <viewLayoutGuide key="safeArea" id="Rmq-lb-GrQ"/>
                         <constraints>
-                            <constraint firstItem="EXPO-SplashScreen" firstAttribute="centerY" secondItem="EXPO-ContainerView" secondAttribute="centerY" id="0VC-Wk-OaO"/>
                             <constraint firstItem="EXPO-SplashScreen" firstAttribute="centerX" secondItem="EXPO-ContainerView" secondAttribute="centerX" id="zR4-NK-mVN"/>
+                            <constraint firstItem="EXPO-SplashScreen" firstAttribute="centerY" secondItem="EXPO-ContainerView" secondAttribute="centerY" id="0VC-Wk-OaO"/>
+                            <constraint firstItem="EXPO-SplashScreen" firstAttribute="width" secondItem="EXPO-ContainerView" secondAttribute="width" multiplier="0.55" id="SL-splash-width"/>
+                            <constraint firstItem="EXPO-SplashScreen" firstAttribute="width" secondItem="EXPO-SplashScreen" secondAttribute="height" multiplier="1" id="SL-splash-aspect"/>
                         </constraints>
                         <color key="backgroundColor" red="0.039215686274509803" green="0.039215686274509803" blue="0.039215686274509803" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                     </view>
@@ -31,6 +37,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="SplashScreenLogo" width="100" height="90.333335876464844"/>
+        <image name="SplashScreenLogo" width="300" height="300"/>
     </resources>
 </document>
