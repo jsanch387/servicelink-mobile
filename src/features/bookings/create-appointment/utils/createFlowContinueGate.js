@@ -13,6 +13,7 @@ import {
  * @param {number} p.step 0-based index into {@link CREATE_APPOINTMENT_STEP_META}
  * @param {string | null} p.selectedServiceId
  * @param {string | null} p.selectedPricingId
+ * @param {boolean} [p.pricingSkipped] when true, pricing step is bypassed (treat as satisfied)
  * @param {boolean} p.acceptBookings
  * @param {boolean} p.scheduleLoading
  * @param {string | null} p.selectedDateKey
@@ -27,6 +28,7 @@ export function canContinueCreateAppointmentStep({
   step,
   selectedServiceId,
   selectedPricingId,
+  pricingSkipped = false,
   acceptBookings,
   scheduleLoading,
   selectedDateKey,
@@ -38,7 +40,10 @@ export function canContinueCreateAppointmentStep({
 }) {
   if (appointmentConfirmed) return false;
   if (step === 0) return Boolean(selectedServiceId);
-  if (step === 1) return Boolean(selectedPricingId);
+  if (step === 1) {
+    if (pricingSkipped) return true;
+    return Boolean(selectedPricingId);
+  }
   if (step === 2) return true;
   if (step === 3) {
     if (!acceptBookings) return false;

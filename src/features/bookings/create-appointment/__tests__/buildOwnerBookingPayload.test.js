@@ -1,6 +1,7 @@
 import {
   buildAddonDetailsPayload,
-  buildOwnerBookingInsertPayload,
+  buildOwnerManualPublicBookingBody,
+  buildSelectedAddOnsForPublicApi,
   buildServiceDisplayName,
 } from '../utils/buildOwnerBookingPayload';
 
@@ -43,7 +44,21 @@ describe('buildOwnerBookingPayload', () => {
     });
   });
 
-  describe('buildOwnerBookingInsertPayload', () => {
+  describe('buildSelectedAddOnsForPublicApi', () => {
+    it('returns empty array when none selected', () => {
+      expect(buildSelectedAddOnsForPublicApi([])).toEqual([]);
+    });
+
+    it('stringifies ids for JSON', () => {
+      const out = buildSelectedAddOnsForPublicApi([
+        { id: 99, name: 'Seal', priceLabel: '$10', durationMinutes: 15 },
+      ]);
+      expect(out[0].id).toBe('99');
+      expect(out[0].priceCents).toBe(1000);
+    });
+  });
+
+  describe('buildOwnerManualPublicBookingBody', () => {
     const base = {
       catalog: { businessId: 'biz-1', businessSlug: 'acme' },
       selectedService: { name: 'Detail' },
@@ -54,47 +69,57 @@ describe('buildOwnerBookingPayload', () => {
       selectedDateKey: '2026-05-01',
       selectedTime: '2:00 PM',
       customer: { fullName: 'Jane D', email: 'j@ex.co', phone: '(555) 234-5678' },
-      address: { street: '1 Main', unit: '', city: 'Austin', state: 'TX', zip: '78701' },
+      address: { street: '1 Main', unit: '', city: 'Austin', state: 'tx', zip: '78701' },
       vehicle: { year: '2020', make: 'Honda', model: 'Civic' },
       notes: '',
     };
 
-    it('builds insert payload with trimmed fields and NANP phone digits', () => {
-      const p = buildOwnerBookingInsertPayload(base);
-      expect(p.businessId).toBe('biz-1');
-      expect(p.businessSlug).toBe('acme');
-      expect(p.serviceId).toBe('svc-1');
-      expect(p.serviceName).toBe('Detail');
-      expect(p.customerPhoneDigits).toBe('5552345678');
-      expect(p.startTimeHhMmSs).toBe('14:00:00');
-      expect(p.scheduledDate).toBe('2026-05-01');
-      expect(p.durationMinutes).toBe(90);
-      expect(p.addonDetails).toBeNull();
-      expect(p.customerNotes).toBe('');
+    it('builds POST body for owner manual booking with API time and flags', () => {
+      const b = buildOwnerManualPublicBookingBody(base);
+      expect(b.businessId).toBe('biz-1');
+      expect(b.businessSlug).toBe('acme');
+      expect(b.serviceId).toBe('svc-1');
+      expect(b.serviceName).toBe('Detail');
+      expect(b.ownerManualBooking).toBe(true);
+      expect(b.paymentMethodSelected).toBe('none');
+      expect(b.startTime).toBe('14:00');
+      expect(b.scheduledDate).toBe('2026-05-01');
+      expect(b.durationMinutes).toBe(90);
+      expect(b.selectedAddOns).toEqual([]);
+      expect(b.customer).toMatchObject({
+        fullName: 'Jane D',
+        email: 'j@ex.co',
+        phone: '5552345678',
+        streetAddress: '1 Main',
+        state: 'TX',
+        notes: '',
+      });
     });
 
-    it('trims notes into customerNotes for insert', () => {
-      const p = buildOwnerBookingInsertPayload({
+    it('trims customer notes', () => {
+      const b = buildOwnerManualPublicBookingBody({
         ...base,
         notes: '  Pull into bay 2  ',
       });
-      expect(p.customerNotes).toBe('Pull into bay 2');
+      expect(b.customer.notes).toBe('Pull into bay 2');
     });
 
-    it('uses null customerEmail when email omitted', () => {
-      const p = buildOwnerBookingInsertPayload({
+    it('uses empty string customer email when omitted', () => {
+      const b = buildOwnerManualPublicBookingBody({
         ...base,
         customer: { fullName: 'Jane D', email: '  ', phone: '(555) 234-5678' },
       });
-      expect(p.customerEmail).toBeNull();
+      expect(b.customer.email).toBe('');
     });
 
-    it('includes tier in service name when not Standard', () => {
-      const p = buildOwnerBookingInsertPayload({
+    it('sends servicePriceOptionLabel instead of combined service name when tier is not Standard', () => {
+      const b = buildOwnerManualPublicBookingBody({
         ...base,
         selectedPricingOption: { label: 'Premium', priceCents: 15000 },
       });
-      expect(p.serviceName).toBe('Detail — Premium');
+      expect(b.serviceName).toBe('Detail');
+      expect(b.servicePriceOptionLabel).toBe('Premium');
+      expect(b.servicePriceCents).toBe(15000);
     });
   });
 });

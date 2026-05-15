@@ -12,17 +12,20 @@ import { useCreateAppointmentController } from './hooks/useCreateAppointmentCont
 
 /**
  * Owner manual booking wizard: service → pricing → add-ons → schedule → customer → address → vehicle → review.
+ * Confirming a booking calls the Next.js `POST /api/public/bookings` pipeline (emails, payments row, caps) — see
+ * `create-appointment/docs/OWNER_MANUAL_BOOKING_SERVER.md`.
  * State and side effects live in {@link useCreateAppointmentController}.
  */
 export function CreateAppointmentFlow() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const catalog = useServicesCatalog();
 
   const flow = useCreateAppointmentController({
     catalog,
     userId: user?.id,
+    accessToken: session?.access_token,
     navigation,
   });
 

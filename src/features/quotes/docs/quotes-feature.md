@@ -64,7 +64,7 @@ Uses `Authorization: Bearer <accessToken>` and a client-generated **`X-Request-I
 | New quote (first send)                | `POST` | `{origin}/api/quotes/send`           | **201**      |
 | Send existing row (e.g. from request) | `POST` | `{origin}/api/quotes/{quoteId}/send` | **200**      |
 
-**Production guard:** non-dev builds require a valid **https** origin (see `productionHttpsGuard` in `sendQuote.js`).
+**Production guard:** non-dev builds require a valid **https** origin (`productionWebApiHttpsGuard` in `src/lib/productionWebApiHttpsGuard.js`, used from `sendQuote.js`).
 
 ### Mobile ⇄ server JSON contract (send body)
 

@@ -65,6 +65,43 @@ describe('canContinueCreateAppointmentStep', () => {
     ).toBe(true);
   });
 
+  it('step 1 requires pricing selection unless step is skipped', () => {
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: 1,
+        selectedServiceId: 's',
+        selectedPricingId: null,
+        pricingSkipped: false,
+        acceptBookings: true,
+        scheduleLoading: false,
+        selectedDateKey: null,
+        selectedTime: null,
+        timeSlots: [],
+        customer: {},
+        address: {},
+        vehicle: {},
+      }),
+    ).toBe(false);
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: 1,
+        selectedServiceId: 's',
+        selectedPricingId: null,
+        pricingSkipped: true,
+        acceptBookings: true,
+        scheduleLoading: false,
+        selectedDateKey: null,
+        selectedTime: null,
+        timeSlots: [],
+        customer: {},
+        address: {},
+        vehicle: {},
+      }),
+    ).toBe(true);
+  });
+
   it('step 3 requires slot in timeSlots', () => {
     expect(
       canContinueCreateAppointmentStep({

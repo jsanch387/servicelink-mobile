@@ -44,6 +44,29 @@ function pick(row, keys) {
   return null;
 }
 
+/** True when the service is configured to use `service_price_options` rows (Pro). */
+export function isServicePriceTiersEnabled(serviceRow) {
+  return Boolean(pick(serviceRow, ['price_options_enabled', 'priceOptionsEnabled']));
+}
+
+/**
+ * Skip the pricing wizard step when there is at most one bookable tier.
+ * When Pro + tiers are enabled, waits until price options finish loading so we do not skip
+ * a multi-tier service while rows are still in flight.
+ */
+export function shouldSkipCreateFlowPricingStep({
+  selectedServiceId,
+  selectedServiceRow,
+  ownerHasPro,
+  priceOptionsEnabled,
+  priceOptionsLoading,
+  pricingOptionsCount,
+}) {
+  if (!selectedServiceId || !selectedServiceRow) return false;
+  if (ownerHasPro && priceOptionsEnabled && priceOptionsLoading) return false;
+  return pricingOptionsCount <= 1;
+}
+
 export function createFlowBasePricingId(serviceId) {
   return `${String(serviceId)}${CREATE_FLOW_BASE_SUFFIX}`;
 }

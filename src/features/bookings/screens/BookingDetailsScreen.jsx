@@ -8,6 +8,7 @@ import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BookingActionsSection } from '../booking-details/components/BookingActionsSection';
+import { BookingPaymentSection } from '../booking-details/components/BookingPaymentSection';
 import { BookingDetailsStatusBanner } from '../booking-details/components/BookingDetailsStatusBanner';
 import { BookingRescheduleSheet } from '../booking-details/components/BookingRescheduleSheet';
 import { BookingDetailsSkeleton } from '../booking-details/components/BookingDetailsSkeleton';
@@ -282,14 +283,7 @@ export function BookingDetailsScreen({ route }) {
               title="Customer"
             />
 
-            {details.payment.visible ? (
-              <InfoSection
-                bodyPadding="roomy"
-                rowGap={14}
-                rows={details.payment.rows}
-                title="Payment"
-              />
-            ) : null}
+            {details.payment.visible ? <BookingPaymentSection payment={details.payment} /> : null}
 
             <PriceBreakdownSection formattedPrice={details.formattedPrice} />
 

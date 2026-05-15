@@ -23,6 +23,7 @@ The bookings feature includes:
   - `hooks/useBookingActions.js` complete/cancel mutations
   - `components/*` details UI sections and skeleton
   - `utils/buildBookingDetailsModel.js` data-to-UI formatting
+- `create-appointment/` — owner FAB wizard; **Confirm** calls Next.js `POST /api/public/bookings` (see `create-appointment/docs/OWNER_MANUAL_BOOKING_SERVER.md`), not direct Supabase inserts
 - `__tests__/` unit and hook tests
 
 ## Data Flow
@@ -76,6 +77,7 @@ This limits accidental backend spam while still recovering from flaky connectivi
 - details hook behavior (success, deterministic error, transient retry once)
 - list hook behavior (success + list failure handling)
 - retry policy behavior
+- create-appointment: `buildOwnerManualPublicBookingBody` / `postOwnerManualPublicBooking` unit tests
 
 ## Notes for Future Enhancements
 

@@ -1,4 +1,4 @@
-import { bookingCustomerPhoneDigits, startTimeToSqlTime } from '../api/insertOwnerBooking';
+import { bookingCustomerPhoneDigits, startTime12hToApiStartTime } from './ownerBookingFieldFormats';
 import { parsePriceLabelToUsd } from './priceLabelMath';
 
 /**
@@ -30,7 +30,23 @@ export function buildAddonDetailsPayload(selectedAddonRows) {
 }
 
 /**
- * Maps wizard state to {@link insertOwnerBooking} payload (pure — easy to unit test).
+ * Maps selected add-ons to `selectedAddOns` on `POST /api/public/bookings`.
+ * @param {Array<{ id: unknown; name?: string; priceLabel?: string; durationMinutes?: number | null }>} selectedAddonRows
+ * @returns {Array<{ id: string; name: string; priceCents: number; durationMinutes: number }>}
+ */
+export function buildSelectedAddOnsForPublicApi(selectedAddonRows) {
+  if (!selectedAddonRows?.length) return [];
+  return selectedAddonRows.map((a) => ({
+    id: String(a.id),
+    name: String(a.name ?? '').trim() || 'Add-on',
+    priceCents: Math.round(parsePriceLabelToUsd(a.priceLabel) * 100),
+    durationMinutes: a.durationMinutes ?? 0,
+  }));
+}
+
+/**
+ * JSON body for {@link postOwnerManualPublicBooking} — mirrors web owner confirm (`ownerManualBooking: true`).
+ * Do not insert `bookings` from the client for this flow; the server enforces email, payments row, caps, and time-off.
  *
  * @param {object} args
  * @param {{ businessId: string | null; businessSlug?: string | null }} args.catalog
@@ -44,9 +60,9 @@ export function buildAddonDetailsPayload(selectedAddonRows) {
  * @param {{ fullName: string; email?: string; phone: string }} args.customer
  * @param {{ street: string; unit?: string; city: string; state: string; zip: string }} args.address
  * @param {{ year: string; make: string; model: string }} args.vehicle
- * @param {string} [args.notes] trimmed into `bookings.customer_notes`
+ * @param {string} [args.notes]
  */
-export function buildOwnerBookingInsertPayload({
+export function buildOwnerManualPublicBookingBody({
   catalog,
   selectedService,
   selectedServiceId,
@@ -61,27 +77,49 @@ export function buildOwnerBookingInsertPayload({
   notes,
 }) {
   const notesTrimmed = typeof notes === 'string' ? notes.trim() : '';
-  return {
-    businessId: catalog.businessId,
-    businessSlug: catalog.businessSlug,
-    serviceId: selectedServiceId,
-    serviceName: buildServiceDisplayName(selectedService, selectedPricingOption),
+  const tierRaw =
+    selectedPricingOption?.label != null ? String(selectedPricingOption.label).trim() : '';
+  const optionLabel = tierRaw && tierRaw !== 'Standard' ? tierRaw : null;
+  const baseServiceName = selectedService?.name?.trim() || 'Service';
+
+  /** @type {Record<string, unknown>} */
+  const body = {
+    businessSlug: String(catalog.businessSlug ?? '').trim(),
+    businessId: String(catalog.businessId ?? '').trim(),
+    serviceName: baseServiceName,
     servicePriceCents: selectedPricingOption?.priceCents ?? 0,
-    addonDetails: buildAddonDetailsPayload(selectedAddonRows),
+    selectedAddOns: buildSelectedAddOnsForPublicApi(selectedAddonRows),
     durationMinutes: totalDurationMinutes,
     scheduledDate: selectedDateKey,
-    startTimeHhMmSs: startTimeToSqlTime(selectedTime),
-    customerName: customer.fullName.trim(),
-    customerEmail: String(customer.email ?? '').trim() || null,
-    customerPhoneDigits: bookingCustomerPhoneDigits(customer.phone),
-    street: address.street.trim(),
-    unit: address.unit?.trim() ?? '',
-    city: address.city.trim(),
-    state: address.state.trim(),
-    zip: address.zip.trim(),
-    vehicleYear: vehicle.year.trim(),
-    vehicleMake: vehicle.make.trim(),
-    vehicleModel: vehicle.model.trim(),
-    customerNotes: notesTrimmed,
+    startTime: startTime12hToApiStartTime(selectedTime),
+    paymentMethodSelected: 'none',
+    ownerManualBooking: true,
+    customer: {
+      fullName: customer.fullName.trim(),
+      email: String(customer.email ?? '').trim(),
+      phone: bookingCustomerPhoneDigits(customer.phone),
+      streetAddress: address.street.trim(),
+      unitApt: String(address.unit ?? '').trim(),
+      city: address.city.trim(),
+      state: String(address.state ?? '')
+        .trim()
+        .toUpperCase()
+        .slice(0, 2),
+      zip: address.zip.trim(),
+      vehicleYear: String(vehicle.year ?? '').trim(),
+      vehicleMake: String(vehicle.make ?? '').trim(),
+      vehicleModel: String(vehicle.model ?? '').trim(),
+      notes: notesTrimmed,
+    },
   };
+
+  const sid = selectedServiceId != null ? String(selectedServiceId).trim() : '';
+  if (sid) {
+    body.serviceId = sid;
+  }
+  if (optionLabel) {
+    body.servicePriceOptionLabel = optionLabel;
+  }
+
+  return body;
 }

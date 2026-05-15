@@ -1,27 +1,6 @@
+import { productionWebApiHttpsGuard } from '../../../lib/productionWebApiHttpsGuard';
 import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileCheckoutOrigin';
 import { quotesDebug, quotesDebugError } from '../utils/quotesDebug';
-
-/**
- * Contract: production traffic must use TLS (`https:`).
- * @param {string} origin
- * @returns {Error | null}
- */
-function productionHttpsGuard(origin) {
-  if (typeof __DEV__ !== 'undefined' && __DEV__) {
-    return null;
-  }
-  try {
-    const u = new URL(origin);
-    if (u.protocol !== 'https:') {
-      return new Error(
-        'Production quote API requires HTTPS — set EXPO_PUBLIC_WEB_APP_URL to an https:// origin.',
-      );
-    }
-  } catch {
-    return new Error('Invalid EXPO_PUBLIC_WEB_APP_URL');
-  }
-  return null;
-}
 
 function createRequestId() {
   if (globalThis.crypto?.randomUUID) {
@@ -87,7 +66,7 @@ export function mapSendQuoteHttpError(httpStatus, serverMessage) {
  */
 export async function postSendNewQuote(accessToken, body) {
   const origin = resolveStripeMobileCheckoutOrigin();
-  const httpsErr = productionHttpsGuard(origin);
+  const httpsErr = productionWebApiHttpsGuard(origin);
   if (httpsErr) {
     return { ok: false, error: httpsErr, httpStatus: 0 };
   }
@@ -144,7 +123,7 @@ export async function postSendNewQuote(accessToken, body) {
  */
 export async function postSendExistingQuote(accessToken, quoteId, body) {
   const origin = resolveStripeMobileCheckoutOrigin();
-  const httpsErr = productionHttpsGuard(origin);
+  const httpsErr = productionWebApiHttpsGuard(origin);
   if (httpsErr) {
     return { ok: false, error: httpsErr, httpStatus: 0 };
   }

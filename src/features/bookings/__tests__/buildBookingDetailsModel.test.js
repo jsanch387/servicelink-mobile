@@ -86,9 +86,10 @@ describe('buildBookingDetailsModel', () => {
       service_price_cents: 8000,
     });
     expect(model.payment.visible).toBe(false);
+    expect(model.payment.banner).toBeNull();
   });
 
-  it('shows pay in person variant when method is pay_in_person and no online paid', () => {
+  it('pay in person: banner + amount due line', () => {
     const model = buildBookingDetailsModel({
       payment: {
         paymentMethodSelected: 'pay_in_person',
@@ -99,12 +100,16 @@ describe('buildBookingDetailsModel', () => {
       },
     });
     expect(model.payment.visible).toBe(true);
-    expect(model.payment.rows[0].value).toBe('Pay in person');
-    expect(model.payment.rows[1].value).toMatch(/^Amount due: /);
-    expect(model.payment.rows[1].value).toMatch(/100\.00/);
+    expect(model.payment.variant).toBe('pay_in_person');
+    expect(model.payment.banner?.title).toBe('Pay in person');
+    expect(model.payment.banner?.tone).toBe('neutral');
+    expect(model.payment.lines).toHaveLength(1);
+    expect(model.payment.lines[0].label).toBe('Amount due');
+    expect(model.payment.lines[0].value).toMatch(/100\.00/);
+    expect(model.payment.lines[0].emphasize).toBe(true);
   });
 
-  it('pay in person with zero total shows no amount due copy', () => {
+  it('pay in person with zero total shows balance line', () => {
     const model = buildBookingDetailsModel({
       payment: {
         paymentMethodSelected: 'pay_in_person',
@@ -114,10 +119,11 @@ describe('buildBookingDetailsModel', () => {
         currency: 'usd',
       },
     });
-    expect(model.payment.rows[1].value).toBe('No amount due for this appointment.');
+    expect(model.payment.lines[0].label).toBe('Balance');
+    expect(model.payment.lines[0].value).toBe('No charge for this visit');
   });
 
-  it('shows deposit variant when online paid and remaining are both positive', () => {
+  it('deposit variant: banner + paid / due lines', () => {
     const model = buildBookingDetailsModel({
       payment: {
         paymentMethodSelected: 'pay_now',
@@ -128,16 +134,15 @@ describe('buildBookingDetailsModel', () => {
       },
     });
     expect(model.payment.visible).toBe(true);
-    expect(model.payment.rows.map((r) => r.value)).toEqual([
-      'Deposit paid',
-      expect.stringMatching(/^Amount paid: /),
-      expect.stringMatching(/^Amount due: /),
-    ]);
-    expect(model.payment.rows[1].value).toMatch(/50\.00/);
-    expect(model.payment.rows[2].value).toMatch(/50\.00/);
+    expect(model.payment.variant).toBe('deposit');
+    expect(model.payment.banner?.title).toBe('Deposit received');
+    expect(model.payment.lines.map((l) => l.label)).toEqual(['Paid online', 'Still due']);
+    expect(model.payment.lines[0].value).toMatch(/50\.00/);
+    expect(model.payment.lines[1].value).toMatch(/50\.00/);
+    expect(model.payment.lines[1].emphasize).toBe(true);
   });
 
-  it('shows paid in full when online paid positive and no remaining', () => {
+  it('paid in full: success banner + total line', () => {
     const model = buildBookingDetailsModel({
       payment: {
         paymentMethodSelected: 'pay_now',
@@ -148,13 +153,14 @@ describe('buildBookingDetailsModel', () => {
       },
     });
     expect(model.payment.visible).toBe(true);
-    expect(model.payment.rows[0].value).toBe('Paid');
-    expect(model.payment.rows[0].emphasize).toBe(true);
-    expect(model.payment.rows[1].value).toMatch(/^Amount paid: /);
-    expect(model.payment.rows[1].value).toMatch(/125\.00/);
+    expect(model.payment.variant).toBe('paid_full');
+    expect(model.payment.banner?.title).toBe('Paid in full');
+    expect(model.payment.banner?.tone).toBe('success');
+    expect(model.payment.lines[0].label).toBe('Total paid');
+    expect(model.payment.lines[0].value).toMatch(/125\.00/);
   });
 
-  it('pay_in_person with online paid uses deposit or paid_full, not pay_in_person headline', () => {
+  it('pay_in_person with online paid uses deposit variant', () => {
     const model = buildBookingDetailsModel({
       payment: {
         paymentMethodSelected: 'pay_in_person',
@@ -164,10 +170,11 @@ describe('buildBookingDetailsModel', () => {
         currency: 'usd',
       },
     });
-    expect(model.payment.rows[0].value).toBe('Deposit paid');
+    expect(model.payment.variant).toBe('deposit');
+    expect(model.payment.banner?.title).toBe('Deposit received');
   });
 
-  it('shows other variant for pay_now with no online payment', () => {
+  it('other variant for pay_now with no online payment', () => {
     const model = buildBookingDetailsModel({
       payment: {
         paymentMethodSelected: 'pay_now',
@@ -178,7 +185,24 @@ describe('buildBookingDetailsModel', () => {
       },
     });
     expect(model.payment.visible).toBe(true);
-    expect(model.payment.rows[0].value).toBe('No card payment through the app for this booking.');
+    expect(model.payment.variant).toBe('other');
+    expect(model.payment.banner?.title).toBe('No app card charge');
+    expect(model.payment.lines).toHaveLength(0);
+  });
+
+  it('method none (owner manual) uses pay in person presentation', () => {
+    const model = buildBookingDetailsModel({
+      payment: {
+        paymentMethodSelected: 'none',
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 15000,
+        totalAmountCents: 15000,
+        currency: 'usd',
+      },
+    });
+    expect(model.payment.variant).toBe('pay_in_person');
+    expect(model.payment.banner?.title).toBe('Pay in person');
+    expect(model.payment.lines[0].value).toMatch(/150\.00/);
   });
 
   it('accepts snake_case payment fields from raw rows', () => {
@@ -191,6 +215,7 @@ describe('buildBookingDetailsModel', () => {
         currency: 'usd',
       },
     });
-    expect(model.payment.rows[0].value).toBe('Pay in person');
+    expect(model.payment.banner?.title).toBe('Pay in person');
+    expect(model.payment.lines[0].label).toBe('Amount due');
   });
 });

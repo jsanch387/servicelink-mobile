@@ -108,16 +108,47 @@ function normalizeBookingPaymentSummary(raw) {
 }
 
 /**
- * Booking details Payment block — mirrors web `AvailabilityBookingDetailPanel` variant order.
- * Show section only when `payment` is present (merged `booking_payments` row), same as `showPaymentSection = Boolean(payment)`.
+ * @typedef {'neutral' | 'success' | 'accent' | 'muted'} BookingPaymentBannerTone
+ */
+
+/**
+ * @typedef {{
+ *   icon: import('@expo/vector-icons').IconProps['name'];
+ *   title: string;
+ *   subtitle?: string | null;
+ *   tone: BookingPaymentBannerTone;
+ * }} BookingPaymentBanner
+ */
+
+/**
+ * @typedef {{
+ *   key: string;
+ *   label: string;
+ *   value: string;
+ *   emphasize?: boolean;
+ * }} BookingPaymentLine
+ */
+
+/**
+ * @typedef {{
+ *   visible: boolean;
+ *   variant: 'pay_in_person' | 'deposit' | 'paid_full' | 'other' | null;
+ *   banner: BookingPaymentBanner | null;
+ *   lines: BookingPaymentLine[];
+ * }} BookingPaymentModel
+ */
+
+/**
+ * Booking details Payment block — variant logic aligned with web `AvailabilityBookingDetailPanel`.
+ * Show section only when `payment` is present (merged `booking_payments` row).
  *
  * @param {Record<string, unknown> | null | undefined} paymentRaw
- * @returns {{ visible: boolean; rows: { key: string; icon: string; value: string; emphasize?: boolean }[] }}
+ * @returns {BookingPaymentModel}
  */
 export function buildBookingPaymentSection(paymentRaw) {
   const payment = normalizeBookingPaymentSummary(paymentRaw);
   if (!payment) {
-    return { visible: false, rows: [] };
+    return { visible: false, variant: null, banner: null, lines: [] };
   }
 
   const paid = Math.max(0, Math.round(payment.paidOnlineAmountCents));
@@ -128,9 +159,17 @@ export function buildBookingPaymentSection(paymentRaw) {
   const total = Math.max(0, Math.round(payment.totalAmountCents));
   const fmt = (cents) => formatMoneyFromCents(cents, payment.currency);
 
+  /**
+   * In-person / no app checkout: explicit `pay_in_person`, or `none` from owner manual + web no-checkout
+   * (`POST /api/public/bookings` with `paymentMethodSelected: "none"` → `booking_payments.payment_method_selected`).
+   * Do not fold `pay_now` in here — zero online paid on pay_now stays the generic “other” copy.
+   */
+  const isCollectAtServiceNoOnlinePaid =
+    paid <= 0 && (method === 'pay_in_person' || method === 'none' || method === '');
+
   /** @type {'pay_in_person' | 'deposit' | 'paid_full' | 'other'} */
   let variant;
-  if (method === 'pay_in_person' && paid <= 0) {
+  if (isCollectAtServiceNoOnlinePaid) {
     variant = 'pay_in_person';
   } else if (paid > 0 && rem > 0) {
     variant = 'deposit';
@@ -141,30 +180,36 @@ export function buildBookingPaymentSection(paymentRaw) {
   }
 
   if (variant === 'pay_in_person') {
-    const rows = [{ key: 'pip-title', icon: 'cash-outline', value: 'Pay in person' }];
-    if (total > 0) {
-      rows.push({
-        key: 'pip-due',
-        icon: 'wallet-outline',
-        value: `Amount due: ${fmt(rem)}`,
-      });
-    } else {
-      rows.push({
-        key: 'pip-none',
-        icon: 'information-circle-outline',
-        value: 'No amount due for this appointment.',
-      });
-    }
-    return { visible: true, rows };
+    const lines =
+      total > 0
+        ? [{ key: 'due', label: 'Amount due', value: fmt(rem), emphasize: true }]
+        : [{ key: 'none', label: 'Balance', value: 'No charge for this visit', emphasize: false }];
+    return {
+      visible: true,
+      variant,
+      banner: {
+        icon: 'cash-outline',
+        title: 'Pay in person',
+        subtitle: 'Collect payment from the customer when you complete this appointment.',
+        tone: 'neutral',
+      },
+      lines,
+    };
   }
 
   if (variant === 'deposit') {
     return {
       visible: true,
-      rows: [
-        { key: 'dep-title', icon: 'wallet-outline', value: 'Deposit paid', emphasize: true },
-        { key: 'dep-paid', icon: 'card-outline', value: `Amount paid: ${fmt(paid)}` },
-        { key: 'dep-due', icon: 'wallet-outline', value: `Amount due: ${fmt(rem)}` },
+      variant,
+      banner: {
+        icon: 'card-outline',
+        title: 'Deposit received',
+        subtitle: 'Part of the total was paid online. The rest is still owed.',
+        tone: 'accent',
+      },
+      lines: [
+        { key: 'paid', label: 'Paid online', value: fmt(paid), emphasize: false },
+        { key: 'due', label: 'Still due', value: fmt(rem), emphasize: true },
       ],
     };
   }
@@ -172,27 +217,27 @@ export function buildBookingPaymentSection(paymentRaw) {
   if (variant === 'paid_full') {
     return {
       visible: true,
-      rows: [
-        {
-          key: 'full-title',
-          icon: 'checkmark-circle-outline',
-          value: 'Paid',
-          emphasize: true,
-        },
-        { key: 'full-paid', icon: 'card-outline', value: `Amount paid: ${fmt(paid)}` },
-      ],
+      variant,
+      banner: {
+        icon: 'checkmark-circle-outline',
+        title: 'Paid in full',
+        subtitle: 'Card payment was completed through the app.',
+        tone: 'success',
+      },
+      lines: [{ key: 'paid', label: 'Total paid', value: fmt(paid), emphasize: true }],
     };
   }
 
   return {
     visible: true,
-    rows: [
-      {
-        key: 'other',
-        icon: 'phone-portrait-outline',
-        value: 'No card payment through the app for this booking.',
-      },
-    ],
+    variant,
+    banner: {
+      icon: 'phone-portrait-outline',
+      title: 'No app card charge',
+      subtitle: 'No card payment was completed through the app for this booking.',
+      tone: 'muted',
+    },
+    lines: [],
   };
 }
 
