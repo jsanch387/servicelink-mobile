@@ -329,6 +329,10 @@ export function BookingsScreen() {
     styles.emptyWrap,
   ]);
 
+  const onFreeTierUpgradePress = useCallback(() => {
+    navigation.navigate(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS });
+  }, [navigation]);
+
   const freeTierUsageStrip = useMemo(() => {
     if (!showFreeTierUsage) {
       return null;
@@ -340,6 +344,7 @@ export function BookingsScreen() {
           limit={freeTierUsage.limit}
           loading={freeTierUsageStripLoading}
           used={resolvedFreeBookingUsed}
+          onUpgradePress={onFreeTierUpgradePress}
         />
       </View>
     );
@@ -350,6 +355,7 @@ export function BookingsScreen() {
     freeTierUsageStripError,
     freeTierUsageStripLoading,
     resolvedFreeBookingUsed,
+    onFreeTierUpgradePress,
   ]);
 
   return (

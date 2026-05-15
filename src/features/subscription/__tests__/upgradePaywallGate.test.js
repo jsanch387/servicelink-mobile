@@ -56,12 +56,27 @@ describe('upgradePaywallGate', () => {
     ).toBe(false);
   });
 
-  it('touched Stripe + not Pro → full-screen paywall when stable', () => {
+  it('explicit free tier + prior Stripe (canceled) → no full-screen paywall when stable', () => {
     expect(
       shouldShowFullScreenSubscriptionPaywall({
         isPaywallDataStable: true,
         hasProAccess: false,
         ownerProfile: churnedOwner,
+      }),
+    ).toBe(false);
+  });
+
+  it('pro tier + canceled + Stripe ids + not Pro → full-screen paywall when stable', () => {
+    expect(
+      shouldShowFullScreenSubscriptionPaywall({
+        isPaywallDataStable: true,
+        hasProAccess: false,
+        ownerProfile: {
+          subscription_tier: 'pro',
+          subscription_status: 'canceled',
+          stripe_subscription_id: 'sub_dead',
+          stripe_customer_id: 'cus_1',
+        },
       }),
     ).toBe(true);
   });

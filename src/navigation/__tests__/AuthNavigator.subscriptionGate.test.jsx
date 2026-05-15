@@ -87,7 +87,7 @@ describe('AuthNavigator subscription gate', () => {
     expect(screen.queryByTestId('subscription-boot')).toBeNull();
   });
 
-  it('shows full-screen upgrade when Stripe history exists but user is not Pro (cohort B)', () => {
+  it('shows main tabs when explicit free tier with Stripe remnants after cancel (not paywalled)', () => {
     useSubscription.mockReturnValue({
       hasProAccess: false,
       isPaywallDataStable: true,
@@ -96,6 +96,25 @@ describe('AuthNavigator subscription gate', () => {
         subscription_tier: 'free',
         stripe_customer_id: 'cus_legacy',
         subscription_status: 'canceled',
+      },
+    });
+
+    renderWithProviders(<AuthNavigator />);
+    expect(screen.getByTestId('main-tabs')).toBeTruthy();
+    expect(screen.queryByTestId('fullscreen-paywall')).toBeNull();
+    expect(screen.queryByTestId('subscription-boot')).toBeNull();
+  });
+
+  it('shows full-screen upgrade when Pro tier lost access but not flipped to free (cohort B)', () => {
+    useSubscription.mockReturnValue({
+      hasProAccess: false,
+      isPaywallDataStable: true,
+      isLoading: false,
+      ownerProfile: {
+        subscription_tier: 'pro',
+        subscription_status: 'canceled',
+        stripe_customer_id: 'cus_legacy',
+        stripe_subscription_id: 'sub_dead',
       },
     });
 

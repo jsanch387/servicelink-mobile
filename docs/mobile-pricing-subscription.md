@@ -34,19 +34,20 @@ Direct Supabase reads (e.g. booking link) still use the same **`profiles`** row 
 
 `true` if **any** of these is non-empty after trim: `stripe_customer_id`, `stripe_subscription_id`, `subscription_status`.
 
-Used only for **full-screen upgrade** gating (see below). **Legacy never-billed Free** has none of these set → not cohort B.
+Used for **full-screen upgrade** gating (see below), together with **`isExplicitFreeSubscriptionTier`**: if the profile tier is explicitly `free` / `free_tier`, the user is **not** paywalled full-screen even when these fields are still set after cancel. **Legacy never-billed Free** has none of these set → not cohort B.
 
 ---
 
 ## Scenarios → mobile behavior
 
-| Scenario                                                              | `hasProAccess` | `hasStripeBillingHistory`    | Main app tabs | Notes                                                                                                                                         |
-| --------------------------------------------------------------------- | -------------- | ---------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Never billed Free** (no Stripe ids, no status string)               | `false`        | `false`                      | **Yes**       | Full navigation; **Free limits** apply in individual screens (bookings count, services count, gallery, quotes toggle, payments upsell, etc.). |
-| **Trialing** (Pro tier + `trialing` + sub id)                         | `true`         | usually `true`               | **Yes**       | Same Pro surfaces as paid.                                                                                                                    |
-| **Pro paying** (`active` + sub id + Pro tier)                         | `true`         | `true`                       | **Yes**       |                                                                                                                                               |
-| **Comped / manual Pro** (Pro tier, **no** customer id, **no** sub id) | `true`         | `false` if status also empty | **Yes**       | Matches web comped rules.                                                                                                                     |
-| **Churned / unpaid** (cohort B, not Pro)                              | `false`        | `true`                       | **Blocked**   | `UpgradePaywallScreen` when `ENABLE_FULL_SCREEN_UPGRADE_PAYWALL` is `true`.                                                                   |
+| Scenario                                                                                      | `hasProAccess` | `hasStripeBillingHistory`    | Main app tabs | Notes                                                                                                                                         |
+| --------------------------------------------------------------------------------------------- | -------------- | ---------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Never billed Free** (no Stripe ids, no status string)                                       | `false`        | `false`                      | **Yes**       | Full navigation; **Free limits** apply in individual screens (bookings count, services count, gallery, quotes toggle, payments upsell, etc.). |
+| **Trialing** (Pro tier + `trialing` + sub id)                                                 | `true`         | usually `true`               | **Yes**       | Same Pro surfaces as paid.                                                                                                                    |
+| **Pro paying** (`active` + sub id + Pro tier)                                                 | `true`         | `true`                       | **Yes**       |                                                                                                                                               |
+| **Comped / manual Pro** (Pro tier, **no** customer id, **no** sub id)                         | `true`         | `false` if status also empty | **Yes**       | Matches web comped rules.                                                                                                                     |
+| **Churned to explicit Free** (tier `free` / `free_tier`, may still have customer id / status) | `false`        | often `true`                 | **Yes**       | Full-screen paywall **off**; same as never-billed for navigation — free limits in screens.                                                    |
+| **Churned Pro tier** (still `pro` in DB + canceled / unpaid + Stripe history, not entitled)   | `false`        | `true`                       | **Blocked**   | `UpgradePaywallScreen` when paywall flag on — resubscribe or billing portal until tier flips to free.                                         |
 
 ---
 
@@ -65,13 +66,13 @@ Trials (`trialing`) and paid (`active`) are both Pro when Stripe subscription id
 
 ## Full-screen upgrade paywall
 
-| Item              | Detail                                                                                                                                                    |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Purpose**       | Align **cohort B** (touched Stripe) who **lost Pro** with web: resolve billing or subscribe before using the tabbed app.                                  |
-| **Gate**          | `shouldShowFullScreenSubscriptionPaywall` in `src/features/subscription/upgradePaywallGate.js`.                                                           |
-| **Condition**     | `ENABLE_FULL_SCREEN_UPGRADE_PAYWALL` **`&&`** `isPaywallDataStable` **`&&`** `!hasProAccess` **`&&`** `hasStripeBillingHistoryFromProfile(ownerProfile)`. |
-| **Stability**     | `isPaywallDataStable` from `SubscriptionContext` avoids flashing paywall during refetches (e.g. after onboarding Checkout).                               |
-| **Master switch** | `ENABLE_FULL_SCREEN_UPGRADE_PAYWALL`. Set **`false`** to allow cohort B back into tabs with **in-screen** upsells only (product choice).                  |
+| Item              | Detail                                                                                                                                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Purpose**       | Align **cohort B** (touched Stripe) who **lost Pro** with web: resolve billing or subscribe before using the tabbed app.                                                                                           |
+| **Gate**          | `shouldShowFullScreenSubscriptionPaywall` in `src/features/subscription/upgradePaywallGate.js`.                                                                                                                    |
+| **Condition**     | `ENABLE_FULL_SCREEN_UPGRADE_PAYWALL` **`&&`** `isPaywallDataStable` **`&&`** `!hasProAccess` **`&&`** `!isExplicitFreeSubscriptionTier(ownerProfile)` **`&&`** `hasStripeBillingHistoryFromProfile(ownerProfile)`. |
+| **Stability**     | `isPaywallDataStable` from `SubscriptionContext` avoids flashing paywall during refetches (e.g. after onboarding Checkout).                                                                                        |
+| **Master switch** | `ENABLE_FULL_SCREEN_UPGRADE_PAYWALL`. Set **`false`** to allow cohort B back into tabs with **in-screen** upsells only (product choice).                                                                           |
 
 **Mounted in:** `src/navigation/AuthNavigator.jsx` (needs `ownerProfile` from `useSubscription()`).
 

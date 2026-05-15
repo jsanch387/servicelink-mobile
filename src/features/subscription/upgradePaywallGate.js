@@ -1,16 +1,18 @@
 import {
   hasProAccessFromProfile,
   hasStripeBillingHistoryFromProfile,
+  isExplicitFreeSubscriptionTier,
 } from '../more/utils/subscriptionPresentation';
 
 /**
  * ## Upgrade paywall (mobile) — when to show `UpgradePaywallScreen`
  *
- * **Web parity (cohort B)**
- * After onboarding, users who have **Stripe billing history** (`hasStripeBillingHistory` on web)
- * but **do not** pass `isProAccess` must see the upgrade experience until they resubscribe.
- * Legacy never-billed Free users (**no** customer id, **no** subscription id, **no** status string)
- * keep full app navigation and hit Free limits inside screens — same as web dashboard rules.
+ * **Web parity (cohort B)** — after onboarding, users who have **Stripe billing history**
+ * (`hasStripeBillingHistory` on web) but **do not** pass `isProAccess` were originally
+ * shown the upgrade experience until they resubscribe. **Mobile adjustment:** if the
+ * profile is explicitly **free tier** (`subscription_tier` `free` / `free_tier`), we
+ * treat them like never-billed free: main tabs + in-app limits, even when `stripe_customer_id`
+ * or `subscription_status` still reflects a past subscription.
  *
  * **Pro detection** — single source: `hasProAccessFromProfile` / `isProAccess` in
  * `subscriptionPresentation.js` (aligned with web `isProAccess.ts`).
@@ -66,6 +68,7 @@ export function shouldShowFullScreenSubscriptionPaywall({
   if (!ENABLE_FULL_SCREEN_UPGRADE_PAYWALL) return false;
   if (DEV_FORCE_UPGRADE_PAYWALL_IN_HOME_TAB) return true;
   if (!Boolean(isPaywallDataStable) || hasProAccess) return false;
+  if (isExplicitFreeSubscriptionTier(ownerProfile)) return false;
   return hasStripeBillingHistoryFromProfile(ownerProfile);
 }
 

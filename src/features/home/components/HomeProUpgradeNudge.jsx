@@ -72,6 +72,7 @@ export function HomeProUpgradeNudge({
           height: 24,
           justifyContent: 'center',
           marginRight: 10,
+          transform: [{ translateY: 3 }],
           width: 24,
         },
         label: {
@@ -124,13 +125,11 @@ export function HomeProUpgradeNudge({
         onPress={onPress}
       >
         <View style={styles.row}>
-          {!capMode ? (
-            <View style={styles.iconSlot}>
-              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <ProCrownIcon color={PRO_CROWN_COLOR_FEATURE} size={17} />
-              </View>
+          <View style={styles.iconSlot}>
+            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <ProCrownIcon color={PRO_CROWN_COLOR_FEATURE} size={17} />
             </View>
-          ) : null}
+          </View>
           {capMode ? (
             <View style={styles.textColumn}>
               <AppText includeFontPadding={false} style={styles.label}>

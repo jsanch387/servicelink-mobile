@@ -1,14 +1,26 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 
 /**
- * One-line Free plan booking usage (e.g. `3 / 5`).
+ * One-line Free plan booking usage (e.g. `3 / 5 free bookings`) + Upgrade to Account.
  *
- * @param {{ used?: number; limit: number; loading?: boolean; error?: boolean }} props
+ * @param {{
+ *   used?: number;
+ *   limit: number;
+ *   loading?: boolean;
+ *   error?: boolean;
+ *   onUpgradePress?: () => void;
+ * }} props
  */
-export function BookingsFreeTierUsageStrip({ used, limit, loading = false, error = false }) {
+export function BookingsFreeTierUsageStrip({
+  used,
+  limit,
+  loading = false,
+  error = false,
+  onUpgradePress,
+}) {
   const { colors } = useTheme();
 
   const styles = useMemo(
@@ -50,22 +62,21 @@ export function BookingsFreeTierUsageStrip({ used, limit, loading = false, error
           fontWeight: '500',
           letterSpacing: -0.1,
         },
-        badge: {
-          borderColor: colors.border,
+        upgradePressable: {
+          borderColor: colors.accent,
           borderRadius: 6,
           borderWidth: 1,
           flexShrink: 0,
           marginLeft: 10,
-          paddingHorizontal: 8,
-          paddingVertical: 3,
+          paddingHorizontal: 10,
+          paddingVertical: 5,
         },
-        badgeText: {
-          color: colors.textMuted,
+        upgradeText: {
+          color: colors.accent,
           fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: '600',
-          letterSpacing: 0.4,
-          textTransform: 'uppercase',
+          letterSpacing: 0.3,
         },
       }),
     [colors],
@@ -81,32 +92,46 @@ export function BookingsFreeTierUsageStrip({ used, limit, loading = false, error
     return `${used} / ${limit}`;
   }, [error, loading, used, limit]);
 
+  const summaryA11y = useMemo(() => {
+    if (error) {
+      return 'Free plan booking usage unavailable';
+    }
+    if (loading || used === undefined) {
+      return 'Loading free plan booking usage';
+    }
+    return `Free plan: ${used} of ${limit} free bookings used`;
+  }, [error, loading, used, limit]);
+
   return (
-    <View
-      accessibilityLabel={
-        error
-          ? 'Free plan booking usage unavailable'
-          : loading || used === undefined
-            ? 'Loading free plan booking usage'
-            : `Free plan: ${used} of ${limit} bookings used`
-      }
-      accessibilityRole="text"
-      style={styles.wrap}
-    >
+    <View style={styles.wrap}>
       <View style={styles.row}>
-        <View style={styles.left}>
+        <View
+          accessibilityLabel={summaryA11y}
+          accessibilityRole="text"
+          accessible
+          style={styles.left}
+        >
           <AppText includeFontPadding={false} style={styles.count}>
             {countLabel}
           </AppText>
           <AppText includeFontPadding={false} numberOfLines={1} style={styles.suffix}>
-            bookings
+            free bookings
           </AppText>
         </View>
-        <View style={styles.badge}>
-          <AppText includeFontPadding={false} style={styles.badgeText}>
-            Free
-          </AppText>
-        </View>
+        {onUpgradePress ? (
+          <Pressable
+            accessibilityHint="Opens Account to manage your plan"
+            accessibilityLabel="Upgrade"
+            accessibilityRole="button"
+            hitSlop={8}
+            style={({ pressed }) => [styles.upgradePressable, pressed && { opacity: 0.85 }]}
+            onPress={onUpgradePress}
+          >
+            <AppText includeFontPadding={false} style={styles.upgradeText}>
+              Upgrade
+            </AppText>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );

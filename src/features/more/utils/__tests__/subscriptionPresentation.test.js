@@ -1,6 +1,7 @@
 import {
   hasProAccessFromProfile,
   hasStripeBillingHistoryFromProfile,
+  isExplicitFreeSubscriptionTier,
   isProAccess,
 } from '../subscriptionPresentation';
 
@@ -84,5 +85,19 @@ describe('hasStripeBillingHistoryFromProfile', () => {
     expect(hasStripeBillingHistoryFromProfile({ stripe_customer_id: 'cus_1' })).toBe(true);
     expect(hasStripeBillingHistoryFromProfile({ stripe_subscription_id: 'sub_1' })).toBe(true);
     expect(hasStripeBillingHistoryFromProfile({ subscription_status: 'canceled' })).toBe(true);
+  });
+});
+
+describe('isExplicitFreeSubscriptionTier', () => {
+  it('false when row missing or tier not free', () => {
+    expect(isExplicitFreeSubscriptionTier(null)).toBe(false);
+    expect(isExplicitFreeSubscriptionTier({ subscription_tier: 'pro' })).toBe(false);
+    expect(isExplicitFreeSubscriptionTier({ subscription_tier: '' })).toBe(false);
+  });
+
+  it('true for free and free_tier', () => {
+    expect(isExplicitFreeSubscriptionTier({ subscription_tier: 'free' })).toBe(true);
+    expect(isExplicitFreeSubscriptionTier({ subscription_tier: 'FREE' })).toBe(true);
+    expect(isExplicitFreeSubscriptionTier({ subscription_tier: 'free_tier' })).toBe(true);
   });
 });

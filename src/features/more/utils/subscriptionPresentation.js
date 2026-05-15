@@ -31,6 +31,21 @@ function tierIsPro(tier) {
   return tier.includes('pro');
 }
 
+/**
+ * True when `profiles.subscription_tier` is the free product (`free` / `free_tier`).
+ * Used by the full-screen upgrade gate: users returned to the free tier after cancel,
+ * failed payment, or period end should use the main app with free limits — not be
+ * blocked because Stripe customer / status fields are still populated.
+ *
+ * @param {Record<string, unknown> | null | undefined} row
+ * @returns {boolean}
+ */
+export function isExplicitFreeSubscriptionTier(row) {
+  if (!row || typeof row !== 'object') return false;
+  const tier = normalizeTier(row.subscription_tier);
+  return tier === 'free' || tier === 'free_tier';
+}
+
 function nonEmpty(v) {
   return Boolean(String(v ?? '').trim());
 }

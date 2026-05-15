@@ -7,6 +7,9 @@ import {
   BOOKINGS_FILTER_UPCOMING,
 } from '../constants';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
+import { ROUTES } from '../../../routes/routes';
+
+const mockNavigate = jest.fn();
 
 jest.mock('@react-navigation/bottom-tabs', () => ({
   useBottomTabBarHeight: () => 0,
@@ -18,7 +21,7 @@ jest.mock('@react-navigation/native', () => {
     useFocusEffect: (cb) => {
       R.useEffect(() => cb(), []);
     },
-    useNavigation: () => ({ navigate: jest.fn() }),
+    useNavigation: () => ({ navigate: mockNavigate }),
   };
 });
 
@@ -150,7 +153,24 @@ describe('BookingsScreen list empty states', () => {
       isError: false,
     });
     renderWithProviders(<BookingsScreen />);
-    expect(screen.getByLabelText('Free plan: 2 of 5 bookings used')).toBeTruthy();
+    expect(screen.getByLabelText('Free plan: 2 of 5 free bookings used')).toBeTruthy();
+    expect(screen.getByLabelText('Upgrade')).toBeTruthy();
+  });
+
+  it('navigates to Account when Upgrade is pressed on the free tier strip', () => {
+    useSubscription.mockReturnValue({
+      hasProAccess: false,
+      isOwnerProfileLoaded: true,
+    });
+    useBookingsFreeTierUsage.mockReturnValue({
+      used: 2,
+      limit: 5,
+      isLoading: false,
+      isError: false,
+    });
+    renderWithProviders(<BookingsScreen />);
+    fireEvent.press(screen.getByLabelText('Upgrade'));
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS });
   });
 
   it('prefers business_profiles.free_bookings_count for the usage strip when set', () => {
@@ -170,7 +190,7 @@ describe('BookingsScreen list empty states', () => {
       isError: false,
     });
     renderWithProviders(<BookingsScreen />);
-    expect(screen.getByLabelText('Free plan: 5 of 5 bookings used')).toBeTruthy();
+    expect(screen.getByLabelText('Free plan: 5 of 5 free bookings used')).toBeTruthy();
   });
 
   it('shows profile booking count when head-count query errors but free_bookings_count exists', () => {
@@ -190,7 +210,7 @@ describe('BookingsScreen list empty states', () => {
       isError: true,
     });
     renderWithProviders(<BookingsScreen />);
-    expect(screen.getByLabelText('Free plan: 4 of 5 bookings used')).toBeTruthy();
+    expect(screen.getByLabelText('Free plan: 4 of 5 free bookings used')).toBeTruthy();
   });
 
   it('requests Past filter when the Past tab is pressed', () => {
