@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import { hasProAccessFromProfile } from '../../more/utils/subscriptionPresentation';
 
 const MEDIA_BUCKET_NAME = 'business_images';
 
@@ -195,7 +196,7 @@ export async function normalizeMobileBusinessProfile({
   servicesRows,
   imagesRows,
 }) {
-  const hasPro = hasProAccess(ownerProfileRow);
+  const hasPro = hasProAccessFromProfile(ownerProfileRow);
   const cacheVersion = Date.now();
   const logoUrl = getMediaPublicUrl(businessProfileRow?.logo_path, cacheVersion);
   const bannerUrl = getMediaPublicUrl(businessProfileRow?.banner_path, cacheVersion);
@@ -232,42 +233,9 @@ export async function normalizeMobileBusinessProfile({
   };
 }
 
-/** Exported for account / billing UI — same rules as verified Pro badge on the booking profile. */
+/** Same as `SubscriptionContext.hasProAccess` / web `isProAccess` — single source of truth. */
 export function ownerHasProAccess(ownerProfileRow) {
-  return hasProAccess(ownerProfileRow);
-}
-
-function hasProAccess(ownerProfileRow) {
-  if (!ownerProfileRow || typeof ownerProfileRow !== 'object') return false;
-
-  const booleanFlags = [
-    'is_pro',
-    'pro_access',
-    'is_verified',
-    'verified_business',
-    'has_pro_access',
-    'subscription_active',
-  ];
-  for (const key of booleanFlags) {
-    if (ownerProfileRow[key] === true) return true;
-  }
-
-  const tierRaw =
-    ownerProfileRow.subscription_tier ??
-    ownerProfileRow.plan_tier ??
-    ownerProfileRow.tier ??
-    ownerProfileRow.subscription_plan ??
-    ownerProfileRow.membership_tier ??
-    '';
-  const tier = String(tierRaw).trim().toLowerCase();
-  if (tier.includes('pro')) return true;
-
-  const status = String(ownerProfileRow.subscription_status ?? '')
-    .trim()
-    .toLowerCase();
-  if (tier && (status === 'active' || status === 'trialing')) return true;
-
-  return false;
+  return hasProAccessFromProfile(ownerProfileRow);
 }
 
 function getMediaPublicUrl(storagePath, cacheVersion) {

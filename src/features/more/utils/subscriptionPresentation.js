@@ -21,10 +21,42 @@ function formatLongDate(d) {
   });
 }
 
+function normalizeTier(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase();
+}
+
+function tierIsPro(tier) {
+  return tier.includes('pro');
+}
+
+function nonEmpty(v) {
+  return Boolean(String(v ?? '').trim());
+}
+
 /**
- * Web-parity call shape: `isProAccess(tier, periodEnd, status, subId, customerId)`.
+ * Web parity: `hasStripeBillingHistory` — any of customer id, subscription id, or subscription
+ * status string means the user is not “legacy never-billed Free” for paywall purposes.
+ *
+ * @param {Record<string, unknown> | null | undefined} row
+ * @returns {boolean}
+ */
+export function hasStripeBillingHistoryFromProfile(row) {
+  if (!row || typeof row !== 'object') return false;
+  return (
+    nonEmpty(row.stripe_customer_id) ||
+    nonEmpty(row.stripe_subscription_id) ||
+    nonEmpty(row.subscription_status)
+  );
+}
+
+/**
+ * Web parity: `isProAccess` (see web `src/features/pricing/utils/isProAccess.ts`).
+ * Access is **not** derived from `subscription_current_period_end` — status + tier are SoT.
+ *
  * @param {unknown} subscriptionTier
- * @param {unknown} subscriptionCurrentPeriodEnd
+ * @param {unknown} _subscriptionCurrentPeriodEndUnused — kept for call-site stability; ignored
  * @param {unknown} subscriptionStatus
  * @param {unknown} stripeSubscriptionId
  * @param {unknown} stripeCustomerId
@@ -32,30 +64,36 @@ function formatLongDate(d) {
  */
 export function isProAccess(
   subscriptionTier,
-  subscriptionCurrentPeriodEnd,
+  _subscriptionCurrentPeriodEndUnused,
   subscriptionStatus,
   stripeSubscriptionId,
   stripeCustomerId,
 ) {
-  const tier = String(subscriptionTier ?? '')
-    .trim()
-    .toLowerCase();
-  if (tier.includes('pro')) return true;
+  const tier = normalizeTier(subscriptionTier);
+  const subId = String(stripeSubscriptionId ?? '').trim();
+  const cusId = String(stripeCustomerId ?? '').trim();
+  const statusRaw = String(subscriptionStatus ?? '').trim();
+  const status = statusRaw.toLowerCase();
 
-  const status = String(subscriptionStatus ?? '')
-    .trim()
-    .toLowerCase();
-  const hasStripeRefs =
-    Boolean(String(stripeSubscriptionId ?? '').trim()) &&
-    Boolean(String(stripeCustomerId ?? '').trim());
-  if (!hasStripeRefs) return false;
+  if (tier === 'free' || tier === 'free_tier') {
+    return false;
+  }
 
-  const periodEnd = parseProfileDate(subscriptionCurrentPeriodEnd);
-  if (!periodEnd) return false;
-  const hasTimeRemaining = periodEnd.getTime() > Date.now();
-  if (!hasTimeRemaining) return false;
+  if (tierIsPro(tier) && !subId && !cusId) {
+    return true;
+  }
 
-  return ['active', 'trialing', 'past_due', 'canceled', 'cancelled'].includes(status);
+  if (subId) {
+    if (!tierIsPro(tier)) {
+      return false;
+    }
+    if (statusRaw === '') {
+      return true;
+    }
+    return status === 'active' || status === 'trialing';
+  }
+
+  return false;
 }
 
 /**

@@ -48,7 +48,7 @@ export function AuthNavigator() {
   const { session, isReady, user } = useAuth();
   const { needsOnboarding, isGateReady, postActivationHandoff, endPostActivationHandoff } =
     useOnboardingGate();
-  const { hasProAccess, isPaywallDataStable, isLoading } = useSubscription();
+  const { hasProAccess, isPaywallDataStable, isLoading, ownerProfile } = useSubscription();
 
   /** After activation, keep branded loader over the stack until main app has mounted, then brief hold so deep-link doesn’t flash. */
   useEffect(() => {
@@ -63,7 +63,11 @@ export function AuthNavigator() {
 
   const isPaywallBlocking =
     Boolean(session && !needsOnboarding) &&
-    shouldShowFullScreenSubscriptionPaywall({ isPaywallDataStable, hasProAccess });
+    shouldShowFullScreenSubscriptionPaywall({
+      isPaywallDataStable,
+      hasProAccess,
+      ownerProfile,
+    });
 
   const mainAppSubscriptionBooting =
     Boolean(session && !needsOnboarding && user?.id) && isLoading && !isPaywallBlocking;

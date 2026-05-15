@@ -64,6 +64,7 @@ describe('AuthNavigator subscription gate', () => {
       hasProAccess: false,
       isPaywallDataStable: false,
       isLoading: true,
+      ownerProfile: null,
     });
 
     renderWithProviders(<AuthNavigator />);
@@ -72,11 +73,12 @@ describe('AuthNavigator subscription gate', () => {
     expect(screen.queryByTestId('fullscreen-paywall')).toBeNull();
   });
 
-  it('shows main tabs when stable and user lacks Pro (full-screen paywall master switch off)', () => {
+  it('shows main tabs for never-billed Free when stable (no Stripe history cohort)', () => {
     useSubscription.mockReturnValue({
       hasProAccess: false,
       isPaywallDataStable: true,
       isLoading: false,
+      ownerProfile: { subscription_tier: 'free' },
     });
 
     renderWithProviders(<AuthNavigator />);
@@ -85,11 +87,30 @@ describe('AuthNavigator subscription gate', () => {
     expect(screen.queryByTestId('subscription-boot')).toBeNull();
   });
 
+  it('shows full-screen upgrade when Stripe history exists but user is not Pro (cohort B)', () => {
+    useSubscription.mockReturnValue({
+      hasProAccess: false,
+      isPaywallDataStable: true,
+      isLoading: false,
+      ownerProfile: {
+        subscription_tier: 'free',
+        stripe_customer_id: 'cus_legacy',
+        subscription_status: 'canceled',
+      },
+    });
+
+    renderWithProviders(<AuthNavigator />);
+    expect(screen.getByTestId('fullscreen-paywall')).toBeTruthy();
+    expect(screen.queryByTestId('main-tabs')).toBeNull();
+    expect(screen.queryByTestId('subscription-boot')).toBeNull();
+  });
+
   it('shows main tabs when user has Pro access', () => {
     useSubscription.mockReturnValue({
       hasProAccess: true,
       isPaywallDataStable: true,
       isLoading: false,
+      ownerProfile: { subscription_tier: 'pro' },
     });
 
     renderWithProviders(<AuthNavigator />);
@@ -103,6 +124,10 @@ describe('AuthNavigator subscription gate', () => {
       hasProAccess: false,
       isPaywallDataStable: false,
       isLoading: false,
+      ownerProfile: {
+        subscription_tier: 'free',
+        stripe_customer_id: 'cus_legacy',
+      },
     });
 
     renderWithProviders(<AuthNavigator />);
