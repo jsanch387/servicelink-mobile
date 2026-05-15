@@ -1,6 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, View } from 'react-native';
 import { AppText, DashedBorderFrame } from '../../../../components/ui';
+import {
+  BOOKING_LINK_GALLERY_MAX_IMAGES_FREE,
+  BOOKING_LINK_GALLERY_MAX_IMAGES_PRO,
+} from '../constants/galleryLayout';
 import { portfolioImageKey } from '../../utils/portfolio';
 
 export function BookingLinkEditGallerySection({
@@ -15,6 +19,8 @@ export function BookingLinkEditGallerySection({
   onRemovePortfolioImage,
   onRemoveLocalGalleryItem,
   galleryTileStyle,
+  showFreeGalleryLimitHint,
+  onUpgradeToProPress,
 }) {
   const addDisabled = !canAddGalleryImage;
   const hasGalleryImages = visiblePortfolioImages.length + localGalleryUris.length > 0;
@@ -25,6 +31,32 @@ export function BookingLinkEditGallerySection({
       <AppText style={styles.sectionBody}>
         Add up to {galleryMaxImages} images so customers can see your work.
       </AppText>
+
+      {showFreeGalleryLimitHint ? (
+        <View
+          style={[
+            styles.freeTierGalleryHint,
+            {
+              backgroundColor: colors.shellElevated,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Ionicons color={colors.textMuted} name="information-circle-outline" size={18} />
+          <AppText style={[styles.freeTierGalleryHintText, { color: colors.textMuted }]}>
+            Free plan includes up to {BOOKING_LINK_GALLERY_MAX_IMAGES_FREE} gallery photos. Pro
+            allows up to {BOOKING_LINK_GALLERY_MAX_IMAGES_PRO}.{' '}
+            <AppText
+              accessibilityRole="link"
+              onPress={onUpgradeToProPress}
+              style={{ color: colors.accent, fontWeight: '600' }}
+            >
+              Upgrade to Pro
+            </AppText>{' '}
+            to add more.
+          </AppText>
+        </View>
+      ) : null}
 
       <DashedBorderFrame
         borderRadius={20}

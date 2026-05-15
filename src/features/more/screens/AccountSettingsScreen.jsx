@@ -30,6 +30,8 @@ import {
   buildSubscriptionCardModel,
 } from '../utils/accountSettingsModel';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import { createPaywallUpgradeCheckoutSession } from '../../subscription/api/createPaywallUpgradeCheckoutSession';
+import { STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL } from '../../subscription/constants/stripePaywallCheckoutReturnUrl';
 
 export function AccountSettingsScreen() {
   const { colors } = useTheme();
@@ -41,6 +43,7 @@ export function AccountSettingsScreen() {
   const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
   const [deleteEmailConfirmed, setDeleteEmailConfirmed] = useState(false);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  const [upgradeCheckoutSubmitting, setUpgradeCheckoutSubmitting] = useState(false);
 
   const {
     ownerProfile,
@@ -154,10 +157,10 @@ export function AccountSettingsScreen() {
         },
         signedInEmail: {
           color: colors.text,
-          fontSize: 15,
-          fontWeight: '600',
-          letterSpacing: -0.2,
-          lineHeight: 20,
+          fontSize: 13,
+          fontWeight: '500',
+          letterSpacing: -0.05,
+          lineHeight: 18,
         },
         signedInHint: {
           color: colors.textMuted,
@@ -216,21 +219,48 @@ export function AccountSettingsScreen() {
       return;
     }
 
-    const created = await createBillingPortalSession();
-    if ('error' in created) {
-      Alert.alert(
-        'Could not open billing portal',
-        safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
-      );
+    if (subscriptionModel.showProCrown) {
+      const created = await createBillingPortalSession();
+      if ('error' in created) {
+        Alert.alert(
+          'Could not open billing portal',
+          safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
+        );
+        return;
+      }
+
+      try {
+        await WebBrowser.openAuthSessionAsync(created.url, STRIPE_BILLING_PORTAL_AUTH_RETURN_URL);
+      } finally {
+        await refetchAccountAfterPortal({ userId });
+      }
       return;
     }
 
+    setUpgradeCheckoutSubmitting(true);
     try {
-      await WebBrowser.openAuthSessionAsync(created.url, STRIPE_BILLING_PORTAL_AUTH_RETURN_URL);
+      const created = await createPaywallUpgradeCheckoutSession(token);
+      if ('error' in created) {
+        Alert.alert(
+          'Could not start checkout',
+          safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
+        );
+        return;
+      }
+      try {
+        await WebBrowser.openAuthSessionAsync(created.url, STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL);
+      } finally {
+        await refetchAccountAfterPortal({ userId });
+      }
+    } catch (e) {
+      Alert.alert(
+        'Checkout',
+        safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
+      );
     } finally {
-      await refetchAccountAfterPortal({ userId });
+      setUpgradeCheckoutSubmitting(false);
     }
-  }, [createBillingPortalSession, session?.access_token, user?.id]);
+  }, [createBillingPortalSession, session?.access_token, subscriptionModel.showProCrown, user?.id]);
 
   const handleOpenBookingPage = useCallback(() => {
     if (!linkModel.httpsUrl) return;
@@ -320,7 +350,7 @@ export function AccountSettingsScreen() {
                   <AppText selectable numberOfLines={2} style={styles.signedInEmail}>
                     {signedInEmail}
                   </AppText>
-                  <AppText style={styles.signedInHint}>Sign in with this email</AppText>
+                  <AppText style={styles.signedInHint}>Signed in with this email</AppText>
                 </View>
               </View>
             </SurfaceCard>
@@ -372,7 +402,7 @@ export function AccountSettingsScreen() {
                 <AppText selectable numberOfLines={2} style={styles.signedInEmail}>
                   {signedInEmail}
                 </AppText>
-                <AppText style={styles.signedInHint}>Sign in with this email</AppText>
+                <AppText style={styles.signedInHint}>Signed in with this email</AppText>
               </View>
             </View>
           </SurfaceCard>
@@ -391,7 +421,7 @@ export function AccountSettingsScreen() {
           </View>
           <AccountSubscriptionCard
             accessLine={subscriptionModel.accessLine}
-            manageSubscriptionLoading={isCreatingBillingPortalSession}
+            manageSubscriptionLoading={isCreatingBillingPortalSession || upgradeCheckoutSubmitting}
             planLabel={subscriptionModel.planLabel}
             priceDisplay={subscriptionModel.priceDisplay}
             showProCrown={subscriptionModel.showProCrown}

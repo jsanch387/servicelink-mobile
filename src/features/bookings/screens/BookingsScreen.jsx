@@ -8,6 +8,7 @@ import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { BookingCard } from '../components/BookingCard';
 import { BookingsDayPlanner } from '../components/BookingsDayPlanner';
+import { BookingsFreeTierUsageStrip } from '../components/BookingsFreeTierUsageStrip';
 import { BookingsListTabs } from '../components/BookingsListTabs';
 import { BookingsViewModeToggle } from '../components/BookingsViewModeToggle';
 import {
@@ -17,10 +18,13 @@ import {
   BOOKINGS_VIEW_LIST,
   BOOKINGS_VIEW_PLANNER,
 } from '../constants';
+import { useBookingsFreeTierUsage } from '../hooks/useBookingsFreeTierUsage';
 import { useBookingsList } from '../hooks/useBookingsList';
 import { useBookingsPlannerDay } from '../hooks/useBookingsPlannerDay';
 import { groupBookingsByScheduledDate } from '../utils/groupBookingsByDate';
+import { resolveFreeTierBookingUsed } from '../utils/resolveFreeTierBookingUsed';
 import { ROUTES } from '../../../routes/routes';
+import { useSubscription } from '../../subscription';
 
 const FAB_VERTICAL_GAP = 56;
 
@@ -52,6 +56,28 @@ export function BookingsScreen() {
   const list = useBookingsList({
     listEnabled: viewMode === BOOKINGS_VIEW_LIST,
   });
+  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
+  const showFreeTierUsage =
+    isOwnerProfileLoaded && !hasProAccess && Boolean(list.business?.id) && !list.businessError;
+
+  const freeTierUsage = useBookingsFreeTierUsage(list.business?.id, {
+    enabled: showFreeTierUsage,
+  });
+
+  const resolvedFreeBookingUsed = useMemo(
+    () => resolveFreeTierBookingUsed(list.business, freeTierUsage.used),
+    [list.business, freeTierUsage.used],
+  );
+
+  const hasProfileFreeBookingCount = useMemo(() => {
+    const v = list.business?.free_bookings_count;
+    return typeof v === 'number' && Number.isFinite(v);
+  }, [list.business?.free_bookings_count]);
+
+  const freeTierUsageStripLoading =
+    freeTierUsage.isLoading && typeof resolvedFreeBookingUsed !== 'number';
+  const freeTierUsageStripError = freeTierUsage.isError && !hasProfileFreeBookingCount;
+
   const plannerDateStr = useMemo(() => localYyyyMmDd(plannerDate), [plannerDate]);
   const planner = useBookingsPlannerDay(viewMode === BOOKINGS_VIEW_PLANNER ? plannerDateStr : null);
 
@@ -120,7 +146,12 @@ export function BookingsScreen() {
           /** Safe area only — day planner uses full width (times + grid). */
           paddingLeft: insets.left,
           paddingRight: insets.right,
-          paddingTop: 18,
+          paddingTop: 12,
+        },
+        usageStripWrap: {
+          paddingBottom: 8,
+          paddingHorizontal: BOOKINGS_LIST_SCREEN_PADDING,
+          paddingTop: 10,
         },
         sectionHeader: {
           /** No solid shell fill — avoids a heavy bar behind sticky date labels. */
@@ -298,11 +329,36 @@ export function BookingsScreen() {
     styles.emptyWrap,
   ]);
 
+  const freeTierUsageStrip = useMemo(() => {
+    if (!showFreeTierUsage) {
+      return null;
+    }
+    return (
+      <View style={styles.usageStripWrap}>
+        <BookingsFreeTierUsageStrip
+          error={freeTierUsageStripError}
+          limit={freeTierUsage.limit}
+          loading={freeTierUsageStripLoading}
+          used={resolvedFreeBookingUsed}
+        />
+      </View>
+    );
+  }, [
+    showFreeTierUsage,
+    styles.usageStripWrap,
+    freeTierUsage.limit,
+    freeTierUsageStripError,
+    freeTierUsageStripLoading,
+    resolvedFreeBookingUsed,
+  ]);
+
   return (
     <SafeAreaView edges={['top']} style={styles.root}>
       {viewMode === BOOKINGS_VIEW_LIST ? (
         <BookingsListTabs onChange={list.setListFilter} value={list.listFilter} />
       ) : null}
+
+      {freeTierUsageStrip}
 
       {viewMode === BOOKINGS_VIEW_LIST ? (
         list.isLoading ? (
@@ -314,6 +370,7 @@ export function BookingsScreen() {
             ListEmptyComponent={listEmpty}
             ListHeaderComponent={listHeader}
             contentContainerStyle={styles.listContent}
+            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
             keyExtractor={(item) => item.id}
             refreshControl={
               <RefreshControl
@@ -323,7 +380,6 @@ export function BookingsScreen() {
                 tintColor={colors.accent}
               />
             }
-            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
             renderItem={renderItem}
             renderSectionHeader={renderSectionHeader}
             sections={sectionsWithIndex}

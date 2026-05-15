@@ -32,6 +32,12 @@ jest.mock('../../auth', () => ({
   }),
 }));
 
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({
+    navigate: jest.fn(),
+  }),
+}));
+
 jest.mock('expo-web-browser', () => ({
   openBrowserAsync: jest.fn(),
   openAuthSessionAsync: jest.fn(),
@@ -221,7 +227,9 @@ describe('PaymentsScreen', () => {
     });
     mockUsePaymentDashboardRead.mockReturnValue(loadedRead());
     renderWithProviders(<PaymentsScreen />);
-    expect(screen.getByText('Payments are a Pro feature')).toBeTruthy();
+    expect(screen.getByTestId('payments-non-pro-upsell')).toBeTruthy();
+    expect(screen.getByText('Take payments with Pro')).toBeTruthy();
+    expect(screen.getByText(/Get paid to your bank/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Upgrade to Pro' })).toBeTruthy();
     expect(screen.queryByText('Set up payments')).toBeNull();
   });

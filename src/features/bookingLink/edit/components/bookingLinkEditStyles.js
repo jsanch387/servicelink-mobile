@@ -211,6 +211,25 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
     gallerySection: {
       marginTop: SECTION_STACK_GAP,
     },
+    freeTierGalleryHint: {
+      alignItems: 'flex-start',
+      borderRadius: 10,
+      borderWidth: 1,
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 14,
+      marginTop: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    freeTierGalleryHintText: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '500',
+      letterSpacing: -0.1,
+      lineHeight: 19,
+      minWidth: 0,
+    },
     galleryAddPhotoOuter: {
       alignSelf: 'stretch',
       backgroundColor: colors.shellElevated,

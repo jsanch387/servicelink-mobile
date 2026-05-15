@@ -21,7 +21,7 @@ export { Divider } from './Divider';
 export { FilterPills } from './FilterPills';
 export { FloatingActionButton } from './FloatingActionButton';
 export { DashedBorderFrame } from './DashedBorderFrame';
-export { SpotlightCard, SurfaceCard } from './Card';
+export { SpotlightCard, SurfaceCard, SURFACE_CARD_MD_PADDING_VERTICAL } from './Card';
 export { InlineCardError } from './InlineCardError';
 export { SelectField } from './SelectField';
 export { DurationSelectField } from './DurationSelectField';

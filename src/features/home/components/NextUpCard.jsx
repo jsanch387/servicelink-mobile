@@ -18,6 +18,13 @@ import {
   formatNextUpVehicleLine,
 } from '../utils/nextUpCardDisplay';
 
+/**
+ * Minimum inner content height for the empty Next Up state, aligned with `NextUpSkeleton`:
+ * headline block (22 + 10 + 14) + service lines (22 + 15 + 5 + 14) + actions (26 + 50) = 178.
+ * Keeps the spotlight card from shrinking when there is no booking.
+ */
+const NEXT_UP_CARD_BODY_MIN_HEIGHT = 178;
+
 function NextUpSkeleton({ bone }) {
   return (
     <SpotlightCard collapsable={false} style={styles.card}>
@@ -218,12 +225,14 @@ export function NextUpCard({
           <View style={[styles.emptyIconWrap, { backgroundColor: emptyCalendarBadge.wrapBg }]}>
             <Ionicons color={emptyCalendarBadge.iconColor} name="calendar-outline" size={20} />
           </View>
-          <AppText style={[styles.emptyTitle, { color: colors.nextUpText }]}>
-            Nothing scheduled yet
-          </AppText>
-          <AppText style={[styles.emptyBody, { color: colors.nextUpTextMuted }]}>
-            Your next booking will show up here.
-          </AppText>
+          <View style={styles.emptyTextColumn}>
+            <AppText style={[styles.emptyTitle, { color: colors.nextUpText }]}>
+              Nothing scheduled yet
+            </AppText>
+            <AppText style={[styles.emptyBody, { color: colors.nextUpTextMuted }]}>
+              Your next booking will show up here.
+            </AppText>
+          </View>
         </View>
       ) : (
         <View style={styles.contentColumn}>
@@ -360,30 +369,39 @@ const styles = StyleSheet.create({
   emptyWrap: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    paddingBottom: 4,
-    paddingTop: 4,
+    /** Match `RestOfTodayCard` empty-state wrap padding. */
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    justifyContent: 'center',
+    minHeight: NEXT_UP_CARD_BODY_MIN_HEIGHT,
   },
   emptyIconWrap: {
     alignItems: 'center',
     borderRadius: 999,
     height: 44,
     justifyContent: 'center',
-    marginBottom: 16,
     width: 44,
+  },
+  emptyTextColumn: {
+    alignSelf: 'center',
+    maxWidth: 280,
+    width: '100%',
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: -0.25,
     lineHeight: 21,
+    /** Match timeline empty: icon → title gap via title `marginTop` (not icon `marginBottom`). */
+    marginTop: 10,
     textAlign: 'center',
   },
   emptyBody: {
     fontSize: 14,
     fontWeight: '400',
     lineHeight: 20,
-    marginTop: 8,
-    maxWidth: 280,
+    /** Match timeline empty title → body rhythm. */
+    marginTop: 4,
     textAlign: 'center',
   },
   contentColumn: {

@@ -11,7 +11,7 @@ const mono = Platform.select({
 });
 
 /**
- * Final step — one tap activates the booking link (server creates Stripe trial subscription, no redirect).
+ * Final step — one tap activates the booking link (marks onboarding complete; Stripe trial optional via flag).
  *
  * @param {{ activationLink: string; onActivatePress?: () => void; activateSubmitting?: boolean }} props
  */

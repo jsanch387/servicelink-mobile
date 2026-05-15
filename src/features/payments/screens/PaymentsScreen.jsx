@@ -1,14 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
+import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
-import { createPaywallUpgradeCheckoutSession } from '../../subscription/api/createPaywallUpgradeCheckoutSession';
-import { STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL } from '../../subscription/constants/stripePaywallCheckoutReturnUrl';
 import { useSubscription } from '../../subscription';
 import { PaymentAcceptServicelinkCard } from '../components/PaymentAcceptServicelinkCard';
 import { PaymentsScreenSkeleton } from '../components/PaymentsScreenSkeleton';
@@ -42,6 +42,7 @@ import { isPositiveDepositAmount } from '../utils/depositAmountModel';
 
 export function PaymentsScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { user, session } = useAuth();
   const {
@@ -79,7 +80,6 @@ export function PaymentsScreen() {
 
   const [connectSubmitting, setConnectSubmitting] = useState(false);
   const [enableSubmitting, setEnableSubmitting] = useState(false);
-  const [upgradeSubmitting, setUpgradeSubmitting] = useState(false);
 
   const onStripeConnectPress = useCallback(async () => {
     const token = session?.access_token ?? null;
@@ -153,36 +153,9 @@ export function PaymentsScreen() {
     }
   }, [payment, refetchSubscription]);
 
-  const onUpgradeToProPress = useCallback(async () => {
-    const token = session?.access_token ?? null;
-    if (!token) {
-      Alert.alert('Sign in required', 'Please sign in again to continue.');
-      return;
-    }
-    setUpgradeSubmitting(true);
-    try {
-      const created = await createPaywallUpgradeCheckoutSession(token);
-      if ('error' in created) {
-        Alert.alert(
-          'Could not start checkout',
-          safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
-        );
-        return;
-      }
-      try {
-        await WebBrowser.openAuthSessionAsync(created.url, STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL);
-      } finally {
-        await refetchSubscription();
-      }
-    } catch (e) {
-      Alert.alert(
-        'Checkout',
-        safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
-      );
-    } finally {
-      setUpgradeSubmitting(false);
-    }
-  }, [refetchSubscription, session?.access_token]);
+  const onUpgradeToProPress = useCallback(() => {
+    navigation.navigate(ROUTES.ACCOUNT_SETTINGS);
+  }, [navigation]);
 
   useEffect(() => {
     const bid = payment.business?.id;
@@ -418,12 +391,7 @@ export function PaymentsScreen() {
           showsVerticalScrollIndicator={false}
           style={styles.scroll}
         >
-          <PaymentsNonProUpsell
-            upgradeSubmitting={upgradeSubmitting}
-            onUpgradePress={() => {
-              void onUpgradeToProPress();
-            }}
-          />
+          <PaymentsNonProUpsell onUpgradePress={onUpgradeToProPress} />
         </ScrollView>
       </View>
     );

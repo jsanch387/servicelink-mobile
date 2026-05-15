@@ -72,7 +72,7 @@ describe('AuthNavigator subscription gate', () => {
     expect(screen.queryByTestId('fullscreen-paywall')).toBeNull();
   });
 
-  it('shows full-screen paywall when stable and user lacks Pro access', () => {
+  it('shows main tabs when stable and user lacks Pro (full-screen paywall master switch off)', () => {
     useSubscription.mockReturnValue({
       hasProAccess: false,
       isPaywallDataStable: true,
@@ -80,8 +80,8 @@ describe('AuthNavigator subscription gate', () => {
     });
 
     renderWithProviders(<AuthNavigator />);
-    expect(screen.getByTestId('fullscreen-paywall')).toBeTruthy();
-    expect(screen.queryByTestId('main-tabs')).toBeNull();
+    expect(screen.getByTestId('main-tabs')).toBeTruthy();
+    expect(screen.queryByTestId('fullscreen-paywall')).toBeNull();
     expect(screen.queryByTestId('subscription-boot')).toBeNull();
   });
 

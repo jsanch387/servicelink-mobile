@@ -5,10 +5,13 @@ import { useTheme } from '../../theme';
  * @typedef {'md' | 'sm' | 'none'} CardPadding
  */
 
+/** Matches `SurfaceCard` `padding="md"` vertical inset — use when aligning nested sections. */
+export const SURFACE_CARD_MD_PADDING_VERTICAL = 20;
+
 const SURFACE_PADDING = StyleSheet.create({
   md: {
     paddingHorizontal: 18,
-    paddingVertical: 20,
+    paddingVertical: SURFACE_CARD_MD_PADDING_VERTICAL,
   },
   sm: {
     padding: 10,

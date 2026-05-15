@@ -18,6 +18,12 @@ export const BOOKINGS_FILTER_OPTIONS = [
 /** Horizontal inset for list mode (tabs + scroll content); cards span this width. */
 export const BOOKINGS_LIST_SCREEN_PADDING = 16;
 
+/**
+ * Max bookings on **Free** before server blocks new owner bookings — keep aligned with
+ * `POST /api/public/bookings` / web cap (mobile has no separate quota API yet).
+ */
+export const FREE_TIER_BOOKINGS_LIMIT = 5;
+
 /** @typedef {'list' | 'planner'} BookingsViewMode */
 
 /** @type {BookingsViewMode} */

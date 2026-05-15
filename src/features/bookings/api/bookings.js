@@ -287,3 +287,31 @@ export function bookingTitleLine(booking) {
   const service = booking.service_name?.trim() || 'Service';
   return `${name} — ${service}`;
 }
+
+/** Counts toward Free cap: confirmed + completed (Past tab family; excludes canceled). */
+const FREE_TIER_COUNT_STATUSES = ['confirmed', 'completed', 'complete'];
+
+/**
+ * Head-count for Free-tier usage UI. **Keep aligned** with server `/api/public/bookings` caps.
+ *
+ * @param {string} businessId
+ * @returns {Promise<{ count: number; error: Error | null }>}
+ */
+export async function fetchFreeTierBookingCountForBusiness(businessId) {
+  const { count, error } = await supabase
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('business_id', businessId)
+    .in('status', FREE_TIER_COUNT_STATUSES);
+
+  const resolved = typeof count === 'number' ? count : 0;
+
+  if (error) {
+    return {
+      count: 0,
+      error: new Error(error.message ?? 'Could not count bookings'),
+    };
+  }
+
+  return { count: resolved, error: null };
+}

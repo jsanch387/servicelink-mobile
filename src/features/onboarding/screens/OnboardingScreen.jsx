@@ -14,6 +14,9 @@ import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { getBookingLinkDisplay } from '../../home/utils/bookingLink';
 import { sanitizeBusinessSlugForSave } from '../../more/utils/businessSlug';
 import { fetchBusinessServices } from '../../services/api/services';
+import { queryClient } from '../../../lib/queryClient';
+import { BOOKING_LINK_QUERY_KEY } from '../../bookingLink/queryKeys';
+import { accountSettingsQueryKey } from '../../more/queryKeys';
 import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileCheckoutOrigin';
 import { confirmOnboardingTrialUntilReady } from '../utils/confirmOnboardingTrialUntilReady';
 import { createOnboardingCheckoutSession } from '../api/createOnboardingCheckoutSession';
@@ -29,8 +32,10 @@ import {
   clearPendingBookingLinkNavigation,
   setPendingNavigateToBookingLink,
 } from '../constants/postOnboardingNavigation';
+import { ENABLE_ONBOARDING_STRIPE_TRIAL } from '../constants/onboardingStripeTrialFlag';
 import { STRIPE_ONBOARDING_CHECKOUT_AUTH_RETURN_URL } from '../constants/stripeOnboardingReturnUrl';
 import {
+  markOnboardingCompleted,
   saveOnboardingStep1,
   saveOnboardingStep2Services,
   saveOnboardingStep3Availability,
@@ -486,6 +491,36 @@ export function OnboardingScreen() {
 
     setCheckoutSubmitting(true);
     try {
+      if (!ENABLE_ONBOARDING_STRIPE_TRIAL) {
+        const marked = await markOnboardingCompleted(userId);
+        if (!marked.ok) {
+          Alert.alert(
+            'Could not activate your link',
+            safeUserFacingMessage(marked.error, {
+              fallback: 'Something went wrong. Try again.',
+            }),
+          );
+          return;
+        }
+        await refetchOnboarding();
+        await queryClient.invalidateQueries({ queryKey: accountSettingsQueryKey(userId) });
+        await queryClient.invalidateQueries({ queryKey: BOOKING_LINK_QUERY_KEY });
+        await setPendingNavigateToBookingLink();
+        beginPostActivationHandoff();
+        const { completed } = await refetchOnboardingAfterStripe({
+          userId,
+          trial_confirmation: null,
+          maxAttempts: 5,
+          delayMs: 600,
+        });
+        if (!completed) {
+          endPostActivationHandoff();
+          await clearPendingBookingLinkNavigation();
+          Alert.alert('Almost there', 'Pull to refresh on Home in a moment.');
+        }
+        return;
+      }
+
       const started = await startOnboardingTrial(token);
 
       if ('error' in started) {
@@ -536,6 +571,7 @@ export function OnboardingScreen() {
           );
           return;
         }
+        await queryClient.invalidateQueries({ queryKey: BOOKING_LINK_QUERY_KEY });
         await setPendingNavigateToBookingLink();
         beginPostActivationHandoff();
         const { completed } = await refetchOnboardingAfterStripe({
@@ -552,6 +588,7 @@ export function OnboardingScreen() {
         return;
       }
 
+      await queryClient.invalidateQueries({ queryKey: BOOKING_LINK_QUERY_KEY });
       await setPendingNavigateToBookingLink();
       beginPostActivationHandoff();
       const { completed } = await refetchOnboardingAfterStripe({
@@ -568,13 +605,19 @@ export function OnboardingScreen() {
     } catch (e) {
       endPostActivationHandoff();
       Alert.alert(
-        'Activation',
+        'Could not activate your link',
         safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
       );
     } finally {
       setCheckoutSubmitting(false);
     }
-  }, [session?.access_token, userId, beginPostActivationHandoff, endPostActivationHandoff]);
+  }, [
+    session?.access_token,
+    userId,
+    refetchOnboarding,
+    beginPostActivationHandoff,
+    endPostActivationHandoff,
+  ]);
 
   const goBack = () => {
     setStepError('');

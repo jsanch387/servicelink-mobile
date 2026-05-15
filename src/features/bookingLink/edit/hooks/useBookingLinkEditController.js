@@ -13,7 +13,8 @@ import { BUSINESS_TYPE_OPTIONS } from '../../constants/businessTypeOptions';
 import {
   BOOKING_LINK_EDIT_GALLERY_COLUMNS,
   BOOKING_LINK_EDIT_GALLERY_GAP,
-  BOOKING_LINK_GALLERY_MAX_IMAGES,
+  BOOKING_LINK_GALLERY_MAX_IMAGES_FREE,
+  getBookingLinkGalleryMaxImages,
 } from '../constants/galleryLayout';
 import { useSaveBookingLinkText } from '../../hooks/useSaveBookingLinkText';
 import {
@@ -43,6 +44,8 @@ export function useBookingLinkEditController({
   businessBio,
   phoneNumber,
   portfolioImages = [],
+  hasProAccess = false,
+  isOwnerProfileLoaded = false,
 }) {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
@@ -120,14 +123,27 @@ export function useBookingLinkEditController({
     return portfolioImages.filter((img) => !removedPortfolioKeys.has(portfolioImageKey(img)));
   }, [portfolioImages, removedPortfolioKeys]);
 
+  const galleryMaxImages = useMemo(
+    () => getBookingLinkGalleryMaxImages(Boolean(hasProAccess)),
+    [hasProAccess],
+  );
+
   const galleryImageCount = visiblePortfolioImages.length + localGalleryUris.length;
-  const canAddGalleryImage = galleryImageCount < BOOKING_LINK_GALLERY_MAX_IMAGES;
+  const canAddGalleryImage = galleryImageCount < galleryMaxImages;
+
+  const showFreeGalleryLimitHint = useMemo(
+    () =>
+      isOwnerProfileLoaded &&
+      !hasProAccess &&
+      galleryImageCount >= BOOKING_LINK_GALLERY_MAX_IMAGES_FREE,
+    [galleryImageCount, hasProAccess, isOwnerProfileLoaded],
+  );
 
   const onGalleryAddPress = useCallback(async () => {
     if (!canAddGalleryImage) {
       Alert.alert(
         'Gallery full',
-        `You can have up to ${BOOKING_LINK_GALLERY_MAX_IMAGES} images. Remove one to add another.`,
+        `You can have up to ${galleryMaxImages} images. Remove one to add another.`,
       );
       return;
     }
@@ -135,14 +151,14 @@ export function useBookingLinkEditController({
     if (!uri) return;
     setLocalGalleryUris((prev) => {
       const nextCount = visiblePortfolioImages.length + prev.length;
-      if (nextCount >= BOOKING_LINK_GALLERY_MAX_IMAGES) return prev;
+      if (nextCount >= galleryMaxImages) return prev;
       return [
         ...prev,
         { id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, uri },
       ];
     });
     await triggerImageHaptic();
-  }, [canAddGalleryImage, triggerImageHaptic, visiblePortfolioImages.length]);
+  }, [canAddGalleryImage, galleryMaxImages, triggerImageHaptic, visiblePortfolioImages.length]);
 
   const removePortfolioImage = useCallback((image) => {
     const key = portfolioImageKey(image);
@@ -225,10 +241,10 @@ export function useBookingLinkEditController({
       return;
     }
     const galleryTotal = visiblePortfolioImages.length + localGalleryUris.length;
-    if (galleryTotal > BOOKING_LINK_GALLERY_MAX_IMAGES) {
+    if (galleryTotal > galleryMaxImages) {
       Alert.alert(
         'Too many photos',
-        `Please keep your gallery at ${BOOKING_LINK_GALLERY_MAX_IMAGES} images or fewer before saving.`,
+        `Please keep your gallery at ${galleryMaxImages} images or fewer before saving.`,
       );
       return;
     }
@@ -287,6 +303,7 @@ export function useBookingLinkEditController({
     localGalleryUris,
     onSaved,
     saveMutation,
+    galleryMaxImages,
   ]);
 
   return {
@@ -314,7 +331,8 @@ export function useBookingLinkEditController({
     onGalleryAddPress,
     canAddGalleryImage,
     galleryImageCount,
-    galleryMaxImages: BOOKING_LINK_GALLERY_MAX_IMAGES,
+    galleryMaxImages,
+    showFreeGalleryLimitHint,
     visiblePortfolioImages,
     localGalleryUris,
     removePortfolioImage,

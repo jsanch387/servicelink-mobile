@@ -2,6 +2,7 @@ export { createPaywallUpgradeCheckoutSession } from './api/createPaywallUpgradeC
 export { SubscriptionProvider, useSubscription } from './context/SubscriptionContext';
 export {
   DEV_FORCE_UPGRADE_PAYWALL_IN_HOME_TAB,
+  ENABLE_FULL_SCREEN_UPGRADE_PAYWALL,
   shouldShowFullScreenSubscriptionPaywall,
   shouldShowUpgradePaywallFromProfile,
   shouldUseUpgradePaywallHomeTab,

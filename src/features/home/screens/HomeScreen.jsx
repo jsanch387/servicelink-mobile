@@ -1,12 +1,14 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppShellGlow, AppText, Divider } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { FloatingCreateMenu } from '../components/FloatingCreateMenu';
+import { HomeProUpgradeNudge } from '../components/HomeProUpgradeNudge';
 import { HomeErrorBanner } from '../components/HomeErrorBanner';
 import { LinkStatsSection } from '../components/LinkStatsSection';
 import { NextUpCard } from '../components/NextUpCard';
@@ -20,11 +22,18 @@ import { serviceCardTitleStyle } from '../../../utils/serviceCardTypography';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useNotificationUnreadCount } from '../../notifications/hooks/useNotificationUnreadCount';
+import { FREE_TIER_BOOKINGS_LIMIT } from '../../bookings/constants';
+import { useBookingsFreeTierUsage } from '../../bookings/hooks/useBookingsFreeTierUsage';
+import { bookingsFreeTierCountQueryKey } from '../../bookings/queryKeys';
+import { resolveFreeTierBookingUsed } from '../../bookings/utils/resolveFreeTierBookingUsed';
+import { useSubscription } from '../../subscription';
 
 export function HomeScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
+  const queryClient = useQueryClient();
   const { unreadCount } = useNotificationUnreadCount();
+  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
   const dashboard = useHomeDashboard();
   const markCompleteMutation = useHomeQuickMarkComplete();
   const tabBarHeight = useBottomTabBarHeight();
@@ -80,6 +89,44 @@ export function HomeScreen() {
 
   /** Show whenever we have a business so empty days still get the “nothing on the calendar” card. */
   const showTodayTimelineSection = Boolean(dashboard.business?.id);
+
+  const showFreeTierBookingCount =
+    isOwnerProfileLoaded &&
+    !hasProAccess &&
+    Boolean(dashboard.business?.id) &&
+    !dashboard.businessError;
+
+  const freeTierUsage = useBookingsFreeTierUsage(dashboard.business?.id, {
+    enabled: showFreeTierBookingCount,
+  });
+
+  /** Prefer server `business_profiles.free_bookings_count`; fall back to head-count query. */
+  const resolvedFreeBookingUsed = useMemo(
+    () => resolveFreeTierBookingUsed(dashboard.business, freeTierUsage.used),
+    [dashboard.business, freeTierUsage.used],
+  );
+
+  const atFreeBookingLimit =
+    showFreeTierBookingCount &&
+    typeof resolvedFreeBookingUsed === 'number' &&
+    resolvedFreeBookingUsed >= FREE_TIER_BOOKINGS_LIMIT;
+
+  useFocusEffect(
+    useCallback(() => {
+      const bid = dashboard.business?.id;
+      if (!bid || !isOwnerProfileLoaded || hasProAccess || dashboard.businessError) {
+        return undefined;
+      }
+      void queryClient.invalidateQueries({ queryKey: bookingsFreeTierCountQueryKey(bid) });
+      return undefined;
+    }, [
+      dashboard.business?.id,
+      dashboard.businessError,
+      hasProAccess,
+      isOwnerProfileLoaded,
+      queryClient,
+    ]),
+  );
 
   const styles = useMemo(
     () =>
@@ -148,19 +195,64 @@ export function HomeScreen() {
     [colors, scrollBottomPad],
   );
 
+  const showProUpgradeNudge = isOwnerProfileLoaded && !hasProAccess;
   const hasUnreadNotifications = unreadCount > 0;
   const notificationsA11yLabel = hasUnreadNotifications ? 'Notifications, unread' : 'Notifications';
 
+  const warnFreePlanBookingLimitIfNeeded = useCallback(() => {
+    const atFreeLimit =
+      isOwnerProfileLoaded &&
+      !hasProAccess &&
+      Boolean(dashboard.business?.id) &&
+      !dashboard.businessError &&
+      typeof resolvedFreeBookingUsed === 'number' &&
+      resolvedFreeBookingUsed >= FREE_TIER_BOOKINGS_LIMIT;
+
+    if (!atFreeLimit) {
+      return false;
+    }
+
+    Alert.alert(
+      'Free plan limit reached',
+      `You've used all ${FREE_TIER_BOOKINGS_LIMIT} appointments on the free plan. Upgrade to Pro for unlimited bookings.`,
+      [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'Upgrade',
+          onPress: () => navigation.navigate(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS }),
+        },
+      ],
+    );
+    return true;
+  }, [
+    dashboard.business?.id,
+    dashboard.businessError,
+    hasProAccess,
+    isOwnerProfileLoaded,
+    navigation,
+    resolvedFreeBookingUsed,
+  ]);
+
   const handleCreateAppointment = useCallback(() => {
+    if (warnFreePlanBookingLimitIfNeeded()) {
+      return;
+    }
     navigation.navigate(ROUTES.CREATE_APPOINTMENT);
-  }, [navigation]);
+  }, [navigation, warnFreePlanBookingLimitIfNeeded]);
 
   const handleCreateQuote = useCallback(() => {
+    if (warnFreePlanBookingLimitIfNeeded()) {
+      return;
+    }
     navigation.navigate(ROUTES.CREATE_QUOTE);
-  }, [navigation]);
+  }, [navigation, warnFreePlanBookingLimitIfNeeded]);
 
   const handleOpenNotifications = useCallback(() => {
     navigation.navigate(ROUTES.NOTIFICATIONS_INBOX);
+  }, [navigation]);
+
+  const handleProUpgradeNudge = useCallback(() => {
+    navigation.navigate(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS });
   }, [navigation]);
 
   const handleNextUpMarkComplete = useCallback(async () => {
@@ -215,6 +307,16 @@ export function HomeScreen() {
           </Pressable>
         </View>
         <Divider style={styles.headerDivider} />
+        {showProUpgradeNudge ? (
+          <HomeProUpgradeNudge
+            capLimit={FREE_TIER_BOOKINGS_LIMIT}
+            capUsed={
+              typeof resolvedFreeBookingUsed === 'number' ? resolvedFreeBookingUsed : undefined
+            }
+            mode={atFreeBookingLimit ? 'free_booking_cap' : 'default'}
+            onPress={handleProUpgradeNudge}
+          />
+        ) : null}
         {homeErrors.bannerError ? <HomeErrorBanner message={homeErrors.bannerError} /> : null}
         <AppText style={[styles.sectionLabel, styles.sectionLabelFirst]}>
           {nextUpSectionTitle}

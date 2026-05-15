@@ -15,6 +15,7 @@ import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { navigationRef } from '../../../navigation/navigationRef';
 import { useAuth } from '../../auth';
+import { useSubscription } from '../../subscription';
 import { AddQuoteFab } from '../components/AddQuoteFab';
 import { QuoteRequestCard } from '../components/QuoteRequestCard';
 import { QuotesAcceptRequestsCard } from '../components/QuotesAcceptRequestsCard';
@@ -46,6 +47,7 @@ export function QuotesScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
   const userId = user?.id;
+  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
   const quotesList = useQuotesInbox();
@@ -68,10 +70,17 @@ export function QuotesScreen() {
 
   const handleAcceptQuoteRequestsChange = useCallback(
     (next) => {
+      if (!hasProAccess) {
+        return;
+      }
       void quotesList.persistAcceptQuoteRequests(next);
     },
-    [quotesList],
+    [hasProAccess, quotesList],
   );
+
+  const onUpgradeToProPress = useCallback(() => {
+    navigation.navigate(ROUTES.ACCOUNT_SETTINGS);
+  }, [navigation]);
 
   const openRequestDetail = useCallback(
     (quoteId) => {
@@ -164,6 +173,8 @@ export function QuotesScreen() {
 
   const rootOverlayCoversTabs = rootTopRoute !== undefined && rootTopRoute !== ROUTES.MAIN_APP;
 
+  const proLocked = Boolean(userId) && isOwnerProfileLoaded && !hasProAccess;
+
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
       <View pointerEvents={rootOverlayCoversTabs ? 'none' : 'auto'} style={styles.body}>
@@ -186,9 +197,12 @@ export function QuotesScreen() {
               disabled={
                 !quotesList.business?.id ||
                 quotesList.isPendingBusiness ||
-                quotesList.acceptQuoteRequestsSaving
+                quotesList.acceptQuoteRequestsSaving ||
+                !isOwnerProfileLoaded
               }
-              value={quotesList.acceptQuoteRequests}
+              proLocked={proLocked}
+              value={hasProAccess ? quotesList.acceptQuoteRequests : false}
+              onUpgradePress={onUpgradeToProPress}
               onValueChange={handleAcceptQuoteRequestsChange}
             />
           </View>

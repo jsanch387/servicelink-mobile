@@ -9,6 +9,11 @@ import { hasProAccessFromProfile } from '../more/utils/subscriptionPresentation'
  * mobile upgrade paywall is shown when that same check is **false** after we have a
  * successful account / profile bundle for the signed-in user.
  *
+ * **Master switch — `ENABLE_FULL_SCREEN_UPGRADE_PAYWALL`**
+ * When `false` (current product default), free-tier users use the main app and never see
+ * `UpgradePaywallScreen` as a full-screen gate. Set to `true` to restore the post-onboarding
+ * upgrade wall for users without Pro access.
+ *
  * **`isProAccess` (summary)** — uses `profiles`-style fields:
  * - `subscription_tier` — if it contains `"pro"` (case-insensitive) → **has access** (no paywall).
  * - Else, access only if **both** `stripe_subscription_id` and `stripe_customer_id` are non-empty,
@@ -37,6 +42,14 @@ import { hasProAccessFromProfile } from '../more/utils/subscriptionPresentation'
  */
 
 /**
+ * When `false`, the full-screen `UpgradePaywallScreen` in `AuthNavigator` is **never** shown
+ * (free tier and others without Pro use tabs normally). Set to `true` to turn the gate back on.
+ *
+ * @type {boolean}
+ */
+export const ENABLE_FULL_SCREEN_UPGRADE_PAYWALL = false;
+
+/**
  * UI iteration only — when `true`, the **entire main app** shows `UpgradePaywallScreen` (same as
  * production paywall) even before profile load. Ship with `false`.
  *
@@ -59,6 +72,7 @@ export function shouldShowUpgradePaywallFromProfile(ownerProfile) {
  * @returns {boolean}
  */
 export function shouldShowFullScreenSubscriptionPaywall({ isPaywallDataStable, hasProAccess }) {
+  if (!ENABLE_FULL_SCREEN_UPGRADE_PAYWALL) return false;
   if (DEV_FORCE_UPGRADE_PAYWALL_IN_HOME_TAB) return true;
   return Boolean(isPaywallDataStable) && !hasProAccess;
 }

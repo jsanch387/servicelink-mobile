@@ -38,6 +38,25 @@ jest.mock('../hooks/useBookingsPlannerDay', () => ({
   })),
 }));
 
+jest.mock('../../subscription', () => ({
+  useSubscription: jest.fn(() => ({
+    hasProAccess: true,
+    isOwnerProfileLoaded: true,
+  })),
+}));
+
+jest.mock('../hooks/useBookingsFreeTierUsage', () => ({
+  useBookingsFreeTierUsage: jest.fn(() => ({
+    used: 2,
+    limit: 5,
+    isLoading: false,
+    isError: false,
+  })),
+}));
+
+const { useSubscription } = require('../../subscription');
+const { useBookingsFreeTierUsage } = require('../hooks/useBookingsFreeTierUsage');
+
 const mockUseBookingsList = useBookingsList;
 
 function baseList(overrides = {}) {
@@ -61,6 +80,21 @@ describe('BookingsScreen list empty states', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseBookingsList.mockReturnValue(baseList());
+    useSubscription.mockReturnValue({
+      hasProAccess: true,
+      isOwnerProfileLoaded: true,
+    });
+    useBookingsFreeTierUsage.mockReturnValue({
+      used: 2,
+      limit: 5,
+      isLoading: false,
+      isError: false,
+    });
+  });
+
+  it('does not show the free plan usage strip for Pro users', () => {
+    renderWithProviders(<BookingsScreen />);
+    expect(screen.queryByLabelText(/Free plan:/i)).toBeNull();
   });
 
   it('shows upcoming empty copy when there are no upcoming bookings', () => {
@@ -102,6 +136,61 @@ describe('BookingsScreen list empty states', () => {
     expect(
       screen.getByText(/Once your business is set up in ServiceLink, appointments will show here/i),
     ).toBeTruthy();
+  });
+
+  it('shows free plan booking usage when the owner is not on Pro', () => {
+    useSubscription.mockReturnValue({
+      hasProAccess: false,
+      isOwnerProfileLoaded: true,
+    });
+    useBookingsFreeTierUsage.mockReturnValue({
+      used: 2,
+      limit: 5,
+      isLoading: false,
+      isError: false,
+    });
+    renderWithProviders(<BookingsScreen />);
+    expect(screen.getByLabelText('Free plan: 2 of 5 bookings used')).toBeTruthy();
+  });
+
+  it('prefers business_profiles.free_bookings_count for the usage strip when set', () => {
+    useSubscription.mockReturnValue({
+      hasProAccess: false,
+      isOwnerProfileLoaded: true,
+    });
+    mockUseBookingsList.mockReturnValue(
+      baseList({
+        business: { id: 'b1', free_bookings_count: 5 },
+      }),
+    );
+    useBookingsFreeTierUsage.mockReturnValue({
+      used: 0,
+      limit: 5,
+      isLoading: false,
+      isError: false,
+    });
+    renderWithProviders(<BookingsScreen />);
+    expect(screen.getByLabelText('Free plan: 5 of 5 bookings used')).toBeTruthy();
+  });
+
+  it('shows profile booking count when head-count query errors but free_bookings_count exists', () => {
+    useSubscription.mockReturnValue({
+      hasProAccess: false,
+      isOwnerProfileLoaded: true,
+    });
+    mockUseBookingsList.mockReturnValue(
+      baseList({
+        business: { id: 'b1', free_bookings_count: 4 },
+      }),
+    );
+    useBookingsFreeTierUsage.mockReturnValue({
+      used: undefined,
+      limit: 5,
+      isLoading: false,
+      isError: true,
+    });
+    renderWithProviders(<BookingsScreen />);
+    expect(screen.getByLabelText('Free plan: 4 of 5 bookings used')).toBeTruthy();
   });
 
   it('requests Past filter when the Past tab is pressed', () => {

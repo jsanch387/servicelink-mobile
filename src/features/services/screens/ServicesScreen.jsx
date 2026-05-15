@@ -7,6 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
+import { FREE_TIER_MAX_SERVICES } from '../constants/freeTierLimits';
+import { useSubscription } from '../../subscription';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { useAuth } from '../../auth';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
@@ -68,6 +70,7 @@ export function ServicesScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
   const navigation = useNavigation();
+  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
   const catalog = useServicesCatalog();
   const { refetch: refetchCatalog } = catalog;
   const [selectedView, setSelectedView] = useState(ENTITY_VIEW_SERVICES);
@@ -92,6 +95,14 @@ export function ServicesScreen() {
   const titleLabel = useMemo(
     () => `${activeItems.length} ${selectedView === ENTITY_VIEW_SERVICES ? 'services' : 'add-ons'}`,
     [activeItems.length, selectedView],
+  );
+
+  const atFreeTierServicesLimit = useMemo(
+    () =>
+      isOwnerProfileLoaded &&
+      !hasProAccess &&
+      (catalog.services?.length ?? 0) >= FREE_TIER_MAX_SERVICES,
+    [catalog.services?.length, hasProAccess, isOwnerProfileLoaded],
   );
 
   const { mutateAddon, isSavingAddon } = useMutateServiceAddon({
@@ -166,6 +177,20 @@ export function ServicesScreen() {
   }
 
   function openAddServiceSheet() {
+    if (atFreeTierServicesLimit) {
+      Alert.alert(
+        'Free plan limit reached',
+        `The free plan includes up to ${FREE_TIER_MAX_SERVICES} services. Upgrade to Pro to add more.`,
+        [
+          { text: 'Not now', style: 'cancel' },
+          {
+            text: 'Upgrade',
+            onPress: () => navigation.navigate(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS }),
+          },
+        ],
+      );
+      return;
+    }
     setServiceSheetError('');
     setServiceSheetOpen(true);
   }
@@ -287,6 +312,12 @@ export function ServicesScreen() {
       setServiceSheetError('Missing business context.');
       return;
     }
+    if (atFreeTierServicesLimit) {
+      setServiceSheetError(
+        `Free plan allows up to ${FREE_TIER_MAX_SERVICES} services. Upgrade to Pro for more.`,
+      );
+      return;
+    }
     try {
       setServiceSheetError('');
       await createService({ name, description, price, durationHHmm });
@@ -383,6 +414,32 @@ export function ServicesScreen() {
             </View>
           ) : null}
         </View>
+        {isServicesView && atFreeTierServicesLimit && !catalog.isLoading ? (
+          <View
+            style={[
+              styles.freeTierServicesHint,
+              {
+                backgroundColor: colors.shellElevated,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Ionicons color={colors.textMuted} name="information-circle-outline" size={18} />
+            <AppText style={[styles.freeTierServicesHintText, { color: colors.textMuted }]}>
+              Free plan includes up to {FREE_TIER_MAX_SERVICES} services.{' '}
+              <AppText
+                accessibilityRole="link"
+                onPress={() =>
+                  navigation.navigate(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS })
+                }
+                style={{ color: colors.accent, fontWeight: '600' }}
+              >
+                Upgrade to Pro
+              </AppText>{' '}
+              to add more.
+            </AppText>
+          </View>
+        ) : null}
         {isServicesView && isSortMode ? (
           <View style={[styles.sortModeBanner, { borderColor: colors.borderStrong }]}>
             <Ionicons color="#22c55e" name="move-outline" size={16} />
@@ -585,6 +642,25 @@ const styles = StyleSheet.create({
   actionCell: {
     flex: 1,
     flexBasis: 0,
+    minWidth: 0,
+  },
+  freeTierServicesHint: {
+    alignItems: 'flex-start',
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+    marginTop: -2,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  freeTierServicesHintText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: -0.1,
+    lineHeight: 19,
     minWidth: 0,
   },
   emptyWrap: {

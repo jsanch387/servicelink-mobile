@@ -41,28 +41,6 @@ jest.mock('expo-splash-screen', () => ({
   setOptions: jest.fn(),
 }));
 
-jest.mock('@expo/vector-icons', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  const Mock = (props) => <Text accessibilityRole="image" {...props} />;
-  return new Proxy(
-    {},
-    {
-      get() {
-        return Mock;
-      },
-    },
-  );
-});
-
-jest.mock('@expo/vector-icons/Ionicons', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return function MockIonicons(props) {
-    return <Text accessibilityRole="image" {...props} />;
-  };
-});
-
 jest.mock('react-native-reanimated', () => {
   const Reanimated = require('react-native-reanimated/mock');
   Reanimated.default.call = () => {};

@@ -1,4 +1,5 @@
 import {
+  ENABLE_FULL_SCREEN_UPGRADE_PAYWALL,
   shouldShowFullScreenSubscriptionPaywall,
   shouldShowUpgradePaywallFromProfile,
   shouldUseUpgradePaywallHomeTab,
@@ -40,13 +41,14 @@ describe('upgradePaywallGate', () => {
     ).toBe(false);
   });
 
-  it('shouldUseUpgradePaywallHomeTab is true when stable and no pro access', () => {
+  it('full-screen paywall is off while ENABLE_FULL_SCREEN_UPGRADE_PAYWALL is false', () => {
+    expect(ENABLE_FULL_SCREEN_UPGRADE_PAYWALL).toBe(false);
     expect(
       shouldUseUpgradePaywallHomeTab({
         isPaywallDataStable: true,
         hasProAccess: false,
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('shouldUseUpgradePaywallHomeTab is false when stable and user has pro access', () => {

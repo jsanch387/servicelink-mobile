@@ -1,8 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { PushNotificationsBootstrap } from '../features/notifications/components/PushNotificationsBootstrap';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { AppFontLoadingShell } from '../components/ui/AppFontLoadingShell';
 import { useAuth } from '../features/auth';
@@ -11,6 +12,7 @@ import { LoginScreen } from '../features/auth/screens/LoginScreen';
 import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
 import { CheckYourEmailScreen } from '../features/auth/screens/CheckYourEmailScreen';
 import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
+import { PENDING_NAVIGATE_TO_BOOKING_LINK_KEY } from '../features/onboarding/constants/postOnboardingNavigation';
 import { CreateAppointmentScreen } from '../features/bookings';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
 import { CreateQuoteScreen } from '../features/quotes/screens/CreateQuoteScreen';
@@ -65,6 +67,59 @@ export function AuthNavigator() {
 
   const mainAppSubscriptionBooting =
     Boolean(session && !needsOnboarding && user?.id) && isLoading && !isPaywallBlocking;
+
+  const mainTabsInteractive =
+    Boolean(session && user?.id) &&
+    !needsOnboarding &&
+    !mainAppSubscriptionBooting &&
+    !isPaywallBlocking;
+
+  /** Post–step 5: `MainTabNavigator` may not mount during subscription boot — consume pending nav here. */
+  const pendingBookingLinkNavBusyRef = useRef(false);
+  useEffect(() => {
+    if (!mainTabsInteractive) {
+      return undefined;
+    }
+    let cancelled = false;
+
+    const tryConsumePendingBookingLinkNav = async () => {
+      if (cancelled || pendingBookingLinkNavBusyRef.current) {
+        return;
+      }
+      try {
+        const v = await AsyncStorage.getItem(PENDING_NAVIGATE_TO_BOOKING_LINK_KEY);
+        if (cancelled || v !== '1') {
+          return;
+        }
+        if (!navigationRef.isReady()) {
+          return;
+        }
+        pendingBookingLinkNavBusyRef.current = true;
+        try {
+          navigationRef.navigate(ROUTES.MAIN_APP, {
+            screen: ROUTES.MORE,
+            params: { screen: ROUTES.BOOKING_LINK },
+          });
+          await AsyncStorage.removeItem(PENDING_NAVIGATE_TO_BOOKING_LINK_KEY);
+        } finally {
+          pendingBookingLinkNavBusyRef.current = false;
+        }
+      } catch {
+        pendingBookingLinkNavBusyRef.current = false;
+      }
+    };
+
+    void tryConsumePendingBookingLinkNav();
+    const t1 = setTimeout(() => void tryConsumePendingBookingLinkNav(), 120);
+    const t2 = setTimeout(() => void tryConsumePendingBookingLinkNav(), 450);
+    const t3 = setTimeout(() => void tryConsumePendingBookingLinkNav(), 900);
+    return () => {
+      cancelled = true;
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [mainTabsInteractive]);
 
   const navTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),

@@ -14,6 +14,7 @@ import { BookingLinkScreenSkeleton } from '../preview/components/BookingLinkScre
 import { bookingLinkOwnerProfileQueryKey } from '../queryKeys';
 import { mapServicesForCards } from '../utils/bookingLinkModel';
 import { splitServiceAreaCityState } from '../utils/serviceArea';
+import { useSubscription } from '../../subscription';
 
 export function BookingLinkScreen() {
   const { colors } = useTheme();
@@ -23,6 +24,7 @@ export function BookingLinkScreen() {
   const queryClient = useQueryClient();
   const bookingProfile = useBookingLinkProfile();
   const { profile, refetch: refetchBookingProfile } = bookingProfile;
+  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
   const coverHeight = width >= 768 ? 256 : width >= 640 ? 224 : 192;
   const [activeTab, setActiveTab] = useState('services');
   const [isEditMode, setIsEditMode] = useState(false);
@@ -131,6 +133,8 @@ export function BookingLinkScreen() {
           businessType={businessTypeEdit}
           coverImageUrl={coverImageUrl}
           coverImagePath={coverImagePath}
+          hasProAccess={hasProAccess}
+          isOwnerProfileLoaded={isOwnerProfileLoaded}
           logoUrl={logoUrl}
           logoPath={logoPath}
           phoneNumber={phoneNumber}
@@ -167,12 +171,11 @@ export function BookingLinkScreen() {
             showVerifiedBadge={profile?.showVerifiedBadge ?? false}
           />
           <BookingLinkEditFab bottom={30} onPress={() => setIsEditMode(true)} />
-          <BookingLinkWelcomeModal
-            visible={bookingWelcomeVisible}
-            onDismiss={handleWelcomeDismiss}
-          />
         </View>
       )}
+      {!isEditMode ? (
+        <BookingLinkWelcomeModal visible={bookingWelcomeVisible} onDismiss={handleWelcomeDismiss} />
+      ) : null}
     </View>
   );
 }

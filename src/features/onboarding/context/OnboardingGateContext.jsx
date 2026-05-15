@@ -91,8 +91,10 @@ export function OnboardingGateProvider({ children }) {
       return { ok: false, error: new Error('Not signed in') };
     }
     const result = await markOnboardingCompleted(userId);
-    await qc.invalidateQueries({ queryKey: ['profiles-onboarding', userId] });
-    await qc.invalidateQueries({ queryKey: accountSettingsQueryKey(userId) });
+    if (result.ok) {
+      await qc.invalidateQueries({ queryKey: ['profiles-onboarding', userId] });
+      await qc.invalidateQueries({ queryKey: accountSettingsQueryKey(userId) });
+    }
     return result;
   }, [qc, userId]);
 

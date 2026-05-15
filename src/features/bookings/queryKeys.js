@@ -23,3 +23,10 @@ export function bookingsPlannerDayQueryKey(businessId, yyyyMmDd) {
 export function bookingsDetailsQueryKey(bookingId) {
   return [...BOOKINGS_QUERY_ROOT, 'details', bookingId ?? 'none'];
 }
+
+/**
+ * @param {string | undefined} businessId
+ */
+export function bookingsFreeTierCountQueryKey(businessId) {
+  return [...BOOKINGS_QUERY_ROOT, 'freeTierCount', businessId ?? 'none'];
+}

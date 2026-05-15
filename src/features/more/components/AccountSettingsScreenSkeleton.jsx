@@ -15,7 +15,7 @@ export function AccountSettingsScreenSkeleton() {
           <View style={styles.signedInRow}>
             <SkeletonBox borderRadius={10} height={40} pulse width={40} />
             <View style={styles.signedInText}>
-              <SkeletonBox borderRadius={6} height={15} pulse width="78%" />
+              <SkeletonBox borderRadius={6} height={13} pulse width="78%" />
               <SkeletonBox
                 borderRadius={6}
                 height={12}

@@ -428,17 +428,26 @@ export async function markOnboardingCompleted(userId) {
     return { ok: false, error: new Error('Not signed in') };
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .update({
       onboarding_status: 'completed',
       onboarding_step: 5,
       subscription_tier: 'free',
     })
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .select('user_id');
 
   if (error) {
     return { ok: false, error: new Error(error.message ?? 'Could not complete onboarding') };
+  }
+  if (!Array.isArray(data) || data.length === 0) {
+    return {
+      ok: false,
+      error: new Error(
+        'Could not update your profile. Check that you are still signed in, then try again.',
+      ),
+    };
   }
   return { ok: true };
 }
