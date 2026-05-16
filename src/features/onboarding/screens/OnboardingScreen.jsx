@@ -502,11 +502,12 @@ export function OnboardingScreen() {
           );
           return;
         }
+        // Cover the shell before profile refetch flips `needsOnboarding` — otherwise Home flashes for a frame.
+        beginPostActivationHandoff();
         await refetchOnboarding();
         await queryClient.invalidateQueries({ queryKey: accountSettingsQueryKey(userId) });
         await queryClient.invalidateQueries({ queryKey: BOOKING_LINK_QUERY_KEY });
         await setPendingNavigateToBookingLink();
-        beginPostActivationHandoff();
         const { completed } = await refetchOnboardingAfterStripe({
           userId,
           trial_confirmation: null,
@@ -571,9 +572,9 @@ export function OnboardingScreen() {
           );
           return;
         }
+        beginPostActivationHandoff();
         await queryClient.invalidateQueries({ queryKey: BOOKING_LINK_QUERY_KEY });
         await setPendingNavigateToBookingLink();
-        beginPostActivationHandoff();
         const { completed } = await refetchOnboardingAfterStripe({
           userId,
           trial_confirmation: confirmed.trial_confirmation,
@@ -588,9 +589,9 @@ export function OnboardingScreen() {
         return;
       }
 
+      beginPostActivationHandoff();
       await queryClient.invalidateQueries({ queryKey: BOOKING_LINK_QUERY_KEY });
       await setPendingNavigateToBookingLink();
-      beginPostActivationHandoff();
       const { completed } = await refetchOnboardingAfterStripe({
         userId,
         trial_confirmation: started.trial_confirmation,

@@ -4,8 +4,8 @@ import { PushNotificationsBootstrap } from '../features/notifications/components
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { AppFontLoadingShell } from '../components/ui/AppFontLoadingShell';
+import { ActivityIndicator, Animated, StyleSheet, View } from 'react-native';
+import { AppFontLoadingShell } from '../components/ui';
 import { useAuth } from '../features/auth';
 import { ForgotPasswordScreen } from '../features/auth/screens/ForgotPasswordScreen';
 import { LoginScreen } from '../features/auth/screens/LoginScreen';
@@ -50,17 +50,6 @@ export function AuthNavigator() {
     useOnboardingGate();
   const { hasProAccess, isPaywallDataStable, isLoading, ownerProfile } = useSubscription();
 
-  /** After activation, keep branded loader over the stack until main app has mounted, then brief hold so deep-link doesn’t flash. */
-  useEffect(() => {
-    if (!postActivationHandoff || needsOnboarding) {
-      return undefined;
-    }
-    const id = setTimeout(() => {
-      endPostActivationHandoff();
-    }, 700);
-    return () => clearTimeout(id);
-  }, [postActivationHandoff, needsOnboarding, endPostActivationHandoff]);
-
   const isPaywallBlocking =
     Boolean(session && !needsOnboarding) &&
     shouldShowFullScreenSubscriptionPaywall({
@@ -77,6 +66,84 @@ export function AuthNavigator() {
     !needsOnboarding &&
     !mainAppSubscriptionBooting &&
     !isPaywallBlocking;
+
+  const handoffOverlayOpacity = useRef(new Animated.Value(1)).current;
+  const handoffDismissStartedRef = useRef(false);
+
+  /** After step 5 activation: stay covered until tabs (or paywall) are ready so subscription boot / logo doesn’t flash, then fade out. */
+  useEffect(() => {
+    if (!session || !postActivationHandoff) {
+      handoffDismissStartedRef.current = false;
+      handoffOverlayOpacity.setValue(1);
+      return undefined;
+    }
+    if (needsOnboarding) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let settleTimerId;
+    let failsafeTimerId;
+
+    const dismissWithFade = () => {
+      if (cancelled || handoffDismissStartedRef.current) {
+        return;
+      }
+      handoffDismissStartedRef.current = true;
+      Animated.timing(handoffOverlayOpacity, {
+        toValue: 0,
+        duration: 340,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (!finished || cancelled) {
+          handoffDismissStartedRef.current = false;
+          return;
+        }
+        endPostActivationHandoff();
+        handoffOverlayOpacity.setValue(1);
+        handoffDismissStartedRef.current = false;
+      });
+    };
+
+    const scheduleDismiss = (delayMs) => {
+      return setTimeout(() => {
+        if (!cancelled) {
+          dismissWithFade();
+        }
+      }, delayMs);
+    };
+
+    if (mainTabsInteractive) {
+      // Pending booking-link nav retries at 120 / 450 / 900 ms — stay covered through the 450 ms pass.
+      settleTimerId = scheduleDismiss(520);
+    } else if (isPaywallBlocking) {
+      settleTimerId = scheduleDismiss(380);
+    } else {
+      failsafeTimerId = setTimeout(() => {
+        if (!cancelled) {
+          dismissWithFade();
+        }
+      }, 12_000);
+    }
+
+    return () => {
+      cancelled = true;
+      if (settleTimerId) {
+        clearTimeout(settleTimerId);
+      }
+      if (failsafeTimerId) {
+        clearTimeout(failsafeTimerId);
+      }
+    };
+  }, [
+    session,
+    postActivationHandoff,
+    needsOnboarding,
+    mainTabsInteractive,
+    isPaywallBlocking,
+    endPostActivationHandoff,
+    handoffOverlayOpacity,
+  ]);
 
   /** Post–step 5: `MainTabNavigator` may not mount during subscription boot — consume pending nav here. */
   const pendingBookingLinkNavBusyRef = useRef(false);
@@ -247,19 +314,23 @@ export function AuthNavigator() {
         </Stack.Navigator>
       </NavigationContainer>
       {session && postActivationHandoff ? (
-        <View
+        <Animated.View
+          accessibilityLabel="Finishing setup"
           pointerEvents="auto"
           style={[
             StyleSheet.absoluteFillObject,
             {
+              alignItems: 'center',
               backgroundColor: colors.shell,
               elevation: 32,
+              justifyContent: 'center',
               zIndex: 9999,
+              opacity: handoffOverlayOpacity,
             },
           ]}
         >
-          <AppFontLoadingShell accessibilityLabel="Loading" />
-        </View>
+          <ActivityIndicator accessibilityLabel="Loading" color={colors.accent} size="large" />
+        </Animated.View>
       ) : null}
     </View>
   );

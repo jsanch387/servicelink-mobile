@@ -78,6 +78,7 @@ export function NextUpCard({
   isLoading,
   businessError,
   bookingsError,
+  businessName,
   spotlightMode = 'none',
   onMarkComplete,
   markCompleteLoading = false,
@@ -178,9 +179,9 @@ export function NextUpCard({
 
   const onMyWay = useCallback(() => {
     if (nextBooking) {
-      openSmsOnMyWay(nextBooking);
+      openSmsOnMyWay(nextBooking, { businessName });
     }
-  }, [nextBooking]);
+  }, [nextBooking, businessName]);
 
   const navigate = useCallback(() => {
     if (nextBooking) {

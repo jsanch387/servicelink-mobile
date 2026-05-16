@@ -344,9 +344,32 @@ describe('NextUpCard', () => {
       />,
     );
     fireEvent.press(screen.getByLabelText('On my way'));
-    expect(outbound.openSmsOnMyWay).toHaveBeenCalledWith(nextBooking);
+    expect(outbound.openSmsOnMyWay).toHaveBeenCalledWith(nextBooking, { businessName: undefined });
     fireEvent.press(screen.getByLabelText('Navigate'));
     expect(outbound.openMapsForBooking).toHaveBeenCalledWith(nextBooking);
+  });
+
+  it('passes businessName into On my way SMS', () => {
+    const nextBooking = {
+      id: '1',
+      customer_name: 'Alex',
+      service_name: 'Install',
+      customer_phone: '5552345678',
+    };
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        businessName="Coastal Clean Co."
+        isLoading={false}
+        nextBooking={nextBooking}
+        subtitle=""
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('On my way'));
+    expect(outbound.openSmsOnMyWay).toHaveBeenCalledWith(nextBooking, {
+      businessName: 'Coastal Clean Co.',
+    });
   });
 
   it('shows schedule error from bookings', () => {

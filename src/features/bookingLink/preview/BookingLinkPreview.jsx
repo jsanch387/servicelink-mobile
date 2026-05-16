@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { useTheme } from '../../../theme';
 import { BioTabContent } from './components/BioTabContent';
@@ -32,6 +32,7 @@ export function BookingLinkPreview({
   bio,
 }) {
   const { colors } = useTheme();
+  const [pullRefreshing, setPullRefreshing] = useState(false);
 
   const styles = useMemo(
     () =>
@@ -47,7 +48,18 @@ export function BookingLinkPreview({
     [colors],
   );
 
-  const refreshing = queryState.isFetching && !queryState.isLoading;
+  /** Only user pull — background refetch (e.g. screen focus) sets `isFetching` and would flash the native spinner. */
+  const handleUserRefresh = useCallback(() => {
+    if (!onRefresh) {
+      return;
+    }
+    setPullRefreshing(true);
+    void Promise.resolve(onRefresh())
+      .catch(() => {})
+      .finally(() => {
+        setPullRefreshing(false);
+      });
+  }, [onRefresh]);
 
   return (
     <ScrollView
@@ -55,8 +67,8 @@ export function BookingLinkPreview({
       refreshControl={
         <RefreshControl
           colors={[colors.accent]}
-          onRefresh={onRefresh}
-          refreshing={refreshing}
+          onRefresh={handleUserRefresh}
+          refreshing={pullRefreshing}
           tintColor={colors.accent}
         />
       }

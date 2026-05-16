@@ -3,11 +3,20 @@ import { phoneForSmsUri } from '../../../utils/phone';
 import { formatBookingAddressForMaps } from './bookingAddress';
 
 /**
- * @param {{ customer_name?: string | null }} booking
+ * Prefilled SMS when the owner taps **On my way** on the Next Up card.
+ * Intentionally omits customer name so a wrong name on file is never sent.
+ *
+ * @param {object} _booking Reserved for API parity with {@link openSmsOnMyWay}.
+ * @param {{ businessName?: string | null }} [options]
  */
-export function buildOnMyWaySmsBody(booking) {
-  const name = booking.customer_name?.trim() || 'there';
-  return `Hi ${name}, I'm on my way for your ServiceLink appointment. See you soon!`;
+export function buildOnMyWaySmsBody(_booking, options = {}) {
+  const businessName = options.businessName?.trim() || '';
+
+  if (businessName) {
+    return `Hey, this is ${businessName}. I'm heading your way for your appointment. See you soon!`;
+  }
+
+  return `Hey, I'm heading your way for your appointment. See you soon!`;
 }
 
 export function buildServiceStartingSmsBody(booking) {
@@ -51,9 +60,10 @@ async function openSmsToCustomer(booking, body) {
 
 /**
  * @param {{ customer_name?: string | null; customer_phone?: string | null }} booking
+ * @param {{ businessName?: string | null }} [options]
  */
-export async function openSmsOnMyWay(booking) {
-  await openSmsToCustomer(booking, buildOnMyWaySmsBody(booking));
+export async function openSmsOnMyWay(booking, options = {}) {
+  await openSmsToCustomer(booking, buildOnMyWaySmsBody(booking, options));
 }
 
 /**

@@ -1,7 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  InteractionManager,
+  ScrollView,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useAuth } from '../../auth';
 import { useTheme } from '../../../theme';
 import { markProfileWelcomeModalSeen } from '../api/bookingLink';
@@ -57,6 +63,23 @@ export function BookingLinkScreen() {
 
   /** `profiles.profile_welcome_modal_seen` → `profile.profileWelcomeModalSeen` (true = hide modal). */
   const bookingWelcomeVisible = Boolean(profile?.id && profile.profileWelcomeModalSeen !== true);
+  const [welcomeAfterTransition, setWelcomeAfterTransition] = useState(false);
+
+  useEffect(() => {
+    if (!bookingWelcomeVisible) {
+      setWelcomeAfterTransition(false);
+      return undefined;
+    }
+    const task = InteractionManager.runAfterInteractions(() => {
+      setWelcomeAfterTransition(true);
+    });
+    return () => {
+      if (typeof task?.cancel === 'function') {
+        task.cancel();
+      }
+    };
+  }, [bookingWelcomeVisible]);
+
   const services = useMemo(() => mapServicesForCards(profile?.services), [profile?.services]);
   const galleryImages = useMemo(
     () => (profile?.images ?? []).filter((image) => Boolean(image?.preview_url)),
@@ -174,7 +197,10 @@ export function BookingLinkScreen() {
         </View>
       )}
       {!isEditMode ? (
-        <BookingLinkWelcomeModal visible={bookingWelcomeVisible} onDismiss={handleWelcomeDismiss} />
+        <BookingLinkWelcomeModal
+          visible={bookingWelcomeVisible && welcomeAfterTransition}
+          onDismiss={handleWelcomeDismiss}
+        />
       ) : null}
     </View>
   );

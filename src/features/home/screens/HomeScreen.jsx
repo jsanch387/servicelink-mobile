@@ -324,6 +324,7 @@ export function HomeScreen() {
         <NextUpCard
           bookingsError={homeErrors.nextUpBookingsError}
           businessError={homeErrors.nextUpBusinessError}
+          businessName={dashboard.business?.business_name?.trim() || undefined}
           isLoading={sectionLoading}
           markCompleteLoading={markCompleteMutation.isPending}
           nextBooking={dashboard.nextBooking}
