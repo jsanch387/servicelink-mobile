@@ -1,14 +1,12 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button } from '../../../../components/ui';
-import { useTheme } from '../../../../theme';
+import { Button, DeleteButton } from '../../../../components/ui';
 
 export function CustomerDetailActionsSection({
   onSendText,
   onRemoveCustomer,
   removeLoading = false,
 }) {
-  const { colors } = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -30,16 +28,11 @@ export function CustomerDetailActionsSection({
         title="Send a text"
         variant="primary"
       />
-      <Button
+      <DeleteButton
         disabled={removeLoading}
-        fullWidth
-        iconName="trash-outline"
-        iconColor={colors.danger}
         loading={removeLoading}
-        onPress={onRemoveCustomer}
-        outlineColor={colors.danger}
         title="Remove customer"
-        variant="outline"
+        onPress={onRemoveCustomer}
       />
     </View>
   );

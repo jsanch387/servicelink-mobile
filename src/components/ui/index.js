@@ -5,6 +5,7 @@ export { FormBottomSheetModal } from './FormBottomSheetModal';
 export { CalendarMonthPicker } from './CalendarMonthPicker';
 export { toLocalYyyyMmDd, parseLocalYyyyMmDd, startOfLocalDay } from './calendarDateKey';
 export { Button } from './Button';
+export { DeleteButton } from './DeleteButton';
 export {
   ProCrownIcon,
   PRO_CROWN_COLOR_ACCOUNT,

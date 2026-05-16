@@ -12,7 +12,13 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
+import {
+  AppText,
+  Button,
+  DeleteButton,
+  InlineCardError,
+  SurfaceCard,
+} from '../../../components/ui';
 import { useAuth } from '../../auth';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
@@ -463,14 +469,10 @@ export function AccountSettingsScreen() {
               This permanently removes your ServiceLink data. You can confirm details in the next
               step.
             </AppText>
-            <Button
-              fullWidth
-              labelColor={colors.danger}
-              outlineBgPressed="rgba(220, 38, 38, 0.08)"
-              outlineColor={colors.danger}
+            <DeleteButton
+              showIcon={false}
               style={styles.dangerButton}
               title="Delete account"
-              variant="outline"
               onPress={() => {
                 setDeleteSheetVisible(true);
                 setDeleteEmailConfirmed(false);

@@ -14,7 +14,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
-import { AppText, Button, InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
+import {
+  AppText,
+  Button,
+  DeleteButton,
+  InfoSection,
+  InlineCardError,
+  SurfaceCard,
+} from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
@@ -358,17 +365,10 @@ export function QuoteDetailScreen() {
           {isRequest ? (
             <Button fullWidth title="Create quote" variant="primary" onPress={handleCreateQuote} />
           ) : null}
-          <Button
+          <DeleteButton
             disabled={!businessId || deleting}
-            fullWidth
-            iconColor={colors.danger}
-            iconName="trash-outline"
-            labelColor={colors.danger}
             loading={deleting}
-            outlineBgPressed="rgba(220, 38, 38, 0.08)"
-            outlineColor={colors.danger}
             title={isRequest ? 'Remove request' : 'Delete quote'}
-            variant="outline"
             onPress={handleDeleteQuote}
           />
         </View>

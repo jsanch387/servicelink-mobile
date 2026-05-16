@@ -2,7 +2,13 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Button, InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
+import {
+  Button,
+  DeleteButton,
+  InfoSection,
+  InlineCardError,
+  SurfaceCard,
+} from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { useTheme } from '../../../theme';
@@ -337,17 +343,12 @@ export function BookingDetailsScreen({ route }) {
               />
             </View>
             <View style={styles.deleteSection}>
-              <Button
+              <DeleteButton
                 accessibilityHint="Removes this appointment from your calendar. This can\'t be undone."
                 accessibilityLabel="Delete booking permanently"
                 disabled={actionsBusy || !bookingId}
-                fullWidth
-                iconName="trash-outline"
                 loading={bookingActions.isDeletingBooking}
-                outlineColor={colors.danger}
-                outlineThin
                 title="Delete booking"
-                variant="outline"
                 onPress={handleDeleteBooking}
               />
             </View>

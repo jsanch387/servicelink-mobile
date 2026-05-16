@@ -5,6 +5,7 @@ import {
   AppTextInput,
   BottomSheetModal,
   Button,
+  DeleteButton,
   InlineCardError,
   useSurfaceInputTextStyle,
 } from '../../../components/ui';
@@ -115,15 +116,11 @@ export function DeleteAccountConfirmSheet({
           />
         </View>
         <View style={styles.rowGrow}>
-          <Button
+          <DeleteButton
             disabled={!isMatch || isDeleting}
-            fullWidth
-            labelColor={colors.danger}
             loading={isDeleting}
-            outlineBgPressed="rgba(220, 38, 38, 0.08)"
-            outlineColor={colors.danger}
+            showIcon={false}
             title="Delete account"
-            variant="outline"
             onPress={() => {
               void onConfirm(typedEmail.trim());
             }}
