@@ -21,6 +21,7 @@ import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileChec
 import { confirmOnboardingTrialUntilReady } from '../utils/confirmOnboardingTrialUntilReady';
 import { createOnboardingCheckoutSession } from '../api/createOnboardingCheckoutSession';
 import { parseCheckoutSessionIdFromOnboardingReturnUrl } from '../utils/parseOnboardingStripeReturnUrl';
+import { completeOnboardingV2 } from '../api/completeOnboardingV2';
 import { startOnboardingTrial } from '../api/startOnboardingTrial';
 import {
   MAX_ONBOARDING_BUSINESS_NAME_LENGTH,
@@ -35,7 +36,6 @@ import {
 import { ENABLE_ONBOARDING_STRIPE_TRIAL } from '../constants/onboardingStripeTrialFlag';
 import { STRIPE_ONBOARDING_CHECKOUT_AUTH_RETURN_URL } from '../constants/stripeOnboardingReturnUrl';
 import {
-  markOnboardingCompleted,
   saveOnboardingStep1,
   saveOnboardingStep2Services,
   saveOnboardingStep3Availability,
@@ -492,32 +492,51 @@ export function OnboardingScreen() {
     setCheckoutSubmitting(true);
     try {
       if (!ENABLE_ONBOARDING_STRIPE_TRIAL) {
-        const marked = await markOnboardingCompleted(userId);
-        if (!marked.ok) {
-          Alert.alert(
-            'Could not activate your link',
-            safeUserFacingMessage(marked.error, {
-              fallback: 'Something went wrong. Try again.',
-            }),
-          );
+        const serverComplete = await completeOnboardingV2(token);
+        if ('error' in serverComplete) {
+          let body = serverComplete.userMessage;
+          if (__DEV__ && serverComplete.httpStatus === 404) {
+            body +=
+              '\n\nDev: add POST /api/onboarding-v2/complete on your web app (onboarding welcome email contract).';
+          }
+          if (__DEV__ && serverComplete.httpStatus === 0 && Constants.isDevice) {
+            const tried = resolveStripeMobileCheckoutOrigin() ?? '(no origin)';
+            body += `\n\nDev: could not reach your web API (${tried}). On a physical phone, set EXPO_PUBLIC_WEB_APP_URL to your computer's LAN IP (not localhost) and restart Expo.`;
+          }
+          Alert.alert('Could not activate your link', body);
           return;
         }
         // Cover the shell before profile refetch flips `needsOnboarding` — otherwise Home flashes for a frame.
         beginPostActivationHandoff();
-        await refetchOnboarding();
-        await queryClient.invalidateQueries({ queryKey: accountSettingsQueryKey(userId) });
-        await queryClient.invalidateQueries({ queryKey: BOOKING_LINK_QUERY_KEY });
-        await setPendingNavigateToBookingLink();
-        const { completed } = await refetchOnboardingAfterStripe({
-          userId,
-          trial_confirmation: null,
-          maxAttempts: 5,
-          delayMs: 600,
-        });
-        if (!completed) {
+        try {
+          await refetchOnboarding();
+          await queryClient.invalidateQueries({ queryKey: accountSettingsQueryKey(userId) });
+          await queryClient.invalidateQueries({ queryKey: BOOKING_LINK_QUERY_KEY });
+          await setPendingNavigateToBookingLink();
+          const { completed } = await refetchOnboardingAfterStripe({
+            userId,
+            trial_confirmation: null,
+            maxAttempts: 5,
+            delayMs: 600,
+          });
+          if (!completed) {
+            endPostActivationHandoff();
+            await clearPendingBookingLinkNavigation();
+            Alert.alert(
+              'Almost there',
+              'Your link is active. Pull to refresh on Home if the app has not updated yet.',
+            );
+          }
+        } catch (syncError) {
           endPostActivationHandoff();
           await clearPendingBookingLinkNavigation();
-          Alert.alert('Almost there', 'Pull to refresh on Home in a moment.');
+          Alert.alert(
+            'Almost there',
+            safeUserFacingMessage(syncError, {
+              fallback:
+                'Your link is active, but we could not refresh the app. Pull to refresh on Home.',
+            }),
+          );
         }
         return;
       }

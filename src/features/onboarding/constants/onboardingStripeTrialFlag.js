@@ -3,7 +3,6 @@
  * trial subscription, with optional Checkout fallback (`startOnboardingTrial`, etc.).
  *
  * Set to `true` only if you intentionally restore that flow on the server.
- * Default `false`: activation completes onboarding as **free tier** in Supabase only
- * (`markOnboardingCompleted` → `profiles.subscription_tier = 'free'`, no Stripe calls).
+ * Default `false`: activation calls `POST /api/onboarding-v2/complete` (welcome email + free tier on server).
  */
 export const ENABLE_ONBOARDING_STRIPE_TRIAL = false;

@@ -59,26 +59,26 @@ export function HomeProUpgradeNudge({
           alignItems: 'center',
           flexDirection: 'row',
           flexWrap: 'nowrap',
-          justifyContent: 'flex-start',
+          justifyContent: 'space-between',
           minHeight: capMode ? 52 : 44,
           paddingHorizontal: 14,
           paddingVertical: capMode ? 12 : 10,
           width: '100%',
         },
-        iconSlot: {
+        leading: {
           alignItems: 'center',
-          alignSelf: 'center',
+          flex: 1,
+          flexDirection: 'row',
+          gap: 10,
+          minWidth: 0,
+        },
+        iconWrap: {
+          alignItems: 'center',
           flexShrink: 0,
-          height: 24,
           justifyContent: 'center',
-          marginRight: 10,
-          transform: [{ translateY: 3 }],
-          width: 24,
         },
         label: {
           color: colors.text,
-          flexBasis: 0,
-          flexGrow: 1,
           flexShrink: 1,
           fontFamily: FONT_FAMILIES.semibold,
           fontSize: 14,
@@ -97,19 +97,16 @@ export function HomeProUpgradeNudge({
           marginTop: 4,
         },
         textColumn: {
-          flexBasis: 0,
-          flexGrow: 1,
+          flex: 1,
           flexShrink: 1,
+          justifyContent: 'center',
           minWidth: 0,
         },
         chevronSlot: {
           alignItems: 'center',
-          alignSelf: 'center',
           flexShrink: 0,
-          height: 32,
           justifyContent: 'center',
           marginLeft: 4,
-          width: 28,
         },
       }),
     [capMode, colors],
@@ -125,25 +122,27 @@ export function HomeProUpgradeNudge({
         onPress={onPress}
       >
         <View style={styles.row}>
-          <View style={styles.iconSlot}>
-            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <ProCrownIcon color={PRO_CROWN_COLOR_FEATURE} size={17} />
+          <View style={styles.leading}>
+            <View style={styles.iconWrap}>
+              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                <ProCrownIcon color={PRO_CROWN_COLOR_FEATURE} size={18} />
+              </View>
             </View>
+            {capMode ? (
+              <View style={styles.textColumn}>
+                <AppText includeFontPadding={false} style={styles.label}>
+                  {capUsed} / {capLimit} free bookings
+                </AppText>
+                <AppText includeFontPadding={false} style={styles.subLabel}>
+                  Upgrade to Pro for unlimited bookings
+                </AppText>
+              </View>
+            ) : (
+              <AppText includeFontPadding={false} numberOfLines={1} style={styles.label}>
+                Upgrade to Pro
+              </AppText>
+            )}
           </View>
-          {capMode ? (
-            <View style={styles.textColumn}>
-              <AppText includeFontPadding={false} style={styles.label}>
-                {capUsed} / {capLimit} free bookings
-              </AppText>
-              <AppText includeFontPadding={false} style={styles.subLabel}>
-                Upgrade to Pro for unlimited bookings
-              </AppText>
-            </View>
-          ) : (
-            <AppText includeFontPadding={false} numberOfLines={1} style={styles.label}>
-              Upgrade to Pro
-            </AppText>
-          )}
           <View style={styles.chevronSlot}>
             <Ionicons color={colors.textMuted} name="chevron-forward" size={20} />
           </View>
