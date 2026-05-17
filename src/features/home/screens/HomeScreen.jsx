@@ -7,6 +7,7 @@ import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppShellGlow, AppText, Divider } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
+import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
 import { FloatingCreateMenu } from '../components/FloatingCreateMenu';
 import { HomeProUpgradeNudge } from '../components/HomeProUpgradeNudge';
 import { HomeErrorBanner } from '../components/HomeErrorBanner';
@@ -219,7 +220,7 @@ export function HomeScreen() {
         { text: 'Not now', style: 'cancel' },
         {
           text: 'Upgrade',
-          onPress: () => navigation.navigate(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS }),
+          onPress: () => navigateToUpgradePlan(navigation),
         },
       ],
     );
@@ -252,7 +253,7 @@ export function HomeScreen() {
   }, [navigation]);
 
   const handleProUpgradeNudge = useCallback(() => {
-    navigation.navigate(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS });
+    navigateToUpgradePlan(navigation);
   }, [navigation]);
 
   const handleNextUpMarkComplete = useCallback(async () => {

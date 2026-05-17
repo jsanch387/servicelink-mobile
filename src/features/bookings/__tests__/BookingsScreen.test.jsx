@@ -170,7 +170,7 @@ describe('BookingsScreen list empty states', () => {
     });
     renderWithProviders(<BookingsScreen />);
     fireEvent.press(screen.getByLabelText('Upgrade'));
-    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS });
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.UPGRADE_PLAN);
   });
 
   it('prefers business_profiles.free_bookings_count for the usage strip when set', () => {

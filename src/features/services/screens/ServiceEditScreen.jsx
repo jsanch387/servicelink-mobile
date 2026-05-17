@@ -1,4 +1,4 @@
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -31,6 +31,7 @@ import {
 } from '../../../components/ui/durationTime';
 import { useAuth } from '../../auth';
 import { useSubscription } from '../../subscription';
+import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
 import { CollapsibleEditorSectionCard } from '../components/CollapsibleEditorSectionCard';
 import { SelectableAddonCard } from '../components/SelectableAddonCard';
@@ -169,6 +170,7 @@ function validateAddonInput(addonOptions) {
 const TRANSIENT_SAVE_FEEDBACK_MS = 5000;
 
 export function ServiceEditScreen({ route }) {
+  const navigation = useNavigation();
   const { user } = useAuth();
   const {
     hasProAccess,
@@ -870,7 +872,7 @@ export function ServiceEditScreen({ route }) {
                 style={styles.upgradeProButtonSpacing}
                 title="Upgrade to Pro"
                 variant="primary"
-                onPress={() => {}}
+                onPress={() => navigateToUpgradePlan(navigation)}
               />
             ) : null}
 

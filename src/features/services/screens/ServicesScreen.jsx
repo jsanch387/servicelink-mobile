@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
+import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
 import { useTheme } from '../../../theme';
 import { FREE_TIER_MAX_SERVICES } from '../constants/freeTierLimits';
 import { useSubscription } from '../../subscription';
@@ -185,7 +186,7 @@ export function ServicesScreen() {
           { text: 'Not now', style: 'cancel' },
           {
             text: 'Upgrade',
-            onPress: () => navigation.navigate(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS }),
+            onPress: () => navigateToUpgradePlan(navigation),
           },
         ],
       );
@@ -429,9 +430,7 @@ export function ServicesScreen() {
               Free plan includes up to {FREE_TIER_MAX_SERVICES} services.{' '}
               <AppText
                 accessibilityRole="link"
-                onPress={() =>
-                  navigation.navigate(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS })
-                }
+                onPress={() => navigateToUpgradePlan(navigation)}
                 style={{ color: colors.accent, fontWeight: '600' }}
               >
                 Upgrade to Pro

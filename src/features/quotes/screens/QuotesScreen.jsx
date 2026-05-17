@@ -12,6 +12,7 @@ import {
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
+import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
 import { useTheme } from '../../../theme';
 import { navigationRef } from '../../../navigation/navigationRef';
 import { useAuth } from '../../auth';
@@ -79,7 +80,7 @@ export function QuotesScreen() {
   );
 
   const onUpgradeToProPress = useCallback(() => {
-    navigation.navigate(ROUTES.ACCOUNT_SETTINGS);
+    navigateToUpgradePlan(navigation);
   }, [navigation]);
 
   const openRequestDetail = useCallback(

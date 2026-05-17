@@ -161,7 +161,7 @@ describe('HomeScreen', () => {
     });
     renderWithProviders(<HomeScreen />);
     fireEvent.press(screen.getByLabelText('Upgrade to Pro'));
-    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS });
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.UPGRADE_PLAN);
   });
 
   it('shows Pro upgrade nudge in free booking cap mode when at the limit', () => {
@@ -223,7 +223,7 @@ describe('HomeScreen', () => {
         'Free plan: 5 of 5 bookings used. Upgrade to Pro for unlimited bookings.',
       ),
     );
-    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS });
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.UPGRADE_PLAN);
   });
 
   it('blocks create appointment when free_bookings_count from profile is at the cap', () => {
@@ -294,7 +294,7 @@ describe('HomeScreen', () => {
       const upgrade = buttons.find((b) => b.text === 'Upgrade');
       expect(upgrade).toBeTruthy();
       upgrade.onPress();
-      expect(mockNavigate).toHaveBeenCalledWith(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS });
+      expect(mockNavigate).toHaveBeenCalledWith(ROUTES.UPGRADE_PLAN);
     } finally {
       alertSpy.mockRestore();
     }

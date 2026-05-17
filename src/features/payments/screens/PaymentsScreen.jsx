@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
-import { ROUTES } from '../../../routes/routes';
+import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
 import { useSubscription } from '../../subscription';
@@ -154,7 +154,7 @@ export function PaymentsScreen() {
   }, [payment, refetchSubscription]);
 
   const onUpgradeToProPress = useCallback(() => {
-    navigation.navigate(ROUTES.ACCOUNT_SETTINGS);
+    navigateToUpgradePlan(navigation);
   }, [navigation]);
 
   useEffect(() => {

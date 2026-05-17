@@ -2,8 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
-import { createPaywallUpgradeCheckoutSession } from '../../subscription/api/createPaywallUpgradeCheckoutSession';
-import { STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL } from '../../subscription/constants/stripePaywallCheckoutReturnUrl';
+import { ROUTES } from '../../../routes/routes';
 import { AccountSettingsScreen } from '../screens/AccountSettingsScreen';
 import { refetchAccountAfterPortal } from '../utils/refetchAccountAfterPortal';
 
@@ -41,10 +40,6 @@ jest.mock('../components/ChangeBusinessSlugSheet', () => ({
 
 jest.mock('../components/DeleteAccountConfirmSheet', () => ({
   DeleteAccountConfirmSheet: () => null,
-}));
-
-jest.mock('../../subscription/api/createPaywallUpgradeCheckoutSession', () => ({
-  createPaywallUpgradeCheckoutSession: jest.fn(),
 }));
 
 function loadedSettings(overrides = {}) {
@@ -133,11 +128,8 @@ describe('AccountSettingsScreen manage subscription', () => {
     expect(WebBrowser.openAuthSessionAsync).not.toHaveBeenCalled();
   });
 
-  it('shows Upgrade to Pro for free tier and opens Stripe checkout on press', async () => {
+  it('shows Upgrade to Pro for free tier and navigates to upgrade plan on press', () => {
     const createBillingPortalSession = jest.fn();
-    createPaywallUpgradeCheckoutSession.mockResolvedValue({
-      url: 'https://checkout.stripe.com/c/pay/cs_test_free',
-    });
     mockUseAccountSettings.mockReturnValue(
       loadedSettings({
         ownerProfile: {
@@ -151,28 +143,15 @@ describe('AccountSettingsScreen manage subscription', () => {
         createBillingPortalSession,
       }),
     );
-    WebBrowser.openAuthSessionAsync.mockResolvedValue({
-      type: 'success',
-      url: 'servicelinkmobile://paywall/stripe?result=success',
-    });
-    refetchAccountAfterPortal.mockResolvedValue();
 
     renderWithProviders(<AccountSettingsScreen />);
     expect(screen.getByRole('button', { name: 'Upgrade to Pro' })).toBeTruthy();
 
     fireEvent.press(screen.getByRole('button', { name: 'Upgrade to Pro' }));
 
-    await waitFor(() =>
-      expect(createPaywallUpgradeCheckoutSession).toHaveBeenCalledWith('jwt-token'),
-    );
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.UPGRADE_PLAN);
     expect(createBillingPortalSession).not.toHaveBeenCalled();
-    expect(WebBrowser.openAuthSessionAsync).toHaveBeenCalledWith(
-      'https://checkout.stripe.com/c/pay/cs_test_free',
-      STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL,
-    );
-    await waitFor(() =>
-      expect(refetchAccountAfterPortal).toHaveBeenCalledWith({ userId: 'user_1' }),
-    );
+    expect(WebBrowser.openAuthSessionAsync).not.toHaveBeenCalled();
   });
 
   it('shows sign-in alert when session is missing', async () => {

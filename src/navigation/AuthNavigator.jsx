@@ -18,6 +18,7 @@ import { NotificationsInboxScreen } from '../features/notifications/screens/Noti
 import { CreateQuoteScreen } from '../features/quotes/screens/CreateQuoteScreen';
 import { useSubscription } from '../features/subscription';
 import { UpgradePaywallScreen } from '../features/subscription/screens/UpgradePaywallScreen';
+import { UpgradePlanScreen } from '../features/subscription/screens/UpgradePlanScreen';
 import { shouldShowFullScreenSubscriptionPaywall } from '../features/subscription/upgradePaywallGate';
 import { MainTabNavigator } from './MainTabNavigator';
 import { ROUTES } from '../routes/routes';
@@ -294,6 +295,19 @@ export function AuthNavigator() {
                 name={ROUTES.CREATE_QUOTE}
                 options={{
                   headerShown: true,
+                  headerBackButtonDisplayMode: 'minimal',
+                  headerBackTitleVisible: false,
+                  headerTitleStyle: {
+                    fontFamily: FONT_FAMILIES.semibold,
+                  },
+                }}
+              />
+              <Stack.Screen
+                component={UpgradePlanScreen}
+                name={ROUTES.UPGRADE_PLAN}
+                options={{
+                  headerShown: true,
+                  title: 'Upgrade to Pro',
                   headerBackButtonDisplayMode: 'minimal',
                   headerBackTitleVisible: false,
                   headerTitleStyle: {

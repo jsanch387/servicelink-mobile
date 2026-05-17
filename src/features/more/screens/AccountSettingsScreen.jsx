@@ -36,8 +36,7 @@ import {
   buildSubscriptionCardModel,
 } from '../utils/accountSettingsModel';
 import { SCREEN_GUTTER } from '../../../constants/layout';
-import { createPaywallUpgradeCheckoutSession } from '../../subscription/api/createPaywallUpgradeCheckoutSession';
-import { STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL } from '../../subscription/constants/stripePaywallCheckoutReturnUrl';
+import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
 
 export function AccountSettingsScreen() {
   const { colors } = useTheme();
@@ -49,8 +48,6 @@ export function AccountSettingsScreen() {
   const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
   const [deleteEmailConfirmed, setDeleteEmailConfirmed] = useState(false);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
-  const [upgradeCheckoutSubmitting, setUpgradeCheckoutSubmitting] = useState(false);
-
   const {
     ownerProfile,
     business,
@@ -243,30 +240,14 @@ export function AccountSettingsScreen() {
       return;
     }
 
-    setUpgradeCheckoutSubmitting(true);
-    try {
-      const created = await createPaywallUpgradeCheckoutSession(token);
-      if ('error' in created) {
-        Alert.alert(
-          'Could not start checkout',
-          safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
-        );
-        return;
-      }
-      try {
-        await WebBrowser.openAuthSessionAsync(created.url, STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL);
-      } finally {
-        await refetchAccountAfterPortal({ userId });
-      }
-    } catch (e) {
-      Alert.alert(
-        'Checkout',
-        safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
-      );
-    } finally {
-      setUpgradeCheckoutSubmitting(false);
-    }
-  }, [createBillingPortalSession, session?.access_token, subscriptionModel.showProCrown, user?.id]);
+    navigateToUpgradePlan(navigation);
+  }, [
+    createBillingPortalSession,
+    navigation,
+    session?.access_token,
+    subscriptionModel.showProCrown,
+    user?.id,
+  ]);
 
   const handleOpenBookingPage = useCallback(() => {
     if (!linkModel.httpsUrl) return;
@@ -427,7 +408,7 @@ export function AccountSettingsScreen() {
           </View>
           <AccountSubscriptionCard
             accessLine={subscriptionModel.accessLine}
-            manageSubscriptionLoading={isCreatingBillingPortalSession || upgradeCheckoutSubmitting}
+            manageSubscriptionLoading={isCreatingBillingPortalSession}
             planLabel={subscriptionModel.planLabel}
             priceDisplay={subscriptionModel.priceDisplay}
             showProCrown={subscriptionModel.showProCrown}
