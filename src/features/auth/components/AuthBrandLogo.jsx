@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    marginBottom: 22,
+    marginBottom: 5,
   },
   image: {
     height: DISPLAY_HEIGHT,
