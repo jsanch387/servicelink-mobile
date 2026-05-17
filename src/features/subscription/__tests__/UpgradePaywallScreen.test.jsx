@@ -25,6 +25,16 @@ jest.mock('../context/SubscriptionContext', () => ({
   useSubscription: (...args) => mockUseSubscription(...args),
 }));
 
+const mockRefetchAccountAfterUpgradeCheckout = jest.fn();
+
+jest.mock('../utils/refetchAccountAfterUpgradeCheckout', () => ({
+  refetchAccountAfterUpgradeCheckout: (...args) => mockRefetchAccountAfterUpgradeCheckout(...args),
+}));
+
+jest.mock('../../../navigation/navigationRef', () => ({
+  navigationRef: { isReady: jest.fn(() => true), navigate: jest.fn() },
+}));
+
 jest.mock('@react-navigation/bottom-tabs', () => ({
   useBottomTabBarHeight: () => 80,
 }));
@@ -32,6 +42,7 @@ jest.mock('@react-navigation/bottom-tabs', () => ({
 function defaultAuth() {
   return {
     session: { access_token: 'jwt-upgrade-token' },
+    user: { id: 'user_upgrade' },
   };
 }
 
@@ -47,6 +58,7 @@ describe('UpgradePaywallScreen', () => {
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     mockUseAuth.mockReturnValue(defaultAuth());
     mockUseSubscription.mockReturnValue(defaultSubscription());
+    mockRefetchAccountAfterUpgradeCheckout.mockResolvedValue({ hasProAccess: true });
   });
 
   afterEach(() => {
@@ -62,7 +74,7 @@ describe('UpgradePaywallScreen', () => {
     expect(screen.getByRole('button', { name: 'Upgrade to Pro' })).toBeTruthy();
   });
 
-  it('starts checkout, opens Stripe session, then refetches subscription', async () => {
+  it('starts checkout, polls account bundle, then navigates to Account on success', async () => {
     createPaywallUpgradeCheckoutSession.mockResolvedValue({
       url: 'https://checkout.stripe.com/c/pay/cs_test_paywall',
     });
@@ -83,7 +95,12 @@ describe('UpgradePaywallScreen', () => {
       'https://checkout.stripe.com/c/pay/cs_test_paywall',
       STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL,
     );
-    await waitFor(() => expect(refetchSubscription).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(mockRefetchAccountAfterUpgradeCheckout).toHaveBeenCalledWith({
+        userId: 'user_upgrade',
+      }),
+    );
+    expect(refetchSubscription).not.toHaveBeenCalled();
   });
 
   it('refetches subscription after checkout session even when browser returns dismiss', async () => {

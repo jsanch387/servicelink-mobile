@@ -1,17 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
 import { useCallback, useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, ProCrownIcon, SurfaceCard } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
-import { ROUTES } from '../../../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { getSubscriptionAccessLine } from '../../more/utils/subscriptionPresentation';
 import { PRO_PLAN_DISPLAY } from '../constants/planComparison';
 import { PlanComparisonCard } from '../components/PlanComparisonCard';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useProUpgradeCheckout } from '../hooks/useProUpgradeCheckout';
+import { navigateToAccountSettings } from '../navigation/navigateToAccountSettings';
 
 /**
  * @param {{
@@ -128,7 +127,6 @@ function PlanTierCard({
 }
 
 export function UpgradePlanScreen() {
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { hasProAccess, ownerProfile } = useSubscription();
@@ -147,8 +145,8 @@ export function UpgradePlanScreen() {
   );
 
   const handleManageOnAccount = useCallback(() => {
-    navigation.navigate(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS });
-  }, [navigation]);
+    navigateToAccountSettings();
+  }, []);
 
   const styles = useMemo(
     () =>

@@ -1,15 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { useMemo } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppShellGlow, AppText, Button, SurfaceCard } from '../../../components/ui';
-import { useAuth } from '../../auth';
-import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
-import { createPaywallUpgradeCheckoutSession } from '../api/createPaywallUpgradeCheckoutSession';
-import { STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL } from '../constants/stripePaywallCheckoutReturnUrl';
-import { useSubscription } from '../context/SubscriptionContext';
+import { useProUpgradeCheckout } from '../hooks/useProUpgradeCheckout';
 
 function PaywallThickCheck({ stroke = '#f3f4f6' }) {
   return (
@@ -28,42 +23,7 @@ function PaywallThickCheck({ stroke = '#f3f4f6' }) {
 
 export function UpgradePaywallScreen() {
   const insets = useSafeAreaInsets();
-  const { session } = useAuth();
-  const { refetchSubscription } = useSubscription();
-  const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
-
-  const onUpgradeToProPress = useCallback(async () => {
-    const token = session?.access_token ?? null;
-    if (!token) {
-      Alert.alert('Sign in required', 'Please sign in again to continue.');
-      return;
-    }
-
-    setCheckoutSubmitting(true);
-    try {
-      const created = await createPaywallUpgradeCheckoutSession(token);
-      if ('error' in created) {
-        Alert.alert(
-          'Could not start checkout',
-          safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
-        );
-        return;
-      }
-
-      try {
-        await WebBrowser.openAuthSessionAsync(created.url, STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL);
-      } finally {
-        await refetchSubscription();
-      }
-    } catch (e) {
-      Alert.alert(
-        'Checkout',
-        safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
-      );
-    } finally {
-      setCheckoutSubmitting(false);
-    }
-  }, [refetchSubscription, session?.access_token]);
+  const { startUpgradeCheckout, submitting: checkoutSubmitting } = useProUpgradeCheckout();
 
   const styles = useMemo(() => {
     /** Full-screen stack (outside tab navigator) — safe area only, not `useBottomTabBarHeight`. */
@@ -306,7 +266,7 @@ export function UpgradePaywallScreen() {
                   fullWidth
                   labelColor="#0b0c0f"
                   loading={checkoutSubmitting}
-                  onPress={onUpgradeToProPress}
+                  onPress={() => void startUpgradeCheckout()}
                   style={styles.ctaBtn}
                   title="Upgrade to Pro"
                 />

@@ -49,7 +49,7 @@ export function SubscriptionProvider({ children }) {
 
   const refetchSubscription = useCallback(async () => {
     if (!userId) return;
-    await qc.invalidateQueries({ queryKey: accountSettingsQueryKey(userId) });
+    await qc.refetchQueries({ queryKey: accountSettingsQueryKey(userId) });
   }, [qc, userId]);
 
   const value = useMemo(

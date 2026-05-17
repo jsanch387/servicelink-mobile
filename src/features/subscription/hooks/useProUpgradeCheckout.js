@@ -5,13 +5,16 @@ import { useAuth } from '../../auth';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { createPaywallUpgradeCheckoutSession } from '../api/createPaywallUpgradeCheckoutSession';
 import { STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL } from '../constants/stripePaywallCheckoutReturnUrl';
+import { navigateToAccountSettings } from '../navigation/navigateToAccountSettings';
 import { useSubscription } from '../context/SubscriptionContext';
+import { parsePaywallUpgradeReturnResult } from '../utils/parsePaywallUpgradeReturnUrl';
+import { refetchAccountAfterUpgradeCheckout } from '../utils/refetchAccountAfterUpgradeCheckout';
 
 /**
  * Opens Stripe Checkout for Pro upgrade and refreshes subscription state on return.
  */
 export function useProUpgradeCheckout() {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { refetchSubscription } = useSubscription();
   const [submitting, setSubmitting] = useState(false);
 
@@ -33,11 +36,25 @@ export function useProUpgradeCheckout() {
         return;
       }
 
+      let returnResult = null;
       try {
-        await WebBrowser.openAuthSessionAsync(created.url, STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL);
-      } finally {
+        const authResult = await WebBrowser.openAuthSessionAsync(
+          created.url,
+          STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL,
+        );
+        returnResult = parsePaywallUpgradeReturnResult(authResult);
+      } catch (browserError) {
         await refetchSubscription();
+        throw browserError;
       }
+
+      if (returnResult === 'success') {
+        await refetchAccountAfterUpgradeCheckout({ userId: user?.id ?? '' });
+        navigateToAccountSettings();
+        return;
+      }
+
+      await refetchSubscription();
     } catch (e) {
       Alert.alert(
         'Checkout',
@@ -46,7 +63,7 @@ export function useProUpgradeCheckout() {
     } finally {
       setSubmitting(false);
     }
-  }, [refetchSubscription, session?.access_token]);
+  }, [refetchSubscription, session?.access_token, user?.id]);
 
   return { startUpgradeCheckout, submitting };
 }

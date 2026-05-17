@@ -19,8 +19,11 @@ const mockNavigate = jest.fn();
 const mockUseAuth = jest.fn();
 const mockUseSubscription = jest.fn();
 
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate }),
+jest.mock('../../../navigation/navigationRef', () => ({
+  navigationRef: {
+    isReady: jest.fn(() => true),
+    navigate: (...args) => mockNavigate(...args),
+  },
 }));
 
 jest.mock('../../auth', () => ({
@@ -29,6 +32,10 @@ jest.mock('../../auth', () => ({
 
 jest.mock('../context/SubscriptionContext', () => ({
   useSubscription: (...args) => mockUseSubscription(...args),
+}));
+
+jest.mock('../utils/refetchAccountAfterUpgradeCheckout', () => ({
+  refetchAccountAfterUpgradeCheckout: jest.fn().mockResolvedValue({ hasProAccess: true }),
 }));
 
 function freeSubscription() {
@@ -50,7 +57,7 @@ describe('UpgradePlanScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    mockUseAuth.mockReturnValue({ session: { access_token: 'jwt-token' } });
+    mockUseAuth.mockReturnValue({ session: { access_token: 'jwt-token' }, user: { id: 'user_1' } });
     mockUseSubscription.mockReturnValue(freeSubscription());
   });
 
@@ -58,7 +65,10 @@ describe('UpgradePlanScreen', () => {
     createPaywallUpgradeCheckoutSession.mockResolvedValue({
       url: 'https://checkout.stripe.com/c/pay/cs_test',
     });
-    WebBrowser.openAuthSessionAsync.mockResolvedValue({ type: 'success' });
+    WebBrowser.openAuthSessionAsync.mockResolvedValue({
+      type: 'success',
+      url: 'servicelinkmobile://paywall/stripe?result=success',
+    });
 
     renderWithProviders(<UpgradePlanScreen />);
 
@@ -74,6 +84,12 @@ describe('UpgradePlanScreen', () => {
     expect(WebBrowser.openAuthSessionAsync).toHaveBeenCalledWith(
       'https://checkout.stripe.com/c/pay/cs_test',
       STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL,
+    );
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+        screen: ROUTES.MORE,
+        params: { screen: ROUTES.ACCOUNT_SETTINGS },
+      }),
     );
   });
 
@@ -95,6 +111,9 @@ describe('UpgradePlanScreen', () => {
 
     expect(screen.getByText('Your Pro plan')).toBeTruthy();
     fireEvent.press(screen.getByRole('button', { name: 'Manage subscription' }));
-    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.MORE, { screen: ROUTES.ACCOUNT_SETTINGS });
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.MORE,
+      params: { screen: ROUTES.ACCOUNT_SETTINGS },
+    });
   });
 });
