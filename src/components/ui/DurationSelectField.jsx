@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { triggerWheelSelectionHaptic } from './wheelHaptics';
 import {
   Animated,
-  FlatList,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -12,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
+import { useBottomSheetOverlay } from './bottomSheetOverlay';
 import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
 import {
   formatAddonDurationFromHHmm,
@@ -38,14 +40,267 @@ function getValueIndexFromOffset(offsetY, valuesLength) {
   return Math.min(valuesLength - 1, Math.max(0, rawIndex));
 }
 
-function buildSnapHandler({ values, setValue, listRef }) {
-  return (offsetY) => {
-    const valueIndex = getValueIndexFromOffset(offsetY, values.length);
-    const nextValue = values[valueIndex];
-    const snappedOffset = valueIndex * ITEM_HEIGHT;
-    setValue(nextValue);
-    listRef.current?.scrollToOffset({ animated: false, offset: snappedOffset });
+function resolveDraftFromValue(value, mode) {
+  if (mode === 'addon') {
+    const trimmed = String(value ?? '').trim();
+    const base = trimmed ? normalizeAddonDurationHHmmForPicker(trimmed) || '00:30' : '00:00';
+    const [h = '00', m = '00'] = base.split(':');
+    return {
+      hour: String(Math.min(10, Math.max(0, parseInt(h, 10) || 0))),
+      minute: m === '30' ? '30' : '00',
+    };
+  }
+  const base = String(value ?? '').trim()
+    ? normalizeServiceDurationHHmm(value) || '01:00'
+    : '01:00';
+  const [h = '01', m = '00'] = base.split(':');
+  return {
+    hour: String(Math.min(10, Math.max(0, parseInt(h, 10) || 1))),
+    minute: m === '30' ? '30' : '00',
   };
+}
+
+function WheelColumn({ values, selected, onSelectedChange, listRef, wheelStyle }) {
+  const { colors } = useTheme();
+  const padded = useMemo(() => paddedValues(values), [values]);
+  const initialIndex = Math.max(
+    0,
+    values.findIndex((v) => v === selected),
+  );
+  const [highlightIndex, setHighlightIndex] = useState(initialIndex);
+  const highlightIndexRef = useRef(initialIndex);
+  const lastHapticIndexRef = useRef(initialIndex);
+  const isSnappingRef = useRef(false);
+
+  const highlightedValue = values[highlightIndex] ?? values[0];
+
+  const previewIndexFromOffset = useCallback(
+    (offsetY) => {
+      const idx = getValueIndexFromOffset(offsetY, values.length);
+      if (highlightIndexRef.current === idx) return;
+      highlightIndexRef.current = idx;
+      setHighlightIndex(idx);
+      if (lastHapticIndexRef.current !== idx) {
+        lastHapticIndexRef.current = idx;
+        triggerWheelSelectionHaptic();
+      }
+    },
+    [values.length],
+  );
+
+  const commitIndex = useCallback(
+    (idx) => {
+      const clamped = Math.min(values.length - 1, Math.max(0, idx));
+      highlightIndexRef.current = clamped;
+      lastHapticIndexRef.current = clamped;
+      setHighlightIndex(clamped);
+      onSelectedChange(values[clamped]);
+    },
+    [values, onSelectedChange],
+  );
+
+  const snapToOffset = useCallback(
+    (offsetY) => {
+      if (isSnappingRef.current) return;
+      const idx = getValueIndexFromOffset(offsetY, values.length);
+      const snappedY = idx * ITEM_HEIGHT;
+      commitIndex(idx);
+      if (Math.abs(offsetY - snappedY) > 0.5) {
+        isSnappingRef.current = true;
+        listRef.current?.scrollTo({ animated: false, y: snappedY });
+        requestAnimationFrame(() => {
+          isSnappingRef.current = false;
+        });
+      }
+    },
+    [values.length, commitIndex, listRef],
+  );
+
+  return (
+    <View style={[styles.wheelContainer, wheelStyle]}>
+      <View
+        pointerEvents="none"
+        style={[styles.wheelHighlight, { backgroundColor: colors.buttonGhostPressed }]}
+      />
+      <ScrollView
+        ref={listRef}
+        decelerationRate="fast"
+        nestedScrollEnabled
+        showsVerticalScrollIndicator={false}
+        snapToInterval={ITEM_HEIGHT}
+        style={styles.wheelList}
+        onMomentumScrollEnd={(e) => snapToOffset(e.nativeEvent.contentOffset.y)}
+        onScroll={(e) => {
+          if (isSnappingRef.current) return;
+          previewIndexFromOffset(e.nativeEvent.contentOffset.y);
+        }}
+        onScrollEndDrag={(e) => {
+          const velocityY = e.nativeEvent.velocity?.y ?? 0;
+          if (Math.abs(velocityY) > 0.05) return;
+          snapToOffset(e.nativeEvent.contentOffset.y);
+        }}
+        scrollEventThrottle={32}
+      >
+        {padded.map((item, index) => (
+          <View key={`${item ?? 'spacer'}-${index}`} style={styles.dialItem}>
+            <AppText
+              style={[
+                styles.dialItemText,
+                { color: item === highlightedValue ? colors.text : colors.textMuted },
+              ]}
+            >
+              {item ?? ''}
+            </AppText>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function DurationPickerSheet({
+  mode,
+  initialHour,
+  initialMinute,
+  onRequestClose,
+  onConfirm,
+  sheetStyle,
+  backdropStyle,
+}) {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const [draftHour, setDraftHour] = useState(initialHour);
+  const [draftMinute, setDraftMinute] = useState(initialMinute);
+  const hoursRef = useRef(null);
+  const minutesRef = useRef(null);
+
+  useEffect(() => {
+    const hourIndex = Math.max(
+      0,
+      HOURS.findIndex((h) => h === initialHour),
+    );
+    const minuteIndex = Math.max(
+      0,
+      MINUTES.findIndex((m) => m === initialMinute),
+    );
+    const applyScroll = () => {
+      hoursRef.current?.scrollTo({ animated: false, y: hourIndex * ITEM_HEIGHT });
+      minutesRef.current?.scrollTo({ animated: false, y: minuteIndex * ITEM_HEIGHT });
+    };
+    requestAnimationFrame(() => {
+      requestAnimationFrame(applyScroll);
+    });
+  }, [initialHour, initialMinute]);
+
+  function applySelection() {
+    let total = (parseInt(draftHour, 10) || 0) * 60 + (draftMinute === '30' ? 30 : 0);
+    if (mode === 'addon') {
+      if (total <= 0) {
+        onConfirm('');
+        return;
+      }
+      total = Math.max(SERVICE_DURATION_MIN_MINUTES, Math.min(SERVICE_DURATION_MAX_MINUTES, total));
+      const h = Math.floor(total / 60);
+      const m = total % 60;
+      onConfirm(`${String(h).padStart(2, '0')}:${m === 30 ? '30' : '00'}`);
+      return;
+    }
+    total = Math.max(SERVICE_DURATION_MIN_MINUTES, Math.min(SERVICE_DURATION_MAX_MINUTES, total));
+    const h = Math.floor(total / 60);
+    const m = total % 60;
+    onConfirm(`${String(h).padStart(2, '0')}:${m === 30 ? '30' : '00'}`);
+  }
+
+  return (
+    <>
+      <Animated.View
+        pointerEvents="box-none"
+        style={[StyleSheet.absoluteFillObject, backdropStyle, styles.backdropFill]}
+      >
+        <Pressable
+          accessibilityRole="button"
+          onPress={onRequestClose}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </Animated.View>
+
+      <Animated.View
+        style={[
+          styles.sheetWrap,
+          sheetStyle,
+          {
+            backgroundColor: colors.shellElevated,
+            borderTopColor: colors.borderStrong,
+            paddingBottom: Math.max(insets.bottom, 14) + 8,
+          },
+        ]}
+      >
+        <View style={styles.sheet}>
+          <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
+            <AppText style={[styles.sheetTitle, { color: colors.textMuted }]}>
+              Select duration
+            </AppText>
+            <TouchableOpacity accessibilityRole="button" hitSlop={8} onPress={onRequestClose}>
+              <Ionicons color={colors.textMuted} name="close" size={20} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.dialsRow}>
+            <WheelColumn
+              listRef={hoursRef}
+              selected={draftHour}
+              values={HOURS}
+              onSelectedChange={setDraftHour}
+            />
+            <AppText style={[styles.colon, { color: colors.textMuted }]}>:</AppText>
+            <WheelColumn
+              listRef={minutesRef}
+              selected={draftMinute}
+              values={MINUTES}
+              wheelStyle={styles.minuteWheel}
+              onSelectedChange={setDraftMinute}
+            />
+          </View>
+
+          <TouchableOpacity activeOpacity={0.9} onPress={applySelection} style={styles.cta}>
+            <AppText style={styles.ctaText}>Set duration</AppText>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+    </>
+  );
+}
+
+function DurationPickerOverlay({ mode, initialHour, initialMinute, onClose, onConfirm }) {
+  const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
+    useModalFadeBackdropSlideSheet();
+
+  const close = useCallback(() => {
+    runClose(onClose);
+  }, [runClose, onClose]);
+
+  useEffect(() => {
+    prepareOpen();
+    const id = requestAnimationFrame(() => runOpen());
+    return () => cancelAnimationFrame(id);
+  }, [prepareOpen, runOpen]);
+
+  return (
+    <View style={styles.overlayRoot}>
+      <DurationPickerSheet
+        backdropStyle={backdropStyle}
+        initialHour={initialHour}
+        initialMinute={initialMinute}
+        mode={mode}
+        sheetStyle={sheetStyle}
+        onConfirm={(next) => {
+          onConfirm(next);
+          close();
+        }}
+        onRequestClose={close}
+      />
+    </View>
+  );
 }
 
 export function DurationSelectField({
@@ -59,8 +314,9 @@ export function DurationSelectField({
   mode = 'service',
 }) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const bottomSheetOverlay = useBottomSheetOverlay();
   const [open, setOpen] = useState(false);
+  const [pickerInitial, setPickerInitial] = useState({ hour: '1', minute: '00' });
   const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
     useModalFadeBackdropSlideSheet();
 
@@ -73,37 +329,8 @@ export function DurationSelectField({
     const id = requestAnimationFrame(() => runOpen());
     return () => cancelAnimationFrame(id);
   }, [open, runOpen]);
-  const hoursRef = useRef(null);
-  const minutesRef = useRef(null);
 
-  const [draftHour, setDraftHour] = useState(() => (mode === 'addon' ? '0' : '1'));
-  const [draftMinute, setDraftMinute] = useState('00');
-  const paddedHours = useMemo(() => paddedValues(HOURS), []);
-  const paddedMinutes = useMemo(() => paddedValues(MINUTES), []);
-  const snapHour = useMemo(
-    () => buildSnapHandler({ values: HOURS, setValue: setDraftHour, listRef: hoursRef }),
-    [],
-  );
-  const snapMinute = useMemo(
-    () => buildSnapHandler({ values: MINUTES, setValue: setDraftMinute, listRef: minutesRef }),
-    [],
-  );
-
-  useEffect(() => {
-    if (!open) return;
-    const hourIndex = HOURS.findIndex((h) => h === draftHour);
-    const minuteIndex = MINUTES.findIndex((m) => m === draftMinute);
-    requestAnimationFrame(() => {
-      hoursRef.current?.scrollToOffset({
-        animated: false,
-        offset: Math.max(0, hourIndex * ITEM_HEIGHT),
-      });
-      minutesRef.current?.scrollToOffset({
-        animated: false,
-        offset: Math.max(0, minuteIndex * ITEM_HEIGHT),
-      });
-    });
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- draft set in openSheet; scroll only on open
+  useEffect(() => () => bottomSheetOverlay?.hide(), [bottomSheetOverlay]);
 
   const display = useMemo(() => {
     const trimmed = String(value ?? '').trim();
@@ -117,46 +344,22 @@ export function DurationSelectField({
   }, [value, mode, placeholder]);
 
   function openSheet() {
-    if (mode === 'addon') {
-      const trimmed = String(value ?? '').trim();
-      const base = trimmed ? normalizeAddonDurationHHmmForPicker(trimmed) || '00:30' : '00:00';
-      const [h = '00', m = '00'] = base.split(':');
-      setDraftHour(String(Math.min(10, Math.max(0, parseInt(h, 10) || 0))));
-      setDraftMinute(m === '30' ? '30' : '00');
-      prepareOpen();
-      setOpen(true);
+    const { hour, minute } = resolveDraftFromValue(value, mode);
+    setPickerInitial({ hour, minute });
+    if (bottomSheetOverlay) {
+      bottomSheetOverlay.show(
+        <DurationPickerOverlay
+          initialHour={hour}
+          initialMinute={minute}
+          mode={mode}
+          onClose={() => bottomSheetOverlay.hide()}
+          onConfirm={onValueChange}
+        />,
+      );
       return;
     }
-    const base = String(value ?? '').trim()
-      ? normalizeServiceDurationHHmm(value) || '01:00'
-      : '01:00';
-    const [h = '01', m = '00'] = base.split(':');
-    setDraftHour(String(Math.min(10, Math.max(0, parseInt(h, 10) || 1))));
-    setDraftMinute(m === '30' ? '30' : '00');
     prepareOpen();
     setOpen(true);
-  }
-
-  function applySelection() {
-    let total = (parseInt(draftHour, 10) || 0) * 60 + (draftMinute === '30' ? 30 : 0);
-    if (mode === 'addon') {
-      if (total <= 0) {
-        onValueChange('');
-        runClose(() => setOpen(false));
-        return;
-      }
-      total = Math.max(SERVICE_DURATION_MIN_MINUTES, Math.min(SERVICE_DURATION_MAX_MINUTES, total));
-      const h = Math.floor(total / 60);
-      const m = total % 60;
-      onValueChange(`${String(h).padStart(2, '0')}:${m === 30 ? '30' : '00'}`);
-      runClose(() => setOpen(false));
-      return;
-    }
-    total = Math.max(SERVICE_DURATION_MIN_MINUTES, Math.min(SERVICE_DURATION_MAX_MINUTES, total));
-    const h = Math.floor(total / 60);
-    const m = total % 60;
-    onValueChange(`${String(h).padStart(2, '0')}:${m === 30 ? '30' : '00'}`);
-    runClose(() => setOpen(false));
   }
 
   return (
@@ -192,141 +395,32 @@ export function DurationSelectField({
         <Ionicons color={colors.textMuted} name="chevron-down" size={22} />
       </TouchableOpacity>
 
-      <Modal animationType="none" onRequestClose={close} transparent visible={open}>
-        <View style={styles.modalRoot}>
-          <Animated.View
-            pointerEvents="box-none"
-            style={[StyleSheet.absoluteFillObject, backdropStyle, styles.backdropFill]}
-          >
-            <Pressable
-              accessibilityRole="button"
-              onPress={close}
-              style={StyleSheet.absoluteFillObject}
-            />
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.sheetWrap,
-              sheetStyle,
-              {
-                backgroundColor: colors.shellElevated,
-                borderTopColor: colors.borderStrong,
-                paddingBottom: Math.max(insets.bottom, 14) + 8,
-              },
-            ]}
-          >
-            <View style={styles.sheet}>
-              <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
-                <AppText style={[styles.sheetTitle, { color: colors.textMuted }]}>
-                  Select duration
-                </AppText>
-                <TouchableOpacity hitSlop={8} onPress={close}>
-                  <Ionicons color={colors.textMuted} name="close" size={20} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.dialsRow}>
-                <View style={styles.wheelContainer}>
-                  <View
-                    pointerEvents="none"
-                    style={[styles.wheelHighlight, { backgroundColor: colors.buttonGhostPressed }]}
-                  />
-                  <FlatList
-                    data={paddedHours}
-                    decelerationRate="fast"
-                    getItemLayout={(_, index) => ({
-                      index,
-                      length: ITEM_HEIGHT,
-                      offset: ITEM_HEIGHT * index,
-                    })}
-                    keyExtractor={(item, index) => `${item ?? 'h-spacer'}-${index}`}
-                    ref={hoursRef}
-                    renderItem={({ item }) => (
-                      <View style={styles.dialItem}>
-                        <AppText
-                          style={[
-                            styles.dialItemText,
-                            { color: item === draftHour ? colors.text : colors.textMuted },
-                          ]}
-                        >
-                          {item ?? ''}
-                        </AppText>
-                      </View>
-                    )}
-                    showsVerticalScrollIndicator={false}
-                    snapToInterval={ITEM_HEIGHT}
-                    onMomentumScrollEnd={(e) => snapHour(e.nativeEvent.contentOffset.y)}
-                    onScroll={(e) => {
-                      const idx = getValueIndexFromOffset(
-                        e.nativeEvent.contentOffset.y,
-                        HOURS.length,
-                      );
-                      setDraftHour(HOURS[idx]);
-                    }}
-                    onScrollEndDrag={(e) => {
-                      snapHour(e.nativeEvent.contentOffset.y);
-                    }}
-                    scrollEventThrottle={16}
-                    style={styles.wheelList}
-                  />
-                </View>
-
-                <AppText style={[styles.colon, { color: colors.textMuted }]}>:</AppText>
-
-                <View style={[styles.wheelContainer, styles.minuteWheel]}>
-                  <View
-                    pointerEvents="none"
-                    style={[styles.wheelHighlight, { backgroundColor: colors.buttonGhostPressed }]}
-                  />
-                  <FlatList
-                    data={paddedMinutes}
-                    decelerationRate="fast"
-                    getItemLayout={(_, index) => ({
-                      index,
-                      length: ITEM_HEIGHT,
-                      offset: ITEM_HEIGHT * index,
-                    })}
-                    keyExtractor={(item, index) => `${item ?? 'm-spacer'}-${index}`}
-                    ref={minutesRef}
-                    renderItem={({ item }) => (
-                      <View style={styles.dialItem}>
-                        <AppText
-                          style={[
-                            styles.dialItemText,
-                            { color: item === draftMinute ? colors.text : colors.textMuted },
-                          ]}
-                        >
-                          {item ?? ''}
-                        </AppText>
-                      </View>
-                    )}
-                    showsVerticalScrollIndicator={false}
-                    snapToInterval={ITEM_HEIGHT}
-                    onMomentumScrollEnd={(e) => snapMinute(e.nativeEvent.contentOffset.y)}
-                    onScroll={(e) => {
-                      const idx = getValueIndexFromOffset(
-                        e.nativeEvent.contentOffset.y,
-                        MINUTES.length,
-                      );
-                      setDraftMinute(MINUTES[idx]);
-                    }}
-                    onScrollEndDrag={(e) => {
-                      snapMinute(e.nativeEvent.contentOffset.y);
-                    }}
-                    scrollEventThrottle={16}
-                    style={styles.wheelList}
-                  />
-                </View>
-              </View>
-
-              <TouchableOpacity activeOpacity={0.9} onPress={applySelection} style={styles.cta}>
-                <AppText style={styles.ctaText}>Set duration</AppText>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
+      {!bottomSheetOverlay ? (
+        <Modal
+          animationType="none"
+          onRequestClose={close}
+          statusBarTranslucent
+          transparent
+          visible={open}
+        >
+          <View style={styles.modalRoot}>
+            {open ? (
+              <DurationPickerSheet
+                backdropStyle={backdropStyle}
+                initialHour={pickerInitial.hour}
+                initialMinute={pickerInitial.minute}
+                mode={mode}
+                sheetStyle={sheetStyle}
+                onConfirm={(next) => {
+                  onValueChange(next);
+                  close();
+                }}
+                onRequestClose={close}
+              />
+            ) : null}
+          </View>
+        </Modal>
+      ) : null}
     </View>
   );
 }
@@ -361,8 +455,13 @@ const styles = StyleSheet.create({
     paddingRight: 10,
     paddingVertical: 8,
   },
+  overlayRoot: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+  },
   modalRoot: {
     flex: 1,
+    justifyContent: 'flex-end',
   },
   backdropFill: {
     backgroundColor: 'rgba(0,0,0,0.60)',

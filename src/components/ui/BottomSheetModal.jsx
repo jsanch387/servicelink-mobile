@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
+import { BottomSheetOverlayProvider } from './bottomSheetOverlay';
 import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
 
 /**
@@ -132,7 +133,9 @@ export function BottomSheetModal({
 
   return (
     <Modal animationType="none" transparent visible={mounted} onRequestClose={onRequestClose}>
-      <View style={styles.modalRoot}>{content}</View>
+      <View style={styles.modalRoot}>
+        <BottomSheetOverlayProvider>{content}</BottomSheetOverlayProvider>
+      </View>
     </Modal>
   );
 }
