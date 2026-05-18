@@ -67,6 +67,12 @@ export function SupportScreen() {
           lineHeight: 20,
           marginBottom: 8,
         },
+        introEmail: {
+          color: colors.text,
+          fontSize: 14,
+          fontWeight: '600',
+          lineHeight: 20,
+        },
         messageInput: {
           minHeight: 120,
           paddingTop: Platform.OS === 'ios' ? 10 : 8,
@@ -191,9 +197,17 @@ export function SupportScreen() {
           <SurfaceCard style={styles.card}>
             <AppText style={styles.intro}>
               Send us a feature request, report a bug, or ask a question.
-              {accountEmail
-                ? ` We will reply to ${accountEmail}.`
-                : ' We will reply to your account email.'}
+              {accountEmail ? (
+                <>
+                  {' We will reply to '}
+                  <AppText style={styles.introEmail}>{accountEmail}</AppText>
+                </>
+              ) : (
+                <>
+                  {' We will reply to '}
+                  <AppText style={styles.introEmail}>your account email</AppText>
+                </>
+              )}
             </AppText>
 
             {fieldError ? (
