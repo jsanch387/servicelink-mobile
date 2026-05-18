@@ -10,7 +10,7 @@ import { ServicesScreen } from '../../services';
 import { ServiceEditScreen } from '../../services/screens/ServiceEditScreen';
 import { AccountSettingsScreen } from '../screens/AccountSettingsScreen';
 import { MoreScreen } from '../screens/MoreScreen';
-import { HelpScreen } from '../screens/HelpScreen';
+import { SupportScreen } from '../../contact';
 import { LegalScreen } from '../screens/LegalScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
 
@@ -53,10 +53,10 @@ export function MoreNavigator() {
         }}
       />
       <Stack.Screen
-        component={HelpScreen}
-        name={ROUTES.HELP}
+        component={SupportScreen}
+        name={ROUTES.SUPPORT}
         options={{
-          title: 'Help',
+          title: 'Support',
           headerBackButtonDisplayMode: 'minimal',
           headerBackTitleVisible: false,
         }}

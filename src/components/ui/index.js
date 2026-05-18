@@ -19,6 +19,7 @@ export { LabelValueRow } from './LabelValueRow';
 export { AppFontLoadingShell } from './AppFontLoadingShell';
 export { AppShellGlow } from './AppShellGlow';
 export { Divider } from './Divider';
+export { EchoBarsLoader } from './EchoBarsLoader';
 export { FilterPills } from './FilterPills';
 export { FloatingActionButton } from './FloatingActionButton';
 export { DashedBorderFrame } from './DashedBorderFrame';

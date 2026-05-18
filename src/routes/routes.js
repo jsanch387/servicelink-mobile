@@ -48,7 +48,7 @@ export const ROUTES = {
   UPGRADE_PAYWALL: 'UpgradePaywall',
   /** Root stack — voluntary plan comparison + upgrade (from in-app upsells). */
   UPGRADE_PLAN: 'UpgradePlan',
-  HELP: 'Help',
+  SUPPORT: 'Support',
   /** More stack — privacy policy & terms of service (hosted web links). */
   LEGAL: 'Legal',
 };
@@ -84,7 +84,7 @@ export const PATHS = {
   CREATE_APPOINTMENT: '/create-appointment',
   UPGRADE_PAYWALL: '/upgrade',
   UPGRADE_PLAN: '/upgrade-plan',
-  HELP: '/more/help',
+  SUPPORT: '/more/support',
   LEGAL: '/more/legal',
   /** Hosted legal pages on the Next.js site (opened from More tab). */
   PRIVACY_POLICY: '/privacy',

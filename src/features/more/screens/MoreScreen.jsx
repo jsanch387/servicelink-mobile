@@ -121,9 +121,9 @@ export function MoreScreen() {
 
         <SettingsSection title="Support">
           <SettingsNavRow
-            icon="help-circle-outline"
-            label="Help"
-            onPress={() => navigation.navigate(ROUTES.HELP)}
+            icon="chatbubble-ellipses-outline"
+            label="Support"
+            onPress={() => navigation.navigate(ROUTES.SUPPORT)}
           />
           <SettingsNavRow
             icon="newspaper-outline"
