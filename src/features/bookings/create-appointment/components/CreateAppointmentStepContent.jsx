@@ -32,6 +32,8 @@ export function CreateAppointmentStepContent(p) {
     onToggleAddon,
     acceptBookings,
     isDateUnavailable,
+    maxDate,
+    minDate,
     scheduleError,
     scheduleLoading,
     selectedDateKey,
@@ -88,6 +90,8 @@ export function CreateAppointmentStepContent(p) {
         <ScheduleStep
           acceptBookings={acceptBookings}
           isDateUnavailable={isDateUnavailable}
+          maxDate={maxDate}
+          minDate={minDate}
           scheduleError={scheduleError}
           scheduleLoading={scheduleLoading}
           selectedDateKey={selectedDateKey}

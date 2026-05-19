@@ -1,5 +1,7 @@
-import { format24HourTo12Hour } from '../../../availability/utils/availabilityModel';
+import { calendarYyyyMmDdFromScheduledDate } from '../../../home/utils/bookingStart';
+import { format24HourTo12Hour } from '../../utils/availabilityModel';
 import { parseLocalYyyyMmDd, toLocalYyyyMmDd } from '../../../../components/ui/calendarDateKey';
+import { BOOKING_SLOT_INCREMENT_MINUTES } from '../constants';
 
 const WEEK_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
@@ -25,6 +27,15 @@ function intervalsOverlap(aStart, aLen, bStart, bLen) {
   const aEnd = aStart + aLen;
   const bEnd = bStart + bLen;
   return aStart < bEnd && aEnd > bStart;
+}
+
+/** Calendar day for a blocking booking row (Supabase or public blocked API). */
+export function bookingDateKey(row) {
+  return (
+    calendarYyyyMmDdFromScheduledDate(row?.scheduled_date ?? row?.scheduledDate) ||
+    calendarYyyyMmDdFromScheduledDate(row?.date) ||
+    ''
+  );
 }
 
 function normalizeBookingStartMinutes(row) {
@@ -60,8 +71,7 @@ function timeOffBlocksOverlap(dateKey, slotStartM, durationM, blocks) {
     const bs = timeStringToMinutesFromMidnight(b?.start_time ?? b?.startTime);
     const be = timeStringToMinutesFromMidnight(b?.end_time ?? b?.endTime);
     if (bs == null || be == null || be <= bs) continue;
-    const blockLen = be - bs;
-    if (intervalsOverlap(slotStartM, durationM, bs, blockLen)) {
+    if (intervalsOverlap(slotStartM, durationM, bs, be - bs)) {
       return true;
     }
   }
@@ -70,8 +80,7 @@ function timeOffBlocksOverlap(dateKey, slotStartM, durationM, blocks) {
 
 function existingOverlap(dateKey, slotStartM, durationM, existingRows) {
   for (const row of existingRows ?? []) {
-    const rowDate = String(row?.scheduled_date ?? row?.scheduledDate ?? '').slice(0, 10);
-    if (rowDate !== dateKey) continue;
+    if (bookingDateKey(row) !== dateKey) continue;
     const bStart = normalizeBookingStartMinutes(row);
     if (bStart == null) continue;
     const bLen = bookingDurationMinutes(row);
@@ -83,7 +92,7 @@ function existingOverlap(dateKey, slotStartM, durationM, existingRows) {
 }
 
 /**
- * Generate bookable start labels (`"8:00 AM"`) for a local calendar day.
+ * Bookable start labels (`"8:00 AM"`) for a local calendar day.
  *
  * @param {{
  *   dateKey: string;
@@ -102,7 +111,7 @@ export function generateTimeSlots({
   serviceDurationMinutes,
   existingBookings,
   timeOffBlocks,
-  incrementMinutes = 30,
+  incrementMinutes = BOOKING_SLOT_INCREMENT_MINUTES,
   nowMs = Date.now(),
 }) {
   const window = dayWindowMinutes(dateKey, weeklySchedule);
@@ -111,29 +120,21 @@ export function generateTimeSlots({
   const duration = Math.max(15, Number(serviceDurationMinutes) || 60);
   const { startM, endM } = window;
 
-  const dayDate = parseLocalYyyyMmDd(dateKey);
-  if (!dayDate) return [];
+  if (!parseLocalYyyyMmDd(dateKey)) return [];
 
-  const todayKey = toLocalYyyyMmDd(new Date());
+  const todayKey = toLocalYyyyMmDd(new Date(nowMs));
   const isToday = dateKey === todayKey;
   const now = new Date(nowMs);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
   const out = [];
   for (let t = startM; t + duration <= endM; t += incrementMinutes) {
-    if (isToday && t <= nowMinutes) {
-      continue;
-    }
-    if (existingOverlap(dateKey, t, duration, existingBookings)) {
-      continue;
-    }
-    if (timeOffBlocksOverlap(dateKey, t, duration, timeOffBlocks)) {
-      continue;
-    }
+    if (isToday && t <= nowMinutes) continue;
+    if (existingOverlap(dateKey, t, duration, existingBookings)) continue;
+    if (timeOffBlocksOverlap(dateKey, t, duration, timeOffBlocks)) continue;
     const hh = String(Math.floor(t / 60)).padStart(2, '0');
     const mm = String(t % 60).padStart(2, '0');
-    const label = format24HourTo12Hour(`${hh}:${mm}`);
-    out.push(label);
+    out.push(format24HourTo12Hour(`${hh}:${mm}`));
   }
   return out;
 }

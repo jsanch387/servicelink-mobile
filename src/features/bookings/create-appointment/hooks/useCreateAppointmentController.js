@@ -33,11 +33,7 @@ import {
   isServicePriceTiersEnabled,
   shouldSkipCreateFlowPricingStep,
 } from '../utils/createFlowPricing';
-import { parseAvailabilityForSchedule } from '../utils/createFlowAvailability';
-import {
-  computeTimeSlotsForDateKey,
-  createIsDateUnavailablePredicate,
-} from '../utils/createFlowSlots';
+import { useBookingCalendar } from '../../../availability/booking';
 import { createAppointmentFlowStyles } from '../styles/createAppointmentFlowStyles';
 import { useCreateAppointmentServerData } from './useCreateAppointmentServerData';
 
@@ -145,11 +141,6 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     setSelectedPricingId(opts[0].id);
   }, [pricingPayload.options, selectedPricingId]);
 
-  const { acceptBookings, weeklySchedule, timeOffBlocks } = useMemo(
-    () => parseAvailabilityForSchedule(server.availabilityRow),
-    [server.availabilityRow],
-  );
-
   const selectedAddonRows = useMemo(() => {
     const idSet = new Set((selectedAddonIds ?? []).map(String));
     return addonsForSelectedService.filter((a) => idSet.has(String(a.id)));
@@ -164,44 +155,23 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     [selectedServiceRow, selectedPricingOption, selectedService, selectedAddonRows],
   );
 
-  const scheduleCtx = useMemo(
-    () => ({
-      acceptBookings,
-      weeklySchedule,
-      totalDurationMinutes,
-      blockingBookingRows: server.blockingBookingRows,
-      timeOffBlocks,
-    }),
-    [
-      acceptBookings,
-      weeklySchedule,
-      totalDurationMinutes,
-      server.blockingBookingRows,
-      timeOffBlocks,
-    ],
-  );
-
-  const timeSlots = useMemo(
-    () => computeTimeSlotsForDateKey(selectedDateKey, scheduleCtx),
-    [selectedDateKey, scheduleCtx],
-  );
-
-  const isDateUnavailable = useMemo(
-    () => createIsDateUnavailablePredicate(scheduleCtx),
-    [scheduleCtx],
-  );
-
   const scheduleLoading =
     server.availabilityLoading || server.blockingLoading || server.priceOptionsLoading;
   const scheduleError =
     server.availabilityError || server.blockingError || server.priceOptionsError || null;
 
-  useEffect(() => {
-    if (!selectedDateKey || !selectedTime || scheduleLoading) return;
-    if (timeSlots.length > 0 && !timeSlots.includes(selectedTime)) {
-      setSelectedTime(null);
-    }
-  }, [selectedDateKey, selectedTime, timeSlots, scheduleLoading]);
+  const bookingCalendar = useBookingCalendar({
+    availabilityRow: server.availabilityRow,
+    blockingBookingRows: server.blockingBookingRows,
+    totalDurationMinutes,
+    selectedDateKey,
+    selectedTime,
+    onSelectDateKey: setSelectedDateKey,
+    onSelectTime: setSelectedTime,
+    scheduleLoading,
+  });
+
+  const { acceptBookings, timeSlots, isDateUnavailable, minDate, maxDate } = bookingCalendar;
 
   const createBookingMutation = useMutation({
     mutationFn: async () => {
@@ -386,6 +356,8 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       onToggleAddon: toggleAddon,
       acceptBookings,
       isDateUnavailable,
+      maxDate,
+      minDate,
       scheduleError,
       scheduleLoading,
       selectedDateKey,
@@ -418,6 +390,8 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       toggleAddon,
       acceptBookings,
       isDateUnavailable,
+      maxDate,
+      minDate,
       scheduleError,
       scheduleLoading,
       selectedDateKey,

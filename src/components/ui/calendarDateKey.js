@@ -29,3 +29,36 @@ export function startOfLocalDay(date) {
   d.setHours(0, 0, 0, 0);
   return d;
 }
+
+/**
+ * Standard month grid: Sun–Sat rows with `null` padding cells (no adjacent-month dates).
+ *
+ * @param {number} year full year
+ * @param {number} month 0-indexed (0 = January)
+ * @returns {(Date | null)[][]}
+ */
+export function buildMonthWeekGrid(year, month) {
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startPad = new Date(year, month, 1).getDay();
+  const weeks = [];
+
+  let week = Array(7).fill(null);
+  let day = 1;
+
+  for (let col = startPad; col < 7 && day <= daysInMonth; col += 1) {
+    week[col] = new Date(year, month, day);
+    day += 1;
+  }
+  weeks.push(week);
+
+  while (day <= daysInMonth) {
+    week = Array(7).fill(null);
+    for (let col = 0; col < 7 && day <= daysInMonth; col += 1) {
+      week[col] = new Date(year, month, day);
+      day += 1;
+    }
+    weeks.push(week);
+  }
+
+  return weeks;
+}

@@ -3,18 +3,27 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
-import { parseLocalYyyyMmDd, startOfLocalDay, toLocalYyyyMmDd } from './calendarDateKey';
+import {
+  buildMonthWeekGrid,
+  parseLocalYyyyMmDd,
+  startOfLocalDay,
+  toLocalYyyyMmDd,
+} from './calendarDateKey';
+
+/** Keep in sync with `features/availability/booking/constants` when used for booking. */
+const DEFAULT_MAX_DAYS_AHEAD = 365;
 
 const WEEK_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /**
- * Mobile month grid: month navigation, weekday header, square day cells.
+ * Month calendar: weekday headers + rows aligned to Sun–Sat; only in-month dates are shown.
+ *
  * @param {{
  *   selectedDateKey: string | null;
  *   onSelectDateKey: (isoLocalYyyyMmDd: string) => void;
  *   minDate?: Date;
  *   maxDate?: Date;
- *   isDateUnavailable?: (d: Date) => boolean; optional; when true, day is disabled (e.g. no bookable slots)
+ *   isDateUnavailable?: (d: Date) => boolean;
  * }} props
  */
 export function CalendarMonthPicker({
@@ -27,11 +36,12 @@ export function CalendarMonthPicker({
   const { colors } = useTheme();
 
   const today = useMemo(() => startOfLocalDay(new Date()), []);
+  const todayKey = useMemo(() => toLocalYyyyMmDd(today), [today]);
   const minDate = useMemo(() => startOfLocalDay(minDateProp ?? today), [minDateProp, today]);
   const maxDate = useMemo(() => {
     if (maxDateProp) return startOfLocalDay(maxDateProp);
     const d = new Date(today);
-    d.setFullYear(d.getFullYear() + 1);
+    d.setDate(d.getDate() + DEFAULT_MAX_DAYS_AHEAD);
     return startOfLocalDay(d);
   }, [maxDateProp, today]);
 
@@ -56,21 +66,10 @@ export function CalendarMonthPicker({
     [visibleMonthStart],
   );
 
-  const cells = useMemo(() => {
+  const weeks = useMemo(() => {
     const y = visibleMonthStart.getFullYear();
     const m = visibleMonthStart.getMonth();
-    const first = new Date(y, m, 1);
-    const startPad = first.getDay();
-    const list = [];
-    const cursor = new Date(y, m, 1);
-    cursor.setDate(1 - startPad);
-    for (let i = 0; i < 42; i++) {
-      const cell = new Date(cursor);
-      const inMonth = cell.getMonth() === m;
-      list.push({ date: cell, inMonth, key: toLocalYyyyMmDd(cell) });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-    return list;
+    return buildMonthWeekGrid(y, m);
   }, [visibleMonthStart]);
 
   const canGoPrev = useMemo(() => {
@@ -127,50 +126,57 @@ export function CalendarMonthPicker({
           fontWeight: '700',
           letterSpacing: -0.2,
         },
-        weekRow: {
+        weekHeaderRow: {
           flexDirection: 'row',
           marginBottom: 8,
         },
-        weekCell: {
+        weekHeaderCell: {
           alignItems: 'center',
           flex: 1,
         },
-        weekText: {
+        weekHeaderText: {
           color: colors.textMuted,
           fontSize: 11,
           fontWeight: '600',
         },
-        grid: {
+        monthBody: {
+          gap: 4,
+        },
+        weekRow: {
           flexDirection: 'row',
-          flexWrap: 'wrap',
-          width: '100%',
         },
         dayCell: {
           alignItems: 'center',
-          aspectRatio: 1,
+          flex: 1,
           justifyContent: 'center',
-          maxWidth: `${100 / 7}%`,
-          width: `${100 / 7}%`,
+          minHeight: 44,
+          paddingVertical: 2,
+        },
+        daySpacer: {
+          flex: 1,
+          minHeight: 44,
         },
         dayInner: {
           alignItems: 'center',
           borderRadius: 10,
-          height: '86%',
+          height: 40,
           justifyContent: 'center',
-          maxHeight: 48,
-          maxWidth: 48,
-          width: '86%',
+          width: 40,
         },
         dayInnerSelected: {
           backgroundColor: '#FFFFFF',
+        },
+        dayInnerToday: {
+          borderColor: colors.borderStrong,
+          borderWidth: 1,
         },
         dayNum: {
           fontSize: 15,
           fontWeight: '600',
         },
-        dayNumMuted: {
+        dayNumDisabled: {
           color: colors.textMuted,
-          opacity: 0.45,
+          opacity: 0.35,
         },
         dayNumActive: {
           color: colors.text,
@@ -222,52 +228,59 @@ export function CalendarMonthPicker({
         </Pressable>
       </View>
 
-      <View style={styles.weekRow}>
+      <View style={styles.weekHeaderRow}>
         {WEEK_HEADERS.map((w) => (
-          <View key={w} style={styles.weekCell}>
-            <AppText style={styles.weekText}>{w}</AppText>
+          <View key={w} style={styles.weekHeaderCell}>
+            <AppText style={styles.weekHeaderText}>{w}</AppText>
           </View>
         ))}
       </View>
 
-      <View style={styles.grid}>
-        {cells.map((cell) => {
-          const key = cell.key;
-          const selected = selectedDateKey === key;
-          const disabled = !cell.inMonth || isDisabled(cell.date);
-          const muted = !cell.inMonth || disabled;
-          const showAsNumberOnly = muted || !selected;
+      <View style={styles.monthBody}>
+        {weeks.map((week, rowIndex) => (
+          <View key={`week-${rowIndex}`} style={styles.weekRow}>
+            {week.map((date, colIndex) => {
+              if (!date) {
+                return <View key={`pad-${rowIndex}-${colIndex}`} style={styles.daySpacer} />;
+              }
 
-          return (
-            <View key={key} style={styles.dayCell}>
-              <Pressable
-                accessibilityLabel={`${key}${selected ? ', selected' : ''}`}
-                accessibilityRole="button"
-                accessibilityState={{ disabled, selected }}
-                disabled={disabled}
-                style={[
-                  styles.dayInner,
-                  selected && !disabled ? styles.dayInnerSelected : null,
-                  showAsNumberOnly && { opacity: muted ? 0.35 : 1 },
-                ]}
-                onPress={() => onSelectDateKey(key)}
-              >
-                <AppText
-                  style={[
-                    styles.dayNum,
-                    selected && !disabled
-                      ? styles.dayNumSelected
-                      : muted
-                        ? styles.dayNumMuted
-                        : styles.dayNumActive,
-                  ]}
-                >
-                  {cell.date.getDate()}
-                </AppText>
-              </Pressable>
-            </View>
-          );
-        })}
+              const key = toLocalYyyyMmDd(date);
+              const selected = selectedDateKey === key;
+              const isToday = key === todayKey;
+              const disabled = isDisabled(date);
+
+              return (
+                <View key={key} style={styles.dayCell}>
+                  <Pressable
+                    accessibilityLabel={`${key}${isToday ? ', today' : ''}${selected ? ', selected' : ''}${disabled ? ', unavailable' : ''}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled, selected }}
+                    disabled={disabled}
+                    style={[
+                      styles.dayInner,
+                      isToday && !selected && !disabled ? styles.dayInnerToday : null,
+                      selected && !disabled ? styles.dayInnerSelected : null,
+                    ]}
+                    onPress={() => onSelectDateKey(key)}
+                  >
+                    <AppText
+                      style={[
+                        styles.dayNum,
+                        selected && !disabled
+                          ? styles.dayNumSelected
+                          : disabled
+                            ? styles.dayNumDisabled
+                            : styles.dayNumActive,
+                      ]}
+                    >
+                      {date.getDate()}
+                    </AppText>
+                  </Pressable>
+                </View>
+              );
+            })}
+          </View>
+        ))}
       </View>
     </View>
   );

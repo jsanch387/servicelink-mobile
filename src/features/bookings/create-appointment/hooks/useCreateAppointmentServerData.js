@@ -1,10 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { fetchBusinessAvailability } from '../../../availability/api/availability';
+import { getBookingCalendarRange } from '../../../availability/booking';
 import { ownerHasProAccess } from '../../../bookingLink/api/bookingLink';
-import { localYyyyMmDd } from '../../../home/utils/bookingStart';
 import { fetchAccountSettingsBundle } from '../../../more/api/fetchAccountSettings';
-import { toLocalYyyyMmDd } from '../../../../components/ui/calendarDateKey';
 import { fetchActivePriceOptionsForService } from '../api/priceOptions';
 import { fetchBlockingBookingsInRange } from '../api/schedulingBookings';
 import {
@@ -13,19 +12,12 @@ import {
   createAppointmentPriceOptionsQueryKey,
 } from '../queryKeys';
 
-function addDaysYyyyMmDd(days) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return toLocalYyyyMmDd(d);
-}
-
 /**
  * Loads availability, owner Pro flag, price options for the selected service, and blocking bookings
  * for the create-appointment schedule step.
  */
 export function useCreateAppointmentServerData({ businessId, userId, selectedServiceId }) {
-  const rangeFrom = useMemo(() => localYyyyMmDd(), []);
-  const rangeTo = useMemo(() => addDaysYyyyMmDd(120), []);
+  const { rangeFrom, rangeTo } = useMemo(() => getBookingCalendarRange(), []);
 
   const ownerQ = useQuery({
     queryKey: ['createAppointment', 'ownerProfile', userId],

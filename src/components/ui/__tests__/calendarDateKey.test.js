@@ -1,4 +1,9 @@
-import { parseLocalYyyyMmDd, startOfLocalDay, toLocalYyyyMmDd } from '../calendarDateKey';
+import {
+  buildMonthWeekGrid,
+  parseLocalYyyyMmDd,
+  startOfLocalDay,
+  toLocalYyyyMmDd,
+} from '../calendarDateKey';
 
 describe('calendarDateKey', () => {
   describe('toLocalYyyyMmDd', () => {
@@ -27,6 +32,26 @@ describe('calendarDateKey', () => {
     it('rejects malformed keys', () => {
       expect(parseLocalYyyyMmDd('')).toBeNull();
       expect(parseLocalYyyyMmDd('2026/04/29')).toBeNull();
+    });
+  });
+
+  describe('buildMonthWeekGrid', () => {
+    it('pads start of month and omits adjacent-month dates', () => {
+      const weeks = buildMonthWeekGrid(2026, 3);
+      const flat = weeks.flat();
+      const dates = flat.filter(Boolean);
+      expect(dates).toHaveLength(30);
+      expect(flat[0]).toBeNull();
+      expect(dates[0].getDate()).toBe(1);
+      expect(dates[dates.length - 1].getDate()).toBe(30);
+      expect(flat[flat.length - 1]).toBeNull();
+    });
+
+    it('aligns the 1st to the correct weekday column', () => {
+      const weeks = buildMonthWeekGrid(2026, 4);
+      const mayFirst = weeks.flat().find((d) => d?.getDate() === 1);
+      expect(mayFirst).not.toBeNull();
+      expect(mayFirst.getDay()).toBe(5);
     });
   });
 
