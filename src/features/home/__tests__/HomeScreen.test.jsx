@@ -95,10 +95,10 @@ describe('HomeScreen', () => {
     expect(screen.getByText('12')).toBeTruthy();
   });
 
-  it('does not show free-tier upgrade UI for Pro users', () => {
+  it('does not show free-tier booking usage for Pro users', () => {
     renderWithProviders(<HomeScreen />);
-    expect(screen.queryByLabelText('Upgrade to Pro')).toBeNull();
-    expect(screen.queryByText(/free bookings/i)).toBeNull();
+    expect(screen.queryByLabelText(/Free bookings:/)).toBeNull();
+    expect(screen.queryByText('Upgrade to Pro')).toBeNull();
   });
 
   it('lets Pro users open create appointment and create quote from the FAB without a limit alert', () => {
@@ -154,17 +154,26 @@ describe('HomeScreen', () => {
     expect(screen.queryByText('Next Up')).toBeNull();
   });
 
-  it('navigates to account when Pro upgrade nudge is pressed for non‑Pro users', () => {
-    mockUseSubscription.mockReturnValueOnce({
+  it('shows free bookings usage card for non-Pro users', () => {
+    mockUseSubscription.mockReturnValue({
       hasProAccess: false,
       isOwnerProfileLoaded: true,
     });
+    mockUseBookingsFreeTierUsage.mockReturnValue({
+      used: 3,
+      limit: 5,
+      isLoading: false,
+      isError: false,
+    });
     renderWithProviders(<HomeScreen />);
-    fireEvent.press(screen.getByLabelText('Upgrade to Pro'));
-    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.UPGRADE_PLAN);
+    expect(screen.getByText('Free bookings used')).toBeTruthy();
+    expect(screen.getByText('3')).toBeTruthy();
+    expect(screen.getByText('/ 5')).toBeTruthy();
+    expect(screen.getByLabelText('Free bookings used: 3 of 5.')).toBeTruthy();
+    expect(screen.queryByText('Upgrade to Pro')).toBeNull();
   });
 
-  it('shows Pro upgrade nudge in free booking cap mode when at the limit', () => {
+  it('shows limit reached on usage card when at the cap', () => {
     mockUseSubscription.mockReturnValue({
       hasProAccess: false,
       isOwnerProfileLoaded: true,
@@ -176,12 +185,11 @@ describe('HomeScreen', () => {
       isError: false,
     });
     renderWithProviders(<HomeScreen />);
-    expect(screen.getByText('5 / 5 free bookings')).toBeTruthy();
-    expect(screen.getByText('Upgrade to Pro for unlimited bookings')).toBeTruthy();
-    expect(screen.queryByLabelText('Upgrade to Pro')).toBeNull();
+    expect(screen.getByLabelText('Free bookings used: 5 of 5.')).toBeTruthy();
+    expect(screen.queryByText('Upgrade to Pro')).toBeNull();
   });
 
-  it('prefers business_profiles.free_bookings_count over head-count for cap UI', () => {
+  it('prefers business_profiles.free_bookings_count over head-count for usage card', () => {
     mockUseSubscription.mockReturnValue({
       hasProAccess: false,
       isOwnerProfileLoaded: true,
@@ -203,27 +211,7 @@ describe('HomeScreen', () => {
       }),
     );
     renderWithProviders(<HomeScreen />);
-    expect(screen.getByText('5 / 5 free bookings')).toBeTruthy();
-  });
-
-  it('navigates to account when free booking cap nudge is pressed', () => {
-    mockUseSubscription.mockReturnValue({
-      hasProAccess: false,
-      isOwnerProfileLoaded: true,
-    });
-    mockUseBookingsFreeTierUsage.mockReturnValue({
-      used: 5,
-      limit: 5,
-      isLoading: false,
-      isError: false,
-    });
-    renderWithProviders(<HomeScreen />);
-    fireEvent.press(
-      screen.getByLabelText(
-        'Free plan: 5 of 5 bookings used. Upgrade to Pro for unlimited bookings.',
-      ),
-    );
-    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.UPGRADE_PLAN);
+    expect(screen.getByLabelText('Free bookings used: 5 of 5.')).toBeTruthy();
   });
 
   it('blocks create appointment when free_bookings_count from profile is at the cap', () => {

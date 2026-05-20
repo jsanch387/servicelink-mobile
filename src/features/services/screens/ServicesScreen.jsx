@@ -1,15 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
-import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Alert,
+  Linking,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
-import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
 import { useTheme } from '../../../theme';
-import { FREE_TIER_MAX_SERVICES } from '../constants/freeTierLimits';
-import { useSubscription } from '../../subscription';
+import { FREE_TIER_MAX_SERVICES, freeTierServicesLimitCopy } from '../constants/freeTierLimits';
+import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
+import { getWebAccountAdminUrl } from '../../../lib/webAppOrigin';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { useAuth } from '../../auth';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
@@ -106,6 +114,8 @@ export function ServicesScreen() {
     [catalog.services?.length, hasProAccess, isOwnerProfileLoaded],
   );
 
+  const servicesLimitCopy = useMemo(() => freeTierServicesLimitCopy(FREE_TIER_MAX_SERVICES), []);
+
   const { mutateAddon, isSavingAddon } = useMutateServiceAddon({
     businessId: catalog.businessId,
     userId: user?.id,
@@ -179,17 +189,10 @@ export function ServicesScreen() {
 
   function openAddServiceSheet() {
     if (atFreeTierServicesLimit) {
-      Alert.alert(
-        'Free plan limit reached',
-        `The free plan includes up to ${FREE_TIER_MAX_SERVICES} services. Upgrade to Pro to add more.`,
-        [
-          { text: 'Not now', style: 'cancel' },
-          {
-            text: 'Upgrade',
-            onPress: () => navigateToUpgradePlan(navigation),
-          },
-        ],
-      );
+      showWebAccountFeatureAlert({
+        title: servicesLimitCopy.alertTitle,
+        message: servicesLimitCopy.alertMessage,
+      });
       return;
     }
     setServiceSheetError('');
@@ -314,9 +317,7 @@ export function ServicesScreen() {
       return;
     }
     if (atFreeTierServicesLimit) {
-      setServiceSheetError(
-        `Free plan allows up to ${FREE_TIER_MAX_SERVICES} services. Upgrade to Pro for more.`,
-      );
+      setServiceSheetError(servicesLimitCopy.sheetError);
       return;
     }
     try {
@@ -427,15 +428,18 @@ export function ServicesScreen() {
           >
             <Ionicons color={colors.textMuted} name="information-circle-outline" size={18} />
             <AppText style={[styles.freeTierServicesHintText, { color: colors.textMuted }]}>
-              Free plan includes up to {FREE_TIER_MAX_SERVICES} services.{' '}
-              <AppText
+              {servicesLimitCopy.inlineHint}{' '}
+              <Pressable
                 accessibilityRole="link"
-                onPress={() => navigateToUpgradePlan(navigation)}
-                style={{ color: colors.accent, fontWeight: '600' }}
+                hitSlop={6}
+                onPress={() => {
+                  void Linking.openURL(getWebAccountAdminUrl());
+                }}
               >
-                Upgrade to Pro
-              </AppText>{' '}
-              to add more.
+                <AppText style={[styles.freeTierServicesHintLink, { color: colors.textSecondary }]}>
+                  {servicesLimitCopy.inlineHintAction}
+                </AppText>
+              </Pressable>
             </AppText>
           </View>
         ) : null}
@@ -661,6 +665,13 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
     lineHeight: 19,
     minWidth: 0,
+  },
+  freeTierServicesHintLink: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+    lineHeight: 19,
+    textDecorationLine: 'underline',
   },
   emptyWrap: {
     alignItems: 'center',

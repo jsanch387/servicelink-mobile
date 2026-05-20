@@ -2,6 +2,10 @@ export { createPaywallUpgradeCheckoutSession } from './api/createPaywallUpgradeC
 export { SubscriptionProvider, useSubscription } from './context/SubscriptionContext';
 export { navigateToAccountSettings } from './navigation/navigateToAccountSettings';
 export { navigateToUpgradePlan } from './navigation/navigateToUpgradePlan';
+export {
+  showWebAccountFeatureAlert,
+  WEB_ACCOUNT_FEATURE_ALERT_CONFIRM,
+} from './utils/showWebAccountFeatureAlert';
 export { useProUpgradeCheckout } from './hooks/useProUpgradeCheckout';
 export {
   DEV_FORCE_UPGRADE_PAYWALL_IN_HOME_TAB,

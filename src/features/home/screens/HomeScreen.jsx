@@ -5,11 +5,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppShellGlow, AppText, Divider } from '../../../components/ui';
+import { AppShellGlow, AppText } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
 import { FloatingCreateMenu } from '../components/FloatingCreateMenu';
-import { HomeProUpgradeNudge } from '../components/HomeProUpgradeNudge';
+import { HomeFreeBookingsUsageCard } from '../components/HomeFreeBookingsUsageCard';
 import { HomeErrorBanner } from '../components/HomeErrorBanner';
 import { LinkStatsSection } from '../components/LinkStatsSection';
 import { NextUpCard } from '../components/NextUpCard';
@@ -107,11 +107,6 @@ export function HomeScreen() {
     [dashboard.business, freeTierUsage.used],
   );
 
-  const atFreeBookingLimit =
-    showFreeTierBookingCount &&
-    typeof resolvedFreeBookingUsed === 'number' &&
-    resolvedFreeBookingUsed >= FREE_TIER_BOOKINGS_LIMIT;
-
   useFocusEffect(
     useCallback(() => {
       const bid = dashboard.business?.id;
@@ -189,14 +184,14 @@ export function HomeScreen() {
           top: -2,
           width: 8,
         },
-        headerDivider: {
-          marginBottom: 8,
-        },
       }),
     [colors, scrollBottomPad],
   );
 
-  const showProUpgradeNudge = isOwnerProfileLoaded && !hasProAccess;
+  const showFreeBookingsUsage =
+    showFreeTierBookingCount &&
+    typeof resolvedFreeBookingUsed === 'number' &&
+    !freeTierUsage.isLoading;
   const hasUnreadNotifications = unreadCount > 0;
   const notificationsA11yLabel = hasUnreadNotifications ? 'Notifications, unread' : 'Notifications';
 
@@ -252,10 +247,6 @@ export function HomeScreen() {
     navigation.navigate(ROUTES.NOTIFICATIONS_INBOX);
   }, [navigation]);
 
-  const handleProUpgradeNudge = useCallback(() => {
-    navigateToUpgradePlan(navigation);
-  }, [navigation]);
-
   const handleNextUpMarkComplete = useCallback(async () => {
     const id = dashboard.nextBooking?.id;
     if (!id) {
@@ -307,15 +298,10 @@ export function HomeScreen() {
             </View>
           </Pressable>
         </View>
-        <Divider style={styles.headerDivider} />
-        {showProUpgradeNudge ? (
-          <HomeProUpgradeNudge
-            capLimit={FREE_TIER_BOOKINGS_LIMIT}
-            capUsed={
-              typeof resolvedFreeBookingUsed === 'number' ? resolvedFreeBookingUsed : undefined
-            }
-            mode={atFreeBookingLimit ? 'free_booking_cap' : 'default'}
-            onPress={handleProUpgradeNudge}
+        {showFreeBookingsUsage ? (
+          <HomeFreeBookingsUsageCard
+            limit={FREE_TIER_BOOKINGS_LIMIT}
+            used={resolvedFreeBookingUsed}
           />
         ) : null}
         {homeErrors.bannerError ? <HomeErrorBanner message={homeErrors.bannerError} /> : null}
