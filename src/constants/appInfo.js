@@ -36,13 +36,9 @@ export function getAppBuildNumber() {
 }
 
 /**
- * Footer line for More / Account — e.g. `ServiceLink v1.0.5 (2)`.
+ * Footer line for More / Account — e.g. `ServiceLink v1.0.5`.
+ * Build number stays in app.json / App Store Connect only (not shown to users).
  */
 export function getAppVersionLine() {
-  const version = getAppMarketingVersion();
-  const build = getAppBuildNumber();
-  if (build) {
-    return `${APP_DISPLAY_NAME} v${version} (${build})`;
-  }
-  return `${APP_DISPLAY_NAME} v${version}`;
+  return `${APP_DISPLAY_NAME} v${getAppMarketingVersion()}`;
 }

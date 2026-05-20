@@ -2,11 +2,11 @@
 
 ## Single source of truth
 
-| Field                 | File                                    | Example | Shown in app             |
-| --------------------- | --------------------------------------- | ------- | ------------------------ |
-| **Marketing version** | `app.json` → `expo.version`             | `1.0.5` | `ServiceLink v1.0.5`     |
-| **iOS build**         | `app.json` → `expo.ios.buildNumber`     | `2`     | `ServiceLink v1.0.5 (2)` |
-| **Android build**     | `app.json` → `expo.android.versionCode` | `2`     | same pattern on Android  |
+| Field                 | File                                    | Example | Shown in app                |
+| --------------------- | --------------------------------------- | ------- | --------------------------- |
+| **Marketing version** | `app.json` → `expo.version`             | `1.0.5` | `ServiceLink v1.0.5`        |
+| **iOS build**         | `app.json` → `expo.ios.buildNumber`     | `2`     | App Store / TestFlight only |
+| **Android build**     | `app.json` → `expo.android.versionCode` | `2`     | Play Console only           |
 
 Runtime reads these via **`expo-constants`** in `src/constants/appInfo.js`.
 
@@ -76,6 +76,8 @@ eas build:version:get
 
 ## Format
 
-`getAppVersionLine()` → **`ServiceLink v{version} ({build})`**
+`getAppVersionLine()` → **`ServiceLink v{version}`**
 
-Example: **`ServiceLink v1.0.5 (2)`**
+Example: **`ServiceLink v1.0.5`**
+
+`getAppBuildNumber()` is available if you need the build for support tooling later.

@@ -18,8 +18,8 @@ describe('appInfo', () => {
     expect(getAppMarketingVersion()).toBe('1.0.5');
   });
 
-  it('formats version line with native build on iOS', () => {
-    expect(getAppVersionLine()).toMatch(/ServiceLink v1\.0\.5 \(12\)/);
+  it('formats user-facing version line without build number', () => {
+    expect(getAppVersionLine()).toBe('ServiceLink v1.0.5');
   });
 
   it('exposes build number helper', () => {
