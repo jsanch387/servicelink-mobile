@@ -1,9 +1,4 @@
-import {
-  hasProAccessFromProfile,
-  hasStripeBillingHistoryFromProfile,
-  isExplicitFreeSubscriptionTier,
-  isProAccess,
-} from '../subscriptionPresentation';
+import { hasProAccessFromProfile, isProAccess } from '../subscriptionPresentation';
 
 describe('isProAccess / hasProAccessFromProfile (web-aligned)', () => {
   it('explicit free tier → not Pro regardless of Stripe remnants', () => {
@@ -71,33 +66,5 @@ describe('isProAccess / hasProAccessFromProfile (web-aligned)', () => {
     const future = '2030-01-01T00:00:00.000Z';
     expect(isProAccess('pro', past, 'active', 'sub_1', 'cus_1')).toBe(true);
     expect(isProAccess('pro', future, 'canceled', 'sub_1', 'cus_1')).toBe(false);
-  });
-});
-
-describe('hasStripeBillingHistoryFromProfile', () => {
-  it('false when row missing or no billing fields', () => {
-    expect(hasStripeBillingHistoryFromProfile(null)).toBe(false);
-    expect(hasStripeBillingHistoryFromProfile(undefined)).toBe(false);
-    expect(hasStripeBillingHistoryFromProfile({})).toBe(false);
-  });
-
-  it('true when any of customer id, subscription id, or status is set', () => {
-    expect(hasStripeBillingHistoryFromProfile({ stripe_customer_id: 'cus_1' })).toBe(true);
-    expect(hasStripeBillingHistoryFromProfile({ stripe_subscription_id: 'sub_1' })).toBe(true);
-    expect(hasStripeBillingHistoryFromProfile({ subscription_status: 'canceled' })).toBe(true);
-  });
-});
-
-describe('isExplicitFreeSubscriptionTier', () => {
-  it('false when row missing or tier not free', () => {
-    expect(isExplicitFreeSubscriptionTier(null)).toBe(false);
-    expect(isExplicitFreeSubscriptionTier({ subscription_tier: 'pro' })).toBe(false);
-    expect(isExplicitFreeSubscriptionTier({ subscription_tier: '' })).toBe(false);
-  });
-
-  it('true for free and free_tier', () => {
-    expect(isExplicitFreeSubscriptionTier({ subscription_tier: 'free' })).toBe(true);
-    expect(isExplicitFreeSubscriptionTier({ subscription_tier: 'FREE' })).toBe(true);
-    expect(isExplicitFreeSubscriptionTier({ subscription_tier: 'free_tier' })).toBe(true);
   });
 });

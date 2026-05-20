@@ -43,7 +43,7 @@ export function Button({
   iconName,
   /** `'ionicons'` (default) or `'material-community'` for `iconName`. */
   iconLibrary = 'ionicons',
-  /** Renders instead of `iconName` when set (e.g. `<ProCrownIcon />`). */
+  /** Renders instead of `iconName` when set (custom icon node). */
   iconNode = null,
   iconPosition = 'left',
   iconSize = 18,

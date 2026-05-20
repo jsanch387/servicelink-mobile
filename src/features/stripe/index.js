@@ -1,11 +1,7 @@
 // Stripe mobile domain hub (non-breaking re-exports).
 // Keep existing imports working while giving one discoverable Stripe entrypoint.
 
-// Billing portal
-export { createBillingPortalSession } from '../more/api/createBillingPortalSession';
-export { STRIPE_BILLING_PORTAL_AUTH_RETURN_URL } from '../more/constants/stripeBillingPortalReturnUrl';
-
-// Connect onboarding + sync + enable
+// Connect onboarding + sync + enable (merchant payments — not app subscription purchase)
 export { postStripeConnectOnboard } from '../payments/api/postStripeConnectOnboard';
 export { postStripeConnectSync } from '../payments/api/postStripeConnectSync';
 export { fetchStripeExpressDashboardUrl } from '../payments/api/stripeExpressDashboard';

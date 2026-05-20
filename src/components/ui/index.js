@@ -6,12 +6,6 @@ export { CalendarMonthPicker } from './CalendarMonthPicker';
 export { toLocalYyyyMmDd, parseLocalYyyyMmDd, startOfLocalDay } from './calendarDateKey';
 export { Button } from './Button';
 export { DeleteButton } from './DeleteButton';
-export {
-  ProCrownIcon,
-  PRO_CROWN_COLOR_ACCOUNT,
-  PRO_CROWN_COLOR_FEATURE,
-  PRO_CROWN_ICON_NAME,
-} from './ProCrownIcon';
 export { DetailIconFieldRow } from './DetailIconFieldRow';
 export { DetailsSectionCard } from './DetailsSectionCard';
 export { InfoSection } from './InfoSection';
