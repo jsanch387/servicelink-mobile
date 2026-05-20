@@ -217,7 +217,7 @@ describe('PaymentsScreen', () => {
     ).toBe(true);
   });
 
-  it('shows Pro upsell only when user does not have Pro access (no Connect setup)', () => {
+  it('shows web sign-in upsell when user does not have expanded payments access', () => {
     mockUseSubscription.mockReturnValue({
       hasProAccess: false,
       isOwnerProfileLoaded: true,
@@ -228,9 +228,11 @@ describe('PaymentsScreen', () => {
     mockUsePaymentDashboardRead.mockReturnValue(loadedRead());
     renderWithProviders(<PaymentsScreen />);
     expect(screen.getByTestId('payments-non-pro-upsell')).toBeTruthy();
-    expect(screen.getByText('Take payments with Pro')).toBeTruthy();
+    expect(screen.getByText('Accept payments online')).toBeTruthy();
+    expect(screen.getByText(/Sign in with the same email/i)).toBeTruthy();
     expect(screen.getByText(/Get paid to your bank/i)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Upgrade to Pro' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Sign in on the web' })).toBeTruthy();
+    expect(screen.queryByText('Upgrade to Pro')).toBeNull();
     expect(screen.queryByText('Set up payments')).toBeNull();
   });
 

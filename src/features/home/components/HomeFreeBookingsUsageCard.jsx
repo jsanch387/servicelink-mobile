@@ -65,7 +65,7 @@ export function HomeFreeBookingsUsageCard({ used, limit }) {
     [atLimit, colors],
   );
 
-  const a11yLabel = `Free bookings used: ${safeUsed} of ${limit}.`;
+  const a11yLabel = `Bookings used: ${safeUsed} of ${limit}.`;
 
   return (
     <SurfaceCard
@@ -77,7 +77,7 @@ export function HomeFreeBookingsUsageCard({ used, limit }) {
     >
       <View style={styles.header}>
         <AppText includeFontPadding={false} style={styles.label}>
-          Free bookings used
+          Bookings used
         </AppText>
         <View style={styles.fraction}>
           <AppText includeFontPadding={false} style={styles.used}>

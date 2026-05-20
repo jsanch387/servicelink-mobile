@@ -1,7 +1,5 @@
-import { useNavigation } from '@react-navigation/native';
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { ScrollView, View } from 'react-native';
-import { navigateToUpgradePlan } from '../../../subscription/navigation/navigateToUpgradePlan';
 import { BOOKING_LINK_EDIT_GALLERY_GAP } from '../constants/galleryLayout';
 import { useBookingLinkEditController } from '../hooks/useBookingLinkEditController';
 import { createBookingLinkEditStyles } from './bookingLinkEditStyles';
@@ -13,12 +11,8 @@ import { BookingLinkEditLogoSection } from './BookingLinkEditLogoSection';
 import { BookingLinkEditStickyActions } from './BookingLinkEditStickyActions';
 
 export function BookingLinkEditMode(props) {
-  const navigation = useNavigation();
   const ctrl = useBookingLinkEditController(props);
 
-  const onUpgradeToProPress = useCallback(() => {
-    navigateToUpgradePlan(navigation);
-  }, [navigation]);
   const styles = useMemo(
     () => createBookingLinkEditStyles(ctrl.colors, BOOKING_LINK_EDIT_GALLERY_GAP),
     [ctrl.colors],
@@ -86,6 +80,7 @@ export function BookingLinkEditMode(props) {
             galleryImageCount={ctrl.galleryImageCount}
             galleryMaxImages={ctrl.galleryMaxImages}
             galleryTileStyle={ctrl.galleryTileStyle}
+            hasProAccess={ctrl.hasProAccess}
             localGalleryUris={ctrl.localGalleryUris}
             showFreeGalleryLimitHint={ctrl.showFreeGalleryLimitHint}
             styles={styles}
@@ -93,7 +88,6 @@ export function BookingLinkEditMode(props) {
             onGalleryAddPress={ctrl.onGalleryAddPress}
             onRemoveLocalGalleryItem={ctrl.removeLocalGalleryItem}
             onRemovePortfolioImage={ctrl.removePortfolioImage}
-            onUpgradeToProPress={onUpgradeToProPress}
           />
         </View>
       </ScrollView>

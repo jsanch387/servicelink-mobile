@@ -1,9 +1,14 @@
-import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { AppText, Button, Divider, ProCrownIcon, SurfaceCard } from '../../../components/ui';
+import { useCallback, useMemo } from 'react';
+import { Linking, StyleSheet, View } from 'react-native';
+import { AppText, Button, Divider, SurfaceCard } from '../../../components/ui';
+import { getWebAccountAdminUrl } from '../../../lib/webAppOrigin';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
+import {
+  PAYMENTS_WEB_ACCESS_CTA,
+  PAYMENTS_WEB_ACCESS_SUBTITLE,
+  PAYMENTS_WEB_ACCESS_TITLE,
+} from '../constants/paymentsAccessCopy';
 
-/** Lead + detail — plain language, no product jargon. */
 const BENEFITS = [
   { lead: 'Get paid to your bank', rest: 'Set it up once; money goes straight to your account.' },
   { lead: 'Cards & deposits', rest: 'Let clients pay online when they book you.' },
@@ -11,19 +16,14 @@ const BENEFITS = [
 ];
 
 /**
- * Payments requires **Pro**. Parent sends the user to **Account** to upgrade or manage their plan.
+ * Payments require expanded access — set up on web (App Store–safe; no in-app upgrade CTA).
  */
-export function PaymentsNonProUpsell({ onUpgradePress }) {
+export function PaymentsNonProUpsell() {
   const { colors } = useTheme();
 
-  const upgradeIcon = useMemo(
-    () => (
-      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <ProCrownIcon color={colors.buttonPrimaryText} size={19} />
-      </View>
-    ),
-    [colors.buttonPrimaryText],
-  );
+  const handleSignInOnWeb = useCallback(() => {
+    void Linking.openURL(getWebAccountAdminUrl());
+  }, []);
 
   const styles = useMemo(
     () =>
@@ -40,11 +40,11 @@ export function PaymentsNonProUpsell({ onUpgradePress }) {
         },
         title: {
           color: colors.text,
-          fontSize: 23,
+          fontSize: 22,
           fontFamily: FONT_FAMILIES.semibold,
           fontWeight: '600',
-          letterSpacing: -0.5,
-          lineHeight: 29,
+          letterSpacing: -0.45,
+          lineHeight: 28,
         },
         subtitle: {
           color: colors.textMuted,
@@ -59,18 +59,18 @@ export function PaymentsNonProUpsell({ onUpgradePress }) {
           fontFamily: FONT_FAMILIES.semibold,
           fontWeight: '600',
           letterSpacing: 1.35,
-          marginTop: 22,
+          marginTop: 20,
           textTransform: 'uppercase',
         },
         list: {
-          marginTop: 12,
+          marginTop: 10,
           marginBottom: 2,
         },
         benefitRow: {
           alignItems: 'flex-start',
           flexDirection: 'row',
           gap: 13,
-          paddingVertical: 13,
+          paddingVertical: 12,
         },
         marker: {
           backgroundColor: colors.text,
@@ -99,19 +99,10 @@ export function PaymentsNonProUpsell({ onUpgradePress }) {
         },
         ruleBeforeCta: {
           marginBottom: 2,
-          marginTop: 8,
+          marginTop: 6,
         },
         ctaWrap: {
-          marginTop: 20,
-        },
-        foot: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontFamily: FONT_FAMILIES.medium,
-          fontWeight: '500',
-          lineHeight: 17,
-          marginTop: 16,
-          textAlign: 'center',
+          marginTop: 18,
         },
       }),
     [colors],
@@ -122,14 +113,12 @@ export function PaymentsNonProUpsell({ onUpgradePress }) {
       <SurfaceCard outlined padding="md" style={styles.card}>
         <View style={styles.headerBlock}>
           <AppText accessibilityRole="header" style={styles.title}>
-            Take payments with Pro
+            {PAYMENTS_WEB_ACCESS_TITLE}
           </AppText>
-          <AppText style={styles.subtitle}>
-            One upgrade—accept cards, offer deposits, and manage it all from this tab.
-          </AppText>
+          <AppText style={styles.subtitle}>{PAYMENTS_WEB_ACCESS_SUBTITLE}</AppText>
         </View>
 
-        <AppText style={styles.sectionLabel}>What you get</AppText>
+        <AppText style={styles.sectionLabel}>What you can set up</AppText>
 
         <View style={styles.list}>
           {BENEFITS.map(({ lead, rest }, index) => (
@@ -154,17 +143,11 @@ export function PaymentsNonProUpsell({ onUpgradePress }) {
         <View style={styles.ctaWrap}>
           <Button
             fullWidth
-            iconNode={upgradeIcon}
-            iconPosition="left"
-            title="Upgrade to Pro"
-            variant="primary"
-            onPress={onUpgradePress}
+            title={PAYMENTS_WEB_ACCESS_CTA}
+            variant="secondary"
+            onPress={handleSignInOnWeb}
           />
         </View>
-
-        <AppText style={styles.foot}>
-          Secure card processing with Stripe · Cancel anytime in Account
-        </AppText>
       </SurfaceCard>
     </View>
   );

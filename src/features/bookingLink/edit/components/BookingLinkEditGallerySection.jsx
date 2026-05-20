@@ -1,11 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Image, Pressable, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image, Linking, Pressable, View } from 'react-native';
 import { AppText, DashedBorderFrame } from '../../../../components/ui';
-import {
-  BOOKING_LINK_GALLERY_MAX_IMAGES_FREE,
-  BOOKING_LINK_GALLERY_MAX_IMAGES_PRO,
-} from '../constants/galleryLayout';
+import { getWebAccountAdminUrl } from '../../../../lib/webAppOrigin';
 import { portfolioImageKey } from '../../utils/portfolio';
+import { bookingLinkGalleryAccessCopy } from '../constants/galleryAccessCopy';
 
 export function BookingLinkEditGallerySection({
   styles,
@@ -13,6 +11,7 @@ export function BookingLinkEditGallerySection({
   canAddGalleryImage,
   galleryImageCount,
   galleryMaxImages,
+  hasProAccess,
   onGalleryAddPress,
   visiblePortfolioImages,
   localGalleryUris,
@@ -20,10 +19,16 @@ export function BookingLinkEditGallerySection({
   onRemoveLocalGalleryItem,
   galleryTileStyle,
   showFreeGalleryLimitHint,
-  onUpgradeToProPress,
 }) {
   const addDisabled = !canAddGalleryImage;
   const hasGalleryImages = visiblePortfolioImages.length + localGalleryUris.length > 0;
+  const limitCopy = bookingLinkGalleryAccessCopy();
+
+  const addPhotoSubtitle = addDisabled
+    ? hasProAccess
+      ? `You already have ${galleryMaxImages} photos. Remove one to add another.`
+      : limitCopy.addFullSubtitle
+    : `${galleryImageCount} of ${galleryMaxImages} used — select photos to add to your gallery.`;
 
   return (
     <View style={styles.gallerySection}>
@@ -44,16 +49,16 @@ export function BookingLinkEditGallerySection({
         >
           <Ionicons color={colors.textMuted} name="information-circle-outline" size={18} />
           <AppText style={[styles.freeTierGalleryHintText, { color: colors.textMuted }]}>
-            Free plan includes up to {BOOKING_LINK_GALLERY_MAX_IMAGES_FREE} gallery photos. Pro
-            allows up to {BOOKING_LINK_GALLERY_MAX_IMAGES_PRO}.{' '}
-            <AppText
+            {limitCopy.inlineHint}{' '}
+            <Pressable
               accessibilityRole="link"
-              onPress={onUpgradeToProPress}
-              style={{ color: colors.accent, fontWeight: '600' }}
+              hitSlop={6}
+              onPress={() => {
+                void Linking.openURL(getWebAccountAdminUrl());
+              }}
             >
-              Upgrade to Pro
-            </AppText>{' '}
-            to add more.
+              <AppText style={styles.freeTierGalleryHintLink}>{limitCopy.inlineHintAction}</AppText>
+            </Pressable>
           </AppText>
         </View>
       ) : null}
@@ -86,11 +91,7 @@ export function BookingLinkEditGallerySection({
             <AppText style={styles.addPhotoTitle}>
               {addDisabled ? 'Gallery full' : 'Add photo'}
             </AppText>
-            <AppText style={styles.addPhotoSubtitle}>
-              {addDisabled
-                ? `You already have ${galleryMaxImages} photos. Remove one to add another.`
-                : `${galleryImageCount} of ${galleryMaxImages} used — select photos to add to your gallery.`}
-            </AppText>
+            <AppText style={styles.addPhotoSubtitle}>{addPhotoSubtitle}</AppText>
           </View>
         </Pressable>
       </DashedBorderFrame>

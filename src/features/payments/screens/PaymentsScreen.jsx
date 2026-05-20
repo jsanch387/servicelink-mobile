@@ -1,12 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
-import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
 import { useSubscription } from '../../subscription';
@@ -42,7 +40,6 @@ import { isPositiveDepositAmount } from '../utils/depositAmountModel';
 
 export function PaymentsScreen() {
   const { colors } = useTheme();
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { user, session } = useAuth();
   const {
@@ -152,10 +149,6 @@ export function PaymentsScreen() {
       setEnableSubmitting(false);
     }
   }, [payment, refetchSubscription]);
-
-  const onUpgradeToProPress = useCallback(() => {
-    navigateToUpgradePlan(navigation);
-  }, [navigation]);
 
   useEffect(() => {
     const bid = payment.business?.id;
@@ -391,7 +384,7 @@ export function PaymentsScreen() {
           showsVerticalScrollIndicator={false}
           style={styles.scroll}
         >
-          <PaymentsNonProUpsell onUpgradePress={onUpgradeToProPress} />
+          <PaymentsNonProUpsell />
         </ScrollView>
       </View>
     );

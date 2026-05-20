@@ -16,6 +16,8 @@ import {
   BOOKING_LINK_GALLERY_MAX_IMAGES_FREE,
   getBookingLinkGalleryMaxImages,
 } from '../constants/galleryLayout';
+import { bookingLinkGalleryAccessCopy } from '../constants/galleryAccessCopy';
+import { showWebAccountFeatureAlert } from '../../../subscription';
 import { useSaveBookingLinkText } from '../../hooks/useSaveBookingLinkText';
 import {
   buildSaveBookingLinkTextVariables,
@@ -141,10 +143,18 @@ export function useBookingLinkEditController({
 
   const onGalleryAddPress = useCallback(async () => {
     if (!canAddGalleryImage) {
-      Alert.alert(
-        'Gallery full',
-        `You can have up to ${galleryMaxImages} images. Remove one to add another.`,
-      );
+      if (!hasProAccess && galleryImageCount >= BOOKING_LINK_GALLERY_MAX_IMAGES_FREE) {
+        const copy = bookingLinkGalleryAccessCopy();
+        showWebAccountFeatureAlert({
+          title: copy.alertTitle,
+          message: copy.alertMessage,
+        });
+      } else {
+        Alert.alert(
+          'Gallery full',
+          `You can have up to ${galleryMaxImages} images. Remove one to add another.`,
+        );
+      }
       return;
     }
     const uri = await pickGalleryPhotoUri();
@@ -158,7 +168,14 @@ export function useBookingLinkEditController({
       ];
     });
     await triggerImageHaptic();
-  }, [canAddGalleryImage, galleryMaxImages, triggerImageHaptic, visiblePortfolioImages.length]);
+  }, [
+    canAddGalleryImage,
+    galleryImageCount,
+    galleryMaxImages,
+    hasProAccess,
+    triggerImageHaptic,
+    visiblePortfolioImages.length,
+  ]);
 
   const removePortfolioImage = useCallback((image) => {
     const key = portfolioImageKey(image);
@@ -332,6 +349,7 @@ export function useBookingLinkEditController({
     canAddGalleryImage,
     galleryImageCount,
     galleryMaxImages,
+    hasProAccess: Boolean(hasProAccess),
     showFreeGalleryLimitHint,
     visiblePortfolioImages,
     localGalleryUris,

@@ -230,6 +230,13 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       lineHeight: 19,
       minWidth: 0,
     },
+    freeTierGalleryHintLink: {
+      fontSize: 13,
+      fontWeight: '600',
+      letterSpacing: -0.1,
+      lineHeight: 19,
+      textDecorationLine: 'underline',
+    },
     galleryAddPhotoOuter: {
       alignSelf: 'stretch',
       backgroundColor: colors.shellElevated,
