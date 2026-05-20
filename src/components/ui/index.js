@@ -10,6 +10,7 @@ export { DetailIconFieldRow } from './DetailIconFieldRow';
 export { DetailsSectionCard } from './DetailsSectionCard';
 export { InfoSection } from './InfoSection';
 export { LabelValueRow } from './LabelValueRow';
+export { AppVersionFootnote } from './AppVersionFootnote';
 export { AppFontLoadingShell } from './AppFontLoadingShell';
 export { AppShellGlow } from './AppShellGlow';
 export { Divider } from './Divider';

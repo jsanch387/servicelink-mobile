@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import {
   AppText,
+  AppVersionFootnote,
   Button,
   DeleteButton,
   InlineCardError,
@@ -352,6 +353,7 @@ export function AccountSettingsScreen() {
 
           {webPanelNote}
           {signOutSection}
+          <AppVersionFootnote />
         </ScrollView>
       </View>
     );
@@ -422,6 +424,7 @@ export function AccountSettingsScreen() {
         </View>
 
         {signOutSection}
+        <AppVersionFootnote />
       </ScrollView>
 
       <ChangeBusinessSlugSheet

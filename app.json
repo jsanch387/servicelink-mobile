@@ -3,7 +3,7 @@
     "name": "ServiceLink",
     "slug": "servicelink-mobile",
     "icon": "./assets/images/app-icon.png",
-    "version": "1.0.0",
+    "version": "1.0.5",
     "scheme": "servicelinkmobile",
     "splash": {
       "image": "./assets/images/servicelink-logo.png",
@@ -42,7 +42,7 @@
     "owner": "jsanch-dev",
     "ios": {
       "bundleIdentifier": "com.jsanchdev.servicelinkmobile",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "infoPlist": {
@@ -51,7 +51,7 @@
     },
     "android": {
       "package": "com.jsanchdev.servicelinkmobile",
-      "versionCode": 1
+      "versionCode": 2
     }
   }
 }

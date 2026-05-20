@@ -1,0 +1,28 @@
+import { getAppBuildNumber, getAppMarketingVersion, getAppVersionLine } from '../appInfo';
+
+jest.mock('expo-constants', () => ({
+  __esModule: true,
+  default: {
+    expoConfig: {
+      version: '1.0.5',
+      ios: { buildNumber: '12' },
+      android: { versionCode: 12 },
+    },
+    nativeApplicationVersion: '1.0.5',
+    nativeBuildVersion: '12',
+  },
+}));
+
+describe('appInfo', () => {
+  it('reads marketing version from expo config', () => {
+    expect(getAppMarketingVersion()).toBe('1.0.5');
+  });
+
+  it('formats version line with native build on iOS', () => {
+    expect(getAppVersionLine()).toMatch(/ServiceLink v1\.0\.5 \(12\)/);
+  });
+
+  it('exposes build number helper', () => {
+    expect(getAppBuildNumber()).toBeTruthy();
+  });
+});
