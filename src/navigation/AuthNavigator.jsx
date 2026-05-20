@@ -17,9 +17,6 @@ import { CreateAppointmentScreen } from '../features/bookings';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
 import { CreateQuoteScreen } from '../features/quotes/screens/CreateQuoteScreen';
 import { useSubscription } from '../features/subscription';
-import { UpgradePaywallScreen } from '../features/subscription/screens/UpgradePaywallScreen';
-import { UpgradePlanScreen } from '../features/subscription/screens/UpgradePlanScreen';
-import { shouldShowFullScreenSubscriptionPaywall } from '../features/subscription/upgradePaywallGate';
 import { MainTabNavigator } from './MainTabNavigator';
 import { ROUTES } from '../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../theme';
@@ -49,29 +46,17 @@ export function AuthNavigator() {
   const { session, isReady, user } = useAuth();
   const { needsOnboarding, isGateReady, postActivationHandoff, endPostActivationHandoff } =
     useOnboardingGate();
-  const { hasProAccess, isPaywallDataStable, isLoading, ownerProfile } = useSubscription();
+  const { isLoading } = useSubscription();
 
-  const isPaywallBlocking =
-    Boolean(session && !needsOnboarding) &&
-    shouldShowFullScreenSubscriptionPaywall({
-      isPaywallDataStable,
-      hasProAccess,
-      ownerProfile,
-    });
-
-  const mainAppSubscriptionBooting =
-    Boolean(session && !needsOnboarding && user?.id) && isLoading && !isPaywallBlocking;
+  const mainAppSubscriptionBooting = Boolean(session && !needsOnboarding && user?.id) && isLoading;
 
   const mainTabsInteractive =
-    Boolean(session && user?.id) &&
-    !needsOnboarding &&
-    !mainAppSubscriptionBooting &&
-    !isPaywallBlocking;
+    Boolean(session && user?.id) && !needsOnboarding && !mainAppSubscriptionBooting;
 
   const handoffOverlayOpacity = useRef(new Animated.Value(1)).current;
   const handoffDismissStartedRef = useRef(false);
 
-  /** After step 5 activation: stay covered until tabs (or paywall) are ready so subscription boot / logo doesn’t flash, then fade out. */
+  /** After step 5 activation: stay covered until tabs are ready so subscription boot / logo doesn’t flash, then fade out. */
   useEffect(() => {
     if (!session || !postActivationHandoff) {
       handoffDismissStartedRef.current = false;
@@ -117,8 +102,6 @@ export function AuthNavigator() {
     if (mainTabsInteractive) {
       // Pending booking-link nav retries at 120 / 450 / 900 ms — stay covered through the 450 ms pass.
       settleTimerId = scheduleDismiss(520);
-    } else if (isPaywallBlocking) {
-      settleTimerId = scheduleDismiss(380);
     } else {
       failsafeTimerId = setTimeout(() => {
         if (!cancelled) {
@@ -141,7 +124,6 @@ export function AuthNavigator() {
     postActivationHandoff,
     needsOnboarding,
     mainTabsInteractive,
-    isPaywallBlocking,
     endPostActivationHandoff,
     handoffOverlayOpacity,
   ]);
@@ -218,11 +200,9 @@ export function AuthNavigator() {
   const stackKey = session
     ? needsOnboarding
       ? 'onboarding'
-      : isPaywallBlocking
-        ? 'main-paywall'
-        : mainAppSubscriptionBooting
-          ? 'main-subscription-boot'
-          : 'main'
+      : mainAppSubscriptionBooting
+        ? 'main-subscription-boot'
+        : 'main'
     : 'auth';
 
   if (boot) {
@@ -254,14 +234,7 @@ export function AuthNavigator() {
               name="MainAppSubscriptionBoot"
             />
           ) : null}
-          {session && !needsOnboarding && !mainAppSubscriptionBooting && isPaywallBlocking ? (
-            <Stack.Screen
-              component={UpgradePaywallScreen}
-              name={ROUTES.UPGRADE_PAYWALL}
-              options={{ gestureEnabled: false }}
-            />
-          ) : null}
-          {session && !needsOnboarding && !mainAppSubscriptionBooting && !isPaywallBlocking ? (
+          {session && !needsOnboarding && !mainAppSubscriptionBooting ? (
             <>
               <Stack.Screen component={MainTabNavigator} name={ROUTES.MAIN_APP} />
               <Stack.Screen
@@ -295,19 +268,6 @@ export function AuthNavigator() {
                 name={ROUTES.CREATE_QUOTE}
                 options={{
                   headerShown: true,
-                  headerBackButtonDisplayMode: 'minimal',
-                  headerBackTitleVisible: false,
-                  headerTitleStyle: {
-                    fontFamily: FONT_FAMILIES.semibold,
-                  },
-                }}
-              />
-              <Stack.Screen
-                component={UpgradePlanScreen}
-                name={ROUTES.UPGRADE_PLAN}
-                options={{
-                  headerShown: true,
-                  title: 'Upgrade to Pro',
                   headerBackButtonDisplayMode: 'minimal',
                   headerBackTitleVisible: false,
                   headerTitleStyle: {

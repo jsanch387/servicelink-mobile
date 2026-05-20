@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -30,8 +30,8 @@ import {
   serviceDurationHHmmToMinutes,
 } from '../../../components/ui/durationTime';
 import { useAuth } from '../../auth';
-import { useSubscription } from '../../subscription';
-import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
+import { useSubscription, showWebAccountFeatureAlert } from '../../subscription';
+import { serviceMultiplePricingAccessCopy } from '../constants/servicePricingAccessCopy';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
 import { CollapsibleEditorSectionCard } from '../components/CollapsibleEditorSectionCard';
 import { SelectableAddonCard } from '../components/SelectableAddonCard';
@@ -170,7 +170,6 @@ function validateAddonInput(addonOptions) {
 const TRANSIENT_SAVE_FEEDBACK_MS = 5000;
 
 export function ServiceEditScreen({ route }) {
-  const navigation = useNavigation();
   const { user } = useAuth();
   const {
     hasProAccess,
@@ -861,18 +860,22 @@ export function ServiceEditScreen({ route }) {
               {subscriptionLoading
                 ? 'Loading…'
                 : blockPricingControls
-                  ? 'Upgrade to add multiple pricing options to your services.'
+                  ? serviceMultiplePricingAccessCopy.hint
                   : 'Your lowest price option is shown as "Starting at" to customers.'}
             </AppText>
 
             {blockPricingControls ? (
               <Button
                 fullWidth
-                iconNode={<ProCrownIcon accessibilityLabel="Pro" color="#000000" size={20} />}
                 style={styles.upgradeProButtonSpacing}
-                title="Upgrade to Pro"
-                variant="primary"
-                onPress={() => navigateToUpgradePlan(navigation)}
+                title={serviceMultiplePricingAccessCopy.buttonTitle}
+                variant="secondary"
+                onPress={() =>
+                  showWebAccountFeatureAlert({
+                    title: serviceMultiplePricingAccessCopy.alertTitle,
+                    message: serviceMultiplePricingAccessCopy.alertMessage,
+                  })
+                }
               />
             ) : null}
 

@@ -24,7 +24,6 @@ import { useBookingsPlannerDay } from '../hooks/useBookingsPlannerDay';
 import { groupBookingsByScheduledDate } from '../utils/groupBookingsByDate';
 import { resolveFreeTierBookingUsed } from '../utils/resolveFreeTierBookingUsed';
 import { ROUTES } from '../../../routes/routes';
-import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
 import { useSubscription } from '../../subscription';
 
 const FAB_VERTICAL_GAP = 56;
@@ -330,10 +329,6 @@ export function BookingsScreen() {
     styles.emptyWrap,
   ]);
 
-  const onFreeTierUpgradePress = useCallback(() => {
-    navigateToUpgradePlan(navigation);
-  }, [navigation]);
-
   const freeTierUsageStrip = useMemo(() => {
     if (!showFreeTierUsage) {
       return null;
@@ -345,7 +340,6 @@ export function BookingsScreen() {
           limit={freeTierUsage.limit}
           loading={freeTierUsageStripLoading}
           used={resolvedFreeBookingUsed}
-          onUpgradePress={onFreeTierUpgradePress}
         />
       </View>
     );
@@ -356,7 +350,6 @@ export function BookingsScreen() {
     freeTierUsageStripError,
     freeTierUsageStripLoading,
     resolvedFreeBookingUsed,
-    onFreeTierUpgradePress,
   ]);
 
   return (

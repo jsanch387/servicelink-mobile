@@ -11,7 +11,7 @@ const mono = Platform.select({
 });
 
 /**
- * Final step — one tap activates the booking link (marks onboarding complete; Stripe trial optional via flag).
+ * Final step — one tap activates the booking link (marks onboarding complete on the server; free tier).
  *
  * @param {{ activationLink: string; onActivatePress?: () => void; activateSubmitting?: boolean }} props
  */

@@ -8,12 +8,6 @@
  * Override locally with `.env` / `.env.local`:
  * EXPO_PUBLIC_WEB_APP_URL=http://localhost:3000
  *
- * Optional — must match prefix of Stripe mobile onboarding return URLs on the server:
- * EXPO_PUBLIC_STRIPE_ONBOARDING_AUTH_RETURN_URL=servicelinkmobile://onboarding/stripe
- *
- * Optional — paywall upgrade checkout (`STRIPE_MOBILE_UPGRADE_*` on server):
- * EXPO_PUBLIC_STRIPE_PAYWALL_CHECKOUT_AUTH_RETURN_URL=servicelinkmobile://paywall/stripe
- *
  * Optional — Expo push token (`getExpoPushTokenAsync`); set after `eas init` / from Expo dashboard:
  * EXPO_PUBLIC_EAS_PROJECT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
  *

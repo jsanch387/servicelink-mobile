@@ -28,14 +28,6 @@ jest.mock('../MainTabNavigator', () => ({
   },
 }));
 
-jest.mock('../../features/subscription/screens/UpgradePaywallScreen', () => ({
-  UpgradePaywallScreen: function MockUpgradePaywallScreen() {
-    const React = require('react');
-    const { Text } = require('react-native');
-    return <Text testID="fullscreen-paywall">PAYWALL_FULL</Text>;
-  },
-}));
-
 jest.mock('../../features/bookings', () => ({
   CreateAppointmentScreen: () => null,
 }));
@@ -62,7 +54,6 @@ describe('AuthNavigator subscription gate', () => {
   it('shows boot view while account bundle is loading (no tabs yet)', () => {
     useSubscription.mockReturnValue({
       hasProAccess: false,
-      isPaywallDataStable: false,
       isLoading: true,
       ownerProfile: null,
     });
@@ -70,27 +61,23 @@ describe('AuthNavigator subscription gate', () => {
     renderWithProviders(<AuthNavigator />);
     expect(screen.getByTestId('subscription-boot')).toBeTruthy();
     expect(screen.queryByTestId('main-tabs')).toBeNull();
-    expect(screen.queryByTestId('fullscreen-paywall')).toBeNull();
   });
 
-  it('shows main tabs for never-billed Free when stable (no Stripe history cohort)', () => {
+  it('shows main tabs for free tier when subscription data is loaded', () => {
     useSubscription.mockReturnValue({
       hasProAccess: false,
-      isPaywallDataStable: true,
       isLoading: false,
       ownerProfile: { subscription_tier: 'free' },
     });
 
     renderWithProviders(<AuthNavigator />);
     expect(screen.getByTestId('main-tabs')).toBeTruthy();
-    expect(screen.queryByTestId('fullscreen-paywall')).toBeNull();
     expect(screen.queryByTestId('subscription-boot')).toBeNull();
   });
 
-  it('shows main tabs when explicit free tier with Stripe remnants after cancel (not paywalled)', () => {
+  it('shows main tabs when explicit free tier with Stripe remnants after cancel', () => {
     useSubscription.mockReturnValue({
       hasProAccess: false,
-      isPaywallDataStable: true,
       isLoading: false,
       ownerProfile: {
         subscription_tier: 'free',
@@ -101,14 +88,12 @@ describe('AuthNavigator subscription gate', () => {
 
     renderWithProviders(<AuthNavigator />);
     expect(screen.getByTestId('main-tabs')).toBeTruthy();
-    expect(screen.queryByTestId('fullscreen-paywall')).toBeNull();
     expect(screen.queryByTestId('subscription-boot')).toBeNull();
   });
 
-  it('shows full-screen upgrade when Pro tier lost access but not flipped to free (cohort B)', () => {
+  it('shows main tabs when former Pro tier lost access but profile is not explicit free', () => {
     useSubscription.mockReturnValue({
       hasProAccess: false,
-      isPaywallDataStable: true,
       isLoading: false,
       ownerProfile: {
         subscription_tier: 'pro',
@@ -119,39 +104,19 @@ describe('AuthNavigator subscription gate', () => {
     });
 
     renderWithProviders(<AuthNavigator />);
-    expect(screen.getByTestId('fullscreen-paywall')).toBeTruthy();
-    expect(screen.queryByTestId('main-tabs')).toBeNull();
+    expect(screen.getByTestId('main-tabs')).toBeTruthy();
     expect(screen.queryByTestId('subscription-boot')).toBeNull();
   });
 
   it('shows main tabs when user has Pro access', () => {
     useSubscription.mockReturnValue({
       hasProAccess: true,
-      isPaywallDataStable: true,
       isLoading: false,
       ownerProfile: { subscription_tier: 'pro' },
     });
 
     renderWithProviders(<AuthNavigator />);
     expect(screen.getByTestId('main-tabs')).toBeTruthy();
-    expect(screen.queryByTestId('fullscreen-paywall')).toBeNull();
-    expect(screen.queryByTestId('subscription-boot')).toBeNull();
-  });
-
-  it('does not flash paywall while subscription data is revalidating (unstable, no Pro yet)', () => {
-    useSubscription.mockReturnValue({
-      hasProAccess: false,
-      isPaywallDataStable: false,
-      isLoading: false,
-      ownerProfile: {
-        subscription_tier: 'free',
-        stripe_customer_id: 'cus_legacy',
-      },
-    });
-
-    renderWithProviders(<AuthNavigator />);
-    expect(screen.getByTestId('main-tabs')).toBeTruthy();
-    expect(screen.queryByTestId('fullscreen-paywall')).toBeNull();
     expect(screen.queryByTestId('subscription-boot')).toBeNull();
   });
 });

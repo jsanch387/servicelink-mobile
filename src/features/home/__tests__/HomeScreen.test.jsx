@@ -34,8 +34,11 @@ const mockUseSubscription = jest.fn(() => ({
   isOwnerProfileLoaded: true,
 }));
 
+const mockShowWebAccountFeatureAlert = jest.fn();
+
 jest.mock('../../subscription', () => ({
   useSubscription: (...args) => mockUseSubscription(...args),
+  showWebAccountFeatureAlert: (...args) => mockShowWebAccountFeatureAlert(...args),
 }));
 
 const mockUseBookingsFreeTierUsage = jest.fn(() => ({
@@ -76,6 +79,7 @@ describe('HomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockNavigate.mockClear();
+    mockShowWebAccountFeatureAlert.mockClear();
     mockUseHomeDashboard.mockReturnValue(baseDashboard());
     mockUseBookingsFreeTierUsage.mockReturnValue({
       used: 0,
@@ -235,16 +239,11 @@ describe('HomeScreen', () => {
         },
       }),
     );
-    const alertSpy = jest.spyOn(Alert, 'alert');
-    try {
-      renderWithProviders(<HomeScreen />);
-      fireEvent.press(screen.getByLabelText('Open create menu'));
-      fireEvent.press(screen.getByLabelText('Create appointment'));
-      expect(mockNavigate).not.toHaveBeenCalled();
-      expect(alertSpy).toHaveBeenCalled();
-    } finally {
-      alertSpy.mockRestore();
-    }
+    renderWithProviders(<HomeScreen />);
+    fireEvent.press(screen.getByLabelText('Open create menu'));
+    fireEvent.press(screen.getByLabelText('Create appointment'));
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockShowWebAccountFeatureAlert).toHaveBeenCalled();
   });
 
   it('navigates to notifications inbox when bell is pressed', () => {
@@ -271,21 +270,14 @@ describe('HomeScreen', () => {
       isLoading: false,
       isError: false,
     });
-    const alertSpy = jest.spyOn(Alert, 'alert');
-    try {
-      renderWithProviders(<HomeScreen />);
-      fireEvent.press(screen.getByLabelText('Open create menu'));
-      fireEvent.press(screen.getByLabelText('Create appointment'));
-      expect(mockNavigate).not.toHaveBeenCalled();
-      expect(alertSpy).toHaveBeenCalled();
-      const [, , buttons] = alertSpy.mock.calls[0];
-      const upgrade = buttons.find((b) => b.text === 'Upgrade');
-      expect(upgrade).toBeTruthy();
-      upgrade.onPress();
-      expect(mockNavigate).toHaveBeenCalledWith(ROUTES.UPGRADE_PLAN);
-    } finally {
-      alertSpy.mockRestore();
-    }
+    renderWithProviders(<HomeScreen />);
+    fireEvent.press(screen.getByLabelText('Open create menu'));
+    fireEvent.press(screen.getByLabelText('Create appointment'));
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockShowWebAccountFeatureAlert).toHaveBeenCalledWith({
+      title: 'Booking limit reached',
+      message: expect.stringContaining('sign in on the ServiceLink website'),
+    });
   });
 
   it('allows create appointment from FAB when free plan is under the booking limit', () => {
@@ -316,17 +308,14 @@ describe('HomeScreen', () => {
       isLoading: false,
       isError: false,
     });
-    const alertSpy = jest.spyOn(Alert, 'alert');
-    try {
-      renderWithProviders(<HomeScreen />);
-      fireEvent.press(screen.getByLabelText('Open create menu'));
-      fireEvent.press(screen.getByLabelText('Create quote'));
-      expect(mockNavigate).not.toHaveBeenCalled();
-      expect(alertSpy).toHaveBeenCalled();
-      expect(alertSpy.mock.calls[0][0]).toBe('Free plan limit reached');
-    } finally {
-      alertSpy.mockRestore();
-    }
+    renderWithProviders(<HomeScreen />);
+    fireEvent.press(screen.getByLabelText('Open create menu'));
+    fireEvent.press(screen.getByLabelText('Create quote'));
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockShowWebAccountFeatureAlert).toHaveBeenCalledWith({
+      title: 'Booking limit reached',
+      message: expect.stringContaining('sign in on the ServiceLink website'),
+    });
   });
 
   it('navigates to create quote when FAB menu quote is pressed', () => {

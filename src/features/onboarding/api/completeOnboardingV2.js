@@ -51,7 +51,7 @@ function logWelcomeEmailOutcome(welcomeEmail) {
 
 /**
  * POST `/api/onboarding-v2/complete` — server marks onboarding complete and sends welcome-live email.
- * Free-tier step 5 (`ENABLE_ONBOARDING_STRIPE_TRIAL === false`). Stripe trial paths send email via Stripe bridge.
+ * Mobile onboarding step 5 — marks the user complete on the server (free tier; no in-app Stripe).
  *
  * @param {string | null | undefined} accessToken Supabase session access token (Bearer).
  * @param {{ sendWelcomeEvenIfAlreadyCompleted?: boolean }} [options]

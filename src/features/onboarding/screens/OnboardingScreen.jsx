@@ -1,4 +1,3 @@
-import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
@@ -18,11 +17,7 @@ import { queryClient } from '../../../lib/queryClient';
 import { BOOKING_LINK_QUERY_KEY } from '../../bookingLink/queryKeys';
 import { accountSettingsQueryKey } from '../../more/queryKeys';
 import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileCheckoutOrigin';
-import { confirmOnboardingTrialUntilReady } from '../utils/confirmOnboardingTrialUntilReady';
-import { createOnboardingCheckoutSession } from '../api/createOnboardingCheckoutSession';
-import { parseCheckoutSessionIdFromOnboardingReturnUrl } from '../utils/parseOnboardingStripeReturnUrl';
 import { completeOnboardingV2 } from '../api/completeOnboardingV2';
-import { startOnboardingTrial } from '../api/startOnboardingTrial';
 import {
   MAX_ONBOARDING_BUSINESS_NAME_LENGTH,
   MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH,
@@ -33,15 +28,13 @@ import {
   clearPendingBookingLinkNavigation,
   setPendingNavigateToBookingLink,
 } from '../constants/postOnboardingNavigation';
-import { ENABLE_ONBOARDING_STRIPE_TRIAL } from '../constants/onboardingStripeTrialFlag';
-import { STRIPE_ONBOARDING_CHECKOUT_AUTH_RETURN_URL } from '../constants/stripeOnboardingReturnUrl';
 import {
   saveOnboardingStep1,
   saveOnboardingStep2Services,
   saveOnboardingStep3Availability,
   saveOnboardingStep4Slug,
 } from '../api/onboardingV2Api';
-import { refetchOnboardingAfterStripe } from '../utils/refetchOnboardingAfterStripe';
+import { refetchOnboardingAfterActivation } from '../utils/refetchOnboardingAfterActivation';
 import { WeeklyScheduleSection } from '../../availability/components/WeeklyScheduleSection';
 import { OnboardingBusinessStepCard } from '../components/OnboardingBusinessStepCard';
 import { OnboardingProgressStepper } from '../components/OnboardingProgressStepper';
@@ -98,7 +91,7 @@ export function OnboardingScreen() {
   const [businessType, setBusinessType] = useState('');
   const [stepError, setStepError] = useState('');
   const [step1Submitting, setStep1Submitting] = useState(false);
-  const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
+  const [activateSubmitting, setActivateSubmitting] = useState(false);
   const [remoteStepSaving, setRemoteStepSaving] = useState(false);
 
   const availabilityBoot = useBusinessAvailability();
@@ -489,138 +482,52 @@ export function OnboardingScreen() {
       return;
     }
 
-    setCheckoutSubmitting(true);
+    setActivateSubmitting(true);
     try {
-      if (!ENABLE_ONBOARDING_STRIPE_TRIAL) {
-        const serverComplete = await completeOnboardingV2(token);
-        if ('error' in serverComplete) {
-          let body = serverComplete.userMessage;
-          if (__DEV__ && serverComplete.httpStatus === 404) {
-            body +=
-              '\n\nDev: add POST /api/onboarding-v2/complete on your web app (onboarding welcome email contract).';
-          }
-          if (__DEV__ && serverComplete.httpStatus === 0 && Constants.isDevice) {
-            const tried = resolveStripeMobileCheckoutOrigin() ?? '(no origin)';
-            body += `\n\nDev: could not reach your web API (${tried}). On a physical phone, set EXPO_PUBLIC_WEB_APP_URL to your computer's LAN IP (not localhost) and restart Expo.`;
-          }
-          Alert.alert('Could not activate your link', body);
-          return;
-        }
-        // Cover the shell before profile refetch flips `needsOnboarding` — otherwise Home flashes for a frame.
-        beginPostActivationHandoff();
-        try {
-          await refetchOnboarding();
-          await queryClient.invalidateQueries({ queryKey: accountSettingsQueryKey(userId) });
-          await queryClient.invalidateQueries({ queryKey: BOOKING_LINK_QUERY_KEY });
-          await setPendingNavigateToBookingLink();
-          const { completed } = await refetchOnboardingAfterStripe({
-            userId,
-            trial_confirmation: null,
-            maxAttempts: 5,
-            delayMs: 600,
-          });
-          if (!completed) {
-            endPostActivationHandoff();
-            await clearPendingBookingLinkNavigation();
-            Alert.alert(
-              'Almost there',
-              'Your link is active. Pull to refresh on Home if the app has not updated yet.',
-            );
-          }
-        } catch (syncError) {
-          endPostActivationHandoff();
-          await clearPendingBookingLinkNavigation();
-          Alert.alert(
-            'Almost there',
-            safeUserFacingMessage(syncError, {
-              fallback:
-                'Your link is active, but we could not refresh the app. Pull to refresh on Home.',
-            }),
-          );
-        }
-        return;
-      }
-
-      const started = await startOnboardingTrial(token);
-
-      if ('error' in started) {
-        let body = safeUserFacingMessage(started.error, {
-          fallback: 'Something went wrong. Try again.',
-        });
-        if (__DEV__ && started.httpStatus === 404) {
+      const serverComplete = await completeOnboardingV2(token);
+      if ('error' in serverComplete) {
+        let body = serverComplete.userMessage;
+        if (__DEV__ && serverComplete.httpStatus === 404) {
           body +=
-            '\n\nDev: add POST /api/stripe/start-onboarding-trial on your web app (see docs/nextjs-onboarding-trial-contract.md).';
+            '\n\nDev: add POST /api/onboarding-v2/complete on your web app (onboarding welcome email contract).';
         }
-        if (__DEV__ && started.httpStatus === 0 && Constants.isDevice) {
+        if (__DEV__ && serverComplete.httpStatus === 0 && Constants.isDevice) {
           const tried = resolveStripeMobileCheckoutOrigin() ?? '(no origin)';
           body += `\n\nDev: could not reach your web API (${tried}). On a physical phone, set EXPO_PUBLIC_WEB_APP_URL to your computer's LAN IP (not localhost) and restart Expo.`;
         }
         Alert.alert('Could not activate your link', body);
         return;
       }
-
-      /** Server asks for Checkout + confirm (contract §C `fallbackToCheckout`). */
-      if (started.fallbackToCheckout === true) {
-        const checkout = await createOnboardingCheckoutSession(token);
-        if ('error' in checkout) {
-          Alert.alert(
-            'Could not activate your link',
-            safeUserFacingMessage(checkout.error, { fallback: 'Something went wrong. Try again.' }),
-          );
-          return;
-        }
-        const browser = await WebBrowser.openAuthSessionAsync(
-          checkout.url,
-          STRIPE_ONBOARDING_CHECKOUT_AUTH_RETURN_URL,
-        );
-        const sessionId =
-          browser.type === 'success' && typeof browser.url === 'string'
-            ? parseCheckoutSessionIdFromOnboardingReturnUrl(browser.url)
-            : null;
-        const confirmed = await confirmOnboardingTrialUntilReady({
-          accessToken: token,
-          userId,
-          checkoutSessionId: sessionId,
-        });
-        if ('error' in confirmed) {
-          Alert.alert(
-            'Could not activate your link',
-            safeUserFacingMessage(confirmed.error, {
-              fallback: 'Something went wrong. Try again.',
-            }),
-          );
-          return;
-        }
-        beginPostActivationHandoff();
+      // Cover the shell before profile refetch flips `needsOnboarding` — otherwise Home flashes for a frame.
+      beginPostActivationHandoff();
+      try {
+        await refetchOnboarding();
+        await queryClient.invalidateQueries({ queryKey: accountSettingsQueryKey(userId) });
         await queryClient.invalidateQueries({ queryKey: BOOKING_LINK_QUERY_KEY });
         await setPendingNavigateToBookingLink();
-        const { completed } = await refetchOnboardingAfterStripe({
+        const { completed } = await refetchOnboardingAfterActivation({
           userId,
-          trial_confirmation: confirmed.trial_confirmation,
           maxAttempts: 5,
           delayMs: 600,
         });
         if (!completed) {
           endPostActivationHandoff();
           await clearPendingBookingLinkNavigation();
-          Alert.alert('Almost there', 'Pull to refresh on Home in a moment.');
+          Alert.alert(
+            'Almost there',
+            'Your link is active. Pull to refresh on Home if the app has not updated yet.',
+          );
         }
-        return;
-      }
-
-      beginPostActivationHandoff();
-      await queryClient.invalidateQueries({ queryKey: BOOKING_LINK_QUERY_KEY });
-      await setPendingNavigateToBookingLink();
-      const { completed } = await refetchOnboardingAfterStripe({
-        userId,
-        trial_confirmation: started.trial_confirmation,
-        maxAttempts: 5,
-        delayMs: 600,
-      });
-      if (!completed) {
+      } catch (syncError) {
         endPostActivationHandoff();
         await clearPendingBookingLinkNavigation();
-        Alert.alert('Almost there', 'Pull to refresh on Home in a moment.');
+        Alert.alert(
+          'Almost there',
+          safeUserFacingMessage(syncError, {
+            fallback:
+              'Your link is active, but we could not refresh the app. Pull to refresh on Home.',
+          }),
+        );
       }
     } catch (e) {
       endPostActivationHandoff();
@@ -629,7 +536,7 @@ export function OnboardingScreen() {
         safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
       );
     } finally {
-      setCheckoutSubmitting(false);
+      setActivateSubmitting(false);
     }
   }, [
     session?.access_token,
@@ -767,7 +674,7 @@ export function OnboardingScreen() {
 
             {stepIndex === 4 ? (
               <OnboardingTrialStep
-                activateSubmitting={checkoutSubmitting}
+                activateSubmitting={activateSubmitting}
                 activationLink={getBookingLinkDisplay(linkSlugDraft)}
                 onActivatePress={() => void onActivateLinkPress()}
               />

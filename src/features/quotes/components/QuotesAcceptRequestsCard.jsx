@@ -2,18 +2,19 @@ import { useMemo } from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
 import { AppText, Divider, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import { quotesAcceptRequestsAccessCopy } from '../constants/quotesAccessCopy';
 import { QuotesProInlineUpsell } from './QuotesProInlineUpsell';
 
 /**
  * Toggle for `business_profiles.accept_quote_req` — public booking link quote requests.
- * When `proLocked`, the switch is off and disabled and an upgrade strip is shown.
+ * When `proLocked`, the switch is off and disabled and a web sign-in strip is shown.
  */
 export function QuotesAcceptRequestsCard({
   value,
   onValueChange,
   disabled = false,
   proLocked = false,
-  onUpgradePress,
+  onWebSignInPress,
 }) {
   const { colors } = useTheme();
   const switchDisabled = disabled || proLocked;
@@ -59,7 +60,7 @@ export function QuotesAcceptRequestsCard({
           <AppText style={styles.title}>Accept quote requests</AppText>
           <AppText style={styles.subtitle}>
             {proLocked
-              ? 'Quote requests on your public link are included with Pro.'
+              ? quotesAcceptRequestsAccessCopy.cardSubtitle
               : 'Turn on to let people ask for a quote from your booking link.'}
           </AppText>
         </View>
@@ -77,7 +78,7 @@ export function QuotesAcceptRequestsCard({
       {proLocked ? (
         <>
           <Divider style={styles.dividerAfterRow} />
-          <QuotesProInlineUpsell onUpgradePress={onUpgradePress ?? (() => {})} />
+          <QuotesProInlineUpsell onWebSignInPress={onWebSignInPress ?? (() => {})} />
         </>
       ) : null}
     </SurfaceCard>

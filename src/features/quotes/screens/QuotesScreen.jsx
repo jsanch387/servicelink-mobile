@@ -12,11 +12,11 @@ import {
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
-import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
+import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
+import { quotesAcceptRequestsAccessCopy } from '../constants/quotesAccessCopy';
 import { useTheme } from '../../../theme';
 import { navigationRef } from '../../../navigation/navigationRef';
 import { useAuth } from '../../auth';
-import { useSubscription } from '../../subscription';
 import { AddQuoteFab } from '../components/AddQuoteFab';
 import { QuoteRequestCard } from '../components/QuoteRequestCard';
 import { QuotesAcceptRequestsCard } from '../components/QuotesAcceptRequestsCard';
@@ -79,9 +79,12 @@ export function QuotesScreen() {
     [hasProAccess, quotesList],
   );
 
-  const onUpgradeToProPress = useCallback(() => {
-    navigateToUpgradePlan(navigation);
-  }, [navigation]);
+  const onWebSignInPress = useCallback(() => {
+    showWebAccountFeatureAlert({
+      title: quotesAcceptRequestsAccessCopy.alertTitle,
+      message: quotesAcceptRequestsAccessCopy.alertMessage,
+    });
+  }, []);
 
   const openRequestDetail = useCallback(
     (quoteId) => {
@@ -203,7 +206,7 @@ export function QuotesScreen() {
               }
               proLocked={proLocked}
               value={hasProAccess ? quotesList.acceptQuoteRequests : false}
-              onUpgradePress={onUpgradeToProPress}
+              onWebSignInPress={onWebSignInPress}
               onValueChange={handleAcceptQuoteRequestsChange}
             />
           </View>

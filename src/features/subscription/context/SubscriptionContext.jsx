@@ -31,9 +31,7 @@ export function SubscriptionProvider({ children }) {
   const isOwnerProfileLoaded = Boolean(userId) && query.isSuccess;
 
   /**
-   * When false, defer the full-screen upgrade paywall: after onboarding we invalidate the account
-   * bundle while `isSuccess` stays true with a stale "free" row until refetch finishes, which
-   * used to flash `UpgradePaywallScreen` before trialing/pro arrived.
+   * When false, subscription/profile data may still be reconciling after onboarding refetch.
    */
   const isPaywallDataStable = useMemo(() => {
     if (!userId || !query.isSuccess) {

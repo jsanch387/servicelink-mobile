@@ -1,14 +1,15 @@
 import { useMemo } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import { AppText, ProCrownIcon, PRO_CROWN_COLOR_FEATURE } from '../../../components/ui';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
+import { quotesAcceptRequestsAccessCopy } from '../constants/quotesAccessCopy';
 
 /**
- * Single-line Pro upsell: trailing “Upgrade to Pro” (copy lives on the parent card subtitle).
+ * Trailing web sign-in action when quote requests require account changes on web.
  *
- * @param {{ onUpgradePress: () => void; loading?: boolean }} props
+ * @param {{ onWebSignInPress: () => void }} props
  */
-export function QuotesProInlineUpsell({ onUpgradePress, loading = false }) {
+export function QuotesProInlineUpsell({ onWebSignInPress }) {
   const { colors } = useTheme();
 
   const styles = useMemo(
@@ -18,15 +19,9 @@ export function QuotesProInlineUpsell({ onUpgradePress, loading = false }) {
           alignItems: 'center',
           alignSelf: 'stretch',
           flexDirection: 'row',
-          gap: 10,
           justifyContent: 'flex-end',
           paddingBottom: 0,
           paddingTop: 10,
-        },
-        ctaCluster: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          gap: 6,
         },
         cta: {
           color: colors.link,
@@ -40,35 +35,23 @@ export function QuotesProInlineUpsell({ onUpgradePress, loading = false }) {
         ctaPressed: {
           opacity: 0.72,
         },
-        ctaLoading: {
-          opacity: 0.5,
-        },
       }),
     [colors],
   );
 
   return (
     <View style={styles.wrap}>
-      {loading ? (
-        <ActivityIndicator accessibilityLabel="Loading" color={colors.accent} size="small" />
-      ) : null}
       <Pressable
-        accessibilityHint="Opens Account settings"
-        accessibilityLabel="Upgrade to Pro"
+        accessibilityHint="Opens ServiceLink on the web"
+        accessibilityLabel={quotesAcceptRequestsAccessCopy.inlineAction}
         accessibilityRole="button"
-        disabled={loading}
         hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
-        style={({ pressed }) => [pressed && !loading && styles.ctaPressed]}
-        onPress={onUpgradePress}
+        style={({ pressed }) => [pressed && styles.ctaPressed]}
+        onPress={onWebSignInPress}
       >
-        <View style={styles.ctaCluster}>
-          <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <ProCrownIcon color={PRO_CROWN_COLOR_FEATURE} size={15} />
-          </View>
-          <AppText includeFontPadding={false} style={[styles.cta, loading && styles.ctaLoading]}>
-            Upgrade to Pro
-          </AppText>
-        </View>
+        <AppText includeFontPadding={false} style={styles.cta}>
+          {quotesAcceptRequestsAccessCopy.inlineAction}
+        </AppText>
       </Pressable>
     </View>
   );

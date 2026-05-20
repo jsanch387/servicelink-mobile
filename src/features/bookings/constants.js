@@ -24,6 +24,18 @@ export const BOOKINGS_LIST_SCREEN_PADDING = 16;
  */
 export const FREE_TIER_BOOKINGS_LIMIT = 5;
 
+/**
+ * App Store–safe copy for the free-tier bookings cap (no upgrade / pricing language).
+ *
+ * @param {number} [limit]
+ */
+export function freeTierBookingsLimitCopy(limit = FREE_TIER_BOOKINGS_LIMIT) {
+  return {
+    alertTitle: 'Booking limit reached',
+    alertMessage: `You've used all ${limit} appointments on your current access. To create more, sign in on the ServiceLink website with the same email you use in this app.`,
+  };
+}
+
 /** @typedef {'list' | 'planner'} BookingsViewMode */
 
 /** @type {BookingsViewMode} */

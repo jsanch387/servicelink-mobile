@@ -7,7 +7,8 @@ import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppShellGlow, AppText } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
-import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
+import { FREE_TIER_BOOKINGS_LIMIT, freeTierBookingsLimitCopy } from '../../bookings/constants';
+import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
 import { FloatingCreateMenu } from '../components/FloatingCreateMenu';
 import { HomeFreeBookingsUsageCard } from '../components/HomeFreeBookingsUsageCard';
 import { HomeErrorBanner } from '../components/HomeErrorBanner';
@@ -23,11 +24,9 @@ import { serviceCardTitleStyle } from '../../../utils/serviceCardTypography';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useNotificationUnreadCount } from '../../notifications/hooks/useNotificationUnreadCount';
-import { FREE_TIER_BOOKINGS_LIMIT } from '../../bookings/constants';
 import { useBookingsFreeTierUsage } from '../../bookings/hooks/useBookingsFreeTierUsage';
 import { bookingsFreeTierCountQueryKey } from '../../bookings/queryKeys';
 import { resolveFreeTierBookingUsed } from '../../bookings/utils/resolveFreeTierBookingUsed';
-import { useSubscription } from '../../subscription';
 
 export function HomeScreen() {
   const { colors } = useTheme();
@@ -208,24 +207,17 @@ export function HomeScreen() {
       return false;
     }
 
-    Alert.alert(
-      'Free plan limit reached',
-      `You've used all ${FREE_TIER_BOOKINGS_LIMIT} appointments on the free plan. Upgrade to Pro for unlimited bookings.`,
-      [
-        { text: 'Not now', style: 'cancel' },
-        {
-          text: 'Upgrade',
-          onPress: () => navigateToUpgradePlan(navigation),
-        },
-      ],
-    );
+    const copy = freeTierBookingsLimitCopy(FREE_TIER_BOOKINGS_LIMIT);
+    showWebAccountFeatureAlert({
+      title: copy.alertTitle,
+      message: copy.alertMessage,
+    });
     return true;
   }, [
     dashboard.business?.id,
     dashboard.businessError,
     hasProAccess,
     isOwnerProfileLoaded,
-    navigation,
     resolvedFreeBookingUsed,
   ]);
 

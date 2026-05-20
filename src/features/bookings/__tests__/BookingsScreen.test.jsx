@@ -7,7 +7,6 @@ import {
   BOOKINGS_FILTER_UPCOMING,
 } from '../constants';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
-import { ROUTES } from '../../../routes/routes';
 
 const mockNavigate = jest.fn();
 
@@ -153,24 +152,8 @@ describe('BookingsScreen list empty states', () => {
       isError: false,
     });
     renderWithProviders(<BookingsScreen />);
-    expect(screen.getByLabelText('Free plan: 2 of 5 free bookings used')).toBeTruthy();
-    expect(screen.getByLabelText('Upgrade')).toBeTruthy();
-  });
-
-  it('navigates to Account when Upgrade is pressed on the free tier strip', () => {
-    useSubscription.mockReturnValue({
-      hasProAccess: false,
-      isOwnerProfileLoaded: true,
-    });
-    useBookingsFreeTierUsage.mockReturnValue({
-      used: 2,
-      limit: 5,
-      isLoading: false,
-      isError: false,
-    });
-    renderWithProviders(<BookingsScreen />);
-    fireEvent.press(screen.getByLabelText('Upgrade'));
-    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.UPGRADE_PLAN);
+    expect(screen.getByLabelText('Bookings used: 2 of 5.')).toBeTruthy();
+    expect(screen.queryByLabelText('Upgrade')).toBeNull();
   });
 
   it('prefers business_profiles.free_bookings_count for the usage strip when set', () => {
@@ -190,7 +173,7 @@ describe('BookingsScreen list empty states', () => {
       isError: false,
     });
     renderWithProviders(<BookingsScreen />);
-    expect(screen.getByLabelText('Free plan: 5 of 5 free bookings used')).toBeTruthy();
+    expect(screen.getByLabelText('Bookings used: 5 of 5.')).toBeTruthy();
   });
 
   it('shows profile booking count when head-count query errors but free_bookings_count exists', () => {
@@ -210,7 +193,7 @@ describe('BookingsScreen list empty states', () => {
       isError: true,
     });
     renderWithProviders(<BookingsScreen />);
-    expect(screen.getByLabelText('Free plan: 4 of 5 free bookings used')).toBeTruthy();
+    expect(screen.getByLabelText('Bookings used: 4 of 5.')).toBeTruthy();
   });
 
   it('requests Past filter when the Past tab is pressed', () => {
