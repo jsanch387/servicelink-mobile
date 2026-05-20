@@ -30,23 +30,6 @@ export function AccountSettingsScreenSkeleton() {
 
       <View style={styles.section}>
         <View style={styles.sectionTitleRow}>
-          <SkeletonBox borderRadius={6} height={15} pulse width={120} />
-          <SkeletonBox borderRadius={999} height={26} pulse width={72} />
-        </View>
-        <SurfaceCard style={styles.card}>
-          <View style={styles.planInner}>
-            <View style={styles.planTierRow}>
-              <SkeletonBox borderRadius={8} height={20} pulse width="40%" />
-              <SkeletonBox borderRadius={8} height={18} pulse width={56} />
-            </View>
-          </View>
-          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 12 }} width="88%" />
-          <SkeletonBox borderRadius={14} height={48} pulse style={{ marginTop: 14 }} width="100%" />
-        </SurfaceCard>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionTitleRow}>
           <SkeletonBox borderRadius={6} height={15} pulse width={72} />
           <SkeletonBox borderRadius={8} height={28} pulse width={28} />
         </View>
@@ -62,11 +45,26 @@ export function AccountSettingsScreenSkeleton() {
       </View>
 
       <View style={styles.section}>
+        <SkeletonBox borderRadius={6} height={15} pulse style={{ marginBottom: 8 }} width={140} />
+        <SurfaceCard style={styles.card}>
+          <SkeletonBox borderRadius={8} height={14} pulse width="100%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 8 }} width="92%" />
+          <SkeletonBox borderRadius={14} height={48} pulse style={{ marginTop: 16 }} width="100%" />
+        </SurfaceCard>
+      </View>
+
+      <View style={styles.section}>
         <View style={styles.sectionTitleRow}>
           <SkeletonBox borderRadius={6} height={15} pulse width={88} />
         </View>
-        <SkeletonBox borderRadius={14} height={48} pulse width="100%" />
+        <SurfaceCard style={styles.card}>
+          <SkeletonBox borderRadius={8} height={16} pulse width="55%" />
+          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 10 }} width="100%" />
+          <SkeletonBox borderRadius={14} height={48} pulse style={{ marginTop: 16 }} width="100%" />
+        </SurfaceCard>
       </View>
+
+      <SkeletonBox borderRadius={14} height={48} pulse style={{ marginTop: 28 }} width="100%" />
     </View>
   );
 }
@@ -84,16 +82,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 4,
-  },
-  planInner: {
-    borderRadius: 12,
-    gap: 10,
-    paddingVertical: 4,
-  },
-  planTierRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
   },
   section: {
     marginTop: 22,

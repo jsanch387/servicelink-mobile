@@ -57,3 +57,16 @@ export function getWebTermsOfServiceUrl() {
   const origin = getWebAppOrigin() || PROD_WEB_ORIGIN;
   return `${origin.replace(/\/$/, '')}${PATHS.TERMS_OF_SERVICE}`;
 }
+
+/**
+ * Web sign-in page — account administration on web, not in the iOS app.
+ */
+export function getWebAccountAdminUrl() {
+  const origin = (getWebAppOrigin() || PROD_WEB_ORIGIN).replace(/\/$/, '');
+  return `${origin}${PATHS.LOGIN}`;
+}
+
+/** @deprecated Use {@link getWebAccountAdminUrl} */
+export function getWebPlanManagementUrl() {
+  return getWebAccountAdminUrl();
+}

@@ -1,5 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import * as WebBrowser from 'expo-web-browser';
 import { useNavigation } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useMemo, useState } from 'react';
@@ -25,31 +24,25 @@ import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { AccountBookingLinkCard } from '../components/AccountBookingLinkCard';
 import { AccountSettingsScreenSkeleton } from '../components/AccountSettingsScreenSkeleton';
-import { AccountSubscriptionCard } from '../components/AccountSubscriptionCard';
+import { AccountWebPanelNote } from '../components/AccountWebPanelNote';
 import { ChangeBusinessSlugSheet } from '../components/ChangeBusinessSlugSheet';
 import { DeleteAccountConfirmSheet } from '../components/DeleteAccountConfirmSheet';
 import { useAccountSettings } from '../hooks/useAccountSettings';
-import { STRIPE_BILLING_PORTAL_AUTH_RETURN_URL } from '../constants/stripeBillingPortalReturnUrl';
-import { refetchAccountAfterPortal } from '../utils/refetchAccountAfterPortal';
-import {
-  buildBookingLinkCardModel,
-  buildSubscriptionCardModel,
-} from '../utils/accountSettingsModel';
+import { buildBookingLinkCardModel } from '../utils/accountSettingsModel';
 import { SCREEN_GUTTER } from '../../../constants/layout';
-import { navigateToUpgradePlan } from '../../subscription/navigation/navigateToUpgradePlan';
 
 export function AccountSettingsScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
-  const { user, session, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const tabBarHeight = useBottomTabBarHeight();
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
   const [slugSheetVisible, setSlugSheetVisible] = useState(false);
   const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
   const [deleteEmailConfirmed, setDeleteEmailConfirmed] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const {
-    ownerProfile,
     business,
     isLoading,
     isFetching,
@@ -63,13 +56,10 @@ export function AccountSettingsScreen() {
     isDeletingAccount,
     deleteAccountError,
     resetDeleteAccountError,
-    createBillingPortalSession,
-    isCreatingBillingPortalSession,
   } = useAccountSettings();
 
   const signedInEmail = user?.email?.trim() || '—';
   const canEditSlug = Boolean(business?.id);
-  const subscriptionModel = useMemo(() => buildSubscriptionCardModel(ownerProfile), [ownerProfile]);
   const linkModel = useMemo(
     () => buildBookingLinkCardModel(business?.business_slug),
     [business?.business_slug],
@@ -115,17 +105,6 @@ export function AccountSettingsScreen() {
         sectionTitleInRow: {
           flex: 1,
           marginRight: 8,
-        },
-        sectionBadge: {
-          backgroundColor: colors.buttonSecondaryBg,
-          borderRadius: 999,
-          paddingHorizontal: 10,
-          paddingVertical: 4,
-        },
-        sectionBadgeText: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontWeight: '600',
         },
         iconHit: {
           alignItems: 'center',
@@ -197,6 +176,21 @@ export function AccountSettingsScreen() {
         dangerButton: {
           marginTop: 18,
         },
+        signOutSection: {
+          marginTop: 28,
+        },
+        signOutButton: {
+          marginTop: 0,
+        },
+        businessBody: {
+          color: colors.text,
+          fontSize: 15,
+          fontWeight: '600',
+          lineHeight: 22,
+        },
+        businessCta: {
+          marginTop: 16,
+        },
       }),
     [colors, scrollBottomPad],
   );
@@ -214,40 +208,14 @@ export function AccountSettingsScreen() {
     [resetSaveSlugError, updateSlug],
   );
 
-  const handleManageSubscription = useCallback(async () => {
-    const token = session?.access_token ?? null;
-    const userId = user?.id ?? null;
-    if (!token || !userId) {
-      Alert.alert('Sign in required', 'Please sign in again to continue.');
-      return;
+  const handleSignOut = useCallback(async () => {
+    setIsSigningOut(true);
+    const { error } = await signOut();
+    setIsSigningOut(false);
+    if (error) {
+      Alert.alert('Sign out failed', safeUserFacingMessage(error));
     }
-
-    if (subscriptionModel.showProCrown) {
-      const created = await createBillingPortalSession();
-      if ('error' in created) {
-        Alert.alert(
-          'Could not open billing portal',
-          safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
-        );
-        return;
-      }
-
-      try {
-        await WebBrowser.openAuthSessionAsync(created.url, STRIPE_BILLING_PORTAL_AUTH_RETURN_URL);
-      } finally {
-        await refetchAccountAfterPortal({ userId });
-      }
-      return;
-    }
-
-    navigateToUpgradePlan(navigation);
-  }, [
-    createBillingPortalSession,
-    navigation,
-    session?.access_token,
-    subscriptionModel.showProCrown,
-    user?.id,
-  ]);
+  }, [signOut]);
 
   const handleOpenBookingPage = useCallback(() => {
     if (!linkModel.httpsUrl) return;
@@ -272,6 +240,44 @@ export function AccountSettingsScreen() {
     ),
     [colors.accent, isManualRefreshing, refetch],
   );
+
+  const signedInSection = (
+    <View style={[styles.section, styles.sectionFirst]}>
+      <View style={styles.sectionTitleRow}>
+        <AppText style={styles.sectionTitle}>Signed in</AppText>
+      </View>
+      <SurfaceCard padding="sm">
+        <View style={styles.signedInCard}>
+          <View style={styles.signedInIconWrap}>
+            <Ionicons color={colors.textMuted} name="person-circle-outline" size={22} />
+          </View>
+          <View style={styles.signedInTextCol}>
+            <AppText selectable numberOfLines={2} style={styles.signedInEmail}>
+              {signedInEmail}
+            </AppText>
+            <AppText style={styles.signedInHint}>Signed in with this email</AppText>
+          </View>
+        </View>
+      </SurfaceCard>
+    </View>
+  );
+
+  const signOutSection = (
+    <View style={styles.signOutSection}>
+      <Button
+        accessibilityHint="Signs you out of ServiceLink on this device"
+        accessibilityLabel="Log out"
+        fullWidth
+        loading={isSigningOut}
+        style={styles.signOutButton}
+        title="Log out"
+        variant="secondary"
+        onPress={() => void handleSignOut()}
+      />
+    </View>
+  );
+
+  const webPanelNote = <AccountWebPanelNote />;
 
   if (isLoading) {
     return (
@@ -324,44 +330,28 @@ export function AccountSettingsScreen() {
           showsVerticalScrollIndicator={false}
           style={styles.scroll}
         >
-          <View style={[styles.section, styles.sectionFirst]}>
-            <View style={styles.sectionTitleRow}>
-              <AppText style={styles.sectionTitle}>Signed in</AppText>
-            </View>
-            <SurfaceCard padding="sm">
-              <View style={styles.signedInCard}>
-                <View style={styles.signedInIconWrap}>
-                  <Ionicons color={colors.textMuted} name="person-circle-outline" size={22} />
-                </View>
-                <View style={styles.signedInTextCol}>
-                  <AppText selectable numberOfLines={2} style={styles.signedInEmail}>
-                    {signedInEmail}
-                  </AppText>
-                  <AppText style={styles.signedInHint}>Signed in with this email</AppText>
-                </View>
-              </View>
-            </SurfaceCard>
-          </View>
+          {signedInSection}
 
           <View style={styles.section}>
             <View style={styles.sectionTitleRow}>
               <AppText style={styles.sectionTitle}>Business</AppText>
             </View>
             <SurfaceCard>
-              <AppText
-                style={{ color: colors.text, fontSize: 15, fontWeight: '600', lineHeight: 22 }}
-              >
-                Add a business profile to manage your booking link and subscription.
+              <AppText style={styles.businessBody}>
+                Add a business profile to manage your booking link and public page.
               </AppText>
               <Button
                 fullWidth
-                style={{ marginTop: 16 }}
+                style={styles.businessCta}
                 title="Open booking link"
                 variant="secondary"
                 onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
               />
             </SurfaceCard>
           </View>
+
+          {webPanelNote}
+          {signOutSection}
         </ScrollView>
       </View>
     );
@@ -376,45 +366,7 @@ export function AccountSettingsScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
-        <View style={[styles.section, styles.sectionFirst]}>
-          <View style={styles.sectionTitleRow}>
-            <AppText style={styles.sectionTitle}>Signed in</AppText>
-          </View>
-          <SurfaceCard padding="sm">
-            <View style={styles.signedInCard}>
-              <View style={styles.signedInIconWrap}>
-                <Ionicons color={colors.textMuted} name="person-circle-outline" size={22} />
-              </View>
-              <View style={styles.signedInTextCol}>
-                <AppText selectable numberOfLines={2} style={styles.signedInEmail}>
-                  {signedInEmail}
-                </AppText>
-                <AppText style={styles.signedInHint}>Signed in with this email</AppText>
-              </View>
-            </View>
-          </SurfaceCard>
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionTitleRow}>
-            <AppText style={[styles.sectionTitle, styles.sectionTitleInRow]}>
-              Subscription plan
-            </AppText>
-            {subscriptionModel.headerBadge ? (
-              <View style={styles.sectionBadge}>
-                <AppText style={styles.sectionBadgeText}>{subscriptionModel.headerBadge}</AppText>
-              </View>
-            ) : null}
-          </View>
-          <AccountSubscriptionCard
-            accessLine={subscriptionModel.accessLine}
-            manageSubscriptionLoading={isCreatingBillingPortalSession}
-            planLabel={subscriptionModel.planLabel}
-            priceDisplay={subscriptionModel.priceDisplay}
-            showProCrown={subscriptionModel.showProCrown}
-            onManageSubscriptionPress={() => void handleManageSubscription()}
-          />
-        </View>
+        {signedInSection}
 
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
@@ -439,6 +391,8 @@ export function AccountSettingsScreen() {
             onChangeLink={() => setSlugSheetVisible(true)}
           />
         </View>
+
+        {webPanelNote}
 
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
@@ -466,6 +420,8 @@ export function AccountSettingsScreen() {
             ) : null}
           </SurfaceCard>
         </View>
+
+        {signOutSection}
       </ScrollView>
 
       <ChangeBusinessSlugSheet
