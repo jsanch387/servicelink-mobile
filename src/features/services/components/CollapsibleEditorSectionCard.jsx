@@ -5,7 +5,7 @@ import { useTheme } from '../../../theme';
 
 export function CollapsibleEditorSectionCard({
   title,
-  /** Rendered inline after the title (e.g. Pro crown). */
+  /** Rendered inline after the title (optional accessory). */
   titleAccessory = null,
   subtitle,
   expanded,

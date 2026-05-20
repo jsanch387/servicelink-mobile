@@ -7,4 +7,7 @@ export const serviceMultiplePricingAccessCopy = {
   alertMessage:
     'To add multiple pricing options per service, sign in on the ServiceLink website with the same email you use in this app.',
   buttonTitle: 'Sign in on the web',
+  /** Collapsed section subtitle when user already has saved options but cannot edit in-app. */
+  collapsedSubtitleWithSaved: (count) => `${count} saved · manage on the ServiceLink website`,
+  collapsedSubtitleEmpty: 'Multiple prices',
 };

@@ -19,7 +19,6 @@ import {
   Button,
   DurationSelectField,
   InlineCardError,
-  ProCrownIcon,
   SurfaceCard,
   SurfaceTextField,
 } from '../../../components/ui';
@@ -117,7 +116,7 @@ function patchEditorSnapshotAddons(prevSnapshot, addonOptions, selectedAddonIds)
   }
 }
 
-/** Dimmed preview for non‑Pro users when they have no saved price options yet. */
+/** Dimmed preview when multiple prices are managed on web and none are saved yet. */
 const MOCK_PRICING_OPTION_PREVIEW = {
   label: 'Larger vehicle',
   price: '180',
@@ -279,9 +278,9 @@ export function ServiceEditScreen({ route }) {
     if (pricingExpanded) return null;
     if (blockPricingControls) {
       if (pricingOptions.length > 0) {
-        return `${pricingOptions.length} saved (hidden without Pro)`;
+        return serviceMultiplePricingAccessCopy.collapsedSubtitleWithSaved(pricingOptions.length);
       }
-      return 'Multiple prices';
+      return serviceMultiplePricingAccessCopy.collapsedSubtitleEmpty;
     }
     return `${pricingOptions.length} option${pricingOptions.length === 1 ? '' : 's'}`;
   }, [blockPricingControls, pricingExpanded, pricingOptions.length]);
@@ -833,11 +832,6 @@ export function ServiceEditScreen({ route }) {
             onToggle={() => setPricingExpanded((v) => !v)}
             subtitle={pricingCollapsedSubtitle}
             title="Pricing options"
-            titleAccessory={
-              blockPricingControls ? (
-                <ProCrownIcon accessibilityLabel="Pro feature" size={22} />
-              ) : null
-            }
           >
             <View style={[styles.switchCard, { borderColor: colors.border }]}>
               <AppText style={[styles.switchText, { color: colors.text }]}>
@@ -867,7 +861,7 @@ export function ServiceEditScreen({ route }) {
             {blockPricingControls ? (
               <Button
                 fullWidth
-                style={styles.upgradeProButtonSpacing}
+                style={styles.webAccessButtonSpacing}
                 title={serviceMultiplePricingAccessCopy.buttonTitle}
                 variant="secondary"
                 onPress={() =>
@@ -1247,7 +1241,7 @@ const styles = StyleSheet.create({
     paddingLeft: 2,
     width: 28,
   },
-  upgradeProButtonSpacing: {
+  webAccessButtonSpacing: {
     marginBottom: 10,
   },
   pricingAddButton: {
