@@ -6,17 +6,20 @@ This document explains how the bookings feature is structured, how data flows, a
 
 The bookings feature includes:
 
-- list screen (`BookingsScreen`)
+- list screen (`BookingsScreen`) — **List** and **Calendar** view modes
 - booking details screen (`BookingDetailsScreen`)
 - shared booking cards and planner components
 - booking details subfolder for details-specific API/hooks/UI
 
+**Calendar mode** (month / week / day) is documented in depth in [`docs/CALENDAR_VIEW.md`](docs/CALENDAR_VIEW.md).
+
 ## Folder Structure
 
-- `api/` list/planner Supabase queries and sorting/filtering helpers
-- `hooks/` list/planner query orchestration
-- `components/` list/planner UI pieces
+- `api/` list/planner/calendar Supabase queries and sorting/filtering helpers
+- `hooks/` list, calendar counts, planner day query orchestration
+- `components/` list/planner/calendar UI pieces
 - `screens/` feature screens
+- `docs/` calendar view documentation
 - `booking-details/`
   - `api/bookingDetails.js` booking details fetch + status updates
   - `hooks/useBookingDetails.js` details query state
@@ -28,12 +31,25 @@ The bookings feature includes:
 
 ## Data Flow
 
-### Booking list screen
+### Booking list screen (List mode)
 
-1. `useBookingsList` loads business context first.
-2. It then loads bookings for the active tab (upcoming/past/cancelled).
+1. `useBookingsList({ listEnabled: true })` loads business context first.
+2. Fetch strategy by tab:
+   - **Upcoming** — single `fetchConfirmedBookingsFromToday`, then `partitionUpcomingConfirmed` (instant-based).
+   - **Past** — month windows via `fetchBookingsForListWindow`; user extends with “Load [month]” link.
+   - **Canceled** — single `fetchCancelledBookingsForBusiness` (all rows).
 3. `BookingsScreen` groups rows by date and renders `BookingCard`.
 4. On card tap, app navigates to details using `bookingId`.
+
+List queries are disabled when the user is in **Calendar** mode (`listEnabled: false`).
+
+### Booking calendar screen (Calendar mode)
+
+See [`docs/CALENDAR_VIEW.md`](docs/CALENDAR_VIEW.md). Summary:
+
+- **Month / Week** — `useBookingsCalendarCounts` for dot density; `useBookingsPlannerDay` for the selected day agenda.
+- **Day** — `BookingsDayPlanner` + `useBookingsPlannerDay` for the full timeline.
+- Cached ranges and skeleton loading for day cards (no agenda spinner).
 
 ### Booking details screen
 
@@ -71,13 +87,19 @@ This limits accidental backend spam while still recovering from flaky connectivi
 
 ## Testing Coverage (Current)
 
-- `bookingsApi` sorting/filter helpers
+- `bookingsApi` — past/canceled sort, `partitionUpcomingConfirmed`
+- `calendarRange`, `calendarBookingsIndex`, `listMonthWindows`
+- `CalendarMonthPicker` — owner month grid with appointment dots
+- `BookingsCalendarDayAgenda` — skeleton and empty states
+- `useBookingsList`, `useBookingsCalendarCounts`, `useBookingsPlannerDay`
 - `BookingCard` interaction
+- `BookingsScreen` — list empty states, calendar mode chrome
 - booking details model mapping (duration/add-ons/phone formatting)
 - details hook behavior (success, deterministic error, transient retry once)
-- list hook behavior (success + list failure handling)
 - retry policy behavior
 - create-appointment: `buildOwnerManualPublicBookingBody` / `postOwnerManualPublicBooking` unit tests
+
+Run: `npm test -- --testPathPattern=bookings`
 
 ## Notes for Future Enhancements
 

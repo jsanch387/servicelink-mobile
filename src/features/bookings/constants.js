@@ -36,10 +36,27 @@ export function freeTierBookingsLimitCopy(limit = FREE_TIER_BOOKINGS_LIMIT) {
   };
 }
 
-/** @typedef {'list' | 'planner'} BookingsViewMode */
+/** @typedef {'list' | 'calendar'} BookingsViewMode */
 
 /** @type {BookingsViewMode} */
 export const BOOKINGS_VIEW_LIST = 'list';
 
 /** @type {BookingsViewMode} */
-export const BOOKINGS_VIEW_PLANNER = 'planner';
+export const BOOKINGS_VIEW_CALENDAR = 'calendar';
+
+/** @typedef {'day' | 'week' | 'month'} BookingsCalendarGranularity */
+
+/** @type {BookingsCalendarGranularity} */
+export const BOOKINGS_CALENDAR_DAY = 'day';
+
+/** @type {BookingsCalendarGranularity} */
+export const BOOKINGS_CALENDAR_WEEK = 'week';
+
+/** @type {BookingsCalendarGranularity} */
+export const BOOKINGS_CALENDAR_MONTH = 'month';
+
+export const BOOKINGS_CALENDAR_GRANULARITY_OPTIONS = [
+  { id: BOOKINGS_CALENDAR_DAY, label: 'Day' },
+  { id: BOOKINGS_CALENDAR_WEEK, label: 'Week' },
+  { id: BOOKINGS_CALENDAR_MONTH, label: 'Month' },
+];

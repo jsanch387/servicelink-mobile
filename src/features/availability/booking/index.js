@@ -1,4 +1,5 @@
 export { BOOKING_CALENDAR_MAX_DAYS_AHEAD, BOOKING_SLOT_INCREMENT_MINUTES } from './constants';
+export { BookingCalendarCard } from './components/BookingCalendarCard';
 export { BookingDateTimePicker } from './components/BookingDateTimePicker';
 export { TimeSlotGrid } from './components/TimeSlotGrid';
 export { useBookingCalendar } from './hooks/useBookingCalendar';

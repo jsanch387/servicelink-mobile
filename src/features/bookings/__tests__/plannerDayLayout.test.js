@@ -20,23 +20,23 @@ describe('plannerDurationMinutes', () => {
 });
 
 describe('layoutPlannerDay', () => {
-  it('shows 6 AM through 10 PM hour rows when empty', () => {
+  it('shows 5 AM through 11 PM hour rows when empty', () => {
     const layout = layoutPlannerDay([]);
-    expect(layout.startHour).toBe(6);
-    expect(layout.endHour).toBe(23);
-    expect(layout.numHours).toBe(17);
-    expect(layout.hourLabels).toEqual(expect.arrayContaining([6, 12, 22]));
-    expect(layout.hourLabels).toHaveLength(17);
-    expect(layout.windowSpanMin).toBe(17 * 60);
-    expect(layout.pxPerMinute).toBeCloseTo((17 * 52) / (17 * 60), 5);
+    expect(layout.startHour).toBe(5);
+    expect(layout.endHour).toBe(24);
+    expect(layout.numHours).toBe(19);
+    expect(layout.hourLabels).toEqual(expect.arrayContaining([5, 12, 23]));
+    expect(layout.hourLabels).toHaveLength(19);
+    expect(layout.windowSpanMin).toBe(19 * 60);
+    expect(layout.pxPerMinute).toBeCloseTo((19 * 52) / (19 * 60), 5);
   });
 
   it('getPlannerDayMetrics matches default window', () => {
     const m = getPlannerDayMetrics();
-    expect(m.START_HOUR).toBe(6);
-    expect(m.END_HOUR_INCLUSIVE).toBe(22);
-    expect(m.numHours).toBe(17);
-    expect(m.timelineHeightPx).toBe(17 * 52);
+    expect(m.START_HOUR).toBe(5);
+    expect(m.END_HOUR_INCLUSIVE).toBe(23);
+    expect(m.numHours).toBe(19);
+    expect(m.timelineHeightPx).toBe(19 * 52);
   });
 
   it('returns blocks with positions for one booking', () => {

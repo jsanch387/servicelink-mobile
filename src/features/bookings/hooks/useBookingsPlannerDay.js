@@ -63,7 +63,8 @@ export function useBookingsPlannerDay(yyyyMmDd) {
     : null;
   const dayError = dayQ.isError ? (dayQ.error?.message ?? 'Could not load day') : null;
 
-  const isLoading = (Boolean(userId) && businessQ.isPending) || (hasBusinessRow && dayQ.isPending);
+  const isDayPending = hasBusinessRow && Boolean(dateKey) && dayQ.isPending;
+  const isLoading = (Boolean(userId) && businessQ.isPending) || isDayPending;
 
   const refetch = useCallback(async () => {
     await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_ROOT });
@@ -78,6 +79,7 @@ export function useBookingsPlannerDay(yyyyMmDd) {
     dayError,
     bookings: dayQ.data ?? [],
     isLoading,
+    isDayPending,
     isFetching: businessQ.isFetching || dayQ.isFetching,
     refetch,
   };

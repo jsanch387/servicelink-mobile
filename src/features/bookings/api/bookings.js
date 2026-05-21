@@ -28,6 +28,12 @@ export const BOOKING_LIST_SELECT =
 /** Planner day view — same columns as list (includes `duration_minutes`). */
 export const PLANNER_BOOKING_SELECT = BOOKING_LIST_SELECT;
 
+/** Month/week grid markers only — minimal payload. */
+export const CALENDAR_COUNTS_SELECT = 'scheduled_date, status';
+
+/** Day agenda cards under the calendar (same shape as list cards). */
+export const CALENDAR_DAY_AGENDA_SELECT = BOOKING_LIST_SELECT;
+
 /**
  * Confirmed bookings from today onward (calendar date); filter to true “upcoming” instants in JS.
  *
@@ -50,7 +56,6 @@ export async function fetchConfirmedBookingsFromToday(businessId) {
 }
 
 const PAST_LIST_LIMIT = 250;
-const CANCELLED_LIST_LIMIT = 250;
 
 /** Statuses shown on the Past tab (excludes cancelled — those use the Cancelled filter). */
 const PAST_LIST_STATUSES = ['confirmed', 'completed', 'complete'];
@@ -118,6 +123,80 @@ export async function fetchBookingsForPlannerDay(businessId, yyyyMmDd) {
 }
 
 /**
+ * Appointment counts by day for a calendar span (month or week).
+ *
+ * @param {string} businessId
+ * @param {string} startYyyyMmDd
+ * @param {string} endYyyyMmDd
+ * @returns {Promise<{ data: Pick<BookingRow, 'scheduled_date' | 'status'>[] | null, error: Error | null }>}
+ */
+export async function fetchBookingsCountsForCalendarRange(businessId, startYyyyMmDd, endYyyyMmDd) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(CALENDAR_COUNTS_SELECT)
+    .eq('business_id', businessId)
+    .gte('scheduled_date', startYyyyMmDd)
+    .lte('scheduled_date', endYyyyMmDd);
+
+  return { data, error };
+}
+
+/**
+ * One calendar month (or custom window) for the list tab — user extends via Load more.
+ *
+ * @param {string} businessId
+ * @param {'upcoming' | 'past' | 'cancelled'} filter
+ * @param {string} startYyyyMmDd
+ * @param {string} endYyyyMmDd
+ * @returns {Promise<{ data: BookingRow[] | null, error: Error | null }>}
+ */
+export async function fetchBookingsForListWindow(businessId, filter, startYyyyMmDd, endYyyyMmDd) {
+  if (filter === 'upcoming') {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(BOOKING_LIST_SELECT)
+      .eq('business_id', businessId)
+      .eq('status', 'confirmed')
+      .gte('scheduled_date', startYyyyMmDd)
+      .lte('scheduled_date', endYyyyMmDd)
+      .order('scheduled_date', { ascending: true })
+      .order('start_time', { ascending: true });
+
+    return { data, error };
+  }
+
+  if (filter === 'past') {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(BOOKING_LIST_SELECT)
+      .eq('business_id', businessId)
+      .in('status', PAST_LIST_STATUSES)
+      .gte('scheduled_date', startYyyyMmDd)
+      .lte('scheduled_date', endYyyyMmDd)
+      .order('scheduled_date', { ascending: false })
+      .order('start_time', { ascending: false });
+
+    return { data, error };
+  }
+
+  if (filter === 'cancelled') {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(BOOKING_LIST_SELECT)
+      .eq('business_id', businessId)
+      .in('status', ['cancelled', 'canceled'])
+      .gte('scheduled_date', startYyyyMmDd)
+      .lte('scheduled_date', endYyyyMmDd)
+      .order('scheduled_date', { ascending: false })
+      .order('start_time', { ascending: false });
+
+    return { data, error };
+  }
+
+  return { data: [], error: null };
+}
+
+/**
  * @param {BookingRow[] | null | undefined} rows
  * @param {number} nowMs
  * @returns {BookingRow[]}
@@ -155,8 +234,7 @@ export async function fetchCancelledBookingsForBusiness(businessId) {
     .eq('business_id', businessId)
     .in('status', ['cancelled', 'canceled'])
     .order('scheduled_date', { ascending: false })
-    .order('start_time', { ascending: false })
-    .limit(CANCELLED_LIST_LIMIT);
+    .order('start_time', { ascending: false });
 
   return { data, error };
 }

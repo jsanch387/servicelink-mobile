@@ -3,6 +3,12 @@ export { AppTextInput } from './AppTextInput';
 export { BottomSheetModal } from './BottomSheetModal';
 export { FormBottomSheetModal } from './FormBottomSheetModal';
 export { CalendarMonthPicker } from './CalendarMonthPicker';
+export {
+  AppointmentCountMarkers,
+  appointmentDayFillOpacity,
+  MAX_APPOINTMENT_MARKER_DOTS,
+  resolveAppointmentMarkerLayout,
+} from './AppointmentCountMarkers';
 export { toLocalYyyyMmDd, parseLocalYyyyMmDd, startOfLocalDay } from './calendarDateKey';
 export { Button } from './Button';
 export { DeleteButton } from './DeleteButton';

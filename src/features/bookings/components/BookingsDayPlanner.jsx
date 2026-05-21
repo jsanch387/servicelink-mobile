@@ -1,19 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { getBookingStatusLabel, getBookingStatusVisualKind } from '../utils/bookingStatusVisual';
 import { layoutPlannerDay } from '../utils/plannerDayLayout';
+import { BookingCardSkeleton } from './BookingCardSkeleton';
 
 /** Wide enough for "12:00" at 10pt; clock is right-aligned inside so colons line up. */
 const HOUR_LABEL_CLOCK_WIDTH = 40;
@@ -348,9 +341,8 @@ export function BookingsDayPlanner({
           marginTop: 8,
           textAlign: 'center',
         },
-        loadingBox: {
-          alignItems: 'center',
-          marginTop: 48,
+        loadingSkeleton: {
+          marginTop: 8,
         },
       }),
     [colors, isDark, layout.hourHeightPx],
@@ -440,8 +432,8 @@ export function BookingsDayPlanner({
       ) : null}
 
       {isLoading ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator color={colors.accent} size="large" />
+        <View style={styles.loadingSkeleton}>
+          <BookingCardSkeleton count={3} />
         </View>
       ) : !dayError && bookings.length === 0 ? (
         <View style={styles.emptyWrap}>

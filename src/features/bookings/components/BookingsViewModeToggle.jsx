@@ -3,11 +3,11 @@ import { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../../components/ui';
 import { useTheme } from '../../../theme';
-import { BOOKINGS_VIEW_LIST, BOOKINGS_VIEW_PLANNER } from '../constants';
+import { BOOKINGS_VIEW_CALENDAR, BOOKINGS_VIEW_LIST } from '../constants';
 
 const TRACK_PAD = 6;
 const SEGMENT_GAP = 4;
-const SEGMENT_WIDTH = 112;
+const SEGMENT_WIDTH = 120;
 const SEGMENT_HEIGHT = 38;
 const TRACK_HEIGHT = TRACK_PAD * 2 + SEGMENT_HEIGHT;
 const SEGMENT_INSET_H = 12;
@@ -18,7 +18,7 @@ const ACTIVE_FG = '#000000';
 const ACTIVE_BG = '#ffffff';
 
 /**
- * Compact rounded segmented toggle: List (left) · Day (right). Selected segment uses a white pill.
+ * Compact rounded segmented toggle: List (left) · Calendar (right). Selected segment uses a white pill.
  *
  * @param {{
  *   mode: import('../constants').BookingsViewMode;
@@ -96,7 +96,7 @@ export function BookingsViewModeToggle({ mode, onChange }) {
   );
 
   const listActive = mode === BOOKINGS_VIEW_LIST;
-  const plannerActive = mode === BOOKINGS_VIEW_PLANNER;
+  const calendarActive = mode === BOOKINGS_VIEW_CALENDAR;
   const inactiveIconColor = colors.textMuted;
 
   const rippleList = listActive
@@ -104,7 +104,7 @@ export function BookingsViewModeToggle({ mode, onChange }) {
     : isDark
       ? 'rgba(255,255,255,0.14)'
       : 'rgba(0,0,0,0.08)';
-  const rippleDay = plannerActive
+  const rippleCalendar = calendarActive
     ? 'rgba(0,0,0,0.08)'
     : isDark
       ? 'rgba(255,255,255,0.14)'
@@ -129,22 +129,22 @@ export function BookingsViewModeToggle({ mode, onChange }) {
         </View>
       </Pressable>
       <Pressable
-        accessibilityLabel="Day planner"
+        accessibilityLabel="Calendar view"
         accessibilityRole="tab"
-        accessibilityState={{ selected: plannerActive }}
-        android_ripple={{ color: rippleDay, borderless: false }}
+        accessibilityState={{ selected: calendarActive }}
+        android_ripple={{ color: rippleCalendar, borderless: false }}
         hitSlop={6}
-        onPress={() => onChange(BOOKINGS_VIEW_PLANNER)}
+        onPress={() => onChange(BOOKINGS_VIEW_CALENDAR)}
         style={({ pressed }) => [styles.segmentHit, pressed && { opacity: 0.92 }]}
       >
-        <View style={[styles.segmentSurface, plannerActive && styles.segmentSurfaceActive]}>
+        <View style={[styles.segmentSurface, calendarActive && styles.segmentSurfaceActive]}>
           <View style={styles.segmentRow}>
             <Ionicons
-              color={plannerActive ? ACTIVE_FG : inactiveIconColor}
+              color={calendarActive ? ACTIVE_FG : inactiveIconColor}
               name="calendar-outline"
               size={18}
             />
-            <AppText style={[styles.label, plannerActive && styles.labelActive]}>Day</AppText>
+            <AppText style={[styles.label, calendarActive && styles.labelActive]}>Calendar</AppText>
           </View>
         </View>
       </Pressable>

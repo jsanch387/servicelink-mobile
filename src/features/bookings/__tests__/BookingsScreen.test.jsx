@@ -35,6 +35,19 @@ jest.mock('../hooks/useBookingsPlannerDay', () => ({
     dayError: null,
     bookings: [],
     isLoading: false,
+    isDayPending: false,
+    isFetching: false,
+    refetch: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+jest.mock('../hooks/useBookingsCalendarCounts', () => ({
+  useBookingsCalendarCounts: jest.fn(() => ({
+    business: { id: 'b1' },
+    businessError: null,
+    countsError: null,
+    bookingCountByDateKey: {},
+    isLoading: false,
     isFetching: false,
     refetch: jest.fn().mockResolvedValue(undefined),
   })),
@@ -73,6 +86,11 @@ function baseList(overrides = {}) {
     isPendingList: false,
     isLoading: false,
     isFetching: false,
+    isFetchingNextPage: false,
+    hasNextPage: false,
+    loadMoreLabel: '',
+    loadMore: jest.fn(),
+    loadMorePresentation: 'button',
     refetch: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
@@ -202,5 +220,14 @@ describe('BookingsScreen list empty states', () => {
     renderWithProviders(<BookingsScreen />);
     fireEvent.press(screen.getByLabelText('Past appointments'));
     expect(setListFilter).toHaveBeenCalledWith(BOOKINGS_FILTER_PAST);
+  });
+
+  it('shows calendar granularity tabs after switching to calendar view', () => {
+    renderWithProviders(<BookingsScreen />);
+    fireEvent.press(screen.getByLabelText('Calendar view'));
+    expect(screen.getByLabelText('Day calendar view')).toBeTruthy();
+    expect(screen.getByLabelText('Week calendar view')).toBeTruthy();
+    expect(screen.getByLabelText('Month calendar view')).toBeTruthy();
+    expect(screen.queryByLabelText('Upcoming appointments')).toBeNull();
   });
 });

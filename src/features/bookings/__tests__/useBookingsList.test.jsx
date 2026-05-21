@@ -1,9 +1,10 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import React from 'react';
 import { useAuth } from '../../auth';
 import * as homeApi from '../../home/api/homeDashboard';
 import * as bookingsApi from '../api/bookings';
+import { BOOKINGS_FILTER_CANCELLED, BOOKINGS_FILTER_PAST } from '../constants';
 import { useBookingsList } from '../hooks/useBookingsList';
 import { createTestQueryClient } from '../../home/__tests__/testUtils';
 
@@ -31,8 +32,8 @@ jest.mock('../api/bookings', () => {
   return {
     ...actual,
     fetchConfirmedBookingsFromToday: jest.fn(),
-    fetchPastConfirmedBookingsForBusiness: jest.fn(),
     fetchCancelledBookingsForBusiness: jest.fn(),
+    fetchBookingsForListWindow: jest.fn(),
   };
 });
 
@@ -57,11 +58,11 @@ describe('useBookingsList', () => {
       data: [],
       error: null,
     });
-    bookingsApi.fetchPastConfirmedBookingsForBusiness.mockResolvedValue({
+    bookingsApi.fetchCancelledBookingsForBusiness.mockResolvedValue({
       data: [],
       error: null,
     });
-    bookingsApi.fetchCancelledBookingsForBusiness.mockResolvedValue({
+    bookingsApi.fetchBookingsForListWindow.mockResolvedValue({
       data: [],
       error: null,
     });
@@ -71,18 +72,67 @@ describe('useBookingsList', () => {
     queryClient.clear();
   });
 
-  it('loads bookings list normally', async () => {
+  it('loads all upcoming appointments in one request', async () => {
     const { result } = renderHook(() => useBookingsList(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.business?.id).toBe('biz-1');
-    expect(result.current.listError).toBeNull();
+    expect(bookingsApi.fetchConfirmedBookingsFromToday).toHaveBeenCalledTimes(1);
+    expect(bookingsApi.fetchBookingsForListWindow).not.toHaveBeenCalled();
+    expect(result.current.hasNextPage).toBe(false);
   });
 
-  it('surfaces list query failure', async () => {
+  it('paginates past appointments by month with a load-more link', async () => {
+    const { result } = renderHook(() => useBookingsList(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      result.current.setListFilter(BOOKINGS_FILTER_PAST);
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+      expect(bookingsApi.fetchBookingsForListWindow).toHaveBeenCalled();
+      expect(result.current.hasNextPage).toBe(true);
+    });
+    expect(result.current.loadMorePresentation).toBe('link');
+    expect(result.current.loadMoreLabel).toMatch(/^Load /);
+  });
+
+  it('loads all canceled appointments in one request', async () => {
+    const { result, rerender } = renderHook(() => useBookingsList(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      result.current.setListFilter(BOOKINGS_FILTER_CANCELLED);
+    });
+    rerender();
+
+    await waitFor(() => {
+      expect(bookingsApi.fetchCancelledBookingsForBusiness).toHaveBeenCalledTimes(1);
+      expect(result.current.hasNextPage).toBe(false);
+    });
+  });
+
+  it('disables list queries when listEnabled is false (calendar mode)', async () => {
+    const { result } = renderHook(() => useBookingsList({ listEnabled: false }), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(bookingsApi.fetchConfirmedBookingsFromToday).not.toHaveBeenCalled();
+  });
+
+  it('surfaces list query failure for upcoming', async () => {
     bookingsApi.fetchConfirmedBookingsFromToday.mockResolvedValue({
       data: null,
       error: { message: 'Could not load bookings' },

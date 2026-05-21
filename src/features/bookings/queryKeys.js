@@ -11,6 +11,21 @@ export function bookingsListQueryKey(businessId, filter) {
 
 /**
  * @param {string | undefined} businessId
+ * @param {string} startYyyyMmDd
+ * @param {string} endYyyyMmDd
+ */
+export function bookingsCalendarCountsQueryKey(businessId, startYyyyMmDd, endYyyyMmDd) {
+  return [
+    ...BOOKINGS_QUERY_ROOT,
+    'calendarCounts',
+    businessId ?? 'none',
+    startYyyyMmDd,
+    endYyyyMmDd,
+  ];
+}
+
+/**
+ * @param {string | undefined} businessId
  * @param {string} yyyyMmDd
  */
 export function bookingsPlannerDayQueryKey(businessId, yyyyMmDd) {

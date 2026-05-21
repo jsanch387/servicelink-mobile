@@ -1,12 +1,8 @@
 import { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import {
-  AppText,
-  CalendarMonthPicker,
-  InlineCardError,
-  SurfaceCard,
-} from '../../../../components/ui';
+import { AppText, InlineCardError } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
+import { BookingCalendarCard } from './BookingCalendarCard';
 import { TimeSlotGrid } from './TimeSlotGrid';
 
 /**
@@ -51,9 +47,6 @@ export function BookingDateTimePicker({
           lineHeight: 20,
           marginBottom: 12,
         },
-        calendarWrap: {
-          marginBottom: 16,
-        },
         timeLabel: {
           color: colors.textMuted,
           fontSize: 13,
@@ -93,15 +86,13 @@ export function BookingDateTimePicker({
         </AppText>
       ) : null}
 
-      <SurfaceCard style={styles.calendarWrap}>
-        <CalendarMonthPicker
-          isDateUnavailable={isDateUnavailable}
-          maxDate={maxDate}
-          minDate={minDate}
-          selectedDateKey={selectedDateKey}
-          onSelectDateKey={onSelectDateKey}
-        />
-      </SurfaceCard>
+      <BookingCalendarCard
+        isDateUnavailable={isDateUnavailable}
+        maxDate={maxDate}
+        minDate={minDate}
+        selectedDateKey={selectedDateKey}
+        onSelectDateKey={onSelectDateKey}
+      />
 
       {scheduleError ? (
         <View style={styles.errorWrap}>

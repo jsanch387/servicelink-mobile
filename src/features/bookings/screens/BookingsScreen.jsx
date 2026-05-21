@@ -1,26 +1,32 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, SectionList, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { BookingCard } from '../components/BookingCard';
-import { BookingsDayPlanner } from '../components/BookingsDayPlanner';
+import { BookingCardSkeleton } from '../components/BookingCardSkeleton';
+import { BookingsCalendarView } from '../components/BookingsCalendarView';
 import { BookingsFreeTierUsageStrip } from '../components/BookingsFreeTierUsageStrip';
 import { BookingsListTabs } from '../components/BookingsListTabs';
 import { BookingsViewModeToggle } from '../components/BookingsViewModeToggle';
 import {
+  BOOKINGS_CALENDAR_DAY,
+  BOOKINGS_CALENDAR_MONTH,
+  BOOKINGS_CALENDAR_WEEK,
   BOOKINGS_FILTER_PAST,
   BOOKINGS_FILTER_UPCOMING,
   BOOKINGS_LIST_SCREEN_PADDING,
+  BOOKINGS_VIEW_CALENDAR,
   BOOKINGS_VIEW_LIST,
-  BOOKINGS_VIEW_PLANNER,
 } from '../constants';
+import { useBookingsCalendarCounts } from '../hooks/useBookingsCalendarCounts';
 import { useBookingsFreeTierUsage } from '../hooks/useBookingsFreeTierUsage';
 import { useBookingsList } from '../hooks/useBookingsList';
 import { useBookingsPlannerDay } from '../hooks/useBookingsPlannerDay';
+import { getMonthDateRangeKeys, getWeekDateRangeKeys } from '../utils/calendarRange';
 import { groupBookingsByScheduledDate } from '../utils/groupBookingsByDate';
 import { resolveFreeTierBookingUsed } from '../utils/resolveFreeTierBookingUsed';
 import { ROUTES } from '../../../routes/routes';
@@ -31,13 +37,7 @@ const FAB_VERTICAL_GAP = 56;
 function BookingsListSkeleton() {
   return (
     <View style={skeletonStyles.skeletonColumn}>
-      {[0, 1, 2].map((k) => (
-        <SurfaceCard key={k} style={skeletonStyles.skeletonCard}>
-          <SkeletonBox borderRadius={8} height={18} pulse width="72%" />
-          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 14 }} width="50%" />
-          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 10 }} width="40%" />
-        </SurfaceCard>
-      ))}
+      <BookingCardSkeleton count={3} />
     </View>
   );
 }
@@ -50,7 +50,12 @@ export function BookingsScreen() {
   const bottomPad = 28 + Math.max(tabBarHeight, 72) + FAB_VERTICAL_GAP;
 
   const [viewMode, setViewMode] = useState(BOOKINGS_VIEW_LIST);
-  const [plannerDate, setPlannerDate] = useState(() => new Date());
+  const [calendarGranularity, setCalendarGranularity] = useState(BOOKINGS_CALENDAR_MONTH);
+  const [anchorDate, setAnchorDate] = useState(() => new Date());
+  const [visibleMonthStart, setVisibleMonthStart] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
   const [refreshing, setRefreshing] = useState(false);
 
   const list = useBookingsList({
@@ -78,26 +83,71 @@ export function BookingsScreen() {
     freeTierUsage.isLoading && typeof resolvedFreeBookingUsed !== 'number';
   const freeTierUsageStripError = freeTierUsage.isError && !hasProfileFreeBookingCount;
 
-  const plannerDateStr = useMemo(() => localYyyyMmDd(plannerDate), [plannerDate]);
-  const planner = useBookingsPlannerDay(viewMode === BOOKINGS_VIEW_PLANNER ? plannerDateStr : null);
+  const anchorDateStr = useMemo(() => localYyyyMmDd(anchorDate), [anchorDate]);
+  const calendarMode = viewMode === BOOKINGS_VIEW_CALENDAR;
+  const calendarDayTab = calendarMode && calendarGranularity === BOOKINGS_CALENDAR_DAY;
+  const calendarAgendaEnabled =
+    calendarMode &&
+    (calendarGranularity === BOOKINGS_CALENDAR_MONTH ||
+      calendarGranularity === BOOKINGS_CALENDAR_WEEK);
+
+  const calendarDay = useBookingsPlannerDay(
+    calendarAgendaEnabled || calendarDayTab ? anchorDateStr : null,
+  );
+
+  const calendarRangeKeys = useMemo(() => {
+    if (viewMode !== BOOKINGS_VIEW_CALENDAR) {
+      return null;
+    }
+    if (calendarGranularity === BOOKINGS_CALENDAR_MONTH) {
+      return getMonthDateRangeKeys(visibleMonthStart);
+    }
+    if (calendarGranularity === BOOKINGS_CALENDAR_WEEK) {
+      return getWeekDateRangeKeys(anchorDate);
+    }
+    return null;
+  }, [viewMode, calendarGranularity, visibleMonthStart, anchorDate]);
+
+  const calendarCountsEnabled =
+    calendarMode &&
+    (calendarGranularity === BOOKINGS_CALENDAR_MONTH ||
+      calendarGranularity === BOOKINGS_CALENDAR_WEEK);
+
+  const calendarCounts = useBookingsCalendarCounts({
+    rangeStart: calendarRangeKeys?.start,
+    rangeEnd: calendarRangeKeys?.end,
+    enabled: calendarCountsEnabled,
+  });
+
+  const calendarDayError =
+    calendarCounts.businessError || calendarDay.businessError || calendarDay.dayError;
+  const calendarCountsError = calendarCounts.businessError || calendarCounts.countsError;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       if (viewMode === BOOKINGS_VIEW_LIST) {
         await list.refetch();
-      } else {
-        await planner.refetch();
+      } else if (calendarMode) {
+        await Promise.all([calendarCounts.refetch(), calendarDay.refetch()]);
       }
     } finally {
       setRefreshing(false);
     }
-  }, [viewMode, list, planner]);
+  }, [viewMode, calendarMode, list, calendarCounts, calendarDay]);
 
-  const shiftPlannerDay = useCallback((delta) => {
-    setPlannerDate((d) => {
+  const shiftAnchorDay = useCallback((delta) => {
+    setAnchorDate((d) => {
       const n = new Date(d);
       n.setDate(n.getDate() + delta);
+      return n;
+    });
+  }, []);
+
+  const shiftAnchorWeek = useCallback((deltaWeeks) => {
+    setAnchorDate((d) => {
+      const n = new Date(d);
+      n.setDate(n.getDate() + deltaWeeks * 7);
       return n;
     });
   }, []);
@@ -190,6 +240,22 @@ export function BookingsScreen() {
         errorBlock: {
           marginBottom: 12,
         },
+        loadMoreWrap: {
+          alignItems: 'center',
+          marginTop: 16,
+          paddingBottom: 12,
+        },
+        loadMoreLink: {
+          color: colors.link,
+          fontSize: 15,
+          fontWeight: '600',
+          letterSpacing: -0.1,
+          textAlign: 'center',
+          textDecorationLine: 'underline',
+        },
+        loadMoreLinkDisabled: {
+          opacity: 0.5,
+        },
       }),
     [colors, bottomPad, insets.bottom, insets.left, insets.right],
   );
@@ -230,6 +296,34 @@ export function BookingsScreen() {
     () => sections.map((s, index) => ({ ...s, index })),
     [sections],
   );
+
+  const listFooter = useMemo(() => {
+    if (list.isLoading || scheduleError || !list.business?.id) {
+      return null;
+    }
+    if (!list.hasNextPage) {
+      return null;
+    }
+    return (
+      <View style={styles.loadMoreWrap}>
+        <Pressable
+          accessibilityHint="Loads appointments from an earlier month"
+          accessibilityLabel={list.loadMoreLabel}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: list.isFetchingNextPage }}
+          disabled={list.isFetchingNextPage}
+          hitSlop={8}
+          onPress={list.loadMore}
+        >
+          <AppText
+            style={[styles.loadMoreLink, list.isFetchingNextPage && styles.loadMoreLinkDisabled]}
+          >
+            {list.isFetchingNextPage ? 'Loading…' : list.loadMoreLabel}
+          </AppText>
+        </Pressable>
+      </View>
+    );
+  }, [list, scheduleError, styles.loadMoreLink, styles.loadMoreLinkDisabled, styles.loadMoreWrap]);
 
   const listHeader = useMemo(
     () => (
@@ -368,6 +462,7 @@ export function BookingsScreen() {
         ) : (
           <SectionList
             ListEmptyComponent={listEmpty}
+            ListFooterComponent={listFooter}
             ListHeaderComponent={listHeader}
             contentContainerStyle={styles.listContent}
             ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
@@ -389,19 +484,32 @@ export function BookingsScreen() {
         )
       ) : (
         <View style={styles.plannerContent}>
-          <BookingsDayPlanner
-            bookings={planner.bookings}
-            businessError={planner.businessError}
-            dayError={planner.dayError}
-            hasBusiness={Boolean(planner.business?.id)}
-            isLoading={planner.isLoading}
-            onBookingPress={onPlannerBookingPress}
-            onRefresh={onRefresh}
-            onRetryRefetch={() => void planner.refetch()}
-            onShiftDay={shiftPlannerDay}
-            plannerDate={plannerDate}
-            retryLoading={planner.isFetching && !planner.isLoading}
-            refreshing={refreshing}
+          <BookingsCalendarView
+            anchorDate={anchorDate}
+            bookingCountByDateKey={calendarCounts.bookingCountByDateKey}
+            contentBottomPad={bottomPad}
+            countsError={calendarCountsError}
+            countsLoading={calendarCounts.isLoading}
+            dayAgendaBookings={calendarDay.bookings}
+            dayAgendaError={calendarDayError}
+            dayAgendaLoading={calendarAgendaEnabled && calendarDay.isDayPending}
+            granularity={calendarGranularity}
+            onAnchorDateChange={setAnchorDate}
+            onGranularityChange={setCalendarGranularity}
+            onPlannerBookingPress={onPlannerBookingPress}
+            onPlannerRefresh={onRefresh}
+            onPlannerRetryRefetch={() => void calendarDay.refetch()}
+            onShiftDay={shiftAnchorDay}
+            onShiftWeek={shiftAnchorWeek}
+            onVisibleMonthChange={setVisibleMonthStart}
+            plannerBookings={calendarDay.bookings}
+            plannerBusinessError={calendarDay.businessError}
+            plannerDayError={calendarDay.dayError}
+            plannerHasBusiness={Boolean(calendarDay.business?.id)}
+            plannerLoading={calendarDay.isLoading}
+            plannerRefreshing={refreshing}
+            plannerRetryLoading={calendarDay.isFetching && !calendarDay.isLoading}
+            safeHorizontalInset={{ left: insets.left, right: insets.right }}
           />
         </View>
       )}
@@ -417,10 +525,6 @@ export function BookingsScreen() {
 
 const skeletonStyles = StyleSheet.create({
   skeletonColumn: {
-    gap: 12,
     marginTop: 18,
-  },
-  skeletonCard: {
-    marginBottom: 0,
   },
 });

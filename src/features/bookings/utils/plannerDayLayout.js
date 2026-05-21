@@ -6,12 +6,12 @@ const BLOCK_HEIGHT_SHRINK_PX = 1;
 /** Minimum vertical gap between stacked blocks in the same column after layout correction. */
 const BLOCK_STACK_GAP_PX = 2;
 
-/** First hour row (inclusive). Matches web `START_HOUR`. */
-export const PLANNER_DEFAULT_START_HOUR = 6;
+/** First hour row (inclusive). Day planner shows from 5 AM. */
+export const PLANNER_DEFAULT_START_HOUR = 5;
 /**
- * Exclusive end of timeline in hours (23 → window 6:00 … 23:00, hour labels 6 … 22 including 10 PM).
+ * Exclusive end of timeline in hours (24 → hour labels 5 … 23, through 11 PM ending at midnight).
  */
-export const PLANNER_DEFAULT_END_EXCLUSIVE = 23;
+export const PLANNER_DEFAULT_END_EXCLUSIVE = 24;
 
 /**
  * Default pixels per hour row (matches web `PIXELS_PER_HOUR`).

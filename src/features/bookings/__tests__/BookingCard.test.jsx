@@ -25,4 +25,23 @@ describe('BookingCard', () => {
     fireEvent.press(screen.getByText('Jane Fuller'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
+
+  it('shows vehicle line when vehicle fields are present', () => {
+    renderWithProviders(<BookingCard booking={makeBooking()} />);
+    expect(screen.getByText('2021 Tesla Model 3')).toBeTruthy();
+  });
+
+  it('omits vehicle line when no vehicle fields', () => {
+    renderWithProviders(
+      <BookingCard
+        booking={makeBooking({
+          customer_vehicle_year: null,
+          customer_vehicle_make: null,
+          customer_vehicle_model: null,
+        })}
+      />,
+    );
+    expect(screen.queryByText(/Vehicle not provided/i)).toBeNull();
+    expect(screen.queryByText('2021 Tesla Model 3')).toBeNull();
+  });
 });

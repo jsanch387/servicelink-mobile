@@ -47,7 +47,7 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
   }, [scheduleMs, variant]);
   const vehicleLine = useMemo(() => {
     const parts = [
-      booking.customer_vehicle_year,
+      booking.customer_vehicle_year != null && String(booking.customer_vehicle_year).trim(),
       booking.customer_vehicle_make?.trim(),
       booking.customer_vehicle_model?.trim(),
       booking.vehicle_year,
@@ -77,7 +77,7 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
     booking.vehicle_name,
     booking.vehicle_year,
   ]);
-  const secondaryLine = vehicleLine || 'Vehicle not provided';
+  const hasVehicleLine = vehicleLine.length > 0;
   const statusLabel = useMemo(() => {
     const raw = String(booking.status ?? 'confirmed').toLowerCase();
     if (raw === 'cancelled' || raw === 'canceled') {
@@ -276,9 +276,11 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
                 <AppText ellipsizeMode="tail" numberOfLines={2} style={styles.serviceMetaText}>
                   {serviceTitle}
                 </AppText>
-                <AppText ellipsizeMode="tail" numberOfLines={2} style={styles.vehicleMetaText}>
-                  {secondaryLine}
-                </AppText>
+                {hasVehicleLine ? (
+                  <AppText ellipsizeMode="tail" numberOfLines={2} style={styles.vehicleMetaText}>
+                    {vehicleLine}
+                  </AppText>
+                ) : null}
               </View>
               <View style={styles.chevron}>
                 <Ionicons color={colors.textMuted} name="chevron-forward" size={19} />

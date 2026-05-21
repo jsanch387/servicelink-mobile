@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
+import { AppointmentCountMarkers, appointmentDayFillOpacity } from './AppointmentCountMarkers';
 import { AppText } from './AppText';
 import {
   buildMonthWeekGrid,
@@ -14,6 +15,7 @@ import {
 const DEFAULT_MAX_DAYS_AHEAD = 365;
 
 const WEEK_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEK_HEADERS_COMPACT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 /**
  * Month calendar: weekday headers + rows aligned to Sun–Sat; only in-month dates are shown.
@@ -24,6 +26,8 @@ const WEEK_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
  *   minDate?: Date;
  *   maxDate?: Date;
  *   isDateUnavailable?: (d: Date) => boolean;
+ *   bookingCountByDateKey?: Record<string, number>;
+ *   onVisibleMonthChange?: (monthStart: Date) => void;
  * }} props
  */
 export function CalendarMonthPicker({
@@ -32,8 +36,11 @@ export function CalendarMonthPicker({
   minDate: minDateProp,
   maxDate: maxDateProp,
   isDateUnavailable,
+  bookingCountByDateKey,
+  onVisibleMonthChange,
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const ownerCalendar = bookingCountByDateKey !== undefined;
 
   const today = useMemo(() => startOfLocalDay(new Date()), []);
   const todayKey = useMemo(() => toLocalYyyyMmDd(today), [today]);
@@ -56,6 +63,10 @@ export function CalendarMonthPicker({
     if (!s) return;
     setVisibleMonthStart(new Date(s.getFullYear(), s.getMonth(), 1));
   }, [selectedDateKey]);
+
+  useEffect(() => {
+    onVisibleMonthChange?.(visibleMonthStart);
+  }, [visibleMonthStart, onVisibleMonthChange]);
 
   const monthLabel = useMemo(
     () =>
@@ -104,6 +115,8 @@ export function CalendarMonthPicker({
     });
   }, [canGoNext]);
 
+  const busyFillColor = useMemo(() => (isDark ? 'rgba(250,250,250,' : 'rgba(10,10,10,'), [isDark]);
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -111,7 +124,11 @@ export function CalendarMonthPicker({
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'space-between',
-          marginBottom: 14,
+          marginBottom: ownerCalendar ? 10 : 12,
+        },
+        navCenter: {
+          alignItems: 'center',
+          flex: 1,
         },
         navHit: {
           alignItems: 'center',
@@ -122,13 +139,13 @@ export function CalendarMonthPicker({
         },
         monthTitle: {
           color: colors.text,
-          fontSize: 17,
+          fontSize: ownerCalendar ? 18 : 17,
           fontWeight: '700',
-          letterSpacing: -0.2,
+          letterSpacing: -0.3,
         },
         weekHeaderRow: {
           flexDirection: 'row',
-          marginBottom: 8,
+          marginBottom: ownerCalendar ? 10 : 8,
         },
         weekHeaderCell: {
           alignItems: 'center',
@@ -140,7 +157,7 @@ export function CalendarMonthPicker({
           fontWeight: '600',
         },
         monthBody: {
-          gap: 4,
+          gap: ownerCalendar ? 6 : 4,
         },
         weekRow: {
           flexDirection: 'row',
@@ -149,29 +166,30 @@ export function CalendarMonthPicker({
           alignItems: 'center',
           flex: 1,
           justifyContent: 'center',
-          minHeight: 44,
+          minHeight: ownerCalendar ? 50 : 44,
           paddingVertical: 2,
         },
         daySpacer: {
           flex: 1,
-          minHeight: 44,
+          minHeight: ownerCalendar ? 50 : 44,
         },
         dayInner: {
           alignItems: 'center',
-          borderRadius: 10,
-          height: 40,
+          alignSelf: 'center',
+          borderRadius: ownerCalendar ? 12 : 10,
+          height: ownerCalendar ? 46 : 42,
           justifyContent: 'center',
-          width: 40,
+          width: ownerCalendar ? 44 : 40,
         },
         dayInnerSelected: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: ownerCalendar ? colors.buttonPrimaryBg : '#FFFFFF',
         },
         dayInnerToday: {
-          borderColor: colors.borderStrong,
-          borderWidth: 1,
+          borderColor: ownerCalendar ? colors.tabBarActive : colors.borderStrong,
+          borderWidth: ownerCalendar ? 1.5 : 1,
         },
         dayNum: {
-          fontSize: 15,
+          fontSize: ownerCalendar ? 16 : 15,
           fontWeight: '600',
         },
         dayNumDisabled: {
@@ -182,10 +200,16 @@ export function CalendarMonthPicker({
           color: colors.text,
         },
         dayNumSelected: {
-          color: '#000000',
+          color: ownerCalendar ? colors.buttonPrimaryText : '#000000',
+        },
+        markerRow: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: 3,
+          minHeight: 8,
         },
       }),
-    [colors],
+    [colors, ownerCalendar],
   );
 
   const isDisabled = useCallback(
@@ -199,6 +223,8 @@ export function CalendarMonthPicker({
     },
     [isDateUnavailable, minDate, maxDate],
   );
+
+  const weekHeaders = ownerCalendar ? WEEK_HEADERS_COMPACT : WEEK_HEADERS;
 
   return (
     <View>
@@ -214,7 +240,9 @@ export function CalendarMonthPicker({
         >
           <Ionicons color={colors.text} name="chevron-back" size={22} />
         </Pressable>
-        <AppText style={styles.monthTitle}>{monthLabel}</AppText>
+        <View style={styles.navCenter}>
+          <AppText style={styles.monthTitle}>{monthLabel}</AppText>
+        </View>
         <Pressable
           accessibilityLabel="Next month"
           accessibilityRole="button"
@@ -229,8 +257,8 @@ export function CalendarMonthPicker({
       </View>
 
       <View style={styles.weekHeaderRow}>
-        {WEEK_HEADERS.map((w) => (
-          <View key={w} style={styles.weekHeaderCell}>
+        {weekHeaders.map((w, index) => (
+          <View key={`${w}-${index}`} style={styles.weekHeaderCell}>
             <AppText style={styles.weekHeaderText}>{w}</AppText>
           </View>
         ))}
@@ -248,16 +276,25 @@ export function CalendarMonthPicker({
               const selected = selectedDateKey === key;
               const isToday = key === todayKey;
               const disabled = isDisabled(date);
+              const bookingCount = bookingCountByDateKey?.[key] ?? 0;
+              const hasBookings = bookingCount > 0;
+              const fillOpacity =
+                ownerCalendar && hasBookings && !disabled && !selected
+                  ? appointmentDayFillOpacity(bookingCount)
+                  : 0;
 
               return (
                 <View key={key} style={styles.dayCell}>
                   <Pressable
-                    accessibilityLabel={`${key}${isToday ? ', today' : ''}${selected ? ', selected' : ''}${disabled ? ', unavailable' : ''}`}
+                    accessibilityLabel={`${key}${isToday ? ', today' : ''}${selected ? ', selected' : ''}${hasBookings ? `, ${bookingCount} appointment${bookingCount === 1 ? '' : 's'}` : ''}${disabled ? ', unavailable' : ''}`}
                     accessibilityRole="button"
                     accessibilityState={{ disabled, selected }}
                     disabled={disabled}
                     style={[
                       styles.dayInner,
+                      fillOpacity > 0
+                        ? { backgroundColor: `${busyFillColor}${fillOpacity})` }
+                        : null,
                       isToday && !selected && !disabled ? styles.dayInnerToday : null,
                       selected && !disabled ? styles.dayInnerSelected : null,
                     ]}
@@ -275,6 +312,14 @@ export function CalendarMonthPicker({
                     >
                       {date.getDate()}
                     </AppText>
+                    <View style={styles.markerRow}>
+                      {hasBookings && !disabled ? (
+                        <AppointmentCountMarkers
+                          count={bookingCount}
+                          inverted={selected && ownerCalendar}
+                        />
+                      ) : null}
+                    </View>
                   </Pressable>
                 </View>
               );
