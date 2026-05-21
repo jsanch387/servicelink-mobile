@@ -94,6 +94,7 @@ export function BookingLinkScreen() {
   const bio = profile?.bio?.trim() || '';
   const [city, state] = splitServiceAreaCityState(profile?.service_area);
   const phoneNumber = profile?.phone_number_call?.trim() || '';
+  const showRequestQuoteCta = profile?.showRequestQuoteCta ?? false;
   const coverImageUrl = profile?.cover_image_url || null;
   const logoUrl = profile?.logo_url || null;
   const coverImagePath = profile?.banner_path || null;
@@ -191,6 +192,7 @@ export function BookingLinkScreen() {
             phoneNumber={phoneNumber}
             queryState={bookingProfile}
             services={services}
+            showRequestQuoteCta={showRequestQuoteCta}
             showVerifiedBadge={profile?.showVerifiedBadge ?? false}
           />
           <BookingLinkEditFab bottom={30} onPress={() => setIsEditMode(true)} />

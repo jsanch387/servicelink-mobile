@@ -24,6 +24,7 @@ export function BookingLinkPreview({
   businessType,
   location,
   phoneNumber,
+  showRequestQuoteCta,
   coverImageUrl,
   logoUrl,
   showVerifiedBadge,
@@ -84,6 +85,7 @@ export function BookingLinkPreview({
         location={location}
         logoUrl={logoUrl}
         phoneNumber={phoneNumber}
+        showRequestQuoteCta={showRequestQuoteCta}
         showVerifiedBadge={showVerifiedBadge}
       />
       <BookingLinkTabs activeTab={activeTab} onChangeTab={onChangeTab} />

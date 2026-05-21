@@ -71,9 +71,24 @@ export function BookingLinkScreenSkeleton({ coverHeight }) {
           justifyContent: 'center',
           marginTop: 16,
         },
-        contactBone: {
-          borderRadius: 12,
+        ctaRow: {
+          flexDirection: 'row',
+          gap: 8,
+          justifyContent: 'center',
           marginTop: 20,
+          maxWidth: 672,
+          width: '100%',
+        },
+        ctaQuoteBone: {
+          borderRadius: 10,
+          height: 42,
+          maxWidth: '62%',
+          width: '62%',
+        },
+        ctaContactBone: {
+          borderRadius: 10,
+          height: 42,
+          width: 42,
         },
         tabsRow: {
           borderBottomColor: colors.border,
@@ -145,7 +160,10 @@ export function BookingLinkScreenSkeleton({ coverHeight }) {
           <SkeletonBox borderRadius={6} height={14} pulse width="48%" />
         </View>
 
-        <SkeletonBox borderRadius={12} height={42} pulse style={styles.contactBone} width={148} />
+        <View style={styles.ctaRow}>
+          <SkeletonBox borderRadius={12} pulse style={styles.ctaQuoteBone} />
+          <SkeletonBox borderRadius={12} pulse style={styles.ctaContactBone} />
+        </View>
       </View>
 
       <View style={styles.tabsRow}>
