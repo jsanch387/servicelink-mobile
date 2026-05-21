@@ -42,7 +42,7 @@
     "owner": "jsanch-dev",
     "ios": {
       "bundleIdentifier": "com.jsanchdev.servicelinkmobile",
-      "buildNumber": "2",
+      "buildNumber": "16",
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "infoPlist": {
@@ -51,7 +51,7 @@
     },
     "android": {
       "package": "com.jsanchdev.servicelinkmobile",
-      "versionCode": 2
+      "versionCode": 16
     }
   }
 }

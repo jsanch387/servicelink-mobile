@@ -29,7 +29,7 @@ import { bookingsFreeTierCountQueryKey } from '../../bookings/queryKeys';
 import { resolveFreeTierBookingUsed } from '../../bookings/utils/resolveFreeTierBookingUsed';
 
 export function HomeScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const { unreadCount } = useNotificationUnreadCount();
@@ -152,8 +152,14 @@ export function HomeScreen() {
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'space-between',
-          marginBottom: 10,
+          marginBottom: 12,
           marginTop: 6,
+        },
+        headerDivider: {
+          backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : colors.border,
+          height: 1,
+          marginBottom: 16,
+          width: '100%',
         },
         profileName: {
           flex: 1,
@@ -184,7 +190,7 @@ export function HomeScreen() {
           width: 8,
         },
       }),
-    [colors, scrollBottomPad],
+    [colors, isDark, scrollBottomPad],
   );
 
   const showFreeBookingsUsage =
@@ -290,6 +296,7 @@ export function HomeScreen() {
             </View>
           </Pressable>
         </View>
+        <View style={styles.headerDivider} />
         {showFreeBookingsUsage ? (
           <HomeFreeBookingsUsageCard
             limit={FREE_TIER_BOOKINGS_LIMIT}

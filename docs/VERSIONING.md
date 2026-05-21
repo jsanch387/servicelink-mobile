@@ -5,14 +5,31 @@
 | Field                 | File                                    | Example | Shown in app                |
 | --------------------- | --------------------------------------- | ------- | --------------------------- |
 | **Marketing version** | `app.json` → `expo.version`             | `1.0.5` | `ServiceLink v1.0.5`        |
-| **iOS build**         | `app.json` → `expo.ios.buildNumber`     | `2`     | App Store / TestFlight only |
-| **Android build**     | `app.json` → `expo.android.versionCode` | `2`     | Play Console only           |
+| **iOS build**         | `app.json` → `expo.ios.buildNumber`     | `16`    | App Store / TestFlight only |
+| **Android build**     | `app.json` → `expo.android.versionCode` | `16`    | Play Console only           |
 
 Runtime reads these via **`expo-constants`** in `src/constants/appInfo.js`.
 
 UI: **`AppVersionFootnote`** on **More** tab and **Account** screen.
 
 `package.json` `version` is kept in sync for tooling only; the binary uses **`app.json`**.
+
+---
+
+## TestFlight: instant vs manual Beta App Review
+
+Apple treats these differently:
+
+| Change                                                                             | TestFlight                             |
+| ---------------------------------------------------------------------------------- | -------------------------------------- |
+| **Same marketing version**, higher **build** only (e.g. `1.0.0` build `14` → `15`) | Usually **automatic** — minutes        |
+| **New marketing version** (e.g. `1.0.0` → `1.0.5`)                                 | **Beta App Review** — often 4–24 hours |
+
+For bug-fix cycles while **`1.0.5`** is your current TestFlight / App Store line:
+
+1. Keep **`expo.version`** at **`1.0.5`** — do not bump until a real public store release (e.g. `1.0.6`).
+2. Only increase **`expo.ios.buildNumber`** each upload (must be **higher than every build already in App Store Connect**).
+3. In ASC → **TestFlight**, open your latest `1.0.5` build and note its build number; set `buildNumber` to **that + 1** in `app.json` before `eas build` (e.g. after `1.0.5 (15)`, use **`16`**).
 
 ---
 
@@ -28,9 +45,9 @@ UI: **`AppVersionFootnote`** on **More** tab and **Account** screen.
 
 ### User-visible release (optional)
 
-When you want a new **marketing** version (what users see as “1.0.6”):
+When you want a new **marketing** version for a **public App Store** release (not routine TestFlight fixes):
 
-1. Bump **`expo.version`** in `app.json` (e.g. `1.0.5` → `1.0.6`)
+1. Bump **`expo.version`** in `app.json` (e.g. `1.0.0` → `1.0.1`)
 2. Bump **`version`** in `package.json` to match (optional but recommended)
 3. Reset or bump build number as you prefer for the new release line
 
