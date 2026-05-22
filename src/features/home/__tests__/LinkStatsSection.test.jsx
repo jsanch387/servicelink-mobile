@@ -7,9 +7,18 @@ jest.mock('expo-clipboard', () => ({
   setStringAsync: jest.fn(() => Promise.resolve()),
 }));
 
+const mockShowWebAccountFeatureAlert = jest.fn();
+
+jest.mock('../../subscription', () => ({
+  showWebAccountFeatureAlert: (...args) => mockShowWebAccountFeatureAlert(...args),
+}));
+
 describe('LinkStatsSection', () => {
+  const onPeriodChange = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockShowWebAccountFeatureAlert.mockClear();
     jest.useFakeTimers();
   });
 
@@ -21,25 +30,60 @@ describe('LinkStatsSection', () => {
   });
 
   it('shows skeleton state while loading', () => {
-    renderWithProviders(
-      <LinkStatsSection businessError={null} isLoading profileViews={null} slug="" />,
-    );
-    expect(screen.queryByText('Link views')).toBeNull();
-    expect(screen.queryByText(/Booking link unavailable/)).toBeNull();
+    renderWithProviders(<LinkStatsSection businessError={null} isLoading slug="" views={0} />);
+    expect(screen.queryByText('Views')).toBeNull();
+    expect(screen.queryByText(/Link unavailable/)).toBeNull();
   });
 
-  it('shows profile views and copyable link when loaded', () => {
+  it('shows count, period under count, dropdown, last visit, and copyable link when loaded', () => {
     renderWithProviders(
-      <LinkStatsSection businessError={null} isLoading={false} profileViews={42} slug="acme" />,
+      <LinkStatsSection
+        businessError={null}
+        effectivePeriod="7d"
+        hasProAccess
+        isLoading={false}
+        lastViewedAt="2026-05-21T11:30:00.000Z"
+        onPeriodChange={onPeriodChange}
+        period="7d"
+        slug="acme"
+        views={42}
+      />,
     );
     expect(screen.getByText('42')).toBeTruthy();
-    expect(screen.getByText('Views')).toBeTruthy();
+    expect(screen.getByText('Last 7 days')).toBeTruthy();
+    expect(screen.getByText('7 days')).toBeTruthy();
+    expect(screen.queryByText('Views')).toBeNull();
+    expect(screen.getByLabelText('Time range: 7 days. Tap to change.')).toBeTruthy();
+    expect(screen.getByText(/ago|Just now|Never/)).toBeTruthy();
     expect(screen.getByText('myservicelink.app/acme')).toBeTruthy();
+  });
+
+  it('hides last-visit line when visit count is zero', () => {
+    renderWithProviders(
+      <LinkStatsSection
+        businessError={null}
+        isLoading={false}
+        lastViewedAt={null}
+        period="24h"
+        slug="acme"
+        views={0}
+      />,
+    );
+    expect(screen.getByText('0')).toBeTruthy();
+    expect(screen.getByText('Last 24 hours')).toBeTruthy();
+    expect(screen.queryByText('Never')).toBeNull();
+    expect(screen.queryByText(/ago/)).toBeNull();
   });
 
   it('shows error state when business failed', () => {
     renderWithProviders(
-      <LinkStatsSection businessError="Network down" isLoading={false} profileViews={0} slug="" />,
+      <LinkStatsSection
+        businessError="Network down"
+        isLoading={false}
+        period="24h"
+        slug=""
+        views={0}
+      />,
     );
     expect(screen.getByText('Network down')).toBeTruthy();
     expect(screen.getByText('Link unavailable until your business profile loads.')).toBeTruthy();
@@ -47,11 +91,53 @@ describe('LinkStatsSection', () => {
 
   it('copies https URL when copy is pressed', async () => {
     renderWithProviders(
-      <LinkStatsSection businessError={null} isLoading={false} profileViews={1} slug="shop" />,
+      <LinkStatsSection
+        businessError={null}
+        isLoading={false}
+        period="24h"
+        slug="shop"
+        views={1}
+      />,
     );
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Copy booking link'));
     });
     expect(Clipboard.setStringAsync).toHaveBeenCalledWith('https://myservicelink.app/shop');
+  });
+
+  it('shows web account alert when free user taps a longer range', () => {
+    renderWithProviders(
+      <LinkStatsSection
+        businessError={null}
+        hasProAccess={false}
+        isLoading={false}
+        onPeriodChange={onPeriodChange}
+        period="24h"
+        slug="acme"
+        views={3}
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('Time range: 24 hours. Tap to change.'));
+    fireEvent.press(screen.getByLabelText('Last 30 days, available on the web'));
+    expect(mockShowWebAccountFeatureAlert).toHaveBeenCalled();
+    expect(onPeriodChange).not.toHaveBeenCalledWith('30d');
+  });
+
+  it('opens time range sheet and selects a period', () => {
+    renderWithProviders(
+      <LinkStatsSection
+        businessError={null}
+        hasProAccess
+        isLoading={false}
+        onPeriodChange={onPeriodChange}
+        period="24h"
+        slug="acme"
+        views={3}
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('Time range: 24 hours. Tap to change.'));
+    expect(screen.getByText('Time range')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Last 30 days'));
+    expect(onPeriodChange).toHaveBeenCalledWith('30d');
   });
 });

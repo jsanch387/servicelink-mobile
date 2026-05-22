@@ -53,7 +53,7 @@ describe('useHomeDashboard', () => {
     jest.clearAllMocks();
     mockedUseAuth.mockReturnValue({ user: { id: 'user-1' } });
     homeApi.fetchBusinessProfileForUser.mockResolvedValue({
-      data: { id: 'biz-1', business_slug: 'acme', profile_views: 5 },
+      data: { id: 'biz-1', business_slug: 'acme' },
       error: null,
     });
     homeApi.fetchConfirmedBookingsFromToday.mockResolvedValue({ data: [], error: null });

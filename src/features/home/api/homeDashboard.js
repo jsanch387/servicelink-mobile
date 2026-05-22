@@ -6,7 +6,6 @@ import { supabase } from '../../../lib/supabase';
  * @property {string | null} business_name
  * @property {string | null} business_type
  * @property {string | null} business_slug
- * @property {number | null} profile_views
  * @property {number | null} free_bookings_count — authoritative usage toward the free booking cap when present; UI falls back to a head-count query via `resolveFreeTierBookingUsed` (see `business_profiles`)
  * @property {boolean | null} accept_quote_req — public booking link quote requests (see `business_profiles`)
  */
@@ -19,7 +18,7 @@ export async function fetchBusinessProfileForUser(userId) {
   const { data, error } = await supabase
     .from('business_profiles')
     .select(
-      'id, business_name, business_type, business_slug, profile_views, free_bookings_count, accept_quote_req',
+      'id, business_name, business_type, business_slug, free_bookings_count, accept_quote_req',
     )
     .eq('profile_id', userId)
     .maybeSingle();

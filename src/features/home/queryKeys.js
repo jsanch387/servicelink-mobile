@@ -20,3 +20,18 @@ export function homeBookingsTodayQueryKey(businessId, calendarYyyyMmDd) {
   }
   return base;
 }
+
+/**
+ * @param {string | null | undefined} businessId
+ * @param {'24h' | '7d' | '30d'} period — effective period used for the count query
+ */
+export function homeLinkViewsCountQueryKey(businessId, period) {
+  return [...HOME_QUERY_KEY, 'link-views-count', businessId ?? 'none', period];
+}
+
+/**
+ * @param {string | null | undefined} businessId
+ */
+export function homeLinkViewsLastVisitQueryKey(businessId) {
+  return [...HOME_QUERY_KEY, 'link-views-last-visit', businessId ?? 'none'];
+}

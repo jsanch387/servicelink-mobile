@@ -2,6 +2,7 @@ import { Alert } from 'react-native';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { HomeScreen } from '../screens/HomeScreen';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
+import { useLinkViewsAnalytics } from '../hooks/useLinkViewsAnalytics';
 import { ROUTES } from '../../../routes/routes';
 import { renderWithProviders } from './testUtils';
 
@@ -23,6 +24,10 @@ jest.mock('@react-navigation/native', () => {
 
 jest.mock('../hooks/useHomeDashboard', () => ({
   useHomeDashboard: jest.fn(),
+}));
+
+jest.mock('../hooks/useLinkViewsAnalytics', () => ({
+  useLinkViewsAnalytics: jest.fn(),
 }));
 
 jest.mock('../../notifications/hooks/useNotificationUnreadCount', () => ({
@@ -53,10 +58,26 @@ jest.mock('../../bookings/hooks/useBookingsFreeTierUsage', () => ({
 }));
 
 const mockUseHomeDashboard = useHomeDashboard;
+const mockUseLinkViewsAnalytics = useLinkViewsAnalytics;
+
+function baseLinkViews(overrides = {}) {
+  return {
+    views: 12,
+    lastViewedAt: '2026-05-20T10:00:00.000Z',
+    period: '24h',
+    effectivePeriod: '24h',
+    onPeriodChange: jest.fn(),
+    isPendingViews: false,
+    isPendingLastVisit: false,
+    viewsError: null,
+    refetch: jest.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
 
 function baseDashboard(overrides = {}) {
   return {
-    business: { id: 'b1', business_slug: 'acme', profile_views: 12, free_bookings_count: null },
+    business: { id: 'b1', business_slug: 'acme', free_bookings_count: null },
     businessError: null,
     bookingsError: null,
     todayBookingsError: null,
@@ -81,6 +102,7 @@ describe('HomeScreen', () => {
     mockNavigate.mockClear();
     mockShowWebAccountFeatureAlert.mockClear();
     mockUseHomeDashboard.mockReturnValue(baseDashboard());
+    mockUseLinkViewsAnalytics.mockReturnValue(baseLinkViews());
     mockUseBookingsFreeTierUsage.mockReturnValue({
       used: 0,
       limit: 5,
@@ -91,11 +113,12 @@ describe('HomeScreen', () => {
 
   it('renders section labels, link stats, and empty today timeline when loaded', () => {
     renderWithProviders(<HomeScreen />);
-    expect(screen.getByText('Booking link')).toBeTruthy();
+    expect(screen.getByText('Link visits')).toBeTruthy();
     expect(screen.getByText('Next Up')).toBeTruthy();
     expect(screen.getByText("Today's timeline")).toBeTruthy();
     expect(screen.getByText('Nothing on the calendar')).toBeTruthy();
-    expect(screen.getByText('Views')).toBeTruthy();
+    expect(screen.getByText('Last 24 hours')).toBeTruthy();
+    expect(screen.getByText('24 hours')).toBeTruthy();
     expect(screen.getByText('12')).toBeTruthy();
   });
 
@@ -209,7 +232,6 @@ describe('HomeScreen', () => {
         business: {
           id: 'b1',
           business_slug: 'acme',
-          profile_views: 0,
           free_bookings_count: 5,
         },
       }),
@@ -234,7 +256,6 @@ describe('HomeScreen', () => {
         business: {
           id: 'b1',
           business_slug: 'acme',
-          profile_views: 0,
           free_bookings_count: 5,
         },
       }),

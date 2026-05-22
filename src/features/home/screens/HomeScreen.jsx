@@ -16,6 +16,7 @@ import { LinkStatsSection } from '../components/LinkStatsSection';
 import { NextUpCard } from '../components/NextUpCard';
 import { RestOfTodayCard } from '../components/restOfToday';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
+import { useLinkViewsAnalytics } from '../hooks/useLinkViewsAnalytics';
 import { useHomeQuickMarkComplete } from '../hooks/useHomeQuickMarkComplete';
 import { computeHomeErrorPresentation } from '../utils/homeErrorPresentation';
 import { normalizeBusinessSlug } from '../utils/bookingLink';
@@ -53,22 +54,20 @@ export function HomeScreen() {
     return rawName;
   }, [dashboard.business?.business_name]);
 
-  const profileViews = useMemo(() => {
-    if (dashboard.isPendingBusiness) {
-      return null;
-    }
-    return Number(dashboard.business?.profile_views ?? 0);
-  }, [dashboard.business, dashboard.isPendingBusiness]);
+  const linkViews = useLinkViewsAnalytics(dashboard.business?.id, {
+    enabled: Boolean(dashboard.business?.id) && !dashboard.isPendingBusiness,
+    hasProAccess,
+  });
 
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await dashboard.refetch();
+      await Promise.all([dashboard.refetch(), linkViews.refetch()]);
     } finally {
       setRefreshing(false);
     }
-  }, [dashboard]);
+  }, [dashboard, linkViews]);
 
   const homeErrors = useMemo(
     () =>
@@ -156,9 +155,10 @@ export function HomeScreen() {
           marginTop: 6,
         },
         headerDivider: {
-          backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : colors.border,
+          backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : colors.border,
           height: 1,
           marginBottom: 16,
+          opacity: 0.45,
           width: '100%',
         },
         profileName: {
@@ -323,13 +323,20 @@ export function HomeScreen() {
           subtitle={dashboard.nextSubtitle}
         />
 
-        <AppText style={styles.sectionLabel}>Booking link</AppText>
+        <AppText style={styles.sectionLabel}>Link visits</AppText>
         <LinkStatsSection
           businessError={homeErrors.linkBusinessError}
+          hasProAccess={hasProAccess}
           isLoading={dashboard.isPendingBusiness}
+          isPendingViews={linkViews.isPendingViews}
+          lastViewedAt={linkViews.lastViewedAt}
           linkSectionDegraded={homeErrors.linkSectionDegraded}
-          profileViews={profileViews}
+          effectivePeriod={linkViews.effectivePeriod}
+          onPeriodChange={linkViews.onPeriodChange}
+          period={linkViews.period}
           slug={slug}
+          views={linkViews.views}
+          viewsError={linkViews.viewsError}
         />
 
         {showTodayTimelineSection ? (

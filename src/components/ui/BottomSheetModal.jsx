@@ -30,6 +30,8 @@ export function BottomSheetModal({
   allowBackdropClose = true,
   /** 30–100: portion of the screen height filled by the sheet (remainder = top backdrop). */
   sheetHeightPercent = 92,
+  /** When true, sheet height wraps title + children + footer (use for short option lists). */
+  fitContent = false,
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -81,12 +83,31 @@ export function BottomSheetModal({
     onRequestClose?.();
   }
 
+  const scrollPaddingBottom = useMemo(
+    () => Math.max(insets.bottom, 16) + 12 + iosKeyboardScrollPadding,
+    [insets.bottom, iosKeyboardScrollPadding],
+  );
+
+  const fitSheetPaddingBottom = useMemo(() => Math.max(insets.bottom, 16) + 8, [insets.bottom]);
+
   const scrollContentStyle = useMemo(
     () => [
       styles.sheetContent,
-      { paddingBottom: Math.max(insets.bottom, 16) + 12 + iosKeyboardScrollPadding },
+      fitContent && styles.sheetContentFit,
+      !fitContent && { paddingBottom: scrollPaddingBottom },
     ],
-    [insets.bottom, iosKeyboardScrollPadding],
+    [fitContent, scrollPaddingBottom],
+  );
+
+  const sheetBody = (
+    <>
+      {title ? (
+        <AppText style={[styles.sheetTitle, { color: colors.text }]}>{title}</AppText>
+      ) : null}
+      {title ? <View style={[styles.headerDivider, { backgroundColor: colors.border }]} /> : null}
+      {children}
+      {footer}
+    </>
   );
 
   const content = (
@@ -104,29 +125,27 @@ export function BottomSheetModal({
           sheetStyle,
           {
             backgroundColor: colors.shellElevated,
-            height: sheetHeight,
-            maxHeight: sheetHeight,
             paddingHorizontal: 16,
             paddingTop: 16,
+            ...(fitContent
+              ? { paddingBottom: fitSheetPaddingBottom }
+              : { height: sheetHeight, maxHeight: sheetHeight }),
           },
         ]}
       >
-        <ScrollView
-          contentContainerStyle={scrollContentStyle}
-          keyboardDismissMode="interactive"
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          style={styles.sheetScroll}
-        >
-          {title ? (
-            <AppText style={[styles.sheetTitle, { color: colors.text }]}>{title}</AppText>
-          ) : null}
-          {title ? (
-            <View style={[styles.headerDivider, { backgroundColor: colors.border }]} />
-          ) : null}
-          {children}
-          {footer}
-        </ScrollView>
+        {fitContent ? (
+          <View style={[scrollContentStyle, styles.sheetFitInner]}>{sheetBody}</View>
+        ) : (
+          <ScrollView
+            contentContainerStyle={scrollContentStyle}
+            keyboardDismissMode="interactive"
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            style={styles.sheetScroll}
+          >
+            {sheetBody}
+          </ScrollView>
+        )}
       </Animated.View>
     </>
   );
@@ -165,6 +184,14 @@ const styles = StyleSheet.create({
   },
   sheetContent: {
     flexGrow: 1,
+  },
+  sheetContentFit: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  sheetFitInner: {
+    alignSelf: 'stretch',
+    width: '100%',
   },
   sheetTitle: {
     fontSize: 18,
