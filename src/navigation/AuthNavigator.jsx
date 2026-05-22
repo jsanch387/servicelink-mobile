@@ -9,8 +9,9 @@ import { AppFontLoadingShell } from '../components/ui';
 import { useAuth } from '../features/auth';
 import { ForgotPasswordScreen } from '../features/auth/screens/ForgotPasswordScreen';
 import { LoginScreen } from '../features/auth/screens/LoginScreen';
-import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
-import { CheckYourEmailScreen } from '../features/auth/screens/CheckYourEmailScreen';
+// App Store 3.1.1: registration routes disabled — companion app is sign-in only.
+// import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
+// import { CheckYourEmailScreen } from '../features/auth/screens/CheckYourEmailScreen';
 import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
 import { PENDING_NAVIGATE_TO_BOOKING_LINK_KEY } from '../features/onboarding/constants/postOnboardingNavigation';
 import { CreateAppointmentScreen } from '../features/bookings';
@@ -280,8 +281,8 @@ export function AuthNavigator() {
           {!session ? (
             <>
               <Stack.Screen component={LoginScreen} name={ROUTES.LOGIN} />
-              <Stack.Screen component={SignUpScreen} name={ROUTES.SIGN_UP} />
-              <Stack.Screen component={CheckYourEmailScreen} name={ROUTES.CHECK_YOUR_EMAIL} />
+              {/* <Stack.Screen component={SignUpScreen} name={ROUTES.SIGN_UP} /> */}
+              {/* <Stack.Screen component={CheckYourEmailScreen} name={ROUTES.CHECK_YOUR_EMAIL} /> */}
               <Stack.Screen component={ForgotPasswordScreen} name={ROUTES.FORGOT_PASSWORD} />
             </>
           ) : null}

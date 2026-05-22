@@ -22,6 +22,8 @@ import { useAuth } from '..';
 import { AuthBrandLogo } from '../components/AuthBrandLogo';
 import { getAuthFormSharedStyles } from '../authFormStyles';
 
+const LOGIN_HELP_HINT = 'Use the same email as your ServiceLink business account.';
+
 export function LoginScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
@@ -70,6 +72,16 @@ export function LoginScreen() {
           marginTop: 6,
           textAlign: 'left',
         },
+        loginHelpHint: {
+          alignSelf: 'center',
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          lineHeight: 19,
+          marginTop: 28,
+          maxWidth: 360,
+          textAlign: 'center',
+        },
       }),
     [colors],
   );
@@ -90,9 +102,10 @@ export function LoginScreen() {
     }
   };
 
-  const goToSignUp = () => {
-    navigation.navigate(ROUTES.SIGN_UP);
-  };
+  // App Store 3.1.1: mobile is sign-in only; account creation stays on web.
+  // const goToSignUp = () => {
+  //   navigation.navigate(ROUTES.SIGN_UP);
+  // };
 
   const handleGoogleSignIn = async () => {
     Keyboard.dismiss();
@@ -240,12 +253,15 @@ export function LoginScreen() {
                 </View>
               </View>
 
-              <View style={styles.footer}>
+              <AppText style={styles.loginHelpHint}>{LOGIN_HELP_HINT}</AppText>
+
+              {/* App Store 3.1.1: no sign-up CTA on login (restore block when policy allows). */}
+              {/* <View style={styles.footer}>
                 <AppText style={styles.footerMuted}>New to ServiceLink? </AppText>
                 <Pressable accessibilityRole="button" hitSlop={8} onPress={goToSignUp}>
                   <AppText style={styles.footerLinkStrong}>Create an account</AppText>
                 </Pressable>
-              </View>
+              </View> */}
             </Pressable>
           </View>
         </KeyboardAvoidingView>
