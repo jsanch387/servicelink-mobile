@@ -55,7 +55,7 @@ export function AccountWebPanelNote() {
       <SurfaceCard padding="md">
         <AppText style={styles.body}>{ACCOUNT_WEB_PANEL_NOTE_BODY}</AppText>
         <Button
-          accessibilityHint="Opens ServiceLink in your browser so you can sign in"
+          accessibilityHint="Opens ServiceLink in your browser to manage your account"
           accessibilityLabel={ACCOUNT_WEB_PANEL_OPEN_BUTTON_LABEL}
           fullWidth
           style={styles.openButton}

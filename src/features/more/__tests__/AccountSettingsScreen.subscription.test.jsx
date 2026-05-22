@@ -96,12 +96,12 @@ describe('AccountSettingsScreen App Store compliance', () => {
     expect(screen.getByText('Booking link')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Log out' })).toBeTruthy();
     expect(screen.getByText('Delete your account')).toBeTruthy();
-    expect(screen.getByText(ACCOUNT_WEB_PANEL_NOTE_TITLE)).toBeTruthy();
+    expect(screen.getByRole('header', { name: ACCOUNT_WEB_PANEL_NOTE_TITLE })).toBeTruthy();
     expect(screen.getByText(ACCOUNT_WEB_PANEL_NOTE_BODY)).toBeTruthy();
     expect(screen.getByRole('button', { name: ACCOUNT_WEB_PANEL_OPEN_BUTTON_LABEL })).toBeTruthy();
   });
 
-  it('opens the web app when Sign in on the web is pressed', async () => {
+  it('opens the web app when Manage account is pressed', async () => {
     renderWithProviders(<AccountSettingsScreen />);
     fireEvent.press(screen.getByRole('button', { name: ACCOUNT_WEB_PANEL_OPEN_BUTTON_LABEL }));
 
