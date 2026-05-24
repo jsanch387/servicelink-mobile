@@ -11,6 +11,10 @@ const INDICATOR_HEIGHT = 3;
 export function MainTabBar(props) {
   const { colors } = useTheme();
   const [trackWidth, setTrackWidth] = useState(0);
+  const flattenedStyle = StyleSheet.flatten(props.style);
+  if (flattenedStyle?.display === 'none') {
+    return null;
+  }
   const { state } = props;
   const count = state.routes.length;
   const segmentWidth = count > 0 && trackWidth > 0 ? trackWidth / count : 0;
@@ -18,7 +22,10 @@ export function MainTabBar(props) {
 
   return (
     <View style={[styles.wrapper, { backgroundColor: colors.shellElevated }]}>
-      <View onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)} style={styles.indicatorTrack}>
+      <View
+        onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+        style={styles.indicatorTrack}
+      >
         {segmentWidth > 0 ? (
           <View
             style={[

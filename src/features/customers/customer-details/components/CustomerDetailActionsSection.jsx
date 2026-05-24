@@ -1,39 +1,47 @@
-import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, DeleteButton } from '../../../../components/ui';
+import { SettingsNavRow, SettingsSection } from '../../../../components/ui';
+import { customerDetailMaintenanceActionLabel } from '../../../maintenance/utils/maintenanceEnrollmentUtils';
 
+/**
+ * Grouped quick actions for a customer profile.
+ *
+ * @param {object} props
+ * @param {import('../../api/fetchCustomersApi').CustomerMaintenanceEnrollmentSummary | null} props.maintenanceEnrollment
+ * @param {() => void} props.onOpenMaintenanceDetail
+ * @param {() => void} props.onSendMaintenanceInvite
+ * @param {() => void} props.onSendText
+ * @param {boolean} [props.first]
+ * @param {boolean} [props.removeLoading]
+ */
 export function CustomerDetailActionsSection({
+  first = false,
+  maintenanceEnrollment,
+  onOpenMaintenanceDetail,
+  onSendMaintenanceInvite,
   onSendText,
-  onRemoveCustomer,
   removeLoading = false,
 }) {
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        stack: {
-          rowGap: 10,
-          marginTop: 4,
-        },
-      }),
-    [],
-  );
+  const hasEnrollment = Boolean(maintenanceEnrollment?.enrollmentId);
+  const maintenanceLabel = customerDetailMaintenanceActionLabel(maintenanceEnrollment);
+
+  const maintenanceOnPress = hasEnrollment ? onOpenMaintenanceDetail : onSendMaintenanceInvite;
+
+  const blocked = removeLoading;
 
   return (
-    <View style={styles.stack}>
-      <Button
-        disabled={removeLoading}
-        fullWidth
-        iconName="chatbubble-ellipses-outline"
+    <SettingsSection first={first} title="Actions">
+      <SettingsNavRow
+        disabled={blocked}
+        icon="chatbubble-ellipses-outline"
+        label="Send a text"
         onPress={onSendText}
-        title="Send a text"
-        variant="primary"
       />
-      <DeleteButton
-        disabled={removeLoading}
-        loading={removeLoading}
-        title="Remove customer"
-        onPress={onRemoveCustomer}
+      <SettingsNavRow
+        disabled={blocked}
+        icon="construct-outline"
+        label={maintenanceLabel}
+        showDividerBelow={false}
+        onPress={maintenanceOnPress}
       />
-    </View>
+    </SettingsSection>
   );
 }

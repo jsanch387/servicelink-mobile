@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BookingsNavigator } from '../features/bookings';
 import { CustomersNavigator } from '../features/customers/navigation/CustomersNavigator';
@@ -13,6 +14,18 @@ import { MainTabBar } from './MainTabBar';
 import { nestedTabPressResetToRootListeners } from './nestedTabPressResetToRoot';
 
 const Tab = createBottomTabNavigator();
+
+/** Screens inside a tab stack where the bottom tab bar should be hidden. */
+const CUSTOMERS_TAB_BAR_HIDDEN_ROUTES = new Set([ROUTES.MAINTENANCE_INVITE]);
+
+function customersTabBarOptions({ route }) {
+  const routeName = getFocusedRouteNameFromRoute(route) ?? ROUTES.CUSTOMERS_LIST;
+  const hideTabBar = CUSTOMERS_TAB_BAR_HIDDEN_ROUTES.has(routeName);
+
+  return {
+    tabBarStyle: hideTabBar ? { display: 'none' } : undefined,
+  };
+}
 
 const tabScreens = {
   [ROUTES.HOME]: HomeScreen,
@@ -63,12 +76,22 @@ export function MainTabNavigator() {
                   : undefined
               }
               name={route}
-              options={{
-                tabBarIcon: ({ color, focused, size }) => (
-                  <Ionicons color={color} name={icon} size={focused ? 24 : 22} />
-                ),
-                tabBarLabel: label,
-              }}
+              options={
+                route === ROUTES.CUSTOMERS
+                  ? ({ route: tabRoute }) => ({
+                      ...customersTabBarOptions({ route: tabRoute }),
+                      tabBarIcon: ({ color, focused, size }) => (
+                        <Ionicons color={color} name={icon} size={focused ? 24 : 22} />
+                      ),
+                      tabBarLabel: label,
+                    })
+                  : {
+                      tabBarIcon: ({ color, focused, size }) => (
+                        <Ionicons color={color} name={icon} size={focused ? 24 : 22} />
+                      ),
+                      tabBarLabel: label,
+                    }
+              }
             />
           );
         })}

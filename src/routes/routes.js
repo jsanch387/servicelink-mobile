@@ -21,6 +21,8 @@ export const ROUTES = {
   CUSTOMERS: 'Customers',
   CUSTOMERS_LIST: 'CustomersList',
   CUSTOMER_DETAILS: 'CustomerDetails',
+  /** Customers stack — hides tab bar on full-screen flows like maintenance invite. */
+  MAINTENANCE_INVITE: 'MaintenanceInvite',
   SERVICES: 'Services',
   SERVICES_LIST: 'ServicesList',
   SERVICES_EDIT: 'ServicesEdit',
@@ -28,6 +30,10 @@ export const ROUTES = {
   QUOTES: 'Quotes',
   /** More stack — quote request or sent quote detail. */
   QUOTE_DETAIL: 'QuoteDetail',
+  /** More stack — maintenance enrollments inbox. */
+  MAINTENANCE: 'Maintenance',
+  /** More stack — single maintenance enrollment detail. */
+  MAINTENANCE_DETAIL: 'MaintenanceDetail',
   /** Root stack — build & send quote (hides tab bar; same pattern as CREATE_APPOINTMENT). */
   CREATE_QUOTE: 'CreateQuote',
   BOOKING_LINK: 'BookingLink',
@@ -62,12 +68,15 @@ export const PATHS = {
   CUSTOMERS: '/customers',
   CUSTOMERS_LIST: '/customers/list',
   CUSTOMER_DETAILS: '/customers/:customerId',
+  MAINTENANCE_INVITE: '/customers/:customerId/maintenance-invite',
   SERVICES: '/services',
   SERVICES_LIST: '/services/list',
   SERVICES_EDIT: '/services/:serviceId/edit',
   AVAILABILITY: '/availability',
   QUOTES: '/quotes',
   QUOTE_DETAIL: '/quotes/detail',
+  MAINTENANCE: '/maintenance',
+  MAINTENANCE_DETAIL: '/maintenance/detail',
   CREATE_QUOTE: '/quotes/create',
   BOOKING_LINK: '/booking-link',
   MORE_PAYMENTS: '/more/payments',

@@ -7,15 +7,22 @@ import { customerDetailsQueryKey } from '../queryKeys';
 import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
 
+function sanitizeCustomerId(customerId) {
+  if (customerId == null) {
+    return null;
+  }
+  const id = String(customerId).trim();
+  return id.length > 0 ? id : null;
+}
+
 /**
  * Loads one customer row + their booking metrics for the detail screen.
  * @param {string | undefined} customerId from navigation params
  */
 export function useCustomerDetails(customerId) {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth();
   const userId = user?.id;
-  const sanitizedId =
-    typeof customerId === 'string' && customerId.trim().length > 0 ? customerId.trim() : null;
+  const sanitizedId = sanitizeCustomerId(customerId);
   const invalidId = Boolean(userId) && !sanitizedId;
 
   const businessQ = useQuery({
@@ -24,6 +31,9 @@ export function useCustomerDetails(customerId) {
       const { data, error } = await fetchBusinessProfileForUser(userId);
       if (error) {
         throw new Error(error.message ?? 'Could not load business');
+      }
+      if (!data?.id) {
+        throw new Error('Your business profile is not set up yet.');
       }
       return data;
     },
@@ -67,7 +77,7 @@ export function useCustomerDetails(customerId) {
 
   const isPendingBusiness = Boolean(userId) && businessQ.isPending;
   const isPendingDetail = hasBusinessRow && Boolean(sanitizedId) && detailQ.isPending;
-  const isLoading = isPendingBusiness || isPendingDetail;
+  const isLoading = !isReady || isPendingBusiness || isPendingDetail;
 
   const payload = detailQ.data;
   const notFound = Boolean(payload?.notFound);
