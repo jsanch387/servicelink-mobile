@@ -5,11 +5,11 @@ jest.mock('expo-constants', () => ({
   default: {
     expoConfig: {
       version: '1.0.5',
-      ios: { buildNumber: '16' },
-      android: { versionCode: 16 },
+      ios: { buildNumber: '17' },
+      android: { versionCode: 17 },
     },
     nativeApplicationVersion: '1.0.5',
-    nativeBuildVersion: '16',
+    nativeBuildVersion: '17',
   },
 }));
 
