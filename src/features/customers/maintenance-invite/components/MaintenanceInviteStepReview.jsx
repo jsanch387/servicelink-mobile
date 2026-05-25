@@ -7,7 +7,8 @@ import {
   isValidServiceDurationHHmm,
 } from '../../../../components/ui/durationTime';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
-import { formatPreferredDateMmDdYyyy } from '../utils/formatPreferredDateDisplay';
+import { MAINTENANCE_INVITE_REVIEW_NO_SCHEDULE_COPY } from '../constants';
+import { formatHumanReadableCalendarDate } from '../utils/formatPreferredDateDisplay';
 
 /**
  * @param {object} props
@@ -44,7 +45,7 @@ export function MaintenanceInviteStepReview({
   }, [durationHhMm]);
 
   const preferredDateDisplay = useMemo(
-    () => formatPreferredDateMmDdYyyy(preferredDateYyyyMmDd),
+    () => formatHumanReadableCalendarDate(preferredDateYyyyMmDd),
     [preferredDateYyyyMmDd],
   );
 
@@ -53,7 +54,17 @@ export function MaintenanceInviteStepReview({
     return t.length > 0 ? t : null;
   }, [preferredTime12h]);
 
-  const showScheduleSection = Boolean(preferredDateDisplay);
+  const hasChosenSchedule = Boolean(preferredDateDisplay);
+
+  const hasCustomerEmail = useMemo(() => customerEmail.trim().length > 0, [customerEmail]);
+
+  const deliveryFootnote = useMemo(
+    () =>
+      hasCustomerEmail
+        ? 'Your customer will receive the link at their email.'
+        : 'Copy the link on the next screen and send it to your customer.',
+    [hasCustomerEmail],
+  );
 
   const customerRows = useMemo(() => {
     const rows = [];
@@ -85,7 +96,7 @@ export function MaintenanceInviteStepReview({
           fontSize: 22,
           letterSpacing: -0.35,
           lineHeight: 28,
-          marginBottom: 8,
+          marginBottom: 5,
         },
         heroSub: {
           color: colors.textMuted,
@@ -157,12 +168,39 @@ export function MaintenanceInviteStepReview({
           letterSpacing: -0.15,
           lineHeight: 22,
         },
-        footnote: {
+        scheduleEmptyRow: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          gap: 12,
+          paddingVertical: 2,
+        },
+        scheduleEmptyText: {
           color: colors.textMuted,
-          fontSize: 14,
+          flex: 1,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 15,
+          fontWeight: '500',
+          letterSpacing: -0.1,
+          lineHeight: 22,
+        },
+        deliveryNoteRow: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          gap: 6,
+          marginTop: 2,
+        },
+        deliveryNoteIcon: {
+          marginTop: 1,
+          opacity: 0.85,
+        },
+        deliveryNote: {
+          color: colors.placeholder,
+          flex: 1,
+          fontSize: 12,
           fontWeight: '400',
-          letterSpacing: -0.05,
-          lineHeight: 21,
+          letterSpacing: -0.02,
+          lineHeight: 17,
+          opacity: 0.9,
         },
       }),
     [colors],
@@ -171,15 +209,15 @@ export function MaintenanceInviteStepReview({
   return (
     <View style={styles.reviewRoot}>
       <View>
-        <AppText style={styles.heroHeadline}>Review offer</AppText>
+        <AppText style={styles.heroHeadline}>Send offer</AppText>
         <AppText style={styles.heroSub}>
           Your customer gets a link to review the service, pay, and confirm.
         </AppText>
       </View>
 
-      <DetailsSectionCard title="Maintenance service">
+      <DetailsSectionCard title="Service details">
         <View style={styles.proposalInner}>
-          <AppText style={styles.planTitle}>Service details</AppText>
+          <AppText style={styles.planTitle}>Maintenance service</AppText>
           {priceDisplay ? (
             <AppText style={styles.price}>{priceDisplay}</AppText>
           ) : (
@@ -194,20 +232,18 @@ export function MaintenanceInviteStepReview({
         </View>
       </DetailsSectionCard>
 
-      {showScheduleSection ? (
-        <DetailsSectionCard title="Date and time">
+      <DetailsSectionCard title="Date and time">
+        {hasChosenSchedule ? (
           <View style={styles.activityStack}>
-            {preferredDateDisplay ? (
-              <View style={styles.activityRow}>
-                <View style={styles.activityIconWrap}>
-                  <Ionicons color={colors.accentMuted} name="calendar-outline" size={19} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.activityLabel}>Date</AppText>
-                  <AppText style={styles.activityValue}>{preferredDateDisplay}</AppText>
-                </View>
+            <View style={styles.activityRow}>
+              <View style={styles.activityIconWrap}>
+                <Ionicons color={colors.accentMuted} name="calendar-outline" size={19} />
               </View>
-            ) : null}
+              <View style={{ flex: 1 }}>
+                <AppText style={styles.activityLabel}>Date</AppText>
+                <AppText style={styles.activityValue}>{preferredDateDisplay}</AppText>
+              </View>
+            </View>
             {preferredTimeDisplay ? (
               <View style={styles.activityRow}>
                 <View style={styles.activityIconWrap}>
@@ -220,16 +256,29 @@ export function MaintenanceInviteStepReview({
               </View>
             ) : null}
           </View>
-        </DetailsSectionCard>
-      ) : null}
+        ) : (
+          <View style={styles.scheduleEmptyRow}>
+            <Ionicons color={colors.textMuted} name="calendar-outline" size={20} />
+            <AppText style={styles.scheduleEmptyText}>
+              {MAINTENANCE_INVITE_REVIEW_NO_SCHEDULE_COPY}
+            </AppText>
+          </View>
+        )}
+      </DetailsSectionCard>
 
       {customerRows.length > 0 ? (
         <InfoSection rowGap={14} rows={customerRows} title="Customer" />
       ) : null}
 
-      <AppText style={styles.footnote}>
-        No customer email? Copy the link on the next screen.
-      </AppText>
+      <View style={styles.deliveryNoteRow}>
+        <Ionicons
+          color={colors.placeholder}
+          name="information-circle-outline"
+          size={14}
+          style={styles.deliveryNoteIcon}
+        />
+        <AppText style={styles.deliveryNote}>{deliveryFootnote}</AppText>
+      </View>
     </View>
   );
 }

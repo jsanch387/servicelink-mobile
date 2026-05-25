@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '../../../../components/ui';
 import { SCREEN_GUTTER } from '../../../../constants/layout';
-import { useTheme } from '../../../../theme';
+import { FONT_FAMILIES, useTheme } from '../../../../theme';
 
 /**
  * @param {object} props
@@ -39,23 +39,28 @@ export function MaintenanceInviteWizardHeader({ stepIndex, stepCount, title, sub
         },
         eyebrow: {
           color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.semibold,
           fontSize: 13,
           fontWeight: '600',
           letterSpacing: -0.1,
-          marginBottom: 22,
+          marginBottom: 16,
         },
         title: {
           color: colors.text,
-          fontSize: 26,
-          fontWeight: '700',
-          letterSpacing: -0.6,
-          lineHeight: 30,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 22,
+          fontWeight: '600',
+          letterSpacing: -0.35,
+          lineHeight: 28,
+          marginBottom: 5,
         },
         subtitle: {
           color: colors.textMuted,
-          fontSize: 15,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 14,
           fontWeight: '500',
-          lineHeight: 22,
+          letterSpacing: -0.1,
+          lineHeight: 21,
         },
       }),
     [colors],

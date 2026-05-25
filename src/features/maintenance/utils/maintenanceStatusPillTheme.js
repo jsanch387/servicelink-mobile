@@ -19,7 +19,14 @@ export function getMaintenanceStatusPillTheme(statusRaw, colors, isDark) {
       color: isDark ? '#fdba74' : '#c2410c',
     };
   }
-  if (s === 'accepted' || s === 'visit_completed') {
+  if (s === 'visit_completed') {
+    return {
+      backgroundColor: isDark ? 'rgba(37,99,235,0.32)' : 'rgba(125,211,252,0.16)',
+      borderColor: isDark ? 'rgba(147,197,253,0.55)' : 'rgba(147,197,253,0.45)',
+      color: isDark ? '#7dd3fc' : '#1e40af',
+    };
+  }
+  if (s === 'accepted') {
     return {
       backgroundColor: isDark ? 'rgba(34,197,94,0.16)' : 'rgba(22,163,74,0.12)',
       borderColor: isDark ? 'rgba(74,222,128,0.45)' : 'rgba(22,163,74,0.28)',

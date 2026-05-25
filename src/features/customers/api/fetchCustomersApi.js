@@ -6,6 +6,7 @@ import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileChec
  * @property {string} enrollmentId
  * @property {string} status
  * @property {string} paymentStatus
+ * @property {string | null} [customerSelectedPayment]
  * @property {string} serviceNameSnapshot
  * @property {number} priceCents
  * @property {number} frequencyWeeks
@@ -13,6 +14,8 @@ import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileChec
  * @property {string | null} [anchorDate]
  * @property {string | null} [anchorTime]
  * @property {string | null} [inviteToken]
+ * @property {string | null} [initialBookingId]
+ * @property {string | null} [linkedBookingStatus]
  */
 
 /**
@@ -47,6 +50,12 @@ function parseMaintenanceEnrollment(row) {
     enrollmentId,
     status: String(row.status ?? '').trim(),
     paymentStatus: String(row.paymentStatus ?? row.payment_status ?? '').trim(),
+    customerSelectedPayment:
+      row.customerSelectedPayment != null
+        ? String(row.customerSelectedPayment)
+        : row.customer_selected_payment != null
+          ? String(row.customer_selected_payment)
+          : null,
     serviceNameSnapshot: String(
       row.serviceNameSnapshot ?? row.service_name_snapshot ?? 'Maintenance',
     ).trim(),
@@ -71,6 +80,13 @@ function parseMaintenanceEnrollment(row) {
         : row.invite_token != null
           ? String(row.invite_token)
           : null,
+    initialBookingId:
+      row.initialBookingId != null
+        ? String(row.initialBookingId)
+        : row.initial_booking_id != null
+          ? String(row.initial_booking_id)
+          : null,
+    linkedBookingStatus: null,
   };
 }
 

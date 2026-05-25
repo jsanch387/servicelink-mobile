@@ -3,6 +3,8 @@
  * @param {object} s
  * @param {string} s.priceUsdText
  * @param {string} s.durationHhMm
+ * @param {string} [s.preferredDateYyyyMmDd]
+ * @param {string} [s.preferredTime12h]
  */
 export function canAdvanceMaintenanceInviteStep(step, s) {
   switch (step) {
@@ -15,8 +17,11 @@ export function canAdvanceMaintenanceInviteStep(step, s) {
       const duration = String(s.durationHhMm ?? '').trim();
       return Boolean(duration);
     }
-    case 1:
-      return true;
+    case 1: {
+      const date = String(s.preferredDateYyyyMmDd ?? '').trim();
+      if (!date) return true;
+      return Boolean(String(s.preferredTime12h ?? '').trim());
+    }
     case 2:
       return canAdvanceMaintenanceInviteStep(0, s);
     default:

@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
 import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
+import { triggerWheelSelectionHaptic } from './wheelHaptics';
 
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1));
 const MINUTES = ['00', '30'];
@@ -30,14 +31,6 @@ function getValueIndexFromOffset(offsetY, valuesLength) {
   return Math.min(valuesLength - 1, Math.max(0, rawIndex));
 }
 
-function buildSnapHandler({ values, setValue }) {
-  return (offsetY) => {
-    const valueIndex = getValueIndexFromOffset(offsetY, values.length);
-    const nextValue = values[valueIndex];
-    setValue(nextValue);
-  };
-}
-
 function parseTime(value) {
   const raw = String(value ?? '').trim();
   const match = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -51,6 +44,99 @@ function parseTime(value) {
 
 function formatTime(hour, minute, period) {
   return `${hour}:${minute} ${period}`;
+}
+
+function TimeWheelColumn({ values, selected, onSelectedChange, listRef, width }) {
+  const { colors } = useTheme();
+  const paddedData = useMemo(() => paddedValues(values), [values]);
+  const initialIndex = Math.max(
+    0,
+    values.findIndex((v) => v === selected),
+  );
+  const [highlightIndex, setHighlightIndex] = useState(initialIndex);
+  const highlightIndexRef = useRef(initialIndex);
+  const lastHapticIndexRef = useRef(initialIndex);
+
+  const highlightedValue = values[highlightIndex] ?? values[0];
+
+  useEffect(() => {
+    const idx = Math.max(
+      0,
+      values.findIndex((v) => v === selected),
+    );
+    highlightIndexRef.current = idx;
+    lastHapticIndexRef.current = idx;
+    setHighlightIndex(idx);
+  }, [selected, values]);
+
+  const previewIndexFromOffset = useCallback(
+    (offsetY) => {
+      const idx = getValueIndexFromOffset(offsetY, values.length);
+      if (highlightIndexRef.current === idx) return;
+      highlightIndexRef.current = idx;
+      setHighlightIndex(idx);
+      if (lastHapticIndexRef.current !== idx) {
+        lastHapticIndexRef.current = idx;
+        triggerWheelSelectionHaptic();
+      }
+    },
+    [values.length],
+  );
+
+  const snapToOffset = useCallback(
+    (offsetY) => {
+      const idx = getValueIndexFromOffset(offsetY, values.length);
+      highlightIndexRef.current = idx;
+      lastHapticIndexRef.current = idx;
+      setHighlightIndex(idx);
+      onSelectedChange(values[idx]);
+    },
+    [values, onSelectedChange],
+  );
+
+  return (
+    <View style={[styles.wheelContainer, { width }]}>
+      <View
+        pointerEvents="none"
+        style={[styles.wheelHighlight, { backgroundColor: colors.buttonGhostPressed }]}
+      />
+      <FlatList
+        bounces={false}
+        data={paddedData}
+        decelerationRate="fast"
+        getItemLayout={(_, index) => ({
+          index,
+          length: ITEM_HEIGHT,
+          offset: ITEM_HEIGHT * index,
+        })}
+        keyExtractor={(item, index) => `${item ?? 'spacer'}-${index}`}
+        ref={listRef}
+        renderItem={({ item }) => (
+          <View style={styles.dialItem}>
+            <AppText
+              style={[
+                styles.dialItemText,
+                { color: item === highlightedValue ? colors.text : colors.textMuted },
+              ]}
+            >
+              {item ?? ''}
+            </AppText>
+          </View>
+        )}
+        scrollEventThrottle={32}
+        showsVerticalScrollIndicator={false}
+        snapToInterval={ITEM_HEIGHT}
+        onMomentumScrollEnd={(e) => snapToOffset(e.nativeEvent.contentOffset.y)}
+        onScroll={(e) => previewIndexFromOffset(e.nativeEvent.contentOffset.y)}
+        onScrollEndDrag={(e) => {
+          const velocityY = e.nativeEvent.velocity?.y ?? 0;
+          if (Math.abs(velocityY) > 0.05) return;
+          snapToOffset(e.nativeEvent.contentOffset.y);
+        }}
+        style={styles.wheelList}
+      />
+    </View>
+  );
 }
 
 export function TimeSelectField({
@@ -83,20 +169,6 @@ export function TimeSelectField({
   const [draftHour, setDraftHour] = useState('9');
   const [draftMinute, setDraftMinute] = useState('00');
   const [draftPeriod, setDraftPeriod] = useState('AM');
-
-  const paddedHours = useMemo(() => paddedValues(HOURS), []);
-  const paddedMinutes = useMemo(() => paddedValues(MINUTES), []);
-  const paddedPeriods = useMemo(() => paddedValues(PERIODS), []);
-
-  const snapHour = useMemo(() => buildSnapHandler({ values: HOURS, setValue: setDraftHour }), []);
-  const snapMinute = useMemo(
-    () => buildSnapHandler({ values: MINUTES, setValue: setDraftMinute }),
-    [],
-  );
-  const snapPeriod = useMemo(
-    () => buildSnapHandler({ values: PERIODS, setValue: setDraftPeriod }),
-    [],
-  );
 
   useEffect(() => {
     if (!open) return;
@@ -136,46 +208,6 @@ export function TimeSelectField({
   function applySelection() {
     onValueChange(formatTime(draftHour, draftMinute, draftPeriod));
     runClose(() => setOpen(false));
-  }
-
-  function renderWheel({ values, draftValue, paddedData, listRef, onSnap, width }) {
-    return (
-      <View style={[styles.wheelContainer, { width }]}>
-        <View
-          pointerEvents="none"
-          style={[styles.wheelHighlight, { backgroundColor: colors.buttonGhostPressed }]}
-        />
-        <FlatList
-          bounces={false}
-          data={paddedData}
-          decelerationRate="fast"
-          getItemLayout={(_, index) => ({
-            index,
-            length: ITEM_HEIGHT,
-            offset: ITEM_HEIGHT * index,
-          })}
-          keyExtractor={(item, index) => `${item ?? 'spacer'}-${index}`}
-          ref={listRef}
-          renderItem={({ item }) => (
-            <View style={styles.dialItem}>
-              <AppText
-                style={[
-                  styles.dialItemText,
-                  { color: item === draftValue ? colors.text : colors.textMuted },
-                ]}
-              >
-                {item ?? ''}
-              </AppText>
-            </View>
-          )}
-          showsVerticalScrollIndicator={false}
-          snapToInterval={ITEM_HEIGHT}
-          onMomentumScrollEnd={(e) => onSnap(e.nativeEvent.contentOffset.y)}
-          onScrollEndDrag={(e) => onSnap(e.nativeEvent.contentOffset.y)}
-          style={styles.wheelList}
-        />
-      </View>
-    );
   }
 
   return (
@@ -235,32 +267,29 @@ export function TimeSelectField({
               </View>
 
               <View style={styles.dialsRow}>
-                {renderWheel({
-                  values: HOURS,
-                  draftValue: draftHour,
-                  paddedData: paddedHours,
-                  listRef: hoursRef,
-                  onSnap: snapHour,
-                  width: 72,
-                })}
+                <TimeWheelColumn
+                  listRef={hoursRef}
+                  selected={draftHour}
+                  values={HOURS}
+                  width={72}
+                  onSelectedChange={setDraftHour}
+                />
                 <AppText style={[styles.colon, { color: colors.textMuted }]}>:</AppText>
-                {renderWheel({
-                  values: MINUTES,
-                  draftValue: draftMinute,
-                  paddedData: paddedMinutes,
-                  listRef: minutesRef,
-                  onSnap: snapMinute,
-                  width: 72,
-                })}
+                <TimeWheelColumn
+                  listRef={minutesRef}
+                  selected={draftMinute}
+                  values={MINUTES}
+                  width={72}
+                  onSelectedChange={setDraftMinute}
+                />
                 <View style={styles.minuteToPeriodGap} />
-                {renderWheel({
-                  values: PERIODS,
-                  draftValue: draftPeriod,
-                  paddedData: paddedPeriods,
-                  listRef: periodsRef,
-                  onSnap: snapPeriod,
-                  width: 84,
-                })}
+                <TimeWheelColumn
+                  listRef={periodsRef}
+                  selected={draftPeriod}
+                  values={PERIODS}
+                  width={84}
+                  onSelectedChange={setDraftPeriod}
+                />
               </View>
 
               <TouchableOpacity activeOpacity={0.9} onPress={applySelection} style={styles.cta}>

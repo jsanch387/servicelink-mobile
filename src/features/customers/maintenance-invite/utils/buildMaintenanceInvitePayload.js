@@ -53,7 +53,7 @@ export function buildMaintenanceInvitePayload(input) {
 
   const priceUsd = Number(String(input.priceUsdText ?? '').trim());
   if (!Number.isFinite(priceUsd) || priceUsd < 0) {
-    return { ok: false, message: 'Enter a valid price per visit.' };
+    return { ok: false, message: 'Enter a valid price.' };
   }
   const priceCents = Math.round(priceUsd * 100);
 

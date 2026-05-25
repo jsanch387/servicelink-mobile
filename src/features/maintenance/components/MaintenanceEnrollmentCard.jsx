@@ -3,6 +3,10 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import {
+  MAINTENANCE_STATUS_PILL_LAYOUT,
+  MAINTENANCE_STATUS_PILL_TEXT,
+} from '../constants/statusPillLayout';
 import { getMaintenanceStatusPillTheme } from '../utils/maintenanceStatusPillTheme';
 
 /**
@@ -47,16 +51,10 @@ export function MaintenanceEnrollmentCard({
           minWidth: 0,
         },
         statusPill: {
-          borderRadius: 999,
-          borderWidth: 1,
-          flexShrink: 0,
-          paddingHorizontal: 10,
-          paddingVertical: 5,
+          ...MAINTENANCE_STATUS_PILL_LAYOUT,
         },
         statusText: {
-          fontSize: 12,
-          fontWeight: '700',
-          letterSpacing: -0.05,
+          ...MAINTENANCE_STATUS_PILL_TEXT,
         },
         lineRow: {
           alignItems: 'flex-end',

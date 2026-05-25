@@ -35,7 +35,7 @@ export function MaintenanceInviteStepPlan({
       <SurfaceTextField
         containerStyle={FIELD_SHELL}
         keyboardType="decimal-pad"
-        label={<MaintenanceInviteFieldLabel required text="Price per visit" />}
+        label={<MaintenanceInviteFieldLabel required text="Price" />}
         maxLength={PRICE_DISPLAY_MAX}
         onChangeText={(t) => onPriceUsdTextChange(normalizeMaintenancePriceInput(t))}
         placeholder="e.g. 100"

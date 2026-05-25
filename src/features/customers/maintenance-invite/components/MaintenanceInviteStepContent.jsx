@@ -42,14 +42,7 @@ export function MaintenanceInviteStepContent({ stepIndex, form }) {
         />,
       );
     case 1:
-      return wrapInputStepSurface(
-        <MaintenanceInviteStepSchedule
-          preferredDateYyyyMmDd={form.preferredDateYyyyMmDd}
-          preferredTime12h={form.preferredTime12h}
-          onPreferredDateChange={form.setPreferredDateYyyyMmDd}
-          onPreferredTimeChange={form.setPreferredTime12h}
-        />,
-      );
+      return <MaintenanceInviteStepSchedule schedule={form.schedule} />;
     case 2:
       return (
         <MaintenanceInviteStepReview

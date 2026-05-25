@@ -33,6 +33,7 @@ import { MAINTENANCE_INVITE_SEND_MIN_PENDING_MS } from '../constants/sendPhase';
 import { MaintenanceInviteSendOutcome } from '../components/MaintenanceInviteSendOutcome';
 import { MaintenanceInviteStepContent } from '../components/MaintenanceInviteStepContent';
 import { MaintenanceInviteWizardHeader } from '../components/MaintenanceInviteWizardHeader';
+import { useMaintenanceInviteSchedule } from '../hooks/useMaintenanceInviteSchedule';
 import { buildMaintenanceInvitePayload } from '../utils/buildMaintenanceInvitePayload';
 import { canAdvanceMaintenanceInviteStep } from '../utils/maintenanceInviteStepGuards';
 
@@ -88,12 +89,23 @@ export function MaintenanceInviteScreen() {
   const isReviewStep = stepIndex === lastStepIndex;
   const showingOutcome = sendPhase !== 'wizard';
 
+  const schedule = useMaintenanceInviteSchedule({
+    businessId,
+    durationHhMm,
+    preferredDateYyyyMmDd,
+    preferredTime12h,
+    setPreferredDateYyyyMmDd,
+    setPreferredTime12h,
+  });
+
   const formSnapshot = useMemo(
     () => ({
       priceUsdText,
       durationHhMm,
+      preferredDateYyyyMmDd,
+      preferredTime12h,
     }),
-    [durationHhMm, priceUsdText],
+    [durationHhMm, preferredDateYyyyMmDd, preferredTime12h, priceUsdText],
   );
 
   const canContinue = canAdvanceMaintenanceInviteStep(stepIndex, formSnapshot);
@@ -110,6 +122,7 @@ export function MaintenanceInviteScreen() {
       setPreferredDateYyyyMmDd,
       preferredTime12h,
       setPreferredTime12h,
+      schedule,
     }),
     [
       customerEmail,
@@ -118,6 +131,7 @@ export function MaintenanceInviteScreen() {
       preferredDateYyyyMmDd,
       preferredTime12h,
       priceUsdText,
+      schedule,
     ],
   );
 

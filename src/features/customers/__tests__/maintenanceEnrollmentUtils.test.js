@@ -1,6 +1,6 @@
 import {
-  customerDetailMaintenanceActionLabel,
-  maintenanceEnrollmentBlocksNewOwnerInvite,
+  maintenanceEnrollmentHasCompletedVisit,
+  maintenanceEnrollmentIsCompleted,
   maintenanceEnrollmentIsConfirmed,
   maintenanceEnrollmentIsPending,
   maintenanceEnrollmentStatusLabel,
@@ -18,25 +18,36 @@ describe('maintenanceEnrollmentUtils', () => {
     inviteToken: 'abc',
   };
 
-  it('blocks a new invite when pending with invite token', () => {
-    expect(maintenanceEnrollmentBlocksNewOwnerInvite(base)).toBe(true);
-  });
-
-  it('allows a new invite when pending without token', () => {
-    expect(maintenanceEnrollmentBlocksNewOwnerInvite({ ...base, inviteToken: null })).toBe(false);
-  });
-
   it('maps pending status label', () => {
     expect(maintenanceEnrollmentStatusLabel(base)).toBe('Pending');
   });
 
-  it('uses service wording on customer detail action row', () => {
-    expect(customerDetailMaintenanceActionLabel(null)).toBe('Offer maintenance service');
-    expect(customerDetailMaintenanceActionLabel(base)).toBe('Maintenance · Pending');
-  });
-
-  it('partitions pending vs confirmed', () => {
+  it('partitions pending vs confirmed vs completed', () => {
     expect(maintenanceEnrollmentIsPending(base)).toBe(true);
     expect(maintenanceEnrollmentIsConfirmed({ ...base, status: 'accepted' })).toBe(true);
+    expect(maintenanceEnrollmentIsCompleted({ ...base, status: 'accepted' })).toBe(false);
+  });
+
+  it('uses confirmed label for accepted pay in person (payment shown in detail section)', () => {
+    expect(
+      maintenanceEnrollmentStatusLabel({
+        ...base,
+        status: 'accepted',
+        paymentStatus: 'pay_in_person',
+      }),
+    ).toBe('Confirmed');
+  });
+
+  it('shows completed when linked booking is completed (enrollment stays accepted)', () => {
+    const enrollment = {
+      ...base,
+      status: 'accepted',
+      initialBookingId: 'book-1',
+      linkedBookingStatus: 'completed',
+    };
+    expect(maintenanceEnrollmentHasCompletedVisit(enrollment)).toBe(true);
+    expect(maintenanceEnrollmentStatusLabel(enrollment)).toBe('Completed');
+    expect(maintenanceEnrollmentIsCompleted(enrollment)).toBe(true);
+    expect(maintenanceEnrollmentIsConfirmed(enrollment)).toBe(false);
   });
 });

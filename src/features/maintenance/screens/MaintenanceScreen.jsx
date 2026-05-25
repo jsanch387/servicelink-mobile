@@ -15,8 +15,11 @@ import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { MaintenanceEnrollmentCard } from '../components/MaintenanceEnrollmentCard';
 import {
+  MAINTENANCE_LIST_EMPTY_COMPLETED,
   MAINTENANCE_LIST_EMPTY_CONFIRMED,
   MAINTENANCE_LIST_EMPTY_PENDING,
+  MAINTENANCE_TAB_COMPLETED,
+  MAINTENANCE_TAB_CONFIRMED,
   MAINTENANCE_TAB_OPTIONS,
   MAINTENANCE_TAB_PENDING,
 } from '../constants';
@@ -98,11 +101,26 @@ export function MaintenanceScreen() {
     [colors, tabBarHeight],
   );
 
-  const cards = listTab === MAINTENANCE_TAB_PENDING ? inbox.pendingCards : inbox.confirmedCards;
-  const emptyCopy =
-    listTab === MAINTENANCE_TAB_PENDING
-      ? MAINTENANCE_LIST_EMPTY_PENDING
-      : MAINTENANCE_LIST_EMPTY_CONFIRMED;
+  const cardsByTab = useMemo(
+    () => ({
+      [MAINTENANCE_TAB_PENDING]: inbox.pendingCards,
+      [MAINTENANCE_TAB_CONFIRMED]: inbox.confirmedCards,
+      [MAINTENANCE_TAB_COMPLETED]: inbox.completedCards,
+    }),
+    [inbox.completedCards, inbox.confirmedCards, inbox.pendingCards],
+  );
+
+  const emptyCopyByTab = useMemo(
+    () => ({
+      [MAINTENANCE_TAB_PENDING]: MAINTENANCE_LIST_EMPTY_PENDING,
+      [MAINTENANCE_TAB_CONFIRMED]: MAINTENANCE_LIST_EMPTY_CONFIRMED,
+      [MAINTENANCE_TAB_COMPLETED]: MAINTENANCE_LIST_EMPTY_COMPLETED,
+    }),
+    [],
+  );
+
+  const cards = cardsByTab[listTab] ?? [];
+  const emptyCopy = emptyCopyByTab[listTab] ?? MAINTENANCE_LIST_EMPTY_PENDING;
 
   const showBusinessMissing = !inbox.isLoading && !inbox.businessError && !inbox.business?.id;
 

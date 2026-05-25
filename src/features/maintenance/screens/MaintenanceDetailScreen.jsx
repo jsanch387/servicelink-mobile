@@ -1,18 +1,31 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
+import { Ionicons } from '@expo/vector-icons';
 import { Button, InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
+import { deleteMaintenanceEnrollmentForBusiness } from '../api/deleteMaintenanceEnrollmentForBusiness';
+import { mapMaintenanceDeleteError } from '../api/mapMaintenanceDeleteError';
 import { MaintenanceDetailBody } from '../components/MaintenanceDetailBody';
-import { MAINTENANCE_DETAIL_NOT_FOUND_USER_MESSAGE } from '../constants';
+import { MaintenanceDetailSkeleton } from '../components/MaintenanceDetailSkeleton';
+import { MaintenanceDetailDangerSection } from '../components/MaintenanceDetailDangerSection';
+import { MaintenanceDetailLinkSection } from '../components/MaintenanceDetailLinkSection';
+import { MaintenancePaymentSection } from '../components/MaintenancePaymentSection';
+import {
+  MAINTENANCE_DETAIL_DELETE_ALERT_MESSAGE,
+  MAINTENANCE_DETAIL_DELETE_ALERT_TITLE,
+  MAINTENANCE_DETAIL_NOT_FOUND_USER_MESSAGE,
+} from '../constants';
 import { useMaintenanceDetail } from '../hooks/useMaintenanceDetail';
-import { MAINTENANCE_QUERY_ROOT } from '../queryKeys';
+import { maintenanceDetailQueryKey, MAINTENANCE_QUERY_ROOT } from '../queryKeys';
+import { CUSTOMERS_QUERY_ROOT } from '../../customers/queryKeys';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 
 export function MaintenanceDetailScreen() {
   const { colors } = useTheme();
@@ -22,9 +35,18 @@ export function MaintenanceDetailScreen() {
   const customerId = String(route.params?.customerId ?? '').trim() || undefined;
   const enrollmentId = String(route.params?.enrollmentId ?? '').trim() || undefined;
   const [linkCopyFeedback, setLinkCopyFeedback] = useState(false);
+  const [removeLoading, setRemoveLoading] = useState(false);
 
-  const { model, isLoading, detailError, businessError, notFound, refetch, isFetching } =
-    useMaintenanceDetail(customerId, enrollmentId);
+  const {
+    businessId,
+    model,
+    isLoading,
+    detailError,
+    businessError,
+    notFound,
+    refetch,
+    isFetching,
+  } = useMaintenanceDetail(customerId, enrollmentId);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -39,11 +61,59 @@ export function MaintenanceDetailScreen() {
 
   const handleViewCustomer = useCallback(() => {
     if (!customerId) return;
-    navigation.navigate(ROUTES.CUSTOMERS, {
-      screen: ROUTES.CUSTOMER_DETAILS,
-      params: { customerId },
-    });
+    navigation.navigate(ROUTES.CUSTOMER_DETAILS, { customerId });
   }, [customerId, navigation]);
+
+  const handleConfirmRemoveMaintenance = useCallback(async () => {
+    if (removeLoading || !businessId || !customerId || !enrollmentId) {
+      return;
+    }
+    setRemoveLoading(true);
+    try {
+      const { deleted, error } = await deleteMaintenanceEnrollmentForBusiness(
+        businessId,
+        customerId,
+        enrollmentId,
+      );
+      if (error || !deleted) {
+        Alert.alert(
+          'Could not remove',
+          safeUserFacingMessage(error, {
+            fallback: mapMaintenanceDeleteError(error),
+          }),
+        );
+        return;
+      }
+
+      const detailKey = maintenanceDetailQueryKey(businessId, customerId, enrollmentId);
+      await queryClient.cancelQueries({ queryKey: detailKey });
+      queryClient.removeQueries({ queryKey: detailKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: MAINTENANCE_QUERY_ROOT }),
+        queryClient.invalidateQueries({ queryKey: CUSTOMERS_QUERY_ROOT }),
+      ]);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      handleBackToList();
+    } finally {
+      setRemoveLoading(false);
+    }
+  }, [businessId, customerId, enrollmentId, handleBackToList, queryClient, removeLoading]);
+
+  const handleRemoveMaintenance = useCallback(() => {
+    if (removeLoading || !model?.canDelete) {
+      return;
+    }
+    Alert.alert(MAINTENANCE_DETAIL_DELETE_ALERT_TITLE, MAINTENANCE_DETAIL_DELETE_ALERT_MESSAGE, [
+      { text: 'Keep', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => {
+          void handleConfirmRemoveMaintenance();
+        },
+      },
+    ]);
+  }, [handleConfirmRemoveMaintenance, model?.canDelete, removeLoading]);
 
   const handleCopyInviteLink = useCallback(async () => {
     const link = String(model?.inviteLink ?? '').trim();
@@ -75,6 +145,8 @@ export function MaintenanceDetailScreen() {
         value: model.customerName,
         emphasize: true,
         onPress: handleViewCustomer,
+        accessibilityLabel: `View ${model.customerName} profile`,
+        trailing: <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />,
       },
     ];
     const email = String(model.customerEmail ?? '').trim();
@@ -87,7 +159,7 @@ export function MaintenanceDetailScreen() {
       });
     }
     return rows;
-  }, [handleViewCustomer, model]);
+  }, [colors.textMuted, handleViewCustomer, model]);
 
   const styles = useMemo(
     () =>
@@ -104,16 +176,6 @@ export function MaintenanceDetailScreen() {
           paddingBottom: 36,
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
-        },
-        actions: {
-          gap: 12,
-          marginTop: 4,
-        },
-        bootWrap: {
-          alignItems: 'center',
-          flex: 1,
-          justifyContent: 'center',
-          paddingHorizontal: SCREEN_GUTTER,
         },
         errorRetry: {
           marginTop: 12,
@@ -165,9 +227,13 @@ export function MaintenanceDetailScreen() {
   if (isLoading && !model) {
     return (
       <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.root}>
-        <View style={styles.bootWrap}>
-          <ActivityIndicator color={colors.accent} size="large" />
-        </View>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          <MaintenanceDetailSkeleton />
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -214,24 +280,20 @@ export function MaintenanceDetailScreen() {
         style={styles.scroll}
       >
         <MaintenanceDetailBody model={model} />
+        {model.payment?.visible ? <MaintenancePaymentSection payment={model.payment} /> : null}
         <InfoSection rowGap={14} rows={customerRows} title="Customer" />
+        <MaintenanceDetailLinkSection
+          canCopyLink={model.canCopyLink}
+          linkCopied={linkCopyFeedback}
+          onCopyLink={() => void handleCopyInviteLink()}
+        />
 
-        <View style={styles.actions}>
-          <Button
-            disabled={!model.canCopyLink}
-            fullWidth
-            iconName={linkCopyFeedback ? 'checkmark-circle' : 'link-outline'}
-            title={linkCopyFeedback ? 'Link copied' : 'Copy offer link'}
-            variant="secondary"
-            onPress={() => void handleCopyInviteLink()}
+        {model.canDelete ? (
+          <MaintenanceDetailDangerSection
+            removeLoading={removeLoading}
+            onRemove={handleRemoveMaintenance}
           />
-          <Button
-            fullWidth
-            title="View customer"
-            variant="secondary"
-            onPress={handleViewCustomer}
-          />
-        </View>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

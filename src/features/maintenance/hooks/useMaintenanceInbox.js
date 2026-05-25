@@ -4,7 +4,7 @@ import { useCallback, useMemo } from 'react';
 import { useAuth } from '../../auth';
 import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
-import { fetchLatestMaintenanceEnrollmentsByBusiness } from '../api/fetchMaintenanceEnrollmentsSupabase';
+import { fetchMaintenanceEnrollmentsByBusiness } from '../api/fetchMaintenanceEnrollmentsSupabase';
 import { mapMaintenanceFetchError } from '../api/mapMaintenanceFetchError';
 import { MAINTENANCE_QUERY_ROOT, maintenanceListQueryKey } from '../queryKeys';
 import {
@@ -48,7 +48,7 @@ export function useMaintenanceInbox() {
   const listQ = useQuery({
     queryKey: maintenanceListQueryKey(businessId),
     queryFn: async () => {
-      const { customers, error } = await fetchLatestMaintenanceEnrollmentsByBusiness(businessId);
+      const { customers, error } = await fetchMaintenanceEnrollmentsByBusiness(businessId);
       if (error) {
         throw new Error(mapMaintenanceFetchError(error));
       }
@@ -70,6 +70,10 @@ export function useMaintenanceInbox() {
   const confirmedCards = useMemo(
     () => partitioned.confirmed.map(mapMaintenanceEnrollmentCard),
     [partitioned.confirmed],
+  );
+  const completedCards = useMemo(
+    () => partitioned.completed.map(mapMaintenanceEnrollmentCard),
+    [partitioned.completed],
   );
 
   const businessError = businessQ.isError
@@ -97,6 +101,7 @@ export function useMaintenanceInbox() {
     listError,
     pendingCards,
     confirmedCards,
+    completedCards,
     isLoading,
     isFetching,
     refetch,

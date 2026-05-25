@@ -1,4 +1,5 @@
 import { HOME_QUERY_KEY } from '../../../home/queryKeys';
+import { MAINTENANCE_QUERY_ROOT } from '../../../maintenance/queryKeys';
 import { BOOKINGS_QUERY_ROOT, bookingsDetailsQueryKey } from '../../queryKeys';
 
 /**
@@ -12,5 +13,6 @@ export function invalidateBookingCachesAfterMutation(queryClient, bookingId) {
     queryClient.invalidateQueries({ queryKey: bookingsDetailsQueryKey(bookingId) }),
     queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_ROOT }),
     queryClient.invalidateQueries({ queryKey: HOME_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: MAINTENANCE_QUERY_ROOT }),
   ]);
 }

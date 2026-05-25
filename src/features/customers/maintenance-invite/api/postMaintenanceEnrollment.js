@@ -53,7 +53,10 @@ export function mapMaintenanceEnrollmentHttpError(httpStatus, serverMessage) {
     return fallback || 'Check the form and try again.';
   }
   if (httpStatus === 409) {
-    return fallback || 'That time is unavailable, or this customer already has a pending offer.';
+    return (
+      fallback ||
+      'That time is unavailable. Try a different date or time, or try again in a moment.'
+    );
   }
   if (httpStatus === 500) {
     return fallback || 'Something went wrong on the server. Try again in a moment.';

@@ -10,6 +10,15 @@ describe('buildBookingDetailsModel', () => {
     expect(model.schedule.duration).toBe('1 hr 30 min');
   });
 
+  it('uses singular hr and plural hrs', () => {
+    expect(buildBookingDetailsModel({ duration_minutes: 60 }).schedule.duration).toBe('1 hr');
+    expect(buildBookingDetailsModel({ duration_minutes: 120 }).schedule.duration).toBe('2 hrs');
+  });
+
+  it('formats minutes-only duration', () => {
+    expect(buildBookingDetailsModel({ duration_minutes: 30 }).schedule.duration).toBe('30 min');
+  });
+
   it('formats customer phone for US display', () => {
     const model = buildBookingDetailsModel({
       customer_phone: '3054441212',

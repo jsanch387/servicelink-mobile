@@ -40,6 +40,10 @@ function clean(value, fallback = 'Not provided') {
   return str || fallback;
 }
 
+function formatHourLabel(hours) {
+  return hours === 1 ? '1 hr' : `${hours} hrs`;
+}
+
 function formatDuration(minutesValue) {
   const minutes = Number(minutesValue);
   if (!Number.isFinite(minutes) || minutes <= 0) {
@@ -51,9 +55,9 @@ function formatDuration(minutesValue) {
     return `${mins} min`;
   }
   if (mins === 0) {
-    return `${hrs} hr`;
+    return formatHourLabel(hrs);
   }
-  return `${hrs} hr ${mins} min`;
+  return `${formatHourLabel(hrs)} ${mins} min`;
 }
 
 function formatMoneyOrFallback(amount, fallback = 'Not set') {

@@ -21,7 +21,8 @@ export const MAINTENANCE_INVITE_WIZARD_STEPS = [
   {
     id: 'schedule',
     title: 'Date and time',
-    subtitle: 'Suggest a time, or skip—they can pick from the link.',
+    subtitle:
+      'Optional. Pick an open slot below, or leave it blank and your customer will choose from their link.',
   },
   {
     id: 'review',
@@ -31,3 +32,10 @@ export const MAINTENANCE_INVITE_WIZARD_STEPS = [
 ];
 
 export const MAINTENANCE_INVITE_WIZARD_STEP_COUNT = MAINTENANCE_INVITE_WIZARD_STEPS.length;
+
+/** Review step when owner skipped date and time on the schedule step. */
+export const MAINTENANCE_INVITE_REVIEW_NO_SCHEDULE_COPY =
+  'No date or time chosen. Your customer will pick from their link.';
+
+export const MAINTENANCE_INVITE_SCHEDULE_AVAILABILITY_HINT =
+  'Only your open days and times are shown.';

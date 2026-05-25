@@ -20,6 +20,7 @@ import { TimeSlotGrid } from './TimeSlotGrid';
  *   scheduleLoading?: boolean;
  *   scheduleError?: string | null;
  *   acceptBookings?: boolean;
+ *   availabilityHint?: string;
  * }} props
  */
 export function BookingDateTimePicker({
@@ -34,6 +35,7 @@ export function BookingDateTimePicker({
   scheduleLoading = false,
   scheduleError = null,
   acceptBookings = true,
+  availabilityHint = null,
 }) {
   const { colors } = useTheme();
 
@@ -60,6 +62,14 @@ export function BookingDateTimePicker({
           fontWeight: '500',
           lineHeight: 20,
         },
+        availabilityHint: {
+          color: colors.textMuted,
+          fontSize: 14,
+          fontWeight: '500',
+          letterSpacing: -0.1,
+          lineHeight: 21,
+          marginBottom: 12,
+        },
         errorWrap: {
           marginBottom: 8,
           marginTop: 4,
@@ -84,6 +94,10 @@ export function BookingDateTimePicker({
           This business is not accepting new bookings right now. You can still review settings in
           Availability.
         </AppText>
+      ) : null}
+
+      {availabilityHint ? (
+        <AppText style={styles.availabilityHint}>{availabilityHint}</AppText>
       ) : null}
 
       <BookingCalendarCard

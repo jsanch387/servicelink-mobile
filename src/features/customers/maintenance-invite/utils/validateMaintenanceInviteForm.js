@@ -7,11 +7,11 @@
 export function validateMaintenanceInviteForm(form) {
   const price = String(form.priceUsdText ?? '').trim();
   if (!price) {
-    return { valid: false, error: 'Enter a price per visit.' };
+    return { valid: false, error: 'Enter a price.' };
   }
   const priceNum = Number(price);
   if (!Number.isFinite(priceNum) || priceNum <= 0) {
-    return { valid: false, error: 'Enter a valid price per visit.' };
+    return { valid: false, error: 'Enter a valid price.' };
   }
 
   const duration = String(form.durationHhMm ?? '').trim();

@@ -15,9 +15,8 @@ import { CustomerStatsSection } from '../customer-details/components/CustomerSta
 import { removeCustomerForBusiness, updateCustomerNotesForBusiness } from '../api/customers';
 import { openCustomerCheckInSms } from '../customer-details/utils/openCustomerCheckInSms';
 import { useCustomerDetails } from '../hooks/useCustomerDetails';
-import { useCustomerMaintenanceEnrollment } from '../hooks/useCustomerMaintenanceEnrollment';
 import { CUSTOMERS_QUERY_ROOT, customerDetailsQueryKey } from '../queryKeys';
-import { maintenanceEnrollmentBlocksNewOwnerInvite } from '../../maintenance/utils/maintenanceEnrollmentUtils';
+import { MAINTENANCE_QUERY_ROOT } from '../../maintenance/queryKeys';
 
 function CustomerDetailsSkeleton() {
   return (
@@ -117,9 +116,6 @@ export function CustomerDetailsScreen() {
     notFound,
     refetch,
   } = useCustomerDetails(customerId);
-
-  const { maintenanceEnrollment, refetch: refetchMaintenanceEnrollment } =
-    useCustomerMaintenanceEnrollment(businessId, detailCustomerId);
 
   const customerPhoneDigits = useMemo(
     () => String(model?.phone ?? '').replace(/\D/g, ''),
@@ -269,16 +265,9 @@ export function CustomerDetailsScreen() {
     }
   }, [businessId, detailCustomerId, notesDraft, notesSaving, queryClient]);
 
-  const handleSendMaintenanceInvite = useCallback(() => {
+  const handleSendMaintenanceDetail = useCallback(() => {
     if (!detailCustomerId || !model) {
       Alert.alert('Unable to send offer', 'Missing customer context. Please try again.');
-      return;
-    }
-    if (maintenanceEnrollmentBlocksNewOwnerInvite(maintenanceEnrollment)) {
-      Alert.alert(
-        'Offer already pending',
-        'This customer still needs to pay and confirm from their link before you can send a new one.',
-      );
       return;
     }
     navigation.navigate(ROUTES.MAINTENANCE_INVITE, {
@@ -286,20 +275,7 @@ export function CustomerDetailsScreen() {
       customerName: model.fullName,
       customerEmail: model.email ?? '',
     });
-  }, [detailCustomerId, maintenanceEnrollment, model, navigation]);
-
-  const handleOpenMaintenanceDetail = useCallback(() => {
-    if (!detailCustomerId || !maintenanceEnrollment?.enrollmentId) {
-      return;
-    }
-    navigation.navigate(ROUTES.MORE, {
-      screen: ROUTES.MAINTENANCE_DETAIL,
-      params: {
-        customerId: detailCustomerId,
-        enrollmentId: maintenanceEnrollment.enrollmentId,
-      },
-    });
-  }, [detailCustomerId, maintenanceEnrollment, navigation]);
+  }, [detailCustomerId, model, navigation]);
 
   const refreshControl = useMemo(
     () => (
@@ -307,13 +283,13 @@ export function CustomerDetailsScreen() {
         colors={[colors.accent]}
         onRefresh={() => {
           void refetch();
-          void refetchMaintenanceEnrollment();
+          void queryClient.refetchQueries({ queryKey: MAINTENANCE_QUERY_ROOT });
         }}
         refreshing={Boolean(isFetching && !isLoading)}
         tintColor={colors.accent}
       />
     ),
-    [colors.accent, isFetching, isLoading, refetch, refetchMaintenanceEnrollment],
+    [colors.accent, isFetching, isLoading, queryClient, refetch],
   );
 
   const styles = useMemo(
@@ -467,9 +443,7 @@ export function CustomerDetailsScreen() {
         <View style={styles.footer}>
           <CustomerDetailActionsSection
             first
-            maintenanceEnrollment={maintenanceEnrollment}
-            onOpenMaintenanceDetail={handleOpenMaintenanceDetail}
-            onSendMaintenanceInvite={handleSendMaintenanceInvite}
+            onSendMaintenanceDetail={handleSendMaintenanceDetail}
             onSendText={handleSendText}
             removeLoading={removeLoading}
           />

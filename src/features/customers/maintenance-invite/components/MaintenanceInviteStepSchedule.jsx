@@ -1,138 +1,125 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { SurfaceTextField, TimeSelectField } from '../../../../components/ui';
-import { useTheme } from '../../../../theme';
-import { MaintenanceInviteFieldLabel } from './MaintenanceInviteFieldLabel';
-import { MaintenanceInviteFieldStack } from './MaintenanceInviteFieldStack';
-import { formatPreferredDateMmDdYyyy } from '../utils/formatPreferredDateDisplay';
-import {
-  formatLocalDateToYyyyMmDd,
-  normalizePickerDate,
-  parseYyyyMmDdToLocalDate,
-} from '../utils/maintenanceInviteFormUtils';
-
-const FIELD_SHELL = { marginBottom: 0 };
+import { Ionicons } from '@expo/vector-icons';
+import { useMemo } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { AppText, InlineCardError } from '../../../../components/ui';
+import { BookingCalendarCard, TimeSlotGrid } from '../../../availability/booking';
+import { FONT_FAMILIES, useTheme } from '../../../../theme';
+import { MAINTENANCE_INVITE_SCHEDULE_AVAILABILITY_HINT } from '../constants';
 
 /**
  * @param {object} props
- * @param {string} props.preferredDateYyyyMmDd
- * @param {(t: string) => void} props.onPreferredDateChange
- * @param {string} props.preferredTime12h
- * @param {(t: string) => void} props.onPreferredTimeChange
+ * @param {ReturnType<import('../hooks/useMaintenanceInviteSchedule').useMaintenanceInviteSchedule>} props.schedule
  */
-export function MaintenanceInviteStepSchedule({
-  preferredDateYyyyMmDd,
-  onPreferredDateChange,
-  preferredTime12h,
-  onPreferredTimeChange,
-}) {
+export function MaintenanceInviteStepSchedule({ schedule }) {
   const { colors } = useTheme();
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const dateValue = useMemo(
-    () => parseYyyyMmDdToLocalDate(preferredDateYyyyMmDd),
-    [preferredDateYyyyMmDd],
-  );
-
-  const dateDisplay = useMemo(
-    () => formatPreferredDateMmDdYyyy(preferredDateYyyyMmDd),
-    [preferredDateYyyyMmDd],
-  );
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        calendarHit: {
-          alignItems: 'center',
-          height: 40,
-          justifyContent: 'center',
-          marginLeft: 2,
-          width: 40,
+        root: {
+          gap: 20,
         },
-        pickerWrap: {
-          marginTop: 12,
-          overflow: 'hidden',
+        banner: {
+          color: colors.danger,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 14,
+          fontWeight: '600',
+          lineHeight: 20,
+        },
+        availabilityNoteRow: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          gap: 6,
+          marginTop: -8,
+        },
+        availabilityNoteIcon: {
+          marginTop: 1,
+          opacity: 0.85,
+        },
+        availabilityNote: {
+          color: colors.placeholder,
+          flex: 1,
+          fontSize: 12,
+          fontWeight: '400',
+          letterSpacing: -0.02,
+          lineHeight: 17,
+          opacity: 0.9,
+        },
+        timeSection: {
+          gap: 12,
+        },
+        timeLabel: {
+          color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 13,
+          fontWeight: '600',
+          letterSpacing: -0.1,
+        },
+        loadingRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 10,
+          paddingVertical: 4,
+        },
+        loadingText: {
+          color: colors.textMuted,
+          fontSize: 14,
+          fontWeight: '500',
+          lineHeight: 20,
         },
       }),
-    [],
+    [colors],
   );
 
-  function handleDateDismiss() {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-    }
-  }
-
-  function handleDateValueChange(_event, nextDateLike) {
-    const next =
-      nextDateLike instanceof Date && !Number.isNaN(nextDateLike.getTime())
-        ? nextDateLike
-        : normalizePickerDate(nextDateLike);
-    if (!next) return;
-    onPreferredDateChange(formatLocalDateToYyyyMmDd(next));
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-    }
-  }
-
-  function handleCalendarPress() {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(true);
-    } else {
-      setShowDatePicker((open) => !open);
-    }
-  }
-
   return (
-    <MaintenanceInviteFieldStack>
-      <View>
-        <SurfaceTextField
-          autoCapitalize="none"
-          containerStyle={FIELD_SHELL}
-          editable={false}
-          label="Date"
-          placeholder="Choose date"
-          rightAccessory={
-            <Pressable
-              accessibilityLabel="Open calendar"
-              accessibilityRole="button"
-              hitSlop={8}
-              style={styles.calendarHit}
-              onPress={handleCalendarPress}
-            >
-              <Ionicons color={colors.textMuted} name="calendar-outline" size={22} />
-            </Pressable>
-          }
-          value={dateDisplay}
-          onChangeText={() => {}}
-          onShellPress={handleCalendarPress}
+    <View style={styles.root}>
+      {!schedule.acceptBookings ? (
+        <AppText style={styles.banner}>
+          Bookings are turned off in Availability. Turn them on to suggest a date and time.
+        </AppText>
+      ) : null}
+
+      <BookingCalendarCard
+        cardStyle={{ marginBottom: 0 }}
+        isDateUnavailable={schedule.isDateUnavailable}
+        maxDate={schedule.maxDate}
+        minDate={schedule.minDate}
+        selectedDateKey={schedule.selectedDateKey}
+        onSelectDateKey={schedule.onSelectDateKey}
+      />
+
+      <View style={styles.availabilityNoteRow}>
+        <Ionicons
+          color={colors.placeholder}
+          name="information-circle-outline"
+          size={14}
+          style={styles.availabilityNoteIcon}
         />
-        {showDatePicker ? (
-          <View style={Platform.OS === 'ios' ? styles.pickerWrap : undefined}>
-            <DateTimePicker
-              display={Platform.OS === 'ios' ? 'inline' : 'default'}
-              mode="date"
-              value={dateValue}
-              onDismiss={handleDateDismiss}
-              onValueChange={handleDateValueChange}
-            />
-          </View>
-        ) : null}
+        <AppText style={styles.availabilityNote}>
+          {MAINTENANCE_INVITE_SCHEDULE_AVAILABILITY_HINT}
+        </AppText>
       </View>
 
-      <View>
-        <View style={{ marginBottom: 8 }}>
-          <MaintenanceInviteFieldLabel text="Time" />
+      {schedule.scheduleError ? <InlineCardError message={schedule.scheduleError} /> : null}
+
+      {schedule.selectedDateKey ? (
+        <View style={styles.timeSection}>
+          <AppText style={styles.timeLabel}>Choose time</AppText>
+          {schedule.scheduleLoading ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color={colors.accent} />
+              <AppText style={styles.loadingText}>Loading open times…</AppText>
+            </View>
+          ) : (
+            <TimeSlotGrid
+              horizontalPadding={0}
+              selectedTime={schedule.selectedTime}
+              timeSlots={schedule.timeSlots}
+              onSelectTime={schedule.onSelectTime}
+            />
+          )}
         </View>
-        <TimeSelectField
-          placeholder="Select time"
-          title="Time"
-          value={preferredTime12h}
-          onValueChange={onPreferredTimeChange}
-        />
-      </View>
-    </MaintenanceInviteFieldStack>
+      ) : null}
+    </View>
   );
 }
