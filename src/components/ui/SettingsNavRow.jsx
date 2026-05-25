@@ -13,7 +13,13 @@ const CHEVRON_W = 22;
  * Tappable settings row: optional leading icon, label, chevron. Place inside `SettingsSection`.
  * Label is wrapped in a View so `flex` layout stays stable (Text + flex in a row is unreliable in RN).
  */
-export function SettingsNavRow({ icon, label, onPress, showDividerBelow = true }) {
+export function SettingsNavRow({
+  disabled = false,
+  icon,
+  label,
+  onPress,
+  showDividerBelow = true,
+}) {
   const { colors } = useTheme();
 
   const dividerInsetLeft = icon ? ROW_PAD_H + ICON_COL_W + ICON_GAP : ROW_PAD_H;
@@ -40,6 +46,9 @@ export function SettingsNavRow({ icon, label, onPress, showDividerBelow = true }
         },
         pressed: {
           backgroundColor: colors.buttonGhostPressed,
+        },
+        disabled: {
+          opacity: 0.45,
         },
         iconWrap: {
           alignItems: 'center',
@@ -81,9 +90,15 @@ export function SettingsNavRow({ icon, label, onPress, showDividerBelow = true }
 
   return (
     <View style={styles.root}>
-      <Pressable accessibilityRole="button" onPress={onPress}>
+      <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress}>
         {({ pressed }) => (
-          <View style={[styles.row, pressed && styles.pressed]}>
+          <View
+            style={[
+              styles.row,
+              pressed && !disabled && styles.pressed,
+              disabled && styles.disabled,
+            ]}
+          >
             {icon ? (
               <View style={styles.iconWrap}>
                 <Ionicons color={colors.textMuted} name={icon} size={22} />

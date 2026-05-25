@@ -6,6 +6,9 @@ import { BookingLinkScreen } from '../../bookingLink/screens/BookingLinkScreen';
 import { PaymentsScreen } from '../../payments/screens/PaymentsScreen';
 import { QuoteDetailScreen } from '../../quotes/screens/QuoteDetailScreen';
 import { QuotesScreen } from '../../quotes/screens/QuotesScreen';
+import { CustomerDetailsScreen } from '../../customers/screens/CustomerDetailsScreen';
+import { MaintenanceDetailScreen } from '../../maintenance/screens/MaintenanceDetailScreen';
+import { MaintenanceScreen } from '../../maintenance/screens/MaintenanceScreen';
 import { ServicesScreen } from '../../services';
 import { ServiceEditScreen } from '../../services/screens/ServiceEditScreen';
 import { AccountSettingsScreen } from '../screens/AccountSettingsScreen';
@@ -102,6 +105,32 @@ export function MoreNavigator() {
         name={ROUTES.QUOTES}
         options={{
           title: 'Quotes',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={MaintenanceScreen}
+        name={ROUTES.MAINTENANCE}
+        options={{
+          title: 'Maintenance details',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={MaintenanceDetailScreen}
+        name={ROUTES.MAINTENANCE_DETAIL}
+        options={{
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={CustomerDetailsScreen}
+        name={ROUTES.CUSTOMER_DETAILS}
+        options={{
+          title: 'Customer details',
           headerBackButtonDisplayMode: 'minimal',
           headerBackTitleVisible: false,
         }}

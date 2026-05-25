@@ -58,7 +58,7 @@ export function MoreScreen() {
         <AppText style={styles.screenTitle}>More</AppText>
         <SettingsSection first title="Business">
           <SettingsNavRow
-            icon="construct-outline"
+            icon="albums-outline"
             label="Services"
             onPress={() => navigation.navigate(ROUTES.SERVICES_LIST)}
           />
@@ -71,6 +71,11 @@ export function MoreScreen() {
             icon="document-text-outline"
             label="Quotes"
             onPress={() => navigation.navigate(ROUTES.QUOTES)}
+          />
+          <SettingsNavRow
+            icon="repeat-outline"
+            label="Maintenance details"
+            onPress={() => navigation.navigate(ROUTES.MAINTENANCE)}
           />
           <SettingsNavRow
             icon="link-outline"

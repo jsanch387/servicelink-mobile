@@ -1,39 +1,38 @@
-import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, DeleteButton } from '../../../../components/ui';
+import { SettingsNavRow, SettingsSection } from '../../../../components/ui';
 
+/** Label for the maintenance offer wizard entry point on customer profile. */
+export const CUSTOMER_DETAIL_SEND_MAINTENANCE_LABEL = 'Maintenance detail';
+
+/**
+ * Grouped quick actions for a customer profile.
+ *
+ * @param {object} props
+ * @param {() => void} props.onSendMaintenanceDetail
+ * @param {() => void} props.onSendText
+ * @param {boolean} [props.first]
+ * @param {boolean} [props.removeLoading]
+ */
 export function CustomerDetailActionsSection({
+  first = false,
+  onSendMaintenanceDetail,
   onSendText,
-  onRemoveCustomer,
   removeLoading = false,
 }) {
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        stack: {
-          rowGap: 10,
-          marginTop: 4,
-        },
-      }),
-    [],
-  );
-
   return (
-    <View style={styles.stack}>
-      <Button
+    <SettingsSection first={first} title="Actions">
+      <SettingsNavRow
         disabled={removeLoading}
-        fullWidth
-        iconName="chatbubble-ellipses-outline"
+        icon="chatbubble-ellipses-outline"
+        label="Send a text"
         onPress={onSendText}
-        title="Send a text"
-        variant="primary"
       />
-      <DeleteButton
+      <SettingsNavRow
         disabled={removeLoading}
-        loading={removeLoading}
-        title="Remove customer"
-        onPress={onRemoveCustomer}
+        icon="repeat-outline"
+        label={CUSTOMER_DETAIL_SEND_MAINTENANCE_LABEL}
+        showDividerBelow={false}
+        onPress={onSendMaintenanceDetail}
       />
-    </View>
+    </SettingsSection>
   );
 }

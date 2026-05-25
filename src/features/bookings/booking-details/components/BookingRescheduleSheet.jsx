@@ -234,12 +234,23 @@ export function BookingRescheduleSheet({
       return;
     }
     setDateValue((prev) => mergeDateKeepingTime(prev, next));
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
   }
 
   function handleDateDismiss() {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
     }
+  }
+
+  function handleDateTriggerPress() {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(true);
+      return;
+    }
+    setShowDatePicker((open) => !open);
   }
 
   function handleTimeChange(nextTimeLabel) {
@@ -324,7 +335,12 @@ export function BookingRescheduleSheet({
             Choose a new date and time for this appointment.
           </AppText>
 
-          <Pressable style={styles.dateTrigger} onPress={() => setShowDatePicker(true)}>
+          <Pressable
+            accessibilityLabel={showDatePicker ? 'Hide calendar' : 'Show calendar'}
+            accessibilityRole="button"
+            style={styles.dateTrigger}
+            onPress={handleDateTriggerPress}
+          >
             <AppText style={styles.dateTriggerText}>{dateLabel}</AppText>
             <Ionicons color={colors.textMuted} name="calendar-outline" size={20} />
           </Pressable>

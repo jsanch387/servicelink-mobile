@@ -39,9 +39,24 @@ export function ScheduleSection({ schedule }) {
         <AppText style={styles.serviceText}>{schedule.serviceName}</AppText>
         <Divider />
         <View style={styles.fieldsStack}>
-          <DetailIconFieldRow icon="calendar-outline" label="Date" value={schedule.date} />
-          <DetailIconFieldRow icon="time-outline" label="Time" value={schedule.time} />
-          <DetailIconFieldRow icon="hourglass-outline" label="Duration" value={schedule.duration} />
+          <DetailIconFieldRow
+            icon="calendar-outline"
+            label="Date"
+            labelUppercase={false}
+            value={schedule.date}
+          />
+          <DetailIconFieldRow
+            icon="time-outline"
+            label="Time"
+            labelUppercase={false}
+            value={schedule.time}
+          />
+          <DetailIconFieldRow
+            icon="hourglass-outline"
+            label="Duration"
+            labelUppercase={false}
+            value={schedule.duration}
+          />
         </View>
       </View>
     </DetailsSectionCard>

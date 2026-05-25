@@ -5,11 +5,16 @@ import { AppText } from './AppText';
 import { FONT_FAMILIES, useTheme } from '../../theme';
 
 /**
- * Icon + uppercase label + value row (quote detail / booking schedule pattern).
+ * Icon + label + value row (quote detail / booking schedule pattern).
  *
- * @param {{ icon: import('@expo/vector-icons').IconProps['name']; label: string; value: string }} props
+ * @param {{
+ *   icon: import('@expo/vector-icons').IconProps['name'];
+ *   label: string;
+ *   value: string;
+ *   labelUppercase?: boolean;
+ * }} props
  */
-export function DetailIconFieldRow({ icon, label, value }) {
+export function DetailIconFieldRow({ icon, label, value, labelUppercase = true }) {
   const { colors } = useTheme();
 
   const styles = useMemo(
@@ -26,11 +31,11 @@ export function DetailIconFieldRow({ icon, label, value }) {
         label: {
           color: colors.textMuted,
           fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 12,
+          fontSize: labelUppercase ? 12 : 13,
           fontWeight: '600',
-          letterSpacing: 0.2,
+          letterSpacing: labelUppercase ? 0.2 : -0.1,
           marginBottom: 4,
-          textTransform: 'uppercase',
+          textTransform: labelUppercase ? 'uppercase' : 'none',
         },
         value: {
           color: colors.textSecondary,
@@ -45,7 +50,7 @@ export function DetailIconFieldRow({ icon, label, value }) {
           minWidth: 0,
         },
       }),
-    [colors],
+    [colors, labelUppercase],
   );
 
   return (

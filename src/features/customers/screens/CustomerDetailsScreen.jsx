@@ -4,8 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { AppText, Button, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
+import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
+import { CustomerDangerSection } from '../customer-details/components/CustomerDangerSection';
 import { CustomerDetailActionsSection } from '../customer-details/components/CustomerDetailActionsSection';
 import { CustomerNotesSection } from '../customer-details/components/CustomerNotesSection';
 import { CustomerProfileContactCard } from '../customer-details/components/CustomerProfileContactCard';
@@ -14,6 +16,7 @@ import { removeCustomerForBusiness, updateCustomerNotesForBusiness } from '../ap
 import { openCustomerCheckInSms } from '../customer-details/utils/openCustomerCheckInSms';
 import { useCustomerDetails } from '../hooks/useCustomerDetails';
 import { CUSTOMERS_QUERY_ROOT, customerDetailsQueryKey } from '../queryKeys';
+import { MAINTENANCE_QUERY_ROOT } from '../../maintenance/queryKeys';
 
 function CustomerDetailsSkeleton() {
   return (
@@ -59,18 +62,33 @@ function CustomerDetailsSkeleton() {
       </View>
 
       <View style={skeletonStyles.section}>
-        <SkeletonBox borderRadius={8} height={18} pulse width="23%" />
-        <SurfaceCard style={skeletonStyles.notesCard}>
-          <SkeletonBox borderRadius={8} height={16} pulse width="85%" />
-          <SkeletonBox borderRadius={8} height={16} pulse style={{ marginTop: 10 }} width="92%" />
-          <SkeletonBox borderRadius={8} height={16} pulse style={{ marginTop: 10 }} width="76%" />
+        <SkeletonBox borderRadius={8} height={18} pulse width="18%" />
+        <SurfaceCard style={skeletonStyles.menuCard}>
+          <SkeletonBox
+            borderRadius={8}
+            height={16}
+            pulse
+            style={{ marginVertical: 14 }}
+            width="72%"
+          />
+          <SkeletonBox
+            borderRadius={8}
+            height={16}
+            pulse
+            style={{ marginVertical: 14 }}
+            width="58%"
+          />
         </SurfaceCard>
       </View>
 
-      <View style={skeletonStyles.actions}>
-        <SkeletonBox borderRadius={14} height={52} pulse width="100%" />
-        <SkeletonBox borderRadius={14} height={52} pulse style={{ marginTop: 10 }} width="100%" />
+      <View style={skeletonStyles.section}>
+        <SkeletonBox borderRadius={8} height={18} pulse width="23%" />
+        <SurfaceCard style={skeletonStyles.notesCard}>
+          <SkeletonBox borderRadius={8} height={16} pulse width="85%" />
+        </SurfaceCard>
       </View>
+
+      <SkeletonBox borderRadius={12} height={48} pulse width="100%" />
     </View>
   );
 }
@@ -247,16 +265,31 @@ export function CustomerDetailsScreen() {
     }
   }, [businessId, detailCustomerId, notesDraft, notesSaving, queryClient]);
 
+  const handleSendMaintenanceDetail = useCallback(() => {
+    if (!detailCustomerId || !model) {
+      Alert.alert('Unable to send offer', 'Missing customer context. Please try again.');
+      return;
+    }
+    navigation.navigate(ROUTES.MAINTENANCE_INVITE, {
+      customerId: detailCustomerId,
+      customerName: model.fullName,
+      customerEmail: model.email ?? '',
+    });
+  }, [detailCustomerId, model, navigation]);
+
   const refreshControl = useMemo(
     () => (
       <RefreshControl
         colors={[colors.accent]}
-        onRefresh={() => void refetch()}
+        onRefresh={() => {
+          void refetch();
+          void queryClient.refetchQueries({ queryKey: MAINTENANCE_QUERY_ROOT });
+        }}
         refreshing={Boolean(isFetching && !isLoading)}
         tintColor={colors.accent}
       />
     ),
-    [colors.accent, isFetching, isLoading, refetch],
+    [colors.accent, isFetching, isLoading, queryClient, refetch],
   );
 
   const styles = useMemo(
@@ -267,13 +300,13 @@ export function CustomerDetailsScreen() {
           flex: 1,
         },
         content: {
-          paddingBottom: 40,
+          paddingBottom: 32,
           paddingHorizontal: 16,
           paddingTop: 10,
           rowGap: 16,
         },
-        actionsBlock: {
-          marginTop: 4,
+        footer: {
+          alignSelf: 'stretch',
         },
         centered: {
           alignItems: 'center',
@@ -407,21 +440,27 @@ export function CustomerDetailsScreen() {
           totalVisitsLabel={model.totalVisitsLabel}
         />
 
-        <CustomerNotesSection
-          draftNotes={notesDraft}
-          isEditing={notesEditing}
-          notes={notesText}
-          onCancelEdit={handleCancelEditNotes}
-          onChangeDraftNotes={setNotesDraft}
-          onSaveEdit={handleSaveNotes}
-          onStartEdit={handleStartEditNotes}
-          saveLoading={notesSaving}
-        />
-
-        <View style={styles.actionsBlock}>
+        <View style={styles.footer}>
           <CustomerDetailActionsSection
-            onRemoveCustomer={handleRemoveCustomer}
+            first
+            onSendMaintenanceDetail={handleSendMaintenanceDetail}
             onSendText={handleSendText}
+            removeLoading={removeLoading}
+          />
+
+          <CustomerNotesSection
+            draftNotes={notesDraft}
+            isEditing={notesEditing}
+            notes={notesText}
+            onCancelEdit={handleCancelEditNotes}
+            onChangeDraftNotes={setNotesDraft}
+            onSaveEdit={handleSaveNotes}
+            onStartEdit={handleStartEditNotes}
+            saveLoading={notesSaving}
+          />
+
+          <CustomerDangerSection
+            onRemoveCustomer={handleRemoveCustomer}
             removeLoading={removeLoading}
           />
         </View>
@@ -456,7 +495,8 @@ const skeletonStyles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
-  actions: {
-    marginTop: 4,
+  menuCard: {
+    paddingHorizontal: 14,
+    paddingVertical: 4,
   },
 });

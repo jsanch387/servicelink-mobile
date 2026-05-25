@@ -16,18 +16,12 @@ export function PriceBreakdownSection({ formattedPrice }) {
 
   return (
     <DetailsSectionCard bodyPadding="roomy" title="Price breakdown">
-      <LabelValueRow
-        label="Service"
-        labelAppearance="caption"
-        noTopMargin
-        value={formattedPrice.servicePrice}
-      />
+      <LabelValueRow label="Service" noTopMargin value={formattedPrice.servicePrice} />
       {formattedPrice.hasAddOns
         ? formattedPrice.addOns.map((item) => (
             <LabelValueRow
               key={item.id}
               label={item.name}
-              labelAppearance="caption"
               labelPrefixIcon="add"
               value={item.priceLabel}
             />
@@ -36,13 +30,7 @@ export function PriceBreakdownSection({ formattedPrice }) {
       <View style={styles.dividerWrap}>
         <Divider />
       </View>
-      <LabelValueRow
-        emphasize
-        label="Total"
-        labelAppearance="caption"
-        noTopMargin
-        value={formattedPrice.total}
-      />
+      <LabelValueRow emphasize label="Total" noTopMargin value={formattedPrice.total} />
     </DetailsSectionCard>
   );
 }

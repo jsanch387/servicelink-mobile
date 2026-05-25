@@ -5,6 +5,9 @@ import {
   Button,
   InlineCardError,
   SelectField,
+  SubmitOutcomeError,
+  SubmitOutcomePending,
+  SubmitOutcomeSuccess,
   SurfaceCard,
   SurfaceTextField,
 } from '../../../components/ui';
@@ -12,9 +15,6 @@ import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useAuth } from '../../auth';
 import { useTheme } from '../../../theme';
 import { postContactForm } from '../api/postContactForm';
-import { SupportSubmitConfirm } from '../components/SupportSubmitConfirm';
-import { SupportSubmitError } from '../components/SupportSubmitError';
-import { SupportSubmitPending } from '../components/SupportSubmitPending';
 import { CONTACT_TOPICS, DEFAULT_CONTACT_TOPIC } from '../constants/contactTopics';
 import { SUPPORT_SUBMIT_MIN_PENDING_MS } from '../constants/supportSubmitTiming';
 import { resolveContactFormSubmitter } from '../utils/resolveContactFormSubmitter';
@@ -155,13 +155,26 @@ export function SupportScreen() {
 
   const renderStatus = () => {
     if (phase === 'pending') {
-      return <SupportSubmitPending />;
+      return <SubmitOutcomePending accessibilityLabel="Sending message" card title="Sending" />;
     }
     if (phase === 'success') {
-      return <SupportSubmitConfirm onDone={resetForm} />;
+      return (
+        <SubmitOutcomeSuccess
+          body="Thanks for reaching out. We usually respond within 24 hours."
+          iconAccessibilityLabel="Message sent"
+          primaryAction={{ title: 'Done', onPress: resetForm }}
+          title="Message sent"
+        />
+      );
     }
     if (phase === 'error') {
-      return <SupportSubmitError message={submitError} onTryAgain={returnToForm} />;
+      return (
+        <SubmitOutcomeError
+          iconAccessibilityLabel="Message could not be sent"
+          message={submitError}
+          onPrimaryAction={returnToForm}
+        />
+      );
     }
     return null;
   };

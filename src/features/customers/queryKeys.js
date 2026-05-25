@@ -8,3 +8,7 @@ export function customersListQueryKey(businessId) {
 export function customerDetailsQueryKey(businessId, customerId) {
   return [...CUSTOMERS_QUERY_ROOT, 'detail', businessId ?? 'none', customerId ?? 'none'];
 }
+
+export function customersApiQueryKey(businessId) {
+  return [...CUSTOMERS_QUERY_ROOT, 'api', businessId ?? 'none'];
+}
