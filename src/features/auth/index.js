@@ -1,6 +1,8 @@
 export { AuthProvider, useAuth } from './context/AuthContext';
 export { ensureUserProfileRow, pickFullNameFromUserMetadata } from './api/ensureUserProfile';
 export {
+  sendEmailLoginOtp,
+  verifyEmailLoginOtp,
   AUTH_SESSION_CALLBACK_URL,
   completeAuthSessionFromUrl,
   getEmailConfirmationRedirectUrl,
@@ -18,4 +20,4 @@ export {
   signUpWithEmailPassword,
   validateSessionWithServerOrSignOut,
 } from './api/auth';
-export { getAuthErrorMessage } from './utils/authErrors';
+export { getAuthErrorMessage, getLoginCodeSentMessage } from './utils/authErrors';

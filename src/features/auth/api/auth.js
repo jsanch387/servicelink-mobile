@@ -236,6 +236,43 @@ export async function signInWithEmailPassword(email, password) {
   });
 }
 
+/**
+ * Sends a one-time email sign-in code (not a magic link).
+ * Requires Supabase Email template to include `{{ .Token }}` — see auth README.
+ * Login-only: does not create new auth users.
+ */
+export async function sendEmailLoginOtp(email) {
+  const trimmed = String(email ?? '').trim();
+  if (!trimmed) {
+    return { data: null, error: new Error('Email is required.') };
+  }
+  return supabase.auth.signInWithOtp({
+    email: trimmed,
+    options: {
+      shouldCreateUser: false,
+    },
+  });
+}
+
+/**
+ * Verifies the 6-digit email OTP and establishes a session.
+ */
+export async function verifyEmailLoginOtp(email, token) {
+  const trimmedEmail = String(email ?? '').trim();
+  const trimmedToken = String(token ?? '').trim();
+  if (!trimmedEmail) {
+    return { data: null, error: new Error('Email is required.') };
+  }
+  if (!trimmedToken) {
+    return { data: null, error: new Error('Enter the login code from your email.') };
+  }
+  return supabase.auth.verifyOtp({
+    email: trimmedEmail,
+    token: trimmedToken,
+    type: 'email',
+  });
+}
+
 export async function signUpWithEmailPassword(email, password, caller = {}) {
   const { options: userOptions, ...ignored } = caller;
   void ignored;

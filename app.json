@@ -51,7 +51,7 @@
     },
     "android": {
       "package": "com.jsanchdev.servicelinkmobile",
-      "versionCode": 16
+      "versionCode": 17
     }
   }
 }

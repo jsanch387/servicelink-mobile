@@ -8,6 +8,8 @@ export const ROUTES = {
   SIGN_UP: 'SignUp',
   /** After email/password sign-up when Supabase requires email confirmation */
   CHECK_YOUR_EMAIL: 'CheckYourEmail',
+  /** Enter OTP after login email step */
+  LOGIN_EMAIL_CODE: 'LoginEmailCode',
   /** Opens ServiceLink forgot-password in the system browser */
   FORGOT_PASSWORD: 'ForgotPassword',
   /** First-time signup — blocks main tabs until finished */
@@ -92,6 +94,8 @@ export const PATHS = {
   /** Hosted legal pages on the Next.js site (opened from More tab). */
   PRIVACY_POLICY: '/privacy',
   TERMS_OF_SERVICE: '/terms',
+  /** Web sign-up (App Store — account creation on web only). */
+  WEB_SIGN_UP: '/signup',
 };
 
 /** Bottom tabs: order, labels, and Ionicons glyph names. */

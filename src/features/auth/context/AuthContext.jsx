@@ -15,18 +15,25 @@ import {
   getSession,
   onAuthStateChange,
   resendSignupConfirmationEmail,
-  signInWithAppleOAuth,
-  signInWithEmailPassword,
-  signInWithGoogleOAuth,
+  sendEmailLoginOtp,
   signOut as signOutRequest,
   signUpWithEmailPassword,
   validateSessionWithServerOrSignOut,
+  verifyEmailLoginOtp,
 } from '../api/auth';
 import { ensureUserProfileRow } from '../api/ensureUserProfile';
+import { NO_EXISTING_SERVICELINK_ACCOUNT_CODE } from '../constants/existingAccountOnlyCopy';
 import { queryClient } from '../../../lib/queryClient';
-import { getAuthErrorMessage } from '../utils/authErrors';
+import { getAuthErrorMessage, getAuthErrorHint } from '../utils/authErrors';
 
 const AuthContext = createContext(null);
+
+function notifyExistingAccountOnlyFailure(error) {
+  if (Platform.OS === 'web') {
+    return;
+  }
+  Alert.alert('Sign in', getAuthErrorMessage(error));
+}
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
@@ -57,6 +64,9 @@ export function AuthProvider({ children }) {
           return;
         }
         if (!ensured.ok) {
+          if (ensured.error?.code === NO_EXISTING_SERVICELINK_ACCOUNT_CODE) {
+            notifyExistingAccountOnlyFailure(ensured.error);
+          }
           await signOutRequest();
           queryClient.clear();
           nextSession = null;
@@ -80,6 +90,9 @@ export function AuthProvider({ children }) {
       if (nextSession?.user?.id) {
         void ensureUserProfileRow(nextSession).then(async (r) => {
           if (!r.ok) {
+            if (r.error?.code === NO_EXISTING_SERVICELINK_ACCOUNT_CODE) {
+              notifyExistingAccountOnlyFailure(r.error);
+            }
             await signOutRequest();
             queryClient.clear();
             setSession(null);
@@ -154,8 +167,19 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const signIn = useCallback(async (email, password) => {
-    const { error } = await signInWithEmailPassword(email, password);
+  const sendLoginCode = useCallback(async (email) => {
+    const { error } = await sendEmailLoginOtp(email);
+    if (error) {
+      return {
+        error: getAuthErrorMessage(error),
+        errorHint: getAuthErrorHint(error),
+      };
+    }
+    return { error: null, errorHint: null };
+  }, []);
+
+  const verifyLoginCode = useCallback(async (email, code) => {
+    const { error } = await verifyEmailLoginOtp(email, code);
     if (error) {
       return { error: getAuthErrorMessage(error) };
     }
@@ -180,28 +204,6 @@ export function AuthProvider({ children }) {
     return { error: null };
   }, []);
 
-  const signInWithGoogle = useCallback(async () => {
-    const { error, cancelled } = await signInWithGoogleOAuth();
-    if (cancelled) {
-      return { error: null, cancelled: true };
-    }
-    if (error) {
-      return { error: getAuthErrorMessage(error), cancelled: false };
-    }
-    return { error: null, cancelled: false };
-  }, []);
-
-  const signInWithApple = useCallback(async () => {
-    const { error, cancelled } = await signInWithAppleOAuth();
-    if (cancelled) {
-      return { error: null, cancelled: true };
-    }
-    if (error) {
-      return { error: getAuthErrorMessage(error), cancelled: false };
-    }
-    return { error: null, cancelled: false };
-  }, []);
-
   const signOut = useCallback(async () => {
     const { error } = await signOutRequest();
     if (error) {
@@ -217,23 +219,13 @@ export function AuthProvider({ children }) {
       session,
       user: session?.user ?? null,
       isReady,
-      signIn,
-      signInWithGoogle,
-      signInWithApple,
+      sendLoginCode,
+      verifyLoginCode,
       signUp,
       resendSignupConfirmation,
       signOut,
     }),
-    [
-      session,
-      isReady,
-      signIn,
-      signInWithGoogle,
-      signInWithApple,
-      signUp,
-      resendSignupConfirmation,
-      signOut,
-    ],
+    [session, isReady, sendLoginCode, verifyLoginCode, signUp, resendSignupConfirmation, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

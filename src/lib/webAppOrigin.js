@@ -66,6 +66,18 @@ export function getWebAccountAdminUrl() {
   return `${origin}${PATHS.LOGIN}`;
 }
 
+/**
+ * Web sign-up page — account creation on web, not in the iOS app.
+ */
+export function getWebSignUpUrl() {
+  const explicit = String(process.env.EXPO_PUBLIC_WEB_SIGNUP_URL ?? '').trim();
+  if (explicit) {
+    return explicit;
+  }
+  const origin = (getWebAppOrigin() || PROD_WEB_ORIGIN).replace(/\/$/, '');
+  return `${origin}${PATHS.WEB_SIGN_UP}`;
+}
+
 /** @deprecated Use {@link getWebAccountAdminUrl} */
 export function getWebPlanManagementUrl() {
   return getWebAccountAdminUrl();

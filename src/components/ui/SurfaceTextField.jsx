@@ -12,6 +12,7 @@ import { SurfaceInputRow, useSurfaceInputTextStyle } from './SurfaceInputRow';
  * Optional `rightAccessory` adds a trailing node (e.g. calendar); ignored when `showPasswordToggle` is true.
  * Optional `onShellPress` wraps the input row in a pressable (e.g. date field + calendar). Use with `editable={false}` so taps reach the shell.
  * Optional `errorText` — small red line under the row (takes precedence over `helperText` for visibility).
+ * Optional `errorHint` — muted second line under `errorText`.
  * Optional `helperText` — muted hint under the row (hidden when `errorText` is set).
  * `label` may be a string or a React node (e.g. custom label styling).
  * Ref is forwarded to the inner `TextInput` (e.g. focus chaining).
@@ -21,6 +22,7 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
     label,
     leftIcon,
     errorText,
+    errorHint,
     helperText,
     showPasswordToggle = false,
     /** Trailing slot inside the row (e.g. icon button). Ignored when `showPasswordToggle` is true. */
@@ -85,6 +87,11 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
           fontWeight: '500',
           lineHeight: 16,
           marginTop: 6,
+        },
+        errorHintLine: {
+          fontSize: 12,
+          lineHeight: 17,
+          marginTop: 4,
         },
       }),
     [colors, compact, focused, hasError],
@@ -159,12 +166,19 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
         inputRow
       )}
       {hasError ? (
-        <AppText
-          accessibilityLiveRegion="polite"
-          style={[styles.helperLine, { color: colors.danger }]}
-        >
-          {errorText.trim()}
-        </AppText>
+        <>
+          <AppText
+            accessibilityLiveRegion="polite"
+            style={[styles.helperLine, { color: colors.danger }]}
+          >
+            {errorText.trim()}
+          </AppText>
+          {errorHint?.trim() ? (
+            <AppText style={[styles.helperLine, styles.errorHintLine, { color: colors.textMuted }]}>
+              {errorHint.trim()}
+            </AppText>
+          ) : null}
+        </>
       ) : helperText?.trim() ? (
         <AppText style={[styles.helperLine, { color: colors.textMuted }]}>
           {helperText.trim()}

@@ -8,6 +8,7 @@ import { ActivityIndicator, Animated, StyleSheet, View } from 'react-native';
 import { AppFontLoadingShell } from '../components/ui';
 import { useAuth } from '../features/auth';
 import { ForgotPasswordScreen } from '../features/auth/screens/ForgotPasswordScreen';
+import { LoginEmailCodeScreen } from '../features/auth/screens/LoginEmailCodeScreen';
 import { LoginScreen } from '../features/auth/screens/LoginScreen';
 // App Store 3.1.1: registration routes disabled — companion app is sign-in only.
 // import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
@@ -281,6 +282,7 @@ export function AuthNavigator() {
           {!session ? (
             <>
               <Stack.Screen component={LoginScreen} name={ROUTES.LOGIN} />
+              <Stack.Screen component={LoginEmailCodeScreen} name={ROUTES.LOGIN_EMAIL_CODE} />
               {/* <Stack.Screen component={SignUpScreen} name={ROUTES.SIGN_UP} /> */}
               {/* <Stack.Screen component={CheckYourEmailScreen} name={ROUTES.CHECK_YOUR_EMAIL} /> */}
               <Stack.Screen component={ForgotPasswordScreen} name={ROUTES.FORGOT_PASSWORD} />
