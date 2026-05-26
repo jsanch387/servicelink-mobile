@@ -7,6 +7,13 @@ export const LOGIN_SCREEN_TITLE = 'Sign in';
 /** Login screen subtitle (under logo). */
 export const LOGIN_SCREEN_SUBTITLE = 'Enter your email to receive a login code.';
 
+/**
+ * Login footer — informational only (not a link; App Store 3.1.1).
+ * Points new users to the website without in-app registration or external browser handoff.
+ */
+export const LOGIN_SCREEN_NO_ACCOUNT_NOTE =
+  "Don't have an account? Visit myservicelink.app in a web browser to get started.";
+
 /** Short headline for login form errors. */
 export const NO_EXISTING_SERVICELINK_ACCOUNT_TITLE = 'No account for this email';
 

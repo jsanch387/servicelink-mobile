@@ -15,7 +15,11 @@ import { useTheme } from '../../../theme';
 import { useAuth } from '..';
 import { AuthBrandLogo } from '../components/AuthBrandLogo';
 import { getAuthFormSharedStyles } from '../authFormStyles';
-import { LOGIN_SCREEN_SUBTITLE, LOGIN_SCREEN_TITLE } from '../constants/existingAccountOnlyCopy';
+import {
+  LOGIN_SCREEN_NO_ACCOUNT_NOTE,
+  LOGIN_SCREEN_SUBTITLE,
+  LOGIN_SCREEN_TITLE,
+} from '../constants/existingAccountOnlyCopy';
 
 export function LoginScreen() {
   const navigation = useNavigation();
@@ -45,6 +49,16 @@ export function LoginScreen() {
           maxWidth: undefined,
           paddingHorizontal: 0,
           width: '100%',
+        },
+        noAccountNote: {
+          alignSelf: 'stretch',
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          letterSpacing: -0.05,
+          lineHeight: 19,
+          marginTop: 24,
+          textAlign: 'center',
         },
       }),
     [colors],
@@ -136,6 +150,10 @@ export function LoginScreen() {
                     />
                   </View>
                 </View>
+
+                <AppText accessibilityRole="text" style={styles.noAccountNote}>
+                  {LOGIN_SCREEN_NO_ACCOUNT_NOTE}
+                </AppText>
               </View>
             </Pressable>
           </View>
