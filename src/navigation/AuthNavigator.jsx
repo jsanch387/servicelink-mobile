@@ -4,7 +4,7 @@ import { PushNotificationsBootstrap } from '../features/notifications/components
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, Platform, StyleSheet, View } from 'react-native';
 import { AppFontLoadingShell } from '../components/ui';
 import { useAuth } from '../features/auth';
 import { ForgotPasswordScreen } from '../features/auth/screens/ForgotPasswordScreen';
@@ -14,6 +14,7 @@ import { LoginScreen } from '../features/auth/screens/LoginScreen';
 // import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
 // import { CheckYourEmailScreen } from '../features/auth/screens/CheckYourEmailScreen';
 import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
+import { MobileSetupRequiredScreen } from '../features/onboarding/screens/MobileSetupRequiredScreen';
 import { PENDING_NAVIGATE_TO_BOOKING_LINK_KEY } from '../features/onboarding/constants/postOnboardingNavigation';
 import { CreateAppointmentScreen } from '../features/bookings';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
@@ -225,7 +226,7 @@ export function AuthNavigator() {
         >
           {session && needsOnboarding ? (
             <Stack.Screen
-              component={OnboardingScreen}
+              component={Platform.OS === 'web' ? OnboardingScreen : MobileSetupRequiredScreen}
               name={ROUTES.ONBOARDING}
               options={{ gestureEnabled: false }}
             />

@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import * as Linking from 'expo-linking';
+import { openWebPageInAppBrowser } from '../../../lib/openWebPageInAppBrowser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AppText, Button } from '../../../components/ui';
@@ -16,10 +16,7 @@ export function ForgotPasswordScreen() {
   const openedOnce = useRef(false);
 
   const openForgotPage = useCallback(async () => {
-    const supported = await Linking.canOpenURL(url);
-    if (supported) {
-      await Linking.openURL(url);
-    }
+    await openWebPageInAppBrowser(url);
   }, [url]);
 
   useEffect(() => {
@@ -97,14 +94,13 @@ export function ForgotPasswordScreen() {
 
         <View style={styles.body}>
           <AppText style={styles.lead}>
-            We opened ServiceLink in your browser. Finish resetting your password there, then return
-            here and sign in.
+            Use the secure browser sheet to reset your password, then return here and sign in.
           </AppText>
           <Button
-            accessibilityLabel="Open reset password in browser"
+            accessibilityLabel="Open reset password"
             fullWidth
             onPress={() => void openForgotPage()}
-            title="Open in browser again"
+            title="Open reset password"
           />
           <View style={{ height: 12 }} />
           <Button

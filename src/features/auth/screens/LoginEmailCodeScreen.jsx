@@ -216,7 +216,7 @@ export function LoginEmailCodeScreen() {
                       fullWidth
                       loading={verifying}
                       onPress={handleVerify}
-                      title="Log in"
+                      title="Sign in"
                     />
 
                     <View style={styles.resendRow}>

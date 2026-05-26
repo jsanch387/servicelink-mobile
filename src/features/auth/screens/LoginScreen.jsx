@@ -1,6 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import * as Linking from 'expo-linking';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -11,12 +10,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppShellGlow, AppText, Button, SurfaceTextField } from '../../../components/ui';
-import { getWebSignUpUrl } from '../../../lib/webAppOrigin';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { useAuth } from '..';
 import { AuthBrandLogo } from '../components/AuthBrandLogo';
 import { getAuthFormSharedStyles } from '../authFormStyles';
+import { LOGIN_SCREEN_SUBTITLE, LOGIN_SCREEN_TITLE } from '../constants/existingAccountOnlyCopy';
 
 export function LoginScreen() {
   const navigation = useNavigation();
@@ -26,19 +25,11 @@ export function LoginScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [formErrorHint, setFormErrorHint] = useState('');
-  const signUpUrl = useMemo(() => getWebSignUpUrl(), []);
 
   const clearFormErrors = () => {
     setFormError('');
     setFormErrorHint('');
   };
-
-  const openSignUp = useCallback(async () => {
-    const supported = await Linking.canOpenURL(signUpUrl);
-    if (supported) {
-      await Linking.openURL(signUpUrl);
-    }
-  }, [signUpUrl]);
 
   const styles = useMemo(
     () =>
@@ -49,12 +40,11 @@ export function LoginScreen() {
           maxWidth: 400,
           width: '100%',
         },
-        signUpFooter: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          marginTop: 22,
+        authHeadingSubtitleWide: {
+          alignSelf: 'stretch',
+          maxWidth: undefined,
+          paddingHorizontal: 0,
+          width: '100%',
         },
       }),
     [colors],
@@ -97,9 +87,20 @@ export function LoginScreen() {
               <View style={styles.centerBlock}>
                 <View style={styles.header}>
                   <AuthBrandLogo />
-                  <AppText style={[styles.title, styles.authHeadingTitle]}>Welcome back</AppText>
-                  <AppText style={[styles.subtitle, styles.authHeadingSubtitle]}>
-                    Log in to manage your business.
+                  <AppText
+                    accessibilityRole="header"
+                    style={[styles.title, styles.authHeadingTitle]}
+                  >
+                    {LOGIN_SCREEN_TITLE}
+                  </AppText>
+                  <AppText
+                    style={[
+                      styles.subtitle,
+                      styles.authHeadingSubtitle,
+                      styles.authHeadingSubtitleWide,
+                    ]}
+                  >
+                    {LOGIN_SCREEN_SUBTITLE}
                   </AppText>
                 </View>
 
@@ -120,10 +121,10 @@ export function LoginScreen() {
                           clearFormErrors();
                         }
                       }}
-                      onSubmitEditing={() => Keyboard.dismiss()}
+                      onSubmitEditing={() => void handleSendCode()}
                       placeholder="you@company.com"
-                      returnKeyType="done"
-                      textContentType="emailAddress"
+                      returnKeyType="send"
+                      textContentType="username"
                       value={email}
                     />
                     <Button
@@ -131,21 +132,9 @@ export function LoginScreen() {
                       fullWidth
                       loading={submitting}
                       onPress={handleSendCode}
-                      title="Send code"
+                      title="Send login code"
                     />
                   </View>
-                </View>
-
-                <View style={styles.signUpFooter}>
-                  <AppText style={styles.footerPrompt}>Don&apos;t have an account? </AppText>
-                  <Pressable
-                    accessibilityLabel="Sign up on the web"
-                    accessibilityRole="link"
-                    hitSlop={8}
-                    onPress={() => void openSignUp()}
-                  >
-                    <AppText style={styles.footerLinkStrong}>Sign up</AppText>
-                  </Pressable>
                 </View>
               </View>
             </Pressable>
