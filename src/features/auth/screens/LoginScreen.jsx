@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -16,19 +16,23 @@ import { useAuth } from '..';
 import { AuthBrandLogo } from '../components/AuthBrandLogo';
 import { getAuthFormSharedStyles } from '../authFormStyles';
 import {
+  LOGIN_SCREEN_APP_REVIEW_NOTE,
   LOGIN_SCREEN_NO_ACCOUNT_NOTE,
   LOGIN_SCREEN_SUBTITLE,
   LOGIN_SCREEN_TITLE,
 } from '../constants/existingAccountOnlyCopy';
+import { isAppReviewLoginEmail } from '../utils/appReviewLogin';
 
 export function LoginScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
-  const { sendLoginCode } = useAuth();
+  const { sendLoginCode, signInWithPassword } = useAuth();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [formErrorHint, setFormErrorHint] = useState('');
+  const passwordFieldRef = useRef(null);
 
   const clearFormErrors = () => {
     setFormError('');
@@ -50,6 +54,15 @@ export function LoginScreen() {
           paddingHorizontal: 0,
           width: '100%',
         },
+        appReviewNote: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          letterSpacing: -0.05,
+          lineHeight: 19,
+          marginBottom: 4,
+          marginTop: -8,
+        },
         noAccountNote: {
           alignSelf: 'stretch',
           color: colors.textMuted,
@@ -64,12 +77,27 @@ export function LoginScreen() {
     [colors],
   );
 
+  const trimmedEmail = email.trim();
+  const useAppReviewPasswordLogin = isAppReviewLoginEmail(trimmedEmail);
+
   const handleSendCode = async () => {
     Keyboard.dismiss();
     clearFormErrors();
-    const trimmedEmail = email.trim();
     if (!trimmedEmail) {
       setFormError('Enter your email.');
+      return;
+    }
+    if (useAppReviewPasswordLogin) {
+      if (!password) {
+        setFormError('Enter your password.');
+        return;
+      }
+      setSubmitting(true);
+      const { error } = await signInWithPassword(trimmedEmail, password);
+      setSubmitting(false);
+      if (error) {
+        setFormError(error);
+      }
       return;
     }
     setSubmitting(true);
@@ -125,8 +153,8 @@ export function LoginScreen() {
                       autoComplete="email"
                       autoCorrect={false}
                       blurOnSubmit
-                      errorHint={formErrorHint || undefined}
-                      errorText={formError || undefined}
+                      errorHint={useAppReviewPasswordLogin ? undefined : formErrorHint || undefined}
+                      errorText={useAppReviewPasswordLogin ? undefined : formError || undefined}
                       keyboardType="email-address"
                       label="Email"
                       onChangeText={(v) => {
@@ -134,19 +162,56 @@ export function LoginScreen() {
                         if (formError) {
                           clearFormErrors();
                         }
+                        if (password && !isAppReviewLoginEmail(v.trim())) {
+                          setPassword('');
+                        }
                       }}
-                      onSubmitEditing={() => void handleSendCode()}
+                      onSubmitEditing={() => {
+                        if (useAppReviewPasswordLogin) {
+                          passwordFieldRef.current?.focus?.();
+                          return;
+                        }
+                        void handleSendCode();
+                      }}
                       placeholder="you@company.com"
-                      returnKeyType="send"
+                      returnKeyType={useAppReviewPasswordLogin ? 'next' : 'send'}
                       textContentType="username"
                       value={email}
                     />
+                    {useAppReviewPasswordLogin ? (
+                      <AppText accessibilityRole="text" style={styles.appReviewNote}>
+                        {LOGIN_SCREEN_APP_REVIEW_NOTE}
+                      </AppText>
+                    ) : null}
+                    {useAppReviewPasswordLogin ? (
+                      <SurfaceTextField
+                        autoCapitalize="none"
+                        autoComplete="password"
+                        autoCorrect={false}
+                        blurOnSubmit
+                        errorText={formError || undefined}
+                        label="Password"
+                        onChangeText={(v) => {
+                          setPassword(v);
+                          if (formError) {
+                            clearFormErrors();
+                          }
+                        }}
+                        onSubmitEditing={() => void handleSendCode()}
+                        placeholder="Your password"
+                        ref={passwordFieldRef}
+                        returnKeyType="go"
+                        showPasswordToggle
+                        textContentType="password"
+                        value={password}
+                      />
+                    ) : null}
                     <Button
-                      accessibilityLabel="Send login code"
+                      accessibilityLabel={useAppReviewPasswordLogin ? 'Sign in' : 'Send login code'}
                       fullWidth
                       loading={submitting}
                       onPress={handleSendCode}
-                      title="Send login code"
+                      title={useAppReviewPasswordLogin ? 'Sign in' : 'Send login code'}
                     />
                   </View>
                 </View>

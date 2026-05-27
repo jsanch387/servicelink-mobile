@@ -16,6 +16,7 @@ import {
   onAuthStateChange,
   resendSignupConfirmationEmail,
   sendEmailLoginOtp,
+  signInWithEmailPassword,
   signOut as signOutRequest,
   signUpWithEmailPassword,
   validateSessionWithServerOrSignOut,
@@ -186,6 +187,14 @@ export function AuthProvider({ children }) {
     return { error: null };
   }, []);
 
+  const signInWithPassword = useCallback(async (email, password) => {
+    const { error } = await signInWithEmailPassword(email, password);
+    if (error) {
+      return { error: getAuthErrorMessage(error) };
+    }
+    return { error: null };
+  }, []);
+
   const signUp = useCallback(async (email, password) => {
     const { data, error } = await signUpWithEmailPassword(email, password);
     if (error) {
@@ -221,11 +230,21 @@ export function AuthProvider({ children }) {
       isReady,
       sendLoginCode,
       verifyLoginCode,
+      signInWithPassword,
       signUp,
       resendSignupConfirmation,
       signOut,
     }),
-    [session, isReady, sendLoginCode, verifyLoginCode, signUp, resendSignupConfirmation, signOut],
+    [
+      session,
+      isReady,
+      sendLoginCode,
+      verifyLoginCode,
+      signInWithPassword,
+      signUp,
+      resendSignupConfirmation,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

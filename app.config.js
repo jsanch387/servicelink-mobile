@@ -14,6 +14,9 @@
  * Optional — Stripe Connect onboarding redirect prefix used by app auth session:
  * EXPO_PUBLIC_STRIPE_CONNECT_ONBOARDING_AUTH_RETURN_URL=servicelinkmobile://payments/connect
  *
+ * Optional — App Store review login (one email gets password sign-in instead of email OTP):
+ * EXPO_PUBLIC_APP_REVIEW_LOGIN_EMAIL=review@yourdomain.com
+ *
  * Server contract v2 (`STRIPE_MOBILE_CONNECT_ONBOARDING_*`):
  * - `STRIPE_MOBILE_CONNECT_ONBOARDING_RETURN_URL` and `_REFRESH_URL` should be HTTPS bridge URLs,
  *   e.g. `https://<domain>/mobile-bridge/connect-return` and

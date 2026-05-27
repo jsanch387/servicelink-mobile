@@ -14,6 +14,9 @@ export const LOGIN_SCREEN_SUBTITLE = 'Enter your email to receive a login code.'
 export const LOGIN_SCREEN_NO_ACCOUNT_NOTE =
   "Don't have an account? Visit myservicelink.app in a web browser to get started.";
 
+/** Shown on login when the allowlisted App Review email is entered (password sign-in). */
+export const LOGIN_SCREEN_APP_REVIEW_NOTE = 'Test account for App Review.';
+
 /** Short headline for login form errors. */
 export const NO_EXISTING_SERVICELINK_ACCOUNT_TITLE = 'No account for this email';
 
