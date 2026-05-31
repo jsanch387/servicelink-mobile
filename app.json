@@ -50,7 +50,7 @@
       }
     },
     "android": {
-      "package": "com.jsanchdev.servicelinkmobile",
+      "package": "com.myservicelink.app",
       "versionCode": 17
     }
   }

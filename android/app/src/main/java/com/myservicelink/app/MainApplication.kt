@@ -1,4 +1,4 @@
-package com.servicelinkmobile
+package com.myservicelink.app
 
 import android.app.Application
 import android.content.res.Configuration
