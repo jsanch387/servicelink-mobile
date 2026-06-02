@@ -32,6 +32,8 @@ export const ROUTES = {
   QUOTES: 'Quotes',
   /** More stack — quote request or sent quote detail. */
   QUOTE_DETAIL: 'QuoteDetail',
+  /** More stack — business reviews inbox and replies. */
+  REVIEWS: 'Reviews',
   /** More stack — maintenance enrollments inbox. */
   MAINTENANCE: 'Maintenance',
   /** More stack — single maintenance enrollment detail. */
@@ -77,6 +79,7 @@ export const PATHS = {
   AVAILABILITY: '/availability',
   QUOTES: '/quotes',
   QUOTE_DETAIL: '/quotes/detail',
+  REVIEWS: '/reviews',
   MAINTENANCE: '/maintenance',
   MAINTENANCE_DETAIL: '/maintenance/detail',
   CREATE_QUOTE: '/quotes/create',

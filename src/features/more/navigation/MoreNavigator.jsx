@@ -16,6 +16,7 @@ import { MoreScreen } from '../screens/MoreScreen';
 import { SupportScreen } from '../../contact';
 import { LegalScreen } from '../screens/LegalScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
+import { ReviewsScreen } from '../../reviews';
 
 const Stack = createNativeStackNavigator();
 
@@ -105,6 +106,15 @@ export function MoreNavigator() {
         name={ROUTES.QUOTES}
         options={{
           title: 'Quotes',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={ReviewsScreen}
+        name={ROUTES.REVIEWS}
+        options={{
+          title: 'Reviews',
           headerBackButtonDisplayMode: 'minimal',
           headerBackTitleVisible: false,
         }}

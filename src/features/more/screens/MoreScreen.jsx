@@ -73,6 +73,11 @@ export function MoreScreen() {
             onPress={() => navigation.navigate(ROUTES.QUOTES)}
           />
           <SettingsNavRow
+            icon="star-outline"
+            label="Reviews"
+            onPress={() => navigation.navigate(ROUTES.REVIEWS)}
+          />
+          <SettingsNavRow
             icon="repeat-outline"
             label="Maintenance details"
             onPress={() => navigation.navigate(ROUTES.MAINTENANCE)}
