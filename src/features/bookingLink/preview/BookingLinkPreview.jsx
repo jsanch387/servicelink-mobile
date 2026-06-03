@@ -1,11 +1,19 @@
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { useTheme } from '../../../theme';
+import { useBookingLinkPublicReviews } from '../hooks/useBookingLinkPublicReviews';
 import { BioTabContent } from './components/BioTabContent';
 import { BookingLinkTabs } from './components/BookingLinkTabs';
 import { BookingProfileHeader } from './components/BookingProfileHeader';
 import { GalleryTabContent } from './components/GalleryTabContent';
+import { ReviewsTabContent } from './components/ReviewsTabContent';
 import { ServicesTabContent } from './components/ServicesTabContent';
+import {
+  BOOKING_LINK_TAB_BIO,
+  BOOKING_LINK_TAB_GALLERY,
+  BOOKING_LINK_TAB_REVIEWS,
+  BOOKING_LINK_TAB_SERVICES,
+} from '../constants/bookingLinkPreviewTabs';
 
 const FAB_CLEARANCE = 56 + 28;
 
@@ -31,9 +39,13 @@ export function BookingLinkPreview({
   services,
   galleryImages,
   bio,
+  businessId,
 }) {
   const { colors } = useTheme();
   const [pullRefreshing, setPullRefreshing] = useState(false);
+  const reviewsState = useBookingLinkPublicReviews(businessId, Boolean(businessId));
+  const headerAverageRating =
+    reviewsState.summary.totalCount > 0 ? reviewsState.summary.averageRating : null;
 
   const styles = useMemo(
     () =>
@@ -77,8 +89,8 @@ export function BookingLinkPreview({
       style={styles.root}
     >
       <BookingProfileHeader
+        averageRating={headerAverageRating}
         businessName={businessName}
-        businessType={businessType}
         coverHeight={coverHeight}
         coverImageUrl={coverImageUrl}
         isLoading={false}
@@ -89,11 +101,19 @@ export function BookingLinkPreview({
         showVerifiedBadge={showVerifiedBadge}
       />
       <BookingLinkTabs activeTab={activeTab} onChangeTab={onChangeTab} />
-      {activeTab === 'services' ? (
+      {activeTab === BOOKING_LINK_TAB_SERVICES ? (
         <ServicesTabContent error={queryState.error} isLoading={false} services={services} />
       ) : null}
-      {activeTab === 'gallery' ? <GalleryTabContent images={galleryImages} /> : null}
-      {activeTab === 'bio' ? <BioTabContent bio={bio} /> : null}
+      {activeTab === BOOKING_LINK_TAB_GALLERY ? <GalleryTabContent images={galleryImages} /> : null}
+      {activeTab === BOOKING_LINK_TAB_BIO ? (
+        <BioTabContent bio={bio} businessType={businessType} />
+      ) : null}
+      {activeTab === BOOKING_LINK_TAB_REVIEWS ? (
+        <ReviewsTabContent
+          isActive={activeTab === BOOKING_LINK_TAB_REVIEWS}
+          reviewsState={reviewsState}
+        />
+      ) : null}
     </ScrollView>
   );
 }

@@ -3,8 +3,9 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 
-export function BioTabContent({ bio }) {
+export function BioTabContent({ bio, businessType = '' }) {
   const { colors } = useTheme();
+  const businessTypeLabel = businessType.trim();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -12,6 +13,15 @@ export function BioTabContent({ bio }) {
           paddingBottom: 28,
           paddingHorizontal: 16,
           paddingTop: 16,
+        },
+        businessType: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '700',
+          letterSpacing: 2.6,
+          marginBottom: 12,
+          paddingHorizontal: 2,
+          textTransform: 'uppercase',
         },
         body: {
           color: colors.textMuted,
@@ -25,6 +35,9 @@ export function BioTabContent({ bio }) {
 
   return (
     <View style={styles.wrap}>
+      {businessTypeLabel ? (
+        <AppText style={styles.businessType}>{businessTypeLabel}</AppText>
+      ) : null}
       <AppText style={styles.body}>{bio || 'No bio added yet.'}</AppText>
     </View>
   );

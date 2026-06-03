@@ -18,6 +18,7 @@ import { BookingLinkEditFab } from '../preview/components/BookingLinkEditFab';
 import { BookingLinkPreview } from '../preview/BookingLinkPreview';
 import { BookingLinkScreenSkeleton } from '../preview/components/BookingLinkScreenSkeleton';
 import { bookingLinkOwnerProfileQueryKey } from '../queryKeys';
+import { BOOKING_LINK_DEFAULT_TAB } from '../constants/bookingLinkPreviewTabs';
 import { mapServicesForCards } from '../utils/bookingLinkModel';
 import { splitServiceAreaCityState } from '../utils/serviceArea';
 import { useSubscription } from '../../subscription';
@@ -32,7 +33,7 @@ export function BookingLinkScreen() {
   const { profile, refetch: refetchBookingProfile } = bookingProfile;
   const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
   const coverHeight = width >= 768 ? 256 : width >= 640 ? 224 : 192;
-  const [activeTab, setActiveTab] = useState('services');
+  const [activeTab, setActiveTab] = useState(BOOKING_LINK_DEFAULT_TAB);
   const [isEditMode, setIsEditMode] = useState(false);
 
   const welcomeSeenMutation = useMutation({
@@ -86,7 +87,7 @@ export function BookingLinkScreen() {
     [profile?.images],
   );
   const businessNameDisplay = profile?.business_name?.trim() || 'Business Name';
-  const businessTypeDisplay = profile?.business_type?.trim() || 'Business type';
+  const businessTypeDisplay = profile?.business_type?.trim() || '';
   const businessNameEdit = profile?.business_name?.trim() ?? '';
   const businessTypeEdit = profile?.business_type?.trim() ?? '';
   const serviceAreaTrimmed = profile?.service_area?.trim() ?? '';
@@ -180,6 +181,7 @@ export function BookingLinkScreen() {
           <BookingLinkPreview
             activeTab={activeTab}
             bio={bio}
+            businessId={profile?.id}
             businessName={businessNameDisplay}
             businessType={businessTypeDisplay}
             coverHeight={coverHeight}

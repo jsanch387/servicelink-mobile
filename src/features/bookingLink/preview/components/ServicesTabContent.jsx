@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../../components/ui';
+import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { ServicePreviewCard } from '../../../services/components/ServicePreviewCard';
 import { useTheme } from '../../../../theme';
-
-const SERVICES_CARD_GUTTER = 5;
 
 export function ServicesTabContent({ services, isLoading, error }) {
   const { colors } = useTheme();
@@ -18,7 +17,7 @@ export function ServicesTabContent({ services, isLoading, error }) {
         },
         /** Booking-link services: horizontal inset for errors, skeletons, and preview cards. */
         cardsGutter: {
-          paddingHorizontal: SERVICES_CARD_GUTTER,
+          paddingHorizontal: SCREEN_GUTTER,
         },
         profileErrorWrap: {
           marginBottom: 12,

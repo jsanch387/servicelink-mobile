@@ -12,6 +12,7 @@ import {
 } from '../constants';
 import { ReviewBodyText } from './ReviewBodyText';
 import { StarRating } from './StarRating';
+import { validateReviewReply } from '../utils/reviewModel';
 
 /**
  * @param {{
@@ -20,10 +21,23 @@ import { StarRating } from './StarRating';
  *   rating: number;
  *   body: string;
  *   reply?: string | null;
- *   onReplySubmit?: (text: string) => void;
+ *   isSubmittingReply?: boolean;
+ *   onComposerOpen?: () => void;
+ *   onComposerClose?: () => void;
+ *   onReplySubmit?: (text: string) => void | Promise<void>;
  * }} props
  */
-export function ReviewCard({ reviewerName, dateLabel, rating, body, reply = null, onReplySubmit }) {
+export function ReviewCard({
+  reviewerName,
+  dateLabel,
+  rating,
+  body,
+  reply = null,
+  isSubmittingReply = false,
+  onComposerOpen,
+  onComposerClose,
+  onReplySubmit,
+}) {
   const { colors } = useTheme();
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -34,27 +48,42 @@ export function ReviewCard({ reviewerName, dateLabel, rating, body, reply = null
       setComposing(false);
       setDraft('');
       setSubmitError('');
+      onComposerClose?.();
     }
-  }, [reply]);
+  }, [onComposerClose, reply]);
 
-  const trimmedDraft = draft.trim();
-  const canSubmit = trimmedDraft.length > 0;
+  const canSubmit = draft.trim().length > 0 && !isSubmittingReply;
   const showReplyCharCounter = draft.length >= REVIEW_REPLY_MAX_LENGTH;
 
-  const handleSubmit = useCallback(() => {
-    if (!canSubmit) {
-      setSubmitError('Enter a reply before posting.');
+  const handleSubmit = useCallback(async () => {
+    const validation = validateReviewReply(draft);
+    if (!validation.ok) {
+      setSubmitError(validation.message);
       return;
     }
+
     setSubmitError('');
-    onReplySubmit?.(trimmedDraft);
-  }, [canSubmit, onReplySubmit, trimmedDraft]);
+
+    try {
+      await onReplySubmit?.(validation.value);
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message ? error.message : 'Could not post reply.';
+      setSubmitError(message);
+    }
+  }, [draft, onReplySubmit]);
 
   const handleCancel = useCallback(() => {
     setComposing(false);
     setDraft('');
     setSubmitError('');
-  }, []);
+    onComposerClose?.();
+  }, [onComposerClose]);
+
+  const openComposer = useCallback(() => {
+    setComposing(true);
+    onComposerOpen?.();
+  }, [onComposerOpen]);
 
   const styles = useMemo(
     () =>
@@ -194,6 +223,7 @@ export function ReviewCard({ reviewerName, dateLabel, rating, body, reply = null
               setDraft(text);
               if (submitError) setSubmitError('');
             }}
+            onFocus={onComposerOpen}
           />
           {showReplyCharCounter ? (
             <AppText style={[styles.charCounter, styles.charCounterAtLimit]}>
@@ -203,6 +233,7 @@ export function ReviewCard({ reviewerName, dateLabel, rating, body, reply = null
           <View style={styles.composerActions}>
             <Pressable
               accessibilityRole="button"
+              disabled={isSubmittingReply}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               onPress={handleCancel}
             >
@@ -215,7 +246,9 @@ export function ReviewCard({ reviewerName, dateLabel, rating, body, reply = null
               accessibilityState={{ disabled: !canSubmit }}
               disabled={!canSubmit}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              onPress={handleSubmit}
+              onPress={() => {
+                void handleSubmit();
+              }}
             >
               <AppText
                 style={[
@@ -232,7 +265,7 @@ export function ReviewCard({ reviewerName, dateLabel, rating, body, reply = null
         <Pressable
           accessibilityRole="button"
           hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
-          onPress={() => setComposing(true)}
+          onPress={openComposer}
           style={styles.replyLink}
         >
           <AppText style={styles.replyLinkText}>{REVIEW_REPLY_BUTTON_LABEL}</AppText>

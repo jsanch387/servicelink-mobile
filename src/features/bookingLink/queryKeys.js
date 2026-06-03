@@ -8,3 +8,7 @@ export function bookingLinkOwnerProfileQueryKey(userId) {
 export function bookingLinkPublicProfileQueryKey(slug) {
   return [...BOOKING_LINK_QUERY_KEY, 'public-profile', slug ?? ''];
 }
+
+export function bookingLinkPublicReviewsQueryKey(businessId) {
+  return [...BOOKING_LINK_QUERY_KEY, 'public-reviews', businessId ?? 'none'];
+}

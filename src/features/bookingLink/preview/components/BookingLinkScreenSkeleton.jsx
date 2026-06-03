@@ -61,9 +61,6 @@ export function BookingLinkScreenSkeleton({ coverHeight }) {
           paddingHorizontal: 8,
           width: '100%',
         },
-        typeBone: {
-          marginTop: 10,
-        },
         locationRow: {
           alignItems: 'center',
           flexDirection: 'row',
@@ -152,7 +149,6 @@ export function BookingLinkScreenSkeleton({ coverHeight }) {
 
         <View style={styles.nameWrap}>
           <SkeletonBox borderRadius={8} height={28} pulse width="64%" />
-          <SkeletonBox borderRadius={6} height={12} pulse style={styles.typeBone} width="42%" />
         </View>
 
         <View style={styles.locationRow}>
@@ -170,6 +166,7 @@ export function BookingLinkScreenSkeleton({ coverHeight }) {
         <SkeletonBox borderRadius={6} height={16} pulse style={styles.tabBone} width={72} />
         <SkeletonBox borderRadius={6} height={16} pulse style={styles.tabBone} width={56} />
         <SkeletonBox borderRadius={6} height={16} pulse style={styles.tabBone} width={36} />
+        <SkeletonBox borderRadius={6} height={16} pulse style={styles.tabBone} width={58} />
       </View>
 
       <View style={styles.contentWrap}>

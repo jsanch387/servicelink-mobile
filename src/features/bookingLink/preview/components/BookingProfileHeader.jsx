@@ -5,6 +5,7 @@ import { Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SkeletonBox } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 import { phoneForSmsUri } from '../../../../utils/phone';
+import { REVIEW_STAR_COLOR } from '../../../reviews/constants';
 import { bookingLinkProfileBusinessNameStyle } from '../../../../utils/serviceCardTypography';
 import { resolveBookingProfileCtaVisibility } from '../utils/profileCtaVisibility';
 import { BookingLinkRequestQuoteOwnerHintSheet } from './BookingLinkRequestQuoteOwnerHintSheet';
@@ -23,8 +24,8 @@ export function BookingProfileHeader({
   logoUrl,
   showVerifiedBadge,
   businessName,
-  businessType,
   location,
+  averageRating = null,
   phoneNumber,
   showRequestQuoteCta = false,
   isLoading,
@@ -132,27 +133,31 @@ export function BookingProfileHeader({
           ...bookingLinkProfileBusinessNameStyle(colors),
           textAlign: 'center',
         },
-        businessType: {
-          color: colors.textMuted,
-          fontSize: 13,
-          fontWeight: '700',
-          letterSpacing: 2.6,
-          marginTop: 8,
-          textAlign: 'center',
-          textTransform: 'uppercase',
-        },
         locationRow: {
           alignItems: 'center',
           flexDirection: 'row',
           gap: 8,
           justifyContent: 'center',
-          marginTop: 16,
+          marginTop: 12,
         },
         locationText: {
           color: colors.textMuted,
           fontSize: 14,
           fontWeight: '600',
           letterSpacing: 0.2,
+        },
+        ratingRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 4,
+          justifyContent: 'center',
+          marginTop: 8,
+        },
+        ratingText: {
+          color: colors.text,
+          fontSize: 15,
+          fontWeight: '700',
+          letterSpacing: -0.2,
         },
         ctaRow: {
           alignItems: 'center',
@@ -290,11 +295,17 @@ export function BookingProfileHeader({
             <AppText style={styles.businessName}>{businessName}</AppText>
           )}
         </View>
-        <AppText style={styles.businessType}>{businessType}</AppText>
         {location ? (
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={14} color={colors.textMuted} />
             <AppText style={styles.locationText}>{location}</AppText>
+          </View>
+        ) : null}
+
+        {averageRating != null ? (
+          <View style={styles.ratingRow}>
+            <AppText style={styles.ratingText}>{averageRating.toFixed(1)}</AppText>
+            <Ionicons color={REVIEW_STAR_COLOR} name="star" size={15} />
           </View>
         ) : null}
 
