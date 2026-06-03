@@ -57,10 +57,21 @@ You do **not** edit `src/constants/appInfo.js` anymore — it reads from the nat
 
 ## EAS Build (`eas.json`)
 
-| Setting                          | Value     | Meaning                                                               |
-| -------------------------------- | --------- | --------------------------------------------------------------------- |
-| `cli.appVersionSource`           | `"local"` | Version + build come from **`app.json`** in this repo                 |
-| `build.production.autoIncrement` | `true`    | Each **production** `eas build` can auto-bump **build number** on EAS |
+| Setting                          | Value       | Meaning                                                              |
+| -------------------------------- | ----------- | -------------------------------------------------------------------- |
+| `cli.appVersionSource`           | `"remote"`  | Build numbers managed on EAS; sync with `eas build:version:sync`     |
+| `build.production.autoIncrement` | `true`      | Each **production** `eas build` auto-bumps **build number** on EAS   |
+| `build.*.channel`                | per profile | Links builds to **EAS Update** channels (`production`, `preview`, …) |
+
+### Over-the-air updates (EAS Update)
+
+JS-only releases use **`eas update`**, not a new App Store build. See **[eas-over-the-air-updates.md](./eas-over-the-air-updates.md)**.
+
+Summary:
+
+- **Runtime version** = `expo.version` (`appVersion` policy) — currently **`1.0.5`**
+- **Production OTA:** `npm run eas:update:production -- --message "…"`
+- **First OTA-capable binary:** one new `eas build` after enabling `expo-updates` (existing store installs cannot OTA until then)
 
 ### Production release commands
 

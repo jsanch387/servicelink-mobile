@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { PushNotificationsBootstrap } from '../features/notifications/components/PushNotificationsBootstrap';
+import { EasOverTheAirUpdateBootstrap } from '../features/appUpdates';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef } from 'react';
@@ -215,6 +216,7 @@ export function AuthNavigator() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.shell }}>
       <NavigationContainer ref={navigationRef} theme={navTheme}>
+        <EasOverTheAirUpdateBootstrap />
         <PushNotificationsBootstrap />
         <Stack.Navigator
           key={stackKey}
