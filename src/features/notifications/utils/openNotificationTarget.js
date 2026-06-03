@@ -1,20 +1,5 @@
 import { ROUTES } from '../../../routes/routes';
-
-/**
- * Build nested stack `state` so the list/root screen stays under the target (back + tab re-tap work).
- * @param {string} rootScreen
- * @param {string} targetScreen
- * @param {Record<string, unknown> | undefined} targetParams
- */
-function nestedStackState(rootScreen, targetScreen, targetParams) {
-  if (targetScreen === rootScreen) {
-    return { routes: [{ name: rootScreen }], index: 0 };
-  }
-  return {
-    routes: [{ name: rootScreen }, { name: targetScreen, params: targetParams ?? undefined }],
-    index: 1,
-  };
-}
+import { nestedStackState } from '../../../navigation/navigateNestedTabScreen';
 
 /**
  * @param {*} navigation React Navigation object with `navigate`.

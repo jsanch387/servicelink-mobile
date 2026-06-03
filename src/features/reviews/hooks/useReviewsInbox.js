@@ -5,6 +5,7 @@ import { useAuth } from '../../auth';
 import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
 import { fetchReviewsForBusiness } from '../api/reviews';
+import { EMPTY_REVIEWS_LIST } from '../constants';
 import { REVIEWS_QUERY_ROOT, reviewsListQueryKey } from '../queryKeys';
 import { buildReviewsSummary } from '../utils/buildReviewsSummary';
 import { mapReviewRowToModel } from '../utils/reviewModel';
@@ -56,7 +57,7 @@ export function useReviewsInbox() {
     gcTime: 15 * 60 * 1000,
   });
 
-  const reviews = listQ.data ?? [];
+  const reviews = listQ.data ?? EMPTY_REVIEWS_LIST;
   const summary = useMemo(() => buildReviewsSummary(reviews), [reviews]);
 
   const businessError = businessQ.isError

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { fetchPublicReviewsForBusiness } from '../../reviews/api/reviews';
+import { EMPTY_REVIEWS_LIST } from '../../reviews/constants';
 import { mapReviewRowToModel } from '../../reviews/utils/reviewModel';
 import { buildReviewsSummary } from '../../reviews/utils/buildReviewsSummary';
 import { bookingLinkPublicReviewsQueryKey } from '../queryKeys';
@@ -26,7 +27,7 @@ export function useBookingLinkPublicReviews(businessId, enabled) {
     gcTime: 15 * 60 * 1000,
   });
 
-  const reviews = listQ.data ?? [];
+  const reviews = listQ.data ?? EMPTY_REVIEWS_LIST;
   const summary = useMemo(() => buildReviewsSummary(reviews), [reviews]);
 
   return {

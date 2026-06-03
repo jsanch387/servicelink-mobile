@@ -9,7 +9,7 @@ import { CommonActions } from '@react-navigation/native';
  * @returns {string | null}
  */
 function getNestedFocusedScreenName(activeRoute) {
-  const nestedState = activeRoute?.state;
+  const nestedState = activeRoute?.state ?? activeRoute?.params?.state;
   if (nestedState?.routes?.length) {
     const idx =
       typeof nestedState.index === 'number' ? nestedState.index : nestedState.routes.length - 1;
@@ -53,7 +53,12 @@ export function nestedTabPressResetToRootListeners({ navigation, route }, { root
         CommonActions.navigate({
           name: route.name,
           merge: true,
-          params: { screen: rootScreen },
+          params: {
+            state: {
+              routes: [{ name: rootScreen }],
+              index: 0,
+            },
+          },
         }),
       );
     },

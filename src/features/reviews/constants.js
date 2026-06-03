@@ -1,6 +1,9 @@
 /** Gold fill for review stars and rating bars (readable on light and dark shells). */
 export const REVIEW_STAR_COLOR = '#EAB308';
 
+/** Stable fallback when a reviews query has no data yet (avoids `?? []` on every render). */
+export const EMPTY_REVIEWS_LIST = Object.freeze([]);
+
 export const REVIEWS_FILTER_ALL = 'all';
 export const REVIEWS_FILTER_NEEDS_REPLY = 'needs_reply';
 export const REVIEWS_FILTER_REPLIED = 'replied';

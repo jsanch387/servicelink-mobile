@@ -5,6 +5,7 @@ import { BookingsNavigator } from '../features/bookings';
 import { CustomersNavigator } from '../features/customers/navigation/CustomersNavigator';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { MoreNavigator } from '../features/more';
+import { AppUpdateAnnouncementsBootstrap } from '../features/appUpdates';
 import { NotificationsRealtimeBridge } from '../features/notifications/components/NotificationsRealtimeBridge';
 import { PushTokenRegistration } from '../features/notifications/components/PushTokenRegistration';
 import { PaymentsScreen } from '../features/payments/screens/PaymentsScreen';
@@ -42,6 +43,7 @@ export function MainTabNavigator() {
     <>
       <NotificationsRealtimeBridge />
       <PushTokenRegistration />
+      <AppUpdateAnnouncementsBootstrap />
       <Tab.Navigator
         screenOptions={{
           headerShown: false,

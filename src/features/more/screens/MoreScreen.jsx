@@ -1,7 +1,7 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AppText,
@@ -9,6 +9,7 @@ import {
   SettingsNavRow,
   SettingsSection,
 } from '../../../components/ui';
+import { resetAppUpdatesForDev } from '../../appUpdates';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { SCREEN_GUTTER } from '../../../constants/layout';
@@ -46,6 +47,12 @@ export function MoreScreen() {
       }),
     [colors, scrollBottomPad],
   );
+
+  const handleDevResetAppUpdates = () => {
+    void resetAppUpdatesForDev().then(() => {
+      Alert.alert('Dev', "What's new announcements reset.");
+    });
+  };
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.root}>
@@ -123,7 +130,17 @@ export function MoreScreen() {
           />
         </SettingsSection>
 
-        <AppVersionFootnote />
+        {typeof __DEV__ !== 'undefined' && __DEV__ ? (
+          <Pressable
+            accessibilityHint="Dev only: long press to reset what's new announcements"
+            accessibilityRole="button"
+            onLongPress={handleDevResetAppUpdates}
+          >
+            <AppVersionFootnote />
+          </Pressable>
+        ) : (
+          <AppVersionFootnote />
+        )}
       </ScrollView>
     </SafeAreaView>
   );

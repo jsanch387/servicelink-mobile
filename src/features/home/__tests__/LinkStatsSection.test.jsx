@@ -20,6 +20,7 @@ describe('LinkStatsSection', () => {
     jest.clearAllMocks();
     mockShowWebAccountFeatureAlert.mockClear();
     jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-05-21T12:00:00.000Z'));
   });
 
   afterEach(() => {
@@ -54,7 +55,7 @@ describe('LinkStatsSection', () => {
     expect(screen.getByText('7 days')).toBeTruthy();
     expect(screen.queryByText('Views')).toBeNull();
     expect(screen.getByLabelText('Time range: 7 days. Tap to change.')).toBeTruthy();
-    expect(screen.getByText(/ago|Just now|Never/)).toBeTruthy();
+    expect(screen.getByText('30m ago')).toBeTruthy();
     expect(screen.getByText('myservicelink.app/acme')).toBeTruthy();
   });
 
