@@ -41,6 +41,10 @@ jest.mock('../../features/notifications/components/PushTokenRegistration', () =>
   PushTokenRegistration: () => null,
 }));
 
+jest.mock('../../features/auth/components/IosAppPresenceRegistration', () => ({
+  IosAppPresenceRegistration: () => null,
+}));
+
 function renderTabs() {
   return renderWithProviders(
     <NavigationContainer>

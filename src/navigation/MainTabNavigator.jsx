@@ -5,6 +5,7 @@ import { BookingsNavigator } from '../features/bookings';
 import { CustomersNavigator } from '../features/customers/navigation/CustomersNavigator';
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { MoreNavigator } from '../features/more';
+import { IosAppPresenceRegistration } from '../features/auth/components/IosAppPresenceRegistration';
 import { AppUpdateAnnouncementsBootstrap } from '../features/appUpdates';
 import { NotificationsRealtimeBridge } from '../features/notifications/components/NotificationsRealtimeBridge';
 import { PushTokenRegistration } from '../features/notifications/components/PushTokenRegistration';
@@ -42,6 +43,7 @@ export function MainTabNavigator() {
   return (
     <>
       <NotificationsRealtimeBridge />
+      <IosAppPresenceRegistration />
       <PushTokenRegistration />
       <AppUpdateAnnouncementsBootstrap />
       <Tab.Navigator
