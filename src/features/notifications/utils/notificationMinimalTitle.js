@@ -10,6 +10,7 @@ export const KNOWN_MINIMAL_INBOX_HEADLINES = new Set([
   'Appointment canceled',
   'Appointment updated',
   'Upcoming appointment',
+  'New review',
   'Customer update',
   'Billing update',
   'Update',
@@ -60,6 +61,9 @@ export function notificationMinimalDisplayTitle(type, referenceType, fallbackTit
   }
   if (blob.includes('reminder')) {
     return 'Upcoming appointment';
+  }
+  if (blob.includes('review')) {
+    return 'New review';
   }
   if (blob.includes('booking') || blob.includes('appointment')) {
     return 'New appointment';

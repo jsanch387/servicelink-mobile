@@ -48,6 +48,16 @@ export function openNotificationTarget(navigation, item) {
     return;
   }
 
+  if (refType === 'review' || refType.includes('review')) {
+    navigation.navigate(ROUTES.MAIN_APP, {
+      screen: ROUTES.MORE,
+      params: {
+        state: nestedStackState(ROUTES.MORE_HOME, ROUTES.REVIEWS),
+      },
+    });
+    return;
+  }
+
   navigation.navigate(ROUTES.MAIN_APP, {
     screen: ROUTES.BOOKINGS,
     params: { screen: ROUTES.BOOKINGS_LIST },

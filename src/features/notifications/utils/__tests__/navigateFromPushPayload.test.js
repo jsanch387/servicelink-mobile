@@ -42,6 +42,23 @@ describe('navigateFromPushPayload', () => {
     });
   });
 
+  it('maps review push to Reviews screen', () => {
+    const navigation = { navigate: jest.fn() };
+    navigateFromPushPayload(navigation, {
+      reference_type: 'review',
+      reference_id: 'rev-42',
+    });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.MORE,
+      params: {
+        state: {
+          routes: [{ name: ROUTES.MORE_HOME }, { name: ROUTES.REVIEWS }],
+          index: 1,
+        },
+      },
+    });
+  });
+
   it('no-ops when data is null or undefined', () => {
     const navigation = { navigate: jest.fn() };
     navigateFromPushPayload(navigation, null);

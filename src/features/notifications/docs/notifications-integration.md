@@ -105,6 +105,7 @@ Implemented in **`openNotificationTarget`** (shared by inbox and push):
 
 - **`reference_type`** contains **`booking`** or **`appointment`**, and **`reference_id`** is set → **Bookings** tab → **Booking details** (`bookingId`).
 - **`reference_type`** is **`quote`** → **More** stack → **Quote detail** if `reference_id` set, else **Quotes** list.
+- **`reference_type`** is **`review`** (or contains `review`) → **More** stack → **Reviews** list (`reference_id` ignored for navigation).
 - **`payment`**, **`payout`**, or **`deposit`** → **More** → **Payments** (`MORE_PAYMENTS`).
 - Otherwise → **Bookings** list fallback.
 

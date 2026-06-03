@@ -88,6 +88,20 @@ describe('openNotificationTarget', () => {
     },
   );
 
+  it('navigates to More reviews for review (reference_id ignored for list-only deep link)', () => {
+    const navigation = nav();
+    openNotificationTarget(navigation, { referenceType: 'review', referenceId: 'rev-1' });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.MORE,
+      params: {
+        state: {
+          routes: [{ name: ROUTES.MORE_HOME }, { name: ROUTES.REVIEWS }],
+          index: 1,
+        },
+      },
+    });
+  });
+
   it('falls back to bookings list when type unknown', () => {
     const navigation = nav();
     openNotificationTarget(navigation, { referenceType: 'unknown', referenceId: '' });
