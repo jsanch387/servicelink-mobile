@@ -17,6 +17,7 @@ export function SettingsNavRow({
   disabled = false,
   icon,
   label,
+  labelAccessory,
   onPress,
   showDividerBelow = true,
 }) {
@@ -62,6 +63,11 @@ export function SettingsNavRow({
           justifyContent: 'center',
           minWidth: 0,
         },
+        labelRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+        },
         label: {
           color: colors.text,
           fontSize: 16,
@@ -105,9 +111,12 @@ export function SettingsNavRow({
               </View>
             ) : null}
             <View style={styles.labelCol}>
-              <AppText numberOfLines={2} style={styles.label}>
-                {label}
-              </AppText>
+              <View style={styles.labelRow}>
+                <AppText numberOfLines={2} style={styles.label}>
+                  {label}
+                </AppText>
+                {labelAccessory}
+              </View>
             </View>
             <View style={styles.chevronCol}>
               <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />

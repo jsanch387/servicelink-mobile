@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AppText,
   AppVersionFootnote,
+  BetaLabel,
   SettingsNavRow,
   SettingsSection,
 } from '../../../components/ui';
@@ -87,6 +88,7 @@ export function MoreScreen() {
           <SettingsNavRow
             icon="repeat-outline"
             label="Maintenance details"
+            labelAccessory={<BetaLabel />}
             onPress={() => navigation.navigate(ROUTES.MAINTENANCE)}
           />
           <SettingsNavRow

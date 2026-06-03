@@ -1,4 +1,4 @@
-import { SettingsNavRow, SettingsSection } from '../../../../components/ui';
+import { BetaLabel, SettingsNavRow, SettingsSection } from '../../../../components/ui';
 
 /** Label for the maintenance offer wizard entry point on customer profile. */
 export const CUSTOMER_DETAIL_SEND_MAINTENANCE_LABEL = 'Maintenance detail';
@@ -30,6 +30,7 @@ export function CustomerDetailActionsSection({
         disabled={removeLoading}
         icon="repeat-outline"
         label={CUSTOMER_DETAIL_SEND_MAINTENANCE_LABEL}
+        labelAccessory={<BetaLabel />}
         showDividerBelow={false}
         onPress={onSendMaintenanceDetail}
       />

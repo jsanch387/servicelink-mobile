@@ -57,3 +57,7 @@ jest.mock('expo-notifications', () => ({
   getLastNotificationResponseAsync: jest.fn(() => Promise.resolve(null)),
   AndroidImportance: { DEFAULT: 3 },
 }));
+
+jest.mock('./src/features/appUpdates/components/AppUpdateAnnouncementsBootstrap', () => ({
+  AppUpdateAnnouncementsBootstrap: () => null,
+}));

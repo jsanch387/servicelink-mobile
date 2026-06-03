@@ -8,13 +8,13 @@ Native changes (new Expo modules, `ios/` / `android/` edits, permission changes,
 
 ## How it works here
 
-| Piece                  | Value                                                                              |
-| ---------------------- | ---------------------------------------------------------------------------------- |
-| Service                | [EAS Update](https://docs.expo.dev/eas-update/introduction/)                       |
-| Project URL            | `https://u.expo.dev/0bcb9f83-d0dc-4157-a81c-ecc3e1a069ee`                          |
-| **Runtime version**    | `appVersion` policy → matches `expo.version` in `app.json` (currently **`1.0.5`**) |
-| **Production channel** | `production` (store / TestFlight builds)                                           |
-| **Preview channel**    | `preview` (internal builds)                                                        |
+| Piece                  | Value                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- |
+| Service                | [EAS Update](https://docs.expo.dev/eas-update/introduction/)                                          |
+| Project URL            | `https://u.expo.dev/0bcb9f83-d0dc-4157-a81c-ecc3e1a069ee`                                             |
+| **Runtime version**    | Manual string in `app.json` (bare workflow) — currently **`1.0.5`**, keep in sync with `expo.version` |
+| **Production channel** | `production` (store / TestFlight builds)                                                              |
+| **Preview channel**    | `preview` (internal builds)                                                                           |
 
 Build profiles in `eas.json` map to channels. When you publish an update, it goes to the matching channel and only installs on binaries with the same **runtime version**.
 
@@ -80,7 +80,9 @@ Users pick up the update on next launch (or when returning to the app — we rel
 
 ## Runtime version and App Store versioning
 
-We use **`runtimeVersion: { policy: "appVersion" }`**. The runtime string equals **`expo.version`** (`1.0.5` today).
+This project uses the **bare workflow** (`ios/` + `android/` committed), so **`runtimeVersion` must be a fixed string** — not `{ policy: "appVersion" }`. It is currently **`"1.0.5"`** in `app.json`, `Expo.plist`, and `android/.../strings.xml` (`expo_runtime_version`).
+
+When you bump **`expo.version`** for a public release, update **all three** to the same value (e.g. `"1.0.6"`).
 
 **Your current workflow (keep marketing version, bump build only)** is correct for TestFlight / same App Store line:
 

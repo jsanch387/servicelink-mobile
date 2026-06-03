@@ -53,9 +53,7 @@
       "package": "com.myservicelink.app",
       "versionCode": 17
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.5",
     "updates": {
       "url": "https://u.expo.dev/0bcb9f83-d0dc-4157-a81c-ecc3e1a069ee",
       "enabled": true,

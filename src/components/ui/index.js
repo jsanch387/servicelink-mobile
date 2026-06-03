@@ -1,4 +1,5 @@
 export { AppText } from './AppText';
+export { BetaLabel } from './BetaLabel';
 export { AppTextInput } from './AppTextInput';
 export { BottomSheetModal } from './BottomSheetModal';
 export { FormBottomSheetModal } from './FormBottomSheetModal';

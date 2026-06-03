@@ -69,7 +69,7 @@ JS-only releases use **`eas update`**, not a new App Store build. See **[eas-ove
 
 Summary:
 
-- **Runtime version** = `expo.version` (`appVersion` policy) — currently **`1.0.5`**
+- **Runtime version** = manual string in `app.json` + native files (bare workflow) — currently **`1.0.5`**, bump with `expo.version`
 - **Production OTA:** `npm run eas:update:production -- --message "…"`
 - **First OTA-capable binary:** one new `eas build` after enabling `expo-updates` (existing store installs cannot OTA until then)
 
