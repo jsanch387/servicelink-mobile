@@ -304,8 +304,8 @@ export function BookingProfileHeader({
 
         {averageRating != null ? (
           <View style={styles.ratingRow}>
-            <AppText style={styles.ratingText}>{averageRating.toFixed(1)}</AppText>
             <Ionicons color={REVIEW_STAR_COLOR} name="star" size={15} />
+            <AppText style={styles.ratingText}>{averageRating.toFixed(1)}</AppText>
           </View>
         ) : null}
 

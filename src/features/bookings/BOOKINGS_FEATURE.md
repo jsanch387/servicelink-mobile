@@ -61,7 +61,7 @@ See [`docs/CALENDAR_VIEW.md`](docs/CALENDAR_VIEW.md). Summary:
    - price breakdown (service + parsed add-ons + total)
    - customer/location/vehicle/notes
 5. Status actions call `useBookingActions`:
-   - Mark completed -> `status = completed`
+   - Mark completed -> `POST /api/owner/bookings/:id/complete` (review email when eligible; see `booking-details/docs/BOOKING_COMPLETE_SERVER.md`)
    - Cancel booking -> `status = cancelled`
 6. On successful mutation, relevant query keys are invalidated:
    - bookings feature root

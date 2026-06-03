@@ -16,7 +16,7 @@ Order matches the scroll layout; useful when tracing UX or adding a section.
 6. **Rest of Today** — `RestOfTodayCard` (separate query for today’s bookings).
 7. **`FloatingCreateMenu`** — Create appointment / quote entry points (overlay).
 
-`useHomeDashboard()` is called once; **`useHomeQuickMarkComplete()`** handles mark-complete from the Next Up card when the spotlight is in progress.
+`useHomeDashboard()` is called once; **`useMarkBookingCompleteFlow()`** handles mark-complete from the Next Up card (Supabase complete + review-invite when eligible).
 
 > **`TotalScheduledCard`** exists under `components/` (upcoming count → Bookings tab) but is **not** mounted on the current Home screen; keep the component/tests if you reintroduce that row.
 
@@ -28,7 +28,7 @@ Order matches the scroll layout; useful when tracing UX or adding a section.
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `screens/HomeScreen.jsx`            | Composes sections; calls `useHomeDashboard()` once and passes props to children (avoids duplicate fetches).                                                                      |
 | `hooks/useHomeDashboard.js`         | **TanStack Query** for business + upcoming spotlight bookings + “today” list; **stale-only refetch** on tab focus; exposes `refetch()` for pull-to-refresh; errors per query.    |
-| `hooks/useHomeQuickMarkComplete.js` | Mutation: `markBookingCompletedById` + **`invalidateBookingCachesAfterMutation`** (same invalidation as booking details).                                                        |
+| `hooks/useHomeQuickMarkComplete.js` | Direct complete mutation (Supabase + review-invite) when no sheet is needed.                                                                                                     |
 | `api/homeDashboard.js`              | `fetchBusinessProfileForUser` only; booking list helpers live in **`bookings/api/bookings.js`** (re-exported here for compatibility).                                            |
 | `utils/bookingStart.js`             | Combines `scheduled_date` + `start_time` in **device local** time; relative “Starts in …” and in-progress subtitle copy.                                                         |
 | `utils/bookingLink.js`              | Host + display/HTTPS URL helpers; slug comes **only** from `business_profiles.business_slug` (see Link row empty state if missing).                                              |
@@ -100,7 +100,7 @@ Subtitle on Home (`nextSubtitle`): **in progress** → `formatInProgressSubtitle
    - Name row includes **animated green pulse** dot (`testID="next-up-live-pulse"`).
    - **Single full-width** primary: **Mark complete** (`variant` flips with surface: `surfaceDark` on white card, `surfaceLight` on dark).
    - **Mark complete** is disabled if `onMarkComplete` is missing **or** `markCompleteLoading`.
-   - **Confirmation:** first tap runs **`Alert.alert`** — title “Mark complete?”, message “This will mark the booking as completed.”, **Cancel** / **Mark complete**; the mutation runs only on confirm.
+   - **Confirmation:** tap **Mark complete** opens a bottom sheet (preview from web API when available); **Cancel** / **Mark complete**; copy explains whether a review email will be sent.
    - On failure, `HomeScreen` shows **`Alert.alert`** with `safeUserFacingMessage`.
 
 6. **Accessibility**

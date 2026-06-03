@@ -8,6 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppShellGlow, AppText } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { FREE_TIER_BOOKINGS_LIMIT, freeTierBookingsLimitCopy } from '../../bookings/constants';
+import { BookingMarkCompleteSheet } from '../../bookings/booking-details/components/BookingMarkCompleteSheet';
+import { useMarkBookingCompleteFlow } from '../../bookings/booking-details/hooks/useMarkBookingCompleteFlow';
 import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
 import { FloatingCreateMenu } from '../components/FloatingCreateMenu';
 import { HomeFreeBookingsUsageCard } from '../components/HomeFreeBookingsUsageCard';
@@ -17,7 +19,6 @@ import { NextUpCard } from '../components/NextUpCard';
 import { RestOfTodayCard } from '../components/restOfToday';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
 import { useLinkViewsAnalytics } from '../hooks/useLinkViewsAnalytics';
-import { useHomeQuickMarkComplete } from '../hooks/useHomeQuickMarkComplete';
 import { computeHomeErrorPresentation } from '../utils/homeErrorPresentation';
 import { normalizeBusinessSlug } from '../utils/bookingLink';
 import { useTheme } from '../../../theme';
@@ -36,7 +37,17 @@ export function HomeScreen() {
   const { unreadCount } = useNotificationUnreadCount();
   const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
   const dashboard = useHomeDashboard();
-  const markCompleteMutation = useHomeQuickMarkComplete();
+  const nextBookingId = dashboard.nextBooking?.id ?? null;
+  const markCompleteFlow = useMarkBookingCompleteFlow(nextBookingId, {
+    booking: dashboard.nextBooking
+      ? {
+          id: dashboard.nextBooking.id,
+          customer_id: dashboard.nextBooking.customer_id ?? null,
+          customer_email: dashboard.nextBooking.customer_email ?? null,
+        }
+      : null,
+    businessId: dashboard.business?.id ?? null,
+  });
   const tabBarHeight = useBottomTabBarHeight();
   /** Extra space so content clears the custom tab bar (hook can be 0 with custom `tabBar`). */
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
@@ -245,23 +256,35 @@ export function HomeScreen() {
     navigation.navigate(ROUTES.NOTIFICATIONS_INBOX);
   }, [navigation]);
 
-  const handleNextUpMarkComplete = useCallback(async () => {
-    const id = dashboard.nextBooking?.id;
-    if (!id) {
+  const handleNextUpMarkComplete = useCallback(() => {
+    if (!nextBookingId) {
       return;
     }
+    markCompleteFlow.openSheet();
+  }, [markCompleteFlow, nextBookingId]);
+
+  const handleConfirmMarkComplete = useCallback(async () => {
     try {
-      await markCompleteMutation.mutateAsync(id);
+      await markCompleteFlow.confirmComplete();
     } catch (error) {
       Alert.alert(
         'Could not mark complete',
         safeUserFacingMessage(error, { fallback: 'Please try again.' }),
       );
     }
-  }, [dashboard.nextBooking?.id, markCompleteMutation]);
+  }, [markCompleteFlow]);
 
   return (
     <SafeAreaView edges={['top']} style={styles.root}>
+      <BookingMarkCompleteSheet
+        isLoadingPreview={markCompleteFlow.isLoadingPreview}
+        isSubmitting={markCompleteFlow.isConfirming}
+        preview={markCompleteFlow.preview}
+        previewError={markCompleteFlow.previewError}
+        visible={markCompleteFlow.sheetVisible}
+        onConfirm={() => void handleConfirmMarkComplete()}
+        onRequestClose={markCompleteFlow.closeSheet}
+      />
       <AppShellGlow />
       <ScrollView
         contentContainerStyle={styles.content}
@@ -312,10 +335,10 @@ export function HomeScreen() {
           businessError={homeErrors.nextUpBusinessError}
           businessName={dashboard.business?.business_name?.trim() || undefined}
           isLoading={sectionLoading}
-          markCompleteLoading={markCompleteMutation.isPending}
+          markCompleteLoading={markCompleteFlow.isConfirming}
           nextBooking={dashboard.nextBooking}
           onMarkComplete={
-            dashboard.spotlightMode === 'in_progress' && dashboard.nextBooking?.id
+            dashboard.spotlightMode === 'in_progress' && nextBookingId
               ? handleNextUpMarkComplete
               : undefined
           }

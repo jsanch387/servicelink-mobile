@@ -4,7 +4,6 @@ jest.mock('@tanstack/react-query', () => ({
 }));
 
 jest.mock('../api/bookingDetails', () => ({
-  markBookingCompletedById: jest.fn(),
   cancelBookingById: jest.fn(),
   rescheduleBookingById: jest.fn(),
   deleteBookingById: jest.fn(),
@@ -15,12 +14,7 @@ jest.mock('../utils/invalidateBookingCachesAfterMutation', () => ({
 }));
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  cancelBookingById,
-  deleteBookingById,
-  markBookingCompletedById,
-  rescheduleBookingById,
-} from '../api/bookingDetails';
+import { cancelBookingById, deleteBookingById, rescheduleBookingById } from '../api/bookingDetails';
 import { renderHook } from '@testing-library/react-native';
 import { useBookingActions } from '../hooks/useBookingActions';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
@@ -44,7 +38,6 @@ async function findRescheduleMutationConfig(mutationConfigs) {
 describe('useBookingActions reschedule', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    markBookingCompletedById.mockResolvedValue({ data: { id: 'book-1' }, error: null });
     cancelBookingById.mockResolvedValue({ data: { id: 'book-1' }, error: null });
     rescheduleBookingById.mockResolvedValue({ data: { id: 'book-1' }, error: null });
     deleteBookingById.mockResolvedValue({ data: { id: 'book-1' }, error: null });
@@ -108,12 +101,11 @@ describe('useBookingActions reschedule', () => {
     ).rejects.toThrow('Update denied');
   });
 
-  it('registers complete, cancel, reschedule, and delete mutations without calling APIs on mount', () => {
+  it('registers cancel, reschedule, and delete mutations without calling APIs on mount', () => {
     renderUseBookingActions();
-    expect(markBookingCompletedById).not.toHaveBeenCalled();
     expect(cancelBookingById).not.toHaveBeenCalled();
     expect(rescheduleBookingById).not.toHaveBeenCalled();
     expect(deleteBookingById).not.toHaveBeenCalled();
-    expect(useMutation).toHaveBeenCalledTimes(4);
+    expect(useMutation).toHaveBeenCalledTimes(3);
   });
 });

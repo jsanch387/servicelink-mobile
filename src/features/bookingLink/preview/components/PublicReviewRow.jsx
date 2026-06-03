@@ -52,9 +52,6 @@ export function PublicReviewRow({
           letterSpacing: 0.1,
           marginTop: 2,
         },
-        bodyText: {
-          color: colors.textSecondary,
-        },
         replyWrap: {
           flexDirection: 'row',
           marginTop: 14,
@@ -92,7 +89,7 @@ export function PublicReviewRow({
         <StarRating rating={rating} size={14} gap={1} />
       </View>
 
-      <ReviewBodyText body={body} bodyStyle={styles.bodyText} />
+      <ReviewBodyText body={body} />
 
       {ownerReplyBody ? (
         <View style={styles.replyWrap}>

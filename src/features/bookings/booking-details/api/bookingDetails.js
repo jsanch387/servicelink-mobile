@@ -12,6 +12,7 @@ export const BOOKING_DETAILS_SELECT = [
   'customer_name',
   'customer_phone',
   'customer_email',
+  'customer_id',
   'customer_street_address',
   'customer_unit_apt',
   'customer_city',
@@ -90,14 +91,16 @@ export async function fetchBookingDetailsById(bookingId) {
 
 /**
  * @param {string} bookingId
+ * @param {string | null | undefined} [businessId]
  */
-export async function markBookingCompletedById(bookingId) {
-  const { data, error } = await supabase
-    .from('bookings')
-    .update({ status: 'completed' })
-    .eq('id', bookingId)
-    .select('id, status')
-    .maybeSingle();
+export async function markBookingCompletedById(bookingId, businessId) {
+  let query = supabase.from('bookings').update({ status: 'completed' }).eq('id', bookingId);
+  const scopedBusinessId = businessId?.trim();
+  if (scopedBusinessId) {
+    query = query.eq('business_id', scopedBusinessId);
+  }
+
+  const { data, error } = await query.select('id, status').maybeSingle();
 
   return { data, error };
 }

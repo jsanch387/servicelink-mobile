@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Alert, Animated, StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import {
   AppText,
   Button,
@@ -193,16 +193,7 @@ export function NextUpCard({
     if (!onMarkComplete) {
       return;
     }
-    Alert.alert('Mark complete?', 'This will mark the booking as completed.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Mark complete',
-        style: 'default',
-        onPress: () => {
-          void onMarkComplete();
-        },
-      },
-    ]);
+    void onMarkComplete();
   }, [onMarkComplete]);
 
   const inProgressActions = spotlightMode === 'in_progress';

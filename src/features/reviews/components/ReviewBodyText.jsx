@@ -41,7 +41,7 @@ export function ReviewBodyText({
     () =>
       StyleSheet.create({
         body: {
-          color: colors.textSecondary,
+          color: colors.linkSubtle,
           fontSize: 15,
           fontWeight: '500',
           letterSpacing: -0.1,

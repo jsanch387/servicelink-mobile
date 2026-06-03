@@ -1,5 +1,4 @@
 import { fireEvent, screen } from '@testing-library/react-native';
-import { Alert } from 'react-native';
 import { NextUpCard } from '../components/NextUpCard';
 import * as outbound from '../utils/appointmentOutbound';
 import { renderWithProviders } from './testUtils';
@@ -176,13 +175,7 @@ describe('NextUpCard', () => {
     expect(screen.getByLabelText(/In progress.*Alex/i)).toBeTruthy();
   });
 
-  it('calls onMarkComplete after confirming Mark complete in the alert', () => {
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
-      expect(title).toBe('Mark complete?');
-      expect(message).toBe('This will mark the booking as completed.');
-      const confirmBtn = buttons?.find((b) => b.text === 'Mark complete');
-      confirmBtn?.onPress?.();
-    });
+  it('calls onMarkComplete when Mark complete is pressed', () => {
     const onMarkComplete = jest.fn().mockResolvedValue(undefined);
     const nextBooking = {
       id: '1',
@@ -206,42 +199,7 @@ describe('NextUpCard', () => {
       />,
     );
     fireEvent.press(screen.getByLabelText('Mark complete'));
-    expect(alertSpy).toHaveBeenCalledTimes(1);
     expect(onMarkComplete).toHaveBeenCalledTimes(1);
-    alertSpy.mockRestore();
-  });
-
-  it('does not call onMarkComplete when the mark-complete alert is canceled', () => {
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
-      const cancelBtn = buttons?.find((b) => b.text === 'Cancel');
-      cancelBtn?.onPress?.();
-    });
-    const onMarkComplete = jest.fn().mockResolvedValue(undefined);
-    const nextBooking = {
-      id: '1',
-      customer_name: 'Alex',
-      service_name: 'Install',
-      customer_phone: '5552345678',
-      customer_street_address: '1 Main',
-      customer_city: 'Austin',
-      customer_state: 'TX',
-      customer_zip: '78701',
-    };
-    renderWithProviders(
-      <NextUpCard
-        bookingsError={null}
-        businessError={null}
-        isLoading={false}
-        nextBooking={nextBooking}
-        onMarkComplete={onMarkComplete}
-        spotlightMode="in_progress"
-        subtitle="Started at 2:00 PM"
-      />,
-    );
-    fireEvent.press(screen.getByLabelText('Mark complete'));
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(onMarkComplete).not.toHaveBeenCalled();
-    alertSpy.mockRestore();
   });
 
   it('shows customer, service, subtitle, and enables actions when booking has phone and address', () => {

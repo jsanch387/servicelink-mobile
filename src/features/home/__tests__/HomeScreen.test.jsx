@@ -57,6 +57,22 @@ jest.mock('../../bookings/hooks/useBookingsFreeTierUsage', () => ({
   useBookingsFreeTierUsage: (...args) => mockUseBookingsFreeTierUsage(...args),
 }));
 
+const mockMarkCompleteFlow = {
+  sheetVisible: false,
+  openSheet: jest.fn(),
+  closeSheet: jest.fn(),
+  preview: null,
+  isLoadingPreview: false,
+  previewError: null,
+  confirmComplete: jest.fn(),
+  isConfirming: false,
+  confirmError: null,
+};
+
+jest.mock('../../bookings/booking-details/hooks/useMarkBookingCompleteFlow', () => ({
+  useMarkBookingCompleteFlow: jest.fn(() => mockMarkCompleteFlow),
+}));
+
 const mockUseHomeDashboard = useHomeDashboard;
 const mockUseLinkViewsAnalytics = useLinkViewsAnalytics;
 

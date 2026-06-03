@@ -14,6 +14,7 @@ import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BookingActionsSection } from '../booking-details/components/BookingActionsSection';
+import { BookingMarkCompleteSheet } from '../booking-details/components/BookingMarkCompleteSheet';
 import { BookingPaymentSection } from '../booking-details/components/BookingPaymentSection';
 import { BookingDetailsStatusBanner } from '../booking-details/components/BookingDetailsStatusBanner';
 import { BookingRescheduleSheet } from '../booking-details/components/BookingRescheduleSheet';
@@ -21,6 +22,7 @@ import { BookingDetailsSkeleton } from '../booking-details/components/BookingDet
 import { PriceBreakdownSection } from '../booking-details/components/PriceBreakdownSection';
 import { ScheduleSection } from '../booking-details/components/ScheduleSection';
 import { useBookingActions } from '../booking-details/hooks/useBookingActions';
+import { useMarkBookingCompleteFlow } from '../booking-details/hooks/useMarkBookingCompleteFlow';
 import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
 import { buildBookingDetailsModel } from '../booking-details/utils/buildBookingDetailsModel';
 
@@ -35,6 +37,15 @@ export function BookingDetailsScreen({ route }) {
     () => buildBookingDetailsModel(detailsQuery.booking),
     [detailsQuery.booking],
   );
+  const markCompleteFlow = useMarkBookingCompleteFlow(bookingId, {
+    booking: detailsQuery.booking
+      ? {
+          id: detailsQuery.booking.id,
+          customer_id: detailsQuery.booking.customer_id ?? null,
+          customer_email: detailsQuery.booking.customer_email ?? null,
+        }
+      : null,
+  });
   const statusLower = details.status.toLowerCase();
   const isCompletedStatus = statusLower === 'completed' || statusLower === 'complete';
   const isCancelledStatus = statusLower === 'cancelled' || statusLower === 'canceled';
@@ -116,19 +127,23 @@ export function BookingDetailsScreen({ route }) {
     return n.length > 0 ? n : 'No notes';
   }, [details.notes]);
 
-  const handleMarkCompleted = useCallback(async () => {
+  const handleMarkCompleted = useCallback(() => {
     if (isCompletedStatus || isCancelledStatus || !bookingId) {
       return;
     }
+    markCompleteFlow.openSheet();
+  }, [bookingId, isCancelledStatus, isCompletedStatus, markCompleteFlow]);
+
+  const handleConfirmMarkCompleted = useCallback(async () => {
     try {
-      await bookingActions.markCompleted();
+      await markCompleteFlow.confirmComplete();
     } catch (error) {
       Alert.alert(
         'Could not mark completed',
         safeUserFacingMessage(error, { fallback: 'Please try again.' }),
       );
     }
-  }, [bookingActions, bookingId, isCancelledStatus, isCompletedStatus]);
+  }, [markCompleteFlow]);
   const handleReschedule = useCallback(() => {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
       return;
@@ -178,7 +193,7 @@ export function BookingDetailsScreen({ route }) {
 
   const actionsBusy =
     bookingActions.isCancellingBooking ||
-    bookingActions.isMarkingCompleted ||
+    markCompleteFlow.isConfirming ||
     bookingActions.isReschedulingBooking ||
     bookingActions.isDeletingBooking;
 
@@ -241,6 +256,15 @@ export function BookingDetailsScreen({ route }) {
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
+      <BookingMarkCompleteSheet
+        isLoadingPreview={markCompleteFlow.isLoadingPreview}
+        isSubmitting={markCompleteFlow.isConfirming}
+        preview={markCompleteFlow.preview}
+        previewError={markCompleteFlow.previewError}
+        visible={markCompleteFlow.sheetVisible}
+        onConfirm={() => void handleConfirmMarkCompleted()}
+        onRequestClose={markCompleteFlow.closeSheet}
+      />
       <BookingRescheduleSheet
         initialStartMs={Number.isFinite(bookingStartMs) ? bookingStartMs : undefined}
         isSubmitting={bookingActions.isReschedulingBooking}
@@ -334,7 +358,7 @@ export function BookingDetailsScreen({ route }) {
                 isCancellingBooking={bookingActions.isCancellingBooking}
                 isDeletingBooking={bookingActions.isDeletingBooking}
                 isMarkCompletedDisabled={isCompletedStatus}
-                isMarkingCompleted={bookingActions.isMarkingCompleted}
+                isMarkingCompleted={markCompleteFlow.isConfirming}
                 isRescheduleDisabled={isCancelledStatus || isCompletedStatus}
                 isReschedulingBooking={bookingActions.isReschedulingBooking}
                 onCancelBooking={handleCancelBooking}
