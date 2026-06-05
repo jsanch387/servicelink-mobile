@@ -33,6 +33,7 @@ import { useSubscription, showWebAccountFeatureAlert } from '../../subscription'
 import { serviceMultiplePricingAccessCopy } from '../constants/servicePricingAccessCopy';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
 import { CollapsibleEditorSectionCard } from '../components/CollapsibleEditorSectionCard';
+import { ServiceCategorySectionContent, useServiceCategoriesMock } from '../categories';
 import { SelectableAddonCard } from '../components/SelectableAddonCard';
 import { buildServiceEditDraft } from '../utils/buildServiceEditDraft';
 import { normalizeAddonDurationHHmm } from '../utils/serviceAddonModel';
@@ -237,11 +238,15 @@ export function ServiceEditScreen({ route }) {
       void refetchServiceEditor();
     }, [refetchServiceEditor]),
   );
+  const { categories, categorySelectOptionsWithNone, getServiceCategory, setServiceCategory } =
+    useServiceCategoriesMock();
   const [serviceName, setServiceName] = useState(initialDraft.serviceName);
   const [description, setDescription] = useState(initialDraft.description);
   const [price, setPrice] = useState(initialDraft.price);
   const [durationHHmm, setDurationHHmm] = useState(initialDraft.durationHHmm);
+  const [categoryId, setCategoryId] = useState('');
   const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [categoryExpanded, setCategoryExpanded] = useState(false);
   const [pricingExpanded, setPricingExpanded] = useState(false);
   const [addonsExpanded, setAddonsExpanded] = useState(false);
   const [multiPriceEnabled, setMultiPriceEnabled] = useState(true);
@@ -274,6 +279,13 @@ export function ServiceEditScreen({ route }) {
     [editingPricingOptionId, pricingOptions],
   );
 
+  const categoryCollapsedSubtitle = useMemo(() => {
+    if (categoryExpanded) return null;
+    if (categories.length === 0) return 'No categories set up';
+    const selected = categories.find((cat) => cat.id === categoryId);
+    return selected?.name ?? 'Not assigned';
+  }, [categories, categoryExpanded, categoryId]);
+
   const pricingCollapsedSubtitle = useMemo(() => {
     if (pricingExpanded) return null;
     if (blockPricingControls) {
@@ -299,6 +311,21 @@ export function ServiceEditScreen({ route }) {
       setMultiPriceEnabled(nextEnabled);
     },
     [blockPricingControls, pricingOptions.length],
+  );
+
+  useEffect(() => {
+    if (!routeServiceId) return;
+    setCategoryId(getServiceCategory(routeServiceId));
+  }, [getServiceCategory, routeServiceId]);
+
+  const handleCategoryIdChange = useCallback(
+    (nextCategoryId) => {
+      setCategoryId(nextCategoryId);
+      if (routeServiceId) {
+        setServiceCategory(routeServiceId, nextCategoryId);
+      }
+    },
+    [routeServiceId, setServiceCategory],
   );
 
   useEffect(() => {
@@ -827,6 +854,21 @@ export function ServiceEditScreen({ route }) {
           </CollapsibleEditorSectionCard>
 
           <CollapsibleEditorSectionCard
+            contentStyle={styles.categoryContent}
+            expanded={categoryExpanded}
+            onToggle={() => setCategoryExpanded((v) => !v)}
+            subtitle={categoryCollapsedSubtitle}
+            title="Category"
+          >
+            <ServiceCategorySectionContent
+              categories={categories}
+              categoryId={categoryId}
+              categorySelectOptionsWithNone={categorySelectOptionsWithNone}
+              onCategoryIdChange={handleCategoryIdChange}
+            />
+          </CollapsibleEditorSectionCard>
+
+          <CollapsibleEditorSectionCard
             contentStyle={styles.pricingContent}
             expanded={pricingExpanded}
             onToggle={() => setPricingExpanded((v) => !v)}
@@ -1154,6 +1196,9 @@ const styles = StyleSheet.create({
   },
   pricingContent: {
     paddingTop: 12,
+  },
+  categoryContent: {
+    paddingTop: 8,
   },
   addonsContent: {
     paddingTop: 12,

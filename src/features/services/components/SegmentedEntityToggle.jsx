@@ -3,10 +3,12 @@ import { AppText } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
 export const ENTITY_VIEW_SERVICES = 'services';
+export const ENTITY_VIEW_CATEGORIES = 'categories';
 export const ENTITY_VIEW_ADDONS = 'addons';
 
 const OPTIONS = [
   { key: ENTITY_VIEW_SERVICES, label: 'Services' },
+  { key: ENTITY_VIEW_CATEGORIES, label: 'Categories' },
   { key: ENTITY_VIEW_ADDONS, label: 'Add-ons' },
 ];
 
@@ -48,8 +50,7 @@ const styles = StyleSheet.create({
   wrapper: {
     borderRadius: 14,
     borderWidth: 1,
-    marginTop: 0,
-    marginBottom: 0,
+    marginBottom: 14,
     padding: 4,
   },
   track: {
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
 });

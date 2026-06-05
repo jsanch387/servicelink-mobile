@@ -310,6 +310,8 @@ export function DurationSelectField({
   label = 'Duration',
   triggerStyle,
   containerStyle,
+  /** Tighter rhythm for side-by-side fields (e.g. price + duration row). */
+  compact = false,
   /** `'addon'`: optional extra time (0 = none); `'service'`: core duration (30+ min). */
   mode = 'service',
 }) {
@@ -363,12 +365,22 @@ export function DurationSelectField({
   }
 
   return (
-    <View style={[styles.field, containerStyle]}>
+    <View style={[styles.field, compact && styles.fieldCompact, containerStyle]}>
       {label ? (
         typeof label === 'string' ? (
-          <AppText style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</AppText>
+          <AppText
+            style={[
+              styles.fieldLabel,
+              compact && styles.fieldLabelCompact,
+              { color: colors.textMuted },
+            ]}
+          >
+            {label}
+          </AppText>
         ) : (
-          <View style={styles.fieldLabelNodeWrap}>{label}</View>
+          <View style={[styles.fieldLabelNodeWrap, compact && styles.fieldLabelCompact]}>
+            {label}
+          </View>
         )
       ) : null}
 
@@ -387,6 +399,7 @@ export function DurationSelectField({
         <AppText
           style={[
             styles.triggerText,
+            compact && styles.triggerTextCompact,
             { color: String(value ?? '').trim() ? colors.text : colors.placeholder },
           ]}
         >
@@ -429,10 +442,16 @@ const styles = StyleSheet.create({
   field: {
     marginTop: 14,
   },
+  fieldCompact: {
+    marginTop: 0,
+  },
   fieldLabel: {
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
+  },
+  fieldLabelCompact: {
+    marginBottom: 6,
   },
   fieldLabelNodeWrap: {
     marginBottom: 8,
@@ -448,12 +467,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   triggerText: {
+    flex: 1,
     fontSize: 15,
     fontWeight: '500',
     minHeight: 34,
     paddingLeft: 6,
     paddingRight: 10,
     paddingVertical: 8,
+  },
+  triggerTextCompact: {
+    minHeight: 36,
+    paddingVertical: 6,
   },
   overlayRoot: {
     ...StyleSheet.absoluteFillObject,
