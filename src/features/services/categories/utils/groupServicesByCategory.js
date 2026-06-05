@@ -8,6 +8,17 @@ function formatServiceCount(count) {
 }
 
 /**
+ * @param {unknown[]} services
+ * @param {Record<string, string | undefined>} serviceCategoryById
+ * @param {string} categoryId
+ */
+export function countServicesAssignedToCategory(services, serviceCategoryById, categoryId) {
+  const id = String(categoryId ?? '');
+  if (!id) return 0;
+  return (services ?? []).filter((service) => serviceCategoryById?.[service.id] === id).length;
+}
+
+/**
  * @param {{
  *   services: { id: string }[];
  *   categories: { id: string; name: string }[];
@@ -45,12 +56,15 @@ export function groupServicesByCategory({ services, categories, serviceCategoryB
 
 export function withCategoryServiceCounts(categories, services, serviceCategoryById) {
   return (categories ?? []).map((category) => {
-    const count = (services ?? []).filter(
-      (service) => serviceCategoryById[service.id] === category.id,
-    ).length;
+    const assignedServiceCount = countServicesAssignedToCategory(
+      services,
+      serviceCategoryById,
+      category.id,
+    );
     return {
       ...category,
-      servicesCountLabel: formatServiceCount(count),
+      assignedServiceCount,
+      servicesCountLabel: formatServiceCount(assignedServiceCount),
     };
   });
 }

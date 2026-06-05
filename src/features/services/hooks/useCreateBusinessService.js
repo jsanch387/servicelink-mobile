@@ -8,7 +8,7 @@ export function useCreateBusinessService({ businessId, userId }) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: async ({ name, description, price, durationHHmm }) => {
+    mutationFn: async ({ name, description, price, durationHHmm, categoryId }) => {
       const durationMinutes = serviceDurationHHmmToMinutes(durationHHmm);
       const { data, error } = await insertBusinessService({
         businessId,
@@ -16,6 +16,7 @@ export function useCreateBusinessService({ businessId, userId }) {
         description,
         priceInput: price,
         durationMinutes,
+        categoryId: categoryId?.trim() || null,
       });
       if (error) throw new Error(error.message ?? 'Could not create service');
       if (!data) throw new Error('Could not create service');

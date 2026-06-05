@@ -86,15 +86,11 @@ No new table; owners already update rows via existing policies. `category_id` up
 | Link to service           | `business_services.category_id` (1:0..1)    | `service_addon_assignments` (M:N) |
 | `business_id` on link row | On service (must match category’s business) | Only on addon + service rows      |
 
-## Mobile module (pre-API)
+## Mobile module
 
-Until API wiring lands, the app uses **mock state** in `categories/context/ServiceCategoriesMockContext.jsx` (`serviceCategoryById` map). After API:
+Categories load from Supabase via `useServicesCatalog` and `useServiceEditData`. Mutations use `useMutateServiceCategory` and `useSaveServiceCategoriesOrder`. Service assignment persists `business_services.category_id` on create/edit save.
 
-1. Fetch `service_categories` + `business_services` (include `category_id`).
-2. Replace mock provider with catalog query / mutations.
-3. Persist `category_id` on service save; scoped sort save per category.
-
-## Queries (planned)
+## Queries
 
 ```sql
 -- Owner catalog

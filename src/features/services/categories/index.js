@@ -1,7 +1,13 @@
 export {
-  ServiceCategoriesMockProvider,
-  useServiceCategoriesMock,
-} from './context/ServiceCategoriesMockContext';
+  fetchServiceCategories,
+  insertServiceCategory,
+  updateServiceCategory,
+  deleteServiceCategory,
+  saveServiceCategoriesSortOrder,
+} from './api/serviceCategories';
+
+export { useMutateServiceCategory } from './hooks/useMutateServiceCategory';
+export { useSaveServiceCategoriesOrder } from './hooks/useSaveServiceCategoriesOrder';
 
 export { CategoryEditorSheet } from './components/CategoryEditorSheet';
 export { ServiceCatalogMetaRow } from './components/ServiceCatalogMetaRow';
@@ -19,18 +25,26 @@ export {
   buildServiceCategoryTabs,
   groupServicesByCategory,
   withCategoryServiceCounts,
+  countServicesAssignedToCategory,
   UNCATEGORIZED_SERVICES_GROUP_ID,
 } from './utils/groupServicesByCategory';
+
+export { buildDeleteCategoryAlertContent } from './utils/buildDeleteCategoryAlertContent';
+export { hasCategoryOrderChanges } from './utils/hasCategoryOrderChanges';
+
+export {
+  buildServiceCategoriesFromRows,
+  buildServiceCategoryByIdFromServiceRows,
+  buildCategorySelectOptions,
+  buildCategorySelectOptionsWithNone,
+} from './utils/buildServiceCategoriesModel';
 
 export {
   shouldShowCategoryTabs,
   UNCATEGORIZED_TAB_LABEL,
+  UNCATEGORIZED_CATEGORY_OPTION,
   isUncategorizedTabId,
 } from './constants/categoryCatalogUi';
-export {
-  UNCATEGORIZED_CATEGORY_OPTION,
-  MOCK_SERVICE_CATEGORIES,
-} from './constants/mockServiceCategories';
 export {
   getServicesForCategoryTab,
   mergeServicesOrderWithinTab,

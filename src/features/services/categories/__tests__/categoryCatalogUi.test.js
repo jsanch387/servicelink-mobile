@@ -52,8 +52,8 @@ describe('shouldShowCategoryTabs', () => {
 });
 
 describe('service order within tab', () => {
-  it('labels uncategorized tab as Other in constants', () => {
-    expect(UNCATEGORIZED_TAB_LABEL).toBe('Other');
+  it('labels uncategorized tab as No category in constants', () => {
+    expect(UNCATEGORIZED_TAB_LABEL).toBe('No category');
   });
 
   it('merges reordered tab services back into full list', () => {
@@ -62,7 +62,7 @@ describe('service order within tab', () => {
     expect(merged.map((s) => s.id)).toEqual(['a', 'c', 'b']);
   });
 
-  it('filters Other tab services', () => {
+  it('filters No category tab services', () => {
     const list = getServicesForCategoryTab(
       [{ id: 'a' }, { id: 'b' }],
       UNCATEGORIZED_SERVICES_GROUP_ID,

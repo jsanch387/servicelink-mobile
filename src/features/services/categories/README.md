@@ -1,6 +1,6 @@
 # Service categories (mobile)
 
-Optional browsing groups for the services catalog (e.g. Cars, RVs, Boats). Lives under the parent **services** feature until API wiring is complete.
+Optional browsing groups for the services catalog (e.g. Cars, RVs, Boats). Lives under the parent **services** feature.
 
 ## Docs
 
@@ -11,44 +11,37 @@ Optional browsing groups for the services catalog (e.g. Cars, RVs, Boats). Lives
 
 ```
 categories/
+  api/            service_categories CRUD + sort order
   components/     CategoryEditorSheet, ServiceCategoryTabs, editor section + how-it-works sheet
-  constants/      mock data (temporary), copy, UNCATEGORIZED_SERVICES_GROUP_ID
-  context/        ServiceCategoriesMockProvider — replace with API + React Query
+  constants/      copy, UNCATEGORIZED_SERVICES_GROUP_ID
   docs/           service-categories-database.md
-  hooks/          useServiceCategoryTabs (list tab state)
+  hooks/          useServiceCategoryTabs, useMutateServiceCategory, useSaveServiceCategoriesOrder
   utils/          groupServicesByCategory, buildServiceCategoryTabs
   index.js        public exports — import from here
 ```
 
 ## Catalog UI rules
 
-| Situation                            | Services list                                                           |
-| ------------------------------------ | ----------------------------------------------------------------------- |
-| No categories                        | Flat list, header **Add service**, count + **Reorder** link above cards |
-| One category, all services assigned  | Flat list (tabs hidden — one group adds no value)                       |
-| One category + services in **Other** | Tabs: `Cars` \| `Other`                                                 |
-| Two+ categories                      | Tabs per category + **Other** when needed                               |
+| Situation                           | Services list                                                           |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| No categories                       | Flat list, header **Add service**, count + **Reorder** link above cards |
+| One category, all services assigned | Flat list (tabs hidden — one group adds no value)                       |
+| One category + unassigned services  | Tabs: `Cars` \| **No category**                                         |
+| Two+ categories                     | Tabs per category + **No category** when needed                         |
 
-**Other** = services with no category (owner-friendly; not “Uncategorized”). Booking link can use the same label.
+**No category** = services with no `category_id` (owner-friendly tab label).
 
-**Reorder:** count row shows an underlined **Reorder** link when 2+ services; bottom **Cancel** / **Save** while dragging; tabs stay visible.
+**Reorder:** categories and services each have a **Reorder** link when 2+ items; bottom **Cancel** / **Save order** while dragging.
 
 ## Usage
 
 ```js
 import {
-  ServiceCategoriesMockProvider,
-  useServiceCategoriesMock,
   ServiceCategoryTabs,
   useServiceCategoryTabs,
+  useMutateServiceCategory,
+  useSaveServiceCategoriesOrder,
 } from '../categories';
 ```
 
-Provider wraps `MoreNavigator` (services + service edit screens).
-
-## Next (API)
-
-1. `fetchServiceCategories` / CRUD in `api/services.js` (or `api/categories.js`)
-2. Include `category_id` on `business_services` in catalog + editor save
-3. `saveBusinessServicesSortOrder({ businessId, categoryId, orderedServiceIds })`
-4. Remove mock context; extend `useServicesCatalog`
+Data loads via `useServicesCatalog` (list) and `useServiceEditData` (editor).

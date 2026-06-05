@@ -10,8 +10,11 @@ import {
   SurfaceTextField,
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import { formatServiceDurationSelectLabel } from '../../../components/ui/durationTime';
 import { ServiceCategoryPickerField } from '../categories';
 import { CollapsibleEditorSectionCard } from './CollapsibleEditorSectionCard';
+
+const SERVICE_DESCRIPTION_MAX_LENGTH = 1000;
 
 function normalizePriceInput(rawText) {
   const input = String(rawText ?? '').replace(/\$/g, '');
@@ -54,7 +57,7 @@ export function ServiceCreateSheet({
   const [categoryId, setCategoryId] = useState('');
 
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-  const [pricingExpanded, setPricingExpanded] = useState(true);
+  const [pricingExpanded, setPricingExpanded] = useState(false);
   const [categoryExpanded, setCategoryExpanded] = useState(false);
 
   useEffect(() => {
@@ -65,7 +68,7 @@ export function ServiceCreateSheet({
     setDurationHHmm('01:00');
     setCategoryId('');
     setDescriptionExpanded(false);
-    setPricingExpanded(true);
+    setPricingExpanded(false);
     setCategoryExpanded(false);
   }, [visible]);
 
@@ -75,28 +78,35 @@ export function ServiceCreateSheet({
     price.trim().length > 0 &&
     String(durationHHmm ?? '').trim().length > 0;
 
-  const descriptionSubtitle = useMemo(() => {
-    const trimmed = description.trim();
-    if (!trimmed) return 'Required';
-    if (trimmed.length <= 48) return trimmed;
-    return `${trimmed.slice(0, 48).trimEnd()}…`;
-  }, [description]);
-
   const categorySubtitle = useMemo(() => {
     if (!hasCategories) return null;
     return categoryLabelForSubtitle(categoryId, categorySelectOptionsWithNone);
   }, [categoryId, categorySelectOptionsWithNone, hasCategories]);
 
+  const pricingSubtitle = useMemo(() => {
+    if (!price.trim()) return 'Price and duration';
+    const durationLabel = formatServiceDurationSelectLabel(durationHHmm);
+    return durationLabel ? `$${price} · ${durationLabel}` : `$${price}`;
+  }, [durationHHmm, price]);
+
   function insertBulletPoint() {
     setDescription((current) => {
       const text = String(current ?? '');
+      if (text.length >= SERVICE_DESCRIPTION_MAX_LENGTH) return text;
       if (text.trim().length === 0) {
         return '• ';
       }
       const needsLineBreak = !text.endsWith('\n');
-      return `${text}${needsLineBreak ? '\n' : ''}• `;
+      const next = `${text}${needsLineBreak ? '\n' : ''}• `;
+      return next.slice(0, SERVICE_DESCRIPTION_MAX_LENGTH);
     });
   }
+
+  function handleDescriptionChange(text) {
+    setDescription(String(text ?? '').slice(0, SERVICE_DESCRIPTION_MAX_LENGTH));
+  }
+
+  const showDescriptionCharCount = description.length >= SERVICE_DESCRIPTION_MAX_LENGTH;
 
   async function handlePrimary() {
     if (!canSave || !onSave) return;
@@ -148,17 +158,17 @@ export function ServiceCreateSheet({
       />
 
       <CollapsibleEditorSectionCard
-        contentStyle={styles.sectionContent}
+        contentStyle={styles.descriptionSectionContent}
         expanded={descriptionExpanded}
         onToggle={() => setDescriptionExpanded((v) => !v)}
-        subtitle={descriptionSubtitle}
         title="Description"
       >
         <SurfaceTextField
           containerStyle={styles.descriptionField}
           label={null}
+          maxLength={SERVICE_DESCRIPTION_MAX_LENGTH}
           multiline
-          onChangeText={setDescription}
+          onChangeText={handleDescriptionChange}
           placeholder="What customers get with this service"
           style={styles.descriptionInput}
           textAlignVertical="top"
@@ -174,9 +184,11 @@ export function ServiceCreateSheet({
           >
             <Ionicons color={colors.textMuted} name="list-outline" size={18} />
           </Pressable>
-          <AppText style={[styles.charCount, { color: colors.textMuted }]}>
-            {description.length}/800
-          </AppText>
+          {showDescriptionCharCount ? (
+            <AppText style={[styles.charCount, { color: colors.textMuted }]}>
+              {description.length}/{SERVICE_DESCRIPTION_MAX_LENGTH}
+            </AppText>
+          ) : null}
         </View>
       </CollapsibleEditorSectionCard>
 
@@ -184,7 +196,7 @@ export function ServiceCreateSheet({
         contentStyle={styles.sectionContent}
         expanded={pricingExpanded}
         onToggle={() => setPricingExpanded((v) => !v)}
-        subtitle={price.trim() ? `$${price} · ${durationHHmm}` : 'Price and duration'}
+        subtitle={pricingSubtitle}
         title="Pricing"
       >
         <View style={styles.pricingRow}>
@@ -257,8 +269,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingTop: 8,
   },
+  descriptionSectionContent: {
+    paddingHorizontal: 4,
+    paddingTop: 20,
+  },
   descriptionField: {
     marginBottom: 4,
+    marginTop: 4,
   },
   descriptionInput: {
     minHeight: 96,

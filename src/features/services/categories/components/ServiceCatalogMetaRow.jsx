@@ -6,7 +6,14 @@ import { useTheme } from '../../../../theme';
 /**
  * Quiet list meta: service count on the left, optional Reorder link on the right.
  */
-export function ServiceCatalogMetaRow({ countLabel, showReorder, disabled, onReorder }) {
+export function ServiceCatalogMetaRow({
+  countLabel,
+  showReorder,
+  disabled,
+  onReorder,
+  reorderAccessibilityLabel = 'Reorder services',
+  reorderLabel = 'Reorder',
+}) {
   const { colors } = useTheme();
 
   if (!countLabel && !showReorder) return null;
@@ -16,7 +23,7 @@ export function ServiceCatalogMetaRow({ countLabel, showReorder, disabled, onReo
       <AppText style={[styles.count, { color: colors.textMuted }]}>{countLabel}</AppText>
       {showReorder ? (
         <Pressable
-          accessibilityLabel="Reorder services"
+          accessibilityLabel={reorderAccessibilityLabel}
           accessibilityRole="button"
           disabled={disabled}
           hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
@@ -28,7 +35,9 @@ export function ServiceCatalogMetaRow({ countLabel, showReorder, disabled, onReo
         >
           <View style={styles.reorderRow}>
             <Ionicons color={colors.textSecondary} name="swap-vertical-outline" size={15} />
-            <AppText style={[styles.reorderLink, { color: colors.textSecondary }]}>Reorder</AppText>
+            <AppText style={[styles.reorderLink, { color: colors.textSecondary }]}>
+              {reorderLabel}
+            </AppText>
           </View>
         </Pressable>
       ) : null}

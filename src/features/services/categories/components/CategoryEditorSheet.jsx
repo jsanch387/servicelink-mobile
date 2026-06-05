@@ -39,20 +39,23 @@ export function CategoryEditorSheet({
   const canSave = name.trim().length > 0;
 
   async function handlePrimary() {
-    if (!canSave || !onSave) return;
+    if (!canSave || !onSave || isSaving) return;
     await onSave({ name: name.trim() });
   }
 
   return (
     <FormBottomSheetModal
-      allowBackdropClose={allowBackdropClose}
+      allowBackdropClose={allowBackdropClose && !isSaving}
       primaryDisabled={!canSave || isSaving}
       primaryLoading={isSaving}
       primaryTitle={primaryButtonTitle}
       title={title}
       visible={visible}
       onPrimaryPress={handlePrimary}
-      onRequestClose={onRequestClose}
+      onRequestClose={() => {
+        if (isSaving) return;
+        onRequestClose?.();
+      }}
     >
       <View style={styles.fieldWrap}>
         <RequiredFieldLabel colors={colors} text="Name" />

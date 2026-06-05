@@ -4,6 +4,11 @@ import { minutesToServiceDurationHHmm } from '../../../components/ui/durationTim
 import { useAuth } from '../../auth';
 import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
+import { fetchServiceCategories } from '../categories/api/serviceCategories';
+import {
+  buildCategorySelectOptionsWithNone,
+  buildServiceCategoriesFromRows,
+} from '../categories/utils/buildServiceCategoriesModel';
 import {
   detectPriceOptionLabelColumn,
   fetchAddonAssignmentsForService,
@@ -58,6 +63,9 @@ function mapServiceEditModel({
   const price = centsToInput(pick(serviceRow, ['price_cents', 'priceCents']));
   const durationHHmm =
     minutesToServiceDurationHHmm(pick(serviceRow, ['duration_minutes', 'durationMinutes'])) || '';
+  const categoryIdRaw = pick(serviceRow, ['category_id', 'categoryId']);
+  const categoryId =
+    categoryIdRaw != null && String(categoryIdRaw).trim() !== '' ? String(categoryIdRaw) : '';
 
   const pricingOptions = (priceOptionRows ?? [])
     .filter((row) => {
@@ -109,11 +117,28 @@ function mapServiceEditModel({
     description,
     price,
     durationHHmm,
+    categoryId,
     pricingOptions,
     addonOptions,
     selectedAddonIds,
     multiPriceEnabled,
     priceOptionLabelKey,
+  };
+}
+
+function mapServiceEditCategories(categoriesResult) {
+  if (categoriesResult?.error) {
+    return {
+      categories: [],
+      categorySelectOptionsWithNone: buildCategorySelectOptionsWithNone([]),
+      categoriesError: categoriesResult.error?.message ?? 'Could not load categories',
+    };
+  }
+  const categories = buildServiceCategoriesFromRows(categoriesResult?.data);
+  return {
+    categories,
+    categorySelectOptionsWithNone: buildCategorySelectOptionsWithNone(categories),
+    categoriesError: null,
   };
 }
 
@@ -143,11 +168,13 @@ export function useServiceEditData(serviceId, routeService) {
         { data: optionRows, error: optionError },
         { data: addonRows, error: addonError },
         { data: assignmentRows, error: assignmentError },
+        categoriesResult,
       ] = await Promise.all([
         fetchBusinessServices(businessId),
         fetchServicePriceOptions(businessId),
         fetchServiceAddons(businessId),
         fetchAddonAssignmentsForService(serviceId),
+        fetchServiceCategories(businessId),
       ]);
 
       const hardError = servicesError ?? optionError ?? addonError;
@@ -157,13 +184,18 @@ export function useServiceEditData(serviceId, routeService) {
         (servicesRows ?? []).find((row) => String(pick(row, ['id']) ?? '') === String(serviceId)) ??
         null;
 
-      return mapServiceEditModel({
-        serviceRow: matchedService,
-        priceOptionRows: optionRows ?? [],
-        addonRows: addonRows ?? [],
-        assignmentRows: assignmentError ? [] : (assignmentRows ?? []),
-        routeService,
-      });
+      const categoryFields = mapServiceEditCategories(categoriesResult);
+
+      return {
+        ...mapServiceEditModel({
+          serviceRow: matchedService,
+          priceOptionRows: optionRows ?? [],
+          addonRows: addonRows ?? [],
+          assignmentRows: assignmentError ? [] : (assignmentRows ?? []),
+          routeService,
+        }),
+        ...categoryFields,
+      };
     },
     enabled: Boolean(businessId && serviceId),
     staleTime: 30 * 1000,

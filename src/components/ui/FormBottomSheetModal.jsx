@@ -25,6 +25,7 @@ export function FormBottomSheetModal({
       footer={
         <View style={styles.actions}>
           <Button
+            disabled={primaryLoading}
             fullWidth
             labelColor="#ffffff"
             outlineColor="rgba(255,255,255,0.52)"

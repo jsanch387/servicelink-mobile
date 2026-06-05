@@ -33,7 +33,7 @@ import { useSubscription, showWebAccountFeatureAlert } from '../../subscription'
 import { serviceMultiplePricingAccessCopy } from '../constants/servicePricingAccessCopy';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
 import { CollapsibleEditorSectionCard } from '../components/CollapsibleEditorSectionCard';
-import { ServiceCategorySectionContent, useServiceCategoriesMock } from '../categories';
+import { ServiceCategorySectionContent } from '../categories';
 import { SelectableAddonCard } from '../components/SelectableAddonCard';
 import { buildServiceEditDraft } from '../utils/buildServiceEditDraft';
 import { normalizeAddonDurationHHmm } from '../utils/serviceAddonModel';
@@ -64,6 +64,7 @@ function buildEditorSnapshot({
   description,
   price,
   durationHHmm,
+  categoryId,
   multiPriceEnabled,
   pricingOptions,
   addonOptions,
@@ -92,6 +93,7 @@ function buildEditorSnapshot({
     description: String(description ?? ''),
     price: String(price ?? ''),
     durationHHmm: String(durationHHmm ?? ''),
+    categoryId: String(categoryId ?? ''),
     multiPriceEnabled: Boolean(multiPriceEnabled),
     selectedAddonIds: [...(selectedAddonIds ?? [])].map(String).sort(),
     pricingOptions: normalizedPricing,
@@ -238,8 +240,13 @@ export function ServiceEditScreen({ route }) {
       void refetchServiceEditor();
     }, [refetchServiceEditor]),
   );
-  const { categories, categorySelectOptionsWithNone, getServiceCategory, setServiceCategory } =
-    useServiceCategoriesMock();
+  const { categories, categorySelectOptionsWithNone } = useMemo(
+    () => ({
+      categories: fetchedEditorData?.categories ?? [],
+      categorySelectOptionsWithNone: fetchedEditorData?.categorySelectOptionsWithNone ?? [],
+    }),
+    [fetchedEditorData?.categories, fetchedEditorData?.categorySelectOptionsWithNone],
+  );
   const [serviceName, setServiceName] = useState(initialDraft.serviceName);
   const [description, setDescription] = useState(initialDraft.description);
   const [price, setPrice] = useState(initialDraft.price);
@@ -313,20 +320,9 @@ export function ServiceEditScreen({ route }) {
     [blockPricingControls, pricingOptions.length],
   );
 
-  useEffect(() => {
-    if (!routeServiceId) return;
-    setCategoryId(getServiceCategory(routeServiceId));
-  }, [getServiceCategory, routeServiceId]);
-
-  const handleCategoryIdChange = useCallback(
-    (nextCategoryId) => {
-      setCategoryId(nextCategoryId);
-      if (routeServiceId) {
-        setServiceCategory(routeServiceId, nextCategoryId);
-      }
-    },
-    [routeServiceId, setServiceCategory],
-  );
+  const handleCategoryIdChange = useCallback((nextCategoryId) => {
+    setCategoryId(nextCategoryId);
+  }, []);
 
   useEffect(() => {
     if (blockPricingControls) return;
@@ -403,6 +399,7 @@ export function ServiceEditScreen({ route }) {
       description,
       price,
       durationHHmm,
+      categoryId,
       multiPriceEnabled,
       pricingOptions,
       addonOptions,
@@ -411,6 +408,7 @@ export function ServiceEditScreen({ route }) {
     return currentSnapshot !== initialSnapshot;
   }, [
     addonOptions,
+    categoryId,
     description,
     durationHHmm,
     initialSnapshot,
@@ -639,6 +637,7 @@ export function ServiceEditScreen({ route }) {
       })),
       selectedAddonIds,
       priceOptionLabelKey: fetchedEditorData?.priceOptionLabelKey ?? 'label',
+      categoryId: categoryId.trim() || null,
     };
 
     try {
@@ -655,6 +654,7 @@ export function ServiceEditScreen({ route }) {
         description,
         price,
         durationHHmm,
+        categoryId,
         multiPriceEnabled: savedMultiPriceEnabled,
         pricingOptions,
         addonOptions,
@@ -742,6 +742,7 @@ export function ServiceEditScreen({ route }) {
     setDescription(fetchedEditorData.description ?? '');
     setPrice(fetchedEditorData.price ?? '');
     setDurationHHmm(fetchedEditorData.durationHHmm ?? '');
+    setCategoryId(fetchedEditorData.categoryId ?? '');
     setMultiPriceEnabled(Boolean(fetchedEditorData.multiPriceEnabled));
     setPricingOptions(fetchedEditorData.pricingOptions ?? []);
     setAddonOptions(fetchedEditorData.addonOptions ?? []);
@@ -752,6 +753,7 @@ export function ServiceEditScreen({ route }) {
         description: fetchedEditorData.description ?? '',
         price: fetchedEditorData.price ?? '',
         durationHHmm: fetchedEditorData.durationHHmm ?? '',
+        categoryId: fetchedEditorData.categoryId ?? '',
         multiPriceEnabled: Boolean(fetchedEditorData.multiPriceEnabled),
         pricingOptions: fetchedEditorData.pricingOptions ?? [],
         addonOptions: fetchedEditorData.addonOptions ?? [],

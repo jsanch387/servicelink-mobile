@@ -1,5 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, StyleSheet, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { useEffect, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import {
@@ -23,55 +25,135 @@ export function CatalogEntityCard({
   onEdit,
   onDelete,
   deleteDisabled = false,
+  isSortMode = false,
+  index = 0,
+  onDragStart,
+  isDragActive = false,
 }) {
   const { colors } = useTheme();
   const hasPrice = Boolean(priceLabel?.trim());
+  const dragPulse = useRef(new Animated.Value(0.72)).current;
 
-  return (
-    <SurfaceCard padding="none" style={[styles.card, { borderColor: colors.border }]}>
-      <View style={styles.headerRow}>
-        <View style={styles.titleCol}>
-          <AppText numberOfLines={2} style={[styles.title, { color: colors.text }]}>
-            {name}
-          </AppText>
-          {metaLines.map((line, index) => (
-            <AppText
-              key={`${line}-${index}`}
-              numberOfLines={1}
-              style={[styles.metaLine, { color: colors.textMuted }]}
-            >
-              {line}
-            </AppText>
-          ))}
+  useEffect(() => {
+    if (!isSortMode) {
+      dragPulse.stopAnimation();
+      dragPulse.setValue(0.72);
+      return;
+    }
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(dragPulse, {
+          duration: 700,
+          toValue: 1,
+          useNativeDriver: true,
+        }),
+        Animated.timing(dragPulse, {
+          duration: 700,
+          toValue: 0.72,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [dragPulse, isSortMode]);
+
+  function handleSortLongPress() {
+    if (!isSortMode) return;
+    Haptics.selectionAsync().catch(() => {});
+    onDragStart?.();
+  }
+
+  const cardBody = (
+    <View style={styles.outerRow}>
+      {isSortMode ? (
+        <View style={styles.reorderCol}>
+          <AppText style={[styles.orderText, { color: colors.text }]}>{index + 1}</AppText>
+          <View style={styles.dragPill}>
+            <Animated.View style={{ opacity: dragPulse }}>
+              <Ionicons color="#22c55e" name="reorder-three-outline" size={18} />
+            </Animated.View>
+            <AppText style={styles.dragLabel}>Hold</AppText>
+          </View>
         </View>
-        {hasPrice ? (
-          <AppText style={[styles.price, { color: colors.text }]}>{priceLabel}</AppText>
+      ) : null}
+
+      <View style={styles.contentCol}>
+        <View style={styles.headerRow}>
+          <View style={styles.titleCol}>
+            <AppText numberOfLines={2} style={[styles.title, { color: colors.text }]}>
+              {name}
+            </AppText>
+            {metaLines.map((line, lineIndex) => (
+              <AppText
+                key={`${line}-${lineIndex}`}
+                numberOfLines={1}
+                style={[styles.metaLine, { color: colors.textMuted }]}
+              >
+                {line}
+              </AppText>
+            ))}
+          </View>
+          {hasPrice ? (
+            <AppText style={[styles.price, { color: colors.text }]}>{priceLabel}</AppText>
+          ) : null}
+        </View>
+
+        {!isSortMode ? (
+          <View style={styles.actionsRow}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onEdit}
+              style={[styles.actionButton, { borderColor: 'rgba(255,255,255,0.2)' }]}
+            >
+              <Ionicons color={EDIT_ACCENT} name="create-outline" size={16} />
+              <AppText style={[styles.actionText, { color: EDIT_ACCENT }]}>Edit</AppText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={deleteDisabled}
+              onPress={onDelete}
+              style={[
+                styles.actionButton,
+                { borderColor: 'rgba(255,255,255,0.2)' },
+                deleteDisabled && styles.actionButtonDisabled,
+              ]}
+            >
+              <Ionicons color={DELETE_ACCENT} name="trash-outline" size={16} />
+              <AppText style={[styles.actionText, { color: DELETE_ACCENT }]}>Delete</AppText>
+            </Pressable>
+          </View>
         ) : null}
       </View>
+    </View>
+  );
 
-      <View style={styles.actionsRow}>
+  return (
+    <SurfaceCard
+      padding="none"
+      style={[
+        styles.card,
+        { borderColor: colors.border },
+        isSortMode && {
+          backgroundColor: colors.shellElevated,
+          borderColor: 'rgba(34,197,94,0.45)',
+          borderStyle: 'dashed',
+        },
+        isDragActive && { opacity: 0.96 },
+      ]}
+    >
+      {isSortMode ? (
         <Pressable
           accessibilityRole="button"
-          onPress={onEdit}
-          style={[styles.actionButton, { borderColor: 'rgba(255,255,255,0.2)' }]}
+          delayLongPress={120}
+          onLongPress={handleSortLongPress}
+          style={styles.sortModePressable}
         >
-          <Ionicons color={EDIT_ACCENT} name="create-outline" size={16} />
-          <AppText style={[styles.actionText, { color: EDIT_ACCENT }]}>Edit</AppText>
+          {cardBody}
         </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={deleteDisabled}
-          onPress={onDelete}
-          style={[
-            styles.actionButton,
-            { borderColor: 'rgba(255,255,255,0.2)' },
-            deleteDisabled && styles.actionButtonDisabled,
-          ]}
-        >
-          <Ionicons color={DELETE_ACCENT} name="trash-outline" size={16} />
-          <AppText style={[styles.actionText, { color: DELETE_ACCENT }]}>Delete</AppText>
-        </Pressable>
-      </View>
+      ) : (
+        cardBody
+      )}
     </SurfaceCard>
   );
 }
@@ -83,6 +165,38 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
+  },
+  outerRow: {
+    flexDirection: 'row',
+  },
+  sortModePressable: {
+    width: '100%',
+  },
+  reorderCol: {
+    alignItems: 'center',
+    marginRight: 10,
+    paddingTop: 4,
+    width: 40,
+  },
+  orderText: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  dragPill: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  dragLabel: {
+    color: '#22c55e',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+  },
+  contentCol: {
+    flex: 1,
+    minWidth: 0,
   },
   headerRow: {
     alignItems: 'flex-start',

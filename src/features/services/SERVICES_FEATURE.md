@@ -54,7 +54,7 @@ From Supabase:
 
 ## Service categories (mobile module)
 
-UI lives in `src/features/services/categories/` (components, mock context, tab utils). Import from `categories/index.js`. Database contract: `categories/docs/service-categories-database.md`.
+UI lives in `src/features/services/categories/` (components, API, tab utils). Import from `categories/index.js`. Database contract: `categories/docs/service-categories-database.md`.
 
 ## Query Keys
 

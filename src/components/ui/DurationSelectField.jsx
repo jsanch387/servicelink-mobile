@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { triggerWheelSelectionHaptic } from './wheelHaptics';
 import {
   Animated,
+  Keyboard,
   Modal,
   Pressable,
   ScrollView,
@@ -346,6 +347,7 @@ export function DurationSelectField({
   }, [value, mode, placeholder]);
 
   function openSheet() {
+    Keyboard.dismiss();
     const { hour, minute } = resolveDraftFromValue(value, mode);
     setPickerInitial({ hour, minute });
     if (bottomSheetOverlay) {
