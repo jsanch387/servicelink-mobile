@@ -20,6 +20,7 @@ import { BookingLinkScreenSkeleton } from '../preview/components/BookingLinkScre
 import { bookingLinkOwnerProfileQueryKey } from '../queryKeys';
 import { BOOKING_LINK_DEFAULT_TAB } from '../constants/bookingLinkPreviewTabs';
 import { mapServicesForCards } from '../utils/bookingLinkModel';
+import { buildServiceCategoriesFromRows } from '../../services/categories/utils/buildServiceCategoriesModel';
 import { splitServiceAreaCityState } from '../utils/serviceArea';
 import { useSubscription } from '../../subscription';
 
@@ -82,6 +83,10 @@ export function BookingLinkScreen() {
   }, [bookingWelcomeVisible]);
 
   const services = useMemo(() => mapServicesForCards(profile?.services), [profile?.services]);
+  const serviceCategories = useMemo(
+    () => buildServiceCategoriesFromRows(profile?.serviceCategories),
+    [profile?.serviceCategories],
+  );
   const galleryImages = useMemo(
     () => (profile?.images ?? []).filter((image) => Boolean(image?.preview_url)),
     [profile?.images],
@@ -193,6 +198,7 @@ export function BookingLinkScreen() {
             onRefresh={refetchBookingProfile}
             phoneNumber={phoneNumber}
             queryState={bookingProfile}
+            serviceCategories={serviceCategories}
             services={services}
             showRequestQuoteCta={showRequestQuoteCta}
             showVerifiedBadge={profile?.showVerifiedBadge ?? false}

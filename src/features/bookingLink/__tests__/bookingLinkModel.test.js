@@ -9,6 +9,7 @@ describe('mapServicesForCards', () => {
         description: '  Full detail  ',
         price_cents: 5000,
         duration_minutes: 90,
+        category_id: 'cat-cars',
       },
     ];
     expect(mapServicesForCards(rows)).toEqual([
@@ -19,6 +20,7 @@ describe('mapServicesForCards', () => {
         price: '$50',
         duration: '1 hr 30 min',
         isLongDescription: false,
+        categoryId: 'cat-cars',
       }),
     ]);
   });

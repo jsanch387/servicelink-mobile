@@ -37,6 +37,7 @@ export function BookingLinkPreview({
   logoUrl,
   showVerifiedBadge,
   services,
+  serviceCategories = [],
   galleryImages,
   bio,
   businessId,
@@ -102,7 +103,12 @@ export function BookingLinkPreview({
       />
       <BookingLinkTabs activeTab={activeTab} onChangeTab={onChangeTab} />
       {activeTab === BOOKING_LINK_TAB_SERVICES ? (
-        <ServicesTabContent error={queryState.error} isLoading={false} services={services} />
+        <ServicesTabContent
+          error={queryState.error}
+          isLoading={false}
+          serviceCategories={serviceCategories}
+          services={services}
+        />
       ) : null}
       {activeTab === BOOKING_LINK_TAB_GALLERY ? <GalleryTabContent images={galleryImages} /> : null}
       {activeTab === BOOKING_LINK_TAB_BIO ? (

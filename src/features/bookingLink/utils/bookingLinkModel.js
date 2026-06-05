@@ -17,6 +17,10 @@ export function mapServicesForCards(rows) {
       description,
       isLongDescription: description.length > SERVICE_DESCRIPTION_PREVIEW_CHARS,
       duration: formatDurationLabel(row?.duration_minutes),
+      categoryId:
+        row?.category_id != null && String(row.category_id).trim() !== ''
+          ? String(row.category_id)
+          : null,
     };
   });
 }

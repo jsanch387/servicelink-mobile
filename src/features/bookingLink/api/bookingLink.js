@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import { fetchServiceCategories } from '../../services/categories/api/serviceCategories';
 import { hasProAccessFromProfile } from '../../more/utils/subscriptionPresentation';
 
 const MEDIA_BUCKET_NAME = 'business_images';
@@ -19,6 +20,7 @@ const MEDIA_BUCKET_NAME = 'business_images';
  * @property {string | null} logo_url
  * @property {string | null} cover_image_url
  * @property {Array<Record<string, unknown>>} services
+ * @property {Array<Record<string, unknown>>} serviceCategories
  * @property {Array<Record<string, unknown> & { preview_url: string | null }>} images
  * @property {boolean} showVerifiedBadge
  * @property {boolean} showRequestQuoteCta
@@ -140,8 +142,9 @@ export async function fetchCompleteOwnerBusinessProfile(userId) {
   if (businessRes.error) return { data: null, error: businessRes.error };
   if (!businessRes.data?.id) return { data: null, error: null };
 
-  const [servicesRes, imagesRes] = await Promise.all([
+  const [servicesRes, categoriesRes, imagesRes] = await Promise.all([
     fetchBusinessServicesForPublicProfile(businessRes.data.id),
+    fetchServiceCategories(businessRes.data.id),
     fetchBusinessImagesForOwnerProfile(businessRes.data.id),
   ]);
 
@@ -152,6 +155,7 @@ export async function fetchCompleteOwnerBusinessProfile(userId) {
     businessProfileRow: businessRes.data,
     ownerProfileRow: ownerRes.data,
     servicesRows: servicesRes.data ?? [],
+    categoryRows: categoriesRes.error ? [] : (categoriesRes.data ?? []),
     imagesRows: imagesRes.data ?? [],
   });
 
@@ -169,8 +173,9 @@ export async function fetchCompletePublicBusinessProfileBySlug(slug) {
 
   const business = businessRes.data;
   const ownerId = business?.profile_id ?? null;
-  const [servicesRes, imagesRes, ownerRes] = await Promise.all([
+  const [servicesRes, categoriesRes, imagesRes, ownerRes] = await Promise.all([
     fetchBusinessServicesForPublicProfile(business.id),
+    fetchServiceCategories(business.id),
     fetchBusinessImagesForPublicProfile(business.id),
     ownerId ? fetchOwnerProfileRow(ownerId) : Promise.resolve({ data: null, error: null }),
   ]);
@@ -184,6 +189,7 @@ export async function fetchCompletePublicBusinessProfileBySlug(slug) {
       businessProfileRow: business,
       ownerProfileRow: ownerRes.data,
       servicesRows: servicesRes.data ?? [],
+      categoryRows: categoriesRes.error ? [] : (categoriesRes.data ?? []),
       imagesRows: imagesRes.data ?? [],
     }),
     error: null,
@@ -194,6 +200,7 @@ export async function normalizeMobileBusinessProfile({
   businessProfileRow,
   ownerProfileRow,
   servicesRows,
+  categoryRows = [],
   imagesRows,
 }) {
   const hasPro = hasProAccessFromProfile(ownerProfileRow);
@@ -227,6 +234,7 @@ export async function normalizeMobileBusinessProfile({
     logo_url: logoUrl,
     cover_image_url: bannerUrl,
     services: servicesRows ?? [],
+    serviceCategories: categoryRows ?? [],
     images,
     showVerifiedBadge: hasPro,
     showRequestQuoteCta: hasPro && businessProfileRow?.accept_quote_req === true,
