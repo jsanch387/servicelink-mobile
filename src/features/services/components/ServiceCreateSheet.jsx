@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet, View } from 'react-native';
 import {
@@ -10,6 +10,11 @@ import {
   SurfaceTextField,
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import { formatServiceDurationSelectLabel } from '../../../components/ui/durationTime';
+import { ServiceCategoryPickerField } from '../categories';
+import { CollapsibleEditorSectionCard } from './CollapsibleEditorSectionCard';
+
+const SERVICE_DESCRIPTION_MAX_LENGTH = 1000;
 
 function normalizePriceInput(rawText) {
   const input = String(rawText ?? '').replace(/\$/g, '');
@@ -28,6 +33,11 @@ function normalizePriceInput(rawText) {
   return out;
 }
 
+function categoryLabelForSubtitle(categoryId, options) {
+  if (!categoryId) return 'None';
+  return options?.find((o) => o.value === categoryId)?.label ?? 'None';
+}
+
 export function ServiceCreateSheet({
   visible,
   allowBackdropClose = false,
@@ -35,13 +45,20 @@ export function ServiceCreateSheet({
   onSave,
   isSaving = false,
   submitError = '',
+  categorySelectOptionsWithNone = null,
 }) {
   const { colors } = useTheme();
+  const hasCategories = Boolean(categorySelectOptionsWithNone?.length);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [durationHHmm, setDurationHHmm] = useState('01:00');
+  const [categoryId, setCategoryId] = useState('');
+
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [pricingExpanded, setPricingExpanded] = useState(false);
+  const [categoryExpanded, setCategoryExpanded] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -49,6 +66,10 @@ export function ServiceCreateSheet({
     setDescription('');
     setPrice('');
     setDurationHHmm('01:00');
+    setCategoryId('');
+    setDescriptionExpanded(false);
+    setPricingExpanded(false);
+    setCategoryExpanded(false);
   }, [visible]);
 
   const canSave =
@@ -57,16 +78,35 @@ export function ServiceCreateSheet({
     price.trim().length > 0 &&
     String(durationHHmm ?? '').trim().length > 0;
 
+  const categorySubtitle = useMemo(() => {
+    if (!hasCategories) return null;
+    return categoryLabelForSubtitle(categoryId, categorySelectOptionsWithNone);
+  }, [categoryId, categorySelectOptionsWithNone, hasCategories]);
+
+  const pricingSubtitle = useMemo(() => {
+    if (!price.trim()) return 'Price and duration';
+    const durationLabel = formatServiceDurationSelectLabel(durationHHmm);
+    return durationLabel ? `$${price} · ${durationLabel}` : `$${price}`;
+  }, [durationHHmm, price]);
+
   function insertBulletPoint() {
     setDescription((current) => {
       const text = String(current ?? '');
+      if (text.length >= SERVICE_DESCRIPTION_MAX_LENGTH) return text;
       if (text.trim().length === 0) {
         return '• ';
       }
       const needsLineBreak = !text.endsWith('\n');
-      return `${text}${needsLineBreak ? '\n' : ''}• `;
+      const next = `${text}${needsLineBreak ? '\n' : ''}• `;
+      return next.slice(0, SERVICE_DESCRIPTION_MAX_LENGTH);
     });
   }
+
+  function handleDescriptionChange(text) {
+    setDescription(String(text ?? '').slice(0, SERVICE_DESCRIPTION_MAX_LENGTH));
+  }
+
+  const showDescriptionCharCount = description.length >= SERVICE_DESCRIPTION_MAX_LENGTH;
 
   async function handlePrimary() {
     if (!canSave || !onSave) return;
@@ -75,6 +115,7 @@ export function ServiceCreateSheet({
       description: description.trim(),
       price,
       durationHHmm,
+      categoryId: categoryId.trim(),
     });
   }
 
@@ -82,12 +123,12 @@ export function ServiceCreateSheet({
     <BottomSheetModal
       allowBackdropClose={allowBackdropClose}
       onRequestClose={onRequestClose}
-      title="Add new service"
+      sheetHeightPercent={88}
+      title="New service"
       visible={visible}
       footer={
         <View style={styles.actions}>
           <Button
-            fullWidth
             labelColor="#ffffff"
             outlineColor="rgba(255,255,255,0.52)"
             style={styles.actionBtn}
@@ -97,10 +138,9 @@ export function ServiceCreateSheet({
           />
           <Button
             disabled={!canSave || isSaving}
-            fullWidth
             loading={isSaving}
             style={styles.actionBtn}
-            title="Save service"
+            title="Create"
             variant="surfaceLight"
             onPress={() => {
               void handlePrimary();
@@ -110,54 +150,107 @@ export function ServiceCreateSheet({
       }
     >
       <SurfaceTextField
-        containerStyle={styles.field}
+        containerStyle={styles.nameField}
         label="Service name"
         onChangeText={setName}
+        placeholder="e.g. Full detail"
         value={name}
       />
-      <SurfaceTextField
-        containerStyle={[styles.field, styles.descriptionField]}
-        label="Description"
-        multiline
-        onChangeText={setDescription}
-        style={styles.descriptionInput}
-        textAlignVertical="top"
-        value={description}
-      />
-      <View style={styles.descriptionToolbar}>
-        <Pressable
-          accessibilityLabel="Insert bullet point"
-          accessibilityRole="button"
-          hitSlop={8}
-          style={styles.bulletButton}
-          onPress={insertBulletPoint}
-        >
-          <Ionicons color={colors.textMuted} name="list-outline" size={18} />
-        </Pressable>
-        <AppText style={[styles.charCount, { color: colors.textMuted }]}>
-          {description.length}/800
-        </AppText>
-      </View>
-      <SurfaceTextField
-        containerStyle={styles.field}
-        keyboardType="decimal-pad"
-        label="Price"
-        onChangeText={(text) => setPrice(normalizePriceInput(text))}
-        value={`$${price}`}
-      />
-      <DurationSelectField
-        containerStyle={styles.durationField}
-        label="Duration"
-        onValueChange={setDurationHHmm}
-        triggerStyle={{ borderColor: 'rgba(255,255,255,0.24)', borderWidth: 1 }}
-        value={durationHHmm}
-      />
 
-      {!name.trim() || !description.trim() ? (
-        <AppText style={[styles.requiredHint, { color: colors.textMuted }]}>
-          Name and description are required.
+      <CollapsibleEditorSectionCard
+        contentStyle={styles.descriptionSectionContent}
+        expanded={descriptionExpanded}
+        onToggle={() => setDescriptionExpanded((v) => !v)}
+        title="Description"
+      >
+        <SurfaceTextField
+          containerStyle={styles.descriptionField}
+          label={null}
+          maxLength={SERVICE_DESCRIPTION_MAX_LENGTH}
+          multiline
+          onChangeText={handleDescriptionChange}
+          placeholder="What customers get with this service"
+          style={styles.descriptionInput}
+          textAlignVertical="top"
+          value={description}
+        />
+        <View style={styles.descriptionToolbar}>
+          <Pressable
+            accessibilityLabel="Insert bullet point"
+            accessibilityRole="button"
+            hitSlop={8}
+            style={styles.bulletButton}
+            onPress={insertBulletPoint}
+          >
+            <Ionicons color={colors.textMuted} name="list-outline" size={18} />
+          </Pressable>
+          {showDescriptionCharCount ? (
+            <AppText style={[styles.charCount, { color: colors.textMuted }]}>
+              {description.length}/{SERVICE_DESCRIPTION_MAX_LENGTH}
+            </AppText>
+          ) : null}
+        </View>
+      </CollapsibleEditorSectionCard>
+
+      <CollapsibleEditorSectionCard
+        contentStyle={styles.sectionContent}
+        expanded={pricingExpanded}
+        onToggle={() => setPricingExpanded((v) => !v)}
+        subtitle={pricingSubtitle}
+        title="Pricing"
+      >
+        <View style={styles.pricingRow}>
+          <SurfaceTextField
+            compact
+            containerStyle={styles.pricingField}
+            keyboardType="decimal-pad"
+            label="Price"
+            onChangeText={(text) => setPrice(normalizePriceInput(text))}
+            value={`$${price}`}
+          />
+          <DurationSelectField
+            compact
+            containerStyle={styles.pricingField}
+            label="Duration"
+            onValueChange={setDurationHHmm}
+            value={durationHHmm}
+          />
+        </View>
+      </CollapsibleEditorSectionCard>
+
+      {hasCategories ? (
+        <CollapsibleEditorSectionCard
+          contentStyle={styles.sectionContent}
+          expanded={categoryExpanded}
+          onToggle={() => setCategoryExpanded((v) => !v)}
+          subtitle={categorySubtitle}
+          title="Category"
+        >
+          <ServiceCategoryPickerField
+            hint="Optional. Groups this service on your booking link."
+            options={categorySelectOptionsWithNone}
+            value={categoryId}
+            onValueChange={setCategoryId}
+          />
+        </CollapsibleEditorSectionCard>
+      ) : null}
+
+      {!hasCategories ? (
+        <AppText style={[styles.categoriesHint, { color: colors.textMuted }]}>
+          Categories are optional. To group services on your booking link, add them from the
+          Categories tab.
         </AppText>
       ) : null}
+
+      <AppText
+        style={[
+          styles.deferredNote,
+          hasCategories ? styles.deferredNoteWithCategory : null,
+          { color: colors.textMuted },
+        ]}
+      >
+        Add-ons and pricing tiers can be set up after you create this service.
+      </AppText>
 
       {submitError ? (
         <View style={styles.submitErrorWrap}>
@@ -169,22 +262,31 @@ export function ServiceCreateSheet({
 }
 
 const styles = StyleSheet.create({
-  field: {
-    marginBottom: 14,
+  nameField: {
+    marginBottom: 12,
+  },
+  sectionContent: {
+    paddingHorizontal: 4,
+    paddingTop: 8,
+  },
+  descriptionSectionContent: {
+    paddingHorizontal: 4,
+    paddingTop: 20,
   },
   descriptionField: {
     marginBottom: 4,
+    marginTop: 4,
   },
   descriptionInput: {
-    minHeight: 110,
+    minHeight: 96,
     paddingTop: 12,
   },
   descriptionToolbar: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    marginTop: -6,
+    marginBottom: 4,
+    marginTop: -4,
   },
   bulletButton: {
     alignItems: 'center',
@@ -195,16 +297,34 @@ const styles = StyleSheet.create({
   charCount: {
     fontSize: 12,
   },
-  durationField: {
-    marginTop: 0,
+  pricingRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 10,
   },
-  requiredHint: {
+  pricingField: {
+    flex: 1,
+    marginBottom: 0,
+    marginTop: 0,
+    minWidth: 0,
+  },
+  deferredNote: {
     fontSize: 12,
     fontWeight: '500',
-    marginTop: 8,
+    lineHeight: 17,
+    marginTop: 10,
+  },
+  deferredNoteWithCategory: {
+    marginTop: 4,
+  },
+  categoriesHint: {
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 17,
+    marginTop: 10,
   },
   submitErrorWrap: {
-    marginTop: 8,
+    marginTop: 12,
   },
   actions: {
     flexDirection: 'row',

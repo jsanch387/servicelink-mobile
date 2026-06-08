@@ -48,6 +48,13 @@ From Supabase:
 - `service_addon_assignments`
   - join table (`service_id`, `addon_id`) with no `business_id`
   - used for: service add-on assignment save/fetch
+- `service_categories` + `business_services.category_id`
+  - optional browsing groups; one category per service
+  - see **`categories/docs/service-categories-database.md`** and `docs/sql/service_categories_migration.sql`
+
+## Service categories (mobile module)
+
+UI lives in `src/features/services/categories/` (components, API, tab utils). Import from `categories/index.js`. Database contract: `categories/docs/service-categories-database.md`.
 
 ## Query Keys
 

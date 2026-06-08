@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import DraggableFlatList from 'react-native-draggable-flatlist';
+import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import {
   Alert,
   Linking,
@@ -20,10 +20,35 @@ import { showWebAccountFeatureAlert, useSubscription } from '../../subscription'
 import { getWebAccountAdminUrl } from '../../../lib/webAppOrigin';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { useAuth } from '../../auth';
+import {
+  CategoryEditorSheet,
+  ServiceCategoryTabs,
+  ServiceCatalogMetaRow,
+  ServiceReorderBottomBar,
+  ServiceReorderHeaderBlock,
+  UNCATEGORIZED_SERVICES_GROUP_ID,
+  buildDeleteCategoryAlertContent,
+  countServicesAssignedToCategory,
+  getServicesForCategoryTab,
+  hasCategoryOrderChanges,
+  hasOrderChangesWithinTab,
+  isUncategorizedTabId,
+  mergeServicesOrderWithinTab,
+  shouldShowCategoryTabs,
+  useMutateServiceCategory,
+  useSaveServiceCategoriesOrder,
+  useServiceCategoryTabs,
+  withCategoryServiceCounts,
+} from '../categories';
+import { AddServiceFab } from '../components/AddServiceFab';
+import { AddCategoryFab } from '../components/AddCategoryFab';
+import { AddAddonFab } from '../components/AddAddonFab';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
+import { CatalogEntityCard } from '../components/CatalogEntityCard';
 import { ServiceCreateSheet } from '../components/ServiceCreateSheet';
 import {
   ENTITY_VIEW_ADDONS,
+  ENTITY_VIEW_CATEGORIES,
   ENTITY_VIEW_SERVICES,
   SegmentedEntityToggle,
 } from '../components/SegmentedEntityToggle';
@@ -38,6 +63,12 @@ import { useUpdateBusinessServiceActive } from '../hooks/useUpdateBusinessServic
 import { normalizeAddonDurationLabelForCard } from '../utils/buildServicesCatalogModel';
 import { normalizeAddonDurationHHmm } from '../utils/serviceAddonModel';
 
+const SERVICES_FAB_BOTTOM = 30;
+const SERVICES_LIST_BOTTOM_PADDING = 36;
+const SERVICES_LIST_BOTTOM_PADDING_WITH_FAB = 112;
+/** Space for fixed reorder bar (bar + safe area estimate). */
+const SERVICES_LIST_BOTTOM_PADDING_REORDER = 124;
+
 function sectionCopy(view) {
   if (view === ENTITY_VIEW_ADDONS) {
     return {
@@ -47,6 +78,17 @@ function sectionCopy(view) {
       emptyTitle: 'No add-ons yet',
       emptyBody:
         'Optional upgrades you create will show here. Tap Add add-on above to create your first one.',
+    };
+  }
+  if (view === ENTITY_VIEW_CATEGORIES) {
+    return {
+      title: 'Categories',
+      subtitle:
+        'Optional groups for browsing — e.g. Cars, RVs, Boats. Each service is still its own offering with its own price and duration.',
+      addLabel: 'Add category',
+      emptyTitle: 'No categories yet',
+      emptyBody:
+        'Categories are optional. They let you group your services so customers can browse by group.',
     };
   }
   return {
@@ -82,18 +124,59 @@ export function ServicesScreen() {
   const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
   const catalog = useServicesCatalog();
   const { refetch: refetchCatalog } = catalog;
+  const categories = catalog.categories;
+  const serviceCategoryById = catalog.serviceCategoryById;
+  const categorySelectOptionsWithNone = catalog.categorySelectOptionsWithNone;
+  const { mutateCategory, isSavingCategory } = useMutateServiceCategory({
+    businessId: catalog.businessId,
+    userId: user?.id,
+  });
   const [selectedView, setSelectedView] = useState(ENTITY_VIEW_SERVICES);
   const [isSortMode, setIsSortMode] = useState(false);
   const [servicesDraft, setServicesDraft] = useState([]);
+  const [categoriesDraft, setCategoriesDraft] = useState([]);
   const [addonSheetOpen, setAddonSheetOpen] = useState(false);
   const [editingAddonId, setEditingAddonId] = useState(null);
   const [addonSheetError, setAddonSheetError] = useState('');
+  const [categorySheetOpen, setCategorySheetOpen] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [categorySheetError, setCategorySheetError] = useState('');
   const [serviceSheetOpen, setServiceSheetOpen] = useState(false);
   const [serviceSheetError, setServiceSheetError] = useState('');
   const [catalogManualRefreshing, setCatalogManualRefreshing] = useState(false);
   const isServicesView = selectedView === ENTITY_VIEW_SERVICES;
-  const activeItems = isServicesView ? servicesDraft : catalog.addons;
+  const isCategoriesView = selectedView === ENTITY_VIEW_CATEGORIES;
+  const isAddonsView = selectedView === ENTITY_VIEW_ADDONS;
+  const categoriesWithCounts = useMemo(
+    () => withCategoryServiceCounts(categories, servicesDraft, serviceCategoryById),
+    [categories, serviceCategoryById, servicesDraft],
+  );
+
+  const activeItems = isServicesView
+    ? servicesDraft
+    : isCategoriesView
+      ? categoriesWithCounts
+      : catalog.addons;
   const activeCopy = sectionCopy(selectedView);
+
+  const catalogUsesCategoryTabs = useMemo(
+    () =>
+      shouldShowCategoryTabs({
+        categories,
+        services: servicesDraft,
+        serviceCategoryById,
+      }),
+    [categories, serviceCategoryById, servicesDraft],
+  );
+
+  const categoryTabsEnabled = isServicesView && catalogUsesCategoryTabs;
+  const showCategoryTabsUi = categoryTabsEnabled && !isSortMode;
+  const showServicesFab = showCategoryTabsUi;
+  const showCategoriesFab = isCategoriesView && !isSortMode;
+  const showAddonsFab = isAddonsView && !isSortMode;
+  const showCatalogFab = showServicesFab || showCategoriesFab || showAddonsFab;
+  const isReorderFocus = isSortMode && (isServicesView || isCategoriesView);
+  const showAddInHeader = !isSortMode && isServicesView && !catalogUsesCategoryTabs;
 
   /** While sorting, `servicesDraft` is the source of truth — do not overwrite from query refetches (new array refs cause a visible flash on drop). */
   useEffect(() => {
@@ -101,10 +184,90 @@ export function ServicesScreen() {
     setServicesDraft(catalog.services);
   }, [catalog.services, isServicesView, isSortMode]);
 
-  const titleLabel = useMemo(
-    () => `${activeItems.length} ${selectedView === ENTITY_VIEW_SERVICES ? 'services' : 'add-ons'}`,
-    [activeItems.length, selectedView],
+  useEffect(() => {
+    if (isCategoriesView && isSortMode) return;
+    setCategoriesDraft(categoriesWithCounts);
+  }, [categoriesWithCounts, isCategoriesView, isSortMode]);
+
+  const displayItems = activeItems;
+
+  const {
+    tabs: serviceCategoryTabs,
+    selectedTabId: selectedServiceCategoryTabId,
+    setSelectedTabId: setSelectedServiceCategoryTabId,
+    visibleServices: visibleServiceItems,
+    activeTab,
+    activeTabTitleLabel,
+  } = useServiceCategoryTabs({
+    enabled: categoryTabsEnabled,
+    services: displayItems,
+    categories,
+    serviceCategoryById,
+  });
+
+  const activeTabServiceIds = useMemo(
+    () => (activeTab?.services ?? []).map((service) => service.id),
+    [activeTab?.services],
   );
+
+  const sortableListData = useMemo(() => {
+    if (!isServicesView || !isSortMode) return [];
+    if (!catalogUsesCategoryTabs) return servicesDraft;
+    return getServicesForCategoryTab(
+      servicesDraft,
+      selectedServiceCategoryTabId,
+      serviceCategoryById,
+    );
+  }, [
+    catalogUsesCategoryTabs,
+    isServicesView,
+    isSortMode,
+    selectedServiceCategoryTabId,
+    serviceCategoryById,
+    servicesDraft,
+  ]);
+
+  const canReorderServices = useMemo(() => {
+    if (!isServicesView) return false;
+    const list = isSortMode ? sortableListData : visibleServiceItems;
+    return (list?.length ?? 0) > 1;
+  }, [isServicesView, isSortMode, sortableListData, visibleServiceItems]);
+
+  const canReorderCategories = useMemo(() => {
+    if (!isCategoriesView) return false;
+    const list = isSortMode ? categoriesDraft : categoriesWithCounts;
+    return (list?.length ?? 0) > 1;
+  }, [categoriesDraft, categoriesWithCounts, isCategoriesView, isSortMode]);
+
+  const sortableCategoriesData = useMemo(() => {
+    if (!isCategoriesView || !isSortMode) return [];
+    return categoriesDraft;
+  }, [categoriesDraft, isCategoriesView, isSortMode]);
+
+  useEffect(() => {
+    if (!isSortMode || !catalogUsesCategoryTabs) return;
+    setServicesDraft(catalog.services);
+  }, [catalog.services, catalogUsesCategoryTabs, isSortMode, selectedServiceCategoryTabId]);
+
+  const titleLabel = useMemo(() => {
+    if (showCategoryTabsUi && activeTabTitleLabel) return activeTabTitleLabel;
+    const count = activeItems.length;
+    if (isServicesView) return `${count} services`;
+    if (isCategoriesView) return `${count} ${count === 1 ? 'category' : 'categories'}`;
+    return `${count} add-ons`;
+  }, [
+    activeItems.length,
+    activeTabTitleLabel,
+    isCategoriesView,
+    isServicesView,
+    showCategoryTabsUi,
+  ]);
+
+  const listBottomPadding = isReorderFocus
+    ? SERVICES_LIST_BOTTOM_PADDING_REORDER
+    : showCatalogFab
+      ? SERVICES_LIST_BOTTOM_PADDING_WITH_FAB
+      : SERVICES_LIST_BOTTOM_PADDING;
 
   const atFreeTierServicesLimit = useMemo(
     () =>
@@ -143,6 +306,10 @@ export function ServicesScreen() {
     businessId: catalog.businessId,
     userId: user?.id,
   });
+  const { saveCategoriesOrder, isSavingCategoriesOrder } = useSaveServiceCategoriesOrder({
+    businessId: catalog.businessId,
+    userId: user?.id,
+  });
 
   const handleCatalogPullRefresh = useCallback(async () => {
     setCatalogManualRefreshing(true);
@@ -166,16 +333,14 @@ export function ServicesScreen() {
   );
 
   const editingAddon = useMemo(() => {
-    if (isServicesView || !editingAddonId) return null;
+    if (!isAddonsView || !editingAddonId) return null;
     return activeItems.find((a) => a.id === editingAddonId) ?? null;
-  }, [activeItems, editingAddonId, isServicesView]);
+  }, [activeItems, editingAddonId, isAddonsView]);
 
-  const displayItems = useMemo(() => {
-    if (!isServicesView || !isSortMode) {
-      return activeItems;
-    }
-    return activeItems;
-  }, [activeItems, isServicesView, isSortMode]);
+  const editingCategory = useMemo(() => {
+    if (!isCategoriesView || !editingCategoryId) return null;
+    return categories.find((c) => c.id === editingCategoryId) ?? null;
+  }, [categories, editingCategoryId, isCategoriesView]);
 
   function handleViewChange(nextView) {
     setSelectedView(nextView);
@@ -183,6 +348,9 @@ export function ServicesScreen() {
     setAddonSheetOpen(false);
     setEditingAddonId(null);
     setAddonSheetError('');
+    setCategorySheetOpen(false);
+    setEditingCategoryId(null);
+    setCategorySheetError('');
     setServiceSheetOpen(false);
     setServiceSheetError('');
   }
@@ -205,10 +373,97 @@ export function ServicesScreen() {
     setAddonSheetOpen(true);
   }
 
+  function openAddCategorySheet() {
+    setEditingCategoryId(null);
+    setCategorySheetError('');
+    setCategorySheetOpen(true);
+  }
+
+  function openEditCategorySheet(categoryId) {
+    setEditingCategoryId(categoryId);
+    setCategorySheetError('');
+    setCategorySheetOpen(true);
+  }
+
   function openEditAddonSheet(addonId) {
     setEditingAddonId(addonId);
     setAddonSheetError('');
     setAddonSheetOpen(true);
+  }
+
+  async function handleCategorySheetSave({ name }) {
+    if (!catalog.businessId) {
+      setCategorySheetError('Missing business context.');
+      return;
+    }
+    try {
+      setCategorySheetError('');
+      if (editingCategoryId) {
+        await mutateCategory({ mode: 'update', categoryId: editingCategoryId, name });
+      } else {
+        await mutateCategory({
+          mode: 'create',
+          name,
+          sortOrder: categories.length * 10,
+        });
+      }
+      setCategorySheetOpen(false);
+      setEditingCategoryId(null);
+    } catch (err) {
+      setCategorySheetError(safeUserFacingMessage(err, { fallback: 'Could not save category' }));
+    }
+  }
+
+  function confirmDeleteCategory(item) {
+    if (!catalog.businessId) {
+      Alert.alert('Could not delete', 'Missing business context. Please try again.');
+      return;
+    }
+
+    const assignedServiceCount =
+      typeof item?.assignedServiceCount === 'number'
+        ? item.assignedServiceCount
+        : countServicesAssignedToCategory(servicesDraft, serviceCategoryById, item.id);
+
+    const { title, message, confirmText } = buildDeleteCategoryAlertContent({
+      categoryName: item.name,
+      assignedServiceCount,
+    });
+
+    Alert.alert(title, message, [
+      { style: 'cancel', text: 'Cancel' },
+      {
+        style: 'destructive',
+        text: confirmText,
+        onPress: () => {
+          void handleDeleteCategory(item);
+        },
+      },
+    ]);
+  }
+
+  async function handleDeleteCategory(item) {
+    if (!catalog.businessId) {
+      Alert.alert('Could not delete', 'Missing business context. Please try again.');
+      return;
+    }
+
+    try {
+      await mutateCategory({ mode: 'delete', categoryId: item.id });
+      if (editingCategoryId === item.id) {
+        setCategorySheetOpen(false);
+        setEditingCategoryId(null);
+        setCategorySheetError('');
+      }
+      if (selectedServiceCategoryTabId === item.id) {
+        setSelectedServiceCategoryTabId(UNCATEGORIZED_SERVICES_GROUP_ID);
+      }
+    } catch (err) {
+      Alert.alert(
+        'Could not delete',
+        safeUserFacingMessage(err, { fallback: 'Could not delete category. Please try again.' }),
+      );
+    }
   }
 
   async function handleAddonSheetSave({ name, price, durationHHmm }) {
@@ -311,7 +566,7 @@ export function ServicesScreen() {
     }
   }
 
-  async function handleServiceSheetSave({ name, description, price, durationHHmm }) {
+  async function handleServiceSheetSave({ name, description, price, durationHHmm, categoryId }) {
     if (!catalog.businessId) {
       setServiceSheetError('Missing business context.');
       return;
@@ -322,15 +577,28 @@ export function ServicesScreen() {
     }
     try {
       setServiceSheetError('');
-      await createService({ name, description, price, durationHHmm });
+      const created = await createService({
+        name,
+        description,
+        price,
+        durationHHmm,
+        categoryId,
+      });
+      if (!created?.id) {
+        setServiceSheetError('Could not create service.');
+        return;
+      }
       setServiceSheetOpen(false);
     } catch (err) {
       setServiceSheetError(safeUserFacingMessage(err, { fallback: 'Could not create service.' }));
     }
   }
 
-  const hasOrderChanges = useMemo(() => {
+  const hasServiceOrderChanges = useMemo(() => {
     if (!isServicesView) return false;
+    if (catalogUsesCategoryTabs && activeTabServiceIds.length > 0) {
+      return hasOrderChangesWithinTab(catalog.services ?? [], servicesDraft, activeTabServiceIds);
+    }
     const base = (catalog.services ?? []).map((s) => s.id);
     const draft = (servicesDraft ?? []).map((s) => s.id);
     if (base.length !== draft.length) return false;
@@ -338,13 +606,37 @@ export function ServicesScreen() {
       if (base[i] !== draft[i]) return true;
     }
     return false;
-  }, [catalog.services, isServicesView, servicesDraft]);
+  }, [
+    activeTabServiceIds,
+    catalog.services,
+    catalogUsesCategoryTabs,
+    isServicesView,
+    servicesDraft,
+  ]);
 
-  async function handleSortModeAction() {
-    if (!isSortMode) {
-      setIsSortMode(true);
-      return;
+  const hasCategoryOrderChangesFlag = useMemo(
+    () => hasCategoryOrderChanges(catalog.categories, categoriesDraft),
+    [catalog.categories, categoriesDraft],
+  );
+
+  const hasOrderChanges = isCategoriesView ? hasCategoryOrderChangesFlag : hasServiceOrderChanges;
+  const isSavingOrder = isCategoriesView ? isSavingCategoriesOrder : isSavingServicesOrder;
+
+  function handleStartReorder() {
+    setIsSortMode(true);
+  }
+
+  function handleCancelReorder() {
+    if (isServicesView) {
+      setServicesDraft(catalog.services);
     }
+    if (isCategoriesView) {
+      setCategoriesDraft(categoriesWithCounts);
+    }
+    setIsSortMode(false);
+  }
+
+  async function handleSaveReorder() {
     if (!catalog.businessId) {
       Alert.alert('Could not save order', 'Missing business context.');
       return;
@@ -353,10 +645,33 @@ export function ServicesScreen() {
       setIsSortMode(false);
       return;
     }
+
+    if (isCategoriesView) {
+      try {
+        await saveCategoriesOrder({
+          orderedCategoryIds: categoriesDraft.map((category) => category.id),
+        });
+        setIsSortMode(false);
+      } catch (err) {
+        Alert.alert(
+          'Could not save order',
+          safeUserFacingMessage(err, {
+            fallback: 'Could not save category order. Please try again.',
+          }),
+        );
+      }
+      return;
+    }
+
+    const orderedServiceIds = catalogUsesCategoryTabs
+      ? getServicesForCategoryTab(
+          servicesDraft,
+          selectedServiceCategoryTabId,
+          serviceCategoryById,
+        ).map((s) => s.id)
+      : servicesDraft.map((s) => s.id);
     try {
-      await saveServicesOrder({
-        orderedServiceIds: servicesDraft.map((s) => s.id),
-      });
+      await saveServicesOrder({ orderedServiceIds });
       setIsSortMode(false);
     } catch (err) {
       Alert.alert(
@@ -368,55 +683,74 @@ export function ServicesScreen() {
 
   function renderHeader() {
     return (
-      <>
-        <SegmentedEntityToggle onSelect={handleViewChange} selected={selectedView} />
+      <View style={[styles.listHeader, isReorderFocus && styles.listHeaderReorder]}>
+        {isReorderFocus ? null : (
+          <SegmentedEntityToggle onSelect={handleViewChange} selected={selectedView} />
+        )}
 
-        <View style={styles.sectionMetaRow}>
-          <View>
-            <AppText style={[styles.sectionTitle, { color: colors.text }]}>{titleLabel}</AppText>
-          </View>
-        </View>
+        {isReorderFocus && isServicesView ? (
+          <ServiceReorderHeaderBlock
+            categoryName={activeTab?.name}
+            hint={
+              activeTab?.name
+                ? `Drag to set the order customers see in ${activeTab.name}.`
+                : 'Drag to set the order on your booking link.'
+            }
+          />
+        ) : null}
 
-        <View style={styles.actionsRow}>
-          <View style={styles.actionCell}>
-            <Button
-              disabled={catalog.isLoading}
-              fullWidth
-              iconColor="#000000"
-              iconName="add"
-              title={activeCopy.addLabel}
-              variant="surfaceLight"
-              onPress={() => {
-                if (isServicesView) {
-                  openAddServiceSheet();
-                  return;
-                }
-                openAddAddonSheet();
-              }}
-            />
-          </View>
-          {isServicesView ? (
+        {isReorderFocus && isCategoriesView ? (
+          <ServiceReorderHeaderBlock
+            hint="Drag to set the order customers see on your booking link."
+            title="Reorder categories"
+          />
+        ) : null}
+
+        {isCategoriesView && !isSortMode ? (
+          <ServiceCatalogMetaRow
+            countLabel={titleLabel}
+            disabled={catalog.isLoading}
+            reorderAccessibilityLabel="Reorder categories"
+            showReorder={canReorderCategories}
+            onReorder={handleStartReorder}
+          />
+        ) : null}
+
+        {isAddonsView ? <ServiceCatalogMetaRow countLabel={titleLabel} /> : null}
+
+        {showCategoryTabsUi && serviceCategoryTabs ? (
+          <ServiceCategoryTabs
+            onSelectTab={setSelectedServiceCategoryTabId}
+            selectedTabId={selectedServiceCategoryTabId}
+            tabs={serviceCategoryTabs}
+          />
+        ) : null}
+
+        {isServicesView && !isSortMode ? (
+          <ServiceCatalogMetaRow
+            countLabel={titleLabel}
+            disabled={catalog.isLoading}
+            showReorder={canReorderServices}
+            onReorder={handleStartReorder}
+          />
+        ) : null}
+
+        {showAddInHeader ? (
+          <View style={styles.actionsRow}>
             <View style={styles.actionCell}>
               <Button
-                disabled={
-                  catalog.isLoading ||
-                  displayItems.length <= 1 ||
-                  (isSortMode && isSavingServicesOrder)
-                }
+                disabled={catalog.isLoading}
                 fullWidth
-                iconColor={isSortMode ? '#000000' : colors.textMuted}
-                iconName={isSortMode ? 'checkmark' : 'swap-vertical-outline'}
-                outlineColor={isSortMode ? undefined : colors.borderStrong}
-                title={isSortMode ? 'Save order' : 'Sort order'}
-                variant={isSortMode ? 'surfaceLight' : 'outline'}
-                onPress={() => {
-                  void handleSortModeAction();
-                }}
+                iconColor="#000000"
+                iconName="add"
+                title={activeCopy.addLabel}
+                variant="surfaceLight"
+                onPress={openAddServiceSheet}
               />
             </View>
-          ) : null}
-        </View>
-        {isServicesView && atFreeTierServicesLimit && !catalog.isLoading ? (
+          </View>
+        ) : null}
+        {isServicesView && atFreeTierServicesLimit && !catalog.isLoading && !isSortMode ? (
           <View
             style={[
               styles.freeTierServicesHint,
@@ -443,15 +777,6 @@ export function ServicesScreen() {
             </AppText>
           </View>
         ) : null}
-        {isServicesView && isSortMode ? (
-          <View style={[styles.sortModeBanner, { borderColor: colors.borderStrong }]}>
-            <Ionicons color="#22c55e" name="move-outline" size={16} />
-            <AppText style={[styles.sortHint, { color: colors.textMuted }]}>
-              Long press and drag to reorder.
-            </AppText>
-          </View>
-        ) : null}
-
         {catalog.businessError ? (
           <View style={styles.errorBlock}>
             <SurfaceCard>
@@ -466,95 +791,204 @@ export function ServicesScreen() {
             </SurfaceCard>
           </View>
         ) : null}
-      </>
+        {catalog.categoriesError && !catalog.catalogError ? (
+          <View style={styles.errorBlock}>
+            <SurfaceCard>
+              <InlineCardError
+                message={`${catalog.categoriesError} Services are shown in one list.`}
+              />
+            </SurfaceCard>
+          </View>
+        ) : null}
+      </View>
     );
   }
 
-  const renderCard = (item, index, onDragStart, isDragActive = false) => (
-    <ServiceEntityCard
-      index={index}
-      isDragActive={isDragActive}
-      isSortMode={isServicesView && isSortMode}
-      item={item}
-      key={item.id}
-      onDelete={() => {
-        if (isServicesView) {
+  const renderCard = (item, index, onDragStart, isDragActive = false) => {
+    if (isCategoriesView) {
+      return (
+        <CatalogEntityCard
+          key={item.id}
+          deleteDisabled={false}
+          index={index}
+          isDragActive={isDragActive}
+          isSortMode={isSortMode}
+          metaLines={[item.servicesCountLabel].filter(Boolean)}
+          name={item.name}
+          onDelete={() => {
+            confirmDeleteCategory(item);
+          }}
+          onDragStart={onDragStart}
+          onEdit={() => {
+            openEditCategorySheet(item.id);
+          }}
+        />
+      );
+    }
+
+    if (isAddonsView) {
+      return (
+        <CatalogEntityCard
+          key={item.id}
+          deleteDisabled={isDeletingAddon}
+          metaLines={[normalizeAddonDurationLabelForCard(item.durationLabel)].filter(Boolean)}
+          name={item.name}
+          priceLabel={item.priceLabel}
+          onDelete={() => {
+            confirmDeleteAddon(item);
+          }}
+          onEdit={() => {
+            openEditAddonSheet(item.id);
+          }}
+        />
+      );
+    }
+
+    return (
+      <ServiceEntityCard
+        index={index}
+        isDragActive={isDragActive}
+        isSortMode={isSortMode}
+        item={item}
+        key={item.id}
+        onDelete={() => {
           confirmDeleteService(item);
-          return;
-        }
-        confirmDeleteAddon(item);
-      }}
-      onDragStart={onDragStart}
-      onEdit={() => {
-        if (isServicesView) {
+        }}
+        onDragStart={onDragStart}
+        onEdit={() => {
           navigation.navigate(ROUTES.SERVICES_EDIT, {
             service: item,
             serviceId: item.id,
           });
+        }}
+        onToggleEnabled={(next) => {
+          void handleToggleServiceActive(item, next);
+        }}
+        showDescription={false}
+        showHeaderDivider={false}
+        showPrice
+        showPriceCaption
+        showToggle
+        metaUnderTitle
+        fullWidthActions={false}
+        deleteDisabled={isDeletingService && deleteServiceVariables?.serviceId === item.id}
+        toggleDisabled={isTogglingServiceActive && toggleServiceVariables?.serviceId === item.id}
+      />
+    );
+  };
+
+  function renderServiceListItems(items) {
+    if (items.length === 0 && showCategoryTabsUi) {
+      const isUncategorizedTab = isUncategorizedTabId(selectedServiceCategoryTabId);
+      return (
+        <View style={styles.emptyWrap}>
+          <AppText style={[styles.emptyTitle, { color: colors.textSecondary }]}>
+            {isUncategorizedTab ? 'No services without a category' : 'No services in this category'}
+          </AppText>
+          <AppText style={[styles.emptyBody, { color: colors.textMuted }]}>
+            {isUncategorizedTab
+              ? 'Services you have not assigned to a category show here. Edit a service to add one, or tap + to create a new service.'
+              : 'Assign services to this category from the edit screen, or tap + to add a new one.'}
+          </AppText>
+        </View>
+      );
+    }
+    return items.map((item, index) => renderCard(item, index));
+  }
+
+  const sortableReorderData = isCategoriesView ? sortableCategoriesData : sortableListData;
+
+  function handleReorderDragEnd(data) {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (isCategoriesView) {
+          setCategoriesDraft(data);
           return;
         }
-        openEditAddonSheet(item.id);
-      }}
-      onToggleEnabled={(next) => {
-        if (!isServicesView) return;
-        void handleToggleServiceActive(item, next);
-      }}
-      showDescription={isServicesView && !isSortMode}
-      showHeaderDivider={isServicesView}
-      showPriceCaption={isServicesView}
-      showToggle={isServicesView}
-      metaUnderTitle={!isServicesView}
-      fullWidthActions={!isServicesView}
-      metaLabelOverride={
-        !isServicesView
-          ? normalizeAddonDurationLabelForCard(item.durationLabel) || undefined
-          : undefined
-      }
-      deleteDisabled={
-        (isServicesView && isDeletingService && deleteServiceVariables?.serviceId === item.id) ||
-        (!isServicesView && isDeletingAddon)
-      }
-      toggleDisabled={
-        isServicesView && isTogglingServiceActive && toggleServiceVariables?.serviceId === item.id
-      }
-    />
-  );
+        if (catalogUsesCategoryTabs) {
+          setServicesDraft((prev) =>
+            mergeServicesOrderWithinTab(
+              prev,
+              data.map((service) => service.id),
+              data,
+            ),
+          );
+          return;
+        }
+        setServicesDraft(data);
+      });
+    });
+  }
+
+  function renderReorderEmptyState() {
+    if (isCategoriesView) {
+      return (
+        <View style={styles.emptyWrap}>
+          <AppText style={[styles.emptyTitle, { color: colors.textSecondary }]}>
+            No categories to reorder
+          </AppText>
+          <AppText style={[styles.emptyBody, { color: colors.textMuted }]}>
+            Add at least two categories to change their order.
+          </AppText>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyWrap}>
+        <AppText style={[styles.emptyTitle, { color: colors.textSecondary }]}>
+          No services to reorder
+        </AppText>
+        <AppText style={[styles.emptyBody, { color: colors.textMuted }]}>
+          Add at least two services in this group to change their order.
+        </AppText>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView
       edges={['left', 'right']}
       style={[styles.root, { backgroundColor: colors.shell }]}
     >
-      {isServicesView && isSortMode && !catalog.isLoading && displayItems.length > 0 ? (
-        <DraggableFlatList
-          activationDistance={10}
-          contentContainerStyle={styles.content}
-          data={displayItems}
-          keyExtractor={(item) => item.id}
-          keyboardShouldPersistTaps="handled"
-          ListHeaderComponent={renderHeader}
-          onDragEnd={({ data }) => {
-            // Defer until after the library's drop frame so indices/layout don't fight one frame.
-            requestAnimationFrame(() => {
-              requestAnimationFrame(() => {
-                setServicesDraft(data);
-              });
-            });
-          }}
-          renderItem={({ item, getIndex, drag, isActive }) =>
-            renderCard(item, getIndex?.() ?? 0, drag, isActive)
-          }
-          showsVerticalScrollIndicator={false}
-        />
+      {isReorderFocus && !catalog.isLoading ? (
+        sortableReorderData.length > 0 ? (
+          <DraggableFlatList
+            activationDistance={10}
+            contentContainerStyle={[styles.content, { paddingBottom: listBottomPadding }]}
+            data={sortableReorderData}
+            keyExtractor={(item) => item.id}
+            keyboardShouldPersistTaps="handled"
+            ListHeaderComponent={renderHeader}
+            onDragEnd={({ data }) => {
+              handleReorderDragEnd(data);
+            }}
+            renderItem={({ item, getIndex, drag, isActive }) => (
+              <ScaleDecorator activeScale={1.02}>
+                {renderCard(item, getIndex?.() ?? 0, drag, isActive)}
+              </ScaleDecorator>
+            )}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <ScrollView
+            contentContainerStyle={[styles.content, { paddingBottom: listBottomPadding }]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {renderHeader()}
+            {renderReorderEmptyState()}
+          </ScrollView>
+        )
       ) : (
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: listBottomPadding }]}
           keyboardShouldPersistTaps="handled"
           refreshControl={catalogRefreshControl}
           showsVerticalScrollIndicator={false}
         >
           {renderHeader()}
-          {catalog.isLoading ? (
+          {catalog.isLoading && !isCategoriesView ? (
             <ServicesCardsSkeleton />
           ) : displayItems.length === 0 ? (
             <View style={styles.emptyWrap}>
@@ -562,14 +996,53 @@ export function ServicesScreen() {
                 {activeCopy.emptyTitle}
               </AppText>
               <AppText style={[styles.emptyBody, { color: colors.textMuted }]}>
-                {activeCopy.emptyBody}
+                {showServicesFab
+                  ? 'Services you add will show here grouped by category. Use the + button to create your first one.'
+                  : showCategoriesFab
+                    ? 'Use the + button to create your first category and group services on your booking link.'
+                    : showAddonsFab
+                      ? 'Use the + button to create your first add-on.'
+                      : activeCopy.emptyBody}
               </AppText>
             </View>
           ) : (
-            displayItems.map((item, index) => renderCard(item, index))
+            renderServiceListItems(visibleServiceItems)
           )}
         </ScrollView>
       )}
+      {showServicesFab ? (
+        <AddServiceFab bottom={SERVICES_FAB_BOTTOM} onPress={openAddServiceSheet} />
+      ) : null}
+      {showCategoriesFab ? (
+        <AddCategoryFab bottom={SERVICES_FAB_BOTTOM} onPress={openAddCategorySheet} />
+      ) : null}
+      {showAddonsFab ? (
+        <AddAddonFab bottom={SERVICES_FAB_BOTTOM} onPress={openAddAddonSheet} />
+      ) : null}
+      {isReorderFocus ? (
+        <ServiceReorderBottomBar
+          isSaving={isSavingOrder}
+          onCancel={handleCancelReorder}
+          onSave={() => {
+            void handleSaveReorder();
+          }}
+        />
+      ) : null}
+      <CategoryEditorSheet
+        allowBackdropClose={false}
+        initialName={editingCategory?.name ?? ''}
+        isSaving={isSavingCategory}
+        primaryButtonTitle={editingCategoryId ? 'Save' : 'Save category'}
+        submitError={categorySheetError}
+        title={editingCategoryId ? 'Edit category' : 'Add new category'}
+        visible={isCategoriesView && categorySheetOpen && !isSortMode}
+        onRequestClose={() => {
+          setCategorySheetOpen(false);
+          setEditingCategoryId(null);
+          setCategorySheetError('');
+        }}
+        onSave={handleCategorySheetSave}
+      />
       <AddonEditorSheet
         allowBackdropClose={false}
         initialDurationHHmm={editingAddon?.durationHHmm ?? ''}
@@ -579,7 +1052,7 @@ export function ServicesScreen() {
         primaryButtonTitle={editingAddonId ? 'Save' : 'Save add-on'}
         submitError={addonSheetError}
         title={editingAddonId ? 'Edit add-on' : 'Add new add-on'}
-        visible={!isServicesView && addonSheetOpen}
+        visible={isAddonsView && addonSheetOpen}
         onRequestClose={() => {
           setAddonSheetOpen(false);
           setEditingAddonId(null);
@@ -589,6 +1062,7 @@ export function ServicesScreen() {
       />
       <ServiceCreateSheet
         allowBackdropClose={false}
+        categorySelectOptionsWithNone={categories.length > 0 ? categorySelectOptionsWithNone : null}
         isSaving={isCreatingService}
         submitError={serviceSheetError}
         visible={isServicesView && serviceSheetOpen}
@@ -605,42 +1079,24 @@ export function ServicesScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    position: 'relative',
   },
   content: {
-    paddingBottom: 36,
+    paddingBottom: SERVICES_LIST_BOTTOM_PADDING,
     paddingHorizontal: 16,
     paddingTop: 20,
   },
-  sectionMetaRow: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    marginTop: 8,
+  listHeader: {
+    alignSelf: 'stretch',
+    width: '100%',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+  listHeaderReorder: {
+    paddingTop: 4,
   },
   actionsRow: {
     flexDirection: 'row',
     gap: 10,
     marginBottom: 14,
-  },
-  sortHint: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  sortModeBanner: {
-    alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    flexDirection: 'row',
-    marginBottom: 10,
-    marginTop: -2,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
   },
   actionCell: {
     flex: 1,

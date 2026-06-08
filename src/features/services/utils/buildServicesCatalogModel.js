@@ -101,11 +101,15 @@ export function buildServicesCatalogModel(servicesRows, addonsRows, assignmentRo
       const addonsCount = addonCounts.get(serviceIdKey) ?? 0;
       const sortOrder = pick(row, ['sort_order', 'display_order', 'position']);
       const createdAt = pick(row, ['created_at', 'createdAt']);
+      const categoryIdRaw = pick(row, ['category_id', 'categoryId']);
+      const categoryId =
+        categoryIdRaw != null && String(categoryIdRaw).trim() !== '' ? String(categoryIdRaw) : null;
 
       const dm = numberOrNull(durationMinutes);
       return {
         id: id || `service-${name}`,
         name,
+        categoryId,
         /** Raw minutes for booking duration when raw service row is not handy. */
         durationMinutes: dm != null && dm > 0 ? Math.max(15, dm) : 60,
         durationLabel: formatDurationLabel(durationMinutes),

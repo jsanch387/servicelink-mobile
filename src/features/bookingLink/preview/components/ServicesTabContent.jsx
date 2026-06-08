@@ -1,12 +1,63 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../../components/ui';
 import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { ServicePreviewCard } from '../../../services/components/ServicePreviewCard';
 import { useTheme } from '../../../../theme';
+import { BOOKING_LINK_ALL_CATEGORY_ID } from '../../constants/bookingLinkServiceCategories';
+import {
+  buildBookingLinkCategoryFilterTabs,
+  filterBookingLinkServicesByCategory,
+  shouldShowBookingLinkCategoryFilters,
+} from '../utils/bookingLinkServiceCategoryPreview';
+import { BookingLinkServiceCategoryFilters } from './BookingLinkServiceCategoryFilters';
 
-export function ServicesTabContent({ services, isLoading, error }) {
+function CategoryFilterSkeleton() {
   const { colors } = useTheme();
+  return (
+    <View style={filterSkeletonStyles.row}>
+      {[72, 88, 64].map((width) => (
+        <SkeletonBox
+          key={width}
+          borderRadius={10}
+          height={36}
+          pulse
+          style={{ backgroundColor: colors.cardSurface }}
+          width={width}
+        />
+      ))}
+    </View>
+  );
+}
+
+const filterSkeletonStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+    paddingHorizontal: SCREEN_GUTTER,
+  },
+});
+
+export function ServicesTabContent({ services, serviceCategories = [], isLoading, error }) {
+  const { colors } = useTheme();
+  const [selectedCategoryTabId, setSelectedCategoryTabId] = useState(BOOKING_LINK_ALL_CATEGORY_ID);
+
+  const showCategoryFilters = shouldShowBookingLinkCategoryFilters(serviceCategories, services);
+
+  const categoryFilterTabs = useMemo(
+    () => buildBookingLinkCategoryFilterTabs(serviceCategories, services),
+    [serviceCategories, services],
+  );
+
+  useEffect(() => {
+    setSelectedCategoryTabId(BOOKING_LINK_ALL_CATEGORY_ID);
+  }, [serviceCategories, services]);
+
+  const visibleServices = useMemo(() => {
+    if (!showCategoryFilters) return services;
+    return filterBookingLinkServicesByCategory(services, selectedCategoryTabId);
+  }, [selectedCategoryTabId, services, showCategoryFilters]);
 
   const styles = useMemo(
     () =>
@@ -15,7 +66,6 @@ export function ServicesTabContent({ services, isLoading, error }) {
           paddingBottom: 28,
           paddingTop: 16,
         },
-        /** Booking-link services: horizontal inset for errors, skeletons, and preview cards. */
         cardsGutter: {
           paddingHorizontal: SCREEN_GUTTER,
         },
@@ -32,6 +82,7 @@ export function ServicesTabContent({ services, isLoading, error }) {
           color: colors.textMuted,
           fontSize: 14,
           fontWeight: '500',
+          lineHeight: 20,
         },
       }),
     [colors],
@@ -39,6 +90,16 @@ export function ServicesTabContent({ services, isLoading, error }) {
 
   return (
     <View style={styles.wrap}>
+      {isLoading && showCategoryFilters ? <CategoryFilterSkeleton /> : null}
+
+      {!isLoading && showCategoryFilters && categoryFilterTabs ? (
+        <BookingLinkServiceCategoryFilters
+          selectedTabId={selectedCategoryTabId}
+          tabs={categoryFilterTabs}
+          onSelectTab={setSelectedCategoryTabId}
+        />
+      ) : null}
+
       <View style={styles.cardsGutter}>
         {error ? (
           <View style={styles.profileErrorWrap}>
@@ -119,8 +180,16 @@ export function ServicesTabContent({ services, isLoading, error }) {
           </SurfaceCard>
         ) : null}
 
+        {!isLoading && services.length > 0 && visibleServices.length === 0 ? (
+          <SurfaceCard outlined={false} padding="none" style={styles.serviceCard}>
+            <AppText style={styles.emptyStateText}>No services in this group yet.</AppText>
+          </SurfaceCard>
+        ) : null}
+
         {!isLoading
-          ? services.map((service) => <ServicePreviewCard key={service.id} service={service} />)
+          ? visibleServices.map((service) => (
+              <ServicePreviewCard key={service.id} service={service} />
+            ))
           : null}
       </View>
     </View>

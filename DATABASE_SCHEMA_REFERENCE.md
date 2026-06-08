@@ -127,6 +127,27 @@ Maps which add-ons apply to which service. **Composite PK only; there is no `bus
 - `created_at` (timestamptz, NOT NULL)
 - Primary key: `(service_id, addon_id)`
 
+### `service_categories`
+
+Optional browsing groups for the service catalog (e.g. Cars, RVs, Boats). **Not** reusable service types; each `business_services` row remains its own offering.
+
+- `id` (uuid, PK, default `gen_random_uuid()`)
+- `business_id` (uuid, FK → `business_profiles.id`, on delete CASCADE)
+- `name` (text, NOT NULL, trimmed length 1–80; unique per business on `lower(trim(name))`)
+- `sort_order` (integer, NOT NULL, default 0, ≥ 0) — section / tab order on booking link
+- `created_at`, `updated_at` (timestamptz, NOT NULL; `updated_at` via `trg_service_categories_updated_at`)
+
+**`business_services.category_id`** (nullable uuid, FK → `service_categories.id`, on delete SET NULL):
+
+- At most one category per service
+- `business_services.sort_order` is **within** that category when `category_id` is set; uncategorized services use their own bucket
+- Trigger `trg_business_services_category_business` ensures `category_id` belongs to the same `business_id` as the service
+
+**RLS:** owners CRUD via `business_profiles.profile_id = auth.uid()`; public `SELECT` when the business has ≥1 `is_active` service (booking link).
+
+Runnable SQL: `docs/sql/service_categories_migration.sql`  
+Mobile module doc: `src/features/services/categories/docs/service-categories-database.md`
+
 ## Other Supporting Tables
 
 - `business_availability` (detailed contract below)

@@ -3,6 +3,12 @@ import { useCallback } from 'react';
 import { useAuth } from '../../auth';
 import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
+import { fetchServiceCategories } from '../categories/api/serviceCategories';
+import {
+  buildCategorySelectOptionsWithNone,
+  buildServiceCategoriesFromRows,
+  buildServiceCategoryByIdFromServiceRows,
+} from '../categories/utils/buildServiceCategoriesModel';
 import {
   fetchAddonAssignmentsByService,
   fetchBusinessServices,
@@ -17,6 +23,11 @@ import {
 const EMPTY_LIST = [];
 const EMPTY_ASSIGNMENTS = [];
 const EMPTY_SUMMARY = { totalServices: 0, totalAddons: 0 };
+const EMPTY_CATEGORY_MAP = {};
+
+function categoriesErrorMessage(error) {
+  return error?.message ?? 'Could not load categories';
+}
 
 export function useServicesCatalog() {
   const { user } = useAuth();
@@ -47,10 +58,12 @@ export function useServicesCatalog() {
         { data: servicesRows, error: servicesError },
         { data: addonsRows, error: addonsError },
         { data: assignmentRows, error: assignmentError },
+        categoriesResult,
       ] = await Promise.all([
         fetchBusinessServices(businessId),
         fetchServiceAddons(businessId),
         fetchAddonAssignmentsByService(businessId),
+        fetchServiceCategories(businessId),
       ]);
 
       const hardError = servicesError ?? addonsError;
@@ -58,20 +71,31 @@ export function useServicesCatalog() {
         throw new Error(hardError.message ?? 'Could not load service catalog');
       }
 
+      const categoriesError = categoriesResult.error
+        ? categoriesErrorMessage(categoriesResult.error)
+        : null;
+      const categories = categoriesResult.error
+        ? []
+        : buildServiceCategoriesFromRows(categoriesResult.data);
+
       const model = buildServicesCatalogModel(
         servicesRows ?? [],
         addonsRows ?? [],
         assignmentError ? [] : (assignmentRows ?? []),
       );
       const summary = deriveServicesSummary(model);
+      const serviceCategoryById = buildServiceCategoryByIdFromServiceRows(servicesRows);
 
       return {
         services: model.services,
-        /** Raw `business_services` rows (snake/camel) for create-flow fields like `price_options_enabled`. */
         serviceRows: servicesRows ?? [],
         addons: model.addons,
         addonAssignments: assignmentError ? [] : (assignmentRows ?? []),
         summary,
+        categories,
+        serviceCategoryById,
+        categorySelectOptionsWithNone: buildCategorySelectOptionsWithNone(categories),
+        categoriesError,
       };
     },
     enabled: hasBusinessRow,
@@ -100,10 +124,10 @@ export function useServicesCatalog() {
 
   return {
     businessId,
-    /** From `business_profiles.business_slug` — used when persisting bookings. */
     businessSlug: businessQ.data?.business_slug ?? null,
     businessError,
     catalogError,
+    categoriesError: catalogQ.data?.categoriesError ?? null,
     isLoading,
     isFetching,
     refetch,
@@ -112,5 +136,8 @@ export function useServicesCatalog() {
     addons: catalogQ.data?.addons ?? EMPTY_LIST,
     addonAssignments: catalogQ.data?.addonAssignments ?? EMPTY_ASSIGNMENTS,
     summary: catalogQ.data?.summary ?? EMPTY_SUMMARY,
+    categories: catalogQ.data?.categories ?? EMPTY_LIST,
+    serviceCategoryById: catalogQ.data?.serviceCategoryById ?? EMPTY_CATEGORY_MAP,
+    categorySelectOptionsWithNone: catalogQ.data?.categorySelectOptionsWithNone ?? [],
   };
 }

@@ -22,6 +22,7 @@ export function FloatingActionButton({
   accessibilityHint,
   iconName,
   badgeIconName = 'add',
+  showBadge = true,
 }) {
   const { colors } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
@@ -102,10 +103,16 @@ export function FloatingActionButton({
         onPressOut={() => animateTo(1)}
       >
         <View style={styles.iconCluster}>
-          <Ionicons color={colors.surface} name={iconName} size={24} />
-          <View style={styles.plusBadge}>
-            <Ionicons color={colors.accent} name={badgeIconName} size={14} />
-          </View>
+          {showBadge ? (
+            <>
+              <Ionicons color={colors.surface} name={iconName} size={24} />
+              <View style={styles.plusBadge}>
+                <Ionicons color={colors.accent} name={badgeIconName} size={14} />
+              </View>
+            </>
+          ) : (
+            <Ionicons color={colors.surface} name={iconName} size={28} />
+          )}
         </View>
       </Pressable>
     </Animated.View>

@@ -50,6 +50,7 @@ export async function insertBusinessService({
   priceInput,
   durationMinutes,
   sortOrder,
+  categoryId = null,
 }) {
   const row = {
     business_id: businessId,
@@ -61,6 +62,10 @@ export async function insertBusinessService({
   };
   if (Number.isFinite(sortOrder)) {
     row.sort_order = sortOrder;
+  }
+  const normalizedCategoryId = String(categoryId ?? '').trim();
+  if (normalizedCategoryId) {
+    row.category_id = normalizedCategoryId;
   }
   const { data, error } = await supabase.from('business_services').insert(row).select('*');
   return { data: data?.[0] ?? null, error };
@@ -239,13 +244,16 @@ export async function saveServiceEditorChanges({
   addonOptions: _addonOptions,
   selectedAddonIds,
   priceOptionLabelKey = 'label',
+  categoryId = null,
 }) {
+  const normalizedCategoryId = String(categoryId ?? '').trim();
   const servicePatch = {
     name: serviceDetails.serviceName.trim(),
     description: serviceDetails.description.trim(),
     price_cents: centsFromInput(serviceDetails.price),
     duration_minutes: serviceDetails.durationMinutes,
     price_options_enabled: Boolean(multiPriceEnabled),
+    category_id: normalizedCategoryId || null,
     updated_at: new Date().toISOString(),
   };
 

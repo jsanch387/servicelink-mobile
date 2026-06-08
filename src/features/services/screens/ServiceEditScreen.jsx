@@ -33,6 +33,7 @@ import { useSubscription, showWebAccountFeatureAlert } from '../../subscription'
 import { serviceMultiplePricingAccessCopy } from '../constants/servicePricingAccessCopy';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
 import { CollapsibleEditorSectionCard } from '../components/CollapsibleEditorSectionCard';
+import { ServiceCategorySectionContent } from '../categories';
 import { SelectableAddonCard } from '../components/SelectableAddonCard';
 import { buildServiceEditDraft } from '../utils/buildServiceEditDraft';
 import { normalizeAddonDurationHHmm } from '../utils/serviceAddonModel';
@@ -63,6 +64,7 @@ function buildEditorSnapshot({
   description,
   price,
   durationHHmm,
+  categoryId,
   multiPriceEnabled,
   pricingOptions,
   addonOptions,
@@ -91,6 +93,7 @@ function buildEditorSnapshot({
     description: String(description ?? ''),
     price: String(price ?? ''),
     durationHHmm: String(durationHHmm ?? ''),
+    categoryId: String(categoryId ?? ''),
     multiPriceEnabled: Boolean(multiPriceEnabled),
     selectedAddonIds: [...(selectedAddonIds ?? [])].map(String).sort(),
     pricingOptions: normalizedPricing,
@@ -237,11 +240,20 @@ export function ServiceEditScreen({ route }) {
       void refetchServiceEditor();
     }, [refetchServiceEditor]),
   );
+  const { categories, categorySelectOptionsWithNone } = useMemo(
+    () => ({
+      categories: fetchedEditorData?.categories ?? [],
+      categorySelectOptionsWithNone: fetchedEditorData?.categorySelectOptionsWithNone ?? [],
+    }),
+    [fetchedEditorData?.categories, fetchedEditorData?.categorySelectOptionsWithNone],
+  );
   const [serviceName, setServiceName] = useState(initialDraft.serviceName);
   const [description, setDescription] = useState(initialDraft.description);
   const [price, setPrice] = useState(initialDraft.price);
   const [durationHHmm, setDurationHHmm] = useState(initialDraft.durationHHmm);
+  const [categoryId, setCategoryId] = useState('');
   const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [categoryExpanded, setCategoryExpanded] = useState(false);
   const [pricingExpanded, setPricingExpanded] = useState(false);
   const [addonsExpanded, setAddonsExpanded] = useState(false);
   const [multiPriceEnabled, setMultiPriceEnabled] = useState(true);
@@ -274,6 +286,13 @@ export function ServiceEditScreen({ route }) {
     [editingPricingOptionId, pricingOptions],
   );
 
+  const categoryCollapsedSubtitle = useMemo(() => {
+    if (categoryExpanded) return null;
+    if (categories.length === 0) return 'No categories set up';
+    const selected = categories.find((cat) => cat.id === categoryId);
+    return selected?.name ?? 'Not assigned';
+  }, [categories, categoryExpanded, categoryId]);
+
   const pricingCollapsedSubtitle = useMemo(() => {
     if (pricingExpanded) return null;
     if (blockPricingControls) {
@@ -300,6 +319,10 @@ export function ServiceEditScreen({ route }) {
     },
     [blockPricingControls, pricingOptions.length],
   );
+
+  const handleCategoryIdChange = useCallback((nextCategoryId) => {
+    setCategoryId(nextCategoryId);
+  }, []);
 
   useEffect(() => {
     if (blockPricingControls) return;
@@ -376,6 +399,7 @@ export function ServiceEditScreen({ route }) {
       description,
       price,
       durationHHmm,
+      categoryId,
       multiPriceEnabled,
       pricingOptions,
       addonOptions,
@@ -384,6 +408,7 @@ export function ServiceEditScreen({ route }) {
     return currentSnapshot !== initialSnapshot;
   }, [
     addonOptions,
+    categoryId,
     description,
     durationHHmm,
     initialSnapshot,
@@ -612,6 +637,7 @@ export function ServiceEditScreen({ route }) {
       })),
       selectedAddonIds,
       priceOptionLabelKey: fetchedEditorData?.priceOptionLabelKey ?? 'label',
+      categoryId: categoryId.trim() || null,
     };
 
     try {
@@ -628,6 +654,7 @@ export function ServiceEditScreen({ route }) {
         description,
         price,
         durationHHmm,
+        categoryId,
         multiPriceEnabled: savedMultiPriceEnabled,
         pricingOptions,
         addonOptions,
@@ -715,6 +742,7 @@ export function ServiceEditScreen({ route }) {
     setDescription(fetchedEditorData.description ?? '');
     setPrice(fetchedEditorData.price ?? '');
     setDurationHHmm(fetchedEditorData.durationHHmm ?? '');
+    setCategoryId(fetchedEditorData.categoryId ?? '');
     setMultiPriceEnabled(Boolean(fetchedEditorData.multiPriceEnabled));
     setPricingOptions(fetchedEditorData.pricingOptions ?? []);
     setAddonOptions(fetchedEditorData.addonOptions ?? []);
@@ -725,6 +753,7 @@ export function ServiceEditScreen({ route }) {
         description: fetchedEditorData.description ?? '',
         price: fetchedEditorData.price ?? '',
         durationHHmm: fetchedEditorData.durationHHmm ?? '',
+        categoryId: fetchedEditorData.categoryId ?? '',
         multiPriceEnabled: Boolean(fetchedEditorData.multiPriceEnabled),
         pricingOptions: fetchedEditorData.pricingOptions ?? [],
         addonOptions: fetchedEditorData.addonOptions ?? [],
@@ -824,6 +853,21 @@ export function ServiceEditScreen({ route }) {
                 value={durationHHmm}
               />
             </View>
+          </CollapsibleEditorSectionCard>
+
+          <CollapsibleEditorSectionCard
+            contentStyle={styles.categoryContent}
+            expanded={categoryExpanded}
+            onToggle={() => setCategoryExpanded((v) => !v)}
+            subtitle={categoryCollapsedSubtitle}
+            title="Category"
+          >
+            <ServiceCategorySectionContent
+              categories={categories}
+              categoryId={categoryId}
+              categorySelectOptionsWithNone={categorySelectOptionsWithNone}
+              onCategoryIdChange={handleCategoryIdChange}
+            />
           </CollapsibleEditorSectionCard>
 
           <CollapsibleEditorSectionCard
@@ -1154,6 +1198,9 @@ const styles = StyleSheet.create({
   },
   pricingContent: {
     paddingTop: 12,
+  },
+  categoryContent: {
+    paddingTop: 8,
   },
   addonsContent: {
     paddingTop: 12,

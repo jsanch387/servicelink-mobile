@@ -24,6 +24,7 @@ export function ServiceEntityCard({
   showDescription = true,
   showToggle = true,
   showPriceCaption = true,
+  showPrice = true,
   showHeaderDivider = true,
   metaUnderTitle = false,
   metaLabelOverride,
@@ -74,10 +75,11 @@ export function ServiceEntityCard({
 
   function handleSortLongPress() {
     if (!isSortMode) return;
-    // Small native-feeling tactile tick when drag starts.
     Haptics.selectionAsync().catch(() => {});
     onDragStart?.();
   }
+
+  const showDescriptionBlock = showDescription && description.length > 0;
 
   const cardBody = (
     <View style={styles.outerRow}>
@@ -105,14 +107,16 @@ export function ServiceEntityCard({
               </AppText>
             ) : null}
           </View>
-          <View style={styles.priceWrap}>
-            {showPriceCaption ? (
-              <AppText style={[styles.priceCaption, { color: colors.textMuted }]}>
-                Starting at
-              </AppText>
-            ) : null}
-            <AppText style={[styles.price, { color: colors.text }]}>{item.priceLabel}</AppText>
-          </View>
+          {showPrice ? (
+            <View style={styles.priceWrap}>
+              {showPriceCaption ? (
+                <AppText style={[styles.priceCaption, { color: colors.textMuted }]}>
+                  Starting at
+                </AppText>
+              ) : null}
+              <AppText style={[styles.price, { color: colors.text }]}>{item.priceLabel}</AppText>
+            </View>
+          ) : null}
         </View>
 
         {showHeaderDivider ? (
@@ -125,7 +129,7 @@ export function ServiceEntityCard({
           </View>
         ) : null}
 
-        {showDescription ? (
+        {showDescriptionBlock ? (
           <View style={styles.descriptionWrap}>
             <AppText style={[styles.description, { color: colors.textMuted }]}>
               {previewDescription}
@@ -331,12 +335,10 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   metaRow: {
-    alignItems: 'center',
     flexDirection: 'row',
     marginBottom: 10,
   },
   meta: {
-    marginLeft: 6,
     fontSize: 11,
     fontWeight: '500',
   },
