@@ -3,6 +3,7 @@ export { BetaLabel } from './BetaLabel';
 export { AppTextInput } from './AppTextInput';
 export { BottomSheetModal } from './BottomSheetModal';
 export { FormBottomSheetModal } from './FormBottomSheetModal';
+export { useBottomSheetOverlay, BottomSheetOverlayProvider } from './bottomSheetOverlay';
 export { CalendarMonthPicker } from './CalendarMonthPicker';
 export {
   AppointmentCountMarkers,

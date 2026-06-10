@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppShellGlow, AppText } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { FREE_TIER_BOOKINGS_LIMIT, freeTierBookingsLimitCopy } from '../../bookings/constants';
+import { BookingCompleteInvoiceDesignSheet } from '../../bookings/booking-details/components/BookingCompleteInvoiceDesignSheet';
 import { BookingMarkCompleteSheet } from '../../bookings/booking-details/components/BookingMarkCompleteSheet';
 import { useMarkBookingCompleteFlow } from '../../bookings/booking-details/hooks/useMarkBookingCompleteFlow';
 import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
@@ -71,6 +72,8 @@ export function HomeScreen() {
   });
 
   const [refreshing, setRefreshing] = useState(false);
+  const [invoiceDesignSheetVisible, setInvoiceDesignSheetVisible] = useState(false);
+  const showInvoiceDesignPreview = typeof __DEV__ !== 'undefined' && __DEV__;
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -200,6 +203,22 @@ export function HomeScreen() {
           top: -2,
           width: 8,
         },
+        designPreviewBtn: {
+          alignSelf: 'flex-start',
+          backgroundColor: colors.cardSurface,
+          borderColor: colors.border,
+          borderRadius: 10,
+          borderWidth: 1,
+          marginBottom: 12,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+        },
+        designPreviewBtnText: {
+          color: colors.textSecondary,
+          fontSize: 13,
+          fontWeight: '600',
+          letterSpacing: -0.1,
+        },
       }),
     [colors, isDark, scrollBottomPad],
   );
@@ -285,6 +304,12 @@ export function HomeScreen() {
         onConfirm={() => void handleConfirmMarkComplete()}
         onRequestClose={markCompleteFlow.closeSheet}
       />
+      {showInvoiceDesignPreview ? (
+        <BookingCompleteInvoiceDesignSheet
+          visible={invoiceDesignSheetVisible}
+          onRequestClose={() => setInvoiceDesignSheetVisible(false)}
+        />
+      ) : null}
       <AppShellGlow />
       <ScrollView
         contentContainerStyle={styles.content}
@@ -320,6 +345,17 @@ export function HomeScreen() {
           </Pressable>
         </View>
         <View style={styles.headerDivider} />
+        {showInvoiceDesignPreview ? (
+          <Pressable
+            accessibilityHint="Opens a design preview of the complete visit and invoice sheet"
+            accessibilityLabel="Preview complete invoice modal"
+            accessibilityRole="button"
+            style={styles.designPreviewBtn}
+            onPress={() => setInvoiceDesignSheetVisible(true)}
+          >
+            <AppText style={styles.designPreviewBtnText}>Preview complete + invoice modal</AppText>
+          </Pressable>
+        ) : null}
         {showFreeBookingsUsage ? (
           <HomeFreeBookingsUsageCard
             limit={FREE_TIER_BOOKINGS_LIMIT}

@@ -49,6 +49,13 @@ export function BookingsViewModeToggle({ mode, onChange }) {
           shadowOpacity: isDark ? 0.38 : 0.11,
           shadowRadius: 11,
         },
+        /** Rounded clipper: the ripple is the Pressable's own drawable, so the parent must clip it. */
+        segmentClip: {
+          borderRadius: SEGMENT_RADIUS,
+          height: SEGMENT_HEIGHT,
+          overflow: 'hidden',
+          width: SEGMENT_WIDTH,
+        },
         segmentHit: {
           height: SEGMENT_HEIGHT,
           width: SEGMENT_WIDTH,
@@ -112,42 +119,48 @@ export function BookingsViewModeToggle({ mode, onChange }) {
 
   return (
     <View accessibilityRole="tablist" style={styles.track}>
-      <Pressable
-        accessibilityLabel="List view"
-        accessibilityRole="tab"
-        accessibilityState={{ selected: listActive }}
-        android_ripple={{ color: rippleList, borderless: false }}
-        hitSlop={6}
-        onPress={() => onChange(BOOKINGS_VIEW_LIST)}
-        style={({ pressed }) => [styles.segmentHit, pressed && { opacity: 0.92 }]}
-      >
-        <View style={[styles.segmentSurface, listActive && styles.segmentSurfaceActive]}>
-          <View style={styles.segmentRow}>
-            <Ionicons color={listActive ? ACTIVE_FG : inactiveIconColor} name="list" size={18} />
-            <AppText style={[styles.label, listActive && styles.labelActive]}>List</AppText>
+      <View style={styles.segmentClip}>
+        <Pressable
+          accessibilityLabel="List view"
+          accessibilityRole="tab"
+          accessibilityState={{ selected: listActive }}
+          android_ripple={{ color: rippleList, borderless: false, foreground: true }}
+          hitSlop={6}
+          onPress={() => onChange(BOOKINGS_VIEW_LIST)}
+          style={({ pressed }) => [styles.segmentHit, pressed && { opacity: 0.92 }]}
+        >
+          <View style={[styles.segmentSurface, listActive && styles.segmentSurfaceActive]}>
+            <View style={styles.segmentRow}>
+              <Ionicons color={listActive ? ACTIVE_FG : inactiveIconColor} name="list" size={18} />
+              <AppText style={[styles.label, listActive && styles.labelActive]}>List</AppText>
+            </View>
           </View>
-        </View>
-      </Pressable>
-      <Pressable
-        accessibilityLabel="Calendar view"
-        accessibilityRole="tab"
-        accessibilityState={{ selected: calendarActive }}
-        android_ripple={{ color: rippleCalendar, borderless: false }}
-        hitSlop={6}
-        onPress={() => onChange(BOOKINGS_VIEW_CALENDAR)}
-        style={({ pressed }) => [styles.segmentHit, pressed && { opacity: 0.92 }]}
-      >
-        <View style={[styles.segmentSurface, calendarActive && styles.segmentSurfaceActive]}>
-          <View style={styles.segmentRow}>
-            <Ionicons
-              color={calendarActive ? ACTIVE_FG : inactiveIconColor}
-              name="calendar-outline"
-              size={18}
-            />
-            <AppText style={[styles.label, calendarActive && styles.labelActive]}>Calendar</AppText>
+        </Pressable>
+      </View>
+      <View style={styles.segmentClip}>
+        <Pressable
+          accessibilityLabel="Calendar view"
+          accessibilityRole="tab"
+          accessibilityState={{ selected: calendarActive }}
+          android_ripple={{ color: rippleCalendar, borderless: false, foreground: true }}
+          hitSlop={6}
+          onPress={() => onChange(BOOKINGS_VIEW_CALENDAR)}
+          style={({ pressed }) => [styles.segmentHit, pressed && { opacity: 0.92 }]}
+        >
+          <View style={[styles.segmentSurface, calendarActive && styles.segmentSurfaceActive]}>
+            <View style={styles.segmentRow}>
+              <Ionicons
+                color={calendarActive ? ACTIVE_FG : inactiveIconColor}
+                name="calendar-outline"
+                size={18}
+              />
+              <AppText style={[styles.label, calendarActive && styles.labelActive]}>
+                Calendar
+              </AppText>
+            </View>
           </View>
-        </View>
-      </Pressable>
+        </Pressable>
+      </View>
     </View>
   );
 }
