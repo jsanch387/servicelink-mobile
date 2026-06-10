@@ -395,3 +395,32 @@ export async function fetchFreeTierBookingCountForBusiness(businessId) {
 
   return { count: resolved, error: null };
 }
+
+const COMPLETED_BOOKING_STATUSES = ['completed', 'complete'];
+
+/**
+ * Head-count of completed bookings. Used as the lifetime "happy moments" signal for the
+ * app-store review prompt, so long-time owners qualify immediately (not just activity
+ * counted after the feature shipped).
+ *
+ * @param {string} businessId
+ * @returns {Promise<{ count: number; error: Error | null }>}
+ */
+export async function fetchCompletedBookingCountForBusiness(businessId) {
+  const { count, error } = await supabase
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('business_id', businessId)
+    .in('status', COMPLETED_BOOKING_STATUSES);
+
+  const resolved = typeof count === 'number' ? count : 0;
+
+  if (error) {
+    return {
+      count: 0,
+      error: new Error(error.message ?? 'Could not count completed bookings'),
+    };
+  }
+
+  return { count: resolved, error: null };
+}
