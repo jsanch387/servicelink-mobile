@@ -2,27 +2,27 @@ import { isOnMyWayAlreadySentError, isOnMyWaySent } from '../utils/bookingOnMyWa
 
 describe('bookingOnMyWay', () => {
   describe('isOnMyWaySent', () => {
-    it('returns false when timestamp is missing', () => {
+    it('returns false when job_status is not_started or missing', () => {
       expect(isOnMyWaySent(null)).toBe(false);
       expect(isOnMyWaySent({})).toBe(false);
-      expect(isOnMyWaySent({ on_my_way_sent_at: null })).toBe(false);
-      expect(isOnMyWaySent({ on_my_way_sent_at: '   ' })).toBe(false);
+      expect(isOnMyWaySent({ job_status: 'not_started' })).toBe(false);
     });
 
-    it('returns true when timestamp is set', () => {
-      expect(isOnMyWaySent({ on_my_way_sent_at: '2026-06-10T20:00:00.000Z' })).toBe(true);
+    it('returns true when job_status moved past not_started', () => {
+      expect(isOnMyWaySent({ job_status: 'on_the_way' })).toBe(true);
+      expect(isOnMyWaySent({ job_status: 'in_progress' })).toBe(true);
     });
   });
 
   describe('isOnMyWayAlreadySentError', () => {
-    it('detects already-sent server messages', () => {
+    it('detects conflict errors', () => {
       expect(
         isOnMyWayAlreadySentError('On my way text was already sent for this appointment.'),
       ).toBe(true);
       expect(isOnMyWayAlreadySentError('Customer was already notified.')).toBe(true);
     });
 
-    it('returns false for other errors', () => {
+    it('returns false for unrelated errors', () => {
       expect(isOnMyWayAlreadySentError('This appointment is no longer confirmed.')).toBe(false);
     });
   });

@@ -11,8 +11,8 @@ import {
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
-import { isOnMyWaySent } from '../../home/utils/bookingOnMyWay';
-import { useOnMyWayNotify } from '../../home/hooks/useOnMyWayNotify';
+import { isOnTheWayActionDone } from '../constants/jobStatus';
+import { useBookingAction } from '../hooks/useBookingAction';
 import { useTheme } from '../../../theme';
 import { phoneForSmsUri } from '../../../utils/phone';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
@@ -55,8 +55,9 @@ export function BookingDetailsScreen({ route }) {
   const isConfirmedStatus = statusLower === 'confirmed';
   const showOnMyWayAction = isConfirmedStatus && !isCompletedStatus && !isCancelledStatus;
   const hasCustomerSmsPhone = Boolean(phoneForSmsUri(detailsQuery.booking?.customer_phone));
-  const onMyWayNotify = useOnMyWayNotify(null);
-  const onMyWayAlreadySent = isOnMyWaySent(detailsQuery.booking) || onMyWayNotify.isSent(bookingId);
+  const bookingAction = useBookingAction(null);
+  const onMyWayAlreadySent =
+    isOnTheWayActionDone(detailsQuery.booking) || bookingAction.isOnTheWayDone(bookingId);
   const customerPhoneDigits = useMemo(
     () => String(details.customer.phone ?? '').replace(/\D/g, ''),
     [details.customer.phone],
@@ -160,11 +161,11 @@ export function BookingDetailsScreen({ route }) {
   }, [bookingId, isCancelledStatus, isCompletedStatus]);
 
   const handleOnMyWay = useCallback(() => {
-    if (!bookingId || onMyWayAlreadySent || onMyWayNotify.disabled) {
+    if (!bookingId || onMyWayAlreadySent || bookingAction.disabled) {
       return;
     }
-    onMyWayNotify.notify(bookingId);
-  }, [bookingId, onMyWayAlreadySent, onMyWayNotify]);
+    bookingAction.notifyOnTheWay(bookingId);
+  }, [bookingId, onMyWayAlreadySent, bookingAction]);
 
   const bookingStartMs = useMemo(() => {
     const raw = detailsQuery.booking;
@@ -375,8 +376,8 @@ export function BookingDetailsScreen({ route }) {
                 isDeletingBooking={bookingActions.isDeletingBooking}
                 isMarkCompletedDisabled={isCompletedStatus}
                 isMarkingCompleted={markCompleteFlow.isConfirming}
-                isOnMyWayDisabled={onMyWayNotify.disabled}
-                isOnMyWaySending={onMyWayNotify.isSending}
+                isOnMyWayDisabled={bookingAction.disabled}
+                isOnMyWaySending={bookingAction.isSending}
                 isRescheduleDisabled={isCancelledStatus || isCompletedStatus}
                 isReschedulingBooking={bookingActions.isReschedulingBooking}
                 onMyWayAlreadySent={onMyWayAlreadySent}

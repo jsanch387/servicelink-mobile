@@ -65,19 +65,17 @@ export function useHomeDashboard() {
       }
       const nowMs = Date.now();
       const pick = pickHomeSpotlight(rows ?? [], nowMs);
+      const spotlight = pick.spotlight;
       let nextSubtitle = '';
-      if (pick.spotlight) {
-        const startMs = parseBookingStartLocalMs(
-          pick.spotlight.scheduled_date,
-          pick.spotlight.start_time,
-        );
+      if (spotlight) {
+        const startMs = parseBookingStartLocalMs(spotlight.scheduled_date, spotlight.start_time);
         nextSubtitle =
           pick.spotlightMode === 'in_progress'
             ? formatInProgressSubtitle(startMs)
             : formatNextUpWhenLine(startMs, nowMs);
       }
       return {
-        next: pick.spotlight,
+        next: spotlight,
         upcomingCount: pick.upcomingCount,
         nextSubtitle,
         spotlightMode: pick.spotlightMode,

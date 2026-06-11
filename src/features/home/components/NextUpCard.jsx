@@ -11,9 +11,9 @@ import {
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { phoneForSmsUri } from '../../../utils/phone';
-import { useOnMyWayNotify } from '../hooks/useOnMyWayNotify';
+import { useBookingAction } from '../../bookings/hooks/useBookingAction';
+import { isOnTheWayActionDone } from '../../bookings/constants/jobStatus';
 import { openMapsForBooking } from '../utils/appointmentOutbound';
-import { isOnMyWaySent } from '../utils/bookingOnMyWay';
 import { hasBookingAddressForMaps } from '../utils/bookingAddress';
 import {
   buildNextUpHeadlines,
@@ -87,7 +87,7 @@ export function NextUpCard({
   markCompleteLoading = false,
 }) {
   const { colors } = useTheme();
-  const onMyWayNotify = useOnMyWayNotify(businessId);
+  const bookingAction = useBookingAction(businessId);
   const scheduleError = businessError || bookingsError || null;
   const empty = !isLoading && !scheduleError && !nextBooking;
   const bone = colors.nextUpTextMuted;
@@ -180,16 +180,18 @@ export function NextUpCard({
     [nextBooking],
   );
   const onMyWayAlreadySent = useMemo(
-    () => isOnMyWaySent(nextBooking) || onMyWayNotify.isSent(nextBooking?.id),
-    [nextBooking, onMyWayNotify],
+    () =>
+      isOnTheWayActionDone(nextBooking) ||
+      bookingAction.isOnTheWayDone(nextBooking?.id, nextBooking),
+    [nextBooking, bookingAction],
   );
   const canMaps = useMemo(() => hasBookingAddressForMaps(nextBooking), [nextBooking]);
 
   const onMyWay = useCallback(() => {
     if (nextBooking?.id && !onMyWayAlreadySent) {
-      onMyWayNotify.notify(nextBooking.id);
+      bookingAction.notifyOnTheWay(nextBooking.id);
     }
-  }, [nextBooking?.id, onMyWayAlreadySent, onMyWayNotify]);
+  }, [nextBooking?.id, onMyWayAlreadySent, bookingAction]);
 
   const navigate = useCallback(() => {
     if (nextBooking) {
@@ -325,14 +327,14 @@ export function NextUpCard({
                   <Button
                     accessibilityHint={
                       hasCustomerSmsNumber
-                        ? undefined
-                        : 'Texts the customer; add a phone on this booking to reach them.'
+                        ? 'Texts the customer that you are on the way'
+                        : 'Updates the appointment; add a phone on this booking to text the customer'
                     }
                     accessibilityLabel="On my way"
-                    disabled={onMyWayNotify.disabled || !hasCustomerSmsNumber}
+                    disabled={bookingAction.disabled}
                     fullWidth
                     iconName="chatbubble-ellipses-outline"
-                    loading={onMyWayNotify.isSending}
+                    loading={bookingAction.isSending}
                     loadingNode={<EchoBarsLoader accessibilityLabel="Sending" color="#ffffff" />}
                     title="On my way"
                     variant="surfaceDark"

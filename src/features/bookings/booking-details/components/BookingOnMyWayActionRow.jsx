@@ -5,7 +5,7 @@ const PRIMARY_ECHO_BAR_COLOR = '#0a0a0a';
 
 /**
  * UI for texting the customer "on my way" from booking details.
- * Wire `onPress` / `loading` when hooking up {@link useOnMyWayNotify}.
+ * Wire `onPress` / `loading` when hooking up {@link useBookingAction}.
  *
  * @param {{
  *   alreadySent?: boolean;
@@ -40,10 +40,12 @@ export function BookingOnMyWayActionRow({
   return (
     <Button
       accessibilityHint={
-        hasCustomerSmsPhone ? undefined : 'Add a valid customer phone on this booking to text them.'
+        hasCustomerSmsPhone
+          ? 'Texts the customer that you are on the way'
+          : 'Updates the appointment; add a phone on this booking to text the customer'
       }
       accessibilityLabel="On my way"
-      disabled={disabled || !hasCustomerSmsPhone}
+      disabled={disabled}
       fullWidth
       iconName="chatbubble-ellipses-outline"
       loading={loading}

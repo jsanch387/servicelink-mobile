@@ -30,12 +30,12 @@ jest.mock('../hooks/useLinkViewsAnalytics', () => ({
   useLinkViewsAnalytics: jest.fn(),
 }));
 
-jest.mock('../hooks/useOnMyWayNotify', () => ({
-  useOnMyWayNotify: () => ({
-    notify: jest.fn(),
+jest.mock('../../bookings/hooks/useBookingAction', () => ({
+  useBookingAction: () => ({
+    notifyOnTheWay: jest.fn(),
     isSending: false,
     disabled: false,
-    isSent: () => false,
+    isOnTheWayDone: () => false,
   }),
 }));
 
