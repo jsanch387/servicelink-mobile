@@ -30,6 +30,15 @@ jest.mock('../hooks/useLinkViewsAnalytics', () => ({
   useLinkViewsAnalytics: jest.fn(),
 }));
 
+jest.mock('../hooks/useOnMyWayNotify', () => ({
+  useOnMyWayNotify: () => ({
+    notify: jest.fn(),
+    isSending: false,
+    disabled: false,
+    isSent: () => false,
+  }),
+}));
+
 jest.mock('../../notifications/hooks/useNotificationUnreadCount', () => ({
   useNotificationUnreadCount: () => ({ unreadCount: 0 }),
 }));
@@ -136,6 +145,20 @@ describe('HomeScreen', () => {
     expect(screen.getByText('Last 24 hours')).toBeTruthy();
     expect(screen.getByText('24 hours')).toBeTruthy();
     expect(screen.getByText('12')).toBeTruthy();
+  });
+
+  it('shows today timeline section while business is still loading', () => {
+    mockUseHomeDashboard.mockReturnValue(
+      baseDashboard({
+        business: null,
+        isPendingBusiness: true,
+        isPendingBookings: true,
+        isLoading: true,
+      }),
+    );
+    renderWithProviders(<HomeScreen />);
+    expect(screen.getByText("Today's timeline")).toBeTruthy();
+    expect(screen.queryByText('Nothing on the calendar')).toBeNull();
   });
 
   it('does not show free-tier booking usage for Pro users', () => {

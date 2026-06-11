@@ -50,10 +50,14 @@ function EchoBar({ index, color }) {
 }
 
 /**
- * Echo bars loader — same-height gray pills with a left-to-right opacity wave.
+ * Echo bars loader — same-height pills with a left-to-right opacity wave.
+ *
+ * @param {{ accessibilityLabel?: string; color?: string }} props
+ *   `color` overrides the default muted bar color (e.g. white on a dark button).
  */
-export function EchoBarsLoader({ accessibilityLabel = 'Loading' }) {
+export function EchoBarsLoader({ accessibilityLabel = 'Loading', color }) {
   const { colors } = useTheme();
+  const barColor = color ?? colors.textMuted;
 
   return (
     <View
@@ -62,7 +66,7 @@ export function EchoBarsLoader({ accessibilityLabel = 'Loading' }) {
       style={styles.wrap}
     >
       {Array.from({ length: BAR_COUNT }, (_, index) => (
-        <EchoBar key={`echo-bar-${index}`} color={colors.textMuted} index={index} />
+        <EchoBar key={`echo-bar-${index}`} color={barColor} index={index} />
       ))}
     </View>
   );

@@ -22,6 +22,7 @@ export const BOOKING_DETAILS_SELECT = [
   'customer_vehicle_make',
   'customer_vehicle_model',
   'customer_notes',
+  'on_my_way_sent_at',
 ].join(', ');
 
 const BOOKING_PAYMENTS_SELECT = [

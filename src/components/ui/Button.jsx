@@ -30,7 +30,11 @@ export function Button({
   onPress,
   variant = 'primary',
   disabled = false,
+  /** When false, disabled buttons keep full label/icon opacity (e.g. sent-state CTAs). */
+  subduedWhenDisabled = true,
   loading = false,
+  /** Custom node shown in place of the default spinner while `loading` (e.g. EchoBarsLoader). */
+  loadingNode = null,
   fullWidth = false,
   /** Squarer corners (e.g. paired row actions) — overrides default 14px radius. */
   squared = false,
@@ -190,24 +194,49 @@ export function Button({
         const showLeftNamed = !showLeftIcon && iconName && iconPosition === 'left';
         const showRightNamed = !showRightIcon && iconName && iconPosition === 'right';
 
+        const contentChildren = (
+          <>
+            {showLeftIcon ? <View style={styles.iconLeft}>{iconNode}</View> : null}
+            {showLeftNamed ? renderIcon('left') : null}
+            <AppText
+              ellipsizeMode="tail"
+              numberOfLines={1}
+              style={[styles.label, { color: resolvedTextColor }]}
+            >
+              {title}
+            </AppText>
+            {showRightIcon ? <View style={styles.iconRight}>{iconNode}</View> : null}
+            {showRightNamed ? renderIcon('right') : null}
+          </>
+        );
+
         return (
           <View
             style={[
               faceStyle,
               squared && styles.faceSquared,
-              disabled && !loading && (disabledFaceStyle ?? styles.busy),
+              disabled && !loading && subduedWhenDisabled && (disabledFaceStyle ?? styles.busy),
             ]}
           >
             {loading ? (
-              <ActivityIndicator color={spinnerColor} />
-            ) : (
-              <View style={styles.contentRow}>
-                {showLeftIcon ? <View style={styles.iconLeft}>{iconNode}</View> : null}
-                {showLeftNamed ? renderIcon('left') : null}
-                <AppText style={[styles.label, { color: resolvedTextColor }]}>{title}</AppText>
-                {showRightIcon ? <View style={styles.iconRight}>{iconNode}</View> : null}
-                {showRightNamed ? renderIcon('right') : null}
+              <View
+                collapsable={false}
+                style={[styles.loadingShell, fullWidth && styles.loadingShellFullWidth]}
+              >
+                {/* Invisible resting content preserves exact button footprint. */}
+                <View
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  style={styles.contentReserved}
+                >
+                  <View style={styles.contentRow}>{contentChildren}</View>
+                </View>
+                <View collapsable={false} pointerEvents="none" style={styles.loadingOverlay}>
+                  {loadingNode ?? <ActivityIndicator color={spinnerColor} />}
+                </View>
               </View>
+            ) : (
+              <View style={styles.contentRow}>{contentChildren}</View>
             )}
           </View>
         );
@@ -245,6 +274,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   label: {
+    flexShrink: 1,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
@@ -253,6 +283,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
+    maxWidth: '100%',
+  },
+  loadingShell: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  loadingShellFullWidth: {
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  /** Resting content kept in flow but invisible so loading never resizes the button. */
+  contentReserved: {
+    opacity: 0,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
   },
   iconLeft: {
     marginRight: 8,

@@ -100,8 +100,11 @@ export function HomeScreen() {
     [dashboard.spotlightMode],
   );
 
-  /** Show whenever we have a business so empty days still get the “nothing on the calendar” card. */
-  const showTodayTimelineSection = Boolean(dashboard.business?.id);
+  /** Show while business exists, or during first business fetch so the timeline skeleton paints with the rest of home. */
+  const showTodayTimelineSection =
+    Boolean(dashboard.business?.id) || (dashboard.isPendingBusiness && !dashboard.businessError);
+
+  const todayTimelineLoading = dashboard.isPendingBusiness || dashboard.isPendingTodayBookings;
 
   const showFreeTierBookingCount =
     isOwnerProfileLoaded &&
@@ -369,7 +372,7 @@ export function HomeScreen() {
         <NextUpCard
           bookingsError={homeErrors.nextUpBookingsError}
           businessError={homeErrors.nextUpBusinessError}
-          businessName={dashboard.business?.business_name?.trim() || undefined}
+          businessId={dashboard.business?.id ?? null}
           isLoading={sectionLoading}
           markCompleteLoading={markCompleteFlow.isConfirming}
           nextBooking={dashboard.nextBooking}
@@ -403,7 +406,7 @@ export function HomeScreen() {
             <AppText style={styles.sectionLabel}>Today&apos;s timeline</AppText>
             <RestOfTodayCard
               error={homeErrors.restOfTodayError}
-              isLoading={dashboard.isPendingTodayBookings}
+              isLoading={todayTimelineLoading}
               items={dashboard.todayTimelineItems}
             />
           </>

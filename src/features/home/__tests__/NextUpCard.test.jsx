@@ -3,12 +3,29 @@ import { NextUpCard } from '../components/NextUpCard';
 import * as outbound from '../utils/appointmentOutbound';
 import { renderWithProviders } from './testUtils';
 
-jest.spyOn(outbound, 'openSmsOnMyWay').mockImplementation(() => {});
+const mockNotify = jest.fn();
+let mockOnMyWayState = {
+  notify: mockNotify,
+  isSending: false,
+  disabled: false,
+  isSent: () => false,
+};
+
+jest.mock('../hooks/useOnMyWayNotify', () => ({
+  useOnMyWayNotify: () => mockOnMyWayState,
+}));
+
 jest.spyOn(outbound, 'openMapsForBooking').mockImplementation(() => {});
 
 describe('NextUpCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOnMyWayState = {
+      notify: mockNotify,
+      isSending: false,
+      disabled: false,
+      isSent: () => false,
+    };
   });
 
   it('renders skeleton while loading', () => {
@@ -257,7 +274,7 @@ describe('NextUpCard', () => {
     expect(screen.getByText('2017 Toyota Tacoma')).toBeTruthy();
   });
 
-  it('upcoming: On my way stays enabled without a customer phone (compose opens with prefilled text)', () => {
+  it('upcoming: On my way is disabled without a customer phone', () => {
     const nextBooking = {
       id: '1',
       customer_name: 'Alex',
@@ -278,10 +295,12 @@ describe('NextUpCard', () => {
         subtitle="Today at 2:00 PM"
       />,
     );
-    expect(screen.getByLabelText('On my way')).not.toBeDisabled();
+    expect(screen.getByLabelText('On my way')).toBeDisabled();
+    fireEvent.press(screen.getByLabelText('On my way'));
+    expect(mockNotify).not.toHaveBeenCalled();
   });
 
-  it('invokes SMS and maps helpers when buttons are pressed', () => {
+  it('notifies on-my-way with the booking id and invokes maps helper on press', () => {
     const nextBooking = {
       id: '1',
       customer_name: 'Alex',
@@ -302,12 +321,13 @@ describe('NextUpCard', () => {
       />,
     );
     fireEvent.press(screen.getByLabelText('On my way'));
-    expect(outbound.openSmsOnMyWay).toHaveBeenCalledWith(nextBooking, { businessName: undefined });
+    expect(mockNotify).toHaveBeenCalledWith('1');
     fireEvent.press(screen.getByLabelText('Navigate'));
     expect(outbound.openMapsForBooking).toHaveBeenCalledWith(nextBooking);
   });
 
-  it('passes businessName into On my way SMS', () => {
+  it('disables On my way while a send is in flight', () => {
+    mockOnMyWayState = { notify: mockNotify, isSending: true, disabled: true, isSent: () => false };
     const nextBooking = {
       id: '1',
       customer_name: 'Alex',
@@ -318,16 +338,38 @@ describe('NextUpCard', () => {
       <NextUpCard
         bookingsError={null}
         businessError={null}
-        businessName="Coastal Clean Co."
         isLoading={false}
         nextBooking={nextBooking}
+        spotlightMode="upcoming"
         subtitle=""
       />,
     );
-    fireEvent.press(screen.getByLabelText('On my way'));
-    expect(outbound.openSmsOnMyWay).toHaveBeenCalledWith(nextBooking, {
-      businessName: 'Coastal Clean Co.',
-    });
+    expect(screen.getByLabelText('On my way')).toBeDisabled();
+  });
+
+  it('shows Customer notified instead of On my way when already sent', () => {
+    const nextBooking = {
+      id: '1',
+      customer_name: 'Alex',
+      service_name: 'Install',
+      customer_phone: '5552345678',
+      on_my_way_sent_at: '2026-06-10T20:00:00.000Z',
+    };
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={nextBooking}
+        spotlightMode="upcoming"
+        subtitle="Today at 2:00 PM"
+      />,
+    );
+    expect(screen.getByLabelText('Customer notified')).toBeDisabled();
+    expect(screen.getByText('Notified')).toBeTruthy();
+    expect(screen.queryByLabelText('On my way')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Customer notified'));
+    expect(mockNotify).not.toHaveBeenCalled();
   });
 
   it('shows schedule error from bookings', () => {

@@ -4,13 +4,16 @@ import { Animated, StyleSheet, View } from 'react-native';
 import {
   AppText,
   Button,
+  EchoBarsLoader,
   InlineCardError,
   SkeletonBox,
   SpotlightCard,
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { phoneForSmsUri } from '../../../utils/phone';
-import { openMapsForBooking, openSmsOnMyWay } from '../utils/appointmentOutbound';
+import { useOnMyWayNotify } from '../hooks/useOnMyWayNotify';
+import { openMapsForBooking } from '../utils/appointmentOutbound';
+import { isOnMyWaySent } from '../utils/bookingOnMyWay';
 import { hasBookingAddressForMaps } from '../utils/bookingAddress';
 import {
   buildNextUpHeadlines,
@@ -78,12 +81,13 @@ export function NextUpCard({
   isLoading,
   businessError,
   bookingsError,
-  businessName,
+  businessId,
   spotlightMode = 'none',
   onMarkComplete,
   markCompleteLoading = false,
 }) {
   const { colors } = useTheme();
+  const onMyWayNotify = useOnMyWayNotify(businessId);
   const scheduleError = businessError || bookingsError || null;
   const empty = !isLoading && !scheduleError && !nextBooking;
   const bone = colors.nextUpTextMuted;
@@ -175,13 +179,17 @@ export function NextUpCard({
     () => Boolean(nextBooking && phoneForSmsUri(nextBooking.customer_phone)),
     [nextBooking],
   );
+  const onMyWayAlreadySent = useMemo(
+    () => isOnMyWaySent(nextBooking) || onMyWayNotify.isSent(nextBooking?.id),
+    [nextBooking, onMyWayNotify],
+  );
   const canMaps = useMemo(() => hasBookingAddressForMaps(nextBooking), [nextBooking]);
 
   const onMyWay = useCallback(() => {
-    if (nextBooking) {
-      openSmsOnMyWay(nextBooking, { businessName });
+    if (nextBooking?.id && !onMyWayAlreadySent) {
+      onMyWayNotify.notify(nextBooking.id);
     }
-  }, [nextBooking, businessName]);
+  }, [nextBooking?.id, onMyWayAlreadySent, onMyWayNotify]);
 
   const navigate = useCallback(() => {
     if (nextBooking) {
@@ -303,19 +311,34 @@ export function NextUpCard({
           ) : (
             <>
               <View collapsable={false} style={styles.actionCell}>
-                <Button
-                  accessibilityHint={
-                    hasCustomerSmsNumber
-                      ? undefined
-                      : 'Opens Messages with your text; add a phone on this booking to include the customer number.'
-                  }
-                  accessibilityLabel="On my way"
-                  fullWidth
-                  iconName="chatbubble-ellipses-outline"
-                  title="On my way"
-                  variant="surfaceDark"
-                  onPress={onMyWay}
-                />
+                {onMyWayAlreadySent ? (
+                  <Button
+                    accessibilityLabel="Customer notified"
+                    disabled
+                    fullWidth
+                    iconName="checkmark-circle-outline"
+                    outlineColor={colors.nextUpTextMuted}
+                    title="Notified"
+                    variant="outline"
+                  />
+                ) : (
+                  <Button
+                    accessibilityHint={
+                      hasCustomerSmsNumber
+                        ? undefined
+                        : 'Texts the customer; add a phone on this booking to reach them.'
+                    }
+                    accessibilityLabel="On my way"
+                    disabled={onMyWayNotify.disabled || !hasCustomerSmsNumber}
+                    fullWidth
+                    iconName="chatbubble-ellipses-outline"
+                    loading={onMyWayNotify.isSending}
+                    loadingNode={<EchoBarsLoader accessibilityLabel="Sending" color="#ffffff" />}
+                    title="On my way"
+                    variant="surfaceDark"
+                    onPress={onMyWay}
+                  />
+                )}
               </View>
               <View collapsable={false} style={styles.actionCell}>
                 <Button

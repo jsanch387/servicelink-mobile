@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
+import { BookingOnMyWayActionRow } from './BookingOnMyWayActionRow';
 
 const RESCHEDULE_ICON = '#94a3b8';
 const COMPLETE_ICON = '#22c55e';
@@ -104,6 +105,12 @@ export function BookingActionsSection({
   onMarkCompleted,
   onReschedule,
   isReschedulingBooking = false,
+  showOnMyWayAction = false,
+  onMyWayAlreadySent = false,
+  hasCustomerSmsPhone = false,
+  isOnMyWaySending = false,
+  isOnMyWayDisabled = false,
+  onOnMyWayPress,
 }) {
   const { colors } = useTheme();
   const styles = useMemo(
@@ -122,6 +129,9 @@ export function BookingActionsSection({
           flexDirection: 'row',
           width: '100%',
         },
+        onMyWayWrap: {
+          marginBottom: 12,
+        },
       }),
     [colors],
   );
@@ -132,6 +142,17 @@ export function BookingActionsSection({
   return (
     <View>
       <AppText style={styles.sectionTitle}>Actions</AppText>
+      {showOnMyWayAction ? (
+        <View style={styles.onMyWayWrap}>
+          <BookingOnMyWayActionRow
+            alreadySent={onMyWayAlreadySent}
+            disabled={actionsBusy || isOnMyWayDisabled}
+            hasCustomerSmsPhone={hasCustomerSmsPhone}
+            loading={isOnMyWaySending}
+            onPress={onOnMyWayPress}
+          />
+        </View>
+      ) : null}
       <View style={styles.row}>
         <ActionSurfaceTile
           accessibilityHint="Opens a sheet to choose a new date and time"

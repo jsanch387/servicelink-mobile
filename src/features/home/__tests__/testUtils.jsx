@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ToastProvider } from '../../../components/ui';
 import { ThemeProvider, TypographyProvider } from '../../../theme';
 
 const initialMetrics = {
@@ -30,7 +31,9 @@ export function renderWithProviders(ui, options = {}) {
     <QueryClientProvider client={client}>
       <ThemeProvider initialScheme="dark">
         <TypographyProvider>
-          <SafeAreaProvider initialMetrics={initialMetrics}>{ui}</SafeAreaProvider>
+          <SafeAreaProvider initialMetrics={initialMetrics}>
+            <ToastProvider>{ui}</ToastProvider>
+          </SafeAreaProvider>
         </TypographyProvider>
       </ThemeProvider>
     </QueryClientProvider>,
