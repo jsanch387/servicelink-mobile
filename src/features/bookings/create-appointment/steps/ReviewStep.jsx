@@ -221,22 +221,29 @@ export function ReviewStep({
           paddingTop: 2,
           width: 22,
         },
-        activityLabel: {
+        scheduleIconWrap: {
+          paddingTop: 2,
+          width: 22,
+        },
+        scheduleActivityLabel: {
           color: colors.textMuted,
           fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: '600',
-          letterSpacing: 0.2,
+          letterSpacing: -0.1,
           marginBottom: 4,
-          textTransform: 'uppercase',
         },
-        activityValue: {
+        scheduleActivityValue: {
           color: colors.textSecondary,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 15,
           fontWeight: '500',
           letterSpacing: -0.15,
           lineHeight: 22,
+        },
+        scheduleTextCol: {
+          flex: 1,
+          minWidth: 0,
         },
         addonSectionTitle: {
           color: colors.textMuted,
@@ -393,23 +400,23 @@ export function ReviewStep({
           <View style={styles.activityStack}>
             {scheduleDateDisplay ? (
               <View style={styles.activityRow}>
-                <View style={styles.activityIconWrap}>
-                  <Ionicons color={colors.accentMuted} name="calendar-outline" size={19} />
+                <View style={styles.scheduleIconWrap}>
+                  <Ionicons color={colors.text} name="calendar-outline" size={19} />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.activityLabel}>Date</AppText>
-                  <AppText style={styles.activityValue}>{scheduleDateDisplay}</AppText>
+                <View style={styles.scheduleTextCol}>
+                  <AppText style={styles.scheduleActivityLabel}>Date</AppText>
+                  <AppText style={styles.scheduleActivityValue}>{scheduleDateDisplay}</AppText>
                 </View>
               </View>
             ) : null}
             {scheduleTimeDisplay ? (
               <View style={styles.activityRow}>
-                <View style={styles.activityIconWrap}>
-                  <Ionicons color={colors.accentMuted} name="time-outline" size={19} />
+                <View style={styles.scheduleIconWrap}>
+                  <Ionicons color={colors.text} name="time-outline" size={19} />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.activityLabel}>Time</AppText>
-                  <AppText style={styles.activityValue}>{scheduleTimeDisplay}</AppText>
+                <View style={styles.scheduleTextCol}>
+                  <AppText style={styles.scheduleActivityLabel}>Time</AppText>
+                  <AppText style={styles.scheduleActivityValue}>{scheduleTimeDisplay}</AppText>
                 </View>
               </View>
             ) : null}

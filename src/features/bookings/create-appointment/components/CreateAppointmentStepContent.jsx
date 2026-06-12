@@ -1,3 +1,4 @@
+import { CreateAppointmentSubmittingState } from './CreateAppointmentSubmittingState';
 import { AddonsStep } from '../steps/AddonsStep';
 import { AddressStep } from '../steps/AddressStep';
 import { AppointmentConfirmedStep } from '../steps/AppointmentConfirmedStep';
@@ -17,9 +18,12 @@ export function CreateAppointmentStepContent(p) {
   const {
     step,
     appointmentConfirmed,
+    confirmationReplayKey,
     catalogError,
     catalogIsLoading,
     enabledServices,
+    serviceCategories,
+    serviceCategoryById,
     selectedServiceId,
     onSelectServiceId,
     pricingOptions,
@@ -49,10 +53,15 @@ export function CreateAppointmentStepContent(p) {
     notes,
     onChangeVehicle,
     onChangeNotes,
+    showSubmitPanel,
+    submitPanelActive,
+    submitPanelError,
+    submitPanelHasCustomerPhone,
+    onSubmitErrorRetry,
   } = p;
 
   if (appointmentConfirmed) {
-    return <AppointmentConfirmedStep />;
+    return <AppointmentConfirmedStep replayKey={confirmationReplayKey} />;
   }
 
   switch (step) {
@@ -60,8 +69,10 @@ export function CreateAppointmentStepContent(p) {
       return (
         <ServiceStep
           catalogError={catalogError}
+          categories={serviceCategories}
           isLoading={catalogIsLoading}
           selectedServiceId={selectedServiceId}
+          serviceCategoryById={serviceCategoryById}
           services={enabledServices}
           onSelectServiceId={onSelectServiceId}
         />
@@ -115,6 +126,16 @@ export function CreateAppointmentStepContent(p) {
         />
       );
     case 7:
+      if (showSubmitPanel) {
+        return (
+          <CreateAppointmentSubmittingState
+            active={submitPanelActive}
+            error={submitPanelError}
+            hasCustomerPhone={submitPanelHasCustomerPhone}
+            onRetryFromError={onSubmitErrorRetry}
+          />
+        );
+      }
       return (
         <ReviewStep
           address={address}

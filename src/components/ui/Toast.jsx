@@ -1,11 +1,20 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, Pressable, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  PanResponder,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from './AppText';
+import { resolveToastEmailTokens, resolveToastSmsTokens } from './toastSmsTokens';
 
 /** @typedef {'success' | 'error' | 'loading' | 'info'} ToastType */
+/** @typedef {'default' | 'sms' | 'email'} ToastVariant */
 
 const ENTER_DURATION = 220;
 const EXIT_DURATION = 170;
@@ -25,24 +34,49 @@ const ICON_BY_TYPE = {
 };
 
 /**
- * Single floating toast — solid white pill with a subtle top sheen (readable on dark shells).
- * Gradient layers only (no BlurView) so dev clients without ExpoBlur stay warning-free.
+ * Single floating toast — default pill or SMS card (white surface, accent text, swipe up to dismiss).
  *
  * @param {{
  *   type: ToastType;
+ *   variant?: ToastVariant;
  *   title?: string | null;
  *   message: string;
  *   dismissing: boolean;
  *   onHidden?: () => void;
+ *   onDismiss?: () => void;
  *   onPress?: () => void;
  * }} props
  */
-export function ToastView({ type, title, message, dismissing, onHidden, onPress }) {
+export function ToastView({
+  type,
+  variant = 'default',
+  title,
+  message,
+  dismissing,
+  onHidden,
+  onDismiss,
+  onPress,
+}) {
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(-24)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const iconScale = useRef(new Animated.Value(1)).current;
   const prevTypeRef = useRef(type);
+  const isSms = variant === 'sms';
+  const isEmail = variant === 'email';
+  const isConfirmationCard = isSms || isEmail;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        Math.abs(gesture.dy) > 8 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dy < -36 || gesture.vy < -0.4) {
+          onDismiss?.();
+        }
+      },
+    }),
+  ).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -97,18 +131,44 @@ export function ToastView({ type, title, message, dismissing, onHidden, onPress 
     });
   }, [dismissing, opacity, translateY, onHidden]);
 
-  const accent = type === 'success' ? GLASS.success : type === 'error' ? GLASS.error : GLASS.info;
+  const confirmationTokens = isConfirmationCard
+    ? isEmail
+      ? resolveToastEmailTokens(type)
+      : resolveToastSmsTokens(type)
+    : null;
+  const accent = isConfirmationCard
+    ? confirmationTokens.text
+    : type === 'success'
+      ? GLASS.success
+      : type === 'error'
+        ? GLASS.error
+        : GLASS.info;
+  const iconName = isConfirmationCard
+    ? confirmationTokens.icon
+    : (ICON_BY_TYPE[type] ?? ICON_BY_TYPE.info);
+  const messageColor = isConfirmationCard
+    ? confirmationTokens.text
+    : title
+      ? GLASS.textSecondary
+      : GLASS.text;
+
+  const handlePress = () => {
+    onPress?.();
+    onDismiss?.();
+  };
 
   return (
     <View pointerEvents="box-none" style={[styles.host, { paddingTop: insets.top + 10 }]}>
       <Animated.View
+        {...panResponder.panHandlers}
         pointerEvents="box-none"
         style={[styles.animWrap, { opacity, transform: [{ translateY }] }]}
       >
         <Pressable
+          accessibilityHint={isConfirmationCard ? 'Swipe up to dismiss' : undefined}
           accessibilityLiveRegion="polite"
-          accessibilityRole={onPress ? 'button' : 'text'}
-          onPress={onPress}
+          accessibilityRole="button"
+          onPress={handlePress}
           style={styles.cardShadow}
         >
           <View style={styles.glassShell}>
@@ -132,23 +192,23 @@ export function ToastView({ type, title, message, dismissing, onHidden, onPress 
                   <ActivityIndicator color={GLASS.text} size="small" />
                 ) : (
                   <Animated.View style={{ transform: [{ scale: iconScale }] }}>
-                    <Ionicons
-                      color={accent}
-                      name={ICON_BY_TYPE[type] ?? ICON_BY_TYPE.info}
-                      size={22}
-                    />
+                    <Ionicons color={accent} name={iconName} size={22} />
                   </Animated.View>
                 )}
               </View>
               <View style={styles.textWrap}>
-                {title ? (
+                {title && !isConfirmationCard ? (
                   <AppText numberOfLines={1} style={styles.title}>
                     {title}
                   </AppText>
                 ) : null}
                 <AppText
-                  numberOfLines={3}
-                  style={[styles.message, title ? styles.messageWithTitle : null]}
+                  numberOfLines={isConfirmationCard ? 4 : 3}
+                  style={[
+                    styles.message,
+                    { color: messageColor },
+                    title && !isConfirmationCard ? styles.messageWithTitle : null,
+                  ]}
                 >
                   {message}
                 </AppText>
@@ -167,7 +227,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingHorizontal: 16,
-    zIndex: 40,
+    zIndex: 9999,
   },
   animWrap: {
     maxWidth: 480,
@@ -223,7 +283,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   message: {
-    color: GLASS.text,
     fontSize: 14,
     fontWeight: '500',
     letterSpacing: -0.1,

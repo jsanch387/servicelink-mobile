@@ -12,7 +12,7 @@ import { useTheme } from '../../../../theme';
  * @param {number} props.step
  * @param {number} props.lastStepIndex
  * @param {boolean} props.canContinue
- * @param {boolean} props.confirmLoading
+ * @param {boolean} [props.hideWhileSubmitPanel]
  * @param {number} props.paddingBottom
  * @param {() => void} props.onBack
  * @param {() => void} props.onContinue
@@ -23,7 +23,7 @@ export function CreateFlowFooter({
   step,
   lastStepIndex,
   canContinue,
-  confirmLoading,
+  hideWhileSubmitPanel = false,
   paddingBottom,
   onBack,
   onContinue,
@@ -53,6 +53,10 @@ export function CreateFlowFooter({
     [colors],
   );
 
+  if (hideWhileSubmitPanel) {
+    return null;
+  }
+
   if (appointmentConfirmed) {
     return (
       <View style={[styles.footer, styles.footerDone, { paddingBottom }]}>
@@ -76,9 +80,8 @@ export function CreateFlowFooter({
       <View style={styles.footerBtn}>
         <Button
           accessibilityLabel={isLast ? 'Create appointment' : undefined}
-          disabled={!canContinue || (isLast && confirmLoading)}
+          disabled={!canContinue}
           fullWidth
-          loading={isLast && confirmLoading}
           title={isLast ? 'Confirm' : 'Continue'}
           variant="primary"
           onPress={onContinue}

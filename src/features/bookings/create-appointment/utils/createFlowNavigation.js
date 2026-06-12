@@ -1,4 +1,4 @@
-import { CREATE_APPOINTMENT_STEP, CREATE_APPOINTMENT_STEP_META } from '../constants';
+import { CREATE_APPOINTMENT_STEP } from '../constants';
 
 /**
  * When the catalog is loaded and the service has no add-ons, the add-ons step is skipped.
@@ -30,6 +30,25 @@ export function getCreateAppointmentVisibleStepOrder(pricingSkipped, addonsSkipp
 }
 
 /**
+ * 0-based index within the visible wizard steps (pricing / add-ons may be skipped).
+ */
+export function getCreateAppointmentWizardStepIndex(step, { pricingSkipped, addonsSkipped }) {
+  const order = getCreateAppointmentVisibleStepOrder(pricingSkipped, addonsSkipped);
+  const idx = order.indexOf(step);
+  if (idx < 0) {
+    return Math.min(order.length - 1, Math.max(0, step));
+  }
+  return idx;
+}
+
+/**
+ * @param {{ pricingSkipped: boolean; addonsSkipped: boolean }} p
+ */
+export function getCreateAppointmentWizardStepCount({ pricingSkipped, addonsSkipped }) {
+  return getCreateAppointmentVisibleStepOrder(pricingSkipped, addonsSkipped).length;
+}
+
+/**
  * Progress 0–1 for the progress bar when some steps are skipped.
  */
 export function getCreateAppointmentProgressFraction(
@@ -37,12 +56,9 @@ export function getCreateAppointmentProgressFraction(
   { appointmentConfirmed, pricingSkipped, addonsSkipped },
 ) {
   if (appointmentConfirmed) return 1;
-  const order = getCreateAppointmentVisibleStepOrder(pricingSkipped, addonsSkipped);
-  const idx = order.indexOf(step);
-  if (idx < 0) {
-    return Math.min(1, (step + 1) / CREATE_APPOINTMENT_STEP_META.length);
-  }
-  return (idx + 1) / order.length;
+  const stepCount = getCreateAppointmentWizardStepCount({ pricingSkipped, addonsSkipped });
+  const stepIndex = getCreateAppointmentWizardStepIndex(step, { pricingSkipped, addonsSkipped });
+  return (stepIndex + 1) / stepCount;
 }
 
 /**

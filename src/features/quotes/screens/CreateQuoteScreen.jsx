@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Button, InlineCardError } from '../../../components/ui';
+import { Button, InlineCardError, WizardStepHeader } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
@@ -25,7 +25,6 @@ import { isValidCalendarYyyyMmDd } from '../utils/formatScheduledDateDisplay';
 import { CreateQuoteSendSuccess } from '../components/create-quote/CreateQuoteSendSuccess';
 import { CreateQuoteStepContent } from '../components/create-quote/CreateQuoteStepContent';
 import { CreateQuoteWizardFooter } from '../components/create-quote/CreateQuoteWizardFooter';
-import { CreateQuoteWizardHeader } from '../components/create-quote/CreateQuoteWizardHeader';
 import {
   CREATE_QUOTE_WIZARD_STEPS,
   CREATE_QUOTE_WIZARD_STEP_COUNT,
@@ -432,7 +431,8 @@ export function CreateQuoteScreen() {
       >
         <View style={styles.column}>
           {!isReviewStep ? (
-            <CreateQuoteWizardHeader
+            <WizardStepHeader
+              progressAccessibilityLabel="Quote wizard progress"
               stepCount={CREATE_QUOTE_WIZARD_STEP_COUNT}
               stepIndex={stepIndex}
               subtitle={stepDef.subtitle}

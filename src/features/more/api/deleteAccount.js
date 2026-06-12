@@ -46,11 +46,10 @@ function assertOriginIsAllowed(origin) {
 
 function logDeleteAccount(event, payload = undefined) {
   if (payload === undefined) {
-     
     console.info(`[account-delete] ${event}`);
     return;
   }
-   
+
   console.info(`[account-delete] ${event}`, payload);
 }
 

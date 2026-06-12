@@ -9,9 +9,7 @@ const ThemeContext = createContext(undefined);
  * @param {{ children: import('react').ReactNode; initialScheme?: ColorScheme }} props
  */
 export function ThemeProvider({ children, initialScheme = 'dark' }) {
-  const [scheme, setScheme] = useState(
-    /** @type {ColorScheme} */ (initialScheme),
-  );
+  const [scheme, setScheme] = useState(/** @type {ColorScheme} */ (initialScheme));
 
   const value = useMemo(() => {
     const colors = themes[scheme];

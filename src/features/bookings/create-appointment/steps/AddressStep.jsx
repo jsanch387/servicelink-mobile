@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { DetailsSectionCard, SurfaceTextField } from '../../../../components/ui';
+import { SurfaceCard, SurfaceTextField } from '../../../../components/ui';
 
 const FIELD_SHELL = { marginBottom: 0 };
 
@@ -8,6 +8,10 @@ export function AddressStep({ address, onChangeAddress }) {
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        card: {
+          paddingHorizontal: 16,
+          paddingVertical: 16,
+        },
         fieldStack: {
           gap: 18,
         },
@@ -23,7 +27,7 @@ export function AddressStep({ address, onChangeAddress }) {
   );
 
   return (
-    <DetailsSectionCard bodyPadding="roomy" title="Service address">
+    <SurfaceCard style={styles.card}>
       <View style={styles.fieldStack}>
         <SurfaceTextField
           compact
@@ -83,6 +87,6 @@ export function AddressStep({ address, onChangeAddress }) {
           </View>
         </View>
       </View>
-    </DetailsSectionCard>
+    </SurfaceCard>
   );
 }

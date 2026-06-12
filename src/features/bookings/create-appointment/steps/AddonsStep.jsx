@@ -3,7 +3,6 @@ import { StyleSheet, View } from 'react-native';
 import { AppText, Divider, SurfaceCard } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 import { ChoiceRow } from '../components/ChoiceRow';
-import { CreateFlowServiceHeader } from '../components/CreateFlowServiceHeader';
 import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
 
 export function AddonsStep({
@@ -19,10 +18,6 @@ export function AddonsStep({
     () => parsePriceLabelToUsd(selectedPricingOption?.priceLabel ?? service?.priceLabel),
     [selectedPricingOption?.priceLabel, service?.priceLabel],
   );
-
-  const metaLine = selectedPricingOption
-    ? `${selectedPricingOption.durationLabel} — ${selectedPricingOption.label}`
-    : (service?.durationLabel ?? '—');
 
   /** Selected option base price only — does not change when add-ons are toggled. */
   const headerOptionPrice =
@@ -42,13 +37,6 @@ export function AddonsStep({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        sectionTitle: {
-          color: colors.text,
-          fontSize: 17,
-          fontWeight: '700',
-          letterSpacing: -0.2,
-          marginBottom: 12,
-        },
         summaryCard: {
           marginTop: 20,
           paddingHorizontal: 16,
@@ -175,32 +163,17 @@ export function AddonsStep({
 
   if (addons.length === 0) {
     return (
-      <View>
-        <CreateFlowServiceHeader
-          displayPrice={headerOptionPrice}
-          metaLine={metaLine}
-          serviceName={service.name}
-        />
-        <View style={styles.emptyWrap}>
-          <AppText style={styles.emptyTitle}>No add-ons for this service</AppText>
-          <AppText style={styles.emptyBody}>
-            None are set up for this service yet. Tap Continue to pick a date and time.
-          </AppText>
-        </View>
+      <View style={styles.emptyWrap}>
+        <AppText style={styles.emptyTitle}>No add-ons for this service</AppText>
+        <AppText style={styles.emptyBody}>
+          None are set up for this service yet. Tap Continue to pick a date and time.
+        </AppText>
       </View>
     );
   }
 
   return (
     <View>
-      <CreateFlowServiceHeader
-        displayPrice={headerOptionPrice}
-        metaLine={metaLine}
-        serviceName={service.name}
-      />
-
-      <AppText style={styles.sectionTitle}>Optional add-ons</AppText>
-
       {addons.map((addon) => {
         const selected = selectedAddonIds.includes(addon.id);
         const priceLine = addon.priceLabel ?? addon.price ?? '';

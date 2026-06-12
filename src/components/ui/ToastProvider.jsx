@@ -9,9 +9,12 @@ import { ToastView } from './Toast';
  *
  * @typedef {import('./Toast').ToastType} ToastType
  *
+ * @typedef {'default' | 'sms' | 'email'} ToastVariant
+ *
  * @typedef {object} ToastOptions
  * @property {string} [id] Reuse an existing toast id to update it in place (e.g. loading → success).
  * @property {string | null} [title] Optional bold first line.
+ * @property {ToastVariant} [variant] `sms` / `email` = white confirmation card, no auto-dismiss, swipe up to dismiss.
  * @property {number | null} [duration] Auto-dismiss ms. `null` keeps it until dismissed/updated.
  * @property {() => void} [onPress] Tap handler. When omitted, tapping dismisses the toast.
  */
@@ -91,11 +94,18 @@ export function ToastProvider({ children }) {
     (opts) => {
       const id = opts.id ?? nextId();
       const type = opts.type ?? 'info';
-      const duration = opts.duration !== undefined ? opts.duration : DEFAULT_DURATION[type];
+      const variant = opts.variant ?? 'default';
+      const duration =
+        opts.duration !== undefined
+          ? opts.duration
+          : variant === 'sms' || variant === 'email'
+            ? null
+            : DEFAULT_DURATION[type];
       setDismissing(false);
       setCurrent({
         id,
         type,
+        variant,
         title: opts.title ?? null,
         message: opts.message ?? '',
         onPress: opts.onPress ?? null,
@@ -113,9 +123,15 @@ export function ToastProvider({ children }) {
         return;
       }
       const type = patch.type ?? cur.type;
-      const duration = patch.duration !== undefined ? patch.duration : DEFAULT_DURATION[type];
+      const variant = patch.variant ?? cur.variant ?? 'default';
+      const duration =
+        patch.duration !== undefined
+          ? patch.duration
+          : variant === 'sms' || variant === 'email'
+            ? null
+            : DEFAULT_DURATION[type];
       setDismissing(false);
-      setCurrent({ ...cur, ...patch, type });
+      setCurrent({ ...cur, ...patch, type, variant });
       scheduleAuto(id, duration);
     },
     [scheduleAuto, setCurrent],
@@ -132,6 +148,7 @@ export function ToastProvider({ children }) {
           title: opts.title ?? null,
           onPress: opts.onPress ?? null,
           duration: opts.duration,
+          variant: opts.variant,
         });
         return opts.id;
       }
@@ -149,6 +166,12 @@ export function ToastProvider({ children }) {
       error: (message, opts) => notify('error', message, opts),
       loading: (message, opts) => notify('loading', message, opts),
       info: (message, opts) => notify('info', message, opts),
+      /** SMS confirmation card — stays until tap or swipe up. */
+      sms: (message, opts = {}) =>
+        notify(opts.type ?? 'success', message, { ...opts, variant: 'sms' }),
+      /** Email confirmation card — envelope icon, stays until tap or swipe up. */
+      email: (message, opts = {}) =>
+        notify(opts.type ?? 'success', message, { ...opts, variant: 'email' }),
     }),
     [show, update, dismiss, notify],
   );
@@ -161,10 +184,11 @@ export function ToastProvider({ children }) {
           key={toast.id}
           dismissing={dismissing}
           message={toast.message}
+          variant={toast.variant ?? 'default'}
+          onDismiss={() => dismiss(toast.id)}
           onHidden={finalizeHide}
           onPress={() => {
             toast.onPress?.();
-            dismiss(toast.id);
           }}
           title={toast.title}
           type={toast.type}

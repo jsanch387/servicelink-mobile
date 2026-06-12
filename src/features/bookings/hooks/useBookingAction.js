@@ -130,10 +130,10 @@ export function useBookingAction(businessId) {
 
         if (action === BOOKING_ACTION.ON_THE_WAY) {
           if (res.smsSent) {
-            toast.success(ON_THE_WAY_SUCCESS_SMS);
+            toast.sms(ON_THE_WAY_SUCCESS_SMS, { type: 'success' });
           } else {
             toast.success(ON_THE_WAY_SUCCESS_STATE_ONLY);
-            toast.info(smsSkipMessage(res.smsReason));
+            toast.sms(smsSkipMessage(res.smsReason), { type: 'info' });
           }
         }
         return;

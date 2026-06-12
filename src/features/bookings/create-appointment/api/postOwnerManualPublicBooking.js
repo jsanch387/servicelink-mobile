@@ -1,5 +1,6 @@
 import { productionWebApiHttpsGuard } from '../../../../lib/productionWebApiHttpsGuard';
 import { resolveStripeMobileCheckoutOrigin } from '../../../../lib/stripeMobileCheckoutOrigin';
+import { parseBookingSmsOutcome } from '../../utils/parseBookingSmsOutcome';
 
 function createRequestId() {
   if (globalThis.crypto?.randomUUID) {
@@ -121,7 +122,9 @@ export async function postOwnerManualPublicBooking(accessToken, body) {
   const id = dataObj && typeof dataObj.id === 'string' ? dataObj.id.trim() : '';
 
   if (res.status === 201 && parsed?.success === true && id) {
-    return { ok: true, data: { id }, requestId: echoedRequestId };
+    const smsOutcome = parseBookingSmsOutcome(parsed);
+
+    return { ok: true, data: { id, smsOutcome }, requestId: echoedRequestId };
   }
 
   const msg = mapOwnerManualBookingHttpError(res.status, serverMessage);

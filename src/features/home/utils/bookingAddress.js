@@ -10,8 +10,12 @@ export function formatBookingAddressForMaps(booking) {
     return '';
   }
 
-  const street = typeof booking.customer_street_address === 'string' ? booking.customer_street_address.trim() : '';
-  const unit = typeof booking.customer_unit_apt === 'string' ? booking.customer_unit_apt.trim() : '';
+  const street =
+    typeof booking.customer_street_address === 'string'
+      ? booking.customer_street_address.trim()
+      : '';
+  const unit =
+    typeof booking.customer_unit_apt === 'string' ? booking.customer_unit_apt.trim() : '';
   const city = typeof booking.customer_city === 'string' ? booking.customer_city.trim() : '';
   const state = typeof booking.customer_state === 'string' ? booking.customer_state.trim() : '';
   const zip = typeof booking.customer_zip === 'string' ? booking.customer_zip.trim() : '';

@@ -20,7 +20,7 @@ describe('CreateFlowFooter', () => {
       step: 0,
       lastStepIndex: 7,
       canContinue: true,
-      confirmLoading: false,
+      hideWhileSubmitPanel: false,
       paddingBottom: 20,
       onBack: jest.fn(),
       onContinue: jest.fn(),
@@ -38,7 +38,7 @@ describe('CreateFlowFooter', () => {
       step: 7,
       lastStepIndex: 7,
       canContinue: true,
-      confirmLoading: false,
+      hideWhileSubmitPanel: false,
       paddingBottom: 20,
       onBack: jest.fn(),
       onContinue,
@@ -49,13 +49,29 @@ describe('CreateFlowFooter', () => {
     expect(onContinue).toHaveBeenCalled();
   });
 
+  it('hides footer while submit panel is visible', () => {
+    renderFooter({
+      appointmentConfirmed: false,
+      step: 7,
+      lastStepIndex: 7,
+      canContinue: true,
+      hideWhileSubmitPanel: true,
+      paddingBottom: 20,
+      onBack: jest.fn(),
+      onContinue: jest.fn(),
+      onDone: jest.fn(),
+    });
+
+    expect(screen.queryByText('Confirm')).toBeNull();
+  });
+
   it('disables Confirm when canContinue is false', () => {
     renderFooter({
       appointmentConfirmed: false,
       step: 7,
       lastStepIndex: 7,
       canContinue: false,
-      confirmLoading: false,
+      hideWhileSubmitPanel: false,
       paddingBottom: 20,
       onBack: jest.fn(),
       onContinue: jest.fn(),

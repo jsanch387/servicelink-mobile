@@ -1,13 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../../components/ui';
+import { WizardStepHeader } from '../../../components/ui';
 import { useAuth } from '../../auth';
 import { useServicesCatalog } from '../../services/hooks/useServicesCatalog';
 import { CreateAppointmentStepContent } from './components/CreateAppointmentStepContent';
 import { CreateFlowFooter } from './components/CreateFlowFooter';
-import { CreateFlowProgressBar } from './components/CreateFlowProgressBar';
-import { CREATE_APPOINTMENT_STEP } from './constants';
 import { useCreateAppointmentController } from './hooks/useCreateAppointmentController';
 
 /**
@@ -29,24 +27,30 @@ export function CreateAppointmentFlow() {
     navigation,
   });
 
-  const titleStyle = [
-    flow.styles.title,
-    flow.step === CREATE_APPOINTMENT_STEP.REVIEW && flow.styles.titleTightToSubtitle,
-  ];
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={flow.styles.flex}
     >
-      <CreateFlowProgressBar progressPercent={flow.progressPercent} />
+      {flow.wizardHeader ? (
+        <WizardStepHeader
+          progressAccessibilityLabel="Appointment wizard progress"
+          stepCount={flow.wizardHeader.stepCount}
+          stepIndex={flow.wizardHeader.stepIndex}
+          subtitle={flow.wizardHeader.subtitle}
+          title={flow.wizardHeader.title}
+        />
+      ) : null}
       <ScrollView
-        contentContainerStyle={flow.styles.content}
+        contentContainerStyle={[
+          flow.styles.content,
+          flow.appointmentConfirmed && flow.styles.contentConfirmed,
+          flow.showSubmitPanel && flow.styles.contentSubmitting,
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={flow.styles.scroll}
       >
-        {flow.showMainTitle ? <AppText style={titleStyle}>{flow.mainTitle}</AppText> : null}
         <CreateAppointmentStepContent {...flow.stepContentProps} />
       </ScrollView>
 
