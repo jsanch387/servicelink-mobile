@@ -21,6 +21,10 @@ import { RestOfTodayCard } from '../components/restOfToday';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
 import { useLinkViewsAnalytics } from '../hooks/useLinkViewsAnalytics';
 import { computeHomeErrorPresentation } from '../utils/homeErrorPresentation';
+import {
+  resolveNextUpCardActionMode,
+  resolveNextUpSectionTitle,
+} from '../utils/resolveNextUpCardActions';
 import { normalizeBusinessSlug } from '../utils/bookingLink';
 import { useTheme } from '../../../theme';
 import { serviceCardTitleStyle } from '../../../utils/serviceCardTypography';
@@ -73,7 +77,7 @@ export function HomeScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [invoiceDesignSheetVisible, setInvoiceDesignSheetVisible] = useState(false);
-  const showInvoiceDesignPreview = typeof __DEV__ !== 'undefined' && __DEV__;
+  const showDevDesignPreviews = typeof __DEV__ !== 'undefined' && __DEV__;
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -95,9 +99,20 @@ export function HomeScreen() {
 
   const sectionLoading = dashboard.isPendingBusiness || dashboard.isPendingBookings;
 
+  const nextUpActionMode = useMemo(() => {
+    if (!dashboard.nextBooking) {
+      return dashboard.spotlightMode === 'in_progress' ? 'working' : 'upcoming';
+    }
+    const fromStatus = resolveNextUpCardActionMode(dashboard.nextBooking.job_status);
+    if (fromStatus !== 'upcoming') {
+      return fromStatus;
+    }
+    return dashboard.spotlightMode === 'in_progress' ? 'working' : 'upcoming';
+  }, [dashboard.nextBooking, dashboard.spotlightMode]);
+
   const nextUpSectionTitle = useMemo(
-    () => (dashboard.spotlightMode === 'in_progress' ? 'In progress' : 'Next Up'),
-    [dashboard.spotlightMode],
+    () => resolveNextUpSectionTitle(nextUpActionMode),
+    [nextUpActionMode],
   );
 
   /** Show while business exists, or during first business fetch so the timeline skeleton paints with the rest of home. */
@@ -206,13 +221,17 @@ export function HomeScreen() {
           top: -2,
           width: 8,
         },
+        designPreviewRow: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 8,
+          marginBottom: 12,
+        },
         designPreviewBtn: {
-          alignSelf: 'flex-start',
           backgroundColor: colors.cardSurface,
           borderColor: colors.border,
           borderRadius: 10,
           borderWidth: 1,
-          marginBottom: 12,
           paddingHorizontal: 12,
           paddingVertical: 8,
         },
@@ -307,7 +326,7 @@ export function HomeScreen() {
         onConfirm={() => void handleConfirmMarkComplete()}
         onRequestClose={markCompleteFlow.closeSheet}
       />
-      {showInvoiceDesignPreview ? (
+      {showDevDesignPreviews ? (
         <BookingCompleteInvoiceDesignSheet
           visible={invoiceDesignSheetVisible}
           onRequestClose={() => setInvoiceDesignSheetVisible(false)}
@@ -348,16 +367,18 @@ export function HomeScreen() {
           </Pressable>
         </View>
         <View style={styles.headerDivider} />
-        {showInvoiceDesignPreview ? (
-          <Pressable
-            accessibilityHint="Opens a design preview of the complete visit and invoice sheet"
-            accessibilityLabel="Preview complete invoice modal"
-            accessibilityRole="button"
-            style={styles.designPreviewBtn}
-            onPress={() => setInvoiceDesignSheetVisible(true)}
-          >
-            <AppText style={styles.designPreviewBtnText}>Preview complete + invoice modal</AppText>
-          </Pressable>
+        {showDevDesignPreviews ? (
+          <View style={styles.designPreviewRow}>
+            <Pressable
+              accessibilityHint="Opens a design preview of the complete visit and invoice sheet"
+              accessibilityLabel="Preview complete invoice modal"
+              accessibilityRole="button"
+              style={styles.designPreviewBtn}
+              onPress={() => setInvoiceDesignSheetVisible(true)}
+            >
+              <AppText style={styles.designPreviewBtnText}>Preview complete + invoice</AppText>
+            </Pressable>
+          </View>
         ) : null}
         {showFreeBookingsUsage ? (
           <HomeFreeBookingsUsageCard
@@ -377,9 +398,7 @@ export function HomeScreen() {
           markCompleteLoading={markCompleteFlow.isConfirming}
           nextBooking={dashboard.nextBooking}
           onMarkComplete={
-            dashboard.spotlightMode === 'in_progress' && nextBookingId
-              ? handleNextUpMarkComplete
-              : undefined
+            nextUpActionMode === 'working' && nextBookingId ? handleNextUpMarkComplete : undefined
           }
           spotlightMode={dashboard.spotlightMode}
           subtitle={dashboard.nextSubtitle}

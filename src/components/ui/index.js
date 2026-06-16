@@ -30,6 +30,7 @@ export { SpotlightCard, SurfaceCard, SURFACE_CARD_MD_PADDING_VERTICAL } from './
 export { InlineCardError } from './InlineCardError';
 export { SelectField } from './SelectField';
 export { DurationSelectField } from './DurationSelectField';
+export { SlideToStartJob } from './SlideToStartJob';
 export { SkeletonBox } from './Skeleton';
 export { SubmitOutcomeSuccess } from './SubmitOutcomeSuccess';
 export { SuccessMoment } from './SuccessMoment';

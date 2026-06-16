@@ -165,7 +165,7 @@ export function ToastView({
         style={[styles.animWrap, { opacity, transform: [{ translateY }] }]}
       >
         <Pressable
-          accessibilityHint={isConfirmationCard ? 'Swipe up to dismiss' : undefined}
+          accessibilityHint="Swipe up to dismiss"
           accessibilityLiveRegion="polite"
           accessibilityRole="button"
           onPress={handlePress}
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   },
   cardShadow: {
     backgroundColor: '#ffffff',
-    borderRadius: 22,
+    borderRadius: 10,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 14 },
     shadowOpacity: 0.28,
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   glassShell: {
     backgroundColor: '#ffffff',
     borderColor: 'rgba(0,0,0,0.06)',
-    borderRadius: 22,
+    borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
     position: 'relative',

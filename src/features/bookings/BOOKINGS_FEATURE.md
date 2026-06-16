@@ -13,6 +13,13 @@ The bookings feature includes:
 
 **Calendar mode** (month / week / day) is documented in depth in [`docs/CALENDAR_VIEW.md`](docs/CALENDAR_VIEW.md).
 
+**Server integration (mobile → Next.js):**
+
+- [`docs/MOBILE_BOOKING_ACTIONS.md`](docs/MOBILE_BOOKING_ACTIONS.md) — mobile wiring for `on_the_way` + `job_started` (curl, toasts, errors)
+- [`docs/BOOKING_JOB_STARTED_SERVER.md`](docs/BOOKING_JOB_STARTED_SERVER.md) — server implementation spec for `job_started`
+- [`create-appointment/docs/OWNER_MANUAL_BOOKING_SERVER.md`](create-appointment/docs/OWNER_MANUAL_BOOKING_SERVER.md) — owner manual booking create
+- [`booking-details/docs/BOOKING_COMPLETE_SERVER.md`](booking-details/docs/BOOKING_COMPLETE_SERVER.md) — mark complete + review invite
+
 ## Folder Structure
 
 - `api/` list/planner/calendar Supabase queries and sorting/filtering helpers

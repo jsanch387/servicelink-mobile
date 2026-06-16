@@ -154,6 +154,16 @@ export async function postBookingAction(accessToken, bookingId, action) {
 
   const serverMessage = typeof payload?.error === 'string' ? payload.error : null;
 
+  if (res.ok && payload?.success === false) {
+    return {
+      ok: false,
+      error: new Error(mapBookingActionHttpError(res.status, serverMessage)),
+      httpStatus: res.status,
+      retryAfterSec: readRetryAfterSeconds(res.headers),
+      requestId: echoedRequestId,
+    };
+  }
+
   if (res.ok && payload?.success === true) {
     const sms = parseSmsOutcome(payload);
     const jobStatus =

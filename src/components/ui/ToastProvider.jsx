@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { resolveToastAutoDismissMs } from './toastAutoDismiss';
 import { ToastView } from './Toast';
 
 /**
@@ -14,8 +15,8 @@ import { ToastView } from './Toast';
  * @typedef {object} ToastOptions
  * @property {string} [id] Reuse an existing toast id to update it in place (e.g. loading → success).
  * @property {string | null} [title] Optional bold first line.
- * @property {ToastVariant} [variant] `sms` / `email` = white confirmation card, no auto-dismiss, swipe up to dismiss.
- * @property {number | null} [duration] Auto-dismiss ms. `null` keeps it until dismissed/updated.
+ * @property {ToastVariant} [variant] `sms` / `email` = white confirmation card with extended auto-dismiss; swipe up to dismiss sooner.
+ * @property {number | null} [duration] Auto-dismiss ms. `null` keeps it until dismissed/updated. Omit to use the default for the toast type.
  * @property {() => void} [onPress] Tap handler. When omitted, tapping dismisses the toast.
  */
 
@@ -26,14 +27,6 @@ function nextId() {
   counter += 1;
   return `toast-${counter}`;
 }
-
-/** Per-type auto-dismiss. `loading` persists (null) until updated or dismissed. */
-const DEFAULT_DURATION = {
-  success: 3000,
-  error: 4200,
-  info: 3000,
-  loading: null,
-};
 
 export function ToastProvider({ children }) {
   const [toast, setToast] = useState(null);
@@ -95,12 +88,7 @@ export function ToastProvider({ children }) {
       const id = opts.id ?? nextId();
       const type = opts.type ?? 'info';
       const variant = opts.variant ?? 'default';
-      const duration =
-        opts.duration !== undefined
-          ? opts.duration
-          : variant === 'sms' || variant === 'email'
-            ? null
-            : DEFAULT_DURATION[type];
+      const duration = resolveToastAutoDismissMs(type, variant, opts.duration);
       setDismissing(false);
       setCurrent({
         id,
@@ -124,12 +112,7 @@ export function ToastProvider({ children }) {
       }
       const type = patch.type ?? cur.type;
       const variant = patch.variant ?? cur.variant ?? 'default';
-      const duration =
-        patch.duration !== undefined
-          ? patch.duration
-          : variant === 'sms' || variant === 'email'
-            ? null
-            : DEFAULT_DURATION[type];
+      const duration = resolveToastAutoDismissMs(type, variant, patch.duration);
       setDismissing(false);
       setCurrent({ ...cur, ...patch, type, variant });
       scheduleAuto(id, duration);
@@ -166,10 +149,10 @@ export function ToastProvider({ children }) {
       error: (message, opts) => notify('error', message, opts),
       loading: (message, opts) => notify('loading', message, opts),
       info: (message, opts) => notify('info', message, opts),
-      /** SMS confirmation card — stays until tap or swipe up. */
+      /** SMS confirmation card — auto-dismisses after a readable pause; swipe up or tap to dismiss sooner. */
       sms: (message, opts = {}) =>
         notify(opts.type ?? 'success', message, { ...opts, variant: 'sms' }),
-      /** Email confirmation card — envelope icon, stays until tap or swipe up. */
+      /** Email confirmation card — auto-dismisses after a readable pause; swipe up or tap to dismiss sooner. */
       email: (message, opts = {}) =>
         notify(opts.type ?? 'success', message, { ...opts, variant: 'email' }),
     }),

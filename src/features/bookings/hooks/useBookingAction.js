@@ -4,7 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '../../../components/ui';
 import { useAuth } from '../../auth';
 import { postBookingAction } from '../api/postBookingAction';
-import { BOOKING_ACTION, isOnTheWayActionDone, normalizeJobStatus } from '../constants/jobStatus';
+import {
+  BOOKING_ACTION,
+  isOnTheWayActionDone,
+  JOB_STATUS,
+  normalizeJobStatus,
+} from '../constants/jobStatus';
 import { bookingsDetailsQueryKey } from '../queryKeys';
 import { homeBookingsUpcomingQueryKey } from '../../home/queryKeys';
 import { invalidateBookingCachesAfterAction } from '../utils/invalidateBookingCachesAfterAction';
@@ -14,6 +19,8 @@ import { isBookingActionConflictError } from '../utils/bookingActionErrors';
 
 const ON_THE_WAY_SUCCESS_SMS = 'Customer notified you’re on the way';
 const ON_THE_WAY_SUCCESS_STATE_ONLY = 'Marked on the way';
+const JOB_STARTED_SUCCESS_SMS = 'Customer notified the service is starting';
+const JOB_STARTED_SMS_SOFT_NOTE = 'Marked started — couldn’t text customer';
 const FALLBACK_ERROR = 'Couldn’t update the appointment. Try again.';
 
 /** Non-blocking copy when state changed but SMS did not send. */
@@ -34,6 +41,31 @@ function smsSkipMessage(reason) {
     return SMS_SKIP_MESSAGES[reason];
   }
   return SMS_SKIP_MESSAGES.error;
+}
+
+/**
+ * @param {ReturnType<typeof useToast>} toast
+ * @param {string} action
+ * @param {{ smsSent: boolean; smsReason: string | null }} res
+ */
+function showBookingActionToasts(toast, action, res) {
+  if (action === BOOKING_ACTION.ON_THE_WAY) {
+    if (res.smsSent) {
+      toast.sms(ON_THE_WAY_SUCCESS_SMS, { type: 'success' });
+      return;
+    }
+    toast.success(ON_THE_WAY_SUCCESS_STATE_ONLY);
+    toast.sms(smsSkipMessage(res.smsReason), { type: 'info' });
+    return;
+  }
+
+  if (action === BOOKING_ACTION.JOB_STARTED) {
+    if (res.smsSent) {
+      toast.sms(JOB_STARTED_SUCCESS_SMS, { type: 'success' });
+      return;
+    }
+    toast.info(JOB_STARTED_SMS_SOFT_NOTE);
+  }
 }
 
 /**
@@ -115,7 +147,17 @@ export function useBookingAction(businessId) {
         return true;
       }
       const status = getJobStatus(bookingId);
-      return status != null && status !== 'not_started';
+      return status != null && status !== JOB_STATUS.NOT_STARTED;
+    },
+    [getJobStatus],
+  );
+
+  const isJobStartedDone = useCallback(
+    (bookingId, booking) => {
+      const status = booking
+        ? normalizeJobStatus(booking.job_status)
+        : normalizeJobStatus(getJobStatus(bookingId));
+      return status === JOB_STATUS.IN_PROGRESS || status === JOB_STATUS.COMPLETED;
     },
     [getJobStatus],
   );
@@ -127,15 +169,7 @@ export function useBookingAction(businessId) {
         patchJobStatusInCache(bookingId, res.jobStatus);
         void invalidateBookingCachesAfterAction(queryClient, bookingId);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-
-        if (action === BOOKING_ACTION.ON_THE_WAY) {
-          if (res.smsSent) {
-            toast.sms(ON_THE_WAY_SUCCESS_SMS, { type: 'success' });
-          } else {
-            toast.success(ON_THE_WAY_SUCCESS_STATE_ONLY);
-            toast.sms(smsSkipMessage(res.smsReason), { type: 'info' });
-          }
-        }
+        showBookingActionToasts(toast, action, res);
         return;
       }
 
@@ -178,12 +212,24 @@ export function useBookingAction(businessId) {
     [mutation.isPending, isCoolingDown, isOnTheWayDone, runAction],
   );
 
+  const startJob = useCallback(
+    (bookingId) => {
+      if (!bookingId || mutation.isPending || isCoolingDown || isJobStartedDone(bookingId)) {
+        return;
+      }
+      runAction(bookingId, BOOKING_ACTION.JOB_STARTED);
+    },
+    [isCoolingDown, isJobStartedDone, mutation.isPending, runAction],
+  );
+
   return {
     runAction,
     notifyOnTheWay,
+    startJob,
     isSending: mutation.isPending,
     disabled: mutation.isPending || isCoolingDown,
     isOnTheWayDone,
+    isJobStartedDone,
     getJobStatus,
   };
 }

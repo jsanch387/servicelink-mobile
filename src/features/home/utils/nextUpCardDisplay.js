@@ -1,5 +1,6 @@
 /**
- * Splits stored `service_name` (often "Base — tier" from booking flow) for scannable Next Up layout.
+ * Splits stored `service_name` when it includes a pricing tier after an em dash.
+ * Next Up shows {@link buildNextUpHeadlines} `servicePrimary` only (base service name).
  *
  * @param {string | null | undefined} serviceName
  * @returns {{ primary: string; detail: string | null }}
@@ -31,22 +32,14 @@ export function buildNextUpHeadlines(booking) {
 }
 
 /**
- * Service title for Next Up: primary plus tier segments (when present), e.g. `Signature Shine — SUV`.
+ * Service title for Next Up — base service name only (pricing tier omitted).
  *
  * @param {string | null | undefined} primary
- * @param {string | null | undefined} detail tier / category from {@link splitServiceNameForNextUp}
+ * @param {string | null | undefined} [_detail] ignored; kept for callers that still pass tier segments
  */
-export function formatNextUpServiceLine(primary, detail) {
+export function formatNextUpServiceLine(primary, _detail) {
   const p = String(primary ?? '').trim();
-  const d = String(detail ?? '').trim();
-  if (d && !p) {
-    return d;
-  }
-  const base = p || 'Service';
-  if (d) {
-    return `${base} — ${d}`;
-  }
-  return base;
+  return p || 'Service';
 }
 
 /**

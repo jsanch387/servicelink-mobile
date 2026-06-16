@@ -7,19 +7,20 @@ import {
   EchoBarsLoader,
   InlineCardError,
   SkeletonBox,
+  SlideToStartJob,
   SpotlightCard,
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { phoneForSmsUri } from '../../../utils/phone';
 import { useBookingAction } from '../../bookings/hooks/useBookingAction';
-import { isOnTheWayActionDone } from '../../bookings/constants/jobStatus';
 import { openMapsForBooking } from '../utils/appointmentOutbound';
 import { hasBookingAddressForMaps } from '../utils/bookingAddress';
+import { buildNextUpHeadlines, formatNextUpVehicleLine } from '../utils/nextUpCardDisplay';
 import {
-  buildNextUpHeadlines,
-  formatNextUpServiceLine,
-  formatNextUpVehicleLine,
-} from '../utils/nextUpCardDisplay';
+  resolveNextUpCardActionMode,
+  shouldShowNextUpLivePulse,
+} from '../utils/resolveNextUpCardActions';
+import { NextUpNavigateIconButton } from './NextUpNavigateIconButton';
 
 /**
  * Minimum inner content height for the empty Next Up state, aligned with `NextUpSkeleton`:
@@ -27,6 +28,34 @@ import {
  * Keeps the spotlight card from shrinking when there is no booking.
  */
 const NEXT_UP_CARD_BODY_MIN_HEIGHT = 178;
+
+function LivePulseIndicator({ color, opacityAnim, ringScaleAnim, ringOpacityAnim }) {
+  return (
+    <View style={styles.livePulseHost} testID="next-up-live-pulse">
+      <Animated.View
+        accessible={false}
+        style={[
+          styles.livePulseRing,
+          {
+            borderColor: color,
+            opacity: ringOpacityAnim,
+            transform: [{ scale: ringScaleAnim }],
+          },
+        ]}
+      />
+      <Animated.View
+        accessible={false}
+        style={[
+          styles.livePulseDot,
+          {
+            backgroundColor: color,
+            opacity: opacityAnim,
+          },
+        ]}
+      />
+    </View>
+  );
+}
 
 function NextUpSkeleton({ bone }) {
   return (
@@ -92,6 +121,13 @@ export function NextUpCard({
   const empty = !isLoading && !scheduleError && !nextBooking;
   const bone = colors.nextUpTextMuted;
 
+  const actionMode = useMemo(
+    () => resolveNextUpCardActionMode(nextBooking?.job_status),
+    [nextBooking?.job_status],
+  );
+
+  const showLivePulse = useMemo(() => shouldShowNextUpLivePulse(actionMode), [actionMode]);
+
   const headlines = useMemo(
     () => (nextBooking ? buildNextUpHeadlines(nextBooking) : null),
     [nextBooking],
@@ -110,8 +146,7 @@ export function NextUpCard({
   }, [nextBooking]);
 
   const serviceDisplayLine = useMemo(
-    () =>
-      headlines ? formatNextUpServiceLine(headlines.servicePrimary, headlines.serviceDetail) : '',
+    () => String(headlines?.servicePrimary ?? '').trim() || 'Service',
     [headlines],
   );
 
@@ -135,37 +170,77 @@ export function NextUpCard({
     };
   }, [colors.nextUpSurface]);
 
+  const nextUpSurfaceTone = useMemo(() => {
+    const lightFace = String(colors.nextUpSurface ?? '').toLowerCase() === '#ffffff';
+    return lightFace ? 'light' : 'dark';
+  }, [colors.nextUpSurface]);
+
+  const navigateIconColor = useMemo(() => {
+    const lightFace = String(colors.nextUpSurface ?? '').toLowerCase() === '#ffffff';
+    return lightFace ? '#0a0a0a' : '#fafafa';
+  }, [colors.nextUpSurface]);
+
   const livePulseOpacity = useRef(new Animated.Value(1)).current;
+  const livePulseRingScale = useRef(new Animated.Value(1)).current;
+  const livePulseRingOpacity = useRef(new Animated.Value(0.42)).current;
 
   useEffect(() => {
-    if (spotlightMode !== 'in_progress') {
+    if (!showLivePulse) {
       livePulseOpacity.setValue(1);
+      livePulseRingScale.setValue(1);
+      livePulseRingOpacity.setValue(0);
       return undefined;
     }
     const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(livePulseOpacity, {
-          toValue: 0.38,
-          duration: 750,
-          useNativeDriver: true,
-        }),
-        Animated.timing(livePulseOpacity, {
-          toValue: 1,
-          duration: 750,
-          useNativeDriver: true,
-        }),
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(livePulseOpacity, {
+            toValue: 0.45,
+            duration: 680,
+            useNativeDriver: true,
+          }),
+          Animated.timing(livePulseOpacity, {
+            toValue: 1,
+            duration: 680,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(livePulseRingScale, {
+            toValue: 2.15,
+            duration: 680,
+            useNativeDriver: true,
+          }),
+          Animated.timing(livePulseRingScale, {
+            toValue: 1,
+            duration: 680,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(livePulseRingOpacity, {
+            toValue: 0,
+            duration: 680,
+            useNativeDriver: true,
+          }),
+          Animated.timing(livePulseRingOpacity, {
+            toValue: 0.42,
+            duration: 680,
+            useNativeDriver: true,
+          }),
+        ]),
       ]),
     );
     loop.start();
     return () => {
       loop.stop();
     };
-  }, [spotlightMode, livePulseOpacity]);
+  }, [showLivePulse, livePulseOpacity, livePulseRingOpacity, livePulseRingScale]);
 
   const a11ySummary = useMemo(() => {
     if (!headlines) return undefined;
     const parts = [];
-    if (spotlightMode === 'in_progress') {
+    if (actionMode === 'working' || spotlightMode === 'in_progress') {
       parts.push('In progress');
     }
     parts.push(headlines.customerName);
@@ -173,25 +248,25 @@ export function NextUpCard({
     parts.push(serviceDisplayLine);
     if (vehicleOnlyLine) parts.push(vehicleOnlyLine);
     return parts.join('. ');
-  }, [headlines, serviceDisplayLine, spotlightMode, subtitle, vehicleOnlyLine]);
+  }, [actionMode, headlines, serviceDisplayLine, spotlightMode, subtitle, vehicleOnlyLine]);
 
   const hasCustomerSmsNumber = useMemo(
     () => Boolean(nextBooking && phoneForSmsUri(nextBooking.customer_phone)),
     [nextBooking],
   );
-  const onMyWayAlreadySent = useMemo(
-    () =>
-      isOnTheWayActionDone(nextBooking) ||
-      bookingAction.isOnTheWayDone(nextBooking?.id, nextBooking),
-    [nextBooking, bookingAction],
-  );
   const canMaps = useMemo(() => hasBookingAddressForMaps(nextBooking), [nextBooking]);
 
   const onMyWay = useCallback(() => {
-    if (nextBooking?.id && !onMyWayAlreadySent) {
+    if (nextBooking?.id) {
       bookingAction.notifyOnTheWay(nextBooking.id);
     }
-  }, [nextBooking?.id, onMyWayAlreadySent, bookingAction]);
+  }, [nextBooking?.id, bookingAction]);
+
+  const startJob = useCallback(() => {
+    if (nextBooking?.id) {
+      bookingAction.startJob(nextBooking.id);
+    }
+  }, [bookingAction, nextBooking?.id]);
 
   const navigate = useCallback(() => {
     if (nextBooking) {
@@ -206,13 +281,14 @@ export function NextUpCard({
     void onMarkComplete();
   }, [onMarkComplete]);
 
-  const inProgressActions = spotlightMode === 'in_progress';
-
   if (isLoading) {
     return <NextUpSkeleton bone={bone} />;
   }
 
-  const showActions = !empty && !scheduleError;
+  const showActions = !empty && !scheduleError && actionMode !== 'complete';
+  const isWorking = actionMode === 'working';
+  const isEnRoute = actionMode === 'en_route';
+  const isUpcoming = actionMode === 'upcoming';
 
   return (
     <SpotlightCard
@@ -238,28 +314,40 @@ export function NextUpCard({
         </View>
       ) : (
         <View style={styles.contentColumn}>
-          {spotlightMode === 'in_progress' ? (
+          {isEnRoute ? (
+            <View pointerEvents="box-none" style={styles.navigateIconOverlay}>
+              <NextUpNavigateIconButton
+                canMaps={canMaps}
+                testID="next-up-navigate-icon"
+                onPress={navigate}
+              />
+            </View>
+          ) : null}
+          {actionMode === 'working' ? (
             <View style={styles.nameRow}>
               <AppText
                 ellipsizeMode="tail"
                 numberOfLines={2}
-                style={[styles.customerName, styles.customerNameFlex, { color: colors.nextUpText }]}
+                style={[styles.customerNameInRow, { color: colors.nextUpText }]}
               >
                 {headlines?.customerName}
               </AppText>
-              <Animated.View
-                accessible={false}
-                style={[styles.livePulseWrap, { opacity: livePulseOpacity }]}
-                testID="next-up-live-pulse"
-              >
-                <View style={[styles.livePulseDot, { backgroundColor: livePulseDotColor }]} />
-              </Animated.View>
+              <LivePulseIndicator
+                color={livePulseDotColor}
+                opacityAnim={livePulseOpacity}
+                ringOpacityAnim={livePulseRingOpacity}
+                ringScaleAnim={livePulseRingScale}
+              />
             </View>
           ) : (
             <AppText
               ellipsizeMode="tail"
               numberOfLines={2}
-              style={[styles.customerName, { color: colors.nextUpText }]}
+              style={[
+                styles.customerName,
+                isEnRoute && styles.customerNameWithNavigateOverlay,
+                { color: colors.nextUpText },
+              ]}
             >
               {headlines?.customerName}
             </AppText>
@@ -295,8 +383,11 @@ export function NextUpCard({
       )}
 
       {showActions ? (
-        <View collapsable={false} style={inProgressActions ? styles.actionsSingle : styles.actions}>
-          {inProgressActions ? (
+        <View
+          collapsable={false}
+          style={isWorking || isEnRoute ? styles.actionsSingle : styles.actions}
+        >
+          {isWorking ? (
             <Button
               accessibilityHint={
                 onMarkComplete ? undefined : 'Mark complete is not available right now'
@@ -310,37 +401,32 @@ export function NextUpCard({
               variant={inProgressPrimaryVariant}
               onPress={handleMarkCompletePress}
             />
-          ) : (
+          ) : isEnRoute ? (
+            <SlideToStartJob
+              disabled={bookingAction.disabled}
+              loading={bookingAction.isSending}
+              surfaceTone={nextUpSurfaceTone}
+              onComplete={startJob}
+            />
+          ) : isUpcoming ? (
             <>
               <View collapsable={false} style={styles.actionCell}>
-                {onMyWayAlreadySent ? (
-                  <Button
-                    accessibilityLabel="Customer notified"
-                    disabled
-                    fullWidth
-                    iconName="checkmark-circle-outline"
-                    outlineColor={colors.nextUpTextMuted}
-                    title="Notified"
-                    variant="outline"
-                  />
-                ) : (
-                  <Button
-                    accessibilityHint={
-                      hasCustomerSmsNumber
-                        ? 'Texts the customer that you are on the way'
-                        : 'Updates the appointment; add a phone on this booking to text the customer'
-                    }
-                    accessibilityLabel="On my way"
-                    disabled={bookingAction.disabled}
-                    fullWidth
-                    iconName="chatbubble-ellipses-outline"
-                    loading={bookingAction.isSending}
-                    loadingNode={<EchoBarsLoader accessibilityLabel="Sending" color="#ffffff" />}
-                    title="On my way"
-                    variant="surfaceDark"
-                    onPress={onMyWay}
-                  />
-                )}
+                <Button
+                  accessibilityHint={
+                    hasCustomerSmsNumber
+                      ? 'Texts the customer that you are on the way'
+                      : 'Updates the appointment; add a phone on this booking to text the customer'
+                  }
+                  accessibilityLabel="On my way"
+                  disabled={bookingAction.disabled}
+                  fullWidth
+                  iconName="chatbubble-ellipses-outline"
+                  loading={bookingAction.isSending}
+                  loadingNode={<EchoBarsLoader accessibilityLabel="Sending" color="#ffffff" />}
+                  title="On my way"
+                  variant="surfaceDark"
+                  onPress={onMyWay}
+                />
               </View>
               <View collapsable={false} style={styles.actionCell}>
                 <Button
@@ -348,7 +434,8 @@ export function NextUpCard({
                   accessibilityLabel="Navigate"
                   disabled={!canMaps}
                   fullWidth
-                  iconName="navigate-outline"
+                  iconColor={navigateIconColor}
+                  iconName="navigate"
                   outlineColor={colors.nextUpText}
                   title="Navigate"
                   variant="outline"
@@ -356,7 +443,7 @@ export function NextUpCard({
                 />
               </View>
             </>
-          )}
+          ) : null}
         </View>
       ) : null}
     </SpotlightCard>
@@ -424,21 +511,47 @@ const styles = StyleSheet.create({
   contentColumn: {
     alignSelf: 'stretch',
     minWidth: 0,
+    position: 'relative',
     width: '100%',
   },
+  navigateIconOverlay: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 2,
+  },
+  customerNameWithNavigateOverlay: {
+    paddingRight: 56,
+  },
   nameRow: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flexDirection: 'row',
+    gap: 10,
     justifyContent: 'space-between',
     width: '100%',
   },
-  customerNameFlex: {
+  customerNameInRow: {
     flex: 1,
+    flexShrink: 1,
+    fontSize: 24,
+    fontWeight: '600',
+    letterSpacing: -0.55,
+    lineHeight: 29,
     minWidth: 0,
-    paddingRight: 12,
   },
-  livePulseWrap: {
-    marginTop: 10,
+  livePulseHost: {
+    alignItems: 'center',
+    height: 24,
+    justifyContent: 'center',
+    marginTop: 8,
+    width: 24,
+  },
+  livePulseRing: {
+    borderRadius: 99,
+    borderWidth: 2,
+    height: 12,
+    position: 'absolute',
+    width: 12,
   },
   livePulseDot: {
     borderRadius: 99,
