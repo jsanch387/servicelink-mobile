@@ -30,7 +30,7 @@ import {
 import { getCompleteVisitSuccessCopy } from '../constants/completeVisitSuccessCopy';
 import { CompleteVisitSubmitOverlay } from './CompleteVisitSubmitOverlay';
 import { CompleteVisitAddFeeSheet } from './CompleteVisitAddFeeSheet';
-import { CompleteVisitPaymentLinkSheet } from './CompleteVisitPaymentLinkSheet';
+import { CompleteVisitTapToPaySheet, getTapToPayRowLabel } from './CompleteVisitTapToPaySheet';
 import {
   CompleteVisitMarkPaidSheet,
   getInPersonPaymentRowLabel,
@@ -50,10 +50,8 @@ function formatUsd(amount) {
  *   adjustments: Array<{ id: string; label: string; amount: number }>;
  *   onAddFee: (fee: { label: string; amount: number }) => void;
  *   onRemoveFee: (id: string) => void;
- *   paymentLinkEmailSent: boolean;
- *   paymentLinkCopied: boolean;
- *   onPaymentLinkEmailSent: () => void;
- *   onPaymentLinkCopied: () => void;
+ *   onTapToPaySuccess: (amount: number) => void;
+ *   tapToPayAmount: number;
  *   onMarkPaidInPerson: (method: string, amount: number) => void;
  *   amountDue: number;
  *   subtotal: number;
@@ -69,10 +67,8 @@ function CompleteVisitDesignBody({
   adjustments,
   onAddFee,
   onRemoveFee,
-  paymentLinkEmailSent,
-  paymentLinkCopied,
-  onPaymentLinkEmailSent,
-  onPaymentLinkCopied,
+  onTapToPaySuccess,
+  tapToPayAmount,
   amountDue,
   subtotal,
   paidOnline,
@@ -154,15 +150,6 @@ function CompleteVisitDesignBody({
           gap: 10,
           marginTop: 16,
         },
-        paymentLinkWrap: {
-          gap: 6,
-        },
-        paymentLinkStatus: {
-          color: colors.textMuted,
-          fontSize: 13,
-          fontWeight: '500',
-          lineHeight: 18,
-        },
         followUpRow: {
           alignItems: 'flex-start',
           flexDirection: 'row',
@@ -193,16 +180,13 @@ function CompleteVisitDesignBody({
     overlay?.show(<CompleteVisitAddFeeSheet onAdd={onAddFee} onClose={() => overlay.hide()} />);
   };
 
-  const openPaymentLinkSheet = () => {
+  const openTapToPaySheet = () => {
     Keyboard.dismiss();
     overlay?.show(
-      <CompleteVisitPaymentLinkSheet
+      <CompleteVisitTapToPaySheet
         amountDue={amountDue}
-        customerEmail={mock.customerEmail}
-        paymentLinkUrl={mock.paymentLinkUrl}
         onClose={() => overlay.hide()}
-        onEmailSent={onPaymentLinkEmailSent}
-        onLinkCopied={onPaymentLinkCopied}
+        onSuccess={onTapToPaySuccess}
       />,
     );
   };
@@ -277,6 +261,9 @@ function CompleteVisitDesignBody({
         {onlinePaidRowLabel ? (
           <LabelValueRow label={onlinePaidRowLabel} value={`−${formatUsd(paidOnline)}`} />
         ) : null}
+        {tapToPayAmount > 0 ? (
+          <LabelValueRow label={getTapToPayRowLabel()} value={`−${formatUsd(tapToPayAmount)}`} />
+        ) : null}
         {inPersonPayment ? (
           <LabelValueRow
             label={getInPersonPaymentRowLabel(inPersonPayment.method)}
@@ -288,21 +275,14 @@ function CompleteVisitDesignBody({
         ) : null}
         {showCollectActions ? (
           <View style={styles.paymentActions}>
-            <View style={styles.paymentLinkWrap}>
-              <Button
-                fullWidth
-                iconName="link-outline"
-                title="Payment link"
-                variant="secondary"
-                onPress={openPaymentLinkSheet}
-              />
-              {paymentLinkEmailSent ? (
-                <AppText style={styles.paymentLinkStatus}>Sent to {mock.customerEmail}</AppText>
-              ) : null}
-              {paymentLinkCopied ? (
-                <AppText style={styles.paymentLinkStatus}>Link copied — ready to paste</AppText>
-              ) : null}
-            </View>
+            <Button
+              fullWidth
+              iconLibrary="material-community"
+              iconName="contactless-payment"
+              title="Tap to Pay"
+              variant="surfaceDark"
+              onPress={openTapToPaySheet}
+            />
             <Button
               fullWidth
               iconName="checkmark-circle-outline"
@@ -358,8 +338,7 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
   const [adjustments, setAdjustments] = useState(
     /** @type {Array<{ id: string; label: string; amount: number }>} */ ([]),
   );
-  const [paymentLinkEmailSent, setPaymentLinkEmailSent] = useState(false);
-  const [paymentLinkCopied, setPaymentLinkCopied] = useState(false);
+  const [tapToPayAmount, setTapToPayAmount] = useState(0);
   const [inPersonPayment, setInPersonPayment] = useState(
     /** @type {{ method: string; amount: number } | null} */ (null),
   );
@@ -392,8 +371,7 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
   useEffect(() => {
     if (!visible) {
       setIosKeyboardScrollPadding(0);
-      setPaymentLinkEmailSent(false);
-      setPaymentLinkCopied(false);
+      setTapToPayAmount(0);
       setInPersonPayment(null);
       setSubmitPhase('idle');
       if (completeTimeoutRef.current) {
@@ -435,17 +413,17 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
   }, [adjustments, mock.lineItems]);
 
   const inPersonPaid = inPersonPayment?.amount ?? 0;
-  const amountDue = Math.max(0, subtotal - mock.paidOnline - inPersonPaid);
+  const amountDue = Math.max(0, subtotal - mock.paidOnline - tapToPayAmount - inPersonPaid);
 
   const onlinePaidRowLabel = useMemo(() => {
     if (mock.paidOnline <= 0) {
       return null;
     }
-    if (mock.paidOnline >= subtotal && inPersonPaid <= 0) {
+    if (mock.paidOnline >= subtotal && tapToPayAmount <= 0 && inPersonPaid <= 0) {
       return 'Paid in full';
     }
     return 'Deposit paid';
-  }, [inPersonPaid, mock.paidOnline, subtotal]);
+  }, [inPersonPaid, mock.paidOnline, subtotal, tapToPayAmount]);
 
   const showCollectActions = amountDue > 0;
 
@@ -476,8 +454,12 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
 
   const handleMarkPaidInPerson = (method, amount) => {
     setInPersonPayment({ method, amount });
-    setPaymentLinkEmailSent(false);
-    setPaymentLinkCopied(false);
+    setTapToPayAmount(0);
+  };
+
+  const handleTapToPaySuccess = (amount) => {
+    setTapToPayAmount(amount);
+    setInPersonPayment(null);
   };
 
   const styles = useMemo(
@@ -574,14 +556,6 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
     setAdjustments((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handlePaymentLinkEmailSent = () => {
-    setPaymentLinkEmailSent(true);
-  };
-
-  const handlePaymentLinkCopied = () => {
-    setPaymentLinkCopied(true);
-  };
-
   if (!mounted) {
     return null;
   }
@@ -631,15 +605,13 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
                     iosKeyboardScrollPadding={iosKeyboardScrollPadding}
                     onlinePaidRowLabel={onlinePaidRowLabel}
                     paidOnline={mock.paidOnline}
-                    paymentLinkCopied={paymentLinkCopied}
-                    paymentLinkEmailSent={paymentLinkEmailSent}
                     showCollectActions={showCollectActions}
                     subtotal={subtotal}
+                    tapToPayAmount={tapToPayAmount}
                     onAddFee={handleAddFee}
                     onMarkPaidInPerson={handleMarkPaidInPerson}
-                    onPaymentLinkCopied={handlePaymentLinkCopied}
-                    onPaymentLinkEmailSent={handlePaymentLinkEmailSent}
                     onRemoveFee={handleRemoveFee}
+                    onTapToPaySuccess={handleTapToPaySuccess}
                   />
 
                   <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>

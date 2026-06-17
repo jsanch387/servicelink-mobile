@@ -1,6 +1,8 @@
 import { productionWebApiHttpsGuard } from '../../../lib/productionWebApiHttpsGuard';
 import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileCheckoutOrigin';
 import { BOOKING_ACTION } from '../constants/jobStatus';
+import { parseBookingEmailOutcome } from '../utils/parseBookingEmailOutcome';
+import { parseBookingSmsOutcome } from '../utils/parseBookingSmsOutcome';
 
 function createRequestId() {
   if (globalThis.crypto?.randomUUID) {
@@ -69,20 +71,18 @@ export function mapBookingActionHttpError(httpStatus, serverMessage) {
  * @param {unknown} payload
  * @returns {{ sent: boolean; messageId: string | null; reason: string | null }}
  */
-function parseSmsOutcome(payload) {
-  const sms = payload?.sms;
-  if (!sms || typeof sms !== 'object') {
-    return { sent: false, messageId: null, reason: null };
-  }
-  const sent = sms.sent === true;
-  const messageId =
-    typeof sms.messageId === 'string'
-      ? sms.messageId
-      : typeof sms.message_id === 'string'
-        ? sms.message_id
-        : null;
-  const reason = typeof sms.reason === 'string' ? sms.reason : null;
-  return { sent, messageId, reason };
+function readSmsOutcome(payload) {
+  const parsed = parseBookingSmsOutcome(payload);
+  return parsed ?? { sent: false, messageId: null, reason: null };
+}
+
+/**
+ * @param {unknown} payload
+ * @returns {{ sent: boolean; messageId: string | null; reason: string | null }}
+ */
+function readEmailOutcome(payload) {
+  const parsed = parseBookingEmailOutcome(payload);
+  return parsed ?? { sent: false, messageId: null, reason: null };
 }
 
 /**
@@ -97,8 +97,11 @@ function parseSmsOutcome(payload) {
  *       requestId?: string;
  *       action: string;
  *       jobStatus: string;
+ *       bookingStatus: string | null;
  *       smsSent: boolean;
  *       smsReason: string | null;
+ *       emailSent: boolean;
+ *       emailReason: string | null;
  *       messageId: string | null;
  *     }
  *   | { ok: false; error: Error; httpStatus: number; retryAfterSec?: number; requestId?: string }
@@ -165,7 +168,8 @@ export async function postBookingAction(accessToken, bookingId, action) {
   }
 
   if (res.ok && payload?.success === true) {
-    const sms = parseSmsOutcome(payload);
+    const sms = readSmsOutcome(payload);
+    const email = readEmailOutcome(payload);
     const jobStatus =
       typeof payload?.jobStatus === 'string'
         ? payload.jobStatus
@@ -173,14 +177,23 @@ export async function postBookingAction(accessToken, bookingId, action) {
           ? payload.job_status
           : '';
     const resolvedAction = typeof payload?.action === 'string' ? payload.action : action;
+    const bookingStatus =
+      typeof payload?.bookingStatus === 'string'
+        ? payload.bookingStatus
+        : typeof payload?.booking_status === 'string'
+          ? payload.booking_status
+          : null;
 
     return {
       ok: true,
       requestId: echoedRequestId,
       action: resolvedAction,
       jobStatus,
+      bookingStatus,
       smsSent: sms.sent,
       smsReason: sms.reason,
+      emailSent: email.sent,
+      emailReason: email.reason,
       messageId: sms.messageId,
     };
   }

@@ -9,12 +9,16 @@ import {
 } from '../constants/bookingCompleteCopy';
 
 /**
- * Confirm mark-complete — copy reflects whether a review email will be sent.
+ * Confirm mark-complete — copy reflects whether a review invite will be sent (SMS, email, or neither).
  *
  * @param {{
  *   visible: boolean;
  *   onRequestClose: () => void;
- *   preview: { showReviewInviteMessage?: boolean } | null;
+ *   preview: {
+ *     showReviewInviteMessage?: boolean;
+ *     showReviewSmsMessage?: boolean;
+ *     showNoReviewInviteMessage?: boolean;
+ *   } | null;
  *   isLoadingPreview?: boolean;
  *   previewError?: string | null;
  *   isSubmitting?: boolean;
@@ -32,7 +36,7 @@ export function BookingMarkCompleteSheet({
 }) {
   const { colors } = useTheme();
   const copy = useMemo(() => getBookingMarkCompleteSheetCopy(preview), [preview]);
-  const showReviewHighlight = copy.highlightVariant === 'review_email';
+  const showHighlight = copy.highlightVariant != null;
 
   const styles = useMemo(
     () =>
@@ -93,8 +97,18 @@ export function BookingMarkCompleteSheet({
   const busy = isSubmitting;
   const canConfirm = !isLoadingPreview && !busy;
 
-  const highlightIcon = showReviewHighlight ? (
-    <Ionicons color={colors.textSecondary} name="mail-outline" size={22} />
+  const highlightIcon = showHighlight ? (
+    <Ionicons
+      color={colors.textSecondary}
+      name={
+        copy.highlightVariant === 'review_sms'
+          ? 'chatbubble-ellipses-outline'
+          : copy.highlightVariant === 'review_email'
+            ? 'mail-outline'
+            : 'information-circle-outline'
+      }
+      size={22}
+    />
   ) : null;
 
   return (
@@ -135,7 +149,7 @@ export function BookingMarkCompleteSheet({
       ) : (
         <View style={styles.content}>
           {previewError ? <InlineCardError message={previewError} /> : null}
-          {showReviewHighlight ? (
+          {showHighlight ? (
             <View style={styles.highlightCard}>
               <View style={styles.highlightTopRow}>
                 {highlightIcon}

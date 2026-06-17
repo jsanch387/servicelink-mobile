@@ -161,14 +161,6 @@ export function ReviewStep({
         reviewRoot: {
           gap: 22,
         },
-        heroSub: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 14,
-          fontWeight: '500',
-          letterSpacing: -0.1,
-          lineHeight: 21,
-        },
         proposalInner: {
           paddingVertical: 4,
         },
@@ -336,10 +328,6 @@ export function ReviewStep({
 
   return (
     <View style={styles.reviewRoot}>
-      <AppText style={styles.heroSub}>
-        Confirm the details below, then create the appointment.
-      </AppText>
-
       <DetailsSectionCard bodyPadding="roomy" title="Proposal">
         <View style={styles.proposalInner}>
           <AppText style={styles.serviceTitle}>{serviceHeadline}</AppText>

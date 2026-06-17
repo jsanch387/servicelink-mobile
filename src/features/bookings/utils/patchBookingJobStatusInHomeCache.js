@@ -1,14 +1,21 @@
 import { homeBookingsUpcomingQueryKey } from '../../home/queryKeys';
 
 /**
- * Optimistically updates the home spotlight booking `job_status`.
+ * Optimistically updates the home spotlight booking `job_status` and optional `status`.
  *
  * @param {import('@tanstack/react-query').QueryClient} queryClient
  * @param {string | null | undefined} businessId
  * @param {string} bookingId
  * @param {string} jobStatus
+ * @param {string | null | undefined} [bookingStatus]
  */
-export function patchBookingJobStatusInHomeCache(queryClient, businessId, bookingId, jobStatus) {
+export function patchBookingJobStatusInHomeCache(
+  queryClient,
+  businessId,
+  bookingId,
+  jobStatus,
+  bookingStatus,
+) {
   if (!businessId?.trim() || !bookingId?.trim() || !jobStatus?.trim()) {
     return;
   }
@@ -18,7 +25,11 @@ export function patchBookingJobStatusInHomeCache(queryClient, businessId, bookin
     }
     return {
       ...old,
-      next: { ...old.next, job_status: jobStatus },
+      next: {
+        ...old.next,
+        job_status: jobStatus,
+        ...(bookingStatus?.trim() ? { status: bookingStatus.trim() } : {}),
+      },
     };
   });
 }

@@ -46,6 +46,8 @@ export function BookingDetailsScreen({ route }) {
           id: detailsQuery.booking.id,
           customer_id: detailsQuery.booking.customer_id ?? null,
           customer_email: detailsQuery.booking.customer_email ?? null,
+          customer_phone: detailsQuery.booking.customer_phone ?? null,
+          customer_name: detailsQuery.booking.customer_name ?? null,
         }
       : null,
   });

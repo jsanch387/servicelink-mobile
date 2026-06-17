@@ -16,57 +16,9 @@ import { invalidateBookingCachesAfterAction } from '../utils/invalidateBookingCa
 import { patchBookingJobStatusInDetailsCache } from '../utils/patchBookingJobStatusInDetailsCache';
 import { patchBookingJobStatusInHomeCache } from '../utils/patchBookingJobStatusInHomeCache';
 import { isBookingActionConflictError } from '../utils/bookingActionErrors';
+import { showBookingActionToasts } from '../utils/bookingActionFeedback';
 
-const ON_THE_WAY_SUCCESS_SMS = 'Customer notified you’re on the way';
-const ON_THE_WAY_SUCCESS_STATE_ONLY = 'Marked on the way';
-const JOB_STARTED_SUCCESS_SMS = 'Customer notified the service is starting';
-const JOB_STARTED_SMS_SOFT_NOTE = 'Marked started — couldn’t text customer';
 const FALLBACK_ERROR = 'Couldn’t update the appointment. Try again.';
-
-/** Non-blocking copy when state changed but SMS did not send. */
-const SMS_SKIP_MESSAGES = {
-  no_phone: 'Couldn’t text the customer — no phone on file.',
-  invalid_number: 'Couldn’t text the customer — invalid phone number.',
-  duplicate: 'Couldn’t text the customer — already notified.',
-  not_configured: 'Couldn’t text the customer — texting isn’t set up yet.',
-  error: 'Couldn’t text the customer.',
-};
-
-/**
- * @param {string | null | undefined} reason
- * @returns {string}
- */
-function smsSkipMessage(reason) {
-  if (reason && SMS_SKIP_MESSAGES[reason]) {
-    return SMS_SKIP_MESSAGES[reason];
-  }
-  return SMS_SKIP_MESSAGES.error;
-}
-
-/**
- * @param {ReturnType<typeof useToast>} toast
- * @param {string} action
- * @param {{ smsSent: boolean; smsReason: string | null }} res
- */
-function showBookingActionToasts(toast, action, res) {
-  if (action === BOOKING_ACTION.ON_THE_WAY) {
-    if (res.smsSent) {
-      toast.sms(ON_THE_WAY_SUCCESS_SMS, { type: 'success' });
-      return;
-    }
-    toast.success(ON_THE_WAY_SUCCESS_STATE_ONLY);
-    toast.sms(smsSkipMessage(res.smsReason), { type: 'info' });
-    return;
-  }
-
-  if (action === BOOKING_ACTION.JOB_STARTED) {
-    if (res.smsSent) {
-      toast.sms(JOB_STARTED_SUCCESS_SMS, { type: 'success' });
-      return;
-    }
-    toast.info(JOB_STARTED_SMS_SOFT_NOTE);
-  }
-}
 
 /**
  * @param {import('@tanstack/react-query').QueryClient} queryClient
@@ -113,14 +65,20 @@ export function useBookingAction(businessId) {
   }, [cooldownUntil]);
 
   const patchJobStatusInCache = useCallback(
-    (bookingId, jobStatus) => {
+    (bookingId, jobStatus, bookingStatus = null) => {
       if (!bookingId?.trim() || !jobStatus?.trim()) {
         return;
       }
       jobStatusSessionRef.current.set(bookingId.trim(), jobStatus.trim());
       bumpSession((n) => n + 1);
-      patchBookingJobStatusInHomeCache(queryClient, businessId, bookingId, jobStatus);
-      patchBookingJobStatusInDetailsCache(queryClient, bookingId, jobStatus);
+      patchBookingJobStatusInHomeCache(
+        queryClient,
+        businessId,
+        bookingId,
+        jobStatus,
+        bookingStatus,
+      );
+      patchBookingJobStatusInDetailsCache(queryClient, bookingId, jobStatus, bookingStatus);
     },
     [businessId, queryClient],
   );
@@ -162,11 +120,21 @@ export function useBookingAction(businessId) {
     [getJobStatus],
   );
 
+  const isJobCompletedDone = useCallback(
+    (bookingId, booking) => {
+      const status = booking
+        ? normalizeJobStatus(booking.job_status)
+        : normalizeJobStatus(getJobStatus(bookingId));
+      return status === JOB_STATUS.COMPLETED;
+    },
+    [getJobStatus],
+  );
+
   const mutation = useMutation({
     mutationFn: ({ bookingId, action }) => postBookingAction(token, bookingId, action),
     onSuccess: async (res, { bookingId, action }) => {
       if (res.ok) {
-        patchJobStatusInCache(bookingId, res.jobStatus);
+        patchJobStatusInCache(bookingId, res.jobStatus, res.bookingStatus);
         void invalidateBookingCachesAfterAction(queryClient, bookingId);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         showBookingActionToasts(toast, action, res);
@@ -222,14 +190,26 @@ export function useBookingAction(businessId) {
     [isCoolingDown, isJobStartedDone, mutation.isPending, runAction],
   );
 
+  const completeJob = useCallback(
+    (bookingId) => {
+      if (!bookingId || mutation.isPending || isCoolingDown || isJobCompletedDone(bookingId)) {
+        return;
+      }
+      runAction(bookingId, BOOKING_ACTION.JOB_COMPLETED);
+    },
+    [isCoolingDown, isJobCompletedDone, mutation.isPending, runAction],
+  );
+
   return {
     runAction,
     notifyOnTheWay,
     startJob,
+    completeJob,
     isSending: mutation.isPending,
     disabled: mutation.isPending || isCoolingDown,
     isOnTheWayDone,
     isJobStartedDone,
+    isJobCompletedDone,
     getJobStatus,
   };
 }

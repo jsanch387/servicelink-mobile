@@ -13,6 +13,7 @@ import { useTheme } from '../../theme';
  * @param {string} props.title
  * @param {string} props.subtitle
  * @param {string} [props.progressAccessibilityLabel] - e.g. "Quote wizard progress"
+ * @param {boolean} [props.embedded] When true, omits horizontal padding (parent scroll content provides gutter).
  */
 export function WizardStepHeader({
   stepIndex,
@@ -20,6 +21,7 @@ export function WizardStepHeader({
   title,
   subtitle,
   progressAccessibilityLabel = 'Wizard progress',
+  embedded = false,
 }) {
   const { colors } = useTheme();
   const progress =
@@ -30,7 +32,7 @@ export function WizardStepHeader({
       StyleSheet.create({
         wrap: {
           paddingBottom: 16,
-          paddingHorizontal: SCREEN_GUTTER,
+          paddingHorizontal: embedded ? 0 : SCREEN_GUTTER,
           paddingTop: 8,
         },
         track: {
@@ -61,7 +63,7 @@ export function WizardStepHeader({
           marginTop: 6,
         },
       }),
-    [colors],
+    [colors, embedded],
   );
 
   return (
@@ -73,7 +75,7 @@ export function WizardStepHeader({
         <View style={[styles.fill, { width: `${progress}%` }]} />
       </View>
       <AppText style={styles.title}>{title}</AppText>
-      <AppText style={styles.subtitle}>{subtitle}</AppText>
+      {subtitle?.trim() ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
     </View>
   );
 }

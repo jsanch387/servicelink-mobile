@@ -1,17 +1,27 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useToast } from '../../../../components/ui';
 import { useAppReviewPrompt } from '../../../appReview';
 import { useAuth } from '../../../auth';
 import { fetchBusinessProfileForUser } from '../../../home/api/homeDashboard';
 import { loadReviewEligibilityContext } from '../../../reviews/api/loadReviewEligibilityContext';
 import { getMarkCompleteModalCopy } from '../../../reviews/utils/reviewInviteEligibility';
+import { postBookingAction } from '../../api/postBookingAction';
+import { BOOKING_ACTION } from '../../constants/jobStatus';
 import { bookingsDetailsQueryKey } from '../../queryKeys';
+import { showBookingActionToasts } from '../../utils/bookingActionFeedback';
+import { patchBookingJobStatusInDetailsCache } from '../../utils/patchBookingJobStatusInDetailsCache';
+import { patchBookingJobStatusInHomeCache } from '../../utils/patchBookingJobStatusInHomeCache';
 import { completeBookingWithReviewInvite } from '../api/completeBookingWithReviewInvite';
+import { MARK_COMPLETE_USE_JOB_COMPLETED_ACTION } from '../constants/markCompleteFeatureFlags';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
+import { getMarkCompletePreviewFromBooking } from '../utils/markCompletePreview';
 
 /**
  * @typedef {import('../../../reviews/utils/reviewInviteEligibility').BookingForReviewEligibility} BookingForReviewEligibility
  * @typedef {import('../../../reviews/utils/reviewInviteEligibility').ReviewEligibilityContext} ReviewEligibilityContext
+ * @typedef {import('../utils/markCompletePreview').MarkCompletePreview} MarkCompletePreview
  */
 
 /**
@@ -20,11 +30,16 @@ import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBooking
  *   optionId?: string | null;
  *   customerId?: string | null;
  *   customerEmail?: string | null;
+ *   customerPhone?: string | null;
+ *   customerName?: string | null;
  * }} params
  * @param {import('@tanstack/react-query').QueryClient} queryClient
- * @returns {BookingForReviewEligibility | null}
+ * @returns {(BookingForReviewEligibility & { customer_phone?: string | null; customer_name?: string | null }) | null}
  */
-function resolveBookingForFlow({ bookingId, optionId, customerId, customerEmail }, queryClient) {
+function resolveBookingForFlow(
+  { bookingId, optionId, customerId, customerEmail, customerPhone, customerName },
+  queryClient,
+) {
   const resolvedId = optionId?.trim() || bookingId?.trim();
   if (!resolvedId) {
     return null;
@@ -35,6 +50,8 @@ function resolveBookingForFlow({ bookingId, optionId, customerId, customerEmail 
       id: resolvedId,
       customer_id: customerId ?? null,
       customer_email: customerEmail ?? null,
+      customer_phone: customerPhone ?? null,
+      customer_name: customerName ?? null,
     };
   }
 
@@ -44,6 +61,8 @@ function resolveBookingForFlow({ bookingId, optionId, customerId, customerEmail 
       id: String(cached.id ?? resolvedId).trim(),
       customer_id: cached.customer_id ?? null,
       customer_email: cached.customer_email ?? null,
+      customer_phone: cached.customer_phone ?? null,
+      customer_name: cached.customer_name ?? null,
     };
   }
 
@@ -51,41 +70,52 @@ function resolveBookingForFlow({ bookingId, optionId, customerId, customerEmail 
     id: resolvedId,
     customer_id: customerId ?? null,
     customer_email: customerEmail ?? null,
+    customer_phone: customerPhone ?? null,
+    customer_name: customerName ?? null,
   };
 }
 
 /**
- * Opens mark-complete sheet, loads eligibility from Supabase, confirms via Supabase complete + review-invite API.
+ * Mark-complete confirm sheet + submit.
+ *
+ * When {@link MARK_COMPLETE_USE_JOB_COMPLETED_ACTION} is true, preview is phone-based (SMS review link)
+ * and confirm calls `POST …/actions` with `job_completed`. Otherwise legacy Supabase complete + review email.
  *
  * @param {string | null | undefined} bookingId
  * @param {{
- *   booking?: BookingForReviewEligibility | null;
+ *   booking?: (BookingForReviewEligibility & { customer_phone?: string | null }) | null;
  *   businessId?: string | null;
  * }} [options]
  */
 export function useMarkBookingCompleteFlow(bookingId, options = {}) {
   const { booking: bookingOption = null, businessId: businessIdOption = null } = options;
+  const useJobCompletedAction = MARK_COMPLETE_USE_JOB_COMPLETED_ACTION;
   const optionBookingId = bookingOption?.id?.trim() || null;
   const optionCustomerId = bookingOption?.customer_id?.trim() || null;
   const optionCustomerEmail =
     typeof bookingOption?.customer_email === 'string' ? bookingOption.customer_email : null;
+  const optionCustomerPhone =
+    typeof bookingOption?.customer_phone === 'string' ? bookingOption.customer_phone : null;
+  const optionCustomerName =
+    typeof bookingOption?.customer_name === 'string' ? bookingOption.customer_name : null;
   const normalizedBusinessId = businessIdOption?.trim() || null;
 
   const { session, user } = useAuth();
   const accessToken = session?.access_token ?? null;
   const userId = user?.id ?? null;
   const queryClient = useQueryClient();
+  const toast = useToast();
   const { maybeRequestAppReview } = useAppReviewPrompt();
 
   const [sheetVisible, setSheetVisible] = useState(false);
   const [preview, setPreview] = useState(
-    /** @type {{ showReviewInviteMessage: boolean } | null} */ (null),
+    /** @type {MarkCompletePreview | { showReviewInviteMessage: boolean } | null} */ (null),
   );
   const [eligibilityCtx, setEligibilityCtx] = useState(
     /** @type {ReviewEligibilityContext | null} */ (null),
   );
   const [resolvedBooking, setResolvedBooking] = useState(
-    /** @type {BookingForReviewEligibility | null} */ (null),
+    /** @type {(BookingForReviewEligibility & { customer_phone?: string | null }) | null} */ (null),
   );
   const [resolvedBusinessId, setResolvedBusinessId] = useState(/** @type {string | null} */ (null));
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -99,10 +129,20 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
         optionId: optionBookingId,
         customerId: optionCustomerId,
         customerEmail: optionCustomerEmail,
+        customerPhone: optionCustomerPhone,
+        customerName: optionCustomerName,
       },
       queryClient,
     );
-  }, [bookingId, optionBookingId, optionCustomerEmail, optionCustomerId, queryClient]);
+  }, [
+    bookingId,
+    optionBookingId,
+    optionCustomerEmail,
+    optionCustomerId,
+    optionCustomerName,
+    optionCustomerPhone,
+    queryClient,
+  ]);
 
   const closeSheet = useCallback(() => {
     setSheetVisible(false);
@@ -139,6 +179,12 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
         return;
       }
       setResolvedBooking(booking);
+
+      if (useJobCompletedAction) {
+        setIsLoadingPreview(false);
+        setPreview(getMarkCompletePreviewFromBooking(booking));
+        return;
+      }
 
       let businessId = normalizedBusinessId || '';
       if (!businessId) {
@@ -182,7 +228,14 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
     return () => {
       cancelled = true;
     };
-  }, [bookingId, normalizedBusinessId, resolveCurrentBooking, sheetVisible, userId]);
+  }, [
+    bookingId,
+    normalizedBusinessId,
+    resolveCurrentBooking,
+    sheetVisible,
+    useJobCompletedAction,
+    userId,
+  ]);
 
   const confirmMutation = useMutation({
     mutationFn: async () => {
@@ -192,6 +245,19 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
       if (!accessToken) {
         throw new Error('Not signed in');
       }
+
+      if (useJobCompletedAction) {
+        const result = await postBookingAction(
+          accessToken,
+          bookingId.trim(),
+          BOOKING_ACTION.JOB_COMPLETED,
+        );
+        if (!result.ok) {
+          throw result.error;
+        }
+        return { mode: /** @type {const} */ ('job_completed'), result };
+      }
+
       const booking = resolvedBooking ?? resolveCurrentBooking();
       const ctx = eligibilityCtx;
       const businessId = resolvedBusinessId?.trim() || normalizedBusinessId || null;
@@ -213,15 +279,36 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
       if (!result.ok) {
         throw result.error;
       }
-      return result.data;
+      return { mode: /** @type {const} */ ('legacy'), result: result.data };
     },
-    onSuccess: async () => {
+    onSuccess: async (payload) => {
+      if (payload.mode === 'job_completed') {
+        const { result } = payload;
+        const id = bookingId?.trim();
+        const businessId = resolvedBusinessId ?? normalizedBusinessId;
+        if (id && result.jobStatus) {
+          patchBookingJobStatusInHomeCache(
+            queryClient,
+            businessId,
+            id,
+            result.jobStatus,
+            result.bookingStatus,
+          );
+          patchBookingJobStatusInDetailsCache(
+            queryClient,
+            id,
+            result.jobStatus,
+            result.bookingStatus,
+          );
+        }
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        showBookingActionToasts(toast, BOOKING_ACTION.JOB_COMPLETED, result);
+      }
+
       if (bookingId) {
         await invalidateBookingCachesAfterMutation(queryClient, bookingId);
       }
       closeSheet();
-      // Happy moment: a completed visit. Fire-and-forget; the hook delays internally
-      // so the sheet finishes dismissing, and OS quotas cap how often it shows.
       void maybeRequestAppReview({ businessId: resolvedBusinessId ?? normalizedBusinessId });
     },
   });

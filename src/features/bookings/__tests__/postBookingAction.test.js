@@ -34,8 +34,11 @@ describe('postBookingAction', () => {
       requestId: expect.any(String),
       action: 'job_started',
       jobStatus: 'in_progress',
+      bookingStatus: null,
       smsSent: true,
       smsReason: null,
+      emailSent: false,
+      emailReason: null,
       messageId: 'sms-uuid-2',
     });
     expect(global.fetch).toHaveBeenCalledWith(
@@ -45,6 +48,60 @@ describe('postBookingAction', () => {
         body: JSON.stringify({ action: 'job_started' }),
       }),
     );
+  });
+
+  it('parses email outcome on job_completed', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({
+        success: true,
+        action: 'job_completed',
+        jobStatus: 'completed',
+        bookingStatus: 'completed',
+        sms: { sent: false, reason: 'no_phone' },
+        email: { sent: true, messageId: 'email-uuid-1' },
+      }),
+    });
+
+    const result = await postBookingAction('token', 'booking-1', BOOKING_ACTION.JOB_COMPLETED);
+
+    expect(result).toEqual({
+      ok: true,
+      requestId: expect.any(String),
+      action: 'job_completed',
+      jobStatus: 'completed',
+      bookingStatus: 'completed',
+      smsSent: false,
+      smsReason: 'no_phone',
+      emailSent: true,
+      emailReason: null,
+      messageId: null,
+    });
+  });
+
+  it('parses bookingStatus on job_completed', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({
+        success: true,
+        action: 'job_completed',
+        jobStatus: 'completed',
+        bookingStatus: 'completed',
+        sms: { sent: true, messageId: 'sms-1' },
+        email: { sent: false, reason: null },
+      }),
+    });
+
+    const result = await postBookingAction('token', 'booking-1', BOOKING_ACTION.JOB_COMPLETED);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.bookingStatus).toBe('completed');
+    }
   });
 
   it('maps success:false on 200 to an error result', async () => {

@@ -11,8 +11,6 @@ export const BOOKING_COMPLETE_INVOICE_DESIGN_MOCK = {
   paidOnline: 0,
   /** `pay_in_person` | `deposit` | `paid_online` — shapes complete-visit payment UI in design preview. */
   paymentScenario: 'pay_in_person',
-  /** Design-only mock pay URL for copy-link preview. */
-  paymentLinkUrl: 'https://pay.myservicelink.app/demo/booking-abc123',
   showReviewInvite: true,
   showInvoiceEmail: true,
 };

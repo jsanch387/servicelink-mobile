@@ -27,19 +27,25 @@ export function CreateAppointmentFlow() {
     navigation,
   });
 
+  const wizardHeaderProps = flow.wizardHeader
+    ? {
+        progressAccessibilityLabel: 'Appointment wizard progress',
+        stepCount: flow.wizardHeader.stepCount,
+        stepIndex: flow.wizardHeader.stepIndex,
+        subtitle: flow.wizardHeader.subtitle,
+        title: flow.wizardHeader.title,
+      }
+    : null;
+
+  const showWizardHeader = Boolean(wizardHeaderProps && !flow.showSubmitPanel);
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={flow.styles.flex}
     >
-      {flow.wizardHeader ? (
-        <WizardStepHeader
-          progressAccessibilityLabel="Appointment wizard progress"
-          stepCount={flow.wizardHeader.stepCount}
-          stepIndex={flow.wizardHeader.stepIndex}
-          subtitle={flow.wizardHeader.subtitle}
-          title={flow.wizardHeader.title}
-        />
+      {showWizardHeader && !flow.wizardHeader.scrollWithContent ? (
+        <WizardStepHeader {...wizardHeaderProps} />
       ) : null}
       <ScrollView
         contentContainerStyle={[
@@ -51,6 +57,9 @@ export function CreateAppointmentFlow() {
         showsVerticalScrollIndicator={false}
         style={flow.styles.scroll}
       >
+        {showWizardHeader && flow.wizardHeader.scrollWithContent ? (
+          <WizardStepHeader embedded {...wizardHeaderProps} />
+        ) : null}
         <CreateAppointmentStepContent {...flow.stepContentProps} />
       </ScrollView>
 

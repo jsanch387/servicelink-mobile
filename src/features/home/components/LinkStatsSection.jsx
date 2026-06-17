@@ -23,17 +23,18 @@ function LinkStatsSkeleton() {
     <SurfaceCard style={styles.card}>
       <View style={styles.statsBlock}>
         <View style={styles.topRow}>
-          <SkeletonBox borderRadius={10} height={28} pulse width={48} />
-          <SkeletonBox borderRadius={10} height={30} pulse width={92} />
+          <SkeletonBox borderRadius={8} height={34} pulse style={styles.viewsSkeleton} />
+          <SkeletonBox borderRadius={10} height={30} pulse width={88} />
         </View>
         <View style={styles.metaRow}>
-          <SkeletonBox borderRadius={6} height={13} pulse width={100} />
-          <SkeletonBox borderRadius={6} height={11} pulse width={56} />
+          <SkeletonBox borderRadius={6} height={17} pulse style={styles.periodCaptionSkeleton} />
         </View>
       </View>
-      <View style={[styles.linkWell, wellBg, styles.linkWellSpacing]}>
-        <SkeletonBox borderRadius={8} height={16} pulse width="72%" />
-        <SkeletonBox borderRadius={12} height={36} pulse width={40} />
+      <View style={styles.linkRow}>
+        <View style={[styles.linkWell, wellBg]}>
+          <SkeletonBox borderRadius={6} height={13} pulse style={styles.linkTextSkeleton} />
+        </View>
+        <SkeletonBox borderRadius={12} height={40} pulse width={44} />
       </View>
     </SurfaceCard>
   );
@@ -55,7 +56,7 @@ function LinkStatsMetrics({
     <View style={styles.statsBlock}>
       <View style={styles.topRow}>
         {viewsDisplay === null ? (
-          <SkeletonBox borderRadius={10} height={28} pulse width={48} />
+          <SkeletonBox borderRadius={8} height={34} pulse style={styles.viewsSkeleton} />
         ) : (
           <AppText style={[styles.viewsValue, { color: colors.text }]}>{viewsDisplay}</AppText>
         )}
@@ -270,6 +271,21 @@ const styles = StyleSheet.create({
     letterSpacing: -0.7,
     lineHeight: 34,
     minWidth: 0,
+  },
+  viewsSkeleton: {
+    flex: 1,
+    maxWidth: 80,
+    minWidth: 0,
+  },
+  periodCaptionSkeleton: {
+    flex: 1,
+    maxWidth: 140,
+    minWidth: 0,
+  },
+  linkTextSkeleton: {
+    alignSelf: 'stretch',
+    maxWidth: '85%',
+    width: '85%',
   },
   periodCaption: {
     flex: 1,

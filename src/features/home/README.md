@@ -16,7 +16,7 @@ Order matches the scroll layout; useful when tracing UX or adding a section.
 6. **Rest of Today** — `RestOfTodayCard` (separate query for today’s bookings).
 7. **`FloatingCreateMenu`** — Create appointment / quote entry points (overlay).
 
-`useHomeDashboard()` is called once; **`useMarkBookingCompleteFlow()`** handles mark-complete from the Next Up card (Supabase complete + review-invite when eligible).
+`useHomeDashboard()` is called once; **`useMarkBookingCompleteFlow()`** handles mark-complete from the Next Up card (`POST …/actions` `job_completed` when feature flag is on).
 
 > **`TotalScheduledCard`** exists under `components/` (upcoming count → Bookings tab) but is **not** mounted on the current Home screen; keep the component/tests if you reintroduce that row.
 

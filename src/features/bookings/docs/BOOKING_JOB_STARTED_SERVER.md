@@ -2,7 +2,7 @@
 
 When an owner **slides “Start job”** on **Home → Next Up**, mobile calls the booking-actions endpoint. **Mobile is wired** — see [`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md) for client behavior, curl, and toasts.
 
-**Scope:** `job_started` only. **`job_completed`** stays on the existing mark-complete path for now (see [`booking-details/docs/BOOKING_COMPLETE_SERVER.md`](../booking-details/docs/BOOKING_COMPLETE_SERVER.md)).
+**Scope:** `job_started` only. For **`job_completed`**, see [`MOBILE_SMS_AND_BOOKING_ACTIONS.md`](./MOBILE_SMS_AND_BOOKING_ACTIONS.md) and [`BOOKING_JOB_COMPLETED_SERVER.md`](./BOOKING_JOB_COMPLETED_SERVER.md).
 
 ---
 
@@ -250,11 +250,11 @@ Documented in [`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md). Summar
 
 ## Out of scope (this doc)
 
-| Item                                    | Notes                                                                                |
-| --------------------------------------- | ------------------------------------------------------------------------------------ |
-| `job_completed` via actions API         | Mark complete still uses Supabase `status = completed` + review-invite — unify later |
-| Invoicing / completed-state UI          | Future work on `job_status = completed`                                              |
-| Changing `bookings.status` on start job | Stay `confirmed` until mark complete                                                 |
+| Item                                    | Notes                                                                               |
+| --------------------------------------- | ----------------------------------------------------------------------------------- |
+| `job_completed` via actions API         | **Wired** — `useMarkBookingCompleteFlow` + `MARK_COMPLETE_USE_JOB_COMPLETED_ACTION` |
+| Invoicing / completed-state UI          | Future work on `job_status = completed`                                             |
+| Changing `bookings.status` on start job | Stay `confirmed` until mark complete                                                |
 
 ---
 

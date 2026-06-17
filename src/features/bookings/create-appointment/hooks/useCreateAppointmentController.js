@@ -300,7 +300,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   const meta = CREATE_APPOINTMENT_STEP_META[step];
 
   const wizardHeader = useMemo(() => {
-    if (appointmentConfirmed || step === CREATE_APPOINTMENT_STEP.REVIEW) {
+    if (appointmentConfirmed) {
       return null;
     }
     const stepCount = getCreateAppointmentWizardStepCount({ pricingSkipped, addonsSkipped });
@@ -316,6 +316,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       stepCount,
       title,
       subtitle,
+      scrollWithContent: step === CREATE_APPOINTMENT_STEP.REVIEW,
     };
   }, [
     addonsSkipped,

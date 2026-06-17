@@ -37,8 +37,8 @@ export const CREATE_APPOINTMENT_STEP_META = [
   },
   {
     key: 'review',
-    title: 'Review appointment',
-    subtitle: 'Review everything, then confirm the appointment.',
+    title: 'Review',
+    subtitle: 'Please review the appointment details.',
   },
 ];
 

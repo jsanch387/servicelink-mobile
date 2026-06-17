@@ -1,13 +1,19 @@
 import { bookingsDetailsQueryKey } from '../queryKeys';
 
 /**
- * Optimistically updates booking details `job_status`.
+ * Optimistically updates booking details `job_status` and optional `status`.
  *
  * @param {import('@tanstack/react-query').QueryClient} queryClient
  * @param {string} bookingId
  * @param {string} jobStatus
+ * @param {string | null | undefined} [bookingStatus]
  */
-export function patchBookingJobStatusInDetailsCache(queryClient, bookingId, jobStatus) {
+export function patchBookingJobStatusInDetailsCache(
+  queryClient,
+  bookingId,
+  jobStatus,
+  bookingStatus,
+) {
   if (!bookingId?.trim() || !jobStatus?.trim()) {
     return;
   }
@@ -15,6 +21,10 @@ export function patchBookingJobStatusInDetailsCache(queryClient, bookingId, jobS
     if (!old || typeof old !== 'object') {
       return old;
     }
-    return { ...old, job_status: jobStatus };
+    return {
+      ...old,
+      job_status: jobStatus,
+      ...(bookingStatus?.trim() ? { status: bookingStatus.trim() } : {}),
+    };
   });
 }

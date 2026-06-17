@@ -9,6 +9,7 @@ import { AppShellGlow, AppText } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { FREE_TIER_BOOKINGS_LIMIT, freeTierBookingsLimitCopy } from '../../bookings/constants';
 import { BookingCompleteInvoiceDesignSheet } from '../../bookings/booking-details/components/BookingCompleteInvoiceDesignSheet';
+import { MARK_COMPLETE_SHOW_COMPLETE_VISIT_DESIGN_PREVIEW } from '../../bookings/booking-details/constants/markCompleteFeatureFlags';
 import { BookingMarkCompleteSheet } from '../../bookings/booking-details/components/BookingMarkCompleteSheet';
 import { useMarkBookingCompleteFlow } from '../../bookings/booking-details/hooks/useMarkBookingCompleteFlow';
 import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
@@ -49,6 +50,8 @@ export function HomeScreen() {
           id: dashboard.nextBooking.id,
           customer_id: dashboard.nextBooking.customer_id ?? null,
           customer_email: dashboard.nextBooking.customer_email ?? null,
+          customer_phone: dashboard.nextBooking.customer_phone ?? null,
+          customer_name: dashboard.nextBooking.customer_name ?? null,
         }
       : null,
     businessId: dashboard.business?.id ?? null,
@@ -77,7 +80,8 @@ export function HomeScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [invoiceDesignSheetVisible, setInvoiceDesignSheetVisible] = useState(false);
-  const showDevDesignPreviews = typeof __DEV__ !== 'undefined' && __DEV__;
+  const showCompleteVisitDesignPreview =
+    typeof __DEV__ !== 'undefined' && __DEV__ && MARK_COMPLETE_SHOW_COMPLETE_VISIT_DESIGN_PREVIEW;
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -326,7 +330,7 @@ export function HomeScreen() {
         onConfirm={() => void handleConfirmMarkComplete()}
         onRequestClose={markCompleteFlow.closeSheet}
       />
-      {showDevDesignPreviews ? (
+      {showCompleteVisitDesignPreview ? (
         <BookingCompleteInvoiceDesignSheet
           visible={invoiceDesignSheetVisible}
           onRequestClose={() => setInvoiceDesignSheetVisible(false)}
@@ -367,7 +371,7 @@ export function HomeScreen() {
           </Pressable>
         </View>
         <View style={styles.headerDivider} />
-        {showDevDesignPreviews ? (
+        {showCompleteVisitDesignPreview ? (
           <View style={styles.designPreviewRow}>
             <Pressable
               accessibilityHint="Opens a design preview of the complete visit and invoice sheet"
