@@ -33,9 +33,12 @@ describe('postOnMyWayForBooking', () => {
       requestId: expect.any(String),
       action: 'on_the_way',
       jobStatus: 'on_the_way',
+      bookingStatus: null,
       smsSent: true,
       smsReason: null,
       messageId: 'sms-uuid-1',
+      emailSent: false,
+      emailReason: null,
     });
     expect(global.fetch).toHaveBeenCalledWith(
       'https://app.example.com/api/availability/bookings/booking-1/actions',
