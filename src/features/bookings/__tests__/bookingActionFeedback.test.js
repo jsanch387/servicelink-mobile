@@ -2,7 +2,10 @@ import { BOOKING_ACTION } from '../constants/jobStatus';
 import {
   JOB_COMPLETED_SUCCESS_EMAIL,
   JOB_COMPLETED_SUCCESS_SMS,
+  WORK_FINISHED_SUCCESS_SMS,
+  WORK_FINISHED_SMS_SOFT_NOTE,
   showBookingActionToasts,
+  smsSkipMessage,
 } from '../utils/bookingActionFeedback';
 
 describe('showBookingActionToasts job_completed', () => {
@@ -51,6 +54,54 @@ describe('showBookingActionToasts job_completed', () => {
     expect(toast.success).toHaveBeenCalledWith('Visit marked complete');
     expect(toast.sms).not.toHaveBeenCalled();
     expect(toast.email).not.toHaveBeenCalled();
+    expect(toast.info).not.toHaveBeenCalled();
+  });
+});
+
+describe('showBookingActionToasts work_finished', () => {
+  function createToast() {
+    return {
+      sms: jest.fn(),
+      email: jest.fn(),
+      success: jest.fn(),
+      info: jest.fn(),
+    };
+  }
+
+  it('shows SMS success when sms.sent is true', () => {
+    const toast = createToast();
+    showBookingActionToasts(toast, BOOKING_ACTION.WORK_FINISHED, {
+      smsSent: true,
+      smsReason: null,
+    });
+    expect(toast.sms).toHaveBeenCalledWith(WORK_FINISHED_SUCCESS_SMS, { type: 'success' });
+  });
+
+  it('shows info reason when SMS failed but state advanced', () => {
+    const toast = createToast();
+    showBookingActionToasts(toast, BOOKING_ACTION.WORK_FINISHED, {
+      smsSent: false,
+      smsReason: 'error',
+    });
+    expect(toast.sms).toHaveBeenCalledWith(smsSkipMessage('error'), { type: 'info' });
+  });
+
+  it('shows soft note when SMS failed without a reason', () => {
+    const toast = createToast();
+    showBookingActionToasts(toast, BOOKING_ACTION.WORK_FINISHED, {
+      smsSent: false,
+      smsReason: null,
+    });
+    expect(toast.info).toHaveBeenCalledWith(WORK_FINISHED_SMS_SOFT_NOTE);
+  });
+
+  it('is silent on duplicate idempotent response', () => {
+    const toast = createToast();
+    showBookingActionToasts(toast, BOOKING_ACTION.WORK_FINISHED, {
+      smsSent: false,
+      smsReason: 'duplicate',
+    });
+    expect(toast.sms).not.toHaveBeenCalled();
     expect(toast.info).not.toHaveBeenCalled();
   });
 });

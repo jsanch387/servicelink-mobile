@@ -18,6 +18,7 @@ import { hasBookingAddressForMaps } from '../utils/bookingAddress';
 import { buildNextUpHeadlines, formatNextUpVehicleLine } from '../utils/nextUpCardDisplay';
 import {
   resolveNextUpCardActionMode,
+  resolveNextUpWorkingPhase,
   shouldShowNextUpLivePulse,
 } from '../utils/resolveNextUpCardActions';
 import { NextUpNavigateIconButton } from './NextUpNavigateIconButton';
@@ -28,6 +29,8 @@ import { NextUpNavigateIconButton } from './NextUpNavigateIconButton';
  * Keeps the spotlight card from shrinking when there is no booking.
  */
 const NEXT_UP_CARD_BODY_MIN_HEIGHT = 178;
+
+const enableMotion = typeof process !== 'undefined' && process.env.NODE_ENV !== 'test';
 
 function LivePulseIndicator({ color, opacityAnim, ringScaleAnim, ringOpacityAnim }) {
   return (
@@ -114,6 +117,10 @@ export function NextUpCard({
   spotlightMode = 'none',
   onMarkComplete,
   markCompleteLoading = false,
+  workingPhase,
+  onNotifyWorkFinished,
+  onSkipWorkNotify,
+  actionHandlers = null,
 }) {
   const { colors } = useTheme();
   const bookingAction = useBookingAction(businessId);
@@ -185,10 +192,10 @@ export function NextUpCard({
   const livePulseRingOpacity = useRef(new Animated.Value(0.42)).current;
 
   useEffect(() => {
-    if (!showLivePulse) {
+    if (!showLivePulse || !enableMotion) {
       livePulseOpacity.setValue(1);
       livePulseRingScale.setValue(1);
-      livePulseRingOpacity.setValue(0);
+      livePulseRingOpacity.setValue(showLivePulse ? 0.42 : 0);
       return undefined;
     }
     const loop = Animated.loop(
@@ -257,16 +264,24 @@ export function NextUpCard({
   const canMaps = useMemo(() => hasBookingAddressForMaps(nextBooking), [nextBooking]);
 
   const onMyWay = useCallback(() => {
+    if (actionHandlers?.onOnMyWay) {
+      actionHandlers.onOnMyWay();
+      return;
+    }
     if (nextBooking?.id) {
       bookingAction.notifyOnTheWay(nextBooking.id);
     }
-  }, [nextBooking?.id, bookingAction]);
+  }, [actionHandlers, nextBooking?.id, bookingAction]);
 
   const startJob = useCallback(() => {
+    if (actionHandlers?.onStartJob) {
+      actionHandlers.onStartJob();
+      return;
+    }
     if (nextBooking?.id) {
       bookingAction.startJob(nextBooking.id);
     }
-  }, [bookingAction, nextBooking?.id]);
+  }, [actionHandlers, bookingAction, nextBooking?.id]);
 
   const navigate = useCallback(() => {
     if (nextBooking) {
@@ -281,6 +296,38 @@ export function NextUpCard({
     void onMarkComplete();
   }, [onMarkComplete]);
 
+  const notifyWorkFinished = useCallback(() => {
+    if (onNotifyWorkFinished) {
+      onNotifyWorkFinished();
+      return;
+    }
+    if (nextBooking?.id) {
+      bookingAction.workFinished(nextBooking.id, true);
+    }
+  }, [bookingAction, nextBooking?.id, onNotifyWorkFinished]);
+
+  const skipWorkNotify = useCallback(() => {
+    if (onSkipWorkNotify) {
+      onSkipWorkNotify();
+      return;
+    }
+    if (nextBooking?.id) {
+      bookingAction.workFinished(nextBooking.id, false);
+    }
+  }, [bookingAction, nextBooking?.id, onSkipWorkNotify]);
+
+  const resolvedWorkingPhase = useMemo(() => {
+    if (workingPhase !== undefined) {
+      return workingPhase;
+    }
+    return (
+      resolveNextUpWorkingPhase(nextBooking?.job_status, nextBooking?.work_handoff_status) ??
+      'ready'
+    );
+  }, [nextBooking?.job_status, nextBooking?.work_handoff_status, workingPhase]);
+  const actionSending = actionHandlers?.isSending ?? bookingAction.isSending;
+  const actionDisabled = actionHandlers?.disabled ?? bookingAction.disabled;
+
   if (isLoading) {
     return <NextUpSkeleton bone={bone} />;
   }
@@ -289,6 +336,7 @@ export function NextUpCard({
   const isWorking = actionMode === 'working';
   const isEnRoute = actionMode === 'en_route';
   const isUpcoming = actionMode === 'upcoming';
+  const isHandoff = isWorking && resolvedWorkingPhase === 'handoff';
 
   return (
     <SpotlightCard
@@ -385,9 +433,42 @@ export function NextUpCard({
       {showActions ? (
         <View
           collapsable={false}
-          style={isWorking || isEnRoute ? styles.actionsSingle : styles.actions}
+          style={isHandoff || isUpcoming ? styles.actions : styles.actionsSingle}
         >
-          {isWorking ? (
+          {isHandoff ? (
+            <>
+              <View collapsable={false} style={styles.actionCell}>
+                <Button
+                  accessibilityHint={
+                    hasCustomerSmsNumber
+                      ? 'Texts the customer that your service is finished'
+                      : 'Add a phone on this booking to notify the customer'
+                  }
+                  accessibilityLabel="Done"
+                  disabled={actionDisabled || !hasCustomerSmsNumber}
+                  fullWidth
+                  iconName="chatbubble-ellipses-outline"
+                  loading={actionSending}
+                  loadingNode={<EchoBarsLoader accessibilityLabel="Sending" color="#ffffff" />}
+                  title="Done"
+                  variant="surfaceDark"
+                  onPress={notifyWorkFinished}
+                />
+              </View>
+              <View collapsable={false} style={styles.actionCell}>
+                <Button
+                  accessibilityHint="Skips texting and moves to mark complete"
+                  accessibilityLabel="Skip"
+                  disabled={actionDisabled}
+                  fullWidth
+                  outlineColor={colors.nextUpText}
+                  title="Skip"
+                  variant="outline"
+                  onPress={skipWorkNotify}
+                />
+              </View>
+            </>
+          ) : isWorking ? (
             <Button
               accessibilityHint={
                 onMarkComplete ? undefined : 'Mark complete is not available right now'
@@ -403,8 +484,8 @@ export function NextUpCard({
             />
           ) : isEnRoute ? (
             <SlideToStartJob
-              disabled={bookingAction.disabled}
-              loading={bookingAction.isSending}
+              disabled={actionDisabled || !hasCustomerSmsNumber}
+              loading={actionSending}
               surfaceTone={nextUpSurfaceTone}
               onComplete={startJob}
             />
@@ -415,13 +496,13 @@ export function NextUpCard({
                   accessibilityHint={
                     hasCustomerSmsNumber
                       ? 'Texts the customer that you are on the way'
-                      : 'Updates the appointment; add a phone on this booking to text the customer'
+                      : 'Add a phone on this booking to notify the customer'
                   }
                   accessibilityLabel="On my way"
-                  disabled={bookingAction.disabled}
+                  disabled={actionDisabled || !hasCustomerSmsNumber}
                   fullWidth
                   iconName="chatbubble-ellipses-outline"
-                  loading={bookingAction.isSending}
+                  loading={actionSending}
                   loadingNode={<EchoBarsLoader accessibilityLabel="Sending" color="#ffffff" />}
                   title="On my way"
                   variant="surfaceDark"

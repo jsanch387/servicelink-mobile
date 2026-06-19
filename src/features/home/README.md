@@ -50,17 +50,22 @@ The card is the **hero** for the owner’s next actionable visit. CTAs are drive
 
 ### `job_status` → card UI
 
-| `job_status`  | Section title | Actions                                            |
-| ------------- | ------------- | -------------------------------------------------- |
-| `not_started` | Next Up       | **On my way** + **Navigate**                       |
-| `on_the_way`  | Next Up       | **Slide to start job** + navigate icon (top-right) |
-| `in_progress` | In progress   | **Mark complete** + live pulse                     |
-| `completed`   | —             | No actions (card hidden from action row)           |
+| `job_status`  | `work_handoff_status`  | Section title | Actions                                            |
+| ------------- | ---------------------- | ------------- | -------------------------------------------------- |
+| `not_started` | —                      | Next Up       | **On my way** + **Navigate**                       |
+| `on_the_way`  | —                      | Next Up       | **Slide to start job** + navigate icon (top-right) |
+| `in_progress` | `NULL`                 | In progress   | **Done** + **Skip** + live pulse                   |
+| `in_progress` | `notified` / `skipped` | In progress   | **Mark complete** + live pulse                     |
+| `completed`   | —                      | —             | No actions (card hidden from action row)           |
 
-- **On my way** → `useBookingAction.notifyOnTheWay` → `POST` booking action `on_the_way` (SMS toast on success).
-- **Slide to start job** → `useBookingAction.runAction(…, job_started)`.
+- **On my way** → `useBookingAction.notifyOnTheWay` → `POST` `on_the_way` (SMS toast on success).
+- **Slide to start job** → `useBookingAction.startJob` → `POST` `job_started`.
+- **Done** → `useBookingAction.workFinished(id, true)` → `POST` `work_finished` with `notify: true` (SMS toast; UI advances even if SMS fails).
+- **Skip** → `useBookingAction.workFinished(id, false)` → `POST` `work_finished` with `notify: false` (silent; moves to Mark complete).
 - **Navigate** → `openMapsForBooking` (header icon when en route; outline button when upcoming).
 - **Mark complete** → `onMarkComplete` from `HomeScreen` / `useMarkBookingCompleteFlow`.
+
+Handoff phase resolution: `resolveNextUpWorkingPhase` in `utils/resolveNextUpCardActions.js`.
 
 Shared UI: `SlideToStartJob`, `NextUpNavigateIconButton` (en-route maps chip).
 
@@ -100,7 +105,8 @@ Shared UI: `SlideToStartJob`, `NextUpNavigateIconButton` (en-route maps chip).
 - **Booking actions API:** `useBookingAction.js`, `postBookingAction`
 - **Server spec (start job):** `src/features/bookings/docs/BOOKING_JOB_STARTED_SERVER.md`
 - **Mobile integration:** `src/features/bookings/docs/MOBILE_BOOKING_ACTIONS.md`
-- **Tests:** `NextUpCard.test.jsx`, `resolveNextUpCardActions.test.js`, `SlideToStartJob.test.jsx`, `postBookingAction.test.js`
+- **Tests:** `NextUpCard.test.jsx`, `resolveNextUpCardActions.test.js`, `SlideToStartJob.test.jsx`, `postBookingAction.test.js`, `useBookingAction.test.jsx`, `bookingActionFeedback.test.js`
+- **Lifecycle server spec:** `src/features/bookings/docs/BOOKING_JOB_LIFECYCLE_SERVER.md`
 
 ---
 
@@ -142,15 +148,17 @@ Shared helpers: `testUtils.jsx` (`renderWithProviders`, test `QueryClient`). Glo
 - **Join:** `business_id` → `business_profiles.id`.
 - **Fields used on Home:**
 
-  | Column                                                                                            | Home usage                                                                                 |
-  | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-  | `scheduled_date`                                                                                  | `date`; combined with `start_time` for ordering and “future” checks.                       |
-  | `start_time`                                                                                      | `time`; combined with `scheduled_date` in JS (device local).                               |
-  | `status`                                                                                          | Only **`confirmed`** rows are loaded for upcoming logic.                                   |
-  | `service_name`                                                                                    | Second line of “Next up” title: `{customer} — {service}`.                                  |
-  | `customer_name`                                                                                   | First part of “Next up” title.                                                             |
-  | `customer_phone`                                                                                  | **On my way** — native SMS (`sms:`) with a preset message.                                 |
-  | `customer_street_address`, `customer_unit_apt`, `customer_city`, `customer_state`, `customer_zip` | **Navigate** — concatenated in app (see below); no single `customer_address` column today. |
+  | Column                                                                                            | Home usage                                                                                     |
+  | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+  | `scheduled_date`                                                                                  | `date`; combined with `start_time` for ordering and “future” checks.                           |
+  | `start_time`                                                                                      | `time`; combined with `scheduled_date` in JS (device local).                                   |
+  | `status`                                                                                          | Only **`confirmed`** rows are loaded for upcoming logic.                                       |
+  | `job_status`                                                                                      | Next Up action mode (`not_started` → on my way → start → handoff → complete).                  |
+  | `work_handoff_status`                                                                             | In-progress handoff: `NULL` = **Done** / **Skip**; `notified` / `skipped` = **Mark complete**. |
+  | `service_name`                                                                                    | Second line of “Next up” title: `{customer} — {service}`.                                      |
+  | `customer_name`                                                                                   | First part of “Next up” title.                                                                 |
+  | `customer_phone`                                                                                  | **On my way** — native SMS (`sms:`) with a preset message.                                     |
+  | `customer_street_address`, `customer_unit_apt`, `customer_city`, `customer_state`, `customer_zip` | **Navigate** — concatenated in app (see below); no single `customer_address` column today.     |
 
 **Ignored on Home (by design):** `booking_requests` and non-`confirmed` statuses (`cancelled`, `complete`, etc.) for upcoming/next counts.
 

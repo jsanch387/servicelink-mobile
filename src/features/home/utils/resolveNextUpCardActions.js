@@ -1,4 +1,8 @@
-import { JOB_STATUS, normalizeJobStatus } from '../../bookings/constants/jobStatus';
+import {
+  isWorkHandoffDone,
+  JOB_STATUS,
+  normalizeJobStatus,
+} from '../../bookings/constants/jobStatus';
 
 /** @typedef {'upcoming' | 'en_route' | 'working' | 'complete'} NextUpCardActionMode */
 
@@ -33,6 +37,25 @@ export function resolveNextUpSectionTitle(actionMode) {
     return 'In progress';
   }
   return 'Next Up';
+}
+
+/**
+ * @typedef {'handoff' | 'ready'} NextUpWorkingPhase
+ */
+
+/**
+ * In-progress sub-phase before mark complete (work finished handoff).
+ *
+ * @param {string | null | undefined} jobStatus
+ * @param {string | null | undefined} workHandoffStatus
+ * @returns {NextUpWorkingPhase | null}
+ */
+export function resolveNextUpWorkingPhase(jobStatus, workHandoffStatus) {
+  const status = normalizeJobStatus(jobStatus);
+  if (status !== JOB_STATUS.IN_PROGRESS) {
+    return null;
+  }
+  return isWorkHandoffDone(workHandoffStatus) ? 'ready' : 'handoff';
 }
 
 /**

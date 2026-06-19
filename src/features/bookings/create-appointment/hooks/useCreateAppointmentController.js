@@ -142,7 +142,22 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   useEffect(() => {
     const opts = pricingPayload.options;
     if (opts.length !== 1 || selectedPricingId) return;
+    if (server.ownerHasPro && priceOptionsEnabled && server.priceOptionsLoading) return;
     setSelectedPricingId(opts[0].id);
+  }, [
+    pricingPayload.options,
+    priceOptionsEnabled,
+    selectedPricingId,
+    server.ownerHasPro,
+    server.priceOptionsLoading,
+  ]);
+
+  useEffect(() => {
+    if (!selectedPricingId || pricingPayload.options.length === 0) return;
+    const stillValid = pricingPayload.options.some((o) => o.id === selectedPricingId);
+    if (!stillValid) {
+      setSelectedPricingId(null);
+    }
   }, [pricingPayload.options, selectedPricingId]);
 
   const selectedAddonRows = useMemo(() => {
@@ -270,7 +285,9 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         step,
         selectedServiceId,
         selectedPricingId,
+        selectedPricingOption,
         pricingSkipped,
+        priceOptionsLoading: server.priceOptionsLoading,
         acceptBookings,
         scheduleLoading,
         selectedDateKey,
@@ -285,7 +302,9 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       step,
       selectedServiceId,
       selectedPricingId,
+      selectedPricingOption,
       pricingSkipped,
+      server.priceOptionsLoading,
       acceptBookings,
       scheduleLoading,
       selectedDateKey,

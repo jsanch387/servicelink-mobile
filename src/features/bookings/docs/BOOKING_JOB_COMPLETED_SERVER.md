@@ -1,8 +1,10 @@
 # Booking `job_completed` — server notes
 
-Mobile calls `POST …/bookings/{id}/actions` with `{ "action": "job_completed" }`. **Mobile is wired** when `MARK_COMPLETE_USE_JOB_COMPLETED_ACTION` is `true`.
+Mobile calls `POST …/bookings/{id}/actions` with `{ "action": "job_completed", ... }`. **Mobile is wired** when `MARK_COMPLETE_USE_JOB_COMPLETED_ACTION` is `true`.
 
-**Full contract (request/response tables, SMS history, idempotency):** [`MOBILE_SMS_AND_BOOKING_ACTIONS.md`](./MOBILE_SMS_AND_BOOKING_ACTIONS.md) §4.
+**Full contract (handoff gate, payment payload, receipt SMS):** [`BOOKING_JOB_LIFECYCLE_SERVER.md`](./BOOKING_JOB_LIFECYCLE_SERVER.md) §6.
+
+**Shared request/response tables, SMS history, idempotency:** [`MOBILE_SMS_AND_BOOKING_ACTIONS.md`](./MOBILE_SMS_AND_BOOKING_ACTIONS.md) §4.
 
 ## Server must
 

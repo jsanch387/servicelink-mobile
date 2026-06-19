@@ -1,6 +1,7 @@
 import {
   resolveNextUpCardActionMode,
   resolveNextUpSectionTitle,
+  resolveNextUpWorkingPhase,
 } from '../utils/resolveNextUpCardActions';
 
 describe('resolveNextUpCardActionMode', () => {
@@ -9,6 +10,16 @@ describe('resolveNextUpCardActionMode', () => {
     expect(resolveNextUpCardActionMode('on_the_way')).toBe('en_route');
     expect(resolveNextUpCardActionMode('in_progress')).toBe('working');
     expect(resolveNextUpCardActionMode('completed')).toBe('complete');
+  });
+});
+
+describe('resolveNextUpWorkingPhase', () => {
+  it('returns handoff until work handoff status is set', () => {
+    expect(resolveNextUpWorkingPhase('in_progress', null)).toBe('handoff');
+    expect(resolveNextUpWorkingPhase('in_progress', undefined)).toBe('handoff');
+    expect(resolveNextUpWorkingPhase('in_progress', 'notified')).toBe('ready');
+    expect(resolveNextUpWorkingPhase('in_progress', 'skipped')).toBe('ready');
+    expect(resolveNextUpWorkingPhase('on_the_way', null)).toBeNull();
   });
 });
 

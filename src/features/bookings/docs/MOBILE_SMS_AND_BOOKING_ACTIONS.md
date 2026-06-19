@@ -5,7 +5,9 @@ This doc covers, for the native app:
 1. **How customer phone numbers are stored** and normalized.
 2. **The SMS data model** (`sms_messages`) — how every text is logged and how the app reads "messages sent" history.
 3. **Job tracking** (`bookings.job_status`) — the stateful fulfillment lifecycle of a booking.
-4. **The booking actions endpoint** — one generic, data-driven endpoint that drives a job-status transition **and** sends the matching customer SMS (`on_the_way`, `job_started`, `job_completed`, …).
+4. **The booking actions endpoint** — one generic, data-driven endpoint that drives a job-status transition **and** sends the matching customer SMS (`on_the_way`, `job_started`, `work_finished`, `job_completed`, …).
+
+> **Mobile integration (Done / Skip, toasts, cache):** see **[`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md)** and **[`BOOKING_JOB_LIFECYCLE_SERVER.md`](./BOOKING_JOB_LIFECYCLE_SERVER.md)** §5.3.
 
 > **Golden rule:** the app never calls Pingram or sends SMS directly. The server holds the API key, normalizes numbers, enforces ownership, rate-limits (SMS costs money), logs every send, owns the message templates, and owns the state machine. The app triggers **actions** and **reads state**.
 
@@ -25,24 +27,24 @@ Owner-created bookings and customer self-serve bookings both flow through `POST 
 
 Every outbound SMS attempt is a row in **`public.sms_messages`**. This is the source of truth for a future "messages sent" screen.
 
-| Column                   | Type          | Notes                                                                                                   |
-| ------------------------ | ------------- | ------------------------------------------------------------------------------------------------------- |
-| `id`                     | uuid          | —                                                                                                       |
-| `business_id`            | uuid          | tenancy / RLS scope                                                                                     |
-| `booking_id`             | uuid \| null  | links the message to an appointment                                                                     |
-| `customer_id`            | uuid \| null  | links to the customer                                                                                   |
-| `type`                   | text          | `booking_confirmation` \| `on_the_way` \| `job_started` \| `job_completed` \| `reminder` \| `invoice` … |
-| `channel`                | text          | `sms`                                                                                                   |
-| `direction`              | text          | `outbound`                                                                                              |
-| `to_phone`               | text          | E.164 number actually used                                                                              |
-| `body`                   | text          | exact message sent (display this in history)                                                            |
-| `status`                 | text          | `queued` \| `sent` \| `delivered` \| `failed` \| `undelivered` \| `skipped_opt_out`                     |
-| `provider`               | text          | `pingram`                                                                                               |
-| `provider_message_id`    | text \| null  | provider id                                                                                             |
-| `error`                  | text \| null  | failure reason                                                                                          |
-| `dedupe_key`             | text \| null  | server idempotency key; ignore on the client                                                            |
-| `metadata`               | jsonb \| null | extensible                                                                                              |
-| `created_at` / `sent_at` | timestamptz   | —                                                                                                       |
+| Column                   | Type          | Notes                                                                                                                      |
+| ------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `id`                     | uuid          | —                                                                                                                          |
+| `business_id`            | uuid          | tenancy / RLS scope                                                                                                        |
+| `booking_id`             | uuid \| null  | links the message to an appointment                                                                                        |
+| `customer_id`            | uuid \| null  | links to the customer                                                                                                      |
+| `type`                   | text          | `booking_confirmation` \| `on_the_way` \| `job_started` \| `work_finished` \| `job_completed` \| `reminder` \| `invoice` … |
+| `channel`                | text          | `sms`                                                                                                                      |
+| `direction`              | text          | `outbound`                                                                                                                 |
+| `to_phone`               | text          | E.164 number actually used                                                                                                 |
+| `body`                   | text          | exact message sent (display this in history)                                                                               |
+| `status`                 | text          | `queued` \| `sent` \| `delivered` \| `failed` \| `undelivered` \| `skipped_opt_out`                                        |
+| `provider`               | text          | `pingram`                                                                                                                  |
+| `provider_message_id`    | text \| null  | provider id                                                                                                                |
+| `error`                  | text \| null  | failure reason                                                                                                             |
+| `dedupe_key`             | text \| null  | server idempotency key; ignore on the client                                                                               |
+| `metadata`               | jsonb \| null | extensible                                                                                                                 |
+| `created_at` / `sent_at` | timestamptz   | —                                                                                                                          |
 
 **RLS:** the owner can **read** rows for their own business. The app may `SELECT` directly from Supabase. The app may **not** insert/update — all writes are server-side.
 
@@ -221,6 +223,7 @@ When `MARK_COMPLETE_USE_JOB_COMPLETED_ACTION = false`, mark complete uses Supaba
 
 ## Related docs
 
+- [`BOOKING_JOB_LIFECYCLE_SERVER.md`](./BOOKING_JOB_LIFECYCLE_SERVER.md) — **full lifecycle server contract** (work handoff, Complete screen, extended `job_completed`)
 - [`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md) — quick reference
 - [`BOOKING_JOB_STARTED_SERVER.md`](./BOOKING_JOB_STARTED_SERVER.md) — server notes for `job_started`
 - [`BOOKING_JOB_COMPLETED_SERVER.md`](./BOOKING_JOB_COMPLETED_SERVER.md) — server notes for `job_completed`

@@ -15,10 +15,12 @@ The bookings feature includes:
 
 **Server integration (mobile → Next.js):**
 
+- [`docs/BOOKING_JOB_LIFECYCLE_SERVER.md`](docs/BOOKING_JOB_LIFECYCLE_SERVER.md) — **full job lifecycle server contract** (work handoff, Complete screen, SMS templates, `job_completed` payload)
 - [`docs/MOBILE_BOOKING_ACTIONS.md`](docs/MOBILE_BOOKING_ACTIONS.md) — mobile wiring for `on_the_way` + `job_started` (curl, toasts, errors)
+- [`docs/MOBILE_SMS_AND_BOOKING_ACTIONS.md`](docs/MOBILE_SMS_AND_BOOKING_ACTIONS.md) — SMS history, shared action response shapes
 - [`docs/BOOKING_JOB_STARTED_SERVER.md`](docs/BOOKING_JOB_STARTED_SERVER.md) — server implementation spec for `job_started`
 - [`create-appointment/docs/OWNER_MANUAL_BOOKING_SERVER.md`](create-appointment/docs/OWNER_MANUAL_BOOKING_SERVER.md) — owner manual booking create
-- [`booking-details/docs/BOOKING_COMPLETE_SERVER.md`](booking-details/docs/BOOKING_COMPLETE_SERVER.md) — mark complete + review invite
+- [`booking-details/docs/BOOKING_COMPLETE_SERVER.md`](booking-details/docs/BOOKING_COMPLETE_SERVER.md) — legacy mark complete + review invite (superseded by actions path when feature flags on)
 
 ## Folder Structure
 

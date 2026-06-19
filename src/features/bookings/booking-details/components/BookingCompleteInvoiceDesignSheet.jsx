@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Keyboard,
   Modal,
@@ -17,20 +18,23 @@ import {
   BottomSheetOverlayProvider,
   Button,
   DetailsSectionCard,
+  InlineCardError,
   LabelValueRow,
   useBottomSheetOverlay,
 } from '../../../../components/ui';
 import { useModalFadeBackdropSlideSheet } from '../../../../components/ui/useModalFadeBackdropSlideSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SUBMIT_OUTCOME_SUCCESS } from '../../../../components/ui/submitOutcomeTokens';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 import {
   BOOKING_COMPLETE_INVOICE_DESIGN_MOCK,
   getCompleteVisitFollowUpInfo,
 } from '../constants/bookingCompleteInvoiceDesignMock';
+import { getCompleteVisitPaymentSettledBanner } from '../constants/completeVisitNotificationCopy';
 import { getCompleteVisitSuccessCopy } from '../constants/completeVisitSuccessCopy';
 import { CompleteVisitSubmitOverlay } from './CompleteVisitSubmitOverlay';
 import { CompleteVisitAddFeeSheet } from './CompleteVisitAddFeeSheet';
-import { CompleteVisitTapToPaySheet, getTapToPayRowLabel } from './CompleteVisitTapToPaySheet';
+import { TapToPaySheet, getTapToPayRowLabel } from '../../../tap-to-pay';
 import {
   CompleteVisitMarkPaidSheet,
   getInPersonPaymentRowLabel,
@@ -59,8 +63,9 @@ function formatUsd(amount) {
  *   inPersonPayment: { method: string; amount: number } | null;
  *   onlinePaidRowLabel: string | null;
  *   showCollectActions: boolean;
- *   followUpInfo: { visible: boolean; email: string | null; message: string };
+ *   followUpInfo: { visible: boolean; message: string; iconName: string };
  *   iosKeyboardScrollPadding: number;
+ *   lineItems: Array<{ id: string; label: string; amount: number }>;
  * }} props
  */
 function CompleteVisitDesignBody({
@@ -78,9 +83,9 @@ function CompleteVisitDesignBody({
   followUpInfo,
   iosKeyboardScrollPadding,
   onMarkPaidInPerson,
+  lineItems,
 }) {
   const { colors } = useTheme();
-  const mock = BOOKING_COMPLETE_INVOICE_DESIGN_MOCK;
   const overlay = useBottomSheetOverlay();
 
   useEffect(() => () => overlay?.hide(), [overlay]);
@@ -150,26 +155,50 @@ function CompleteVisitDesignBody({
           gap: 10,
           marginTop: 16,
         },
-        followUpRow: {
-          alignItems: 'flex-start',
+        paidBanner: {
+          alignItems: 'center',
+          backgroundColor: SUBMIT_OUTCOME_SUCCESS.ring,
+          borderRadius: 12,
           flexDirection: 'row',
-          gap: 8,
-          marginTop: 4,
+          gap: 12,
+          marginBottom: 12,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
         },
-        followUpIcon: {
-          marginTop: 1,
-        },
-        followUpText: {
-          color: colors.textMuted,
+        paidBannerTextWrap: {
           flex: 1,
+          gap: 2,
+          minWidth: 0,
+        },
+        paidBannerTitle: {
+          color: colors.text,
+          fontSize: 15,
+          fontWeight: '700',
+          letterSpacing: -0.15,
+        },
+        paidBannerDetail: {
+          color: colors.textSecondary,
           fontSize: 13,
           fontWeight: '500',
           lineHeight: 18,
-          minWidth: 0,
         },
-        followUpEmail: {
-          color: colors.textSecondary,
-          fontWeight: '600',
+        followUpRow: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          gap: 6,
+          marginTop: 6,
+        },
+        followUpIcon: {
+          marginTop: 0,
+          opacity: 0.85,
+        },
+        followUpText: {
+          color: colors.placeholder,
+          flex: 1,
+          fontSize: 12,
+          fontWeight: '400',
+          lineHeight: 16,
+          minWidth: 0,
         },
       }),
     [colors],
@@ -183,7 +212,7 @@ function CompleteVisitDesignBody({
   const openTapToPaySheet = () => {
     Keyboard.dismiss();
     overlay?.show(
-      <CompleteVisitTapToPaySheet
+      <TapToPaySheet
         amountDue={amountDue}
         onClose={() => overlay.hide()}
         onSuccess={onTapToPaySuccess}
@@ -202,6 +231,24 @@ function CompleteVisitDesignBody({
     );
   };
 
+  const hasAppliedPayments =
+    Boolean(onlinePaidRowLabel) || tapToPayAmount > 0 || Boolean(inPersonPayment);
+  const showAmountDueHero = !hasAppliedPayments && amountDue > 0;
+  const isPaymentSettled = amountDue <= 0;
+  const canEditFees = !isPaymentSettled;
+
+  const paymentSettledBanner = useMemo(() => {
+    if (!isPaymentSettled) {
+      return null;
+    }
+    return getCompleteVisitPaymentSettledBanner({
+      paidOnline,
+      subtotal,
+      tapToPayAmount,
+      inPersonPayment,
+    });
+  }, [inPersonPayment, isPaymentSettled, paidOnline, subtotal, tapToPayAmount]);
+
   return (
     <ScrollView
       contentContainerStyle={[
@@ -214,7 +261,7 @@ function CompleteVisitDesignBody({
     >
       <DetailsSectionCard bodyPadding="roomy" title="Breakdown">
         <View style={styles.breakdownRows}>
-          {mock.lineItems.map((item, index) => (
+          {lineItems.map((item, index) => (
             <LabelValueRow
               key={item.id}
               label={item.label}
@@ -225,54 +272,80 @@ function CompleteVisitDesignBody({
 
           {adjustments.map((item) => (
             <View key={item.id} style={styles.adjustmentRow}>
-              <View style={styles.adjustmentLabelWrap}>
-                <Pressable
-                  accessibilityLabel={`Remove ${item.label}`}
-                  accessibilityRole="button"
-                  hitSlop={8}
-                  style={styles.removeBtn}
-                  onPress={() => onRemoveFee(item.id)}
-                >
-                  <Ionicons color={colors.danger} name="close-circle" size={18} />
-                </Pressable>
+              {canEditFees ? (
+                <View style={styles.adjustmentLabelWrap}>
+                  <Pressable
+                    accessibilityLabel={`Remove ${item.label}`}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    style={styles.removeBtn}
+                    onPress={() => onRemoveFee(item.id)}
+                  >
+                    <Ionicons color={colors.danger} name="close-circle" size={18} />
+                  </Pressable>
+                  <AppText ellipsizeMode="tail" numberOfLines={2} style={styles.adjustmentLabel}>
+                    {item.label}
+                  </AppText>
+                </View>
+              ) : (
                 <AppText ellipsizeMode="tail" numberOfLines={2} style={styles.adjustmentLabel}>
                   {item.label}
                 </AppText>
-              </View>
+              )}
               <AppText style={styles.adjustmentAmount}>{formatUsd(item.amount)}</AppText>
             </View>
           ))}
         </View>
       </DetailsSectionCard>
 
-      <Button
-        fullWidth
-        iconName="add-circle-outline"
-        title="Add fee"
-        variant="secondary"
-        onPress={openAddFeeSheet}
-      />
+      {canEditFees ? (
+        <Button
+          fullWidth
+          iconName="add-circle-outline"
+          title="Add fee"
+          variant="secondary"
+          onPress={openAddFeeSheet}
+        />
+      ) : null}
 
       <DetailsSectionCard bodyPadding="roomy" title="Payment">
-        <View style={styles.totalRow}>
-          <AppText style={styles.totalLabel}>Total</AppText>
-          <AppText style={styles.totalValue}>{formatUsd(subtotal)}</AppText>
-        </View>
-        {onlinePaidRowLabel ? (
-          <LabelValueRow label={onlinePaidRowLabel} value={`−${formatUsd(paidOnline)}`} />
+        {paymentSettledBanner ? (
+          <View style={styles.paidBanner}>
+            <Ionicons color={SUBMIT_OUTCOME_SUCCESS.color} name="checkmark-circle" size={28} />
+            <View style={styles.paidBannerTextWrap}>
+              <AppText style={styles.paidBannerTitle}>{paymentSettledBanner.title}</AppText>
+              <AppText style={styles.paidBannerDetail}>{paymentSettledBanner.detail}</AppText>
+            </View>
+          </View>
         ) : null}
-        {tapToPayAmount > 0 ? (
-          <LabelValueRow label={getTapToPayRowLabel()} value={`−${formatUsd(tapToPayAmount)}`} />
-        ) : null}
-        {inPersonPayment ? (
-          <LabelValueRow
-            label={getInPersonPaymentRowLabel(inPersonPayment.method)}
-            value={`−${formatUsd(inPersonPayment.amount)}`}
-          />
-        ) : null}
-        {amountDue > 0 ? (
-          <LabelValueRow emphasize label="Amount due" value={formatUsd(amountDue)} />
-        ) : null}
+        {showAmountDueHero ? (
+          <View style={styles.totalRow}>
+            <AppText style={styles.totalLabel}>Amount due</AppText>
+            <AppText style={styles.totalValue}>{formatUsd(amountDue)}</AppText>
+          </View>
+        ) : (
+          <>
+            <LabelValueRow emphasize noTopMargin label="Total" value={formatUsd(subtotal)} />
+            {onlinePaidRowLabel ? (
+              <LabelValueRow label={onlinePaidRowLabel} value={`−${formatUsd(paidOnline)}`} />
+            ) : null}
+            {tapToPayAmount > 0 ? (
+              <LabelValueRow
+                label={getTapToPayRowLabel()}
+                value={`−${formatUsd(tapToPayAmount)}`}
+              />
+            ) : null}
+            {inPersonPayment ? (
+              <LabelValueRow
+                label={getInPersonPaymentRowLabel(inPersonPayment.method)}
+                value={`−${formatUsd(inPersonPayment.amount)}`}
+              />
+            ) : null}
+            {amountDue > 0 ? (
+              <LabelValueRow emphasize label="Amount due" value={formatUsd(amountDue)} />
+            ) : null}
+          </>
+        )}
         {showCollectActions ? (
           <View style={styles.paymentActions}>
             <Button
@@ -297,20 +370,12 @@ function CompleteVisitDesignBody({
       {followUpInfo.visible ? (
         <View style={styles.followUpRow}>
           <Ionicons
-            color={colors.textMuted}
-            name="information-circle-outline"
-            size={18}
+            color={colors.placeholder}
+            name={followUpInfo.iconName}
+            size={14}
             style={styles.followUpIcon}
           />
-          {followUpInfo.email ? (
-            <AppText style={styles.followUpText}>
-              <AppText style={styles.followUpEmail}>{followUpInfo.email}</AppText>
-              {' — '}
-              {followUpInfo.message}
-            </AppText>
-          ) : (
-            <AppText style={styles.followUpText}>{followUpInfo.message}</AppText>
-          )}
+          <AppText style={styles.followUpText}>{followUpInfo.message}</AppText>
         </View>
       ) : null}
     </ScrollView>
@@ -318,17 +383,30 @@ function CompleteVisitDesignBody({
 }
 
 /**
- * Full-screen complete visit flow (design preview only — mock data, no API).
+ * Full-screen complete visit flow — receipt, add fee, tap to pay, mark paid.
  *
  * @param {{
  *   visible: boolean;
  *   onRequestClose: () => void;
+ *   visitModel?: import('../utils/buildCompleteVisitModel').CompleteVisitModel | null;
+ *   isLoading?: boolean;
+ *   loadError?: string | null;
+ *   onComplete?: () => void | Promise<void>;
  * }} props
  */
-export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
+export function BookingCompleteVisitSheet({
+  visible,
+  onRequestClose,
+  visitModel = null,
+  isLoading = false,
+  loadError = null,
+  onComplete,
+}) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const mock = BOOKING_COMPLETE_INVOICE_DESIGN_MOCK;
+  const isDesignPreview = !visitModel && !isLoading && !loadError;
+  const resolvedModel =
+    visitModel ?? (isDesignPreview ? BOOKING_COMPLETE_INVOICE_DESIGN_MOCK : null);
 
   const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
     useModalFadeBackdropSlideSheet();
@@ -371,6 +449,7 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
   useEffect(() => {
     if (!visible) {
       setIosKeyboardScrollPadding(0);
+      setAdjustments([]);
       setTapToPayAmount(0);
       setInPersonPayment(null);
       setSubmitPhase('idle');
@@ -407,45 +486,53 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
   }, []);
 
   const subtotal = useMemo(() => {
-    const base = mock.lineItems.reduce((sum, item) => sum + item.amount, 0);
+    if (!resolvedModel) {
+      return 0;
+    }
+    const base = resolvedModel.lineItems.reduce((sum, item) => sum + item.amount, 0);
     const adj = adjustments.reduce((sum, item) => sum + item.amount, 0);
     return base + adj;
-  }, [adjustments, mock.lineItems]);
+  }, [adjustments, resolvedModel]);
 
+  const paidOnline = resolvedModel?.paidOnline ?? 0;
   const inPersonPaid = inPersonPayment?.amount ?? 0;
-  const amountDue = Math.max(0, subtotal - mock.paidOnline - tapToPayAmount - inPersonPaid);
+  const amountDue = Math.max(0, subtotal - paidOnline - tapToPayAmount - inPersonPaid);
 
   const onlinePaidRowLabel = useMemo(() => {
-    if (mock.paidOnline <= 0) {
+    if (paidOnline <= 0) {
       return null;
     }
-    if (mock.paidOnline >= subtotal && tapToPayAmount <= 0 && inPersonPaid <= 0) {
+    if (paidOnline >= subtotal && tapToPayAmount <= 0 && inPersonPaid <= 0) {
       return 'Paid in full';
     }
     return 'Deposit paid';
-  }, [inPersonPaid, mock.paidOnline, subtotal, tapToPayAmount]);
+  }, [inPersonPaid, paidOnline, subtotal, tapToPayAmount]);
 
   const showCollectActions = amountDue > 0;
 
-  const followUpInfo = useMemo(
-    () =>
-      getCompleteVisitFollowUpInfo({
-        customerEmail: mock.customerEmail,
-        showInvoiceEmail: mock.showInvoiceEmail,
-        showReviewInvite: mock.showReviewInvite,
-      }),
-    [mock],
-  );
+  const canCompleteVisit = amountDue <= 0;
 
-  const successCopy = useMemo(
-    () =>
-      getCompleteVisitSuccessCopy({
-        customerEmail: mock.customerEmail,
-        showInvoiceEmail: mock.showInvoiceEmail,
-        showReviewInvite: mock.showReviewInvite,
-      }),
-    [mock],
-  );
+  const followUpInfo = useMemo(() => {
+    if (!resolvedModel) {
+      return { visible: false, message: '', iconName: 'information-circle-outline' };
+    }
+    return getCompleteVisitFollowUpInfo({
+      showInvoiceEmail: resolvedModel.showInvoiceEmail,
+      showReviewSms: resolvedModel.showReviewSms ?? false,
+      showReviewEmail: resolvedModel.showReviewEmail ?? resolvedModel.showReviewInvite ?? false,
+      showReviewInvite: resolvedModel.showReviewInvite,
+    });
+  }, [resolvedModel]);
+
+  const successCopy = useMemo(() => {
+    if (!resolvedModel) {
+      return getCompleteVisitSuccessCopy({});
+    }
+    return getCompleteVisitSuccessCopy({
+      showReviewSms: resolvedModel.showReviewSms ?? false,
+      showReviewEmail: resolvedModel.showReviewEmail ?? resolvedModel.showReviewInvite ?? false,
+    });
+  }, [resolvedModel]);
 
   const isSubmitting = submitPhase === 'pending';
   const isSuccess = submitPhase === 'success';
@@ -499,11 +586,29 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
           flex: 1,
           position: 'relative',
         },
+        loadingWrap: {
+          alignItems: 'center',
+          flex: 1,
+          justifyContent: 'center',
+          paddingHorizontal: 20,
+        },
+        errorWrap: {
+          paddingHorizontal: 20,
+          paddingTop: 16,
+        },
         footer: {
           borderTopColor: colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
+          gap: 8,
           paddingHorizontal: 20,
           paddingTop: 12,
+        },
+        completeHint: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          lineHeight: 18,
+          textAlign: 'center',
         },
         footerOverlay: {
           backgroundColor: colors.shell,
@@ -524,22 +629,38 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
     runClose(onRequestClose);
   };
 
-  const handleCompleteVisit = useCallback(() => {
-    if (submitPhase !== 'idle') {
+  const handleCompleteVisit = useCallback(async () => {
+    if (submitPhase !== 'idle' || !resolvedModel || amountDue > 0) {
       return;
     }
     Keyboard.dismiss();
     setSubmitPhase('pending');
-    completeTimeoutRef.current = setTimeout(() => {
-      completeTimeoutRef.current = null;
+
+    if (isDesignPreview || !onComplete) {
+      completeTimeoutRef.current = setTimeout(() => {
+        completeTimeoutRef.current = null;
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {
+          if (Platform.OS === 'android') {
+            Vibration.vibrate(40);
+          }
+        });
+        setSubmitPhase('success');
+      }, MOCK_COMPLETE_MS);
+      return;
+    }
+
+    try {
+      await onComplete();
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {
         if (Platform.OS === 'android') {
           Vibration.vibrate(40);
         }
       });
       setSubmitPhase('success');
-    }, MOCK_COMPLETE_MS);
-  }, [MOCK_COMPLETE_MS, submitPhase]);
+    } catch {
+      setSubmitPhase('idle');
+    }
+  }, [MOCK_COMPLETE_MS, amountDue, isDesignPreview, onComplete, resolvedModel, submitPhase]);
 
   const handleDoneAfterSuccess = () => {
     handleClose();
@@ -588,14 +709,22 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
                   size={24}
                 />
               </Pressable>
-              <AppText style={styles.headerTitle}>
-                {isSuccess ? 'Visit complete' : 'Complete visit'}
-              </AppText>
+              <AppText style={styles.headerTitle}>Complete</AppText>
               <View style={styles.headerSide} />
             </View>
 
             <View style={styles.bodyFlex}>
-              {!showSubmitOverlay ? (
+              {isLoading ? (
+                <View style={styles.loadingWrap}>
+                  <ActivityIndicator color={colors.accent} />
+                </View>
+              ) : null}
+              {!showSubmitOverlay && !isLoading && loadError ? (
+                <View style={styles.errorWrap}>
+                  <InlineCardError message={loadError} />
+                </View>
+              ) : null}
+              {!showSubmitOverlay && !isLoading && !loadError && resolvedModel ? (
                 <>
                   <CompleteVisitDesignBody
                     adjustments={adjustments}
@@ -603,8 +732,9 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
                     followUpInfo={followUpInfo}
                     inPersonPayment={inPersonPayment}
                     iosKeyboardScrollPadding={iosKeyboardScrollPadding}
+                    lineItems={resolvedModel.lineItems}
                     onlinePaidRowLabel={onlinePaidRowLabel}
-                    paidOnline={mock.paidOnline}
+                    paidOnline={paidOnline}
                     showCollectActions={showCollectActions}
                     subtotal={subtotal}
                     tapToPayAmount={tapToPayAmount}
@@ -615,12 +745,23 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
                   />
 
                   <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+                    {!canCompleteVisit ? (
+                      <AppText style={styles.completeHint}>
+                        Collect payment to complete this booking.
+                      </AppText>
+                    ) : null}
                     <Button
+                      accessibilityHint={
+                        canCompleteVisit
+                          ? undefined
+                          : 'Collect the remaining balance with Tap to Pay or Mark as paid'
+                      }
+                      disabled={!canCompleteVisit}
                       fullWidth
                       iconName="checkmark-done-outline"
-                      title="Complete visit"
+                      title="Complete"
                       variant="primary"
-                      onPress={handleCompleteVisit}
+                      onPress={() => void handleCompleteVisit()}
                     />
                   </View>
                 </>
@@ -658,3 +799,6 @@ export function BookingCompleteInvoiceDesignSheet({ visible, onRequestClose }) {
     </Modal>
   );
 }
+
+/** @deprecated Use {@link BookingCompleteVisitSheet} */
+export const BookingCompleteInvoiceDesignSheet = BookingCompleteVisitSheet;

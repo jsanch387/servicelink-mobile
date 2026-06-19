@@ -9,6 +9,7 @@ const mockRunAction = jest.fn();
 let mockBookingActionState = {
   notifyOnTheWay: mockNotifyOnTheWay,
   startJob: mockStartJob,
+  workFinished: jest.fn(),
   runAction: mockRunAction,
   isSending: false,
   disabled: false,
@@ -39,6 +40,7 @@ describe('NextUpCard', () => {
     mockBookingActionState = {
       notifyOnTheWay: mockNotifyOnTheWay,
       startJob: mockStartJob,
+      workFinished: jest.fn(),
       runAction: mockRunAction,
       isSending: false,
       disabled: false,
@@ -84,7 +86,11 @@ describe('NextUpCard', () => {
         businessError={null}
         isLoading={false}
         markCompleteLoading={false}
-        nextBooking={{ ...baseBooking, job_status: 'in_progress' }}
+        nextBooking={{
+          ...baseBooking,
+          job_status: 'in_progress',
+          work_handoff_status: 'skipped',
+        }}
         onMarkComplete={onMarkComplete}
         subtitle="Started at 2:00 PM"
       />,
@@ -181,6 +187,74 @@ describe('NextUpCard', () => {
     expect(screen.queryByLabelText('On my way')).toBeNull();
   });
 
+  it('working ready: shows Mark complete when handoff is done', () => {
+    const onMarkComplete = jest.fn().mockResolvedValue(undefined);
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        markCompleteLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'in_progress', work_handoff_status: 'notified' }}
+        onMarkComplete={onMarkComplete}
+        subtitle="Started at 2:00 PM"
+      />,
+    );
+    expect(screen.getByLabelText('Mark complete')).toBeTruthy();
+    expect(screen.queryByLabelText('Done')).toBeNull();
+  });
+
+  it('working handoff: shows Done and Skip from work_handoff_status', () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'in_progress', work_handoff_status: null }}
+        subtitle="Started at 2:00 PM"
+      />,
+    );
+    expect(screen.getByLabelText('Done')).toBeTruthy();
+    expect(screen.getByLabelText('Skip')).toBeTruthy();
+    expect(screen.queryByLabelText('Mark complete')).toBeNull();
+  });
+
+  it('working handoff: Done calls workFinished with notify true', () => {
+    const mockWorkFinished = jest.fn();
+    mockBookingActionState = {
+      ...mockBookingActionState,
+      workFinished: mockWorkFinished,
+    };
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'in_progress', work_handoff_status: null }}
+        subtitle="Started at 2:00 PM"
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('Done'));
+    expect(mockWorkFinished).toHaveBeenCalledWith('1', true);
+  });
+
+  it('uses actionHandlers instead of booking action hook', () => {
+    const onOnMyWay = jest.fn();
+    renderWithProviders(
+      <NextUpCard
+        actionHandlers={{ onOnMyWay, isSending: false, disabled: false }}
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        subtitle="Today at 2:00 PM"
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('On my way'));
+    expect(onOnMyWay).toHaveBeenCalledTimes(1);
+    expect(mockNotifyOnTheWay).not.toHaveBeenCalled();
+  });
+
   it('working: Mark complete disabled without onMarkComplete', () => {
     renderWithProviders(
       <NextUpCard
@@ -189,6 +263,7 @@ describe('NextUpCard', () => {
         isLoading={false}
         nextBooking={{ ...baseBooking, job_status: 'in_progress' }}
         subtitle="Started at 2:00 PM"
+        workingPhase="ready"
       />,
     );
     expect(screen.getByLabelText('Mark complete')).toBeDisabled();
@@ -201,7 +276,11 @@ describe('NextUpCard', () => {
         businessError={null}
         isLoading={false}
         markCompleteLoading
-        nextBooking={{ ...baseBooking, job_status: 'in_progress' }}
+        nextBooking={{
+          ...baseBooking,
+          job_status: 'in_progress',
+          work_handoff_status: 'notified',
+        }}
         onMarkComplete={jest.fn()}
         subtitle="Started at 2:00 PM"
       />,
@@ -230,7 +309,11 @@ describe('NextUpCard', () => {
         bookingsError={null}
         businessError={null}
         isLoading={false}
-        nextBooking={{ ...baseBooking, job_status: 'in_progress' }}
+        nextBooking={{
+          ...baseBooking,
+          job_status: 'in_progress',
+          work_handoff_status: 'skipped',
+        }}
         onMarkComplete={onMarkComplete}
         subtitle="Started at 2:00 PM"
       />,
@@ -286,7 +369,7 @@ describe('NextUpCard', () => {
     expect(screen.getByText('2017 Toyota Tacoma')).toBeTruthy();
   });
 
-  it('upcoming: On my way stays enabled without a customer phone', () => {
+  it('upcoming: On my way disabled without a customer phone', () => {
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
@@ -297,8 +380,9 @@ describe('NextUpCard', () => {
         subtitle="Today at 2:00 PM"
       />,
     );
+    expect(screen.getByLabelText('On my way')).toBeDisabled();
     fireEvent.press(screen.getByLabelText('On my way'));
-    expect(mockNotifyOnTheWay).toHaveBeenCalledWith('1');
+    expect(mockNotifyOnTheWay).not.toHaveBeenCalled();
   });
 
   it('notifies on-my-way with the booking id and invokes maps helper on press', () => {

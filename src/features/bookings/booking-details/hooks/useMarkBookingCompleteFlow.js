@@ -14,7 +14,12 @@ import { showBookingActionToasts } from '../../utils/bookingActionFeedback';
 import { patchBookingJobStatusInDetailsCache } from '../../utils/patchBookingJobStatusInDetailsCache';
 import { patchBookingJobStatusInHomeCache } from '../../utils/patchBookingJobStatusInHomeCache';
 import { completeBookingWithReviewInvite } from '../api/completeBookingWithReviewInvite';
-import { MARK_COMPLETE_USE_JOB_COMPLETED_ACTION } from '../constants/markCompleteFeatureFlags';
+import { fetchBookingDetailsById } from '../api/bookingDetails';
+import {
+  MARK_COMPLETE_USE_COMPLETE_VISIT_SCREEN,
+  MARK_COMPLETE_USE_JOB_COMPLETED_ACTION,
+} from '../constants/markCompleteFeatureFlags';
+import { buildCompleteVisitModelFromBooking } from '../utils/buildCompleteVisitModel';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
 import { getMarkCompletePreviewFromBooking } from '../utils/markCompletePreview';
 
@@ -90,6 +95,7 @@ function resolveBookingForFlow(
 export function useMarkBookingCompleteFlow(bookingId, options = {}) {
   const { booking: bookingOption = null, businessId: businessIdOption = null } = options;
   const useJobCompletedAction = MARK_COMPLETE_USE_JOB_COMPLETED_ACTION;
+  const useCompleteVisitScreen = MARK_COMPLETE_USE_COMPLETE_VISIT_SCREEN;
   const optionBookingId = bookingOption?.id?.trim() || null;
   const optionCustomerId = bookingOption?.customer_id?.trim() || null;
   const optionCustomerEmail =
@@ -120,6 +126,9 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
   const [resolvedBusinessId, setResolvedBusinessId] = useState(/** @type {string | null} */ (null));
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [previewError, setPreviewError] = useState(/** @type {string | null} */ (null));
+  const [completeVisitModel, setCompleteVisitModel] = useState(
+    /** @type {import('../utils/buildCompleteVisitModel').CompleteVisitModel | null} */ (null),
+  );
   const loadGenerationRef = useRef(0);
 
   const resolveCurrentBooking = useCallback(() => {
@@ -147,6 +156,7 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
   const closeSheet = useCallback(() => {
     setSheetVisible(false);
     setPreviewError(null);
+    setCompleteVisitModel(null);
   }, []);
 
   const openSheet = useCallback(() => {
@@ -156,6 +166,7 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
     setSheetVisible(true);
     setPreview(null);
     setPreviewError(null);
+    setCompleteVisitModel(null);
     setEligibilityCtx(null);
     setResolvedBooking(resolveCurrentBooking());
     setResolvedBusinessId(normalizedBusinessId);
@@ -181,8 +192,40 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
       setResolvedBooking(booking);
 
       if (useJobCompletedAction) {
+        const nextPreview = getMarkCompletePreviewFromBooking(booking);
+        setPreview(nextPreview);
+
+        if (useCompleteVisitScreen) {
+          let bookingForVisit =
+            queryClient.getQueryData(bookingsDetailsQueryKey(booking.id)) ?? booking;
+          const hasVisitPricing =
+            bookingForVisit?.service_price_cents != null ||
+            bookingForVisit?.addon_details != null ||
+            bookingForVisit?.payment != null;
+          if (!hasVisitPricing) {
+            const { data, error } = await fetchBookingDetailsById(booking.id);
+            if (cancelled || loadGenerationRef.current !== generation) {
+              return;
+            }
+            if (error || !data) {
+              setIsLoadingPreview(false);
+              setPreviewError(error?.message ?? 'Could not load booking details.');
+              return;
+            }
+            bookingForVisit = data;
+            queryClient.setQueryData(bookingsDetailsQueryKey(booking.id), data);
+          }
+
+          const model = buildCompleteVisitModelFromBooking(bookingForVisit, nextPreview);
+          if (!model) {
+            setIsLoadingPreview(false);
+            setPreviewError('Could not prepare the visit receipt.');
+            return;
+          }
+          setCompleteVisitModel(model);
+        }
+
         setIsLoadingPreview(false);
-        setPreview(getMarkCompletePreviewFromBooking(booking));
         return;
       }
 
@@ -231,9 +274,11 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
   }, [
     bookingId,
     normalizedBusinessId,
+    queryClient,
     resolveCurrentBooking,
     sheetVisible,
     useJobCompletedAction,
+    useCompleteVisitScreen,
     userId,
   ]);
 
@@ -308,7 +353,9 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
       if (bookingId) {
         await invalidateBookingCachesAfterMutation(queryClient, bookingId);
       }
-      closeSheet();
+      if (!useCompleteVisitScreen) {
+        closeSheet();
+      }
       void maybeRequestAppReview({ businessId: resolvedBusinessId ?? normalizedBusinessId });
     },
   });
@@ -322,6 +369,8 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
     openSheet,
     closeSheet,
     preview,
+    completeVisitModel,
+    useCompleteVisitScreen,
     isLoadingPreview,
     previewError,
     confirmComplete,

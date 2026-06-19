@@ -8,7 +8,7 @@
  */
 export const MARK_COMPLETE_USE_JOB_COMPLETED_ACTION = true;
 
-export const MARK_COMPLETE_USE_COMPLETE_VISIT_SCREEN = false;
+export const MARK_COMPLETE_USE_COMPLETE_VISIT_SCREEN = true;
 
 /** When true (and `__DEV__`), Home shows "Preview complete + invoice". Components stay in repo. */
-export const MARK_COMPLETE_SHOW_COMPLETE_VISIT_DESIGN_PREVIEW = false;
+export const MARK_COMPLETE_SHOW_COMPLETE_VISIT_DESIGN_PREVIEW = true;

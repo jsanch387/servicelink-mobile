@@ -71,6 +71,8 @@ const mockMarkCompleteFlow = {
   openSheet: jest.fn(),
   closeSheet: jest.fn(),
   preview: null,
+  completeVisitModel: null,
+  useCompleteVisitScreen: true,
   isLoadingPreview: false,
   previewError: null,
   confirmComplete: jest.fn(),

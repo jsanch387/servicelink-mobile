@@ -10,7 +10,14 @@ export const JOB_STATUS = Object.freeze({
 export const BOOKING_ACTION = Object.freeze({
   ON_THE_WAY: 'on_the_way',
   JOB_STARTED: 'job_started',
+  WORK_FINISHED: 'work_finished',
   JOB_COMPLETED: 'job_completed',
+});
+
+/** `bookings.work_handoff_status` while `job_status = in_progress`. */
+export const WORK_HANDOFF_STATUS = Object.freeze({
+  NOTIFIED: 'notified',
+  SKIPPED: 'skipped',
 });
 
 /**
@@ -63,4 +70,28 @@ export function isOnTheWayActionAvailable(booking) {
  */
 export function isOnTheWayActionDone(booking) {
   return normalizeJobStatus(booking?.job_status) !== JOB_STATUS.NOT_STARTED;
+}
+
+/**
+ * @param {string | null | undefined} raw
+ * @returns {'notified' | 'skipped' | null}
+ */
+export function normalizeWorkHandoffStatus(raw) {
+  const value = String(raw ?? '')
+    .trim()
+    .toLowerCase();
+  if (value === WORK_HANDOFF_STATUS.NOTIFIED || value === WORK_HANDOFF_STATUS.SKIPPED) {
+    return value;
+  }
+  return null;
+}
+
+/**
+ * Owner completed Done/Skip while job is in progress.
+ *
+ * @param {string | null | undefined} workHandoffStatus
+ * @returns {boolean}
+ */
+export function isWorkHandoffDone(workHandoffStatus) {
+  return normalizeWorkHandoffStatus(workHandoffStatus) != null;
 }

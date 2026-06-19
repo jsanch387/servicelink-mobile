@@ -65,7 +65,7 @@ export function useBookingAction(businessId) {
   }, [cooldownUntil]);
 
   const patchJobStatusInCache = useCallback(
-    (bookingId, jobStatus, bookingStatus = null) => {
+    (bookingId, jobStatus, bookingStatus = null, workHandoffStatus = undefined) => {
       if (!bookingId?.trim() || !jobStatus?.trim()) {
         return;
       }
@@ -77,8 +77,15 @@ export function useBookingAction(businessId) {
         bookingId,
         jobStatus,
         bookingStatus,
+        workHandoffStatus,
       );
-      patchBookingJobStatusInDetailsCache(queryClient, bookingId, jobStatus, bookingStatus);
+      patchBookingJobStatusInDetailsCache(
+        queryClient,
+        bookingId,
+        jobStatus,
+        bookingStatus,
+        workHandoffStatus,
+      );
     },
     [businessId, queryClient],
   );
@@ -131,12 +138,16 @@ export function useBookingAction(businessId) {
   );
 
   const mutation = useMutation({
-    mutationFn: ({ bookingId, action }) => postBookingAction(token, bookingId, action),
-    onSuccess: async (res, { bookingId, action }) => {
+    mutationFn: ({ bookingId, action, notify }) =>
+      postBookingAction(token, bookingId, action, { notify }),
+    onSuccess: async (res, { bookingId, action, notify }) => {
       if (res.ok) {
-        patchJobStatusInCache(bookingId, res.jobStatus, res.bookingStatus);
+        patchJobStatusInCache(bookingId, res.jobStatus, res.bookingStatus, res.workHandoffStatus);
         void invalidateBookingCachesAfterAction(queryClient, bookingId);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        if (action === BOOKING_ACTION.WORK_FINISHED && notify !== true) {
+          return;
+        }
         showBookingActionToasts(toast, action, res);
         return;
       }
@@ -161,11 +172,11 @@ export function useBookingAction(businessId) {
   const isCoolingDown = cooldownUntil > Date.now();
 
   const runAction = useCallback(
-    (bookingId, action) => {
+    (bookingId, action, notify) => {
       if (!bookingId || !action || mutation.isPending || isCoolingDown) {
         return;
       }
-      mutation.mutate({ bookingId, action });
+      mutation.mutate({ bookingId, action, notify });
     },
     [mutation, isCoolingDown],
   );
@@ -200,11 +211,22 @@ export function useBookingAction(businessId) {
     [isCoolingDown, isJobCompletedDone, mutation.isPending, runAction],
   );
 
+  const workFinished = useCallback(
+    (bookingId, notify) => {
+      if (!bookingId || mutation.isPending || isCoolingDown) {
+        return;
+      }
+      runAction(bookingId, BOOKING_ACTION.WORK_FINISHED, notify === true);
+    },
+    [isCoolingDown, mutation.isPending, runAction],
+  );
+
   return {
     runAction,
     notifyOnTheWay,
     startJob,
     completeJob,
+    workFinished,
     isSending: mutation.isPending,
     disabled: mutation.isPending || isCoolingDown,
     isOnTheWayDone,

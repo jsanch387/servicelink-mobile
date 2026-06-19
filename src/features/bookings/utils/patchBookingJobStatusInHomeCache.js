@@ -8,6 +8,7 @@ import { homeBookingsUpcomingQueryKey } from '../../home/queryKeys';
  * @param {string} bookingId
  * @param {string} jobStatus
  * @param {string | null | undefined} [bookingStatus]
+ * @param {string | null | undefined} [workHandoffStatus]
  */
 export function patchBookingJobStatusInHomeCache(
   queryClient,
@@ -15,6 +16,7 @@ export function patchBookingJobStatusInHomeCache(
   bookingId,
   jobStatus,
   bookingStatus,
+  workHandoffStatus,
 ) {
   if (!businessId?.trim() || !bookingId?.trim() || !jobStatus?.trim()) {
     return;
@@ -29,6 +31,7 @@ export function patchBookingJobStatusInHomeCache(
         ...old.next,
         job_status: jobStatus,
         ...(bookingStatus?.trim() ? { status: bookingStatus.trim() } : {}),
+        ...(workHandoffStatus !== undefined ? { work_handoff_status: workHandoffStatus } : {}),
       },
     };
   });

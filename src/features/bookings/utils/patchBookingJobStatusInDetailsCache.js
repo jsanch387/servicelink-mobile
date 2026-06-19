@@ -7,12 +7,14 @@ import { bookingsDetailsQueryKey } from '../queryKeys';
  * @param {string} bookingId
  * @param {string} jobStatus
  * @param {string | null | undefined} [bookingStatus]
+ * @param {string | null | undefined} [workHandoffStatus]
  */
 export function patchBookingJobStatusInDetailsCache(
   queryClient,
   bookingId,
   jobStatus,
   bookingStatus,
+  workHandoffStatus,
 ) {
   if (!bookingId?.trim() || !jobStatus?.trim()) {
     return;
@@ -25,6 +27,7 @@ export function patchBookingJobStatusInDetailsCache(
       ...old,
       job_status: jobStatus,
       ...(bookingStatus?.trim() ? { status: bookingStatus.trim() } : {}),
+      ...(workHandoffStatus !== undefined ? { work_handoff_status: workHandoffStatus } : {}),
     };
   });
 }

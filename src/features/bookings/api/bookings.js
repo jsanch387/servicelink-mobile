@@ -22,11 +22,12 @@ import { localYyyyMmDd, parseBookingStartLocalMs } from '../../home/utils/bookin
  * @property {string | null} customer_vehicle_model
  * @property {number | null} [duration_minutes]
  * @property {string} [job_status] `not_started` | `on_the_way` | `in_progress` | `completed`
+ * @property {string | null} [work_handoff_status] `notified` | `skipped` while in progress
  */
 
 /** Keep in sync with `formatBookingAddressForMaps` in `home/utils/bookingAddress.js`. */
 export const BOOKING_LIST_SELECT =
-  'id, scheduled_date, start_time, status, job_status, service_name, customer_name, customer_phone, customer_email, customer_id, customer_street_address, customer_unit_apt, customer_city, customer_state, customer_zip, customer_vehicle_year, customer_vehicle_make, customer_vehicle_model, duration_minutes';
+  'id, scheduled_date, start_time, status, job_status, work_handoff_status, service_name, customer_name, customer_phone, customer_email, customer_id, customer_street_address, customer_unit_apt, customer_city, customer_state, customer_zip, customer_vehicle_year, customer_vehicle_make, customer_vehicle_model, duration_minutes';
 
 /** Planner day view — same columns as list (includes `duration_minutes`). */
 export const PLANNER_BOOKING_SELECT = BOOKING_LIST_SELECT;

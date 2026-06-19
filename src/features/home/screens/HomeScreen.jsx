@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppShellGlow, AppText } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { FREE_TIER_BOOKINGS_LIMIT, freeTierBookingsLimitCopy } from '../../bookings/constants';
-import { BookingCompleteInvoiceDesignSheet } from '../../bookings/booking-details/components/BookingCompleteInvoiceDesignSheet';
+import { BookingCompleteVisitSheet } from '../../bookings/booking-details/components/BookingCompleteInvoiceDesignSheet';
 import { MARK_COMPLETE_SHOW_COMPLETE_VISIT_DESIGN_PREVIEW } from '../../bookings/booking-details/constants/markCompleteFeatureFlags';
 import { BookingMarkCompleteSheet } from '../../bookings/booking-details/components/BookingMarkCompleteSheet';
 import { useMarkBookingCompleteFlow } from '../../bookings/booking-details/hooks/useMarkBookingCompleteFlow';
@@ -19,12 +19,15 @@ import { HomeErrorBanner } from '../components/HomeErrorBanner';
 import { LinkStatsSection } from '../components/LinkStatsSection';
 import { NextUpCard } from '../components/NextUpCard';
 import { RestOfTodayCard } from '../components/restOfToday';
+import { NEXT_UP_LIFECYCLE_DESIGN_PREVIEW } from '../constants/nextUpDesignFlags';
+import { useNextUpLifecycleDesignPreview } from '../hooks/useNextUpLifecycleDesignPreview';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
 import { useLinkViewsAnalytics } from '../hooks/useLinkViewsAnalytics';
 import { computeHomeErrorPresentation } from '../utils/homeErrorPresentation';
 import {
   resolveNextUpCardActionMode,
   resolveNextUpSectionTitle,
+  resolveNextUpWorkingPhase,
 } from '../utils/resolveNextUpCardActions';
 import { normalizeBusinessSlug } from '../utils/bookingLink';
 import { useTheme } from '../../../theme';
@@ -80,8 +83,11 @@ export function HomeScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [invoiceDesignSheetVisible, setInvoiceDesignSheetVisible] = useState(false);
+  const lifecycleDesignPreview = useNextUpLifecycleDesignPreview();
   const showCompleteVisitDesignPreview =
     typeof __DEV__ !== 'undefined' && __DEV__ && MARK_COMPLETE_SHOW_COMPLETE_VISIT_DESIGN_PREVIEW;
+  const showLifecycleDesignPreview =
+    typeof __DEV__ !== 'undefined' && __DEV__ && NEXT_UP_LIFECYCLE_DESIGN_PREVIEW;
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -104,15 +110,23 @@ export function HomeScreen() {
   const sectionLoading = dashboard.isPendingBusiness || dashboard.isPendingBookings;
 
   const nextUpActionMode = useMemo(() => {
-    if (!dashboard.nextBooking) {
+    const booking = lifecycleDesignPreview.isActive
+      ? lifecycleDesignPreview.booking
+      : dashboard.nextBooking;
+    if (!booking) {
       return dashboard.spotlightMode === 'in_progress' ? 'working' : 'upcoming';
     }
-    const fromStatus = resolveNextUpCardActionMode(dashboard.nextBooking.job_status);
+    const fromStatus = resolveNextUpCardActionMode(booking.job_status);
     if (fromStatus !== 'upcoming') {
       return fromStatus;
     }
     return dashboard.spotlightMode === 'in_progress' ? 'working' : 'upcoming';
-  }, [dashboard.nextBooking, dashboard.spotlightMode]);
+  }, [
+    dashboard.nextBooking,
+    dashboard.spotlightMode,
+    lifecycleDesignPreview.booking,
+    lifecycleDesignPreview.isActive,
+  ]);
 
   const nextUpSectionTitle = useMemo(
     () => resolveNextUpSectionTitle(nextUpActionMode),
@@ -245,6 +259,13 @@ export function HomeScreen() {
           fontWeight: '600',
           letterSpacing: -0.1,
         },
+        designPreviewBtnActive: {
+          backgroundColor: colors.buttonPrimaryBg,
+          borderColor: colors.buttonPrimaryBg,
+        },
+        designPreviewBtnTextActive: {
+          color: colors.buttonPrimaryText,
+        },
       }),
     [colors, isDark, scrollBottomPad],
   );
@@ -302,11 +323,43 @@ export function HomeScreen() {
   }, [navigation]);
 
   const handleNextUpMarkComplete = useCallback(() => {
+    if (lifecycleDesignPreview.isActive) {
+      lifecycleDesignPreview.openCompleteSheet();
+      return;
+    }
     if (!nextBookingId) {
       return;
     }
     markCompleteFlow.openSheet();
-  }, [markCompleteFlow, nextBookingId]);
+  }, [lifecycleDesignPreview, markCompleteFlow, nextBookingId]);
+
+  const effectiveNextBooking = lifecycleDesignPreview.isActive
+    ? lifecycleDesignPreview.booking
+    : dashboard.nextBooking;
+  const effectiveNextSubtitle = lifecycleDesignPreview.isActive
+    ? lifecycleDesignPreview.subtitle
+    : dashboard.nextSubtitle;
+  const effectiveSpotlightMode = lifecycleDesignPreview.isActive
+    ? 'upcoming'
+    : dashboard.spotlightMode;
+  const nextUpWorkingPhase = useMemo(() => {
+    if (lifecycleDesignPreview.isActive) {
+      return lifecycleDesignPreview.workingPhase;
+    }
+    if (!dashboard.nextBooking) {
+      return 'ready';
+    }
+    return (
+      resolveNextUpWorkingPhase(
+        dashboard.nextBooking.job_status,
+        dashboard.nextBooking.work_handoff_status,
+      ) ?? 'ready'
+    );
+  }, [dashboard.nextBooking, lifecycleDesignPreview.isActive, lifecycleDesignPreview.workingPhase]);
+
+  const nextUpMarkCompleteEnabled = lifecycleDesignPreview.isActive
+    ? lifecycleDesignPreview.workingPhase === 'ready'
+    : nextUpActionMode === 'working' && Boolean(nextBookingId) && nextUpWorkingPhase === 'ready';
 
   const handleConfirmMarkComplete = useCallback(async () => {
     try {
@@ -321,17 +374,34 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.root}>
-      <BookingMarkCompleteSheet
-        isLoadingPreview={markCompleteFlow.isLoadingPreview}
-        isSubmitting={markCompleteFlow.isConfirming}
-        preview={markCompleteFlow.preview}
-        previewError={markCompleteFlow.previewError}
-        visible={markCompleteFlow.sheetVisible}
-        onConfirm={() => void handleConfirmMarkComplete()}
-        onRequestClose={markCompleteFlow.closeSheet}
-      />
+      {markCompleteFlow.useCompleteVisitScreen ? (
+        <BookingCompleteVisitSheet
+          isLoading={markCompleteFlow.isLoadingPreview}
+          loadError={markCompleteFlow.previewError}
+          visitModel={markCompleteFlow.completeVisitModel}
+          visible={markCompleteFlow.sheetVisible}
+          onComplete={handleConfirmMarkComplete}
+          onRequestClose={markCompleteFlow.closeSheet}
+        />
+      ) : (
+        <BookingMarkCompleteSheet
+          isLoadingPreview={markCompleteFlow.isLoadingPreview}
+          isSubmitting={markCompleteFlow.isConfirming}
+          preview={markCompleteFlow.preview}
+          previewError={markCompleteFlow.previewError}
+          visible={markCompleteFlow.sheetVisible}
+          onConfirm={() => void handleConfirmMarkComplete()}
+          onRequestClose={markCompleteFlow.closeSheet}
+        />
+      )}
+      {lifecycleDesignPreview.isActive ? (
+        <BookingCompleteVisitSheet
+          visible={lifecycleDesignPreview.completeSheetVisible}
+          onRequestClose={lifecycleDesignPreview.closeCompleteSheet}
+        />
+      ) : null}
       {showCompleteVisitDesignPreview ? (
-        <BookingCompleteInvoiceDesignSheet
+        <BookingCompleteVisitSheet
           visible={invoiceDesignSheetVisible}
           onRequestClose={() => setInvoiceDesignSheetVisible(false)}
         />
@@ -371,17 +441,59 @@ export function HomeScreen() {
           </Pressable>
         </View>
         <View style={styles.headerDivider} />
-        {showCompleteVisitDesignPreview ? (
+        {showLifecycleDesignPreview || showCompleteVisitDesignPreview ? (
           <View style={styles.designPreviewRow}>
-            <Pressable
-              accessibilityHint="Opens a design preview of the complete visit and invoice sheet"
-              accessibilityLabel="Preview complete invoice modal"
-              accessibilityRole="button"
-              style={styles.designPreviewBtn}
-              onPress={() => setInvoiceDesignSheetVisible(true)}
-            >
-              <AppText style={styles.designPreviewBtnText}>Preview complete + invoice</AppText>
-            </Pressable>
+            {showLifecycleDesignPreview ? (
+              <>
+                <Pressable
+                  accessibilityHint="Starts a mock Next Up card at the first job step"
+                  accessibilityLabel="Preview job lifecycle"
+                  accessibilityRole="button"
+                  style={[
+                    styles.designPreviewBtn,
+                    lifecycleDesignPreview.isActive && styles.designPreviewBtnActive,
+                  ]}
+                  onPress={() => {
+                    if (lifecycleDesignPreview.isActive) {
+                      lifecycleDesignPreview.stop();
+                      return;
+                    }
+                    lifecycleDesignPreview.start();
+                  }}
+                >
+                  <AppText
+                    style={[
+                      styles.designPreviewBtnText,
+                      lifecycleDesignPreview.isActive && styles.designPreviewBtnTextActive,
+                    ]}
+                  >
+                    {lifecycleDesignPreview.isActive ? 'Exit job preview' : 'Preview job flow'}
+                  </AppText>
+                </Pressable>
+                {lifecycleDesignPreview.isActive ? (
+                  <Pressable
+                    accessibilityHint="Restarts the mock job flow from On my way"
+                    accessibilityLabel="Reset job preview"
+                    accessibilityRole="button"
+                    style={styles.designPreviewBtn}
+                    onPress={lifecycleDesignPreview.reset}
+                  >
+                    <AppText style={styles.designPreviewBtnText}>Reset flow</AppText>
+                  </Pressable>
+                ) : null}
+              </>
+            ) : null}
+            {showCompleteVisitDesignPreview ? (
+              <Pressable
+                accessibilityHint="Opens a design preview of the complete visit and invoice sheet"
+                accessibilityLabel="Preview complete invoice modal"
+                accessibilityRole="button"
+                style={styles.designPreviewBtn}
+                onPress={() => setInvoiceDesignSheetVisible(true)}
+              >
+                <AppText style={styles.designPreviewBtnText}>Preview complete + invoice</AppText>
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
         {showFreeBookingsUsage ? (
@@ -395,17 +507,29 @@ export function HomeScreen() {
           {nextUpSectionTitle}
         </AppText>
         <NextUpCard
-          bookingsError={homeErrors.nextUpBookingsError}
-          businessError={homeErrors.nextUpBusinessError}
-          businessId={dashboard.business?.id ?? null}
-          isLoading={sectionLoading}
-          markCompleteLoading={markCompleteFlow.isConfirming}
-          nextBooking={dashboard.nextBooking}
-          onMarkComplete={
-            nextUpActionMode === 'working' && nextBookingId ? handleNextUpMarkComplete : undefined
+          actionHandlers={
+            lifecycleDesignPreview.isActive ? lifecycleDesignPreview.actionHandlers : null
           }
-          spotlightMode={dashboard.spotlightMode}
-          subtitle={dashboard.nextSubtitle}
+          bookingsError={lifecycleDesignPreview.isActive ? null : homeErrors.nextUpBookingsError}
+          businessError={lifecycleDesignPreview.isActive ? null : homeErrors.nextUpBusinessError}
+          businessId={dashboard.business?.id ?? null}
+          isLoading={lifecycleDesignPreview.isActive ? false : sectionLoading}
+          markCompleteLoading={
+            lifecycleDesignPreview.isActive ? false : markCompleteFlow.isConfirming
+          }
+          nextBooking={effectiveNextBooking}
+          onMarkComplete={nextUpMarkCompleteEnabled ? handleNextUpMarkComplete : undefined}
+          onNotifyWorkFinished={
+            lifecycleDesignPreview.isActive
+              ? lifecycleDesignPreview.requestWorkFinishedNotify
+              : undefined
+          }
+          onSkipWorkNotify={
+            lifecycleDesignPreview.isActive ? lifecycleDesignPreview.skipWorkNotify : undefined
+          }
+          spotlightMode={effectiveSpotlightMode}
+          subtitle={effectiveNextSubtitle}
+          workingPhase={nextUpWorkingPhase}
         />
 
         <AppText style={styles.sectionLabel}>Link visits</AppText>

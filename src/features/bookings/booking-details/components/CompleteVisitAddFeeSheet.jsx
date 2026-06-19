@@ -9,9 +9,18 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button, TextField } from '../../../../components/ui';
+import { AppText, AppTextInput, Button, TextField } from '../../../../components/ui';
 import { useModalFadeBackdropSlideSheet } from '../../../../components/ui/useModalFadeBackdropSlideSheet';
 import { useTheme } from '../../../../theme';
+
+function sanitizeFeeAmountInput(text) {
+  const cleaned = String(text ?? '').replace(/[^0-9.]/g, '');
+  const parts = cleaned.split('.');
+  if (parts.length <= 1) {
+    return parts[0] ?? '';
+  }
+  return `${parts[0]}.${parts.slice(1).join('').slice(0, 2)}`;
+}
 
 /**
  * Slides up over the complete-visit full screen for adding a fee line item.
@@ -107,7 +116,36 @@ export function CompleteVisitAddFeeSheet({ onClose, onAdd }) {
           marginBottom: 16,
         },
         fields: {
-          gap: 12,
+          gap: 8,
+        },
+        fieldFlush: {
+          marginBottom: 0,
+        },
+        amountField: {
+          gap: 8,
+        },
+        amountLabel: {
+          fontSize: 14,
+          fontWeight: '500',
+        },
+        amountInputRow: {
+          alignItems: 'center',
+          borderRadius: 14,
+          borderWidth: 1.5,
+          flexDirection: 'row',
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+        },
+        amountPrefix: {
+          fontSize: 16,
+          fontWeight: '600',
+          marginRight: 4,
+        },
+        amountInput: {
+          flex: 1,
+          fontSize: 16,
+          minWidth: 0,
+          padding: 0,
         },
         footer: {
           flexDirection: 'row',
@@ -167,23 +205,39 @@ export function CompleteVisitAddFeeSheet({ onClose, onAdd }) {
         >
           <AppText style={styles.sheetTitle}>Add fee</AppText>
           <AppText style={styles.sheetHint}>
-            Extra charge for this visit — shows on the breakdown.
+            Extra charge for this service — shows on the breakdown.
           </AppText>
           <View style={styles.headerDivider} />
           <View style={styles.fields}>
             <TextField
+              containerStyle={styles.fieldFlush}
               label="Description"
               placeholder="Extra soil removal"
               value={label}
               onChangeText={setLabel}
             />
-            <TextField
-              keyboardType="decimal-pad"
-              label="Amount"
-              placeholder="0.00"
-              value={amount}
-              onChangeText={setAmount}
-            />
+            <View style={styles.amountField}>
+              <AppText style={[styles.amountLabel, { color: colors.textMuted }]}>Amount</AppText>
+              <View
+                style={[
+                  styles.amountInputRow,
+                  {
+                    backgroundColor: colors.inputBg,
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+              >
+                <AppText style={[styles.amountPrefix, { color: colors.text }]}>$</AppText>
+                <AppTextInput
+                  keyboardType="decimal-pad"
+                  placeholder="0.00"
+                  placeholderTextColor={colors.placeholder}
+                  style={[styles.amountInput, { color: colors.inputText }]}
+                  value={amount}
+                  onChangeText={(text) => setAmount(sanitizeFeeAmountInput(text))}
+                />
+              </View>
+            </View>
           </View>
           <View style={styles.footer}>
             <View style={styles.footerGrow}>

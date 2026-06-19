@@ -82,17 +82,22 @@ export function SlideToStartJob({
   busyRef.current = busy;
 
   const resetThumb = useCallback(() => {
-    Animated.timing(dragX, {
-      toValue: 0,
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
-    Animated.timing(labelOpacity, {
-      toValue: 1,
-      duration: 180,
-      useNativeDriver: true,
-    }).start();
+    if (enableMotion) {
+      Animated.timing(dragX, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+      Animated.timing(labelOpacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      dragX.setValue(0);
+      labelOpacity.setValue(1);
+    }
     lastHapticStep.current = -1;
   }, [dragX, labelOpacity]);
 
@@ -106,12 +111,16 @@ export function SlideToStartJob({
       Vibration.vibrate(42);
     }
     onComplete?.();
-    Animated.timing(dragX, {
-      toValue: maxDragRef.current,
-      duration: 160,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
+    if (enableMotion) {
+      Animated.timing(dragX, {
+        toValue: maxDragRef.current,
+        duration: 160,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    } else {
+      dragX.setValue(maxDragRef.current);
+    }
   }, [dragX, onComplete]);
 
   const maybeHapticTick = useCallback((progress) => {

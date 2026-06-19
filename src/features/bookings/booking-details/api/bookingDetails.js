@@ -23,6 +23,7 @@ export const BOOKING_DETAILS_SELECT = [
   'customer_vehicle_model',
   'customer_notes',
   'job_status',
+  'work_handoff_status',
 ].join(', ');
 
 const BOOKING_PAYMENTS_SELECT = [

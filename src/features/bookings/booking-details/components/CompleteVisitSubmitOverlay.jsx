@@ -16,8 +16,8 @@ import { useTheme } from '../../../../theme';
 const enableMotion = typeof process !== 'undefined' && process.env.NODE_ENV !== 'test';
 
 const PENDING_MESSAGES = [
-  'Completing visit',
-  'Sending invoice',
+  'Completing',
+  'Sending receipt',
   'Sending review link',
   'Updating booking',
 ];
@@ -36,7 +36,7 @@ const PENDING_MESSAGE_MS = 1200;
  */
 export function CompleteVisitSubmitOverlay({
   phase,
-  pendingTitle = 'Completing visit',
+  pendingTitle = 'Completing',
   successTitle,
   successDetail,
   bottomInset = 0,
@@ -110,7 +110,7 @@ export function CompleteVisitSubmitOverlay({
     return (
       <View style={[styles.root, overlayInsetStyle, { backgroundColor: colors.shell }]}>
         <View style={styles.pendingWrap}>
-          <EchoBarsLoader accessibilityLabel="Completing visit" />
+          <EchoBarsLoader accessibilityLabel="Completing" />
           <AppText style={[styles.pendingTitle, { color: colors.text }]}>
             {activePendingTitle}
           </AppText>
@@ -123,7 +123,7 @@ export function CompleteVisitSubmitOverlay({
     <View style={[styles.successRoot, overlayInsetStyle, { backgroundColor: colors.shell }]}>
       <View style={styles.successWrap}>
         <Animated.View
-          accessibilityLabel="Visit completed successfully"
+          accessibilityLabel="Completed successfully"
           accessibilityRole="image"
           style={[
             styles.iconRing,

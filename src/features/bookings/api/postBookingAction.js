@@ -91,6 +91,7 @@ function readEmailOutcome(payload) {
  * @param {string | null | undefined} accessToken
  * @param {string} bookingId
  * @param {string} action {@link BOOKING_ACTION} value
+ * @param {{ notify?: boolean }} [options] Required semantics for `work_finished` — `notify: true` (Done) or `false` (Skip).
  * @returns {Promise<
  *   | {
  *       ok: true;
@@ -98,6 +99,7 @@ function readEmailOutcome(payload) {
  *       action: string;
  *       jobStatus: string;
  *       bookingStatus: string | null;
+ *       workHandoffStatus: string | null;
  *       smsSent: boolean;
  *       smsReason: string | null;
  *       emailSent: boolean;
@@ -107,7 +109,7 @@ function readEmailOutcome(payload) {
  *   | { ok: false; error: Error; httpStatus: number; retryAfterSec?: number; requestId?: string }
  * >}
  */
-export async function postBookingAction(accessToken, bookingId, action) {
+export async function postBookingAction(accessToken, bookingId, action, options = {}) {
   const origin = resolveStripeMobileCheckoutOrigin();
   const httpsErr = productionWebApiHttpsGuard(origin);
   if (httpsErr) {
@@ -125,6 +127,10 @@ export async function postBookingAction(accessToken, bookingId, action) {
 
   const requestId = createRequestId();
   const encodedId = encodeURIComponent(bookingId.trim());
+  const requestBody =
+    action === BOOKING_ACTION.WORK_FINISHED
+      ? { action, notify: options.notify === true }
+      : { action };
 
   let res;
   try {
@@ -136,7 +142,7 @@ export async function postBookingAction(accessToken, bookingId, action) {
         'Content-Type': 'application/json',
         'X-Request-ID': requestId,
       },
-      body: JSON.stringify({ action }),
+      body: JSON.stringify(requestBody),
     });
   } catch (err) {
     return {
@@ -183,6 +189,12 @@ export async function postBookingAction(accessToken, bookingId, action) {
         : typeof payload?.booking_status === 'string'
           ? payload.booking_status
           : null;
+    const workHandoffStatus =
+      typeof payload?.workHandoffStatus === 'string'
+        ? payload.workHandoffStatus
+        : typeof payload?.work_handoff_status === 'string'
+          ? payload.work_handoff_status
+          : null;
 
     return {
       ok: true,
@@ -190,6 +202,7 @@ export async function postBookingAction(accessToken, bookingId, action) {
       action: resolvedAction,
       jobStatus,
       bookingStatus,
+      workHandoffStatus,
       smsSent: sms.sent,
       smsReason: sms.reason,
       emailSent: email.sent,

@@ -17,6 +17,7 @@ import { useTheme } from '../../../theme';
 import { phoneForSmsUri } from '../../../utils/phone';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BookingActionsSection } from '../booking-details/components/BookingActionsSection';
+import { BookingCompleteVisitSheet } from '../booking-details/components/BookingCompleteInvoiceDesignSheet';
 import { BookingMarkCompleteSheet } from '../booking-details/components/BookingMarkCompleteSheet';
 import { BookingPaymentSection } from '../booking-details/components/BookingPaymentSection';
 import { BookingDetailsStatusBanner } from '../booking-details/components/BookingDetailsStatusBanner';
@@ -274,15 +275,26 @@ export function BookingDetailsScreen({ route }) {
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
-      <BookingMarkCompleteSheet
-        isLoadingPreview={markCompleteFlow.isLoadingPreview}
-        isSubmitting={markCompleteFlow.isConfirming}
-        preview={markCompleteFlow.preview}
-        previewError={markCompleteFlow.previewError}
-        visible={markCompleteFlow.sheetVisible}
-        onConfirm={() => void handleConfirmMarkCompleted()}
-        onRequestClose={markCompleteFlow.closeSheet}
-      />
+      {markCompleteFlow.useCompleteVisitScreen ? (
+        <BookingCompleteVisitSheet
+          isLoading={markCompleteFlow.isLoadingPreview}
+          loadError={markCompleteFlow.previewError}
+          visitModel={markCompleteFlow.completeVisitModel}
+          visible={markCompleteFlow.sheetVisible}
+          onComplete={handleConfirmMarkCompleted}
+          onRequestClose={markCompleteFlow.closeSheet}
+        />
+      ) : (
+        <BookingMarkCompleteSheet
+          isLoadingPreview={markCompleteFlow.isLoadingPreview}
+          isSubmitting={markCompleteFlow.isConfirming}
+          preview={markCompleteFlow.preview}
+          previewError={markCompleteFlow.previewError}
+          visible={markCompleteFlow.sheetVisible}
+          onConfirm={() => void handleConfirmMarkCompleted()}
+          onRequestClose={markCompleteFlow.closeSheet}
+        />
+      )}
       <BookingRescheduleSheet
         initialStartMs={Number.isFinite(bookingStartMs) ? bookingStartMs : undefined}
         isSubmitting={bookingActions.isReschedulingBooking}

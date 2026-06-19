@@ -13,7 +13,9 @@ import {
  * @param {number} p.step 0-based index into {@link CREATE_APPOINTMENT_STEP_META}
  * @param {string | null} p.selectedServiceId
  * @param {string | null} p.selectedPricingId
+ * @param {object | null} [p.selectedPricingOption] resolved tier from current options list
  * @param {boolean} [p.pricingSkipped] when true, pricing step is bypassed (treat as satisfied)
+ * @param {boolean} [p.priceOptionsLoading] while Pro tiers load, block Continue on pricing step
  * @param {boolean} p.acceptBookings
  * @param {boolean} p.scheduleLoading
  * @param {string | null} p.selectedDateKey
@@ -28,7 +30,9 @@ export function canContinueCreateAppointmentStep({
   step,
   selectedServiceId,
   selectedPricingId,
+  selectedPricingOption = null,
   pricingSkipped = false,
+  priceOptionsLoading = false,
   acceptBookings,
   scheduleLoading,
   selectedDateKey,
@@ -42,7 +46,8 @@ export function canContinueCreateAppointmentStep({
   if (step === 0) return Boolean(selectedServiceId);
   if (step === 1) {
     if (pricingSkipped) return true;
-    return Boolean(selectedPricingId);
+    if (priceOptionsLoading) return false;
+    return Boolean(selectedPricingOption);
   }
   if (step === 2) return true;
   if (step === 3) {

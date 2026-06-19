@@ -72,6 +72,7 @@ describe('canContinueCreateAppointmentStep', () => {
         step: 1,
         selectedServiceId: 's',
         selectedPricingId: null,
+        selectedPricingOption: null,
         pricingSkipped: false,
         acceptBookings: true,
         scheduleLoading: false,
@@ -89,6 +90,7 @@ describe('canContinueCreateAppointmentStep', () => {
         step: 1,
         selectedServiceId: 's',
         selectedPricingId: null,
+        selectedPricingOption: null,
         pricingSkipped: true,
         acceptBookings: true,
         scheduleLoading: false,
@@ -100,6 +102,64 @@ describe('canContinueCreateAppointmentStep', () => {
         vehicle: {},
       }),
     ).toBe(true);
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: 1,
+        selectedServiceId: 's',
+        selectedPricingId: 'stale-base-id',
+        selectedPricingOption: null,
+        pricingSkipped: false,
+        acceptBookings: true,
+        scheduleLoading: false,
+        selectedDateKey: null,
+        selectedTime: null,
+        timeSlots: [],
+        customer: {},
+        address: {},
+        vehicle: {},
+      }),
+    ).toBe(false);
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: 1,
+        selectedServiceId: 's',
+        selectedPricingId: 'p1',
+        selectedPricingOption: { id: 'p1', label: 'Basic' },
+        pricingSkipped: false,
+        acceptBookings: true,
+        scheduleLoading: false,
+        selectedDateKey: null,
+        selectedTime: null,
+        timeSlots: [],
+        customer: {},
+        address: {},
+        vehicle: {},
+      }),
+    ).toBe(true);
+  });
+
+  it('step 1 blocks Continue while price options load', () => {
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: 1,
+        selectedServiceId: 's',
+        selectedPricingId: 'p1',
+        selectedPricingOption: { id: 'p1', label: 'Basic' },
+        pricingSkipped: false,
+        priceOptionsLoading: true,
+        acceptBookings: true,
+        scheduleLoading: false,
+        selectedDateKey: null,
+        selectedTime: null,
+        timeSlots: [],
+        customer: {},
+        address: {},
+        vehicle: {},
+      }),
+    ).toBe(false);
   });
 
   it('step 3 requires slot in timeSlots', () => {

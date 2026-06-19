@@ -28,8 +28,7 @@ export function getBookingMarkCompleteSheetCopy(modalCopy) {
       title: 'Complete this visit?',
       highlightVariant: 'review_sms',
       highlightTitle: "We'll text your customer",
-      highlightBody:
-        'They’ll get a thank-you message with a link to leave a review. Receipt and payment options coming soon.',
+      highlightBody: 'They’ll get a text with their receipt and a link to leave a review.',
       body: 'This visit will be marked complete on your calendar.',
       confirmLabel: BOOKING_MARK_COMPLETE_CONFIRM_LABEL,
     };
@@ -40,8 +39,7 @@ export function getBookingMarkCompleteSheetCopy(modalCopy) {
       title: 'Complete this visit?',
       highlightVariant: 'review_email',
       highlightTitle: "We'll email your customer",
-      highlightBody:
-        'They’ll get a thank-you email with a link to leave a review. Receipt and payment options coming soon.',
+      highlightBody: 'They’ll get an email with their receipt and a link to leave a review.',
       body: 'This visit will be marked complete on your calendar.',
       confirmLabel: BOOKING_MARK_COMPLETE_CONFIRM_LABEL,
     };

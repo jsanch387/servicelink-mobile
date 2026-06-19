@@ -20,4 +20,24 @@ describe('patchBookingJobStatusInDetailsCache', () => {
       job_status: 'on_the_way',
     });
   });
+
+  it('sets work_handoff_status when provided', () => {
+    const queryClient = new QueryClient();
+    const bookingId = 'book-1';
+    queryClient.setQueryData(bookingsDetailsQueryKey(bookingId), {
+      id: bookingId,
+      status: 'confirmed',
+      job_status: 'in_progress',
+      work_handoff_status: null,
+    });
+
+    patchBookingJobStatusInDetailsCache(queryClient, bookingId, 'in_progress', null, 'notified');
+
+    expect(queryClient.getQueryData(bookingsDetailsQueryKey(bookingId))).toEqual({
+      id: bookingId,
+      status: 'confirmed',
+      job_status: 'in_progress',
+      work_handoff_status: 'notified',
+    });
+  });
 });

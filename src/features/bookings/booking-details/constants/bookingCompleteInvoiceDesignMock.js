@@ -1,3 +1,5 @@
+import { getCompleteVisitFollowUpMessage } from './completeVisitNotificationCopy';
+
 /** Static mock data for complete-visit design previews (no API). */
 
 export const BOOKING_COMPLETE_INVOICE_DESIGN_MOCK = {
@@ -12,6 +14,8 @@ export const BOOKING_COMPLETE_INVOICE_DESIGN_MOCK = {
   /** `pay_in_person` | `deposit` | `paid_online` — shapes complete-visit payment UI in design preview. */
   paymentScenario: 'pay_in_person',
   showReviewInvite: true,
+  showReviewEmail: true,
+  showReviewSms: false,
   showInvoiceEmail: true,
 };
 
@@ -34,59 +38,21 @@ export function getCompleteVisitPaidRowLabel(paidOnline, amountDue) {
 
 /**
  * @param {{
- *   customerEmail?: string;
  *   showInvoiceEmail?: boolean;
+ *   showReviewSms?: boolean;
+ *   showReviewEmail?: boolean;
  *   showReviewInvite?: boolean;
  * }} p
- * @returns {{ visible: boolean; email: string | null; message: string }}
+ * @returns {{ visible: boolean; message: string; iconName: string }}
  */
 export function getCompleteVisitFollowUpInfo(p) {
-  const email = String(p.customerEmail ?? '').trim();
-  const sendsInvoice = Boolean(p.showInvoiceEmail);
-  const sendsReview = Boolean(p.showReviewInvite);
-
-  if (!email) {
-    return {
-      visible: true,
-      email: null,
-      message: 'No email on file — nothing will be sent automatically.',
-    };
-  }
-
-  if (sendsInvoice && sendsReview) {
-    return {
-      visible: true,
-      email,
-      message: "They'll get an invoice and a link to leave a review.",
-    };
-  }
-  if (sendsInvoice) {
-    return {
-      visible: true,
-      email,
-      message: "They'll get an invoice.",
-    };
-  }
-  if (sendsReview) {
-    return {
-      visible: true,
-      email,
-      message: "They'll get a link to leave a review.",
-    };
-  }
-
-  return {
-    visible: true,
-    email,
-    message: 'This visit will be marked complete on your calendar.',
-  };
+  return getCompleteVisitFollowUpMessage({
+    showReviewSms: Boolean(p.showReviewSms),
+    showReviewEmail: Boolean(p.showReviewEmail ?? p.showReviewInvite),
+  });
 }
 
 /** @deprecated Use {@link getCompleteVisitFollowUpInfo} */
 export function getCompleteVisitFollowUpCopy(p) {
-  const info = getCompleteVisitFollowUpInfo(p);
-  if (info.email) {
-    return `${info.email} — ${info.message}`;
-  }
-  return info.message;
+  return getCompleteVisitFollowUpInfo(p).message;
 }
