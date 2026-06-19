@@ -122,9 +122,10 @@ X-Request-ID: <uuid>   (optional; mobile sends one)
 
 ### `job_completed` completion notification
 
-- **Not yet reviewed** → review request **SMS-first** (thank-you + review link). If no phone or SMS fails → **review-invite email**. Never both.
-- **Already reviewed** → plain thank-you SMS (if phone exists).
-- **Idempotent:** repeat `job_completed` on an already-completed booking returns **200** (not 409) with `sms.reason = "duplicate"`.
+- **SMS (primary):** invoice link at `/i/{invoicePublicToken}` + review CTA when eligible
+- **Email (fallback):** same intent, only if SMS skipped/failed — **never both**
+- **Already reviewed:** thank-you only, no review link
+- **Idempotent:** repeat `job_completed` on an already-completed booking returns **200** with `sms.reason = "duplicate"` and existing `invoicePublicToken`
 
 ### Success response
 
@@ -137,7 +138,7 @@ X-Request-ID: <uuid>   (optional; mobile sends one)
 }
 ```
 
-**`job_completed`** additionally includes `bookingStatus: "completed"` and **always** both `sms` and `email` blocks:
+**`job_completed`** additionally includes `bookingStatus`, `workHandoffStatus`, `invoicePublicToken`, and **always** both `sms` and `email` blocks:
 
 ```json
 {
@@ -145,6 +146,8 @@ X-Request-ID: <uuid>   (optional; mobile sends one)
   "action": "job_completed",
   "jobStatus": "completed",
   "bookingStatus": "completed",
+  "workHandoffStatus": "notified",
+  "invoicePublicToken": "a1b2c3…",
   "sms": { "sent": true, "messageId": "SMxxxx", "reason": null },
   "email": { "sent": false, "messageId": null, "reason": null }
 }
@@ -166,7 +169,7 @@ X-Request-ID: <uuid>   (optional; mobile sends one)
 | Response                                           | App behavior                                                                                                 |
 | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `200` + `success: true`                            | Patch `jobStatus` (+ `bookingStatus` when present) in home/details cache; invalidate queries; success haptic |
-| `sms.sent` or `email.sent` on `job_completed`      | SMS or email success toast: "Customer notified the service is done"                                          |
+| `sms.sent` or `email.sent` on `job_completed`      | SMS or email success toast: "Customer notified with invoice and review link"                                 |
 | Both false on `job_completed`                      | "Visit marked complete" + soft info why customer wasn't reached                                              |
 | `sms.reason === "duplicate"` (idempotent complete) | "Visit marked complete" only — no nag toast                                                                  |
 | `409` (non-complete actions)                       | Refetch booking; **no error toast** when already applied                                                     |
@@ -193,19 +196,19 @@ Failed **SMS send** is **not** an HTTP error — it returns `200` with `sms.sent
 
 ## Mobile implementation map
 
-| Concern                                                 | Location                                                                                    |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| HTTP client + `sms` / `email` / `bookingStatus` parsing | `api/postBookingAction.js`                                                                  |
-| SMS/email outcome parsers                               | `utils/parseBookingSmsOutcome.js`, `utils/parseBookingEmailOutcome.js`                      |
-| Action toasts                                           | `utils/bookingActionFeedback.js`                                                            |
-| On my way + start job                                   | `hooks/useBookingAction.js`                                                                 |
-| Mark complete (confirm sheet + `job_completed`)         | `booking-details/hooks/useMarkBookingCompleteFlow.js`                                       |
-| Next Up card actions                                    | `home/components/NextUpCard.jsx`                                                            |
-| Mark complete from details                              | `screens/BookingDetailsScreen.jsx`                                                          |
-| Confirm sheet copy (SMS / email / no review)            | `booking-details/constants/bookingCompleteCopy.js`                                          |
-| Job status constants                                    | `constants/jobStatus.js`                                                                    |
-| Cache patches                                           | `utils/patchBookingJobStatusInHomeCache.js`, `utils/patchBookingJobStatusInDetailsCache.js` |
-| Feature flag (`job_completed` vs legacy)                | `booking-details/constants/markCompleteFeatureFlags.js`                                     |
+| Concern                                                 | Location                                                                                                 |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| HTTP client + `sms` / `email` / `bookingStatus` parsing | `api/postBookingAction.js`                                                                               |
+| SMS/email outcome parsers                               | `utils/parseBookingSmsOutcome.js`, `utils/parseBookingEmailOutcome.js`                                   |
+| Action toasts                                           | `utils/bookingActionFeedback.js`                                                                         |
+| On my way + start job                                   | `hooks/useBookingAction.js`                                                                              |
+| Mark complete (Complete sheet + `job_completed`)        | [`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md) · `useMarkBookingCompleteFlow.js` |
+| Next Up card actions                                    | `home/components/NextUpCard.jsx`                                                                         |
+| Mark complete from details                              | `screens/BookingDetailsScreen.jsx`                                                                       |
+| Confirm sheet copy (SMS / email / no review)            | `booking-details/constants/bookingCompleteCopy.js`                                                       |
+| Job status constants                                    | `constants/jobStatus.js`                                                                                 |
+| Cache patches                                           | `utils/patchBookingJobStatusInHomeCache.js`, `utils/patchBookingJobStatusInDetailsCache.js`              |
+| Feature flag (`job_completed` vs legacy)                | `booking-details/constants/markCompleteFeatureFlags.js`                                                  |
 
 ### Wired actions
 
@@ -223,6 +226,8 @@ When `MARK_COMPLETE_USE_JOB_COMPLETED_ACTION = false`, mark complete uses Supaba
 
 ## Related docs
 
+- [`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md) — **mobile contract** for Complete sheet + `job_completed`
+- [`MOBILE_BOOKING_WORK_FINISHED.md`](./MOBILE_BOOKING_WORK_FINISHED.md) — mobile contract for Done/Skip
 - [`BOOKING_JOB_LIFECYCLE_SERVER.md`](./BOOKING_JOB_LIFECYCLE_SERVER.md) — **full lifecycle server contract** (work handoff, Complete screen, extended `job_completed`)
 - [`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md) — quick reference
 - [`BOOKING_JOB_STARTED_SERVER.md`](./BOOKING_JOB_STARTED_SERVER.md) — server notes for `job_started`

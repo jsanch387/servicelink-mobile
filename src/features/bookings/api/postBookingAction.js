@@ -91,7 +91,17 @@ function readEmailOutcome(payload) {
  * @param {string | null | undefined} accessToken
  * @param {string} bookingId
  * @param {string} action {@link BOOKING_ACTION} value
- * @param {{ notify?: boolean }} [options] Required semantics for `work_finished` — `notify: true` (Done) or `false` (Skip).
+ * @param {{
+ *   notify?: boolean;
+ *   sessionFees?: Array<{ label: string; amountCents: number }>;
+ *   sessionPayment?: {
+ *     method: string;
+ *     amountCents: number;
+ *     stripePaymentIntentId?: string;
+ *   };
+ * }} [options]
+ *   `notify` — required semantics for `work_finished` (`true` = Done, `false` = Skip).
+ *   `sessionFees` / `sessionPayment` — optional Phase 1 complete-visit payload for `job_completed`.
  * @returns {Promise<
  *   | {
  *       ok: true;
@@ -100,6 +110,7 @@ function readEmailOutcome(payload) {
  *       jobStatus: string;
  *       bookingStatus: string | null;
  *       workHandoffStatus: string | null;
+ *       invoicePublicToken: string | null;
  *       smsSent: boolean;
  *       smsReason: string | null;
  *       emailSent: boolean;
@@ -127,10 +138,18 @@ export async function postBookingAction(accessToken, bookingId, action, options 
 
   const requestId = createRequestId();
   const encodedId = encodeURIComponent(bookingId.trim());
-  const requestBody =
-    action === BOOKING_ACTION.WORK_FINISHED
-      ? { action, notify: options.notify === true }
-      : { action };
+  /** @type {Record<string, unknown>} */
+  let requestBody = { action };
+  if (action === BOOKING_ACTION.WORK_FINISHED) {
+    requestBody = { action, notify: options.notify === true };
+  } else if (action === BOOKING_ACTION.JOB_COMPLETED) {
+    if (Array.isArray(options.sessionFees) && options.sessionFees.length > 0) {
+      requestBody.sessionFees = options.sessionFees;
+    }
+    if (options.sessionPayment && typeof options.sessionPayment === 'object') {
+      requestBody.sessionPayment = options.sessionPayment;
+    }
+  }
 
   let res;
   try {
@@ -195,6 +214,12 @@ export async function postBookingAction(accessToken, bookingId, action, options 
         : typeof payload?.work_handoff_status === 'string'
           ? payload.work_handoff_status
           : null;
+    const invoicePublicToken =
+      typeof payload?.invoicePublicToken === 'string'
+        ? payload.invoicePublicToken
+        : typeof payload?.invoice_public_token === 'string'
+          ? payload.invoice_public_token
+          : null;
 
     return {
       ok: true,
@@ -203,6 +228,7 @@ export async function postBookingAction(accessToken, bookingId, action, options 
       jobStatus,
       bookingStatus,
       workHandoffStatus,
+      invoicePublicToken,
       smsSent: sms.sent,
       smsReason: sms.reason,
       emailSent: email.sent,

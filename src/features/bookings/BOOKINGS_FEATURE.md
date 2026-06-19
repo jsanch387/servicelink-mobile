@@ -13,10 +13,12 @@ The bookings feature includes:
 
 **Calendar mode** (month / week / day) is documented in depth in [`docs/CALENDAR_VIEW.md`](docs/CALENDAR_VIEW.md).
 
-**Server integration (mobile → Next.js):**
+**Server integration (mobile → Next.js):** see **[`docs/README.md`](docs/README.md)** for the full doc index, database tables, and HTTP call map.
 
 - [`docs/BOOKING_JOB_LIFECYCLE_SERVER.md`](docs/BOOKING_JOB_LIFECYCLE_SERVER.md) — **full job lifecycle server contract** (work handoff, Complete screen, SMS templates, `job_completed` payload)
-- [`docs/MOBILE_BOOKING_ACTIONS.md`](docs/MOBILE_BOOKING_ACTIONS.md) — mobile wiring for `on_the_way` + `job_started` (curl, toasts, errors)
+- [`docs/MOBILE_BOOKING_JOB_COMPLETED.md`](docs/MOBILE_BOOKING_JOB_COMPLETED.md) — **mobile contract** for Complete sheet + `job_completed`
+- [`docs/MOBILE_BOOKING_WORK_FINISHED.md`](docs/MOBILE_BOOKING_WORK_FINISHED.md) — mobile contract for Done/Skip
+- [`docs/MOBILE_BOOKING_ACTIONS.md`](docs/MOBILE_BOOKING_ACTIONS.md) — mobile quick reference for all booking actions
 - [`docs/MOBILE_SMS_AND_BOOKING_ACTIONS.md`](docs/MOBILE_SMS_AND_BOOKING_ACTIONS.md) — SMS history, shared action response shapes
 - [`docs/BOOKING_JOB_STARTED_SERVER.md`](docs/BOOKING_JOB_STARTED_SERVER.md) — server implementation spec for `job_started`
 - [`create-appointment/docs/OWNER_MANUAL_BOOKING_SERVER.md`](create-appointment/docs/OWNER_MANUAL_BOOKING_SERVER.md) — owner manual booking create
@@ -69,9 +71,10 @@ See [`docs/CALENDAR_VIEW.md`](docs/CALENDAR_VIEW.md). Summary:
    - schedule (date/time/duration)
    - price breakdown (service + parsed add-ons + total)
    - customer/location/vehicle/notes
-5. Status actions call `useBookingActions`:
-   - Mark completed -> `POST /api/owner/bookings/:id/complete` (review email when eligible; see `booking-details/docs/BOOKING_COMPLETE_SERVER.md`)
-   - Cancel booking -> `status = cancelled`
+5. Status actions:
+   - **Mark complete** → `useMarkBookingCompleteFlow` → `POST …/actions` `job_completed` with optional `sessionFees` / `sessionPayment` (see [`docs/MOBILE_BOOKING_JOB_COMPLETED.md`](docs/MOBILE_BOOKING_JOB_COMPLETED.md)). Legacy Supabase + review-invite when `MARK_COMPLETE_USE_JOB_COMPLETED_ACTION = false`.
+   - **On my way / start job / Done / Skip** → `useBookingAction` → same actions endpoint.
+   - **Cancel booking** → `useBookingActions` → `status = cancelled`
 6. On successful mutation, relevant query keys are invalidated:
    - bookings feature root
    - booking details query
@@ -82,7 +85,7 @@ See [`docs/CALENDAR_VIEW.md`](docs/CALENDAR_VIEW.md). Summary:
 - API failures are surfaced as user-facing inline card errors.
 - Missing booking row returns explicit "Booking not found".
 - Dialer/maps actions show graceful alerts when device cannot open URL.
-- Action mutations (`complete`, `cancel`) show alert on failure.
+- Action mutations (cancel, mark complete) show alert on failure.
 
 ## Retry Strategy (Smart/Low-Noise)
 
@@ -96,6 +99,17 @@ This limits accidental backend spam while still recovering from flaky connectivi
 
 ## Testing Coverage (Current)
 
+**Lifecycle + Complete flow:**
+
+- `postBookingAction` — all actions, `job_completed` payload, `invoicePublicToken`, HTTP errors
+- `buildJobCompletedPayload`, `buildCompleteVisitModel`, `parseCompleteVisitServiceLine`
+- `useMarkBookingCompleteFlow` — confirm → `job_completed` + cache/toasts
+- `useBookingAction` — `work_finished`, cache patch
+- `bookingActionFeedback`, `markCompletePreview`, `completeVisitNotificationCopy`
+- `NextUpCard` — handoff gating, Mark complete CTA
+
+**List / calendar / details:**
+
 - `bookingsApi` — past/canceled sort, `partitionUpcomingConfirmed`
 - `calendarRange`, `calendarBookingsIndex`, `listMonthWindows`
 - `CalendarMonthPicker` — owner month grid with appointment dots
@@ -108,10 +122,10 @@ This limits accidental backend spam while still recovering from flaky connectivi
 - retry policy behavior
 - create-appointment: `buildOwnerManualPublicBookingBody` / `postOwnerManualPublicBooking` unit tests
 
-Run: `npm test -- --testPathPattern=bookings`
+Run: `npm test -- --testPathPattern=bookings` (see [`docs/README.md`](docs/README.md) for a focused lifecycle test pattern).
 
 ## Notes for Future Enhancements
 
 - Wire real booking notes source once backend field is available.
 - If add-ons move to relational joins, extend details API instead of model parser.
-- Add integration tests for action buttons (complete/cancel) via screen-level tests.
+- Add integration tests for cancel via screen-level tests.

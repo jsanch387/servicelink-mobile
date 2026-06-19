@@ -6,8 +6,8 @@ export const JOB_STARTED_SUCCESS_SMS = 'Customer notified the service is startin
 export const JOB_STARTED_SMS_SOFT_NOTE = 'Marked started — couldn’t text customer';
 export const WORK_FINISHED_SUCCESS_SMS = 'Customer notified your service is finished';
 export const WORK_FINISHED_SMS_SOFT_NOTE = 'Marked done — couldn’t text customer';
-export const JOB_COMPLETED_SUCCESS_SMS = 'Customer notified the service is done';
-export const JOB_COMPLETED_SUCCESS_EMAIL = 'Customer notified the service is done';
+export const JOB_COMPLETED_SUCCESS_SMS = 'Customer notified with invoice and review link';
+export const JOB_COMPLETED_SUCCESS_EMAIL = 'Customer notified with invoice and review link';
 export const JOB_COMPLETED_SUCCESS_STATE_ONLY = 'Visit marked complete';
 export const JOB_COMPLETED_SMS_SOFT_NOTE = 'Marked complete — couldn’t text customer';
 

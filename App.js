@@ -10,6 +10,7 @@ import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { queryClient } from './src/lib/queryClient';
 import { ThemeProvider, TypographyProvider, useTheme } from './src/theme';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { StripeTerminalAppProvider } from './src/features/tap-to-pay/providers/StripeTerminalAppProvider';
 
 function AppShell() {
   const { colors, isDark } = useTheme();
@@ -38,7 +39,9 @@ export default function App() {
       <ThemeProvider initialScheme="dark">
         <TypographyProvider>
           <QueryClientProvider client={queryClient}>
-            <AppShell />
+            <StripeTerminalAppProvider>
+              <AppShell />
+            </StripeTerminalAppProvider>
           </QueryClientProvider>
         </TypographyProvider>
       </ThemeProvider>

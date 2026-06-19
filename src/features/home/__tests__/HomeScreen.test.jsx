@@ -84,6 +84,15 @@ jest.mock('../../bookings/booking-details/hooks/useMarkBookingCompleteFlow', () 
   useMarkBookingCompleteFlow: jest.fn(() => mockMarkCompleteFlow),
 }));
 
+jest.mock('../../bookings/booking-details/components/BookingCompleteInvoiceDesignSheet', () => ({
+  BookingCompleteVisitSheet: () => null,
+  BookingCompleteInvoiceDesignSheet: () => null,
+}));
+
+jest.mock('../../bookings/booking-details/components/BookingMarkCompleteSheet', () => ({
+  BookingMarkCompleteSheet: () => null,
+}));
+
 const mockUseHomeDashboard = useHomeDashboard;
 const mockUseLinkViewsAnalytics = useLinkViewsAnalytics;
 

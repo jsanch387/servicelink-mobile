@@ -20,6 +20,7 @@ import {
   MARK_COMPLETE_USE_JOB_COMPLETED_ACTION,
 } from '../constants/markCompleteFeatureFlags';
 import { buildCompleteVisitModelFromBooking } from '../utils/buildCompleteVisitModel';
+import { buildJobCompletedPayload } from '../utils/buildJobCompletedPayload';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
 import { getMarkCompletePreviewFromBooking } from '../utils/markCompletePreview';
 
@@ -283,7 +284,9 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
   ]);
 
   const confirmMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (
+      /** @type {import('../utils/buildJobCompletedPayload').CompleteVisitCheckoutState | undefined} */ checkout,
+    ) => {
       if (!bookingId?.trim()) {
         throw new Error('Missing booking id');
       }
@@ -292,10 +295,17 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
       }
 
       if (useJobCompletedAction) {
+        const jobCompletedBody = checkout ? buildJobCompletedPayload(checkout) : null;
         const result = await postBookingAction(
           accessToken,
           bookingId.trim(),
           BOOKING_ACTION.JOB_COMPLETED,
+          jobCompletedBody
+            ? {
+                sessionFees: jobCompletedBody.sessionFees,
+                sessionPayment: jobCompletedBody.sessionPayment,
+              }
+            : undefined,
         );
         if (!result.ok) {
           throw result.error;
@@ -360,9 +370,14 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
     },
   });
 
-  const confirmComplete = useCallback(async () => {
-    await confirmMutation.mutateAsync();
-  }, [confirmMutation]);
+  const confirmComplete = useCallback(
+    async (
+      /** @type {import('../utils/buildJobCompletedPayload').CompleteVisitCheckoutState | undefined} */ checkout,
+    ) => {
+      await confirmMutation.mutateAsync(checkout);
+    },
+    [confirmMutation],
+  );
 
   return {
     sheetVisible,

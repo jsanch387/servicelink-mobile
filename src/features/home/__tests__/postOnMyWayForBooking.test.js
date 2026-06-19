@@ -35,6 +35,7 @@ describe('postOnMyWayForBooking', () => {
       jobStatus: 'on_the_way',
       bookingStatus: null,
       workHandoffStatus: null,
+      invoicePublicToken: null,
       smsSent: true,
       smsReason: null,
       messageId: 'sms-uuid-1',

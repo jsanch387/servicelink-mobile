@@ -1,0 +1,278 @@
+# Contract: Mobile — `job_completed` (Complete sheet / Phase 1)
+
+Owner closes out a field job from the **Complete** full-screen sheet: add fees, collect balance, tap **Complete**. This is **cycle 2** of the extended booking lifecycle — payment close-out, invoice, and customer notification.
+
+**Prior step (required):** [`MOBILE_BOOKING_WORK_FINISHED.md`](./MOBILE_BOOKING_WORK_FINISHED.md) — owner must tap **Done** or **Skip** first (`work_handoff_status` = `notified` | `skipped`).
+
+**Related:** [`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md) (shared actions endpoint), [`MOBILE_SMS_AND_BOOKING_ACTIONS.md`](./MOBILE_SMS_AND_BOOKING_ACTIONS.md) (SMS shapes).
+
+**Server handler (web repo):** `src/features/availability/booking/server/handleJobCompletedAction.ts`  
+**Migration:** [`docs/sql/booking_complete_phase1_migration.sql`](../../../docs/sql/booking_complete_phase1_migration.sql)
+
+---
+
+## Product summary
+
+After **Done/Skip**, mobile shows **Mark complete** → Complete sheet:
+
+| Step | Mobile UI                                   | Server                                                            |
+| ---- | ------------------------------------------- | ----------------------------------------------------------------- |
+| 1    | Line items (service + add-ons)              | From booking row                                                  |
+| 2    | Add fee (label + dollars)                   | `sessionFees[]` in request                                        |
+| 3    | Collect balance (Tap to Pay / Mark as paid) | `sessionPayment` in request                                       |
+| 4    | Tap **Complete**                            | `POST …/actions` `job_completed`                                  |
+| 5    | Success                                     | Booking leaves Next Up; customer gets SMS/email with invoice link |
+
+**Golden rule:** DB commit first; SMS/email best-effort second. Notification failure does **not** roll back completion.
+
+**Do not call separately:** Supabase `UPDATE bookings SET status = completed`, `POST …/review-invite`, or per-fee endpoints.
+
+---
+
+## Endpoint
+
+|                  |                                                  |
+| ---------------- | ------------------------------------------------ |
+| **Method**       | `POST`                                           |
+| **Path**         | `/api/availability/bookings/{bookingId}/actions` |
+| **Auth**         | `Authorization: Bearer <Supabase access_token>`  |
+| **Content-Type** | `application/json`                               |
+| **X-Request-ID** | Optional UUID (echoed in server logs)            |
+
+### Request body
+
+```json
+{
+  "action": "job_completed",
+  "sessionFees": [{ "label": "Pet hair removal", "amountCents": 2500 }],
+  "sessionPayment": {
+    "method": "cash",
+    "amountCents": 12000
+  }
+}
+```
+
+| Field                                  | Required             | Rules                                                            |
+| -------------------------------------- | -------------------- | ---------------------------------------------------------------- |
+| `action`                               | Yes                  | `"job_completed"`                                                |
+| `sessionFees`                          | No                   | Default `[]`. Each: non-empty `label`, integer `amountCents` ≥ 0 |
+| `sessionPayment`                       | No                   | Omit when customer already paid in full online                   |
+| `sessionPayment.method`                | When payment present | `cash` \| `payment_app` \| `other` \| `tap_to_pay`               |
+| `sessionPayment.amountCents`           | When payment present | Integer ≥ 0                                                      |
+| `sessionPayment.stripePaymentIntentId` | `tap_to_pay` only    | Required — server verifies with Stripe                           |
+
+### Preconditions (server enforces)
+
+| Check                          | Required                |
+| ------------------------------ | ----------------------- |
+| `bookings.status`              | `confirmed`             |
+| `bookings.job_status`          | `in_progress`           |
+| `bookings.work_handoff_status` | `notified` or `skipped` |
+| Amount due                     | `0` (see math below)    |
+
+### Amount-due math (must match Complete sheet)
+
+```
+subtotalCents =
+  service_price_cents
+  + sum(addon_details[].priceCents)
+  + sum(sessionFees[].amountCents)
+
+amountDueCents =
+  subtotalCents
+  - booking_payments.paid_online_amount_cents
+  - sessionPayment.amountCents   // 0 if omitted
+```
+
+Server rejects with **400** `"Payment is still due on this booking."` when `amountDueCents > 0`.
+
+Load `service_price_cents`, `addon_details`, and join/read `booking_payments` when rendering the Complete sheet.
+
+---
+
+## Success response (200)
+
+```json
+{
+  "success": true,
+  "action": "job_completed",
+  "jobStatus": "completed",
+  "bookingStatus": "completed",
+  "workHandoffStatus": "notified",
+  "invoicePublicToken": "a1b2c3…",
+  "sms": { "sent": true, "messageId": "<uuid>", "reason": null },
+  "email": { "sent": false, "messageId": null, "reason": null }
+}
+```
+
+| Field                         | Notes                                                                |
+| ----------------------------- | -------------------------------------------------------------------- |
+| `jobStatus` / `bookingStatus` | Both `"completed"` — booking drops off Next Up                       |
+| `workHandoffStatus`           | Echoes `notified` or `skipped` from Done/Skip step                   |
+| `invoicePublicToken`          | Opaque token for customer invoice URL (optional for mobile UI today) |
+| `sms` / `email`               | Always present. **One channel** may be `sent: true`; never both      |
+
+Customer invoice URL (for debugging): `{EXPO_PUBLIC_WEB_APP_URL}/i/{invoicePublicToken}`
+
+### Idempotent retry
+
+Already completed → **200**, same statuses, `sms.reason: "duplicate"`, `invoicePublicToken` returned if invoice exists.
+
+---
+
+## Error responses
+
+```json
+{ "success": false, "error": "Human-readable message" }
+```
+
+| HTTP    | When                                                               |
+| ------- | ------------------------------------------------------------------ |
+| **400** | Bad payload; payment still due; `tap_to_pay` without Stripe intent |
+| **401** | Missing/invalid JWT                                                |
+| **404** | Booking not found / not owned                                      |
+| **409** | Not `in_progress`; handoff not done (`work_handoff_status` null)   |
+| **429** | Rate limited — honor `Retry-After`                                 |
+| **500** | Unexpected / persist failure                                       |
+
+---
+
+## Mobile integration checklist
+
+### 1. Lifecycle order
+
+```
+on_the_way → job_started → work_finished (Done/Skip) → job_completed (Complete)
+```
+
+Include `work_handoff_status` in booking SELECTs (Home Next Up, booking detail).
+
+### 2. Complete sheet → HTTP
+
+Build payload from sheet state (`buildJobCompletedPayload.js`):
+
+```javascript
+const body = buildJobCompletedPayload({
+  sessionFees: adjustments.map((f) => ({ label: f.label, amount: f.amount })),
+  sessionPayment: resolveCompleteVisitSessionPayment(
+    tapToPayAmount,
+    inPersonPayment,
+    stripePaymentIntentId,
+  ),
+});
+await postBookingAction(accessToken, bookingId, BOOKING_ACTION.JOB_COMPLETED, {
+  sessionFees: body.sessionFees,
+  sessionPayment: body.sessionPayment,
+});
+```
+
+Disable **Complete** until local `amountDue === 0`. Tap to Pay without a verified PaymentIntent stays blocked (`canSubmitJobCompletedCheckout`).
+
+### 3. On 200
+
+- Patch local caches: `job_status = completed`, `status = completed`
+- Close Complete sheet (success overlay → Done); refresh Home / Next Up
+- Toast from `sms` / `email` (`bookingActionFeedback.js`)
+- Do **not** call legacy `completeBookingWithReviewInvite`
+
+### 4. On error
+
+- **409** handoff missing → surface server message (UI should gate Mark complete on handoff)
+- **400** payment due → recheck math vs server
+- Network failure → safe to retry (idempotent when already completed)
+
+### 5. Feature flags (production)
+
+- `MARK_COMPLETE_USE_JOB_COMPLETED_ACTION = true`
+- `MARK_COMPLETE_USE_COMPLETE_VISIT_SCREEN = true`
+
+---
+
+## Customer notification (what the owner’s customer receives)
+
+- **SMS (primary):** `Thanks from {Business}! View your invoice and leave a review: {link}` (review hint omitted if customer already reviewed)
+- **Email (fallback):** Same intent, only if SMS skipped/failed
+- **Link:** `/i/{invoicePublicToken}` — HTML receipt + review button when eligible
+- **Never both** SMS and email on the same completion
+
+---
+
+## Phase 2 — Tap to Pay (shipped on mobile; SDK pending)
+
+See **[`MOBILE_BOOKING_TAP_TO_PAY.md`](./MOBILE_BOOKING_TAP_TO_PAY.md)** for the full contract.
+
+| Item                                                      | Mobile status                                                                  |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `POST …/tap-to-pay/intent`                                | Wired — `postTapToPayIntent.js`                                                |
+| `POST …/tap-to-pay/connection-token`                      | Wired when `TAP_TO_PAY_USE_TERMINAL_SDK = true`                                |
+| `tap_to_pay` + `stripePaymentIntentId` on `job_completed` | Wired — `buildJobCompletedPayload.js`                                          |
+| Stripe Terminal SDK on iPhone                             | **Shipped** — `@stripe/stripe-terminal-react-native` + native rebuild required |
+| Dev mock collection                                       | Off while SDK flag is on                                                       |
+
+**Mark as paid** remains the production fallback until Terminal SDK is enabled.
+
+---
+
+## curl smoke test
+
+Precondition: `job_status = in_progress`, `work_handoff_status IN ('notified','skipped')`, amount-due math matches body.
+
+```bash
+curl -sS -X POST "$ORIGIN/api/availability/bookings/$BOOKING_ID/actions" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: $(uuidgen)" \
+  -d '{
+    "action": "job_completed",
+    "sessionFees": [{ "label": "Pet hair", "amountCents": 2500 }],
+    "sessionPayment": { "method": "cash", "amountCents": 14500 }
+  }'
+```
+
+Verify: booking completed, fee lines + invoice row in DB, `invoicePublicToken` in response, SMS contains `/i/` link, page loads.
+
+---
+
+## Mobile code map
+
+| Concern               | File                                                               |
+| --------------------- | ------------------------------------------------------------------ |
+| Complete sheet UI     | `booking-details/components/BookingCompleteInvoiceDesignSheet.jsx` |
+| Payload builder       | `booking-details/utils/buildJobCompletedPayload.js`                |
+| Confirm + action call | `booking-details/hooks/useMarkBookingCompleteFlow.js`              |
+| HTTP client           | `bookings/api/postBookingAction.js`                                |
+| Toasts                | `bookings/utils/bookingActionFeedback.js`                          |
+| Feature flags         | `booking-details/constants/markCompleteFeatureFlags.js`            |
+
+---
+
+## Server code map (web repo)
+
+| Concern                    | File                                                      |
+| -------------------------- | --------------------------------------------------------- |
+| Action branch              | `src/app/api/availability/bookings/[id]/actions/route.ts` |
+| Validation + orchestration | `handleJobCompletedAction.ts`                             |
+| Amount due                 | `computeBookingAmountDue.ts`                              |
+| Persist + notify           | `persistJobCompletedTransaction.ts`                       |
+| Public invoice page        | `src/app/i/[publicToken]/page.tsx`                        |
+
+---
+
+## QA checklist (manual)
+
+Use a booking with **your phone** on the customer row.
+
+| Step                                    | Verify                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| On my way → Start job → Done or Skip    | Next Up shows **Mark complete**                                          |
+| Open Complete sheet                     | Service + add-ons; amount due matches booking                            |
+| Add fee + Mark as paid (if balance due) | Complete enables only when due = 0                                       |
+| Tap Complete                            | `200`; Next Up clears; owner toast                                       |
+| Customer SMS                            | Link contains `/i/`; page loads receipt + review CTA                     |
+| DB (optional)                           | `booking_session_fee_lines`, `booking_invoices`, session payment columns |
+
+**Scenarios:** paid-in-full online (no `sessionPayment`); deposit + balance; Skip handoff (no handoff SMS) still completes with invoice SMS.
+
+**Not in Phase 1:** Tap to Pay (use Mark as paid).
+
+**Doc index:** [`README.md`](./README.md)

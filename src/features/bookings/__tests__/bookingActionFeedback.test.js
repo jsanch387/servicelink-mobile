@@ -43,6 +43,31 @@ describe('showBookingActionToasts job_completed', () => {
     expect(toast.sms).not.toHaveBeenCalledWith(JOB_COMPLETED_SUCCESS_SMS, expect.anything());
   });
 
+  it('shows state-only success and soft info when both channels fail', () => {
+    const toast = createToast();
+    showBookingActionToasts(toast, BOOKING_ACTION.JOB_COMPLETED, {
+      smsSent: false,
+      smsReason: 'no_phone',
+      emailSent: false,
+      emailReason: 'no_email',
+    });
+    expect(toast.success).toHaveBeenCalledWith('Visit marked complete');
+    expect(toast.sms).toHaveBeenCalledWith(expect.stringContaining('no phone'), { type: 'info' });
+    expect(toast.email).not.toHaveBeenCalled();
+  });
+
+  it('shows email skip info when SMS was not attempted and email failed', () => {
+    const toast = createToast();
+    showBookingActionToasts(toast, BOOKING_ACTION.JOB_COMPLETED, {
+      smsSent: false,
+      smsReason: null,
+      emailSent: false,
+      emailReason: 'no_email',
+    });
+    expect(toast.success).toHaveBeenCalledWith('Visit marked complete');
+    expect(toast.email).toHaveBeenCalledWith(expect.stringContaining('no email'), { type: 'info' });
+  });
+
   it('does not nag when job_completed is idempotent duplicate', () => {
     const toast = createToast();
     showBookingActionToasts(toast, BOOKING_ACTION.JOB_COMPLETED, {

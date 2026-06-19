@@ -361,21 +361,25 @@ export function HomeScreen() {
     ? lifecycleDesignPreview.workingPhase === 'ready'
     : nextUpActionMode === 'working' && Boolean(nextBookingId) && nextUpWorkingPhase === 'ready';
 
-  const handleConfirmMarkComplete = useCallback(async () => {
-    try {
-      await markCompleteFlow.confirmComplete();
-    } catch (error) {
-      Alert.alert(
-        'Could not mark complete',
-        safeUserFacingMessage(error, { fallback: 'Please try again.' }),
-      );
-    }
-  }, [markCompleteFlow]);
+  const handleConfirmMarkComplete = useCallback(
+    async (checkout) => {
+      try {
+        await markCompleteFlow.confirmComplete(checkout);
+      } catch (error) {
+        Alert.alert(
+          'Could not mark complete',
+          safeUserFacingMessage(error, { fallback: 'Please try again.' }),
+        );
+      }
+    },
+    [markCompleteFlow],
+  );
 
   return (
     <SafeAreaView edges={['top']} style={styles.root}>
       {markCompleteFlow.useCompleteVisitScreen ? (
         <BookingCompleteVisitSheet
+          bookingId={nextBookingId}
           isLoading={markCompleteFlow.isLoadingPreview}
           loadError={markCompleteFlow.previewError}
           visitModel={markCompleteFlow.completeVisitModel}

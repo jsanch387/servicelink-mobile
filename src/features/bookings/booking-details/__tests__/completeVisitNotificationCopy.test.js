@@ -30,6 +30,22 @@ describe('completeVisitNotificationCopy', () => {
     );
   });
 
+  it('getCompleteVisitFollowUpMessage warns when no contact channels', () => {
+    expect(
+      getCompleteVisitFollowUpMessage({ showReviewSms: false, showReviewEmail: false }),
+    ).toEqual({
+      visible: true,
+      message: "No phone or email on this booking — your customer won't be notified automatically.",
+      iconName: 'information-circle-outline',
+    });
+  });
+
+  it('getCompleteVisitSuccessDetail falls back when no contact', () => {
+    expect(getCompleteVisitSuccessDetail({ showReviewSms: false, showReviewEmail: false })).toBe(
+      'This service is marked complete on your calendar.',
+    );
+  });
+
   it('getCompleteVisitPaymentSettledBanner covers deposit + in-person', () => {
     expect(
       getCompleteVisitPaymentSettledBanner({

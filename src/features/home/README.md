@@ -28,7 +28,6 @@ Order matches the scroll layout; useful when tracing UX or adding a section.
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `screens/HomeScreen.jsx`            | Composes sections; calls `useHomeDashboard()` once and passes props to children (avoids duplicate fetches).                                                                      |
 | `hooks/useHomeDashboard.js`         | **TanStack Query** for business + upcoming spotlight bookings + “today” list; **stale-only refetch** on tab focus; exposes `refetch()` for pull-to-refresh; errors per query.    |
-| `hooks/useHomeQuickMarkComplete.js` | Direct complete mutation (Supabase + review-invite) when no sheet is needed.                                                                                                     |
 | `api/homeDashboard.js`              | `fetchBusinessProfileForUser` only; booking list helpers live in **`bookings/api/bookings.js`** (re-exported here for compatibility).                                            |
 | `utils/bookingStart.js`             | Combines `scheduled_date` + `start_time` in **device local** time; relative “Starts in …” and in-progress subtitle copy.                                                         |
 | `utils/bookingLink.js`              | Host + display/HTTPS URL helpers; slug comes **only** from `business_profiles.business_slug` (see Link row empty state if missing).                                              |
@@ -63,7 +62,7 @@ The card is the **hero** for the owner’s next actionable visit. CTAs are drive
 - **Done** → `useBookingAction.workFinished(id, true)` → `POST` `work_finished` with `notify: true` (SMS toast; UI advances even if SMS fails).
 - **Skip** → `useBookingAction.workFinished(id, false)` → `POST` `work_finished` with `notify: false` (silent; moves to Mark complete).
 - **Navigate** → `openMapsForBooking` (header icon when en route; outline button when upcoming).
-- **Mark complete** → `onMarkComplete` from `HomeScreen` / `useMarkBookingCompleteFlow`.
+- **Mark complete** → `useMarkBookingCompleteFlow` on `HomeScreen` → Complete sheet → `job_completed` (see [`MOBILE_BOOKING_JOB_COMPLETED.md`](../bookings/docs/MOBILE_BOOKING_JOB_COMPLETED.md)).
 
 Handoff phase resolution: `resolveNextUpWorkingPhase` in `utils/resolveNextUpCardActions.js`.
 

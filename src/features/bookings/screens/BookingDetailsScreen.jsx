@@ -146,16 +146,19 @@ export function BookingDetailsScreen({ route }) {
     markCompleteFlow.openSheet();
   }, [bookingId, isCancelledStatus, isCompletedStatus, markCompleteFlow]);
 
-  const handleConfirmMarkCompleted = useCallback(async () => {
-    try {
-      await markCompleteFlow.confirmComplete();
-    } catch (error) {
-      Alert.alert(
-        'Could not mark completed',
-        safeUserFacingMessage(error, { fallback: 'Please try again.' }),
-      );
-    }
-  }, [markCompleteFlow]);
+  const handleConfirmMarkCompleted = useCallback(
+    async (checkout) => {
+      try {
+        await markCompleteFlow.confirmComplete(checkout);
+      } catch (error) {
+        Alert.alert(
+          'Could not mark completed',
+          safeUserFacingMessage(error, { fallback: 'Please try again.' }),
+        );
+      }
+    },
+    [markCompleteFlow],
+  );
   const handleReschedule = useCallback(() => {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
       return;
@@ -277,6 +280,7 @@ export function BookingDetailsScreen({ route }) {
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
       {markCompleteFlow.useCompleteVisitScreen ? (
         <BookingCompleteVisitSheet
+          bookingId={bookingId}
           isLoading={markCompleteFlow.isLoadingPreview}
           loadError={markCompleteFlow.previewError}
           visitModel={markCompleteFlow.completeVisitModel}

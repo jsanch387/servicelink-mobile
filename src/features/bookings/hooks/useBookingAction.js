@@ -41,7 +41,8 @@ function readJobStatusFromCaches(queryClient, businessId, bookingId) {
 }
 
 /**
- * Owner-triggered booking actions (`on_the_way`, `job_started`, `job_completed`).
+ * Owner-triggered booking actions (`on_the_way`, `job_started`, `work_finished`).
+ * Mark complete uses {@link useMarkBookingCompleteFlow} → `job_completed` with checkout payload.
  * State transitions are server-owned; the app patches `job_status` optimistically.
  *
  * @param {string | null | undefined} businessId Used for home cache reads/writes.
@@ -200,17 +201,6 @@ export function useBookingAction(businessId) {
     },
     [isCoolingDown, isJobStartedDone, mutation.isPending, runAction],
   );
-
-  const completeJob = useCallback(
-    (bookingId) => {
-      if (!bookingId || mutation.isPending || isCoolingDown || isJobCompletedDone(bookingId)) {
-        return;
-      }
-      runAction(bookingId, BOOKING_ACTION.JOB_COMPLETED);
-    },
-    [isCoolingDown, isJobCompletedDone, mutation.isPending, runAction],
-  );
-
   const workFinished = useCallback(
     (bookingId, notify) => {
       if (!bookingId || mutation.isPending || isCoolingDown) {
@@ -225,7 +215,6 @@ export function useBookingAction(businessId) {
     runAction,
     notifyOnTheWay,
     startJob,
-    completeJob,
     workFinished,
     isSending: mutation.isPending,
     disabled: mutation.isPending || isCoolingDown,

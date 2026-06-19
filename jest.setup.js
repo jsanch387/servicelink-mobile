@@ -61,3 +61,26 @@ jest.mock('expo-notifications', () => ({
 jest.mock('./src/features/appUpdates/components/AppUpdateAnnouncementsBootstrap', () => ({
   AppUpdateAnnouncementsBootstrap: () => null,
 }));
+
+jest.mock('@stripe/stripe-terminal-react-native', () => ({
+  StripeTerminalProvider: ({ children }) => children,
+  useStripeTerminal: () => ({
+    initialize: jest.fn(async () => ({ error: undefined })),
+    supportsReadersOfType: jest.fn(async () => ({ readerSupportResult: true, error: undefined })),
+    easyConnect: jest.fn(async () => ({ reader: { id: 'reader-1' }, error: undefined })),
+    getLocations: jest.fn(async () => ({ locations: [{ id: 'tml_test' }], error: undefined })),
+    retrievePaymentIntent: jest.fn(async () => ({
+      paymentIntent: {
+        id: 'pi_test',
+        amount: 5000,
+        status: 'requires_payment_method',
+        sdkUuid: 'uuid',
+      },
+      error: undefined,
+    })),
+    processPaymentIntent: jest.fn(async () => ({
+      paymentIntent: { id: 'pi_test', amount: 5000, status: 'succeeded' },
+      error: undefined,
+    })),
+  }),
+}));

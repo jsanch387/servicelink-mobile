@@ -6,7 +6,7 @@ export const BOOKING_COMPLETE_INVOICE_DESIGN_MOCK = {
   customerFirstName: 'Jane',
   customerEmail: 'jane.doe@email.com',
   lineItems: [
-    { id: 'service', label: 'Full Detail (Large SUV)', amount: 120 },
+    { id: 'service', label: 'Full Detail', sublabel: 'Large SUV', amount: 120 },
     { id: 'addon-1', label: 'Engine bay add-on', amount: 25 },
   ],
   /** Amount already collected online (partial = deposit, equals total = paid in full). */

@@ -1,7 +1,7 @@
 # Booking job lifecycle — server contract (mobile → Next.js)
 
 **Audience:** backend / server implementers + mobile integrators  
-**Status:** **Cycle 1 shipped** — mobile production is wired for `work_finished` (Done / Skip on Home → Next Up). **Cycle 2 pending** — extended `job_completed` payload (Complete screen: session fees, Tap to Pay, receipt + review SMS).
+**Status:** **Cycle 1 shipped** — `work_finished` (Done / Skip). **Cycle 2 shipped** — Complete sheet + extended `job_completed` payload (mobile + server Phase 1).
 
 **Related docs:**
 
@@ -311,17 +311,17 @@ Mobile opens a full-screen **Complete** flow before calling the server:
 6. Send **one** customer notification (§6.3).
 7. Mobile must **not** call `POST …/review-invite` after this when using the actions path.
 
-### 6.2 Payment / fee persistence (suggested)
+### 6.2 Payment / fee persistence
 
-Server owns canonical money state. Minimum:
+**Applied schema (Phase 1):** see [`BOOKING_COMPLETE_PHASE1_SERVER.md`](./BOOKING_COMPLETE_PHASE1_SERVER.md) and [`docs/sql/booking_complete_phase1_migration.sql`](../../../docs/sql/booking_complete_phase1_migration.sql).
 
-| Data         | Suggestion                                                                                            |
-| ------------ | ----------------------------------------------------------------------------------------------------- |
-| Session fees | `booking_fee_lines` or jsonb on `bookings` / `booking_checkout`                                       |
-| Tap to Pay   | Tie to existing Stripe PaymentIntent; store `stripe_payment_intent_id`, `amount_cents`, `captured_at` |
-| In-person    | `session_payment_method`, `session_payment_amount_cents` on booking or `booking_payments` row         |
+| Data             | Table / columns                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| Session fees     | `booking_session_fee_lines`                                                                 |
+| Session payment  | `booking_payments.session_payment_*`, `session_fees_total_cents`                            |
+| Invoice document | `booking_invoices` (`public_token`, `snapshot_json`) — HTML public page, not PDF in Phase 1 |
 
-Mobile today keeps fees/payments **in memory** until Complete; after integration it will POST them in this body. Until Tap to Pay is live, mobile may send only `sessionFees` + `sessionPayment` for **Mark as paid** paths.
+Mobile keeps fees/payments **in memory** until Complete; POSTs them in the `job_completed` body.
 
 ### 6.3 Completion notification (receipt + review)
 
@@ -443,20 +443,24 @@ Failed SMS alone is **never** a non-2xx HTTP response.
 
 **Mobile quick reference:** [`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md)
 
-### Cycle 2 — Complete screen + `job_completed` (next)
+### Cycle 2 — Complete screen + `job_completed` (shipped)
 
-**Server (pending):**
+**Mobile contract:** [`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md)
 
-- [ ] `job_completed` validates handoff + zero balance; accepts `sessionFees` + `sessionPayment`
-- [ ] Completion SMS/email copy uses **receipt** (not invoice) + review link
+**Server (shipped):**
 
-**Mobile (pending):**
+- [x] Extended `job_completed` + public invoice page (`BOOKING_COMPLETE_PHASE1_SERVER.md`)
+- [x] Validates handoff + zero balance; accepts `sessionFees` + `sessionPayment`
+- [x] Completion SMS/email with invoice link + review CTA
 
-| Task                                                 | File(s)                                                      |
-| ---------------------------------------------------- | ------------------------------------------------------------ |
-| POST extended `job_completed` body                   | `postBookingAction.js`, `useMarkBookingCompleteFlow.js`      |
-| Tap to Pay → Stripe PI id in `sessionPayment`        | `tap-to-pay/` feature                                        |
-| Turn off lifecycle design preview when Cycle 2 ships | `nextUpDesignFlags.js`, `useNextUpLifecycleDesignPreview.js` |
+**Mobile (shipped):**
+
+| Task                                            | File(s)                                                                                |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
+| POST extended `job_completed` body              | `postBookingAction.js`, `useMarkBookingCompleteFlow.js`, `buildJobCompletedPayload.js` |
+| Complete sheet checkout UX                      | `BookingCompleteInvoiceDesignSheet.jsx`                                                |
+| Tap to Pay → Stripe PI id in `sessionPayment`   | `tap-to-pay/` feature — **Phase 2**                                                    |
+| Turn off lifecycle design preview when shipping | `nextUpDesignFlags.js`, `markCompleteFeatureFlags.js` — optional cleanup               |
 
 **Feature flags today (mobile):**
 
@@ -513,4 +517,4 @@ curl -sS -X POST "$ORIGIN/api/availability/bookings/$BOOKING_ID/actions" \
 
 ---
 
-_Last updated to match mobile design preview (Next Up lifecycle + Complete screen) — integrate server first, then wire mobile against this document._
+_Last updated: Cycle 1 (`work_finished`) and Cycle 2 (Complete sheet + `job_completed`) shipped on mobile and server Phase 1. See [`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md) and [`docs/README.md`](./README.md)._

@@ -32,9 +32,28 @@ import {
 } from '../constants/bookingCompleteInvoiceDesignMock';
 import { getCompleteVisitPaymentSettledBanner } from '../constants/completeVisitNotificationCopy';
 import { getCompleteVisitSuccessCopy } from '../constants/completeVisitSuccessCopy';
+import {
+  buildCompleteVisitCheckoutFromSheetState,
+  canSubmitJobCompletedCheckout,
+} from '../utils/buildJobCompletedPayload';
 import { CompleteVisitSubmitOverlay } from './CompleteVisitSubmitOverlay';
 import { CompleteVisitAddFeeSheet } from './CompleteVisitAddFeeSheet';
-import { TapToPaySheet, getTapToPayRowLabel } from '../../../tap-to-pay';
+import { useNavigation } from '@react-navigation/native';
+import {
+  TapToPaySheet,
+  getTapToPayRowLabel,
+  buildTapToPaySessionFees,
+  isTapToPayUiEnabled,
+  TAP_TO_PAY_USE_TERMINAL_SDK,
+  useTapToPayConnectReadiness,
+  navigateToPaymentsSetup,
+  TAP_TO_PAY_NOT_SET_UP_TITLE,
+  TAP_TO_PAY_NOT_SET_UP_HINT,
+  TAP_TO_PAY_GET_STARTED_LABEL,
+  TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT,
+  TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT,
+} from '../../../tap-to-pay';
+import { useAuth } from '../../../auth';
 import {
   CompleteVisitMarkPaidSheet,
   getInPersonPaymentRowLabel,
@@ -51,11 +70,73 @@ function formatUsd(amount) {
 
 /**
  * @param {{
+ *   label: string;
+ *   sublabel?: string | null;
+ *   value: string;
+ *   noTopMargin?: boolean;
+ *   colors: import('../../../../theme').ThemeColors;
+ * }} props
+ */
+function CompleteVisitBreakdownRow({ label, sublabel, value, noTopMargin = false, colors }) {
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        row: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginTop: noTopMargin ? 0 : 8,
+        },
+        labelCol: {
+          flex: 1,
+          gap: 2,
+          marginRight: 12,
+          minWidth: 0,
+        },
+        label: {
+          color: colors.textMuted,
+          fontSize: 14,
+        },
+        sublabel: {
+          color: colors.textSecondary,
+          fontSize: 12,
+          fontWeight: '500',
+        },
+        value: {
+          color: colors.text,
+          fontSize: 15,
+          fontWeight: '400',
+          textAlign: 'right',
+        },
+      }),
+    [colors, noTopMargin],
+  );
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.labelCol}>
+        <AppText style={styles.label}>{label}</AppText>
+        {sublabel ? <AppText style={styles.sublabel}>{sublabel}</AppText> : null}
+      </View>
+      <AppText style={styles.value}>{value}</AppText>
+    </View>
+  );
+}
+
+/**
+ * @param {{
  *   adjustments: Array<{ id: string; label: string; amount: number }>;
  *   onAddFee: (fee: { label: string; amount: number }) => void;
  *   onRemoveFee: (id: string) => void;
- *   onTapToPaySuccess: (amount: number) => void;
+ *   onTapToPaySuccess: (result: { amountCents: number; paymentIntentId: string | null }) => void | Promise<void>;
  *   tapToPayAmount: number;
+ *   bookingId?: string | null;
+ *   accessToken?: string | null;
+ *   showTapToPay?: boolean;
+ *   merchantDisplayName?: string | null;
+ *   tapToPayConnectReady?: boolean;
+ *   tapToPayConnectLoading?: boolean;
+ *   onTapToPaySetupPress?: () => void;
  *   onMarkPaidInPerson: (method: string, amount: number) => void;
  *   amountDue: number;
  *   subtotal: number;
@@ -65,7 +146,7 @@ function formatUsd(amount) {
  *   showCollectActions: boolean;
  *   followUpInfo: { visible: boolean; message: string; iconName: string };
  *   iosKeyboardScrollPadding: number;
- *   lineItems: Array<{ id: string; label: string; amount: number }>;
+ *   lineItems: Array<{ id: string; label: string; sublabel?: string | null; amount: number }>;
  * }} props
  */
 function CompleteVisitDesignBody({
@@ -74,6 +155,13 @@ function CompleteVisitDesignBody({
   onRemoveFee,
   onTapToPaySuccess,
   tapToPayAmount,
+  bookingId = null,
+  accessToken = null,
+  showTapToPay = false,
+  merchantDisplayName = null,
+  tapToPayConnectReady = false,
+  tapToPayConnectLoading = false,
+  onTapToPaySetupPress,
   amountDue,
   subtotal,
   paidOnline,
@@ -155,6 +243,43 @@ function CompleteVisitDesignBody({
           gap: 10,
           marginTop: 16,
         },
+        tapToPaySetupCallout: {
+          alignItems: 'center',
+          backgroundColor: colors.cardSurface,
+          borderColor: colors.border,
+          borderRadius: 12,
+          borderWidth: StyleSheet.hairlineWidth,
+          gap: 6,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+        },
+        tapToPaySetupTitle: {
+          color: colors.text,
+          fontSize: 14,
+          fontWeight: '700',
+          letterSpacing: -0.1,
+          textAlign: 'center',
+        },
+        tapToPaySetupBody: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          lineHeight: 18,
+          textAlign: 'center',
+        },
+        tapToPayGetStartedBtn: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: 4,
+          minHeight: 36,
+          paddingHorizontal: 8,
+        },
+        tapToPayGetStartedLabel: {
+          color: colors.accent,
+          fontSize: 14,
+          fontWeight: '700',
+          letterSpacing: -0.1,
+        },
         paidBanner: {
           alignItems: 'center',
           backgroundColor: SUBMIT_OUTCOME_SUCCESS.ring,
@@ -211,13 +336,25 @@ function CompleteVisitDesignBody({
 
   const openTapToPaySheet = () => {
     Keyboard.dismiss();
+    const sessionFees = buildTapToPaySessionFees(adjustments);
     overlay?.show(
       <TapToPaySheet
+        accessToken={accessToken}
         amountDue={amountDue}
+        bookingId={bookingId}
+        merchantDisplayName={merchantDisplayName}
+        sessionFees={sessionFees}
         onClose={() => overlay.hide()}
         onSuccess={onTapToPaySuccess}
       />,
     );
+  };
+
+  const canUseTapToPay = tapToPayConnectReady && !tapToPayConnectLoading;
+  const showTapToPaySetupCallout = !canUseTapToPay && !tapToPayConnectLoading;
+
+  const openTapToPaySetup = () => {
+    onTapToPaySetupPress?.();
   };
 
   const openMarkPaidSheet = () => {
@@ -261,14 +398,25 @@ function CompleteVisitDesignBody({
     >
       <DetailsSectionCard bodyPadding="roomy" title="Breakdown">
         <View style={styles.breakdownRows}>
-          {lineItems.map((item, index) => (
-            <LabelValueRow
-              key={item.id}
-              label={item.label}
-              noTopMargin={index === 0}
-              value={formatUsd(item.amount)}
-            />
-          ))}
+          {lineItems.map((item, index) =>
+            item.sublabel ? (
+              <CompleteVisitBreakdownRow
+                key={item.id}
+                colors={colors}
+                label={item.label}
+                noTopMargin={index === 0}
+                sublabel={item.sublabel}
+                value={formatUsd(item.amount)}
+              />
+            ) : (
+              <LabelValueRow
+                key={item.id}
+                label={item.label}
+                noTopMargin={index === 0}
+                value={formatUsd(item.amount)}
+              />
+            ),
+          )}
 
           {adjustments.map((item) => (
             <View key={item.id} style={styles.adjustmentRow}>
@@ -348,14 +496,46 @@ function CompleteVisitDesignBody({
         )}
         {showCollectActions ? (
           <View style={styles.paymentActions}>
-            <Button
-              fullWidth
-              iconLibrary="material-community"
-              iconName="contactless-payment"
-              title="Tap to Pay"
-              variant="surfaceDark"
-              onPress={openTapToPaySheet}
-            />
+            {showTapToPay ? (
+              <>
+                <Button
+                  accessibilityHint={
+                    canUseTapToPay
+                      ? TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT
+                      : TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT
+                  }
+                  disabled={!canUseTapToPay || tapToPayConnectLoading}
+                  fullWidth
+                  iconLibrary="material-community"
+                  iconName={canUseTapToPay ? 'contactless-payment' : 'lock-outline'}
+                  loading={tapToPayConnectLoading}
+                  subduedWhenDisabled={false}
+                  title="Tap to Pay"
+                  variant={canUseTapToPay ? 'surfaceDark' : 'secondary'}
+                  onPress={canUseTapToPay ? openTapToPaySheet : undefined}
+                />
+                {showTapToPaySetupCallout ? (
+                  <View style={styles.tapToPaySetupCallout}>
+                    <AppText style={styles.tapToPaySetupTitle}>
+                      {TAP_TO_PAY_NOT_SET_UP_TITLE}
+                    </AppText>
+                    <AppText style={styles.tapToPaySetupBody}>{TAP_TO_PAY_NOT_SET_UP_HINT}</AppText>
+                    <Pressable
+                      accessibilityHint={TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT}
+                      accessibilityLabel={TAP_TO_PAY_GET_STARTED_LABEL}
+                      accessibilityRole="button"
+                      hitSlop={8}
+                      style={styles.tapToPayGetStartedBtn}
+                      onPress={openTapToPaySetup}
+                    >
+                      <AppText style={styles.tapToPayGetStartedLabel}>
+                        {TAP_TO_PAY_GET_STARTED_LABEL}
+                      </AppText>
+                    </Pressable>
+                  </View>
+                ) : null}
+              </>
+            ) : null}
             <Button
               fullWidth
               iconName="checkmark-circle-outline"
@@ -391,7 +571,10 @@ function CompleteVisitDesignBody({
  *   visitModel?: import('../utils/buildCompleteVisitModel').CompleteVisitModel | null;
  *   isLoading?: boolean;
  *   loadError?: string | null;
- *   onComplete?: () => void | Promise<void>;
+ *   onComplete?: (
+ *     checkout: import('../utils/buildJobCompletedPayload').CompleteVisitCheckoutState,
+ *   ) => void | Promise<void>;
+ *   bookingId?: string | null;
  * }} props
  */
 export function BookingCompleteVisitSheet({
@@ -401,9 +584,20 @@ export function BookingCompleteVisitSheet({
   isLoading = false,
   loadError = null,
   onComplete,
+  bookingId = null,
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { session } = useAuth();
+  const navigation = useNavigation();
+  const accessToken = session?.access_token ?? null;
+  const {
+    isConnectReady: tapToPayConnectReady,
+    isLoading: tapToPayConnectLoading,
+    merchantDisplayName,
+    refetch: refetchTapToPayConnectReadiness,
+  } = useTapToPayConnectReadiness();
+  const showTapToPay = isTapToPayUiEnabled();
   const isDesignPreview = !visitModel && !isLoading && !loadError;
   const resolvedModel =
     visitModel ?? (isDesignPreview ? BOOKING_COMPLETE_INVOICE_DESIGN_MOCK : null);
@@ -420,12 +614,21 @@ export function BookingCompleteVisitSheet({
   const [inPersonPayment, setInPersonPayment] = useState(
     /** @type {{ method: string; amount: number } | null} */ (null),
   );
+  const [stripePaymentIntentId, setStripePaymentIntentId] = useState(
+    /** @type {string | null} */ (null),
+  );
   const [submitPhase, setSubmitPhase] = useState(
     /** @type {'idle' | 'pending' | 'success'} */ ('idle'),
   );
   const completeTimeoutRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
 
   const MOCK_COMPLETE_MS = 2400;
+
+  useEffect(() => {
+    if (visible) {
+      void refetchTapToPayConnectReadiness();
+    }
+  }, [refetchTapToPayConnectReadiness, visible]);
 
   useEffect(() => {
     if (visible) {
@@ -452,6 +655,7 @@ export function BookingCompleteVisitSheet({
       setAdjustments([]);
       setTapToPayAmount(0);
       setInPersonPayment(null);
+      setStripePaymentIntentId(null);
       setSubmitPhase('idle');
       if (completeTimeoutRef.current) {
         clearTimeout(completeTimeoutRef.current);
@@ -510,7 +714,24 @@ export function BookingCompleteVisitSheet({
 
   const showCollectActions = amountDue > 0;
 
-  const canCompleteVisit = amountDue <= 0;
+  const tapToPayBlocksComplete =
+    tapToPayAmount > 0 && !stripePaymentIntentId?.trim() && !isDesignPreview;
+  const checkoutSubmitReady = canSubmitJobCompletedCheckout({
+    tapToPayAmount,
+    stripePaymentIntentId,
+    isDesignPreview,
+  });
+  const canCompleteVisit = amountDue <= 0 && checkoutSubmitReady && !tapToPayBlocksComplete;
+
+  const completeHint = useMemo(() => {
+    if (amountDue > 0) {
+      return 'Collect payment to complete this booking.';
+    }
+    if (tapToPayBlocksComplete) {
+      return 'Tap to Pay did not finish. Try again or mark as paid.';
+    }
+    return null;
+  }, [amountDue, tapToPayBlocksComplete]);
 
   const followUpInfo = useMemo(() => {
     if (!resolvedModel) {
@@ -541,12 +762,51 @@ export function BookingCompleteVisitSheet({
 
   const handleMarkPaidInPerson = (method, amount) => {
     setInPersonPayment({ method, amount });
-    setTapToPayAmount(0);
+    clearTapToPayState();
   };
 
-  const handleTapToPaySuccess = (amount) => {
+  const clearTapToPayState = () => {
+    setTapToPayAmount(0);
+    setStripePaymentIntentId(null);
+  };
+
+  const handleTapToPaySuccess = async ({ amountCents, paymentIntentId }) => {
+    const amount = amountCents / 100;
+    const intentId = paymentIntentId?.trim() || null;
     setTapToPayAmount(amount);
     setInPersonPayment(null);
+    setStripePaymentIntentId(intentId);
+
+    if (intentId && TAP_TO_PAY_USE_TERMINAL_SDK && onComplete) {
+      try {
+        setSubmitPhase('pending');
+        const checkout = buildCompleteVisitCheckoutFromSheetState({
+          adjustments,
+          tapToPayAmount: amount,
+          inPersonPayment: null,
+          stripePaymentIntentId: intentId,
+        });
+        await onComplete(checkout);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        setSubmitPhase('success');
+      } catch {
+        clearTapToPayState();
+        setSubmitPhase('idle');
+      }
+    }
+  };
+
+  const handleAddFee = (fee) => {
+    clearTapToPayState();
+    setAdjustments((prev) => [
+      ...prev,
+      { id: `adj-${Date.now()}`, label: fee.label, amount: fee.amount },
+    ]);
+  };
+
+  const handleRemoveFee = (id) => {
+    clearTapToPayState();
+    setAdjustments((prev) => prev.filter((item) => item.id !== id));
   };
 
   const styles = useMemo(
@@ -629,6 +889,16 @@ export function BookingCompleteVisitSheet({
     runClose(onRequestClose);
   };
 
+  const handleTapToPaySetupPress = useCallback(() => {
+    if (isSubmitting || isDesignPreview) {
+      return;
+    }
+    runClose(() => {
+      onRequestClose();
+      navigateToPaymentsSetup(navigation);
+    });
+  }, [isDesignPreview, isSubmitting, navigation, onRequestClose, runClose]);
+
   const handleCompleteVisit = useCallback(async () => {
     if (submitPhase !== 'idle' || !resolvedModel || amountDue > 0) {
       return;
@@ -650,7 +920,13 @@ export function BookingCompleteVisitSheet({
     }
 
     try {
-      await onComplete();
+      const checkout = buildCompleteVisitCheckoutFromSheetState({
+        adjustments,
+        tapToPayAmount,
+        inPersonPayment,
+        stripePaymentIntentId,
+      });
+      await onComplete(checkout);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {
         if (Platform.OS === 'android') {
           Vibration.vibrate(40);
@@ -660,22 +936,25 @@ export function BookingCompleteVisitSheet({
     } catch {
       setSubmitPhase('idle');
     }
-  }, [MOCK_COMPLETE_MS, amountDue, isDesignPreview, onComplete, resolvedModel, submitPhase]);
+  }, [
+    MOCK_COMPLETE_MS,
+    adjustments,
+    amountDue,
+    inPersonPayment,
+    isDesignPreview,
+    onComplete,
+    resolvedModel,
+    stripePaymentIntentId,
+    submitPhase,
+    tapToPayAmount,
+  ]);
 
   const handleDoneAfterSuccess = () => {
     handleClose();
   };
 
-  const handleAddFee = (fee) => {
-    setAdjustments((prev) => [
-      ...prev,
-      { id: `adj-${Date.now()}`, label: fee.label, amount: fee.amount },
-    ]);
-  };
-
-  const handleRemoveFee = (id) => {
-    setAdjustments((prev) => prev.filter((item) => item.id !== id));
-  };
+  const resolvedTapToPayConnectReady = isDesignPreview ? true : tapToPayConnectReady;
+  const resolvedTapToPayConnectLoading = isDesignPreview ? false : tapToPayConnectLoading;
 
   if (!mounted) {
     return null;
@@ -727,28 +1006,33 @@ export function BookingCompleteVisitSheet({
               {!showSubmitOverlay && !isLoading && !loadError && resolvedModel ? (
                 <>
                   <CompleteVisitDesignBody
+                    accessToken={accessToken}
                     adjustments={adjustments}
                     amountDue={amountDue}
+                    bookingId={bookingId}
                     followUpInfo={followUpInfo}
                     inPersonPayment={inPersonPayment}
                     iosKeyboardScrollPadding={iosKeyboardScrollPadding}
                     lineItems={resolvedModel.lineItems}
+                    merchantDisplayName={merchantDisplayName}
                     onlinePaidRowLabel={onlinePaidRowLabel}
                     paidOnline={paidOnline}
                     showCollectActions={showCollectActions}
+                    showTapToPay={showTapToPay}
+                    tapToPayConnectLoading={resolvedTapToPayConnectLoading}
+                    tapToPayConnectReady={resolvedTapToPayConnectReady}
                     subtotal={subtotal}
                     tapToPayAmount={tapToPayAmount}
                     onAddFee={handleAddFee}
                     onMarkPaidInPerson={handleMarkPaidInPerson}
                     onRemoveFee={handleRemoveFee}
+                    onTapToPaySetupPress={handleTapToPaySetupPress}
                     onTapToPaySuccess={handleTapToPaySuccess}
                   />
 
                   <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-                    {!canCompleteVisit ? (
-                      <AppText style={styles.completeHint}>
-                        Collect payment to complete this booking.
-                      </AppText>
+                    {!canCompleteVisit && completeHint ? (
+                      <AppText style={styles.completeHint}>{completeHint}</AppText>
                     ) : null}
                     <Button
                       accessibilityHint={

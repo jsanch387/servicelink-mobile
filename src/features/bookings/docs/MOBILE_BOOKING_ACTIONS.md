@@ -1,6 +1,14 @@
 # Booking actions — mobile quick reference
 
-All owner job lifecycle actions use **one endpoint**. **Full server contract (work handoff + Complete screen):** **[`BOOKING_JOB_LIFECYCLE_SERVER.md`](./BOOKING_JOB_LIFECYCLE_SERVER.md)**. SMS history and shared response shapes: **[`MOBILE_SMS_AND_BOOKING_ACTIONS.md`](./MOBILE_SMS_AND_BOOKING_ACTIONS.md)**.
+All owner job lifecycle actions use **one endpoint**.
+
+| Action                           | Mobile contract                                                            |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| Shared endpoint + toasts         | This doc                                                                   |
+| `work_finished` (Done/Skip)      | [`MOBILE_BOOKING_WORK_FINISHED.md`](./MOBILE_BOOKING_WORK_FINISHED.md)     |
+| `job_completed` (Complete sheet) | [`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md)     |
+| Full lifecycle (server)          | [`BOOKING_JOB_LIFECYCLE_SERVER.md`](./BOOKING_JOB_LIFECYCLE_SERVER.md)     |
+| SMS shapes                       | [`MOBILE_SMS_AND_BOOKING_ACTIONS.md`](./MOBILE_SMS_AND_BOOKING_ACTIONS.md) |
 
 ```
 POST {EXPO_PUBLIC_WEB_APP_URL}/api/availability/bookings/{bookingId}/actions
@@ -73,12 +81,14 @@ Authorization: Bearer <access_token>
 
 ### `job_completed`
 
-| Server                            | Owner sees                                        |
-| --------------------------------- | ------------------------------------------------- |
-| `sms.sent: true`                  | SMS toast — Customer notified the service is done |
-| `email.sent: true` (SMS not sent) | Email toast — same message                        |
-| Both false                        | Visit marked complete + info why                  |
-| `sms.reason: "duplicate"`         | Visit marked complete only (idempotent)           |
+See **[`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md)** for the full contract (payload, amount-due math, `invoicePublicToken`, errors).
+
+| Server                            | Owner sees                                                 |
+| --------------------------------- | ---------------------------------------------------------- |
+| `sms.sent: true`                  | SMS toast — Customer notified with invoice and review link |
+| `email.sent: true` (SMS not sent) | Email toast — same message                                 |
+| Both false                        | Visit marked complete + info why                           |
+| `sms.reason: "duplicate"`         | Visit marked complete only (idempotent)                    |
 
 ## Errors
 

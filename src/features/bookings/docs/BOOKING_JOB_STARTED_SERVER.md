@@ -250,11 +250,11 @@ Documented in [`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md). Summar
 
 ## Out of scope (this doc)
 
-| Item                                    | Notes                                                                               |
-| --------------------------------------- | ----------------------------------------------------------------------------------- |
-| `job_completed` via actions API         | **Wired** — `useMarkBookingCompleteFlow` + `MARK_COMPLETE_USE_JOB_COMPLETED_ACTION` |
-| Invoicing / completed-state UI          | Future work on `job_status = completed`                                             |
-| Changing `bookings.status` on start job | Stay `confirmed` until mark complete                                                |
+| Item                                    | Notes                                                                                |
+| --------------------------------------- | ------------------------------------------------------------------------------------ |
+| `job_completed` via actions API         | **Shipped** — [`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md) |
+| Complete sheet + invoice SMS            | **Shipped** — Phase 1                                                                |
+| Changing `bookings.status` on start job | Stay `confirmed` until mark complete                                                 |
 
 ---
 
@@ -262,4 +262,5 @@ Documented in [`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md). Summar
 
 - Mobile job status constants: `src/features/bookings/constants/jobStatus.js`
 - Next Up card + wiring: `src/features/home/README.md`
-- Mark complete (separate path): `src/features/bookings/booking-details/docs/BOOKING_COMPLETE_SERVER.md`
+- Mark complete: [`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md)
+- Doc index: [`README.md`](./README.md)
