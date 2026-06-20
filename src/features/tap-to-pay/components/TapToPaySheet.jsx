@@ -1,44 +1,18 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo } from 'react';
-import { ActivityIndicator, Animated, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button } from '../../../components/ui';
+import { AppText, Button, EchoBarsLoader } from '../../../components/ui';
 import { useModalFadeBackdropSlideSheet } from '../../../components/ui/useModalFadeBackdropSlideSheet';
 import { useTheme } from '../../../theme';
 import { TapToPayPulseVisual } from './TapToPayPulseVisual';
-import { formatTapToPayAmount, getTapToPayCopy } from '../constants/tapToPayCopy';
+import { formatTapToPayAmount, resolveTapToPaySheetCopy } from '../constants/tapToPayCopy';
 import {
+  TAP_TO_PAY_FOOTER_BUTTON_MIN_HEIGHT,
   TAP_TO_PAY_PAYMENT_CARD_HEIGHT,
   TAP_TO_PAY_STATUS_SLOT_MIN_HEIGHT,
 } from '../constants/tapToPayLayout';
 import { useTapToPaySheet } from '../hooks/useTapToPaySheet';
-
-/**
- * @param {import('../hooks/useTapToPaySheet').TapToPaySheetPhase | 'loading_intent' | 'intent_error'} phase
- * @param {number} amountDue
- * @param {string | null} intentError
- */
-function resolveTapToPayCopy(phase, amountDue, intentError) {
-  if (phase === 'loading_intent') {
-    return {
-      title: 'Tap to Pay',
-      hint: 'Preparing secure payment…',
-      statusLine: null,
-    };
-  }
-  if (phase === 'intent_error') {
-    return {
-      title: 'Tap to Pay',
-      hint: intentError || 'Couldn’t start Tap to Pay. Try again or mark as paid.',
-      statusLine: null,
-    };
-  }
-  const mappedPhase =
-    phase === 'ready' || phase === 'pending' || phase === 'success' || phase === 'error'
-      ? phase
-      : 'ready';
-  return getTapToPayCopy(mappedPhase, amountDue);
-}
 
 /**
  * In-person contactless collection (Stripe Tap to Pay on iPhone).
@@ -96,7 +70,7 @@ export function TapToPaySheet({
   }, [prepareOpen, runOpen]);
 
   const copy = useMemo(
-    () => resolveTapToPayCopy(flow.phase, flow.displayAmountDollars, flow.intentError),
+    () => resolveTapToPaySheetCopy(flow.phase, flow.displayAmountDollars, flow.intentError),
     [flow.displayAmountDollars, flow.intentError, flow.phase],
   );
 
@@ -165,22 +139,30 @@ export function TapToPaySheet({
           borderRadius: 16,
           borderWidth: StyleSheet.hairlineWidth,
           height: TAP_TO_PAY_PAYMENT_CARD_HEIGHT,
-          justifyContent: 'center',
           marginBottom: 20,
           marginTop: 20,
           overflow: 'hidden',
           paddingHorizontal: 12,
+          position: 'relative',
           width: '100%',
         },
-        visualPressable: {
+        loadingVisual: {
+          ...StyleSheet.absoluteFillObject,
           alignItems: 'center',
           justifyContent: 'center',
+        },
+        cardVisualStack: {
+          alignItems: 'center',
+          height: TAP_TO_PAY_PAYMENT_CARD_HEIGHT,
+          justifyContent: 'center',
+          paddingBottom: 18,
+          pointerEvents: 'none',
           width: '100%',
         },
         statusSlot: {
           alignItems: 'center',
           justifyContent: 'center',
-          marginTop: 10,
+          marginTop: 4,
           minHeight: TAP_TO_PAY_STATUS_SLOT_MIN_HEIGHT,
           paddingHorizontal: 8,
         },
@@ -191,18 +173,11 @@ export function TapToPaySheet({
           letterSpacing: -0.1,
           textAlign: 'center',
         },
-        headerDivider: {
-          backgroundColor: colors.border,
-          height: StyleSheet.hairlineWidth,
-          marginBottom: 16,
-        },
         footerStack: {
           gap: 10,
         },
-        loadingWrap: {
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: TAP_TO_PAY_PAYMENT_CARD_HEIGHT,
+        tryAgainFooterSlot: {
+          minHeight: TAP_TO_PAY_FOOTER_BUTTON_MIN_HEIGHT,
           width: '100%',
         },
       }),
@@ -212,29 +187,21 @@ export function TapToPaySheet({
   const visual = (
     <>
       {flow.isLoadingIntent ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator color={colors.accent} size="large" />
+        <View style={styles.loadingVisual}>
+          <EchoBarsLoader accessibilityLabel="Preparing payment" color={colors.text} size="large" />
         </View>
       ) : (
-        <>
+        <View style={styles.cardVisualStack}>
           <TapToPayPulseVisual
             accentColor={colors.text}
-            phase={
-              flow.phase === 'pending'
-                ? 'pending'
-                : flow.isReady
-                  ? 'ready'
-                  : flow.phase === 'success'
-                    ? 'success'
-                    : 'error'
-            }
+            phase={flow.isPending ? 'ready' : flow.phase === 'success' ? 'success' : 'error'}
           />
           <View style={styles.statusSlot}>
             {copy.statusLine ? (
               <AppText style={styles.statusLine}>{copy.statusLine}</AppText>
             ) : null}
           </View>
-        </>
+        </View>
       )}
     </>
   );
@@ -276,44 +243,26 @@ export function TapToPaySheet({
           <AppText accessibilityRole="text" style={styles.amountLine}>
             {formatTapToPayAmount(flow.displayAmountDollars || amountDue)}
           </AppText>
-          <AppText style={styles.sheetHint}>{copy.hint}</AppText>
+          {copy.hint ? <AppText style={styles.sheetHint}>{copy.hint}</AppText> : null}
 
-          <View style={styles.paymentCard}>
-            {flow.isReady && !flow.isLoadingIntent ? (
-              <Pressable
-                accessibilityHint="Starts contactless payment collection"
-                accessibilityLabel="Contactless payment reader"
-                accessibilityRole="button"
-                style={styles.visualPressable}
-                onPress={() => void flow.handleCollect()}
-              >
-                {visual}
-              </Pressable>
-            ) : (
-              visual
-            )}
-          </View>
+          <View style={styles.paymentCard}>{visual}</View>
 
-          <View style={styles.headerDivider} />
           <View style={styles.footerStack}>
-            {flow.isError ? (
-              <Button
-                fullWidth
-                title={flow.phase === 'intent_error' ? 'Try again' : 'Try again'}
-                variant="primary"
-                onPress={flow.handleTryAgain}
-              />
-            ) : null}
-            {flow.isReady ? (
-              <Button
-                disabled={flow.displayAmountDollars <= 0}
-                fullWidth
-                iconLibrary="material-community"
-                iconName="contactless-payment"
-                title="Collect payment"
-                variant="surfaceDark"
-                onPress={() => void flow.handleCollect()}
-              />
+            {flow.showTryAgainFooter ? (
+              flow.isError ? (
+                <Button
+                  fullWidth
+                  title="Try again"
+                  variant="primary"
+                  onPress={flow.handleTryAgain}
+                />
+              ) : (
+                <View
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  style={styles.tryAgainFooterSlot}
+                />
+              )
             ) : null}
             {flow.showDevDeclinePreview ? (
               <Button

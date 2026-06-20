@@ -8,9 +8,6 @@ export const TAP_TO_PAY_NOT_SET_UP_HINT =
 /** Link label that opens More → Payments. */
 export const TAP_TO_PAY_GET_STARTED_LABEL = 'Get started';
 
-/** @deprecated Use {@link TAP_TO_PAY_NOT_SET_UP_HINT} */
-export const TAP_TO_PAY_SETUP_HINT = TAP_TO_PAY_NOT_SET_UP_HINT;
-
 /** Accessibility hint when Connect is not ready. */
 export const TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT = 'Opens payments setup to enable Tap to Pay';
 

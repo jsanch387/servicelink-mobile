@@ -1,3 +1,5 @@
+import { logTapToPayDebug, logTapToPayFailure } from '../utils/logTapToPayDebug';
+
 /** @type {(() => Promise<string>) | null} */
 let activeTokenFetcher = null;
 
@@ -8,10 +10,12 @@ let activeTokenFetcher = null;
  */
 export function setTapToPayConnectionTokenFetcher(fetcher) {
   activeTokenFetcher = fetcher;
+  logTapToPayDebug('connection-token.registry.set');
 }
 
 export function clearTapToPayConnectionTokenFetcher() {
   activeTokenFetcher = null;
+  logTapToPayDebug('connection-token.registry.clear');
 }
 
 /**
@@ -21,7 +25,11 @@ export function clearTapToPayConnectionTokenFetcher() {
  */
 export async function fetchTapToPayConnectionTokenFromRegistry() {
   if (!activeTokenFetcher) {
+    logTapToPayFailure('connection-token.registry', {
+      message: 'Tap to Pay sheet is not active (no token fetcher registered)',
+    });
     throw new Error('Tap to Pay is not active.');
   }
+  logTapToPayDebug('connection-token.registry.invoke');
   return activeTokenFetcher();
 }

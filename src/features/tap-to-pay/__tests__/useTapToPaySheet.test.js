@@ -34,10 +34,12 @@ jest.mock('../constants/tapToPayTimings', () => ({
 }));
 
 const { postTapToPayIntent } = require('../api/postTapToPayIntent');
+const { fireTapToPayErrorHaptic } = require('../utils/tapToPayHaptics');
 
 describe('useTapToPaySheet', () => {
   beforeEach(() => {
     postTapToPayIntent.mockReset();
+    fireTapToPayErrorHaptic.mockClear();
   });
 
   it('requires booking id when server APIs are enabled', async () => {
@@ -60,7 +62,7 @@ describe('useTapToPaySheet', () => {
     expect(postTapToPayIntent).not.toHaveBeenCalled();
   });
 
-  it('loads intent and exposes ready state', async () => {
+  it('loads intent and starts collection when the sheet opens', async () => {
     postTapToPayIntent.mockResolvedValue({
       ok: true,
       paymentIntentId: 'pi_test',
@@ -88,12 +90,12 @@ describe('useTapToPaySheet', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.phase).toBe('ready');
+      expect(result.current.phase).toBe('success');
     });
     expect(result.current.displayAmountDollars).toBe(50);
   });
 
-  it('maps intent API failures to intent_error phase', async () => {
+  it('maps intent API failures to intent_error on open', async () => {
     postTapToPayIntent.mockResolvedValue({
       ok: false,
       error: new Error('Set up Stripe payments to use Tap to Pay.'),
@@ -116,5 +118,6 @@ describe('useTapToPaySheet', () => {
       expect(result.current.phase).toBe('intent_error');
       expect(result.current.intentError).toMatch(/Set up Stripe payments/);
     });
+    expect(fireTapToPayErrorHaptic).toHaveBeenCalledTimes(1);
   });
 });

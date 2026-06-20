@@ -1,5 +1,6 @@
 import { productionWebApiHttpsGuard } from '../../../lib/productionWebApiHttpsGuard';
 import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileCheckoutOrigin';
+import { logTapToPayDebug, logTapToPayFailure, maskId } from '../utils/logTapToPayDebug';
 import { mapTapToPayHttpError } from '../utils/mapTapToPayHttpError';
 
 function createRequestId() {
@@ -64,23 +65,35 @@ export async function tapToPayRequest(accessToken, bookingId, routeSuffix, body)
   const requestId = createRequestId();
   const encodedId = encodeURIComponent(bookingId.trim());
   const hasBody = body !== undefined;
+  const url = `${origin}/api/availability/bookings/${encodedId}/tap-to-pay/${routeSuffix}`;
+
+  logTapToPayDebug('api.request', {
+    route: routeSuffix,
+    origin,
+    bookingId: maskId(bookingId),
+    requestId,
+    hasBody,
+  });
 
   let res;
   try {
-    res = await fetch(
-      `${origin}/api/availability/bookings/${encodedId}/tap-to-pay/${routeSuffix}`,
-      {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-          'X-Request-ID': requestId,
-        },
-        body: hasBody ? JSON.stringify(body) : '{}',
+    res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-Request-ID': requestId,
       },
-    );
+      body: hasBody ? JSON.stringify(body) : '{}',
+    });
   } catch (err) {
+    logTapToPayFailure(routeSuffix, {
+      message: err instanceof Error ? err.message : 'Network request failed',
+      httpStatus: 0,
+      requestId,
+      url,
+    });
     return {
       ok: false,
       error: err instanceof Error ? err : new Error('Network request failed'),
@@ -99,12 +112,31 @@ export async function tapToPayRequest(accessToken, bookingId, routeSuffix, body)
   const serverMessage = typeof payload?.error === 'string' ? payload.error : null;
 
   if (res.ok && payload?.success === true) {
+    logTapToPayDebug('api.success', {
+      route: routeSuffix,
+      httpStatus: res.status,
+      requestId: echoedRequestId,
+      paymentIntentId: maskId(payload?.paymentIntentId),
+      amountCents: payload?.amountCents,
+      terminalLocationId: maskId(
+        payload?.terminalLocationId ?? payload?.locationId ?? payload?.stripeTerminalLocationId,
+      ),
+      stripeAccountId: maskId(payload?.stripeAccountId ?? payload?.onBehalfOf),
+    });
     return { ok: true, payload, requestId: echoedRequestId };
   }
 
+  const mappedError = mapTapToPayHttpError(res.status, serverMessage);
+  logTapToPayFailure(routeSuffix, {
+    message: serverMessage ?? mappedError,
+    httpStatus: res.status,
+    requestId: echoedRequestId,
+    url,
+  });
+
   return {
     ok: false,
-    error: new Error(mapTapToPayHttpError(res.status, serverMessage)),
+    error: new Error(mappedError),
     httpStatus: res.status,
     retryAfterSec: readRetryAfterSeconds(res.headers),
     requestId: echoedRequestId,

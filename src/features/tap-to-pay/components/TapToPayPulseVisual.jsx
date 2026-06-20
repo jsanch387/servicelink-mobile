@@ -5,6 +5,7 @@ import Reanimated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
   withSequence,
   withSpring,
@@ -19,6 +20,69 @@ import { TAP_TO_PAY_VISUAL_STAGE_HEIGHT } from '../constants/tapToPayLayout';
 
 const enableMotion = typeof process !== 'undefined' && process.env.NODE_ENV !== 'test';
 
+const READY_RING_STAGGER_MS = 850;
+const READY_RING_DURATION_MS = 2600;
+const READY_RING_MAX_SCALE = 1.28;
+const READY_RING_START_SCALE = 0.86;
+const READY_RING_MAX_OPACITY = 0.32;
+const READY_RING_SIZE = 88;
+const READY_PULSE_CLIP_SIZE = 118;
+
+/**
+ * @param {import('react-native-reanimated').SharedValue<number>} scale
+ * @param {import('react-native-reanimated').SharedValue<number>} opacity
+ * @param {number} delayMs
+ */
+function startReadyRingPulse(scale, opacity, delayMs) {
+  scale.value = withDelay(
+    delayMs,
+    withRepeat(
+      withSequence(
+        withTiming(READY_RING_START_SCALE, { duration: 0 }),
+        withTiming(READY_RING_MAX_SCALE, {
+          duration: READY_RING_DURATION_MS,
+          easing: Easing.out(Easing.cubic),
+        }),
+      ),
+      -1,
+      false,
+    ),
+  );
+
+  opacity.value = withDelay(
+    delayMs,
+    withRepeat(
+      withSequence(
+        withTiming(READY_RING_MAX_OPACITY, { duration: 0 }),
+        withTiming(0, { duration: READY_RING_DURATION_MS, easing: Easing.out(Easing.cubic) }),
+      ),
+      -1,
+      false,
+    ),
+  );
+}
+
+/**
+ * @param {{
+ *   accentColor: string;
+ *   scale: import('react-native-reanimated').SharedValue<number>;
+ *   opacity: import('react-native-reanimated').SharedValue<number>;
+ * }} props
+ */
+function TapToPayReadyRing({ accentColor, scale, opacity }) {
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Reanimated.View
+      pointerEvents="none"
+      style={[styles.visualCenter, styles.readyRing, { borderColor: accentColor }, ringStyle]}
+    />
+  );
+}
+
 /**
  * @param {{
  *   phase: import('../constants/tapToPayCopy').TapToPayPhase;
@@ -27,6 +91,13 @@ const enableMotion = typeof process !== 'undefined' && process.env.NODE_ENV !== 
  */
 export function TapToPayPulseVisual({ phase, accentColor }) {
   const breathe = useSharedValue(1);
+  const iconOpacity = useSharedValue(1);
+  const ring1Scale = useSharedValue(READY_RING_START_SCALE);
+  const ring2Scale = useSharedValue(READY_RING_START_SCALE);
+  const ring3Scale = useSharedValue(READY_RING_START_SCALE);
+  const ring1Opacity = useSharedValue(0);
+  const ring2Opacity = useSharedValue(0);
+  const ring3Opacity = useSharedValue(0);
   const outcomeScale = useSharedValue(0.72);
   const outcomeOpacity = useSharedValue(0);
   const shakeX = useSharedValue(0);
@@ -40,24 +111,45 @@ export function TapToPayPulseVisual({ phase, accentColor }) {
   useEffect(() => {
     if (!enableMotion) {
       breathe.value = 1;
+      iconOpacity.value = 1;
+      ring1Scale.value = READY_RING_START_SCALE;
+      ring2Scale.value = READY_RING_START_SCALE;
+      ring3Scale.value = READY_RING_START_SCALE;
+      ring1Opacity.value = 0;
+      ring2Opacity.value = 0;
+      ring3Opacity.value = 0;
       return undefined;
     }
 
     if (isReady) {
-      breathe.value = withRepeat(
-        withSequence(
-          withTiming(1.04, { duration: 1400, easing: Easing.inOut(Easing.ease) }),
-          withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.ease) }),
-        ),
-        -1,
-        false,
-      );
+      breathe.value = 1;
+      iconOpacity.value = 1;
+      startReadyRingPulse(ring1Scale, ring1Opacity, 0);
+      startReadyRingPulse(ring2Scale, ring2Opacity, READY_RING_STAGGER_MS);
+      startReadyRingPulse(ring3Scale, ring3Opacity, READY_RING_STAGGER_MS * 2);
       return undefined;
     }
 
     breathe.value = withTiming(1, { duration: 220 });
+    iconOpacity.value = withTiming(1, { duration: 220 });
+    ring1Scale.value = withTiming(READY_RING_START_SCALE, { duration: 220 });
+    ring2Scale.value = withTiming(READY_RING_START_SCALE, { duration: 220 });
+    ring3Scale.value = withTiming(READY_RING_START_SCALE, { duration: 220 });
+    ring1Opacity.value = withTiming(0, { duration: 220 });
+    ring2Opacity.value = withTiming(0, { duration: 220 });
+    ring3Opacity.value = withTiming(0, { duration: 220 });
     return undefined;
-  }, [breathe, isReady]);
+  }, [
+    breathe,
+    iconOpacity,
+    isReady,
+    ring1Opacity,
+    ring1Scale,
+    ring2Opacity,
+    ring2Scale,
+    ring3Opacity,
+    ring3Scale,
+  ]);
 
   useEffect(() => {
     if (!showOutcome) {
@@ -90,7 +182,7 @@ export function TapToPayPulseVisual({ phase, accentColor }) {
   }, [isError, outcomeOpacity, outcomeScale, shakeX, showOutcome]);
 
   const iconStyle = useAnimatedStyle(() => ({
-    opacity: showOutcome ? 0 : 1,
+    opacity: showOutcome ? 0 : iconOpacity.value,
     transform: [{ scale: breathe.value }],
   }));
 
@@ -100,12 +192,23 @@ export function TapToPayPulseVisual({ phase, accentColor }) {
   }));
 
   return (
-    <View style={styles.visualStage}>
+    <View pointerEvents="box-none" style={styles.visualStage}>
       {isPending ? (
         <EchoBarsLoader accessibilityLabel="Processing payment" color={accentColor} size="large" />
       ) : null}
 
-      {!isPending ? (
+      {isReady ? (
+        <View pointerEvents="none" style={styles.readyPulseClip}>
+          <TapToPayReadyRing accentColor={accentColor} opacity={ring1Opacity} scale={ring1Scale} />
+          <TapToPayReadyRing accentColor={accentColor} opacity={ring2Opacity} scale={ring2Scale} />
+          <TapToPayReadyRing accentColor={accentColor} opacity={ring3Opacity} scale={ring3Scale} />
+          <View style={styles.visualCenter}>
+            <MaterialCommunityIcons color={accentColor} name="contactless-payment" size={56} />
+          </View>
+        </View>
+      ) : null}
+
+      {!isPending && !isReady ? (
         <Reanimated.View style={[styles.visualCenter, iconStyle]}>
           <MaterialCommunityIcons color={accentColor} name="contactless-payment" size={56} />
         </Reanimated.View>
@@ -135,12 +238,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: TAP_TO_PAY_VISUAL_STAGE_HEIGHT,
     justifyContent: 'center',
+    overflow: 'hidden',
     width: '100%',
+  },
+  readyPulseClip: {
+    alignItems: 'center',
+    height: READY_PULSE_CLIP_SIZE,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: READY_PULSE_CLIP_SIZE,
   },
   visualCenter: {
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
+  },
+  readyRing: {
+    borderRadius: 999,
+    borderWidth: 1.5,
+    height: READY_RING_SIZE,
+    width: READY_RING_SIZE,
   },
   outcomeRing: {
     alignItems: 'center',

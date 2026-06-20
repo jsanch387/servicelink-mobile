@@ -84,3 +84,12 @@ jest.mock('@stripe/stripe-terminal-react-native', () => ({
     })),
   }),
 }));
+
+jest.mock('./src/features/tap-to-pay/utils/logTapToPayDebug', () => {
+  const actual = jest.requireActual('./src/features/tap-to-pay/utils/logTapToPayDebug');
+  return {
+    ...actual,
+    logTapToPayDebug: jest.fn(),
+    logTapToPayFailure: jest.fn(),
+  };
+});

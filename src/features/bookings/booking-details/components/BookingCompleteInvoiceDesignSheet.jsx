@@ -41,7 +41,7 @@ import { CompleteVisitAddFeeSheet } from './CompleteVisitAddFeeSheet';
 import { useNavigation } from '@react-navigation/native';
 import {
   TapToPaySheet,
-  getTapToPayRowLabel,
+  TAP_TO_PAY_RECEIPT_ROW_LABEL,
   buildTapToPaySessionFees,
   isTapToPayUiEnabled,
   TAP_TO_PAY_USE_TERMINAL_SDK,
@@ -479,7 +479,7 @@ function CompleteVisitDesignBody({
             ) : null}
             {tapToPayAmount > 0 ? (
               <LabelValueRow
-                label={getTapToPayRowLabel()}
+                label={TAP_TO_PAY_RECEIPT_ROW_LABEL}
                 value={`−${formatUsd(tapToPayAmount)}`}
               />
             ) : null}
