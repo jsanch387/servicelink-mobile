@@ -19,6 +19,8 @@ Owner collects the **remaining balance** on-site using **Stripe Tap to Pay on iP
 | Server APIs (connection-token, intent)               | Wired                                                               |
 | Stripe Terminal SDK collection                       | Wired                                                               |
 | Auto `job_completed` after successful tap (SDK path) | Done                                                                |
+| Apple merchant education (ProximityReader, once)     | Done                                                                |
+| Payments “How it works” + What’s new (iOS)           | Done                                                                |
 | Android UI                                           | Hidden for v1 (`isTapToPayPlatformSupported`)                       |
 | **Production blocker**                               | Apple **Tap to Pay on iPhone** entitlement approval + new iOS build |
 
@@ -207,6 +209,22 @@ Without it, Terminal `easyConnect` fails with `UNSUPPORTED_OPERATION` even when 
 | Dev logging             | `tap-to-pay/utils/logTapToPayDebug.js` (`[TapToPay]` in Metro)           |
 | `job_completed` payload | `booking-details/utils/buildJobCompletedPayload.js`                      |
 | Confirm hook            | `booking-details/hooks/useMarkBookingCompleteFlow.js`                    |
+
+---
+
+## Merchant education & awareness (iOS)
+
+Two layers — do not conflate them:
+
+| Layer                      | What                                                            | When                                                                               |
+| -------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **ServiceLink explainer**  | `TapToPayHowItWorksSheet` — Complete → Tap to Pay checkout flow | Payments **How it works**; optional replay any time                                |
+| **Apple system education** | `ProximityReaderDiscovery` “How to Tap” (card presentation)     | Once after Terminal connect / warmup (`maybePresentTapToPayEducationAfterConnect`) |
+| **What’s new**             | `APP_UPDATE_ANNOUNCEMENTS` — current headline feature only      | Once per announcement id on app open (iOS Tap to Pay entry today)                  |
+
+Payments must **not** open Apple education directly — that sheet teaches how customers hold their card, not how ServiceLink checkout works.
+
+Dev reset: long-press version footnote on **More** clears seen What’s new + Apple education flags.
 
 ---
 

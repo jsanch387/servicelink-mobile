@@ -39,13 +39,6 @@ jest.mock('../../tap-to-pay/constants/tapToPayFeatureFlags', () => ({
   isTapToPayUiEnabled: jest.fn(() => true),
 }));
 
-jest.mock('../../tap-to-pay/native/presentTapToPayEducation', () => ({
-  isTapToPayEducationNativeModuleLinked: jest.fn(() => true),
-  isTapToPayEducationAvailable: jest.fn(() => true),
-  presentTapToPayEducation: jest.fn(() => Promise.resolve()),
-  getTapToPayEducationUnavailableMessage: jest.fn(() => ''),
-}));
-
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: jest.fn(),
@@ -223,7 +216,7 @@ describe('PaymentsScreen', () => {
       expect(screen.getByText('Turn on ServiceLink payments')).toBeTruthy();
     });
     expect(screen.getByText('You are connected to Stripe.')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Tap to Pay' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'How it works' })).toBeTruthy();
     expect(screen.queryByText('Accept payments on ServiceLink')).toBeNull();
     expect(screen.queryByText('Open Stripe Dashboard')).toBeNull();
     expect(screen.getByRole('button', { name: 'Turn on payments' })).toBeTruthy();
@@ -307,12 +300,12 @@ describe('PaymentsScreen', () => {
     expect(refetchSubscription).not.toHaveBeenCalled();
   });
 
-  it('shows Tap to Pay education card when payments are configured', async () => {
+  it('shows Tap to Pay card when payments are configured', async () => {
     renderWithProviders(<PaymentsScreen />);
     await waitFor(() => {
-      expect(screen.getByTestId('payments-tap-to-pay-education-card')).toBeTruthy();
+      expect(screen.getByTestId('payments-tap-to-pay-card')).toBeTruthy();
     });
-    expect(screen.getByRole('button', { name: 'Tap to Pay' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'How it works' })).toBeTruthy();
   });
 
   it('disables save while gate is on (Stripe ready but no payment_settings row)', async () => {

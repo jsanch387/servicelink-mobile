@@ -18,13 +18,17 @@ Used by the Complete sheet and `App.js`:
 ```
 tap-to-pay/
 ├── api/              POST connection-token + intent
-├── components/       TapToPaySheet, TapToPayPulseVisual
-├── constants/        copy, flags, layout, timings
-├── hooks/            useTapToPaySheet, useTapToPayTerminalCollection, Connect readiness
+├── components/       TapToPaySheet, TapToPayHowItWorksSheet, TapToPayPulseVisual, warmup bootstrap
+├── constants/        copy, flags, layout, timings, how-it-works copy
+├── education/        Apple education once-after-connect + AsyncStorage seen flag
+├── hooks/            useTapToPaySheet, useTapToPayTerminalCollection, Connect readiness, warmup
+├── native/           presentTapToPayEducation (ProximityReaderDiscovery bridge)
 ├── providers/        StripeTerminalAppProvider (App.js root)
-├── terminal/         connection token registry, dev mock collection
+├── terminal/         connect, collection, connection token registry
 └── utils/            session fees, HTTP errors, debug logging, intent connect params
 ```
+
+Payments screen owns `PaymentTapToPayCard` (feature boundary: settings UI lives under `payments/`).
 
 ## Flags (`constants/tapToPayFeatureFlags.js`)
 
@@ -33,5 +37,5 @@ Production: server APIs + Terminal SDK on, iOS-only UI. Android collection code 
 ## Tests
 
 ```bash
-npm test -- --testPathPattern=tap-to-pay
+npm test -- --testPathPattern="tap-to-pay|PaymentTapToPay|appUpdates"
 ```

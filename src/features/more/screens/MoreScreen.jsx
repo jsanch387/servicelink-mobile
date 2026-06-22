@@ -52,7 +52,7 @@ export function MoreScreen() {
 
   const handleDevResetAppUpdates = () => {
     void Promise.all([resetAppUpdatesForDev(), clearTapToPayEducationSeen()]).then(() => {
-      Alert.alert('Dev', "What's new and Tap to Pay education flags reset.");
+      Alert.alert('Dev', "What's new and Tap to Pay dev flags reset.");
     });
   };
 

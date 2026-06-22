@@ -1,41 +1,46 @@
 import { ROUTES } from '../../../routes/routes';
-import { REVIEW_STAR_COLOR } from '../../reviews/constants';
 
 /**
  * In-app feature announcements — one entry per shipped feature. Each `id` is shown at most once.
- * Add new entries to the end when you OTA; order controls the queue.
+ * Replace the list when you ship the next headline feature (keep only what is current).
  *
  * @typedef {{
  *   id: string;
  *   badge?: string;
  *   icon?: import('@expo/vector-icons').IconProps['name'];
+ *   iconLibrary?: 'ionicons' | 'material-community';
  *   iconColor?: string;
+ *   iconBadgeVariant?: 'default' | 'dark' | 'light';
  *   title: string;
  *   bullets: string[];
  *   primaryLabel?: string;
  *   secondaryLabel?: string;
  *   cta?: { tab: string; screen?: string; params?: Record<string, unknown> };
+ *   platforms?: Array<'ios' | 'android'>;
  * }} WhatsNewAnnouncement
  */
 
 /** @type {WhatsNewAnnouncement[]} */
 export const APP_UPDATE_ANNOUNCEMENTS = [
   {
-    id: 'reviews-inbox-v1',
+    id: 'tap-to-pay-iphone-v1',
     badge: "What's new",
-    icon: 'star',
-    iconColor: REVIEW_STAR_COLOR,
-    title: 'Reviews',
+    icon: 'contactless-payment',
+    iconLibrary: 'material-community',
+    iconColor: '#0a0a0a',
+    iconBadgeVariant: 'light',
+    title: 'Tap to Pay on iPhone',
+    platforms: ['ios'],
     bullets: [
-      'See new reviews from your booking link',
-      'Read what customers said in one place',
-      'Reply publicly so future clients know what to expect',
+      'Accept contactless cards and Apple Pay when you complete a job',
+      'Your iPhone is the payment terminal — no extra hardware',
+      'Quick checkout at the end of every visit',
     ],
     primaryLabel: 'Take a look',
     secondaryLabel: 'Got it',
     cta: {
       tab: ROUTES.MORE,
-      screen: ROUTES.REVIEWS,
+      screen: ROUTES.MORE_PAYMENTS,
     },
   },
 ];
