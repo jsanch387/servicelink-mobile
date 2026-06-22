@@ -6,6 +6,7 @@ import { CustomersNavigator } from '../features/customers/navigation/CustomersNa
 import { HomeScreen } from '../features/home/screens/HomeScreen';
 import { MoreNavigator } from '../features/more';
 import { IosAppPresenceRegistration } from '../features/auth/components/IosAppPresenceRegistration';
+import { TapToPayWarmupBootstrap } from '../features/tap-to-pay/components/TapToPayWarmupBootstrap';
 import { AppUpdateAnnouncementsBootstrap } from '../features/appUpdates';
 import { NotificationsRealtimeBridge } from '../features/notifications/components/NotificationsRealtimeBridge';
 import { PushTokenRegistration } from '../features/notifications/components/PushTokenRegistration';
@@ -44,6 +45,7 @@ export function MainTabNavigator() {
     <>
       <NotificationsRealtimeBridge />
       <IosAppPresenceRegistration />
+      <TapToPayWarmupBootstrap />
       <PushTokenRegistration />
       <AppUpdateAnnouncementsBootstrap />
       <Tab.Navigator

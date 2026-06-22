@@ -15,6 +15,7 @@ import { PaymentsStripeConnectSetupCard } from '../components/PaymentsStripeConn
 import { StripeConnectLaunchOverlay } from '../components/StripeConnectLaunchOverlay';
 import { PaymentDepositsSection } from '../components/PaymentDepositsSection';
 import { PaymentHowCustomersPayCard } from '../components/PaymentHowCustomersPayCard';
+import { PaymentsTapToPayEducationSection } from '../components/PaymentsTapToPayEducationSection';
 import { PaymentStripeDashboardCard } from '../components/PaymentStripeDashboardCard';
 import { DEPOSIT_AMOUNT_MODE } from '../constants/depositAmount';
 import {
@@ -477,6 +478,8 @@ export function PaymentsScreen() {
               />
             </SurfaceCard>
           ) : null}
+
+          <PaymentsTapToPayEducationSection />
 
           <View
             pointerEvents={settingsLocked ? 'none' : 'auto'}

@@ -65,11 +65,20 @@ describe('resolveTapToPaySheetCopy', () => {
     expect(copy.statusLine).toBe('Payment declined');
   });
 
-  it('shows ready-to-pay messaging while listening for a card', () => {
-    const copy = resolveTapToPaySheetCopy('pending', 25, null);
+  it('shows honest setup messaging while Terminal is preparing', () => {
+    const cold = resolveTapToPaySheetCopy('preparing', 25, null, { readerWasWarm: false });
+    expect(cold.hint).toBe(
+      'Apple will show the contactless reader on your iPhone when it is ready.',
+    );
+    expect(cold.statusLine).toBe('Setting up Tap to Pay…');
 
-    expect(copy.hint).toBe('Hold their card or phone near the top of your iPhone.');
-    expect(copy.statusLine).toBe('Ready to accept payment');
+    const warm = resolveTapToPaySheetCopy('preparing', 25, null, { readerWasWarm: true });
+    expect(warm.statusLine).toBe('Opening Tap to Pay…');
+  });
+
+  it('shows preparing payment while intent loads', () => {
+    const copy = resolveTapToPaySheetCopy('loading_intent', 25, null);
+    expect(copy.statusLine).toBe('Preparing payment…');
   });
 
   it('does not label server intent failures as payment failed', () => {

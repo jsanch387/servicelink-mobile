@@ -70,8 +70,11 @@ export function TapToPaySheet({
   }, [prepareOpen, runOpen]);
 
   const copy = useMemo(
-    () => resolveTapToPaySheetCopy(flow.phase, flow.displayAmountDollars, flow.intentError),
-    [flow.displayAmountDollars, flow.intentError, flow.phase],
+    () =>
+      resolveTapToPaySheetCopy(flow.phase, flow.displayAmountDollars, flow.intentError, {
+        readerWasWarm: flow.readerWasWarmAtStart,
+      }),
+    [flow.displayAmountDollars, flow.intentError, flow.phase, flow.readerWasWarmAtStart],
   );
 
   const styles = useMemo(
@@ -150,6 +153,7 @@ export function TapToPaySheet({
           ...StyleSheet.absoluteFillObject,
           alignItems: 'center',
           justifyContent: 'center',
+          gap: 12,
         },
         cardVisualStack: {
           alignItems: 'center',
@@ -186,15 +190,24 @@ export function TapToPaySheet({
 
   const visual = (
     <>
-      {flow.isLoadingIntent ? (
+      {flow.isLoadingIntent || flow.isPreparing ? (
         <View style={styles.loadingVisual}>
-          <EchoBarsLoader accessibilityLabel="Preparing payment" color={colors.text} size="large" />
+          <EchoBarsLoader
+            accessibilityLabel={flow.isLoadingIntent ? 'Preparing payment' : 'Opening Tap to Pay'}
+            color={colors.text}
+            size="large"
+          />
+          {!flow.isLoadingIntent && copy.statusLine ? (
+            <View style={styles.statusSlot}>
+              <AppText style={styles.statusLine}>{copy.statusLine}</AppText>
+            </View>
+          ) : null}
         </View>
       ) : (
         <View style={styles.cardVisualStack}>
           <TapToPayPulseVisual
             accentColor={colors.text}
-            phase={flow.isPending ? 'ready' : flow.phase === 'success' ? 'success' : 'error'}
+            phase={flow.phase === 'success' ? 'success' : 'error'}
           />
           <View style={styles.statusSlot}>
             {copy.statusLine ? (

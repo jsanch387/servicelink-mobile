@@ -33,4 +33,24 @@ describe('postTapToPayConnectionToken', () => {
       expect.objectContaining({ method: 'POST', body: '{}' }),
     );
   });
+
+  it('includes stripeAccountId in body when provided', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({ success: true, secret: 'pst_test_secret' }),
+    });
+
+    await postTapToPayConnectionToken('token', 'booking-1', {
+      stripeAccountId: 'acct_123',
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        body: JSON.stringify({ stripeAccountId: 'acct_123' }),
+      }),
+    );
+  });
 });

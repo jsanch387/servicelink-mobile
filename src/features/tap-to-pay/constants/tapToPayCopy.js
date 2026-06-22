@@ -1,6 +1,6 @@
-/** @typedef {'pending' | 'success' | 'error'} TapToPayPhase */
+/** @typedef {'preparing' | 'success' | 'error'} TapToPayPhase */
 
-/** @typedef {'loading_intent' | 'intent_error' | 'pending' | 'success' | 'error'} TapToPaySheetPhase */
+/** @typedef {'loading_intent' | 'intent_error' | 'preparing' | 'success' | 'error'} TapToPaySheetPhase */
 
 export const TAP_TO_PAY_RECEIPT_ROW_LABEL = 'Paid with card';
 
@@ -11,7 +11,12 @@ export const TAP_TO_PAY_PAYMENT_NOT_COMPLETED = 'Payment not completed';
 export const TAP_TO_PAY_TERMINAL_NOT_CONFIGURED =
   'Tap to Pay reader is not configured for your account yet.';
 
-export const TAP_TO_PAY_READY_HINT = 'Hold their card or phone near the top of your iPhone.';
+export const TAP_TO_PAY_PREPARING_COLD = 'Setting up Tap to Pay…';
+
+export const TAP_TO_PAY_PREPARING_WARM = 'Opening Tap to Pay…';
+
+export const TAP_TO_PAY_PREPARING_HINT =
+  'Apple will show the contactless reader on your iPhone when it is ready.';
 
 /** @typedef {'intent' | 'collection'} TapToPayErrorContext */
 
@@ -124,18 +129,18 @@ export function getTapToPayCopy(phase, amountDue) {
     };
   }
 
-  if (phase === 'pending') {
+  if (phase === 'preparing') {
     return {
       title: 'Tap to Pay',
-      hint: TAP_TO_PAY_READY_HINT,
-      statusLine: 'Ready to accept payment',
+      hint: TAP_TO_PAY_PREPARING_HINT,
+      statusLine: TAP_TO_PAY_PREPARING_COLD,
     };
   }
 
   return {
     title: 'Tap to Pay',
-    hint: TAP_TO_PAY_READY_HINT,
-    statusLine: 'Ready to accept payment',
+    hint: TAP_TO_PAY_PREPARING_HINT,
+    statusLine: TAP_TO_PAY_PREPARING_COLD,
   };
 }
 
@@ -149,13 +154,14 @@ export function formatTapToPayAmount(amount) {
  * @param {TapToPaySheetPhase} phase
  * @param {number} amountDue
  * @param {string | null | undefined} intentError
+ * @param {{ readerWasWarm?: boolean }} [options]
  */
-export function resolveTapToPaySheetCopy(phase, amountDue, intentError) {
+export function resolveTapToPaySheetCopy(phase, amountDue, intentError, options = {}) {
   if (phase === 'loading_intent') {
     return {
       title: 'Tap to Pay',
       hint: null,
-      statusLine: null,
+      statusLine: 'Preparing payment…',
     };
   }
 
@@ -175,6 +181,14 @@ export function resolveTapToPaySheetCopy(phase, amountDue, intentError) {
     };
   }
 
-  const mappedPhase = phase === 'pending' || phase === 'success' ? phase : 'pending';
+  if (phase === 'preparing') {
+    return {
+      title: 'Tap to Pay',
+      hint: TAP_TO_PAY_PREPARING_HINT,
+      statusLine: options.readerWasWarm ? TAP_TO_PAY_PREPARING_WARM : TAP_TO_PAY_PREPARING_COLD,
+    };
+  }
+
+  const mappedPhase = phase === 'success' ? phase : 'preparing';
   return getTapToPayCopy(mappedPhase, amountDue);
 }

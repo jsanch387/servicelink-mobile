@@ -65,6 +65,7 @@
     "react-native-svg": "15.12.1",
     "react-native-url-polyfill": "^3.0.0",
     "react-native-worklets": "0.5.1",
+    "servicelink-tap-to-pay-education": "file:./modules/servicelink-tap-to-pay-education",
     "tailwindcss": "^3.4.19"
   },
   "private": true,

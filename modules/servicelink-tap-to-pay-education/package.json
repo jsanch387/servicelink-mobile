@@ -1,0 +1,10 @@
+{
+  "name": "servicelink-tap-to-pay-education",
+  "version": "1.0.0",
+  "description": "Apple ProximityReaderDiscovery merchant education for Tap to Pay on iPhone",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "expo": "*",
+    "react-native": "*"
+  }
+}

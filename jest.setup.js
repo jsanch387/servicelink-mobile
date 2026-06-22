@@ -68,6 +68,8 @@ jest.mock('@stripe/stripe-terminal-react-native', () => ({
     initialize: jest.fn(async () => ({ error: undefined })),
     supportsReadersOfType: jest.fn(async () => ({ readerSupportResult: true, error: undefined })),
     easyConnect: jest.fn(async () => ({ reader: { id: 'reader-1' }, error: undefined })),
+    disconnectReader: jest.fn(async () => ({ error: undefined })),
+    clearCachedCredentials: jest.fn(async () => ({ error: undefined })),
     getLocations: jest.fn(async () => ({ locations: [{ id: 'tml_test' }], error: undefined })),
     retrievePaymentIntent: jest.fn(async () => ({
       paymentIntent: {
@@ -83,6 +85,12 @@ jest.mock('@stripe/stripe-terminal-react-native', () => ({
       error: undefined,
     })),
   }),
+}));
+
+jest.mock('servicelink-tap-to-pay-education', () => ({
+  isTapToPayEducationNativeAvailable: jest.fn(() => false),
+  isTapToPayEducationNativeModuleLinked: jest.fn(() => false),
+  presentTapToPayEducationNative: jest.fn(() => Promise.resolve()),
 }));
 
 jest.mock('./src/features/tap-to-pay/utils/logTapToPayDebug', () => {

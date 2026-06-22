@@ -11,6 +11,7 @@ import {
   SettingsSection,
 } from '../../../components/ui';
 import { resetAppUpdatesForDev } from '../../appUpdates';
+import { clearTapToPayEducationSeen } from '../../tap-to-pay/native/presentTapToPayEducation';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { SCREEN_GUTTER } from '../../../constants/layout';
@@ -50,8 +51,8 @@ export function MoreScreen() {
   );
 
   const handleDevResetAppUpdates = () => {
-    void resetAppUpdatesForDev().then(() => {
-      Alert.alert('Dev', "What's new announcements reset.");
+    void Promise.all([resetAppUpdatesForDev(), clearTapToPayEducationSeen()]).then(() => {
+      Alert.alert('Dev', "What's new and Tap to Pay education flags reset.");
     });
   };
 

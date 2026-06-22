@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase';
  * @property {string} id
  * @property {string} business_id
  * @property {string | null} stripe_account_id
+ * @property {string | null} stripe_terminal_location_id
  * @property {string | null} onboarding_status
  * @property {boolean | null} charges_enabled
  */
@@ -30,7 +31,9 @@ export async function fetchPaymentDashboardRows(businessId) {
   const [acctRes, settingsRes] = await Promise.all([
     supabase
       .from('payment_accounts')
-      .select('id, business_id, stripe_account_id, onboarding_status, charges_enabled')
+      .select(
+        'id, business_id, stripe_account_id, stripe_terminal_location_id, onboarding_status, charges_enabled',
+      )
       .eq('business_id', businessId)
       .maybeSingle(),
     supabase

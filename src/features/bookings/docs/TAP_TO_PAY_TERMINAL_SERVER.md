@@ -58,9 +58,19 @@ On `payment_accounts`:
 
 **`POST …/tap-to-pay/intent`** — must call `ensureTerminalLocation` before creating the PaymentIntent.
 
-**`POST …/tap-to-pay/connection-token`** — scoped to the same connected account.
+**`POST …/tap-to-pay/connection-token`** (booking) — must create the token on the **connected account** (`Stripe-Account: acct_…` or `stripeAccount` option). Mobile may send `{ "stripeAccountId": "acct_…" }` in the body (from the intent response) so the server can scope the token explicitly.
 
-Mobile parses connect fields in `parseTapToPayIntentConnectParams.js` (also accepts `locationId`, `onBehalfOf`, `merchantDisplayName`).
+**`POST /api/payments/tap-to-pay/connection-token`** (merchant, no booking) — preferred for **app warm-up** when the user is already signed in. Same auth (`Authorization: Bearer`) and optional `{ "stripeAccountId": "acct_…" }` body. Response: `{ "success": true, "secret": "…" }`. Mobile reads `stripe_terminal_location_id` + `stripe_account_id` from `payment_accounts` (Supabase) to connect before any booking sheet opens.
+
+**Fallback (until merchant route ships):** mobile uses `POST …/bookings/{bookingId}/tap-to-pay/connection-token` with the merchant’s most recently updated booking id from Supabase. Warm-up is skipped when neither route is available.
+
+**Full server implementation brief:** [`TAP_TO_PAY_WARMUP_SERVER.md`](./TAP_TO_PAY_WARMUP_SERVER.md) — copy-paste prompt + contract for the merchant connection-token route.
+
+Server uses **direct charges** (PI + connection token on the connected account). Mobile must **not** pass `onBehalfOf` to `easyConnect` — that parameter is only for **destination charges** (platform PI with `on_behalf_of`). Passing it with a direct-charge PI causes `INVALID_REQUIRED_PARAMETER` at `processPaymentIntent`.
+
+`stripeAccountId` from the intent response is used for connection-token request body alignment and logging only.
+
+Mobile parses connect fields in `parseTapToPayIntentConnectParams.js` (also accepts `locationId`, `merchantDisplayName`).
 
 ---
 
@@ -97,5 +107,5 @@ Mobile parses connect fields in `parseTapToPayIntentConnectParams.js` (also acce
 ## Mobile parsing reference
 
 - `src/features/tap-to-pay/utils/parseTapToPayIntentConnectParams.js`
-- `src/features/tap-to-pay/hooks/useTapToPayTerminalCollection.js` (`easyConnect` with `locationId` + optional `onBehalfOf`)
+- `src/features/tap-to-pay/hooks/useTapToPayTerminalCollection.js` (`easyConnect` with `locationId` only — no `onBehalfOf` for direct charges)
 - Dev logs: `[TapToPay]` prefix in Metro on device

@@ -1,9 +1,10 @@
 /**
  * @param {number} httpStatus
  * @param {string | null} serverMessage
+ * @param {'booking' | 'merchant'} [scope='booking']
  * @returns {string}
  */
-export function mapTapToPayHttpError(httpStatus, serverMessage) {
+export function mapTapToPayHttpError(httpStatus, serverMessage, scope = 'booking') {
   const fallback = serverMessage?.trim() || null;
   switch (httpStatus) {
     case 400:
@@ -11,6 +12,9 @@ export function mapTapToPayHttpError(httpStatus, serverMessage) {
     case 401:
       return 'Sign in again to collect payment.';
     case 404:
+      if (scope === 'merchant') {
+        return fallback || 'Tap to Pay warm-up API is not available on the server yet.';
+      }
       return fallback || 'Appointment not found.';
     case 409:
       return fallback || 'Mark work done before collecting payment.';

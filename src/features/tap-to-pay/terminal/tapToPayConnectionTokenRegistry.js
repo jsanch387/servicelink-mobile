@@ -1,21 +1,64 @@
-import { logTapToPayDebug, logTapToPayFailure } from '../utils/logTapToPayDebug';
+import { logTapToPayFailure } from '../utils/logTapToPayDebug';
 
 /** @type {(() => Promise<string>) | null} */
-let activeTokenFetcher = null;
+let merchantTokenFetcher = null;
+
+/** @type {(() => Promise<string>) | null} */
+let bookingTokenFetcher = null;
+
+/** @type {string | null} */
+let bookingStripeAccountId = null;
 
 /**
- * Register booking-scoped connection token fetcher while Tap to Pay sheet is open.
+ * Register merchant-scoped connection token fetcher while signed in (app warm-up).
  *
  * @param {() => Promise<string>} fetcher
  */
-export function setTapToPayConnectionTokenFetcher(fetcher) {
-  activeTokenFetcher = fetcher;
-  logTapToPayDebug('connection-token.registry.set');
+export function setMerchantTapToPayConnectionTokenFetcher(fetcher) {
+  merchantTokenFetcher = fetcher;
 }
 
+export function clearMerchantTapToPayConnectionTokenFetcher() {
+  merchantTokenFetcher = null;
+}
+
+/**
+ * Register booking-scoped connection token fetcher while Tap to Pay sheet is open.
+ * Takes priority over the merchant fetcher.
+ *
+ * @param {() => Promise<string>} fetcher
+ */
+export function setBookingTapToPayConnectionTokenFetcher(fetcher) {
+  bookingTokenFetcher = fetcher;
+}
+
+/** @deprecated Use setBookingTapToPayConnectionTokenFetcher */
+export function setTapToPayConnectionTokenFetcher(fetcher) {
+  setBookingTapToPayConnectionTokenFetcher(fetcher);
+}
+
+/**
+ * Connected account for the active booking Tap to Pay session (from intent response).
+ *
+ * @param {string | null | undefined} stripeAccountId
+ */
+export function setTapToPayConnectionTokenStripeAccountId(stripeAccountId) {
+  bookingStripeAccountId =
+    typeof stripeAccountId === 'string' && stripeAccountId.trim() ? stripeAccountId.trim() : null;
+}
+
+export function getTapToPayConnectionTokenStripeAccountId() {
+  return bookingStripeAccountId;
+}
+
+export function clearBookingTapToPayConnectionTokenFetcher() {
+  bookingTokenFetcher = null;
+  bookingStripeAccountId = null;
+}
+
+/** @deprecated Use clearBookingTapToPayConnectionTokenFetcher */
 export function clearTapToPayConnectionTokenFetcher() {
-  activeTokenFetcher = null;
-  logTapToPayDebug('connection-token.registry.clear');
+  clearBookingTapToPayConnectionTokenFetcher();
 }
 
 /**
@@ -24,12 +67,12 @@ export function clearTapToPayConnectionTokenFetcher() {
  * @returns {Promise<string>}
  */
 export async function fetchTapToPayConnectionTokenFromRegistry() {
-  if (!activeTokenFetcher) {
+  const fetcher = bookingTokenFetcher ?? merchantTokenFetcher;
+  if (!fetcher) {
     logTapToPayFailure('connection-token.registry', {
-      message: 'Tap to Pay sheet is not active (no token fetcher registered)',
+      message: 'No Tap to Pay connection token fetcher registered',
     });
     throw new Error('Tap to Pay is not active.');
   }
-  logTapToPayDebug('connection-token.registry.invoke');
-  return activeTokenFetcher();
+  return fetcher();
 }

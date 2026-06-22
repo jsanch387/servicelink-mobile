@@ -9,9 +9,12 @@ export function useTapToPayConnectReadiness() {
 
   return {
     isConnectReady: dashboard.stripeConnectReady,
-    isLoading: dashboard.isPendingPayments,
-    loadError: dashboard.paymentLoadError,
+    isLoading: dashboard.isPendingPayments || dashboard.isPendingBusiness,
+    loadError: dashboard.paymentLoadError ?? dashboard.businessError,
+    businessId: dashboard.business?.id ?? null,
     merchantDisplayName: dashboard.business?.business_name ?? null,
+    terminalLocationId: dashboard.paymentAccount?.stripe_terminal_location_id ?? null,
+    stripeAccountId: dashboard.paymentAccount?.stripe_account_id ?? null,
     refetch: dashboard.refetchPayments,
   };
 }
