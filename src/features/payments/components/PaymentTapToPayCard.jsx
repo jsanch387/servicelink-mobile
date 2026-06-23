@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, Button, SurfaceCard } from '../../../components/ui';
@@ -20,13 +21,32 @@ export function PaymentTapToPayCard() {
   return (
     <>
       <SurfaceCard style={styles.card} testID="payments-tap-to-pay-card">
-        <View style={paymentLayoutStyles.headerTextGroup}>
-          <AppText style={[paymentTextStyles.sectionTitle, { color: colors.text }]}>
-            {TAP_TO_PAY_PAYMENTS_CARD_TITLE}
-          </AppText>
-          <AppText style={[paymentTextStyles.sectionBody, { color: colors.textMuted }]}>
-            {TAP_TO_PAY_PAYMENTS_CARD_BODY}
-          </AppText>
+        <View style={paymentLayoutStyles.sectionHeaderRow}>
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={[
+              paymentLayoutStyles.sectionIconBadge,
+              {
+                backgroundColor: colors.buttonPrimaryBg,
+                borderColor: colors.buttonPrimaryBg,
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              color={colors.buttonPrimaryText}
+              name="contactless-payment"
+              size={22}
+            />
+          </View>
+          <View style={paymentLayoutStyles.sectionHeaderText}>
+            <AppText style={[paymentTextStyles.sectionTitle, { color: colors.text }]}>
+              {TAP_TO_PAY_PAYMENTS_CARD_TITLE}
+            </AppText>
+            <AppText style={[paymentTextStyles.sectionBody, { color: colors.textMuted }]}>
+              {TAP_TO_PAY_PAYMENTS_CARD_BODY}
+            </AppText>
+          </View>
         </View>
         <Button
           fullWidth

@@ -311,11 +311,7 @@ export function PaymentsScreen() {
           alignSelf: 'stretch',
           gap: 16,
         },
-        /** Gate: entire payments column (including Stripe) is de-emphasized. */
-        cardsColumnLocked: {
-          opacity: 0.5,
-        },
-        /** ServiceLink off: only checkout + deposits; accept + Stripe stay full opacity. */
+        /** Checkout + deposits muted when gate is on or ServiceLink checkout is off. */
         checkoutDepositsStack: {
           alignSelf: 'stretch',
           gap: 16,
@@ -479,28 +475,24 @@ export function PaymentsScreen() {
             </SurfaceCard>
           ) : null}
 
-          <PaymentsTapToPaySection />
-
-          <View
-            pointerEvents={settingsLocked ? 'none' : 'auto'}
-            style={[styles.cardsColumn, settingsLocked && styles.cardsColumnLocked]}
-          >
+          <View style={styles.cardsColumn}>
+            {!payment.gateServicelinkCheckout ? (
+              <PaymentStripeDashboardCard
+                stripeAccountId={payment.paymentAccount?.stripe_account_id ?? null}
+              />
+            ) : null}
             {!payment.gateServicelinkCheckout ? (
               <PaymentAcceptServicelinkCard
                 value={acceptServicelinkPayments}
                 onValueChange={setAcceptServicelinkPayments}
               />
             ) : null}
-            {!payment.gateServicelinkCheckout ? (
-              <PaymentStripeDashboardCard
-                stripeAccountId={payment.paymentAccount?.stripe_account_id ?? null}
-              />
-            ) : null}
+            <PaymentsTapToPaySection />
             <View
               pointerEvents={settingsLocked || !acceptServicelinkPayments ? 'none' : 'auto'}
               style={[
                 styles.checkoutDepositsStack,
-                !settingsLocked && !acceptServicelinkPayments && styles.checkoutDepositsMuted,
+                (settingsLocked || !acceptServicelinkPayments) && styles.checkoutDepositsMuted,
               ]}
               testID="payments-checkout-deposits-stack"
             >

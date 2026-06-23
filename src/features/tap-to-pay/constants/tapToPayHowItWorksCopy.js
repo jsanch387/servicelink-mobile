@@ -24,3 +24,10 @@ export const TAP_TO_PAY_HOW_IT_WORKS_STEPS = [
 ];
 
 export const TAP_TO_PAY_HOW_IT_WORKS_DISMISS_LABEL = 'Got it';
+
+/** Opens Apple’s ProximityReader “How to Tap” guide (merchant education). */
+export const TAP_TO_PAY_VIEW_DEMO_LABEL = 'View demo';
+
+/** Shown above the demo button inside the how-it-works sheet. */
+export const TAP_TO_PAY_VIEW_DEMO_HINT =
+  'See how customers hold their card or device when they tap.';

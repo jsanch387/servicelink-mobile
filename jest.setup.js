@@ -87,6 +87,10 @@ jest.mock('@stripe/stripe-terminal-react-native', () => ({
   }),
 }));
 
+jest.mock('expo-symbols', () => ({
+  SymbolView: () => null,
+}));
+
 jest.mock('servicelink-tap-to-pay-education', () => ({
   isTapToPayEducationNativeAvailable: jest.fn(() => false),
   isTapToPayEducationNativeModuleLinked: jest.fn(() => false),

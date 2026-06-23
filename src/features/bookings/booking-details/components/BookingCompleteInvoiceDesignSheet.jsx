@@ -47,12 +47,11 @@ import {
   TAP_TO_PAY_USE_TERMINAL_SDK,
   useTapToPayConnectReadiness,
   navigateToPaymentsSetup,
-  TAP_TO_PAY_NOT_SET_UP_TITLE,
-  TAP_TO_PAY_NOT_SET_UP_HINT,
-  TAP_TO_PAY_GET_STARTED_LABEL,
   TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT,
   TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT,
 } from '../../../tap-to-pay';
+import { TapToPayCheckoutIcon } from '../../../tap-to-pay/components/TapToPayCheckoutIcon';
+import { TapToPaySetupRequiredSheet } from '../../../tap-to-pay/components/TapToPaySetupRequiredSheet';
 import { useAuth } from '../../../auth';
 import {
   CompleteVisitMarkPaidSheet,
@@ -175,6 +174,7 @@ function CompleteVisitDesignBody({
 }) {
   const { colors } = useTheme();
   const overlay = useBottomSheetOverlay();
+  const [setupSheetVisible, setSetupSheetVisible] = useState(false);
 
   useEffect(() => () => overlay?.hide(), [overlay]);
 
@@ -243,43 +243,6 @@ function CompleteVisitDesignBody({
           gap: 10,
           marginTop: 16,
         },
-        tapToPaySetupCallout: {
-          alignItems: 'center',
-          backgroundColor: colors.cardSurface,
-          borderColor: colors.border,
-          borderRadius: 12,
-          borderWidth: StyleSheet.hairlineWidth,
-          gap: 6,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
-        },
-        tapToPaySetupTitle: {
-          color: colors.text,
-          fontSize: 14,
-          fontWeight: '700',
-          letterSpacing: -0.1,
-          textAlign: 'center',
-        },
-        tapToPaySetupBody: {
-          color: colors.textMuted,
-          fontSize: 13,
-          fontWeight: '500',
-          lineHeight: 18,
-          textAlign: 'center',
-        },
-        tapToPayGetStartedBtn: {
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: 4,
-          minHeight: 36,
-          paddingHorizontal: 8,
-        },
-        tapToPayGetStartedLabel: {
-          color: colors.accent,
-          fontSize: 14,
-          fontWeight: '700',
-          letterSpacing: -0.1,
-        },
         paidBanner: {
           alignItems: 'center',
           backgroundColor: SUBMIT_OUTCOME_SUCCESS.ring,
@@ -334,7 +297,7 @@ function CompleteVisitDesignBody({
     overlay?.show(<CompleteVisitAddFeeSheet onAdd={onAddFee} onClose={() => overlay.hide()} />);
   };
 
-  const openTapToPaySheet = () => {
+  const openTapToPaySheet = useCallback(() => {
     Keyboard.dismiss();
     const sessionFees = buildTapToPaySessionFees(adjustments);
     overlay?.show(
@@ -348,14 +311,33 @@ function CompleteVisitDesignBody({
         onSuccess={onTapToPaySuccess}
       />,
     );
-  };
+  }, [
+    accessToken,
+    adjustments,
+    amountDue,
+    bookingId,
+    merchantDisplayName,
+    onTapToPaySuccess,
+    overlay,
+  ]);
 
   const canUseTapToPay = tapToPayConnectReady && !tapToPayConnectLoading;
-  const showTapToPaySetupCallout = !canUseTapToPay && !tapToPayConnectLoading;
 
-  const openTapToPaySetup = () => {
+  const handleTapToPayPress = useCallback(() => {
+    if (tapToPayConnectLoading) {
+      return;
+    }
+    if (canUseTapToPay) {
+      openTapToPaySheet();
+      return;
+    }
+    setSetupSheetVisible(true);
+  }, [canUseTapToPay, openTapToPaySheet, tapToPayConnectLoading]);
+
+  const handleSetupPaymentsPress = useCallback(() => {
+    setSetupSheetVisible(false);
     onTapToPaySetupPress?.();
-  };
+  }, [onTapToPaySetupPress]);
 
   const openMarkPaidSheet = () => {
     Keyboard.dismiss();
@@ -497,44 +479,21 @@ function CompleteVisitDesignBody({
         {showCollectActions ? (
           <View style={styles.paymentActions}>
             {showTapToPay ? (
-              <>
-                <Button
-                  accessibilityHint={
-                    canUseTapToPay
-                      ? TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT
-                      : TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT
-                  }
-                  disabled={!canUseTapToPay || tapToPayConnectLoading}
-                  fullWidth
-                  iconLibrary="material-community"
-                  iconName={canUseTapToPay ? 'contactless-payment' : 'lock-outline'}
-                  loading={tapToPayConnectLoading}
-                  subduedWhenDisabled={false}
-                  title="Tap to Pay"
-                  variant={canUseTapToPay ? 'surfaceDark' : 'secondary'}
-                  onPress={canUseTapToPay ? openTapToPaySheet : undefined}
-                />
-                {showTapToPaySetupCallout ? (
-                  <View style={styles.tapToPaySetupCallout}>
-                    <AppText style={styles.tapToPaySetupTitle}>
-                      {TAP_TO_PAY_NOT_SET_UP_TITLE}
-                    </AppText>
-                    <AppText style={styles.tapToPaySetupBody}>{TAP_TO_PAY_NOT_SET_UP_HINT}</AppText>
-                    <Pressable
-                      accessibilityHint={TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT}
-                      accessibilityLabel={TAP_TO_PAY_GET_STARTED_LABEL}
-                      accessibilityRole="button"
-                      hitSlop={8}
-                      style={styles.tapToPayGetStartedBtn}
-                      onPress={openTapToPaySetup}
-                    >
-                      <AppText style={styles.tapToPayGetStartedLabel}>
-                        {TAP_TO_PAY_GET_STARTED_LABEL}
-                      </AppText>
-                    </Pressable>
-                  </View>
-                ) : null}
-              </>
+              <Button
+                accessibilityHint={
+                  canUseTapToPay
+                    ? TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT
+                    : TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT
+                }
+                disabled={tapToPayConnectLoading}
+                fullWidth
+                iconNode={<TapToPayCheckoutIcon color="#ffffff" size={22} />}
+                loading={tapToPayConnectLoading}
+                subduedWhenDisabled={false}
+                title="Tap to Pay"
+                variant="surfaceDark"
+                onPress={handleTapToPayPress}
+              />
             ) : null}
             <Button
               fullWidth
@@ -558,6 +517,11 @@ function CompleteVisitDesignBody({
           <AppText style={styles.followUpText}>{followUpInfo.message}</AppText>
         </View>
       ) : null}
+      <TapToPaySetupRequiredSheet
+        visible={setupSheetVisible}
+        onRequestClose={() => setSetupSheetVisible(false)}
+        onSetupPress={handleSetupPaymentsPress}
+      />
     </ScrollView>
   );
 }

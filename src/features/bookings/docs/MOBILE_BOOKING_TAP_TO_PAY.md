@@ -140,7 +140,7 @@ Call **only after** SDK reports PaymentIntent **succeeded**. Pass the **same** `
 | `pending`                | “Hold their card…” / “Ready to accept payment”                          |
 | `success`                | “Payment received” → auto-dismiss                                       |
 | `intent_error` / `error` | Inline hint + **Try again** (Complete sheet still has **Mark as paid**) |
-| Connect not ready (422)  | Locked **Tap to Pay** + **Get started** → Payments                      |
+| Connect not ready (422)  | Tap to Pay opens setup sheet → **Set up payments** → Payments           |
 
 ---
 
@@ -148,11 +148,11 @@ Call **only after** SDK reports PaymentIntent **succeeded**. Pass the **same** `
 
 Before Tap to Pay collection, mobile reads `payment_accounts` (same rule as Payments tab):
 
-| Connect state                                                  | Tap to Pay button                        | Mark as paid     |
-| -------------------------------------------------------------- | ---------------------------------------- | ---------------- |
-| Not ready                                                      | Locked + “Tap to Pay not set up” callout | Always available |
-| Loading                                                        | Spinner on button                        | Always available |
-| Ready (`onboarding_status === 'complete'` + `charges_enabled`) | Active                                   | Always available |
+| Connect state                                                  | Tap to Pay button                                   | Mark as paid     |
+| -------------------------------------------------------------- | --------------------------------------------------- | ---------------- |
+| Not ready                                                      | Tap to Pay always tappable → setup sheet → Payments | Always available |
+| Loading                                                        | Spinner on button                                   | Always available |
+| Ready (`onboarding_status === 'complete'` + `charges_enabled`) | Active                                              | Always available |
 
 Non‑Pro owners land on the Payments web upsell; Pro owners without Connect see the Stripe Connect setup card.
 
@@ -216,13 +216,13 @@ Without it, Terminal `easyConnect` fails with `UNSUPPORTED_OPERATION` even when 
 
 Two layers — do not conflate them:
 
-| Layer                      | What                                                            | When                                                                               |
-| -------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **ServiceLink explainer**  | `TapToPayHowItWorksSheet` — Complete → Tap to Pay checkout flow | Payments **How it works**; optional replay any time                                |
-| **Apple system education** | `ProximityReaderDiscovery` “How to Tap” (card presentation)     | Once after Terminal connect / warmup (`maybePresentTapToPayEducationAfterConnect`) |
-| **What’s new**             | `APP_UPDATE_ANNOUNCEMENTS` — current headline feature only      | Once per announcement id on app open (iOS Tap to Pay entry today)                  |
+| Layer                      | What                                                            | When                                                                    |
+| -------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **ServiceLink explainer**  | `TapToPayHowItWorksSheet` — Complete → Tap to Pay checkout flow | Payments **How it works**; optional replay any time                     |
+| **Apple system education** | `ProximityReaderDiscovery` “How to Tap” (card presentation)     | Once after connect; replay via **View demo** in How it works (Payments) |
+| **What’s new**             | `APP_UPDATE_ANNOUNCEMENTS` — current headline feature only      | Once per announcement id on app open (iOS Tap to Pay entry today)       |
 
-Payments must **not** open Apple education directly — that sheet teaches how customers hold their card, not how ServiceLink checkout works.
+Payments **How it works** explains ServiceLink checkout; **View demo** replays Apple merchant education (do not open Apple education from the card button directly).
 
 Dev reset: long-press version footnote on **More** clears seen What’s new + Apple education flags.
 

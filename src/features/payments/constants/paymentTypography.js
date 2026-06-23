@@ -87,4 +87,24 @@ export const paymentLayoutStyles = StyleSheet.create({
     gap: 6,
     marginBottom: 2,
   },
+  /** Title row with optional leading icon badge (e.g. Tap to Pay). */
+  sectionHeaderRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 2,
+  },
+  sectionHeaderText: {
+    flex: 1,
+    gap: 6,
+    minWidth: 0,
+  },
+  sectionIconBadge: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
 });
