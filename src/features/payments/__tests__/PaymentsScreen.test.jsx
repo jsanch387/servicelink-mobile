@@ -39,11 +39,17 @@ jest.mock('../../tap-to-pay/constants/tapToPayFeatureFlags', () => ({
   isTapToPayUiEnabled: jest.fn(() => true),
 }));
 
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({
-    navigate: jest.fn(),
-  }),
-}));
+jest.mock('@react-navigation/native', () => {
+  const R = require('react');
+  return {
+    useFocusEffect: (cb) => {
+      R.useEffect(() => cb(), []);
+    },
+    useNavigation: () => ({
+      navigate: jest.fn(),
+    }),
+  };
+});
 
 jest.mock('expo-web-browser', () => ({
   openBrowserAsync: jest.fn(),

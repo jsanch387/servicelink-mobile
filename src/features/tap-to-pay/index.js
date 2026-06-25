@@ -13,6 +13,7 @@ export {
   TAP_TO_PAY_SETUP_DISMISS_LABEL,
   TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT,
   TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT,
+  TAP_TO_PAY_CHECKOUT_BUTTON_LABEL,
 } from './constants/tapToPayConnectCopy';
 
 export { buildTapToPaySessionFees } from './utils/buildTapToPaySessionFees';

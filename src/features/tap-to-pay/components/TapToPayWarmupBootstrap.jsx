@@ -1,8 +1,7 @@
 import { useTapToPayWarmup } from '../hooks/useTapToPayWarmup';
 
 /**
- * Mounts Tap to Pay Terminal warm-up for signed-in merchants (app launch + foreground).
- * Runs silently — no UI. Safe to mount only when the main app tabs are active.
+ * Mounts silent Tap to Pay prep for signed-in merchants (SDK init + background reader connect when opted in).
  */
 export function TapToPayWarmupBootstrap() {
   useTapToPayWarmup();

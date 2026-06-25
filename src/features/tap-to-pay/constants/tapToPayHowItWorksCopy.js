@@ -1,6 +1,12 @@
 /** Payments card — section title. */
 export const TAP_TO_PAY_PAYMENTS_CARD_TITLE = 'Tap to Pay';
 
+/** Payments card — short lead (≤5 words), not yet enabled. */
+export const TAP_TO_PAY_PAYMENTS_CARD_LEAD_SETUP = 'Set up on iPhone.';
+
+/** Payments card — short lead (≤5 words), enabled. */
+export const TAP_TO_PAY_PAYMENTS_CARD_LEAD_READY = 'Accept contactless payments.';
+
 /** Payments card — one-line summary. */
 export const TAP_TO_PAY_PAYMENTS_CARD_BODY =
   'Collect contactless payments when you complete a job.';

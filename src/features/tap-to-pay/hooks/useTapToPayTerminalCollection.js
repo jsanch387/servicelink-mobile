@@ -1,12 +1,16 @@
 import { useCallback } from 'react';
 import { useStripeTerminal } from '@stripe/stripe-terminal-react-native';
+import { TAP_TO_PAY_USE_TERMINAL_SDK } from '../constants/tapToPayFeatureFlags';
 import { logTapToPayDebug, logTapToPayFailure, maskId } from '../utils/logTapToPayDebug';
+import { markTapToPayMerchantEnabled } from '../utils/tapToPayEnablementStorage';
 import { requestTapToPayAndroidPermissions } from '../utils/requestTapToPayAndroidPermissions';
 import {
   ensureTapToPayReaderConnected,
   ensureTapToPayTerminalInitialized,
   mapTapToPayTerminalErrorMessage,
+  prewarmTapToPayReaderSession,
 } from '../terminal/tapToPayTerminalConnect';
+import { runTapToPayTerminalPayment } from '../terminal/runTapToPayTerminalPayment';
 
 /** @typedef {import('../utils/parseTapToPayIntentConnectParams').TapToPayConnectParams} TapToPayConnectParams */
 
@@ -23,11 +27,19 @@ export function useTapToPayTerminalCollection() {
     clearCachedCredentials,
     getLocations,
     retrievePaymentIntent,
-    processPaymentIntent,
+    collectPaymentMethod,
+    confirmPaymentIntent,
   } = useStripeTerminal();
 
   const collectPayment = useCallback(
-    async ({ clientSecret, paymentIntentId, amountCents, connectParams, merchantDisplayName }) => {
+    async ({
+      clientSecret,
+      paymentIntentId,
+      amountCents,
+      connectParams,
+      merchantDisplayName,
+      onProcessingStart,
+    }) => {
       logTapToPayDebug('terminal.collect.start', {
         paymentIntentId: maskId(paymentIntentId),
         amountCents,
@@ -86,6 +98,11 @@ export function useTapToPayTerminalCollection() {
         reason: 'collect',
       });
 
+      await markTapToPayMerchantEnabled(
+        connectParams?.stripeAccountId,
+        connectParams?.terminalLocationId,
+      );
+
       logTapToPayDebug('terminal.retrieve.start', { paymentIntentId: maskId(paymentIntentId) });
       const { paymentIntent: retrievedIntent, error: retrieveError } = await retrievePaymentIntent(
         clientSecret.trim(),
@@ -109,30 +126,11 @@ export function useTapToPayTerminalCollection() {
         onBehalfOf: maskId(retrievedIntent.onBehalfOf),
       });
 
-      logTapToPayDebug('terminal.process.start', {
-        paymentIntentId: maskId(retrievedIntent.id),
-        status: retrievedIntent.status,
-      });
-      const { paymentIntent: processedIntent, error: processError } = await processPaymentIntent({
+      const processedIntent = await runTapToPayTerminalPayment({
         paymentIntent: retrievedIntent,
-        skipTipping: true,
-      });
-      if (processError || !processedIntent) {
-        logTapToPayFailure('terminal.process', {
-          message: processError?.message,
-          code: processError?.code,
-        });
-        throw new Error(
-          mapTapToPayTerminalErrorMessage(
-            processError?.code,
-            processError?.message || 'Payment failed. Try again or mark as paid.',
-          ),
-        );
-      }
-      logTapToPayDebug('terminal.process.done', {
-        paymentIntentId: maskId(processedIntent.id),
-        status: processedIntent.status,
-        amount: processedIntent.amount,
+        collectPaymentMethod,
+        confirmPaymentIntent,
+        onProcessingStart,
       });
 
       if (processedIntent.status !== 'succeeded') {
@@ -165,15 +163,43 @@ export function useTapToPayTerminalCollection() {
     },
     [
       clearCachedCredentials,
+      collectPaymentMethod,
+      confirmPaymentIntent,
       disconnectReader,
       easyConnect,
       getLocations,
       initialize,
-      processPaymentIntent,
       retrievePaymentIntent,
       supportsReadersOfType,
     ],
   );
 
-  return { collectPayment };
+  const prewarmReaderForCollect = useCallback(
+    async ({ connectParams, merchantDisplayName: displayName, reason = 'collect_prewarm' }) => {
+      if (!TAP_TO_PAY_USE_TERMINAL_SDK) {
+        return;
+      }
+      await prewarmTapToPayReaderSession({
+        initialize,
+        supportsReadersOfType,
+        easyConnect,
+        disconnectReader,
+        clearCachedCredentials,
+        getLocations,
+        connectParams,
+        merchantDisplayName: displayName,
+        reason,
+      });
+    },
+    [
+      clearCachedCredentials,
+      disconnectReader,
+      easyConnect,
+      getLocations,
+      initialize,
+      supportsReadersOfType,
+    ],
+  );
+
+  return { collectPayment, prewarmReaderForCollect };
 }

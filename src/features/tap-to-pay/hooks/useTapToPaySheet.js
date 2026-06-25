@@ -6,7 +6,7 @@ import {
   TAP_TO_PAY_USE_SERVER_APIS,
   TAP_TO_PAY_USE_TERMINAL_SDK,
 } from '../constants/tapToPayFeatureFlags';
-import { TAP_TO_PAY_PENDING_MS, TAP_TO_PAY_SUCCESS_DISMISS_MS } from '../constants/tapToPayTimings';
+import { TAP_TO_PAY_SUCCESS_DISMISS_MS } from '../constants/tapToPayTimings';
 import { collectTapToPayPaymentMock } from '../terminal/collectTapToPayPayment';
 import {
   clearBookingTapToPayConnectionTokenFetcher,
@@ -24,7 +24,7 @@ import {
   fireTapToPaySuccessHaptic,
 } from '../utils/tapToPayHaptics';
 
-/** @typedef {'loading_intent' | 'intent_error' | 'preparing' | 'success' | 'error'} TapToPaySheetPhase */
+/** @typedef {'loading_intent' | 'intent_error' | 'preparing' | 'processing' | 'success' | 'error'} TapToPaySheetPhase */
 
 /**
  * @param {number} amountDollars
@@ -73,6 +73,7 @@ function getInitialTapToPayState(amountDueDollars, accessToken, bookingId) {
  *   sessionFees: Array<{ label: string; amountCents: number }>;
  *   amountDueDollars: number;
  *   merchantDisplayName?: string | null;
+ *   prewarmConnectParams?: import('../utils/parseTapToPayIntentConnectParams').TapToPayConnectParams | null;
  *   onSuccess: (result: { amountCents: number; paymentIntentId: string | null }) => void;
  *   onClose: () => void;
  *   runClose: (afterClose?: () => void) => void;
@@ -84,11 +85,12 @@ export function useTapToPaySheet({
   sessionFees,
   amountDueDollars,
   merchantDisplayName = null,
+  prewarmConnectParams = null,
   onSuccess,
   onClose,
   runClose,
 }) {
-  const { collectPayment } = useTapToPayTerminalCollection();
+  const { collectPayment, prewarmReaderForCollect } = useTapToPayTerminalCollection();
   const initialState = useMemo(
     () => getInitialTapToPayState(amountDueDollars, accessToken, bookingId),
     [accessToken, amountDueDollars, bookingId],
@@ -238,12 +240,16 @@ export function useTapToPaySheet({
 
   const runMockCollection = useCallback(
     (resolvedAmountCents, resolvedPaymentIntentId) => {
-      schedule(() => {
-        finishSuccess(resolvedAmountCents, resolvedPaymentIntentId);
-      }, TAP_TO_PAY_PENDING_MS);
+      finishSuccess(resolvedAmountCents, resolvedPaymentIntentId);
     },
-    [finishSuccess, schedule],
+    [finishSuccess],
   );
+
+  const beginProcessingPhase = useCallback((runId) => {
+    if (runId === sessionRunRef.current) {
+      setPhase('processing');
+    }
+  }, []);
 
   const startCollectionSession = useCallback(async () => {
     if (dollarsToCents(amountDueDollars) <= 0) {
@@ -257,7 +263,10 @@ export function useTapToPaySheet({
     sessionRunRef.current = runId;
     clearTimers();
     setIntentError(null);
-    setPhase('loading_intent');
+
+    const readerColdAtStart = !isTapToPayReaderWarm();
+    setReaderWasWarmAtStart(!readerColdAtStart);
+    setPhase(readerColdAtStart ? 'preparing' : 'loading_intent');
 
     logTapToPayDebug('session.start', {
       runId,
@@ -266,9 +275,24 @@ export function useTapToPaySheet({
       sessionFeeCount: JSON.parse(sessionFeesKey).length,
       terminalSdk: TAP_TO_PAY_USE_TERMINAL_SDK,
       serverApis: TAP_TO_PAY_USE_SERVER_APIS,
+      readerCold: readerColdAtStart,
     });
 
-    const intentResult = await loadIntent();
+    const readerPrewarmPromise =
+      TAP_TO_PAY_USE_TERMINAL_SDK && readerColdAtStart && prewarmConnectParams
+        ? prewarmReaderForCollect({
+            connectParams: prewarmConnectParams,
+            merchantDisplayName,
+            reason: 'collect_parallel',
+          }).catch((err) => {
+            logTapToPayDebug('session.prewarm.failed', {
+              runId,
+              message: err instanceof Error ? err.message : 'Prewarm failed',
+            });
+          })
+        : Promise.resolve();
+
+    const [intentResult] = await Promise.all([loadIntent(), readerPrewarmPromise]);
     if (runId !== sessionRunRef.current || !intentResult.ok) {
       if (runId === sessionRunRef.current && !intentResult.ok) {
         logTapToPayDebug('session.stop', { runId, reason: 'intent_failed' });
@@ -276,8 +300,6 @@ export function useTapToPaySheet({
       return;
     }
 
-    setPhase('preparing');
-    setReaderWasWarmAtStart(isTapToPayReaderWarm());
     fireTapToPayCollectStartHaptic();
     logTapToPayDebug('session.preparing', {
       runId,
@@ -295,6 +317,7 @@ export function useTapToPaySheet({
             amountCents: intentResult.amountCents,
             connectParams: intentResult.connectParams,
             merchantDisplayName,
+            onProcessingStart: () => beginProcessingPhase(runId),
           });
           if (runId !== sessionRunRef.current) {
             return;
@@ -312,6 +335,7 @@ export function useTapToPaySheet({
           await collectTapToPayPaymentMock({
             paymentIntentId: intentResult.paymentIntentId,
             amountCents: intentResult.amountCents,
+            onProcessingStart: () => beginProcessingPhase(runId),
           });
           if (runId !== sessionRunRef.current) {
             return;
@@ -337,12 +361,15 @@ export function useTapToPaySheet({
     }
   }, [
     amountDueDollars,
+    beginProcessingPhase,
     bookingId,
     clearTimers,
     collectPayment,
     finishSuccess,
     loadIntent,
     merchantDisplayName,
+    prewarmConnectParams,
+    prewarmReaderForCollect,
     runMockCollection,
     sessionFeesKey,
   ]);
@@ -364,17 +391,6 @@ export function useTapToPaySheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- startCollectionSession is intentionally excluded
   }, [initialState.phase, sessionFeesKey, accessToken, bookingId, amountDueDollars]);
 
-  const handleDeclinePreview = useCallback(() => {
-    if (phase !== 'preparing') {
-      return;
-    }
-    sessionRunRef.current += 1;
-    clearTimers();
-    setPhase('error');
-    fireTapToPayErrorHaptic();
-    setIntentError('Payment was declined.');
-  }, [clearTimers, phase]);
-
   const handleTryAgain = useCallback(() => {
     sessionRunRef.current += 1;
     clearTimers();
@@ -385,12 +401,11 @@ export function useTapToPaySheet({
 
   const displayAmountDollars = amountCents > 0 ? amountCents / 100 : amountDueDollars;
   const isPreparing = phase === 'preparing';
+  const isProcessing = phase === 'processing';
   const isError = phase === 'error' || phase === 'intent_error';
   const isLoadingIntent = phase === 'loading_intent';
-  const locksSheet = isPreparing || phase === 'success' || isLoadingIntent;
+  const locksSheet = isPreparing || isProcessing || phase === 'success' || isLoadingIntent;
   const showTryAgainFooter = isError || (reservesTryAgainFooter && isLoadingIntent);
-  const showDevDeclinePreview =
-    typeof __DEV__ !== 'undefined' && __DEV__ && isPreparing && TAP_TO_PAY_DEV_MOCK_COLLECTION;
 
   return {
     phase,
@@ -398,12 +413,11 @@ export function useTapToPaySheet({
     displayAmountDollars,
     isError,
     isPreparing,
+    isProcessing,
     isLoadingIntent,
     readerWasWarmAtStart,
     locksSheet,
     showTryAgainFooter,
-    showDevDeclinePreview,
-    handleDeclinePreview,
     handleTryAgain,
     retryLoadIntent: startCollectionSession,
   };

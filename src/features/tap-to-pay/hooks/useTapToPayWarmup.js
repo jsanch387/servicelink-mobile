@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { AppState } from 'react-native';
 import { useStripeTerminal } from '@stripe/stripe-terminal-react-native';
 import { useAuth } from '../../auth';
 import { fetchTapToPayWarmupConnectionToken } from '../api/fetchTapToPayWarmupConnectionToken';
@@ -11,19 +10,48 @@ import {
   clearMerchantTapToPayConnectionTokenFetcher,
   setMerchantTapToPayConnectionTokenFetcher,
 } from '../terminal/tapToPayConnectionTokenRegistry';
-import { warmTapToPayReader } from '../terminal/tapToPayTerminalConnect';
+import { prewarmTapToPayReaderSession } from '../terminal/tapToPayTerminalConnect';
 import {
   isTapToPayReaderWarm,
   resetTapToPayTerminalSession,
 } from '../terminal/tapToPayTerminalSession';
-import { maybePresentTapToPayEducationAfterConnect } from '../education/maybePresentTapToPayEducationAfterConnect';
+import { isTapToPayMerchantEnabled } from '../utils/tapToPayEnablementStorage';
 import { logTapToPayDebug, logTapToPayFailure, maskId } from '../utils/logTapToPayDebug';
 import { useTapToPayConnectReadiness } from './useTapToPayConnectReadiness';
 
+function resolveWarmupBlockReason({
+  platformSupported,
+  useTerminalSdk,
+  accessToken,
+  isConnectReady,
+  terminalLocationId,
+  stripeAccountId,
+}) {
+  if (!platformSupported) {
+    return 'platform_unsupported';
+  }
+  if (!useTerminalSdk) {
+    return 'terminal_sdk_off';
+  }
+  if (!accessToken) {
+    return 'no_session';
+  }
+  if (!isConnectReady) {
+    return 'stripe_connect_not_ready';
+  }
+  if (!terminalLocationId?.trim()) {
+    return 'missing_terminal_location_id';
+  }
+  if (!stripeAccountId?.trim()) {
+    return 'missing_stripe_account_id';
+  }
+  return null;
+}
+
 /**
- * Silently initializes Stripe Terminal and connects Tap to Pay when the user is
- * already signed in (app cold start or return to foreground). No UI — collection
- * reuses the warm reader when the payment sheet opens.
+ * Silent Tap to Pay prep after merchant opt-in: registers connection-token fetcher,
+ * initializes Terminal SDK, and connects the reader in the background (no Apple T&C if
+ * already accepted on Enable).
  */
 export function useTapToPayWarmup() {
   const { session } = useAuth();
@@ -38,10 +66,10 @@ export function useTapToPayWarmup() {
   } = useTapToPayConnectReadiness();
 
   const terminal = useStripeTerminal();
-  const warmupInFlightRef = useRef(false);
-  const lastWarmupKeyRef = useRef(null);
+  const terminalRef = useRef(terminal);
+  terminalRef.current = terminal;
+  const prepareInFlightRef = useRef(false);
   const warmupBookingIdRef = useRef(null);
-  const warmupUnavailableRef = useRef(false);
 
   const canWarm =
     isTapToPayPlatformSupported() &&
@@ -80,87 +108,88 @@ export function useTapToPayWarmup() {
     };
   }, [accessToken, businessId, canWarm, stripeAccountId]);
 
-  const runWarmup = useCallback(async () => {
+  const runSilentPrepare = useCallback(async () => {
     if (!canWarm || !accessToken || !terminalLocationId?.trim() || !stripeAccountId?.trim()) {
       return;
     }
 
-    if (warmupUnavailableRef.current) {
+    const prepareKey = `${terminalLocationId.trim()}|${stripeAccountId.trim()}`;
+    if (prepareInFlightRef.current) {
       return;
     }
 
-    const warmupKey = `${terminalLocationId.trim()}|${stripeAccountId.trim()}`;
-    if (warmupInFlightRef.current) {
-      return;
-    }
-    if (lastWarmupKeyRef.current === warmupKey && isTapToPayReaderWarm()) {
-      logTapToPayDebug('warmup.skip', { reason: 'already_warm', warmupKey: maskId(warmupKey) });
-      void maybePresentTapToPayEducationAfterConnect();
+    const merchantEnabled = await isTapToPayMerchantEnabled(stripeAccountId, terminalLocationId);
+    if (!merchantEnabled) {
+      logTapToPayDebug('warmup.skip', { reason: 'not_enabled', warmupKey: maskId(prepareKey) });
       return;
     }
 
-    warmupInFlightRef.current = true;
+    if (isTapToPayReaderWarm()) {
+      logTapToPayDebug('warmup.skip', {
+        reason: 'reader_already_warm',
+        warmupKey: maskId(prepareKey),
+      });
+      return;
+    }
+
+    prepareInFlightRef.current = true;
+    const activeTerminal = terminalRef.current;
     try {
-      await warmTapToPayReader({
-        initialize: terminal.initialize,
-        supportsReadersOfType: terminal.supportsReadersOfType,
-        easyConnect: terminal.easyConnect,
-        disconnectReader: terminal.disconnectReader,
-        clearCachedCredentials: terminal.clearCachedCredentials,
-        getLocations: terminal.getLocations,
+      await prewarmTapToPayReaderSession({
+        initialize: activeTerminal.initialize,
+        supportsReadersOfType: activeTerminal.supportsReadersOfType,
+        easyConnect: activeTerminal.easyConnect,
+        disconnectReader: activeTerminal.disconnectReader,
+        clearCachedCredentials: activeTerminal.clearCachedCredentials,
+        getLocations: activeTerminal.getLocations,
         connectParams: {
           terminalLocationId: terminalLocationId.trim(),
           stripeAccountId: stripeAccountId.trim(),
         },
         merchantDisplayName,
+        reason: 'warmup',
       });
-      lastWarmupKeyRef.current = warmupKey;
-      warmupUnavailableRef.current = false;
-      await maybePresentTapToPayEducationAfterConnect();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Warm-up failed';
-      warmupUnavailableRef.current = true;
       logTapToPayDebug('warmup.failed', { message });
     } finally {
-      warmupInFlightRef.current = false;
+      prepareInFlightRef.current = false;
     }
-  }, [
-    accessToken,
-    canWarm,
-    merchantDisplayName,
-    stripeAccountId,
-    terminal.clearCachedCredentials,
-    terminal.disconnectReader,
-    terminal.easyConnect,
-    terminal.getLocations,
-    terminal.initialize,
-    terminal.supportsReadersOfType,
-    terminalLocationId,
-  ]);
+  }, [accessToken, canWarm, merchantDisplayName, stripeAccountId, terminalLocationId]);
 
   useEffect(() => {
     if (!accessToken) {
       resetTapToPayTerminalSession();
-      lastWarmupKeyRef.current = null;
       warmupBookingIdRef.current = null;
-      warmupUnavailableRef.current = false;
       return;
     }
-    if (!isLoading && canWarm) {
-      void runWarmup();
+    if (isLoading) {
+      return;
     }
-  }, [accessToken, canWarm, isLoading, runWarmup]);
 
-  useEffect(() => {
     if (!canWarm) {
-      return undefined;
+      logTapToPayDebug('warmup.gated', {
+        blockReason: resolveWarmupBlockReason({
+          platformSupported: isTapToPayPlatformSupported(),
+          useTerminalSdk: TAP_TO_PAY_USE_TERMINAL_SDK,
+          accessToken,
+          isConnectReady,
+          terminalLocationId,
+          stripeAccountId,
+        }),
+        note: 'silent prepare runs after gates pass and merchant enabled flag is set',
+      });
+      return;
     }
-    const sub = AppState.addEventListener('change', (next) => {
-      if (next === 'active' && !isTapToPayReaderWarm()) {
-        warmupUnavailableRef.current = false;
-        void runWarmup();
-      }
-    });
-    return () => sub.remove();
-  }, [canWarm, runWarmup]);
+
+    void runSilentPrepare();
+  }, [
+    accessToken,
+    canWarm,
+    isConnectReady,
+    isLoading,
+    runSilentPrepare,
+    stripeAccountId,
+    terminalLocationId,
+  ]);
 }

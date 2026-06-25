@@ -2,6 +2,7 @@ import { maybePresentTapToPayEducationAfterConnect } from '../education/maybePre
 
 jest.mock('../native/presentTapToPayEducation', () => ({
   isTapToPayEducationAvailable: jest.fn(() => true),
+  markTapToPayEducationSeen: jest.fn(() => Promise.resolve()),
   presentTapToPayEducation: jest.fn(() => Promise.resolve()),
 }));
 
@@ -11,6 +12,7 @@ jest.mock('../education/tapToPayEducationStorage', () => ({
 
 const {
   isTapToPayEducationAvailable,
+  markTapToPayEducationSeen,
   presentTapToPayEducation,
 } = require('../native/presentTapToPayEducation');
 const { hasSeenTapToPayEducation } = require('../education/tapToPayEducationStorage');
@@ -47,10 +49,11 @@ describe('maybePresentTapToPayEducationAfterConnect', () => {
     await expect(maybePresentTapToPayEducationAfterConnect()).resolves.toEqual({
       presented: true,
     });
-    expect(presentTapToPayEducation).toHaveBeenCalledWith({ markSeen: true });
+    expect(markTapToPayEducationSeen).toHaveBeenCalledTimes(1);
+    expect(presentTapToPayEducation).toHaveBeenCalledWith({ markSeen: false });
   });
 
-  it('does not mark seen when presentation fails', async () => {
+  it('marks seen before presenting so dismiss does not re-trigger auto flow', async () => {
     presentTapToPayEducation.mockRejectedValue(new Error('dismissed'));
 
     await expect(maybePresentTapToPayEducationAfterConnect()).resolves.toEqual({
@@ -58,5 +61,6 @@ describe('maybePresentTapToPayEducationAfterConnect', () => {
       reason: 'error',
       message: 'dismissed',
     });
+    expect(markTapToPayEducationSeen).toHaveBeenCalledTimes(1);
   });
 });

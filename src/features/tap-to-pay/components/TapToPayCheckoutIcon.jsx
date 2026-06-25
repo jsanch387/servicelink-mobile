@@ -32,7 +32,7 @@ function ContactlessPaymentIcon({ color, size }) {
  * Apple HIG checkout icon (`wave.3.right.circle.fill`) when the native SF Symbol module
  * is in the build; contactless waves fallback otherwise (e.g. before rebuild).
  */
-export function TapToPayCheckoutIcon({ color, size = 22 }) {
+export function TapToPayCheckoutIcon({ color = '#000000', size = 22 }) {
   const fallback = <ContactlessPaymentIcon color={color} size={size} />;
 
   if (!isTapToPaySymbolModuleLinked()) {
@@ -41,6 +41,7 @@ export function TapToPayCheckoutIcon({ color, size = 22 }) {
 
   return (
     <SymbolView
+      colors={[color]}
       fallback={fallback}
       name={TAP_TO_PAY_SF_SYMBOL}
       resizeMode="scaleAspectFit"
@@ -48,6 +49,7 @@ export function TapToPayCheckoutIcon({ color, size = 22 }) {
       size={size}
       style={{ height: size, width: size }}
       tintColor={color}
+      type="monochrome"
       weight="semibold"
     />
   );

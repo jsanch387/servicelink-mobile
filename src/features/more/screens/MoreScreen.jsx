@@ -15,6 +15,8 @@ import { clearTapToPayEducationSeen } from '../../tap-to-pay/native/presentTapTo
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import { CONTACT_US_ROW_LABEL } from '../../help/constants/helpCopy';
+import { isTapToPayPlatformSupported } from '../../tap-to-pay/constants/tapToPayFeatureFlags';
 
 export function MoreScreen() {
   const { colors } = useTheme();
@@ -120,9 +122,16 @@ export function MoreScreen() {
         </SettingsSection>
 
         <SettingsSection title="Support">
+          {isTapToPayPlatformSupported() ? (
+            <SettingsNavRow
+              icon="help-circle-outline"
+              label="Help"
+              onPress={() => navigation.navigate(ROUTES.HELP)}
+            />
+          ) : null}
           <SettingsNavRow
             icon="chatbubble-ellipses-outline"
-            label="Support"
+            label={CONTACT_US_ROW_LABEL}
             onPress={() => navigation.navigate(ROUTES.SUPPORT)}
           />
           <SettingsNavRow

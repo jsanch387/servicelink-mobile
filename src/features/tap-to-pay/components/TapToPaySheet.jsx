@@ -24,6 +24,7 @@ import { useTapToPaySheet } from '../hooks/useTapToPaySheet';
  *   accessToken?: string | null;
  *   sessionFees?: Array<{ label: string; amountCents: number }>;
  *   merchantDisplayName?: string | null;
+ *   prewarmConnectParams?: import('../utils/parseTapToPayIntentConnectParams').TapToPayConnectParams | null;
  *   onSuccess: (result: { amountCents: number; paymentIntentId: string | null }) => void;
  * }} props
  */
@@ -34,6 +35,7 @@ export function TapToPaySheet({
   accessToken = null,
   sessionFees = [],
   merchantDisplayName = null,
+  prewarmConnectParams = null,
   onSuccess,
 }) {
   const { colors } = useTheme();
@@ -51,6 +53,7 @@ export function TapToPaySheet({
     sessionFees,
     amountDueDollars: amountDue,
     merchantDisplayName,
+    prewarmConnectParams,
     onClose,
     onSuccess,
     runClose,
@@ -190,10 +193,16 @@ export function TapToPaySheet({
 
   const visual = (
     <>
-      {flow.isLoadingIntent || flow.isPreparing ? (
+      {flow.isLoadingIntent || flow.isPreparing || flow.isProcessing ? (
         <View style={styles.loadingVisual}>
           <EchoBarsLoader
-            accessibilityLabel={flow.isLoadingIntent ? 'Preparing payment' : 'Opening Tap to Pay'}
+            accessibilityLabel={
+              flow.isLoadingIntent
+                ? 'Preparing payment'
+                : flow.isProcessing
+                  ? 'Processing payment'
+                  : 'Opening Tap to Pay'
+            }
             color={colors.text}
             size="large"
           />
@@ -276,14 +285,6 @@ export function TapToPaySheet({
                   style={styles.tryAgainFooterSlot}
                 />
               )
-            ) : null}
-            {flow.showDevDeclinePreview ? (
-              <Button
-                fullWidth
-                title="Simulate decline"
-                variant="secondary"
-                onPress={flow.handleDeclinePreview}
-              />
             ) : null}
           </View>
         </View>

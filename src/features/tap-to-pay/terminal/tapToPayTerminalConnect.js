@@ -1,9 +1,20 @@
-import { TAP_TO_PAY_TERMINAL_NOT_CONFIGURED } from '../constants/tapToPayCopy';
+import {
+  isTapToPayAppleLinkTerminalError,
+  isTapToPayCanceledTerminalError,
+  isTapToPayTimeoutTerminalError,
+  TAP_TO_PAY_MERCHANT_LIMIT,
+  TAP_TO_PAY_PAYMENT_CANCELED,
+  TAP_TO_PAY_PAYMENT_TIMED_OUT,
+  TAP_TO_PAY_SETUP_NOT_FINISHED,
+  TAP_TO_PAY_TERMINAL_NOT_CONFIGURED,
+} from '../constants/tapToPayCopy';
+import { mapTapToPayOsVersionTerminalError } from '../utils/tapToPayOsVersionError';
 import { logTapToPayDebug, logTapToPayFailure, maskId } from '../utils/logTapToPayDebug';
 import { requestTapToPayAndroidPermissions } from '../utils/requestTapToPayAndroidPermissions';
 import { maybePresentTapToPayEducationAfterConnect } from '../education/maybePresentTapToPayEducationAfterConnect';
 import {
   clearTapToPayConnected,
+  isTapToPayReaderWarm,
   markTapToPayConnected,
   markTapToPayInitialized,
   resetTapToPayTerminalSession,
@@ -19,14 +30,31 @@ const DEFAULT_MERCHANT_NAME = 'ServiceLink';
  * @returns {string}
  */
 export function mapTapToPayTerminalErrorMessage(code, fallback) {
+  const osVersionMessage = mapTapToPayOsVersionTerminalError(code, fallback);
+  if (osVersionMessage) {
+    return osVersionMessage;
+  }
+
   if (code === 'TAP_TO_PAY_UNSUPPORTED_DEVICE') {
     return 'This device does not support Tap to Pay.';
   }
   if (code === 'UNSUPPORTED_OPERATION') {
     return 'This app build is missing Tap to Pay on iPhone. Install a new development build with the Tap to Pay entitlement enabled.';
   }
-  if (code === 'USER_ERROR.CANCELED' || code === 'Canceled') {
-    return 'Payment was canceled.';
+  if (isTapToPayCanceledTerminalError(code, fallback)) {
+    return TAP_TO_PAY_PAYMENT_CANCELED;
+  }
+  if (isTapToPayTimeoutTerminalError(code, fallback)) {
+    return TAP_TO_PAY_PAYMENT_TIMED_OUT;
+  }
+  if (code === 'READER_MERCHANT_BLOCKED') {
+    return TAP_TO_PAY_MERCHANT_LIMIT;
+  }
+  if (isTapToPayAppleLinkTerminalError(code, fallback)) {
+    return TAP_TO_PAY_SETUP_NOT_FINISHED;
+  }
+  if (code === 'READER_SOFTWARE_UPDATE_FAILED') {
+    return TAP_TO_PAY_SETUP_NOT_FINISHED;
   }
   if (
     code === 'INVALID_REQUIRED_PARAMETER' &&
@@ -276,8 +304,12 @@ export async function ensureTapToPayReaderConnected({
 }
 
 /**
+ * Initialize Terminal SDK and verify device support — no reader connect, no Apple T&C.
+ *
  * @param {{
  *   initialize: () => Promise<{ error?: { message?: string; code?: string } }>;
+ *   disconnectReader: () => Promise<{ error?: { message?: string; code?: string } }>;
+ *   clearCachedCredentials: () => Promise<{ error?: { message?: string; code?: string } }>;
  *   supportsReadersOfType: (params: {
  *     deviceType: string;
  *     simulated: boolean;
@@ -286,21 +318,13 @@ export async function ensureTapToPayReaderConnected({
  *     readerSupportResult?: boolean;
  *     error?: { message?: string; code?: string };
  *   }>;
- *   easyConnect: (params: import('@stripe/stripe-terminal-react-native').EasyConnectTapToPayParams) => Promise<{
- *     error?: { message?: string; code?: string };
- *   }>;
- *   disconnectReader: () => Promise<{ error?: { message?: string; code?: string } }>;
- *   clearCachedCredentials: () => Promise<{ error?: { message?: string; code?: string } }>;
- *   getLocations: (params: { limit: number }) => Promise<{
- *     locations?: Array<{ id?: string }>;
- *     error?: { message?: string; code?: string };
- *   }>;
  *   connectParams: TapToPayConnectParams | null | undefined;
- *   merchantDisplayName?: string | null;
+ *   reason: string;
  * }} terminal
  */
-export async function warmTapToPayReader(terminal) {
-  logTapToPayDebug('warmup.start', {
+export async function prepareTapToPayTerminal(terminal) {
+  logTapToPayDebug('terminal.prepare.start', {
+    reason: terminal.reason,
     terminalLocationId: maskId(terminal.connectParams?.terminalLocationId),
     stripeAccountId: maskId(terminal.connectParams?.stripeAccountId),
   });
@@ -317,7 +341,7 @@ export async function warmTapToPayReader(terminal) {
     disconnectReader: terminal.disconnectReader,
     clearCachedCredentials: terminal.clearCachedCredentials,
     stripeAccountId,
-    reason: 'warmup',
+    reason: terminal.reason,
   });
 
   const { readerSupportResult, error: supportError } = await terminal.supportsReadersOfType({
@@ -341,7 +365,125 @@ export async function warmTapToPayReader(terminal) {
     logTapToPayFailure('terminal.support', { message: 'Device does not support Tap to Pay' });
     throw new Error('This device does not support Tap to Pay.');
   }
-  logTapToPayDebug('terminal.support.ok');
+
+  logTapToPayDebug('terminal.prepare.ok', {
+    reason: terminal.reason,
+    stripeAccountId: maskId(stripeAccountId),
+  });
+}
+
+/** @type {Promise<unknown> | null} */
+let tapToPayReaderConnectInFlight = null;
+
+/**
+ * Connect the Tap to Pay reader when cold. Dedupes concurrent callers (warmup, Complete prewarm, collect).
+ * Safe after merchant opt-in — Apple T&C already accepted on Enable; no UI from this module.
+ *
+ * @param {Parameters<typeof ensureTapToPayReaderConnected>[0]} params
+ */
+export async function connectTapToPayReaderIfNeeded(params) {
+  if (isTapToPayReaderWarm()) {
+    logTapToPayDebug('terminal.connect.skip', {
+      reason: `${params.reason}:reader_warm`,
+    });
+    return null;
+  }
+
+  if (tapToPayReaderConnectInFlight) {
+    logTapToPayDebug('terminal.connect.await', { reason: params.reason });
+    return tapToPayReaderConnectInFlight;
+  }
+
+  tapToPayReaderConnectInFlight = ensureTapToPayReaderConnected(params).finally(() => {
+    tapToPayReaderConnectInFlight = null;
+  });
+  return tapToPayReaderConnectInFlight;
+}
+
+/**
+ * Prepare SDK + connect reader for opted-in merchants (app warm-up, Complete prewarm, parallel collect).
+ *
+ * @param {Parameters<typeof warmTapToPayReader>[0]} terminal
+ */
+export async function prewarmTapToPayReaderSession(terminal) {
+  const reason = terminal.reason ?? 'prewarm';
+
+  await prepareTapToPayTerminal({
+    initialize: terminal.initialize,
+    disconnectReader: terminal.disconnectReader,
+    clearCachedCredentials: terminal.clearCachedCredentials,
+    supportsReadersOfType: terminal.supportsReadersOfType,
+    connectParams: terminal.connectParams,
+    reason,
+  });
+
+  await connectTapToPayReaderIfNeeded({
+    easyConnect: terminal.easyConnect,
+    disconnectReader: terminal.disconnectReader,
+    getLocations: terminal.getLocations,
+    connectParams: terminal.connectParams,
+    merchantDisplayName: terminal.merchantDisplayName,
+    reason,
+  });
+
+  logTapToPayDebug('prewarm.ok', {
+    reason,
+    readerWarm: isTapToPayReaderWarm(),
+    terminalLocationId: maskId(terminal.connectParams?.terminalLocationId),
+    stripeAccountId: maskId(terminal.connectParams?.stripeAccountId),
+  });
+}
+
+/** @internal — clears dedupe latch between Jest cases. */
+export function resetTapToPayReaderConnectInFlightForTests() {
+  tapToPayReaderConnectInFlight = null;
+}
+
+/**
+ * Full connect flow for explicit user actions (Enable, Reconnect, Collect).
+ * May present Apple T&C when the merchant account is not yet linked on this iPhone.
+ *
+ * @param {{
+ *   initialize: () => Promise<{ error?: { message?: string; code?: string } }>;
+ *   supportsReadersOfType: (params: {
+ *     deviceType: string;
+ *     simulated: boolean;
+ *     discoveryMethod: string;
+ *   }) => Promise<{
+ *     readerSupportResult?: boolean;
+ *     error?: { message?: string; code?: string };
+ *   }>;
+ *   easyConnect: (params: import('@stripe/stripe-terminal-react-native').EasyConnectTapToPayParams) => Promise<{
+ *     error?: { message?: string; code?: string };
+ *   }>;
+ *   disconnectReader: () => Promise<{ error?: { message?: string; code?: string } }>;
+ *   clearCachedCredentials: () => Promise<{ error?: { message?: string; code?: string } }>;
+ *   getLocations: (params: { limit: number }) => Promise<{
+ *     locations?: Array<{ id?: string }>;
+ *     error?: { message?: string; code?: string };
+ *   }>;
+ *   connectParams: TapToPayConnectParams | null | undefined;
+ *   merchantDisplayName?: string | null;
+ *   reason?: string;
+ * }} terminal
+ */
+export async function warmTapToPayReader(terminal) {
+  const reason = terminal.reason ?? 'connect';
+
+  logTapToPayDebug('connect.flow.start', {
+    reason,
+    terminalLocationId: maskId(terminal.connectParams?.terminalLocationId),
+    stripeAccountId: maskId(terminal.connectParams?.stripeAccountId),
+  });
+
+  await prepareTapToPayTerminal({
+    initialize: terminal.initialize,
+    disconnectReader: terminal.disconnectReader,
+    clearCachedCredentials: terminal.clearCachedCredentials,
+    supportsReadersOfType: terminal.supportsReadersOfType,
+    connectParams: terminal.connectParams,
+    reason,
+  });
 
   await ensureTapToPayReaderConnected({
     easyConnect: terminal.easyConnect,
@@ -349,11 +491,12 @@ export async function warmTapToPayReader(terminal) {
     getLocations: terminal.getLocations,
     connectParams: terminal.connectParams,
     merchantDisplayName: terminal.merchantDisplayName,
-    reason: 'warmup',
+    reason,
   });
 
-  logTapToPayDebug('warmup.ok', {
+  logTapToPayDebug('connect.flow.ok', {
+    reason,
     terminalLocationId: maskId(terminal.connectParams?.terminalLocationId),
-    stripeAccountId: maskId(stripeAccountId),
+    stripeAccountId: maskId(terminal.connectParams?.stripeAccountId),
   });
 }

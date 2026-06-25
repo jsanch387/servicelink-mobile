@@ -49,7 +49,9 @@ import {
   navigateToPaymentsSetup,
   TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT,
   TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT,
+  TAP_TO_PAY_CHECKOUT_BUTTON_LABEL,
 } from '../../../tap-to-pay';
+import { useTapToPayReaderPrewarm } from '../../../tap-to-pay/hooks/useTapToPayReaderPrewarm';
 import { TapToPayCheckoutIcon } from '../../../tap-to-pay/components/TapToPayCheckoutIcon';
 import { TapToPaySetupRequiredSheet } from '../../../tap-to-pay/components/TapToPaySetupRequiredSheet';
 import { useAuth } from '../../../auth';
@@ -133,6 +135,7 @@ function CompleteVisitBreakdownRow({ label, sublabel, value, noTopMargin = false
  *   accessToken?: string | null;
  *   showTapToPay?: boolean;
  *   merchantDisplayName?: string | null;
+ *   tapToPayPrewarmConnectParams?: { terminalLocationId: string; stripeAccountId: string } | null;
  *   tapToPayConnectReady?: boolean;
  *   tapToPayConnectLoading?: boolean;
  *   onTapToPaySetupPress?: () => void;
@@ -158,6 +161,7 @@ function CompleteVisitDesignBody({
   accessToken = null,
   showTapToPay = false,
   merchantDisplayName = null,
+  tapToPayPrewarmConnectParams = null,
   tapToPayConnectReady = false,
   tapToPayConnectLoading = false,
   onTapToPaySetupPress,
@@ -306,6 +310,7 @@ function CompleteVisitDesignBody({
         amountDue={amountDue}
         bookingId={bookingId}
         merchantDisplayName={merchantDisplayName}
+        prewarmConnectParams={tapToPayPrewarmConnectParams}
         sessionFees={sessionFees}
         onClose={() => overlay.hide()}
         onSuccess={onTapToPaySuccess}
@@ -319,6 +324,7 @@ function CompleteVisitDesignBody({
     merchantDisplayName,
     onTapToPaySuccess,
     overlay,
+    tapToPayPrewarmConnectParams,
   ]);
 
   const canUseTapToPay = tapToPayConnectReady && !tapToPayConnectLoading;
@@ -378,6 +384,74 @@ function CompleteVisitDesignBody({
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
+      <DetailsSectionCard bodyPadding="roomy" title="Payment">
+        {paymentSettledBanner ? (
+          <View style={styles.paidBanner}>
+            <Ionicons color={SUBMIT_OUTCOME_SUCCESS.color} name="checkmark-circle" size={28} />
+            <View style={styles.paidBannerTextWrap}>
+              <AppText style={styles.paidBannerTitle}>{paymentSettledBanner.title}</AppText>
+              <AppText style={styles.paidBannerDetail}>{paymentSettledBanner.detail}</AppText>
+            </View>
+          </View>
+        ) : null}
+        {showAmountDueHero ? (
+          <View style={styles.totalRow}>
+            <AppText style={styles.totalLabel}>Amount due</AppText>
+            <AppText style={styles.totalValue}>{formatUsd(amountDue)}</AppText>
+          </View>
+        ) : (
+          <>
+            <LabelValueRow emphasize noTopMargin label="Total" value={formatUsd(subtotal)} />
+            {onlinePaidRowLabel ? (
+              <LabelValueRow label={onlinePaidRowLabel} value={`−${formatUsd(paidOnline)}`} />
+            ) : null}
+            {tapToPayAmount > 0 ? (
+              <LabelValueRow
+                label={TAP_TO_PAY_RECEIPT_ROW_LABEL}
+                value={`−${formatUsd(tapToPayAmount)}`}
+              />
+            ) : null}
+            {inPersonPayment ? (
+              <LabelValueRow
+                label={getInPersonPaymentRowLabel(inPersonPayment.method)}
+                value={`−${formatUsd(inPersonPayment.amount)}`}
+              />
+            ) : null}
+            {amountDue > 0 ? (
+              <LabelValueRow emphasize label="Amount due" value={formatUsd(amountDue)} />
+            ) : null}
+          </>
+        )}
+        {showCollectActions ? (
+          <View style={styles.paymentActions}>
+            {showTapToPay ? (
+              <Button
+                accessibilityHint={
+                  canUseTapToPay
+                    ? TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT
+                    : TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT
+                }
+                disabled={tapToPayConnectLoading}
+                fullWidth
+                iconNode={<TapToPayCheckoutIcon size={22} />}
+                loading={tapToPayConnectLoading}
+                subduedWhenDisabled={false}
+                title={TAP_TO_PAY_CHECKOUT_BUTTON_LABEL}
+                variant="surfaceLight"
+                onPress={handleTapToPayPress}
+              />
+            ) : null}
+            <Button
+              fullWidth
+              iconName="checkmark-circle-outline"
+              title="Mark as paid"
+              variant="secondary"
+              onPress={openMarkPaidSheet}
+            />
+          </View>
+        ) : null}
+      </DetailsSectionCard>
+
       <DetailsSectionCard bodyPadding="roomy" title="Breakdown">
         <View style={styles.breakdownRows}>
           {lineItems.map((item, index) =>
@@ -438,74 +512,6 @@ function CompleteVisitDesignBody({
         />
       ) : null}
 
-      <DetailsSectionCard bodyPadding="roomy" title="Payment">
-        {paymentSettledBanner ? (
-          <View style={styles.paidBanner}>
-            <Ionicons color={SUBMIT_OUTCOME_SUCCESS.color} name="checkmark-circle" size={28} />
-            <View style={styles.paidBannerTextWrap}>
-              <AppText style={styles.paidBannerTitle}>{paymentSettledBanner.title}</AppText>
-              <AppText style={styles.paidBannerDetail}>{paymentSettledBanner.detail}</AppText>
-            </View>
-          </View>
-        ) : null}
-        {showAmountDueHero ? (
-          <View style={styles.totalRow}>
-            <AppText style={styles.totalLabel}>Amount due</AppText>
-            <AppText style={styles.totalValue}>{formatUsd(amountDue)}</AppText>
-          </View>
-        ) : (
-          <>
-            <LabelValueRow emphasize noTopMargin label="Total" value={formatUsd(subtotal)} />
-            {onlinePaidRowLabel ? (
-              <LabelValueRow label={onlinePaidRowLabel} value={`−${formatUsd(paidOnline)}`} />
-            ) : null}
-            {tapToPayAmount > 0 ? (
-              <LabelValueRow
-                label={TAP_TO_PAY_RECEIPT_ROW_LABEL}
-                value={`−${formatUsd(tapToPayAmount)}`}
-              />
-            ) : null}
-            {inPersonPayment ? (
-              <LabelValueRow
-                label={getInPersonPaymentRowLabel(inPersonPayment.method)}
-                value={`−${formatUsd(inPersonPayment.amount)}`}
-              />
-            ) : null}
-            {amountDue > 0 ? (
-              <LabelValueRow emphasize label="Amount due" value={formatUsd(amountDue)} />
-            ) : null}
-          </>
-        )}
-        {showCollectActions ? (
-          <View style={styles.paymentActions}>
-            {showTapToPay ? (
-              <Button
-                accessibilityHint={
-                  canUseTapToPay
-                    ? TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT
-                    : TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT
-                }
-                disabled={tapToPayConnectLoading}
-                fullWidth
-                iconNode={<TapToPayCheckoutIcon color="#ffffff" size={22} />}
-                loading={tapToPayConnectLoading}
-                subduedWhenDisabled={false}
-                title="Tap to Pay"
-                variant="surfaceDark"
-                onPress={handleTapToPayPress}
-              />
-            ) : null}
-            <Button
-              fullWidth
-              iconName="checkmark-circle-outline"
-              title="Mark as paid"
-              variant="secondary"
-              onPress={openMarkPaidSheet}
-            />
-          </View>
-        ) : null}
-      </DetailsSectionCard>
-
       {followUpInfo.visible ? (
         <View style={styles.followUpRow}>
           <Ionicons
@@ -517,6 +523,7 @@ function CompleteVisitDesignBody({
           <AppText style={styles.followUpText}>{followUpInfo.message}</AppText>
         </View>
       ) : null}
+
       <TapToPaySetupRequiredSheet
         visible={setupSheetVisible}
         onRequestClose={() => setSetupSheetVisible(false)}
@@ -559,6 +566,8 @@ export function BookingCompleteVisitSheet({
     isConnectReady: tapToPayConnectReady,
     isLoading: tapToPayConnectLoading,
     merchantDisplayName,
+    terminalLocationId,
+    stripeAccountId,
     refetch: refetchTapToPayConnectReadiness,
   } = useTapToPayConnectReadiness();
   const showTapToPay = isTapToPayUiEnabled();
@@ -832,7 +841,7 @@ export function BookingCompleteVisitSheet({
           fontSize: 13,
           fontWeight: '500',
           lineHeight: 18,
-          textAlign: 'center',
+          textAlign: 'left',
         },
         footerOverlay: {
           backgroundColor: colors.shell,
@@ -920,6 +929,27 @@ export function BookingCompleteVisitSheet({
   const resolvedTapToPayConnectReady = isDesignPreview ? true : tapToPayConnectReady;
   const resolvedTapToPayConnectLoading = isDesignPreview ? false : tapToPayConnectLoading;
 
+  const tapToPayPrewarmConnectParams = useMemo(() => {
+    const locationId = terminalLocationId?.trim() ?? '';
+    const accountId = stripeAccountId?.trim() ?? '';
+    if (!locationId || !accountId) {
+      return null;
+    }
+    return { terminalLocationId: locationId, stripeAccountId: accountId };
+  }, [stripeAccountId, terminalLocationId]);
+
+  useTapToPayReaderPrewarm({
+    enabled:
+      visible &&
+      showCollectActions &&
+      showTapToPay &&
+      resolvedTapToPayConnectReady &&
+      !isDesignPreview,
+    connectParams: tapToPayPrewarmConnectParams,
+    merchantDisplayName,
+    reason: 'complete_sheet',
+  });
+
   if (!mounted) {
     return null;
   }
@@ -985,6 +1015,7 @@ export function BookingCompleteVisitSheet({
                     showTapToPay={showTapToPay}
                     tapToPayConnectLoading={resolvedTapToPayConnectLoading}
                     tapToPayConnectReady={resolvedTapToPayConnectReady}
+                    tapToPayPrewarmConnectParams={tapToPayPrewarmConnectParams}
                     subtotal={subtotal}
                     tapToPayAmount={tapToPayAmount}
                     onAddFee={handleAddFee}

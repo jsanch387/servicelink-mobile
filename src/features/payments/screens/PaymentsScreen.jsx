@@ -78,6 +78,7 @@ export function PaymentsScreen() {
 
   const [connectSubmitting, setConnectSubmitting] = useState(false);
   const [enableSubmitting, setEnableSubmitting] = useState(false);
+  const [tapToPayEnablePromptSignal, setTapToPayEnablePromptSignal] = useState(0);
 
   const onStripeConnectPress = useCallback(async () => {
     const token = session?.access_token ?? null;
@@ -105,6 +106,7 @@ export function PaymentsScreen() {
         await postStripeConnectSync(token).catch(() => {});
         await payment.refetchPayments();
         await refetchSubscription();
+        setTapToPayEnablePromptSignal((n) => n + 1);
       }
     } catch (e) {
       Alert.alert(
@@ -477,17 +479,17 @@ export function PaymentsScreen() {
 
           <View style={styles.cardsColumn}>
             {!payment.gateServicelinkCheckout ? (
-              <PaymentStripeDashboardCard
-                stripeAccountId={payment.paymentAccount?.stripe_account_id ?? null}
-              />
-            ) : null}
-            {!payment.gateServicelinkCheckout ? (
               <PaymentAcceptServicelinkCard
                 value={acceptServicelinkPayments}
                 onValueChange={setAcceptServicelinkPayments}
               />
             ) : null}
-            <PaymentsTapToPaySection />
+            {!payment.gateServicelinkCheckout ? (
+              <PaymentStripeDashboardCard
+                stripeAccountId={payment.paymentAccount?.stripe_account_id ?? null}
+              />
+            ) : null}
+            <PaymentsTapToPaySection enablePromptSignal={tapToPayEnablePromptSignal} />
             <View
               pointerEvents={settingsLocked || !acceptServicelinkPayments ? 'none' : 'auto'}
               style={[

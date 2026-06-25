@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { cloneElement, isValidElement, useMemo } from 'react';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
@@ -171,6 +171,10 @@ export function Button({
             : (labelColor ?? textColor);
 
         const resolvedIconColor = iconColor ?? resolvedTextColor;
+        const resolvedIconNode =
+          iconNode && isValidElement(iconNode)
+            ? cloneElement(iconNode, { color: resolvedIconColor })
+            : iconNode;
         const renderIcon = (position) => {
           if (!iconName) return null;
           const iconStyle = position === 'left' ? styles.iconLeft : styles.iconRight;
@@ -189,14 +193,14 @@ export function Button({
           );
         };
 
-        const showLeftIcon = iconNode && iconPosition === 'left';
-        const showRightIcon = iconNode && iconPosition === 'right';
+        const showLeftIcon = resolvedIconNode && iconPosition === 'left';
+        const showRightIcon = resolvedIconNode && iconPosition === 'right';
         const showLeftNamed = !showLeftIcon && iconName && iconPosition === 'left';
         const showRightNamed = !showRightIcon && iconName && iconPosition === 'right';
 
         const contentChildren = (
           <>
-            {showLeftIcon ? <View style={styles.iconLeft}>{iconNode}</View> : null}
+            {showLeftIcon ? <View style={styles.iconLeft}>{resolvedIconNode}</View> : null}
             {showLeftNamed ? renderIcon('left') : null}
             <AppText
               ellipsizeMode="tail"
@@ -205,7 +209,7 @@ export function Button({
             >
               {title}
             </AppText>
-            {showRightIcon ? <View style={styles.iconRight}>{iconNode}</View> : null}
+            {showRightIcon ? <View style={styles.iconRight}>{resolvedIconNode}</View> : null}
             {showRightNamed ? renderIcon('right') : null}
           </>
         );

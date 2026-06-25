@@ -24,6 +24,18 @@ export function isTapToPayReaderWarm() {
   );
 }
 
+/** Dev diagnostics — session flags used for in-memory “enabled” detection. */
+export function getTapToPayTerminalSessionSnapshot() {
+  return {
+    initialized: tapToPayTerminalSession.initialized,
+    readerWarm: tapToPayTerminalSession.readerWarm,
+    hasConnectKey: Boolean(tapToPayTerminalSession.lastConnectKey),
+    lastConnectKey: tapToPayTerminalSession.lastConnectKey,
+    lastInitStripeAccountId: tapToPayTerminalSession.lastInitStripeAccountId,
+    isReaderWarm: isTapToPayReaderWarm(),
+  };
+}
+
 /**
  * @param {string | null | undefined} stripeAccountId
  */

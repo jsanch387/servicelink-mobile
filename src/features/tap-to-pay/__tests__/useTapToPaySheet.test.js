@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useTapToPaySheet } from '../hooks/useTapToPaySheet';
 
 jest.mock('../api/postTapToPayIntent', () => ({
@@ -119,5 +119,47 @@ describe('useTapToPaySheet', () => {
       expect(result.current.intentError).toMatch(/Set up Stripe payments/);
     });
     expect(fireTapToPayErrorHaptic).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries collection when Try again is pressed', async () => {
+    postTapToPayIntent.mockResolvedValue({
+      ok: true,
+      paymentIntentId: 'pi_test',
+      clientSecret: 'pi_test_secret',
+      amountCents: 5000,
+      currency: 'usd',
+    });
+
+    const { result } = renderHook(() =>
+      useTapToPaySheet({
+        accessToken: 'token',
+        bookingId: 'booking-1',
+        sessionFees: [],
+        amountDueDollars: 50,
+        onSuccess: jest.fn(),
+        onClose: jest.fn(),
+        runClose: jest.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.phase).toBe('success');
+    });
+
+    postTapToPayIntent.mockClear();
+    postTapToPayIntent.mockResolvedValue({
+      ok: false,
+      error: new Error('Couldn’t start Tap to Pay.'),
+      httpStatus: 500,
+    });
+
+    await act(async () => {
+      await result.current.handleTryAgain();
+    });
+
+    await waitFor(() => {
+      expect(postTapToPayIntent).toHaveBeenCalledTimes(1);
+      expect(result.current.phase).toBe('intent_error');
+    });
   });
 });

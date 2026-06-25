@@ -4,17 +4,55 @@ import { TAP_TO_PAY_HOW_IT_WORKS_SHEET_TITLE } from '../../tap-to-pay/constants/
 import { PaymentTapToPayCard } from '../components/PaymentTapToPayCard';
 
 describe('PaymentTapToPayCard', () => {
-  it('opens the ServiceLink how-it-works sheet', () => {
-    renderWithProviders(<PaymentTapToPayCard />);
+  it('shows enable CTA when not enabled', () => {
+    const onEnablePress = jest.fn();
+    renderWithProviders(
+      <PaymentTapToPayCard
+        canEnable
+        checking={false}
+        isEnabled={false}
+        isEnabling={false}
+        onEnablePress={onEnablePress}
+      />,
+    );
 
-    expect(screen.getByText('Tap to Pay')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'How it works' })).toBeTruthy();
-    expect(screen.queryByText(TAP_TO_PAY_HOW_IT_WORKS_SHEET_TITLE)).toBeNull();
+    expect(screen.getByText('Set up on iPhone.')).toBeTruthy();
+    fireEvent.press(screen.getByRole('button', { name: 'Enable Tap to Pay' }));
+    expect(onEnablePress).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows enabled state and how-it-works sheet', () => {
+    renderWithProviders(
+      <PaymentTapToPayCard
+        canEnable
+        checking={false}
+        isEnabled
+        isEnabling={false}
+        onEnablePress={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Enabled')).toBeTruthy();
+    expect(screen.getByText('Accept contactless payments.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Enable Tap to Pay' })).toBeNull();
 
     fireEvent.press(screen.getByRole('button', { name: 'How it works' }));
-
     expect(screen.getByText(TAP_TO_PAY_HOW_IT_WORKS_SHEET_TITLE)).toBeTruthy();
-    expect(screen.getByText(/built into job checkout/i)).toBeTruthy();
-    expect(screen.getByText(/complete screen/i)).toBeTruthy();
+  });
+
+  it('shows enabled pill when opted in even if reader session is cold', () => {
+    renderWithProviders(
+      <PaymentTapToPayCard
+        canEnable
+        checking={false}
+        isEnabled
+        isEnabling={false}
+        onEnablePress={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Enabled')).toBeTruthy();
+    expect(screen.getByText('Accept contactless payments.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Enable Tap to Pay' })).toBeNull();
   });
 });

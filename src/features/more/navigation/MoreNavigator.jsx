@@ -14,6 +14,8 @@ import { ServiceEditScreen } from '../../services/screens/ServiceEditScreen';
 import { AccountSettingsScreen } from '../screens/AccountSettingsScreen';
 import { MoreScreen } from '../screens/MoreScreen';
 import { SupportScreen } from '../../contact';
+import { HelpScreen } from '../../help';
+import { CONTACT_US_SCREEN_TITLE, HELP_SCREEN_TITLE } from '../../help/constants/helpCopy';
 import { LegalScreen } from '../screens/LegalScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
 import { ReviewsScreen } from '../../reviews';
@@ -57,10 +59,19 @@ export function MoreNavigator() {
         }}
       />
       <Stack.Screen
+        component={HelpScreen}
+        name={ROUTES.HELP}
+        options={{
+          title: HELP_SCREEN_TITLE,
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
         component={SupportScreen}
         name={ROUTES.SUPPORT}
         options={{
-          title: 'Support',
+          title: CONTACT_US_SCREEN_TITLE,
           headerBackButtonDisplayMode: 'minimal',
           headerBackTitleVisible: false,
         }}

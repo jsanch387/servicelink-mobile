@@ -8,13 +8,22 @@ import { TAP_TO_PAY_PENDING_MS } from '../constants/tapToPayTimings';
  * @param {{
  *   paymentIntentId: string;
  *   amountCents: number;
+ *   onProcessingStart?: () => void;
  * }} params
  * @returns {Promise<{ paymentIntentId: string; amountCents: number }>}
  */
-export async function collectTapToPayPaymentMock({ paymentIntentId, amountCents }) {
+export async function collectTapToPayPaymentMock({
+  paymentIntentId,
+  amountCents,
+  onProcessingStart,
+}) {
   if (!TAP_TO_PAY_DEV_MOCK_COLLECTION) {
     throw new Error('Tap to Pay requires the Stripe Terminal SDK.');
   }
+  // Simulate Apple reader UI while the sheet stays on "preparing".
+  await new Promise((resolve) => setTimeout(resolve, TAP_TO_PAY_PENDING_MS));
+  onProcessingStart?.();
+  // Simulate Stripe authorization after Apple's reader UI closes.
   await new Promise((resolve) => setTimeout(resolve, TAP_TO_PAY_PENDING_MS));
   return { paymentIntentId, amountCents };
 }
