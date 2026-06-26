@@ -8,12 +8,13 @@ const path = require('path');
 const fromEnv = String(process.env.GOOGLE_SERVICES_JSON ?? '').trim();
 const fromRoot = path.join(process.cwd(), 'google-services.json');
 const target = path.join(process.cwd(), 'android/app/google-services.json');
+const isEasBuild = Boolean(process.env.EAS_BUILD_ID || process.env.EAS_BUILD === 'true');
 
 const source =
   (fromEnv && fs.existsSync(fromEnv) && fromEnv) || (fs.existsSync(fromRoot) && fromRoot) || null;
 
 if (!source) {
-  if (process.env.EAS_BUILD === 'true') {
+  if (isEasBuild) {
     console.error(
       '[copyGoogleServices] Missing google-services.json. Set EAS file env GOOGLE_SERVICES_JSON for this profile.',
     );

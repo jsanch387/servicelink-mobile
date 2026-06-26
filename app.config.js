@@ -55,6 +55,22 @@ function isEasProjectUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 }
 
+/** Bare android/ in git: copy EAS file env into android/app before Gradle (prebuild may not run). */
+function ensureAndroidGoogleServicesFile() {
+  const fromEnv = String(process.env.GOOGLE_SERVICES_JSON ?? '').trim();
+  const fromRoot = path.join(process.cwd(), 'google-services.json');
+  const target = path.join(process.cwd(), 'android/app/google-services.json');
+  const source =
+    (fromEnv && fs.existsSync(fromEnv) && fromEnv) || (fs.existsSync(fromRoot) && fromRoot) || null;
+  if (!source) {
+    return;
+  }
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.copyFileSync(source, target);
+}
+
+ensureAndroidGoogleServicesFile();
+
 module.exports = ({ config }) => {
   const envEas = String(process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '').trim();
   const jsonEas = String(config?.extra?.eas?.projectId ?? '').trim();

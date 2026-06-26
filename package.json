@@ -15,6 +15,7 @@
     "prepare": "husky",
     "test": "jest --runInBand --forceExit",
     "test:watch": "jest --watch --runInBand",
+    "eas-build-post-install": "node scripts/copyGoogleServicesForAndroidBuild.js",
     "eas:build:ios:preview": "eas build --platform ios --profile preview",
     "eas:update:preview": "eas update --channel preview",
     "eas:update:production": "eas update --channel production"
