@@ -12,9 +12,10 @@
  * EXPO_PUBLIC_EAS_PROJECT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
  *
  * Android push (FCM) — download from Firebase for package `com.myservicelink.app`:
- * - Local: place `google-services.json` at repo root (gitignored).
+ * - Local: place `google-services.json` at repo root (gitignored); run
+ *   `node scripts/copyGoogleServicesForAndroidBuild.js` before native Android builds.
  * - EAS Build: `eas env:create --scope project --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json`
- *   (EAS injects the path into `GOOGLE_SERVICES_JSON` at build time.)
+ *   prebuildCommand copies it into android/app/ (never commit that file).
  * Also upload FCM v1 service account key via `eas credentials` (see Expo FCM credentials docs).
  *
  * Optional — Stripe Connect onboarding redirect prefix used by app auth session:
