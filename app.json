@@ -23,7 +23,14 @@
         }
       ],
       "expo-asset",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/servicelink-logo.png",
+          "color": "#0a0a0a",
+          "defaultChannel": "default"
+        }
+      ],
       "expo-web-browser",
       [
         "expo-image-picker",
@@ -51,7 +58,12 @@
     },
     "android": {
       "package": "com.myservicelink.app",
-      "versionCode": 17
+      "versionCode": 17,
+      "permissions": ["android.permission.POST_NOTIFICATIONS"],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/servicelink-logo.png",
+        "backgroundColor": "#0a0a0a"
+      }
     },
     "runtimeVersion": "1.0.6",
     "updates": {

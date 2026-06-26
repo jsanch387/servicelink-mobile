@@ -10,8 +10,10 @@ async function ensureAndroidChannel() {
     return;
   }
   await Notifications.setNotificationChannelAsync('default', {
-    name: 'Default',
-    importance: Notifications.AndroidImportance.DEFAULT,
+    name: 'ServiceLink',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#0a0a0a',
   });
 }
 
