@@ -11,6 +11,12 @@
  * Optional — Expo push token (`getExpoPushTokenAsync`); set after `eas init` / from Expo dashboard:
  * EXPO_PUBLIC_EAS_PROJECT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
  *
+ * Android push (FCM) — download from Firebase for package `com.myservicelink.app`:
+ * - Local: place `google-services.json` at repo root (gitignored).
+ * - EAS Build: `eas env:create --scope project --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json`
+ *   (EAS injects the path into `GOOGLE_SERVICES_JSON` at build time.)
+ * Also upload FCM v1 service account key via `eas credentials` (see Expo FCM credentials docs).
+ *
  * Optional — Stripe Connect onboarding redirect prefix used by app auth session:
  * EXPO_PUBLIC_STRIPE_CONNECT_ONBOARDING_AUTH_RETURN_URL=servicelinkmobile://payments/connect
  *
@@ -27,6 +33,9 @@
  *   `STRIPE_MOBILE_CONNECT_DEEP_LINK_REFRESH_URL` (default
  *   `servicelinkmobile://payments/connect?connect=refresh`)
  */
+const fs = require('fs');
+const path = require('path');
+
 const DEFAULT_WEB_APP_URL = 'https://myservicelink.app';
 
 const envWebRaw =
@@ -54,8 +63,20 @@ module.exports = ({ config }) => {
       ? jsonEas
       : '';
 
+  // Only set when the file exists — avoids Expo config parse errors before Firebase is wired up.
+  const googleServicesFromEnv = String(process.env.GOOGLE_SERVICES_JSON ?? '').trim();
+  const googleServicesLocal = path.join(process.cwd(), 'google-services.json');
+  const resolvedGoogleServicesFile =
+    (googleServicesFromEnv && fs.existsSync(googleServicesFromEnv) && googleServicesFromEnv) ||
+    (fs.existsSync(googleServicesLocal) && './google-services.json') ||
+    null;
+
   return {
     ...config,
+    android: {
+      ...(config.android ?? {}),
+      ...(resolvedGoogleServicesFile ? { googleServicesFile: resolvedGoogleServicesFile } : {}),
+    },
     extra: {
       ...(config.extra ?? {}),
       webAppUrl: resolvedWebAppUrl,
