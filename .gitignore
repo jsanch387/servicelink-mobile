@@ -40,5 +40,7 @@ yarn-error.*
 !.env.example
 !.env.sample
 *.keystore
-google-services.json
+# Firebase client config (public identifiers). Commit android/app copy for EAS builds.
+/google-services.json
+!android/app/google-services.json
 GoogleService-Info.plist

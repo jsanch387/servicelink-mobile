@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "354410405315",
+    "project_id": "servicelink-8d201",
+    "storage_bucket": "servicelink-8d201.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:354410405315:android:47a0dc8e0b2a6269cd3176",
+        "android_client_info": {
+          "package_name": "com.myservicelink.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbHahnbFH5N7Bf7OTWwYVNOx_rIQ0Ub3c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
