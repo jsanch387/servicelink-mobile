@@ -1,4 +1,5 @@
 import { Alert, Linking, Platform } from 'react-native';
+import { openNativeSms } from '../../../utils/openNativeSms';
 import { phoneForSmsUri } from '../../../utils/phone';
 import { formatBookingAddressForMaps } from './bookingAddress';
 
@@ -30,32 +31,14 @@ export function buildServiceStartingSmsBody(booking) {
  */
 async function openSmsToCustomer(booking, body) {
   const addr = phoneForSmsUri(booking.customer_phone);
-  const encodedBody = encodeURIComponent(body);
 
-  let url;
-  if (addr) {
-    const join = Platform.OS === 'ios' ? '&' : '?';
-    url = `sms:${addr}${join}body=${encodedBody}`;
-  } else {
-    // No usable number on file — still open compose with the message so the owner can pick a thread.
-    url = `sms:?body=${encodedBody}`;
-  }
-
-  try {
-    const supported = await Linking.canOpenURL(url);
-    if (!supported) {
-      Alert.alert(
-        'Unable to open Messages',
-        addr
-          ? 'Open your SMS app manually to contact the customer.'
-          : 'Open your SMS app manually. Add a customer phone on this booking to prefill their number next time.',
-      );
-      return;
-    }
-    await Linking.openURL(url);
-  } catch {
-    Alert.alert('Unable to open Messages', 'Something went wrong opening the messaging app.');
-  }
+  await openNativeSms({
+    address: addr,
+    body,
+    unsupportedMessage: addr
+      ? 'Open your SMS app manually to contact the customer.'
+      : 'Open your SMS app manually. Add a customer phone on this booking to prefill their number next time.',
+  });
 }
 
 /**
