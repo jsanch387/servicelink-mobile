@@ -48,3 +48,24 @@ export function totalBookingDurationMinutes(baseMinutes, selectedAddonRows) {
   }
   return Math.max(15, baseMinutes + extra);
 }
+
+function formatHourLabel(hours) {
+  return hours === 1 ? '1 hr' : `${hours} hrs`;
+}
+
+/** User-facing duration string — matches booking details schedule. */
+export function formatBookingDurationMinutes(minutesValue) {
+  const minutes = Number(minutesValue);
+  if (!Number.isFinite(minutes) || minutes <= 0) {
+    return 'Duration not set';
+  }
+  const hrs = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hrs === 0) {
+    return `${mins} min`;
+  }
+  if (mins === 0) {
+    return formatHourLabel(hrs);
+  }
+  return `${formatHourLabel(hrs)} ${mins} min`;
+}

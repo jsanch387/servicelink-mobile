@@ -1,5 +1,13 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Alert,
+  InteractionManager,
+  Linking,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -31,6 +39,8 @@ export function BookingDetailsScreen({ route }) {
   const navigation = useNavigation();
   const bookingId = route?.params?.bookingId;
   const [rescheduleSheetOpen, setRescheduleSheetOpen] = useState(false);
+  const [completeScrollRequestId, setCompleteScrollRequestId] = useState(0);
+  const scrollRef = useRef(/** @type {ScrollView | null} */ (null));
   const detailsQuery = useBookingDetails(bookingId);
   const bookingActions = useBookingActions(bookingId);
   const details = useMemo(
@@ -49,6 +59,23 @@ export function BookingDetailsScreen({ route }) {
   const statusLower = details.status.toLowerCase();
   const isCompletedStatus = statusLower === 'completed' || statusLower === 'complete';
   const isCancelledStatus = statusLower === 'cancelled' || statusLower === 'canceled';
+
+  useEffect(() => {
+    setCompleteScrollRequestId(0);
+  }, [bookingId]);
+
+  useEffect(() => {
+    if (completeScrollRequestId === 0 || !isCompletedStatus) {
+      return undefined;
+    }
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ animated: true, y: 0 });
+      });
+    });
+    return () => task.cancel();
+  }, [completeScrollRequestId, isCompletedStatus]);
   const customerPhoneDigits = useMemo(
     () => String(details.customer.phone ?? '').replace(/\D/g, ''),
     [details.customer.phone],
@@ -137,6 +164,7 @@ export function BookingDetailsScreen({ route }) {
   const handleConfirmMarkCompleted = useCallback(async () => {
     try {
       await markCompleteFlow.confirmComplete();
+      setCompleteScrollRequestId((id) => id + 1);
     } catch (error) {
       Alert.alert(
         'Could not mark completed',
@@ -273,6 +301,7 @@ export function BookingDetailsScreen({ route }) {
         onRequestClose={() => setRescheduleSheetOpen(false)}
       />
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.content}
         refreshControl={detailsRefreshControl}
         showsVerticalScrollIndicator={false}

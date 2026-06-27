@@ -229,7 +229,7 @@ describe('NextUpCard', () => {
     expect(screen.getByLabelText('Navigate')).not.toBeDisabled();
   });
 
-  it('shows tier on the service line and vehicle on the muted line when both exist', () => {
+  it('shows base service name without pricing tier and vehicle on the muted line', () => {
     const nextBooking = {
       id: '2',
       customer_name: 'Jordan Lee',
@@ -253,7 +253,8 @@ describe('NextUpCard', () => {
       />,
     );
     expect(screen.getByText('Jordan Lee')).toBeTruthy();
-    expect(screen.getByText('Signature Shine — SUV')).toBeTruthy();
+    expect(screen.getByText('Signature Shine')).toBeTruthy();
+    expect(screen.queryByText('Signature Shine — SUV')).toBeNull();
     expect(screen.getByText('2017 Toyota Tacoma')).toBeTruthy();
   });
 

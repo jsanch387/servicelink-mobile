@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { SCREEN_GUTTER } from '../../../../constants/layout';
 
 /**
- * @param {{ text: string; border: string }} colors theme colors subset
+ * @param {{ text: string; border: string; textMuted: string }} colors theme colors subset
  */
 export function createAppointmentFlowStyles(colors) {
   return StyleSheet.create({
@@ -15,18 +15,32 @@ export function createAppointmentFlowStyles(colors) {
     content: {
       paddingBottom: 24,
       paddingHorizontal: SCREEN_GUTTER,
-      paddingTop: 12,
+      paddingTop: 2,
+    },
+    contentConfirmed: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      paddingTop: 0,
+    },
+    stepHeader: {
+      marginBottom: 22,
+    },
+    stepHeaderCopy: {
+      gap: 2,
     },
     title: {
       color: colors.text,
       fontSize: 22,
       fontWeight: '700',
       letterSpacing: -0.35,
-      marginBottom: 22,
+      lineHeight: 25,
     },
-    /** Review step: main title sits just above the subtitle (~5px gap). */
-    titleTightToSubtitle: {
-      marginBottom: 5,
+    stepSubtitle: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '500',
+      letterSpacing: 0,
+      lineHeight: 16,
     },
   });
 }

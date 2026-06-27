@@ -4,6 +4,7 @@ import {
   isReviewStepComplete,
   isVehicleStepComplete,
 } from './createAppointmentValidators';
+import { isCreateFlowPricingSelectionValid } from './createFlowPricing';
 
 /**
  * Whether the primary action (Continue / Confirm) is allowed for the current wizard step.
@@ -14,6 +15,9 @@ import {
  * @param {string | null} p.selectedServiceId
  * @param {string | null} p.selectedPricingId
  * @param {boolean} [p.pricingSkipped] when true, pricing step is bypassed (treat as satisfied)
+ * @param {Array<{ id: string }>} [p.pricingOptions]
+ * @param {boolean} [p.priceOptionsLoading]
+ * @param {boolean} [p.priceOptionsEnabled]
  * @param {boolean} p.acceptBookings
  * @param {boolean} p.scheduleLoading
  * @param {string | null} p.selectedDateKey
@@ -29,6 +33,9 @@ export function canContinueCreateAppointmentStep({
   selectedServiceId,
   selectedPricingId,
   pricingSkipped = false,
+  pricingOptions = [],
+  priceOptionsLoading = false,
+  priceOptionsEnabled = false,
   acceptBookings,
   scheduleLoading,
   selectedDateKey,
@@ -42,7 +49,12 @@ export function canContinueCreateAppointmentStep({
   if (step === 0) return Boolean(selectedServiceId);
   if (step === 1) {
     if (pricingSkipped) return true;
-    return Boolean(selectedPricingId);
+    return isCreateFlowPricingSelectionValid({
+      selectedPricingId,
+      pricingOptions,
+      priceOptionsLoading,
+      priceOptionsEnabled,
+    });
   }
   if (step === 2) return true;
   if (step === 3) {
@@ -57,6 +69,9 @@ export function canContinueCreateAppointmentStep({
     return isReviewStepComplete({
       selectedServiceId,
       selectedPricingId,
+      pricingOptions,
+      priceOptionsLoading,
+      priceOptionsEnabled,
       selectedDateKey,
       selectedTime,
       customer,

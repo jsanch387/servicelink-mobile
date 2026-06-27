@@ -31,6 +31,14 @@ describe('BookingCard', () => {
     expect(screen.getByText('2021 Tesla Model 3')).toBeTruthy();
   });
 
+  it('shows base service name without pricing option tier', () => {
+    renderWithProviders(
+      <BookingCard booking={makeBooking({ service_name: 'Signature Shine — SUV' })} />,
+    );
+    expect(screen.getByText('Signature Shine')).toBeTruthy();
+    expect(screen.queryByText('Signature Shine — SUV')).toBeNull();
+  });
+
   it('omits vehicle line when no vehicle fields', () => {
     renderWithProviders(
       <BookingCard

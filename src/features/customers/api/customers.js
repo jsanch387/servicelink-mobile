@@ -77,6 +77,9 @@ const BOOKING_CUSTOMER_METRICS_SELECT =
 export async function insertCustomerForBusiness(businessId, input) {
   const full_name = String(input.fullName ?? '').trim();
   const phone_normalized = normalizePhoneForDatabase(input.phone ?? '') ?? null;
+  if (!phone_normalized) {
+    return { data: null, error: new Error('Phone number is required.') };
+  }
   const emailTrim = String(input.email ?? '').trim();
   const email = emailTrim || null;
   const email_normalized = normalizeEmailForDedupe(emailTrim);

@@ -19,10 +19,12 @@ export function CreateAppointmentStepContent(p) {
     appointmentConfirmed,
     catalogError,
     catalogIsLoading,
+    categories = [],
     enabledServices,
     selectedServiceId,
     onSelectServiceId,
     pricingOptions,
+    priceOptionsLoading,
     selectedPricingId,
     selectedService,
     onSelectPricingId,
@@ -49,6 +51,7 @@ export function CreateAppointmentStepContent(p) {
     notes,
     onChangeVehicle,
     onChangeNotes,
+    totalDurationMinutes,
   } = p;
 
   if (appointmentConfirmed) {
@@ -60,6 +63,7 @@ export function CreateAppointmentStepContent(p) {
       return (
         <ServiceStep
           catalogError={catalogError}
+          categories={categories}
           isLoading={catalogIsLoading}
           selectedServiceId={selectedServiceId}
           services={enabledServices}
@@ -69,6 +73,7 @@ export function CreateAppointmentStepContent(p) {
     case 1:
       return (
         <PricingStep
+          priceOptionsLoading={priceOptionsLoading}
           pricingOptions={pricingOptions}
           selectedPricingId={selectedPricingId}
           service={selectedService}
@@ -126,6 +131,7 @@ export function CreateAppointmentStepContent(p) {
           selectedService={selectedService}
           selectedTime={selectedTime}
           serviceAddons={addonsForSelectedService}
+          totalDurationMinutes={totalDurationMinutes}
           vehicle={vehicle}
         />
       );

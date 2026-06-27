@@ -43,3 +43,4 @@ export { SurfaceEmailField } from './SurfaceEmailField';
 export { SurfacePhoneField } from './SurfacePhoneField';
 export { SurfaceTextField } from './SurfaceTextField';
 export { TimeSelectField } from './TimeSelectField';
+export { WizardProgressBar } from './WizardProgressBar';

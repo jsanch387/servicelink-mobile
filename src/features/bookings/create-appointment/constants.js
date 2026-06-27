@@ -3,11 +3,19 @@ export const CREATE_APPOINTMENT_STEP_META = [
   { key: 'service', title: 'Choose a service' },
   { key: 'pricing', title: 'Pricing' },
   { key: 'addons', title: 'Add-ons' },
-  { key: 'schedule', title: 'Date and time' },
-  { key: 'customer', title: "Who's it for?" },
-  { key: 'address', title: 'Where is the service?' },
-  { key: 'vehicle', title: "What's the vehicle?" },
-  { key: 'review', title: 'Review appointment' },
+  {
+    key: 'schedule',
+    title: 'Date and time',
+    subtitle: 'Pick when this appointment happens.',
+  },
+  { key: 'customer', title: 'Customer information' },
+  { key: 'address', title: 'Service address' },
+  { key: 'vehicle', title: 'Vehicle' },
+  {
+    key: 'review',
+    title: 'Review appointment',
+    subtitle: 'Confirm the details, then create the appointment.',
+  },
 ];
 
 /** 0-based indices — keep in sync with {@link CREATE_APPOINTMENT_STEP_META} order. */

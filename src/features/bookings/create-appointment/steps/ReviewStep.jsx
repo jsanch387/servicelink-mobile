@@ -3,10 +3,10 @@ import { useMemo } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 import {
   AppText,
+  DetailIconFieldRow,
   DetailsSectionCard,
   Divider,
   InfoSection,
-  LabelValueRow,
 } from '../../../../components/ui';
 import {
   formatScheduledDateUserFacing,
@@ -19,6 +19,7 @@ import {
   isValidUsNanpTenDigits,
 } from '../../../../utils/phone';
 import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
+import { formatBookingDurationMinutes } from '../utils/createFlowDuration';
 
 /**
  * Single-line mailing style, e.g. `14301 N IH 35, Pflugerville, TX, 78660`.
@@ -48,6 +49,7 @@ function formatFullServiceAddress(address) {
  *   address: { street: string; unit: string; city: string; state: string; zip: string };
  *   vehicle: { year: string; make: string; model: string };
  *   notes: string;
+ *   totalDurationMinutes: number;
  * }} props
  */
 export function ReviewStep({
@@ -61,6 +63,7 @@ export function ReviewStep({
   address,
   vehicle,
   notes,
+  totalDurationMinutes,
 }) {
   const { colors } = useTheme();
 
@@ -82,9 +85,7 @@ export function ReviewStep({
   const totalUsd = baseUsd + addonsUsdSum;
 
   const serviceName = selectedService?.name?.trim() || '—';
-  const optionLabel = selectedPricingOption?.label?.trim() || '—';
-  const durationValue =
-    selectedPricingOption?.durationLabel?.trim() || selectedService?.durationLabel?.trim() || '—';
+  const optionLabel = selectedPricingOption?.label?.trim() || '';
   const priceLabelDisplay =
     selectedPricingOption?.priceLabel?.trim() || selectedService?.priceLabel?.trim() || '—';
 
@@ -112,7 +113,11 @@ export function ReviewStep({
     return t.length > 0 ? t : null;
   }, [selectedTime]);
 
-  const showScheduleSection = Boolean(scheduleDateDisplay || scheduleTimeDisplay);
+  const durationDisplay = formatBookingDurationMinutes(totalDurationMinutes);
+
+  const showScheduleSection = Boolean(
+    scheduleDateDisplay || scheduleTimeDisplay || durationDisplay,
+  );
 
   const phoneDigits10 = useMemo(() => {
     const d = canonicalNanpDigits(customer.phone);
@@ -161,119 +166,87 @@ export function ReviewStep({
         reviewRoot: {
           gap: 22,
         },
-        heroSub: {
+        serviceRow: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginBottom: 6,
+        },
+        serviceName: {
+          color: colors.text,
+          flex: 1,
+          fontSize: 16,
+          fontWeight: '600',
+          marginRight: 12,
+        },
+        servicePrice: {
+          color: colors.text,
+          fontSize: 16,
+          fontWeight: '600',
+        },
+        optionMetaLine: {
           color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 12,
+          fontWeight: '500',
+          marginBottom: 14,
+        },
+        serviceDivider: {
+          marginBottom: 12,
+        },
+        addonBlockLabel: {
+          color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 11,
+          letterSpacing: 0.5,
+          marginBottom: 8,
+          textTransform: 'uppercase',
+        },
+        addonRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginBottom: 8,
+          paddingLeft: 2,
+        },
+        addonName: {
+          color: colors.text,
+          flex: 1,
           fontSize: 14,
           fontWeight: '500',
-          letterSpacing: -0.1,
-          lineHeight: 21,
+          marginRight: 12,
         },
-        proposalInner: {
-          paddingVertical: 4,
-        },
-        serviceTitle: {
+        addonPrice: {
           color: colors.text,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 22,
-          letterSpacing: -0.35,
-          lineHeight: 28,
+          fontSize: 14,
+          fontWeight: '600',
         },
-        breakdownBlock: {
-          marginTop: 18,
-        },
-        addonBlock: {
-          marginTop: 16,
-        },
-        totalDividerWrap: {
+        divider: {
           marginBottom: 12,
-          marginTop: 18,
+          marginTop: 4,
         },
         totalRow: {
-          alignItems: 'baseline',
+          alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'space-between',
         },
         totalLabel: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 12,
-          fontWeight: '600',
-          letterSpacing: 0.2,
-          textTransform: 'uppercase',
+          color: colors.text,
+          fontSize: 16,
+          fontWeight: '700',
         },
         totalValue: {
           color: colors.text,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 28,
-          letterSpacing: -0.55,
-          lineHeight: 34,
+          fontSize: 18,
+          fontWeight: '700',
+          letterSpacing: -0.2,
         },
-        activityStack: {
-          gap: 16,
-          paddingTop: 2,
-        },
-        activityRow: {
-          flexDirection: 'row',
-          gap: 14,
+        scheduleFieldsStack: {
+          gap: 18,
+          paddingVertical: 2,
         },
         activityIconWrap: {
           paddingTop: 2,
           width: 22,
-        },
-        activityLabel: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 12,
-          fontWeight: '600',
-          letterSpacing: 0.2,
-          marginBottom: 4,
-          textTransform: 'uppercase',
-        },
-        activityValue: {
-          color: colors.textSecondary,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 15,
-          fontWeight: '500',
-          letterSpacing: -0.15,
-          lineHeight: 22,
-        },
-        addonSectionTitle: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 12,
-          fontWeight: '600',
-          letterSpacing: 0.2,
-          marginBottom: 10,
-          textTransform: 'uppercase',
-        },
-        addonLineRow: {
-          alignItems: 'flex-start',
-          flexDirection: 'row',
-          gap: 10,
-          justifyContent: 'space-between',
-          marginTop: 8,
-        },
-        addonLineRowFirst: {
-          marginTop: 0,
-        },
-        addonLineName: {
-          color: colors.textSecondary,
-          flex: 1,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 15,
-          fontWeight: '500',
-          letterSpacing: -0.15,
-          lineHeight: 22,
-          minWidth: 0,
-        },
-        addonLinePrice: {
-          color: colors.text,
-          flexShrink: 0,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 14,
-          fontWeight: '600',
-          lineHeight: 20,
         },
         addressRow: {
           flexDirection: 'row',
@@ -325,94 +298,70 @@ export function ReviewStep({
     [colors],
   );
 
-  const serviceHeadline = serviceName.trim() || 'Service';
-
   return (
     <View style={styles.reviewRoot}>
-      <AppText style={styles.heroSub}>
-        Confirm the details below, then create the appointment.
-      </AppText>
+      <DetailsSectionCard bodyPadding="roomy" title="Summary">
+        <View style={styles.serviceRow}>
+          <AppText numberOfLines={3} style={styles.serviceName}>
+            {serviceName}
+          </AppText>
+          <AppText style={styles.servicePrice}>{priceLabelDisplay}</AppText>
+        </View>
+        {optionLabel ? (
+          <AppText style={styles.optionMetaLine}>{optionLabel}</AppText>
+        ) : (
+          <View style={{ height: 8 }} />
+        )}
 
-      <DetailsSectionCard bodyPadding="roomy" title="Proposal">
-        <View style={styles.proposalInner}>
-          <AppText style={styles.serviceTitle}>{serviceHeadline}</AppText>
+        {selectedAddonRows.length > 0 ? (
+          <>
+            <Divider style={styles.serviceDivider} />
+            <AppText style={styles.addonBlockLabel}>Add-ons</AppText>
+            {selectedAddonRows.map((a) => (
+              <View key={a.id} style={styles.addonRow}>
+                <AppText numberOfLines={2} style={styles.addonName}>
+                  {a.name}
+                </AppText>
+                <AppText style={styles.addonPrice}>
+                  {formatUsdFromNumber(parsePriceLabelToUsd(a.priceLabel ?? a.price))}
+                </AppText>
+              </View>
+            ))}
+          </>
+        ) : null}
 
-          <View style={styles.breakdownBlock}>
-            <LabelValueRow
-              label="Option"
-              labelAppearance="caption"
-              noTopMargin
-              value={optionLabel}
-            />
-            <LabelValueRow label="Duration" labelAppearance="caption" value={durationValue} />
-            <LabelValueRow
-              label="Service price"
-              labelAppearance="caption"
-              value={priceLabelDisplay}
-            />
-          </View>
-
-          <View style={styles.addonBlock}>
-            {selectedAddonRows.length === 0 ? (
-              <LabelValueRow label="Add-ons" labelAppearance="caption" noTopMargin value="None" />
-            ) : (
-              <>
-                <AppText style={styles.addonSectionTitle}>Add-ons</AppText>
-                {selectedAddonRows.map((a, index) => {
-                  const addonPrice = formatUsdFromNumber(
-                    parsePriceLabelToUsd(a.priceLabel ?? a.price),
-                  );
-                  return (
-                    <View
-                      key={a.id}
-                      style={[styles.addonLineRow, index === 0 && styles.addonLineRowFirst]}
-                    >
-                      <AppText ellipsizeMode="tail" numberOfLines={3} style={styles.addonLineName}>
-                        {a.name}
-                      </AppText>
-                      <AppText style={styles.addonLinePrice}>{addonPrice}</AppText>
-                    </View>
-                  );
-                })}
-              </>
-            )}
-          </View>
-
-          <View style={styles.totalDividerWrap}>
-            <Divider />
-          </View>
-          <View style={styles.totalRow}>
-            <AppText style={styles.totalLabel}>Total</AppText>
-            <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>
-          </View>
+        <Divider style={styles.divider} />
+        <View style={styles.totalRow}>
+          <AppText style={styles.totalLabel}>Total</AppText>
+          <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>
         </View>
       </DetailsSectionCard>
 
       {showScheduleSection ? (
         <DetailsSectionCard bodyPadding="roomy" title="Schedule">
-          <View style={styles.activityStack}>
+          <View style={styles.scheduleFieldsStack}>
             {scheduleDateDisplay ? (
-              <View style={styles.activityRow}>
-                <View style={styles.activityIconWrap}>
-                  <Ionicons color={colors.accentMuted} name="calendar-outline" size={19} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.activityLabel}>Date</AppText>
-                  <AppText style={styles.activityValue}>{scheduleDateDisplay}</AppText>
-                </View>
-              </View>
+              <DetailIconFieldRow
+                icon="calendar-outline"
+                label="Date"
+                labelUppercase={false}
+                value={scheduleDateDisplay}
+              />
             ) : null}
             {scheduleTimeDisplay ? (
-              <View style={styles.activityRow}>
-                <View style={styles.activityIconWrap}>
-                  <Ionicons color={colors.accentMuted} name="time-outline" size={19} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.activityLabel}>Time</AppText>
-                  <AppText style={styles.activityValue}>{scheduleTimeDisplay}</AppText>
-                </View>
-              </View>
+              <DetailIconFieldRow
+                icon="time-outline"
+                label="Time"
+                labelUppercase={false}
+                value={scheduleTimeDisplay}
+              />
             ) : null}
+            <DetailIconFieldRow
+              icon="hourglass-outline"
+              label="Duration"
+              labelUppercase={false}
+              value={durationDisplay}
+            />
           </View>
         </DetailsSectionCard>
       ) : null}

@@ -10,6 +10,8 @@ import { FONT_FAMILIES, useTheme } from '../../../../theme';
 
 export function ScheduleSection({ schedule }) {
   const { colors } = useTheme();
+  const serviceName = String(schedule.serviceName ?? '').trim();
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -20,6 +22,9 @@ export function ScheduleSection({ schedule }) {
         fieldsStack: {
           gap: 18,
         },
+        serviceBlock: {
+          gap: 4,
+        },
         serviceText: {
           color: colors.text,
           fontFamily: FONT_FAMILIES.semibold,
@@ -29,6 +34,14 @@ export function ScheduleSection({ schedule }) {
           lineHeight: 24,
           textAlign: 'left',
         },
+        pricingOptionText: {
+          color: colors.textMuted,
+          fontSize: 11,
+          fontWeight: '500',
+          letterSpacing: 0,
+          lineHeight: 15,
+          textAlign: 'left',
+        },
       }),
     [colors],
   );
@@ -36,7 +49,12 @@ export function ScheduleSection({ schedule }) {
   return (
     <DetailsSectionCard bodyPadding="roomy" title="Schedule">
       <View style={styles.stack}>
-        <AppText style={styles.serviceText}>{schedule.serviceName}</AppText>
+        <View style={styles.serviceBlock}>
+          <AppText style={styles.serviceText}>{serviceName}</AppText>
+          {schedule.pricingOption ? (
+            <AppText style={styles.pricingOptionText}>{schedule.pricingOption}</AppText>
+          ) : null}
+        </View>
         <Divider />
         <View style={styles.fieldsStack}>
           <DetailIconFieldRow

@@ -10,6 +10,22 @@ describe('buildBookingDetailsModel', () => {
     expect(model.schedule.duration).toBe('1 hr 30 min');
   });
 
+  it('splits combined service name into title and pricing option', () => {
+    const model = buildBookingDetailsModel({
+      service_name: 'Signature Shine — SUV',
+    });
+    expect(model.schedule.serviceName).toBe('Signature Shine');
+    expect(model.schedule.pricingOption).toBe('SUV');
+  });
+
+  it('leaves pricing option null when service name has no tier', () => {
+    const model = buildBookingDetailsModel({
+      service_name: 'Full detail',
+    });
+    expect(model.schedule.serviceName).toBe('Full detail');
+    expect(model.schedule.pricingOption).toBeNull();
+  });
+
   it('uses singular hr and plural hrs', () => {
     expect(buildBookingDetailsModel({ duration_minutes: 60 }).schedule.duration).toBe('1 hr');
     expect(buildBookingDetailsModel({ duration_minutes: 120 }).schedule.duration).toBe('2 hrs');

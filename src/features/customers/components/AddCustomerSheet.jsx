@@ -13,6 +13,7 @@ import { isValidEmailFormat } from '../../../utils/email';
 import {
   canonicalNanpDigits,
   formatPhoneInputAsYouType,
+  isValidUsNanpTenDigits,
   US_NANP_FORMATTED_MAX_LENGTH,
 } from '../../../utils/phone';
 import { useTheme } from '../../../theme';
@@ -54,14 +55,15 @@ export function AddCustomerSheet({ businessId, visible, onRequestClose }) {
   }, [visible, resetCreateCustomer]);
 
   const phoneDigits = useMemo(() => canonicalNanpDigits(phone), [phone]);
-  const phoneIncomplete = phoneDigits.length > 0 && phoneDigits.length < 10;
+  const phoneValid = isValidUsNanpTenDigits(phoneDigits);
+  const phoneInvalid = phoneDigits.length > 0 && !phoneValid;
   const emailTrimmed = email.trim();
   const emailInvalid = emailTrimmed.length > 0 && !isValidEmailFormat(email);
 
   const canSave =
     Boolean(businessId) &&
     name.trim().length > 0 &&
-    !phoneIncomplete &&
+    phoneValid &&
     !emailInvalid &&
     notes.length <= NOTES_MAX_LEN;
 
@@ -198,15 +200,13 @@ export function AddCustomerSheet({ businessId, visible, onRequestClose }) {
             <SurfaceTextField
               containerStyle={styles.fieldFlushBottom}
               keyboardType="phone-pad"
-              label="Phone number (optional)"
+              label="Phone *"
               maxLength={US_NANP_FORMATTED_MAX_LENGTH}
               onChangeText={(t) => setPhone(formatPhoneInputAsYouType(t))}
               value={phone}
             />
-            {phoneIncomplete ? (
-              <AppText style={styles.fieldError}>
-                Enter a complete US number or leave this blank.
-              </AppText>
+            {phoneInvalid ? (
+              <AppText style={styles.fieldError}>Enter a complete US phone number.</AppText>
             ) : null}
           </View>
           <View style={styles.fieldGroup}>

@@ -99,11 +99,27 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     return rows.find((r) => String(r.id) === String(selectedServiceId)) ?? null;
   }, [catalog.serviceRows, selectedServiceId]);
 
-  const pricingPayload = useMemo(
-    () =>
-      buildCreateFlowPricingOptions(selectedServiceRow, server.priceOptionRows, server.ownerHasPro),
-    [selectedServiceRow, server.priceOptionRows, server.ownerHasPro],
-  );
+  const pricingPayload = useMemo(() => {
+    if (
+      server.ownerHasPro &&
+      priceOptionsEnabled &&
+      server.priceOptionsLoading &&
+      !server.priceOptionRows?.length
+    ) {
+      return { options: [], labelKey: 'label' };
+    }
+    return buildCreateFlowPricingOptions(
+      selectedServiceRow,
+      server.priceOptionRows,
+      server.ownerHasPro,
+    );
+  }, [
+    selectedServiceRow,
+    server.ownerHasPro,
+    server.priceOptionRows,
+    server.priceOptionsLoading,
+    priceOptionsEnabled,
+  ]);
 
   const priceOptionsEnabled = useMemo(
     () => isServicePriceTiersEnabled(selectedServiceRow),
@@ -136,10 +152,20 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   );
 
   useEffect(() => {
+    if (!selectedPricingId) return;
+    const options = pricingPayload.options;
+    if (!options.length) return;
+    if (!options.some((o) => o.id === selectedPricingId)) {
+      setSelectedPricingId(null);
+    }
+  }, [pricingPayload.options, selectedPricingId]);
+
+  useEffect(() => {
     const opts = pricingPayload.options;
     if (opts.length !== 1 || selectedPricingId) return;
+    if (priceOptionsEnabled && server.priceOptionsLoading) return;
     setSelectedPricingId(opts[0].id);
-  }, [pricingPayload.options, selectedPricingId]);
+  }, [pricingPayload.options, selectedPricingId, priceOptionsEnabled, server.priceOptionsLoading]);
 
   const selectedAddonRows = useMemo(() => {
     const idSet = new Set((selectedAddonIds ?? []).map(String));
@@ -246,6 +272,9 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         selectedServiceId,
         selectedPricingId,
         pricingSkipped,
+        pricingOptions: pricingPayload.options,
+        priceOptionsLoading: server.priceOptionsLoading,
+        priceOptionsEnabled,
         acceptBookings,
         scheduleLoading,
         selectedDateKey,
@@ -261,6 +290,9 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       selectedServiceId,
       selectedPricingId,
       pricingSkipped,
+      pricingPayload.options,
+      server.priceOptionsLoading,
+      priceOptionsEnabled,
       acceptBookings,
       scheduleLoading,
       selectedDateKey,
@@ -344,9 +376,11 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       catalogError,
       catalogIsLoading: catalog.isLoading,
       enabledServices,
+      categories: catalog.categories,
       selectedServiceId,
       onSelectServiceId: setSelectedServiceId,
       pricingOptions: pricingPayload.options,
+      priceOptionsLoading: server.priceOptionsLoading,
       selectedPricingId,
       selectedService,
       onSelectPricingId: setSelectedPricingId,
@@ -371,6 +405,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       onChangeAddress: setAddress,
       vehicle,
       notes,
+      totalDurationMinutes,
       onChangeVehicle: setVehicle,
       onChangeNotes: setNotes,
     }),
@@ -380,8 +415,10 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       catalogError,
       catalog.isLoading,
       enabledServices,
+      catalog.categories,
       selectedServiceId,
       pricingPayload.options,
+      server.priceOptionsLoading,
       selectedPricingId,
       selectedService,
       selectedAddonIds,
@@ -401,6 +438,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       address,
       vehicle,
       notes,
+      totalDurationMinutes,
     ],
   );
 
@@ -411,6 +449,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     appointmentConfirmed,
     showMainTitle: createAppointmentStepShowsMainTitle(step) && !appointmentConfirmed,
     mainTitle: meta?.title ?? '',
+    mainSubtitle: meta?.subtitle ?? '',
     stepContentProps,
     footer: {
       appointmentConfirmed,

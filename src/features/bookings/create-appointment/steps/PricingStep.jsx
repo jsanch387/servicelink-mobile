@@ -1,28 +1,28 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, Divider, SurfaceCard } from '../../../../components/ui';
-import { FONT_FAMILIES, useTheme } from '../../../../theme';
-import { CreateFlowServiceHeader } from '../components/CreateFlowServiceHeader';
+import { AppText, DetailsSectionCard, Divider } from '../../../../components/ui';
+import { useTheme } from '../../../../theme';
 import { ChoiceRow } from '../components/ChoiceRow';
-import { buildPricingOptionsForUi } from '../utils/buildPricingOptionsForUi';
 
 /**
  * @param {{
  *   service: object | null;
  *   pricingOptions?: Array<{ id: string; label: string; durationLabel: string; priceLabel: string }> | null;
+ *   priceOptionsLoading?: boolean;
  *   selectedPricingId: string | null;
  *   onSelectPricingId: (id: string) => void;
  * }} props
  */
-export function PricingStep({ service, pricingOptions, selectedPricingId, onSelectPricingId }) {
+export function PricingStep({
+  service,
+  pricingOptions,
+  priceOptionsLoading = false,
+  selectedPricingId,
+  onSelectPricingId,
+}) {
   const { colors } = useTheme();
 
-  const options = useMemo(() => {
-    if (pricingOptions?.length) {
-      return pricingOptions;
-    }
-    return buildPricingOptionsForUi(service);
-  }, [pricingOptions, service]);
+  const options = useMemo(() => pricingOptions ?? [], [pricingOptions]);
 
   const selectedOption = useMemo(
     () => options.find((o) => o.id === selectedPricingId) ?? null,
@@ -30,9 +30,6 @@ export function PricingStep({ service, pricingOptions, selectedPricingId, onSele
   );
 
   const displayPrice = selectedOption?.priceLabel ?? service?.priceLabel ?? '—';
-  const metaLine = selectedOption
-    ? `${selectedOption.durationLabel} — ${selectedOption.label}`
-    : (service?.durationLabel ?? '—');
 
   const styles = useMemo(
     () =>
@@ -44,19 +41,8 @@ export function PricingStep({ service, pricingOptions, selectedPricingId, onSele
           letterSpacing: -0.2,
           marginBottom: 12,
         },
-        summaryCard: {
-          gap: 0,
+        summarySection: {
           marginTop: 20,
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-        },
-        summaryLabel: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 11,
-          letterSpacing: 0.5,
-          marginBottom: 10,
-          textTransform: 'uppercase',
         },
         summaryRow: {
           alignItems: 'flex-start',
@@ -78,7 +64,7 @@ export function PricingStep({ service, pricingOptions, selectedPricingId, onSele
         },
         summarySub: {
           color: colors.textMuted,
-          fontSize: 14,
+          fontSize: 12,
           fontWeight: '500',
           marginBottom: 14,
         },
@@ -106,6 +92,12 @@ export function PricingStep({ service, pricingOptions, selectedPricingId, onSele
           color: colors.textMuted,
           fontSize: 14,
         },
+        loading: {
+          color: colors.textMuted,
+          fontSize: 14,
+          fontWeight: '500',
+          marginBottom: 12,
+        },
       }),
     [colors],
   );
@@ -116,13 +108,11 @@ export function PricingStep({ service, pricingOptions, selectedPricingId, onSele
 
   return (
     <View>
-      <CreateFlowServiceHeader
-        displayPrice={displayPrice}
-        metaLine={metaLine}
-        serviceName={service.name}
-      />
-
       <AppText style={styles.sectionTitle}>Choose an option</AppText>
+
+      {priceOptionsLoading && options.length === 0 ? (
+        <AppText style={styles.loading}>Loading pricing options…</AppText>
+      ) : null}
 
       {options.map((opt) => (
         <ChoiceRow
@@ -135,25 +125,26 @@ export function PricingStep({ service, pricingOptions, selectedPricingId, onSele
         />
       ))}
 
-      <SurfaceCard padding="none" style={styles.summaryCard}>
-        <AppText style={styles.summaryLabel}>Service</AppText>
-        <View style={styles.summaryRow}>
-          <AppText numberOfLines={2} style={styles.summaryTitle}>
-            {service.name}
-          </AppText>
-          <AppText style={styles.summaryPrice}>{displayPrice}</AppText>
-        </View>
-        {selectedOption ? (
-          <AppText style={styles.summarySub}>{selectedOption.label}</AppText>
-        ) : (
-          <AppText style={styles.summarySub}>No option selected</AppText>
-        )}
-        <Divider style={styles.divider} />
-        <View style={styles.totalRow}>
-          <AppText style={styles.totalLabel}>Total</AppText>
-          <AppText style={styles.totalValue}>{displayPrice}</AppText>
-        </View>
-      </SurfaceCard>
+      <View style={styles.summarySection}>
+        <DetailsSectionCard bodyPadding="roomy" title="Summary">
+          <View style={styles.summaryRow}>
+            <AppText numberOfLines={2} style={styles.summaryTitle}>
+              {service.name}
+            </AppText>
+            <AppText style={styles.summaryPrice}>{displayPrice}</AppText>
+          </View>
+          {selectedOption ? (
+            <AppText style={styles.summarySub}>{selectedOption.label}</AppText>
+          ) : (
+            <AppText style={styles.summarySub}>No option selected</AppText>
+          )}
+          <Divider style={styles.divider} />
+          <View style={styles.totalRow}>
+            <AppText style={styles.totalLabel}>Total</AppText>
+            <AppText style={styles.totalValue}>{displayPrice}</AppText>
+          </View>
+        </DetailsSectionCard>
+      </View>
     </View>
   );
 }

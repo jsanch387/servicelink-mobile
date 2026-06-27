@@ -1,9 +1,8 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, Divider, SurfaceCard } from '../../../../components/ui';
+import { AppText, DetailsSectionCard, Divider } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 import { ChoiceRow } from '../components/ChoiceRow';
-import { CreateFlowServiceHeader } from '../components/CreateFlowServiceHeader';
 import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
 
 export function AddonsStep({
@@ -19,10 +18,6 @@ export function AddonsStep({
     () => parsePriceLabelToUsd(selectedPricingOption?.priceLabel ?? service?.priceLabel),
     [selectedPricingOption?.priceLabel, service?.priceLabel],
   );
-
-  const metaLine = selectedPricingOption
-    ? `${selectedPricingOption.durationLabel} — ${selectedPricingOption.label}`
-    : (service?.durationLabel ?? '—');
 
   /** Selected option base price only — does not change when add-ons are toggled. */
   const headerOptionPrice =
@@ -49,18 +44,8 @@ export function AddonsStep({
           letterSpacing: -0.2,
           marginBottom: 12,
         },
-        summaryCard: {
+        summarySection: {
           marginTop: 20,
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-        },
-        summaryHeading: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 11,
-          letterSpacing: 0.5,
-          marginBottom: 12,
-          textTransform: 'uppercase',
         },
         serviceRow: {
           alignItems: 'flex-start',
@@ -84,10 +69,13 @@ export function AddonsStep({
           color: colors.textMuted,
           fontSize: 13,
           fontWeight: '500',
-          marginBottom: 16,
+          marginBottom: 12,
+        },
+        serviceDivider: {
+          marginBottom: 12,
         },
         addonBlock: {
-          marginTop: 4,
+          marginTop: 0,
         },
         addonBlockLabel: {
           color: colors.textMuted,
@@ -175,30 +163,17 @@ export function AddonsStep({
 
   if (addons.length === 0) {
     return (
-      <View>
-        <CreateFlowServiceHeader
-          displayPrice={headerOptionPrice}
-          metaLine={metaLine}
-          serviceName={service.name}
-        />
-        <View style={styles.emptyWrap}>
-          <AppText style={styles.emptyTitle}>No add-ons for this service</AppText>
-          <AppText style={styles.emptyBody}>
-            None are set up for this service yet. Tap Continue to pick a date and time.
-          </AppText>
-        </View>
+      <View style={styles.emptyWrap}>
+        <AppText style={styles.emptyTitle}>No add-ons for this service</AppText>
+        <AppText style={styles.emptyBody}>
+          None are set up for this service yet. Tap Continue to pick a date and time.
+        </AppText>
       </View>
     );
   }
 
   return (
     <View>
-      <CreateFlowServiceHeader
-        displayPrice={headerOptionPrice}
-        metaLine={metaLine}
-        serviceName={service.name}
-      />
-
       <AppText style={styles.sectionTitle}>Optional add-ons</AppText>
 
       {addons.map((addon) => {
@@ -217,43 +192,46 @@ export function AddonsStep({
         );
       })}
 
-      <SurfaceCard padding="none" style={styles.summaryCard}>
-        <AppText style={styles.summaryHeading}>Summary</AppText>
-
-        <View style={styles.serviceRow}>
-          <AppText numberOfLines={2} style={styles.serviceName}>
-            {service.name}
-          </AppText>
-          <AppText style={styles.servicePrice}>{headerOptionPrice}</AppText>
-        </View>
-        {selectedPricingOption ? (
-          <AppText style={styles.optionSummaryLine}>{selectedPricingOption.label}</AppText>
-        ) : (
-          <View style={{ height: 4 }} />
-        )}
-
-        {selectedAddonRows.length > 0 ? (
-          <View style={styles.addonBlock}>
-            <AppText style={styles.addonBlockLabel}>Add-ons</AppText>
-            {selectedAddonRows.map((a) => (
-              <View key={a.id} style={styles.addonRow}>
-                <AppText numberOfLines={2} style={styles.addonName}>
-                  {a.name}
-                </AppText>
-                <AppText style={styles.addonPrice}>
-                  {formatUsdFromNumber(parsePriceLabelToUsd(a.priceLabel ?? a.price))}
-                </AppText>
-              </View>
-            ))}
+      <View style={styles.summarySection}>
+        <DetailsSectionCard bodyPadding="roomy" title="Summary">
+          <View style={styles.serviceRow}>
+            <AppText numberOfLines={2} style={styles.serviceName}>
+              {service.name}
+            </AppText>
+            <AppText style={styles.servicePrice}>{headerOptionPrice}</AppText>
           </View>
-        ) : null}
+          {selectedPricingOption ? (
+            <AppText style={styles.optionSummaryLine}>{selectedPricingOption.label}</AppText>
+          ) : (
+            <View style={{ height: 4 }} />
+          )}
 
-        <Divider style={styles.divider} />
-        <View style={styles.totalRow}>
-          <AppText style={styles.totalLabel}>Total</AppText>
-          <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>
-        </View>
-      </SurfaceCard>
+          {selectedAddonRows.length > 0 ? (
+            <>
+              <Divider style={styles.serviceDivider} />
+              <View style={styles.addonBlock}>
+                <AppText style={styles.addonBlockLabel}>Add-ons</AppText>
+                {selectedAddonRows.map((a) => (
+                  <View key={a.id} style={styles.addonRow}>
+                    <AppText numberOfLines={2} style={styles.addonName}>
+                      {a.name}
+                    </AppText>
+                    <AppText style={styles.addonPrice}>
+                      {formatUsdFromNumber(parsePriceLabelToUsd(a.priceLabel ?? a.price))}
+                    </AppText>
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : null}
+
+          <Divider style={styles.divider} />
+          <View style={styles.totalRow}>
+            <AppText style={styles.totalLabel}>Total</AppText>
+            <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>
+          </View>
+        </DetailsSectionCard>
+      </View>
     </View>
   );
 }

@@ -20,6 +20,7 @@ import { useAuth } from '../../auth';
 import { AddQuoteFab } from '../components/AddQuoteFab';
 import { QuoteRequestCard } from '../components/QuoteRequestCard';
 import { QuotesAcceptRequestsCard } from '../components/QuotesAcceptRequestsCard';
+import { QuotesHowItWorks } from '../components/QuotesHowItWorks';
 import { SentQuoteCard } from '../components/SentQuoteCard';
 import {
   QUOTE_DETAIL_KIND_REQUEST,
@@ -124,6 +125,9 @@ export function QuotesScreen() {
           paddingTop: 30,
         },
         toggleBlock: {
+          marginBottom: 16,
+        },
+        howItWorksBlock: {
           marginBottom: 24,
         },
         inboxBlock: {
@@ -217,6 +221,10 @@ export function QuotesScreen() {
               </SurfaceCard>
             </View>
           ) : null}
+
+          <View style={styles.howItWorksBlock}>
+            <QuotesHowItWorks />
+          </View>
 
           <View style={styles.inboxBlock}>
             <AppText style={styles.sectionLabel}>Inbox</AppText>

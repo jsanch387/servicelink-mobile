@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { useCallback, useMemo, useRef } from 'react';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Vibration, View } from 'react-native';
 import { AppText } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 
@@ -45,9 +46,6 @@ function ActionSurfaceTile({
           rowGap: 8,
           width: '100%',
         },
-        facePressed: {
-          opacity: 0.92,
-        },
         faceDisabled: {
           opacity: 0.48,
         },
@@ -62,6 +60,40 @@ function ActionSurfaceTile({
   );
 
   const blocked = disabled || loading;
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const animateTo = useCallback(
+    (value) => {
+      Animated.spring(scale, {
+        bounciness: 6,
+        speed: 24,
+        toValue: value,
+        useNativeDriver: true,
+      }).start();
+    },
+    [scale],
+  );
+
+  const fireActionHaptic = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
+      Vibration.vibrate(6);
+    });
+  }, []);
+
+  const handlePress = useCallback(() => {
+    fireActionHaptic();
+    onPress?.();
+  }, [fireActionHaptic, onPress]);
+
+  const handlePressIn = useCallback(() => {
+    if (!blocked) {
+      animateTo(0.96);
+    }
+  }, [animateTo, blocked]);
+
+  const handlePressOut = useCallback(() => {
+    animateTo(1);
+  }, [animateTo]);
 
   return (
     <View style={styles.cell}>
@@ -71,14 +103,12 @@ function ActionSurfaceTile({
         accessibilityRole="button"
         accessibilityState={{ disabled: blocked }}
         disabled={blocked}
-        onPress={onPress}
-        style={({ pressed }) => [
-          styles.pressableFill,
-          pressed && !blocked && styles.facePressed,
-          blocked && styles.faceDisabled,
-        ]}
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={[styles.pressableFill, blocked && styles.faceDisabled]}
       >
-        <View style={styles.face}>
+        <Animated.View style={[styles.face, { transform: [{ scale }] }]}>
           {loading ? (
             <ActivityIndicator color={colors.textMuted} size="small" />
           ) : (
@@ -87,7 +117,7 @@ function ActionSurfaceTile({
           <AppText numberOfLines={1} style={styles.label}>
             {label}
           </AppText>
-        </View>
+        </Animated.View>
       </Pressable>
     </View>
   );

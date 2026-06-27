@@ -1,5 +1,6 @@
 import { isValidEmailFormat } from '../../../../utils/email';
 import { normalizePhoneForDatabase } from '../../../../utils/phone';
+import { isCreateFlowPricingSelectionValid } from './createFlowPricing';
 
 /** Customer step: name, complete US phone (10 NANP digits); email optional but must be valid when present. */
 export function isCustomerStepComplete(customer) {
@@ -35,6 +36,9 @@ export function isVehicleStepComplete(vehicle) {
  * @param {{
  *   selectedServiceId: string | null;
  *   selectedPricingId: string | null;
+ *   pricingOptions?: Array<{ id: string }>;
+ *   priceOptionsLoading?: boolean;
+ *   priceOptionsEnabled?: boolean;
  *   selectedDateKey: string | null;
  *   selectedTime: string | null;
  *   customer: object;
@@ -45,7 +49,12 @@ export function isVehicleStepComplete(vehicle) {
 export function isReviewStepComplete(p) {
   return Boolean(
     p.selectedServiceId &&
-    p.selectedPricingId &&
+    isCreateFlowPricingSelectionValid({
+      selectedPricingId: p.selectedPricingId,
+      pricingOptions: p.pricingOptions,
+      priceOptionsLoading: p.priceOptionsLoading,
+      priceOptionsEnabled: p.priceOptionsEnabled,
+    }) &&
     p.selectedDateKey &&
     p.selectedTime &&
     isCustomerStepComplete(p.customer) &&

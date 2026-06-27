@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText } from '../../../../components/ui';
+import { AppText, WizardProgressBar } from '../../../../components/ui';
 import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { useTheme } from '../../../../theme';
 
@@ -21,29 +21,9 @@ export function CreateQuoteWizardHeader({ stepIndex, stepCount, title, subtitle 
       StyleSheet.create({
         wrap: {
           paddingBottom: 16,
+        },
+        copy: {
           paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: 8,
-        },
-        track: {
-          backgroundColor: colors.border,
-          borderRadius: 2,
-          height: 4,
-          marginBottom: 6,
-          overflow: 'hidden',
-          width: '100%',
-        },
-        fill: {
-          backgroundColor: colors.accent,
-          borderRadius: 2,
-          height: '100%',
-        },
-        eyebrow: {
-          color: colors.textMuted,
-          fontSize: 11,
-          fontWeight: '700',
-          letterSpacing: 1.2,
-          marginBottom: 22,
-          textTransform: 'uppercase',
         },
         title: {
           color: colors.text,
@@ -62,19 +42,13 @@ export function CreateQuoteWizardHeader({ stepIndex, stepCount, title, subtitle 
     [colors],
   );
 
-  const label = `Step ${stepIndex + 1} of ${stepCount}`;
-
   return (
     <View style={styles.wrap}>
-      <View
-        accessibilityLabel={`Quote wizard progress ${Math.round(progress)} percent`}
-        style={styles.track}
-      >
-        <View style={[styles.fill, { width: `${progress}%` }]} />
+      <WizardProgressBar bottomSpacing={22} progressPercent={progress} />
+      <View style={styles.copy}>
+        <AppText style={styles.title}>{title}</AppText>
+        <AppText style={styles.subtitle}>{subtitle}</AppText>
       </View>
-      <AppText style={styles.eyebrow}>{label}</AppText>
-      <AppText style={styles.title}>{title}</AppText>
-      <AppText style={styles.subtitle}>{subtitle}</AppText>
     </View>
   );
 }

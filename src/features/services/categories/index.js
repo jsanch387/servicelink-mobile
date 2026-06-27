@@ -18,6 +18,7 @@ export { ServiceCategoryPickerField } from './components/ServiceCategoryPickerFi
 export { ServiceCategorySectionContent } from './components/ServiceCategorySectionContent';
 export { ServiceCategorySectionHeader } from './components/ServiceCategorySectionHeader';
 export { ServiceCategoriesHowItWorksSheet } from './components/ServiceCategoriesHowItWorksSheet';
+export { SERVICE_CATEGORIES_HOW_IT_WORKS_TAB_LINK_LABEL } from './constants/serviceCategoriesHowItWorksCopy';
 
 export { useServiceCategoryTabs } from './hooks/useServiceCategoryTabs';
 

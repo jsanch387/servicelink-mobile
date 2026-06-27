@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   AppText,
-  DetailsSectionCard,
+  SurfaceCard,
   SurfaceEmailField,
   SurfacePhoneField,
   SurfaceTextField,
@@ -33,6 +33,10 @@ export function CustomerStep({ customer, onChangeCustomer }) {
         fieldStack: {
           gap: 18,
         },
+        card: {
+          paddingHorizontal: 16,
+          paddingVertical: 16,
+        },
         footnote: {
           color: colors.textMuted,
           fontSize: 13,
@@ -44,7 +48,7 @@ export function CustomerStep({ customer, onChangeCustomer }) {
   );
 
   return (
-    <DetailsSectionCard bodyPadding="roomy" title="Customer information">
+    <SurfaceCard padding="none" style={styles.card}>
       <View style={styles.fieldStack}>
         <SurfaceTextField
           autoCapitalize="words"
@@ -74,11 +78,8 @@ export function CustomerStep({ customer, onChangeCustomer }) {
           value={customer.email}
           onChangeText={(t) => onChangeCustomer({ ...customer, email: t })}
         />
-        <AppText style={styles.footnote}>
-          If you don&apos;t add an email, your customer won&apos;t receive an email confirmation for
-          this appointment.
-        </AppText>
+        <AppText style={styles.footnote}>No email, no confirmation will be sent.</AppText>
       </View>
-    </DetailsSectionCard>
+    </SurfaceCard>
   );
 }

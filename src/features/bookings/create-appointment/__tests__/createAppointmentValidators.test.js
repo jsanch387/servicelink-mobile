@@ -56,6 +56,7 @@ describe('createAppointmentValidators', () => {
     const base = {
       selectedServiceId: 's1',
       selectedPricingId: 'p1',
+      pricingOptions: [{ id: 'p1' }],
       selectedDateKey: '2026-04-29',
       selectedTime: '9:00 AM',
       customer: { fullName: 'A', email: '', phone: '(555) 234-5678' },
@@ -64,5 +65,6 @@ describe('createAppointmentValidators', () => {
     };
     expect(isReviewStepComplete(base)).toBe(true);
     expect(isReviewStepComplete({ ...base, selectedTime: null })).toBe(false);
+    expect(isReviewStepComplete({ ...base, selectedPricingId: 'wrong' })).toBe(false);
   });
 });
