@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { checkAndApplyEasUpdate } from '../utils/checkAndApplyEasUpdate';
 
-/** Fetches and applies EAS Update bundles on launch and when returning to foreground. */
+/** Downloads EAS Update bundles on launch; updates apply on the next cold start. */
 export function EasOverTheAirUpdateBootstrap() {
   useEffect(() => {
     void checkAndApplyEasUpdate();

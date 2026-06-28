@@ -48,14 +48,16 @@ describe('checkAndApplyEasUpdate', () => {
     expect(Updates.fetchUpdateAsync).not.toHaveBeenCalled();
   });
 
-  it('fetches and reloads when an update is available', async () => {
+  it('downloads without reloading so the update applies on next cold start', async () => {
     Updates.checkForUpdateAsync.mockResolvedValue({ isAvailable: true });
     Updates.fetchUpdateAsync.mockResolvedValue(undefined);
-    Updates.reloadAsync.mockResolvedValue(undefined);
 
-    await expect(checkAndApplyEasUpdate()).resolves.toEqual({ applied: true });
+    await expect(checkAndApplyEasUpdate()).resolves.toEqual({
+      applied: false,
+      reason: 'downloaded',
+    });
     expect(Updates.fetchUpdateAsync).toHaveBeenCalledTimes(1);
-    expect(Updates.reloadAsync).toHaveBeenCalledTimes(1);
+    expect(Updates.reloadAsync).not.toHaveBeenCalled();
   });
 
   it('returns error when the update check fails', async () => {

@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAppReviewPrompt } from '../../../appReview';
 import { useAuth } from '../../../auth';
 import { fetchBusinessProfileForUser } from '../../../home/api/homeDashboard';
 import { loadReviewEligibilityContext } from '../../../reviews/api/loadReviewEligibilityContext';
@@ -75,7 +74,6 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
   const accessToken = session?.access_token ?? null;
   const userId = user?.id ?? null;
   const queryClient = useQueryClient();
-  const { maybeRequestAppReview } = useAppReviewPrompt();
 
   const [sheetVisible, setSheetVisible] = useState(false);
   const [preview, setPreview] = useState(
@@ -220,9 +218,14 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
         await invalidateBookingCachesAfterMutation(queryClient, bookingId);
       }
       closeSheet();
-      // Happy moment: a completed visit. Fire-and-forget; the hook delays internally
-      // so the sheet finishes dismissing, and OS quotas cap how often it shows.
-      void maybeRequestAppReview({ businessId: resolvedBusinessId ?? normalizedBusinessId });
+      // Dynamic import keeps expo-store-review off the HomeScreen startup path (1.0.6 OTA safety).
+      void import('../../../appReview/utils/requestAppReviewAfterMarkComplete')
+        .then(({ requestAppReviewAfterMarkComplete }) =>
+          requestAppReviewAfterMarkComplete({
+            businessId: resolvedBusinessId ?? normalizedBusinessId,
+          }),
+        )
+        .catch(() => {});
     },
   });
 

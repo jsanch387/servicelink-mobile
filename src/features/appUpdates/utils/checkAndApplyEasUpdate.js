@@ -1,8 +1,9 @@
 import * as Updates from 'expo-updates';
 
 /**
- * Checks EAS Update for a newer JS bundle and reloads when one is available.
- * No-op in dev clients and when expo-updates is disabled (e.g. Expo Go).
+ * Downloads a newer EAS Update JS bundle when available.
+ * Applies on the next cold start (native EXUpdatesCheckOnLaunch) to avoid
+ * reload crashes/flashes mid-session on legacy store binaries.
  */
 export async function checkAndApplyEasUpdate() {
   if (__DEV__ || !Updates.isEnabled) {
@@ -16,8 +17,7 @@ export async function checkAndApplyEasUpdate() {
     }
 
     await Updates.fetchUpdateAsync();
-    await Updates.reloadAsync();
-    return { applied: true };
+    return { applied: false, reason: 'downloaded' };
   } catch {
     return { applied: false, reason: 'error' };
   }
