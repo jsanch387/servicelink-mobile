@@ -25,6 +25,12 @@ import { useTheme } from '../../../theme';
 import { serviceCardTitleStyle } from '../../../utils/serviceCardTypography';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import {
+  getMinNativeAppVersion,
+  isNativeStoreUpdateRequired,
+  openNativeStoreUpdate,
+  StoreUpdateBanner,
+} from '../../appUpdates';
 import { useNotificationUnreadCount } from '../../notifications/hooks/useNotificationUnreadCount';
 import { useBookingsFreeTierUsage } from '../../bookings/hooks/useBookingsFreeTierUsage';
 import { bookingsFreeTierCountQueryKey } from '../../bookings/queryKeys';
@@ -116,6 +122,9 @@ export function HomeScreen() {
     [dashboard.business, freeTierUsage.used],
   );
 
+  const storeUpdateMinimumVersion = getMinNativeAppVersion();
+  const showStoreUpdateBanner = Boolean(storeUpdateMinimumVersion) && isNativeStoreUpdateRequired();
+
   useFocusEffect(
     useCallback(() => {
       const bid = dashboard.business?.id;
@@ -171,6 +180,9 @@ export function HomeScreen() {
           marginBottom: 16,
           opacity: 0.45,
           width: '100%',
+        },
+        storeUpdateWrap: {
+          marginBottom: 12,
         },
         profileName: {
           flex: 1,
@@ -320,6 +332,14 @@ export function HomeScreen() {
           </Pressable>
         </View>
         <View style={styles.headerDivider} />
+        {showStoreUpdateBanner ? (
+          <View style={styles.storeUpdateWrap}>
+            <StoreUpdateBanner
+              minimumVersion={storeUpdateMinimumVersion}
+              onPressUpdate={openNativeStoreUpdate}
+            />
+          </View>
+        ) : null}
         {showFreeBookingsUsage ? (
           <HomeFreeBookingsUsageCard
             limit={FREE_TIER_BOOKINGS_LIMIT}

@@ -88,6 +88,16 @@ module.exports = ({ config }) => {
     (fs.existsSync(googleServicesLocal) && './google-services.json') ||
     null;
 
+  const minNativeAppVersion =
+    String(process.env.EXPO_PUBLIC_MIN_NATIVE_APP_VERSION ?? '').trim() ||
+    String(config?.version ?? '').trim();
+  const iosAppStoreUrl =
+    String(process.env.EXPO_PUBLIC_IOS_APP_STORE_URL ?? '').trim() ||
+    'https://apps.apple.com/app/id6768877250';
+  const androidPlayStoreUrl =
+    String(process.env.EXPO_PUBLIC_ANDROID_PLAY_STORE_URL ?? '').trim() ||
+    'https://play.google.com/store/apps/details?id=com.myservicelink.app';
+
   return {
     ...config,
     android: {
@@ -97,6 +107,9 @@ module.exports = ({ config }) => {
     extra: {
       ...(config.extra ?? {}),
       webAppUrl: resolvedWebAppUrl,
+      ...(minNativeAppVersion ? { minNativeAppVersion } : {}),
+      iosAppStoreUrl,
+      androidPlayStoreUrl,
       ...(resolvedEasProjectId
         ? { eas: { ...(config.extra?.eas ?? {}), projectId: resolvedEasProjectId } }
         : {}),
