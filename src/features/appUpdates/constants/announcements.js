@@ -1,9 +1,12 @@
 import { ROUTES } from '../../../routes/routes';
-import { REVIEW_STAR_COLOR } from '../../reviews/constants';
+import { BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS } from '../../bookingLink/constants/bookingLinkRouteParams';
 
 /**
- * In-app feature announcements — one entry per shipped feature. Each `id` is shown at most once.
- * Add new entries to the end when you OTA; order controls the queue.
+ * In-app feature announcements — one modal at a time. Each `id` is shown at most once per device.
+ *
+ * When you OTA a new announcement, **remove the previous entry** from this array. Retired modals
+ * are not kept in the queue — users who never saw an old one simply won't see it; everyone else
+ * gets only the latest feature. Replace the array contents (or swap the single entry), don't append.
  *
  * @typedef {{
  *   id: string;
@@ -21,21 +24,21 @@ import { REVIEW_STAR_COLOR } from '../../reviews/constants';
 /** @type {WhatsNewAnnouncement[]} */
 export const APP_UPDATE_ANNOUNCEMENTS = [
   {
-    id: 'reviews-inbox-v1',
+    id: 'booking-mobile-shop-v1',
     badge: "What's new",
-    icon: 'star',
-    iconColor: REVIEW_STAR_COLOR,
-    title: 'Reviews',
+    icon: 'storefront-outline',
+    title: 'Mobile or shop',
     bullets: [
-      'See new reviews from your booking link',
-      'Read what customers said in one place',
-      'Reply publicly so future clients know what to expect',
+      'Choose mobile, shop, or both on your booking link',
+      'Add your shop address when clients come to you',
+      'Set where you work so customers know how to book',
     ],
     primaryLabel: 'Take a look',
     secondaryLabel: 'Got it',
     cta: {
       tab: ROUTES.MORE,
-      screen: ROUTES.REVIEWS,
+      screen: ROUTES.BOOKING_LINK,
+      params: BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS,
     },
   },
 ];

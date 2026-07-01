@@ -41,7 +41,6 @@ export function CreateAppointmentFlow() {
           topSpacing={12}
         />
       ) : null}
-      1009{' '}
       <ScrollView
         contentContainerStyle={[
           flow.styles.content,

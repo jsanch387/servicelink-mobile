@@ -1,6 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { normalizePhoneForDatabase } from '../../../utils/phone';
-import { buildServiceArea } from '../utils/serviceArea';
+import { buildServiceArea, normalizeBusinessZip } from '../utils/serviceArea';
 import {
   BUSINESS_IMAGES_BUCKET,
   isBusinessPortfolioStoragePath,
@@ -23,8 +23,14 @@ const MEDIA_BUCKET = BUSINESS_IMAGES_BUCKET;
  * @param {string} input.businessType
  * @param {string} input.city
  * @param {string} input.state
+ * @param {string} input.zip
  * @param {string} input.bio
  * @param {string} input.phoneInput
+ * @param {string} input.service_location_mode
+ * @param {string | null} input.shop_street_address
+ * @param {string | null} input.shop_unit
+ * @param {string[]} input.public_booking_locales
+ * @param {string} input.public_booking_default_locale
  * @param {string | null | undefined} [input.logoImageUri]
  * @param {string | null | undefined} [input.coverImageUri]
  * @param {string | null | undefined} [input.previousLogoPath]
@@ -40,8 +46,14 @@ export async function saveOwnerBookingLink(input) {
     businessType,
     city,
     state,
+    zip,
     bio,
     phoneInput,
+    service_location_mode,
+    shop_street_address,
+    shop_unit,
+    public_booking_locales,
+    public_booking_default_locale,
     logoImageUri,
     coverImageUri,
     previousLogoPath,
@@ -78,6 +90,7 @@ export async function saveOwnerBookingLink(input) {
   }
 
   const serviceArea = buildServiceArea(city, state);
+  const businessZip = normalizeBusinessZip(zip) || null;
   const phoneDb = normalizePhoneForDatabase(phoneInput);
   const bioText = String(bio ?? '').trim();
 
@@ -129,8 +142,15 @@ export async function saveOwnerBookingLink(input) {
     business_name: name,
     business_type: type,
     service_area: serviceArea,
+    business_zip: businessZip,
     bio: bioText || null,
     phone_number_call: phoneDb,
+    service_location_mode,
+    shop_street_address,
+    shop_unit,
+    public_booking_locales,
+    public_booking_default_locale,
+    updated_at: new Date().toISOString(),
     ...(logoResult ? { logo_path: logoResult.storagePath } : {}),
     ...(bannerResult ? { banner_path: bannerResult.storagePath } : {}),
   };

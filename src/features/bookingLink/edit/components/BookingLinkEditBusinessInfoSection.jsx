@@ -3,6 +3,7 @@ import { AppText, SelectField, SurfaceCard, SurfaceTextField } from '../../../..
 
 export function BookingLinkEditBusinessInfoSection({
   styles,
+  rootStyle,
   nameInput,
   onNameInputChange,
   businessTypeOptions,
@@ -12,11 +13,13 @@ export function BookingLinkEditBusinessInfoSection({
   onCityInputChange,
   stateInput,
   onStateInputChange,
+  zipInput,
+  onZipInputChange,
   bioInput,
   onBioInputChange,
 }) {
   return (
-    <View style={styles.infoSection}>
+    <View style={[styles.infoSection, rootStyle]}>
       <AppText style={styles.sectionTitle}>Business Information</AppText>
       <SurfaceCard style={styles.editSectionCard} padding="md">
         <SurfaceTextField
@@ -39,30 +42,43 @@ export function BookingLinkEditBusinessInfoSection({
 
         <SurfaceTextField
           containerStyle={styles.infoField}
-          label="City (Optional)"
+          label="City *"
           value={cityInput}
           onChangeText={onCityInputChange}
         />
 
-        <SurfaceTextField
-          containerStyle={styles.infoField}
-          label="State (Optional)"
-          autoCapitalize="characters"
-          maxLength={2}
-          value={stateInput}
-          onChangeText={onStateInputChange}
-        />
+        <View style={styles.locationFieldsRow}>
+          <SurfaceTextField
+            autoCapitalize="characters"
+            containerStyle={[styles.infoField, styles.locationFieldState]}
+            label="State *"
+            maxLength={2}
+            value={stateInput}
+            onChangeText={onStateInputChange}
+          />
 
+          <SurfaceTextField
+            containerStyle={[styles.infoField, styles.locationFieldZip]}
+            keyboardType="number-pad"
+            label="ZIP *"
+            maxLength={5}
+            value={zipInput}
+            onChangeText={onZipInputChange}
+          />
+        </View>
+      </SurfaceCard>
+
+      <View style={styles.bioSection}>
+        <AppText style={styles.sectionTitle}>Business Bio (Optional)</AppText>
         <SurfaceTextField
-          containerStyle={[styles.infoField, styles.infoFieldLast]}
-          label="Business Bio (Optional)"
+          containerStyle={styles.bioFieldWrap}
           multiline
           style={styles.bioInput}
           textAlignVertical="top"
           value={bioInput}
           onChangeText={onBioInputChange}
         />
-      </SurfaceCard>
+      </View>
     </View>
   );
 }
