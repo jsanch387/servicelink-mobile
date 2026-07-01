@@ -9,6 +9,11 @@ export const CREATE_APPOINTMENT_STEP_META = [
     subtitle: 'Pick when this appointment happens.',
   },
   { key: 'customer', title: 'Customer information' },
+  {
+    key: 'location',
+    title: 'Mobile or shop',
+    subtitle: 'Choose where this appointment happens.',
+  },
   { key: 'address', title: 'Service address' },
   { key: 'vehicle', title: 'Vehicle' },
   {
@@ -25,9 +30,10 @@ export const CREATE_APPOINTMENT_STEP = Object.freeze({
   ADDONS: 2,
   SCHEDULE: 3,
   CUSTOMER: 4,
-  ADDRESS: 5,
-  VEHICLE: 6,
-  REVIEW: 7,
+  LOCATION: 5,
+  ADDRESS: 6,
+  VEHICLE: 7,
+  REVIEW: 8,
 });
 
 export const CREATE_APPOINTMENT_STEP_COUNT = CREATE_APPOINTMENT_STEP_META.length;

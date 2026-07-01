@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { SurfaceCard, SurfaceTextField } from '../../../../components/ui';
+import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
+import { useTheme } from '../../../../theme';
+import { ChoiceRow } from '../components/ChoiceRow';
+import { CREATE_APPOINTMENT_LOCATION_OPTIONS } from '../utils/createAppointmentServiceLocation';
 
 const FIELD_SHELL = { marginBottom: 0 };
 
@@ -88,5 +91,47 @@ export function AddressStep({ address, onChangeAddress }) {
         </View>
       </View>
     </SurfaceCard>
+  );
+}
+
+export function LocationStep({
+  appointmentLocationType,
+  onSelectLocationType,
+  shopAddressMissing,
+}) {
+  const { colors } = useTheme();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        shopMissing: {
+          color: colors.textMuted,
+          fontSize: 14,
+          fontWeight: '500',
+          lineHeight: 20,
+          marginBottom: 12,
+        },
+      }),
+    [colors],
+  );
+
+  return (
+    <View>
+      {shopAddressMissing ? (
+        <AppText style={styles.shopMissing}>
+          Add your shop address in Booking Link → Edit profile → Booking before scheduling shop
+          appointments.
+        </AppText>
+      ) : null}
+      {CREATE_APPOINTMENT_LOCATION_OPTIONS.map((option) => (
+        <ChoiceRow
+          key={option.key}
+          selected={appointmentLocationType === option.key}
+          subtitle={option.subtitle}
+          title={option.title}
+          onPress={() => onSelectLocationType(option.key)}
+        />
+      ))}
+    </View>
   );
 }

@@ -1,4 +1,5 @@
 import { canContinueCreateAppointmentStep } from '../utils/createFlowContinueGate';
+import { CREATE_APPOINTMENT_STEP } from '../constants';
 
 const reviewReady = {
   selectedServiceId: 's1',
@@ -7,6 +8,7 @@ const reviewReady = {
   selectedDateKey: '2026-06-01',
   selectedTime: '9:00 AM',
   customer: { fullName: 'A B', email: 'a@b.co', phone: '(555) 234-5678' },
+  appointmentLocationType: 'mobile',
   address: { street: '1 St', city: 'X', state: 'TX', zip: '11111' },
   vehicle: { year: '2020', make: 'Y', model: 'Z' },
 };
@@ -198,11 +200,11 @@ describe('canContinueCreateAppointmentStep', () => {
     ).toBe(true);
   });
 
-  it('step 7 uses isReviewStepComplete', () => {
+  it('step 8 uses isReviewStepComplete', () => {
     expect(
       canContinueCreateAppointmentStep({
         appointmentConfirmed: false,
-        step: 7,
+        step: CREATE_APPOINTMENT_STEP.REVIEW,
         ...reviewReady,
         acceptBookings: true,
         scheduleLoading: false,

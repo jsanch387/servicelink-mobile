@@ -1,50 +1,179 @@
-# Owner manual booking — server API (mobile)
+# Contract: Mobile — Owner creates availability booking (manual)
 
-When a **signed-in business owner** completes **Create appointment** from the app (home FAB → wizard → Confirm), the client **must not** insert rows directly into Supabase. Instead it calls the Next.js route that runs the **same pipeline** as the web dashboard owner flow (`/[slug]/book?for=owner`).
+Use this when the **signed-in business owner** books an appointment **on behalf of a customer** from the native app. The server runs the **same** handler as the web dashboard flow (`/[slug]/book?for=owner`): it inserts the booking, payment summary row, owner notification + Expo push, and (when present) **sends the customer confirmation email**.
 
-That server path creates the `bookings` row, `booking_payments` for the no-checkout path, owner notifications / Expo push, enforces free-tier caps and time-off, and sends the **customer confirmation email** when `customer.email` is non-empty.
+**Do not** insert rows directly into Supabase from the app for this flow — you would skip email, `booking_payments`, free-tier enforcement, time-off checks, and owner notifications.
 
-## Endpoint
-
-| Item     | Value                                                                                                          |
-| -------- | -------------------------------------------------------------------------------------------------------------- |
-| Method   | `POST`                                                                                                         |
-| Path     | `/api/public/bookings`                                                                                         |
-| Full URL | `{webAppOrigin}/api/public/bookings` — see `resolveStripeMobileCheckoutOrigin()` and `EXPO_PUBLIC_WEB_APP_URL` |
+**Server implementation:** `POST /api/public/bookings` in `src/app/api/public/bookings/route.ts` (web repo)  
+**Request type (reference):** `CreateBookingRequest` in `src/features/availability/booking/types.ts`  
+**Customer validation:** `bookingCustomerPayloadErrorMessage` / `normalizeBookingCustomerInput` in `src/features/availability/booking/utils/bookingCustomerFieldLimits.ts`
 
 ## Mobile implementation map
 
-| Concern                                    | Location                                                                                     |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| HTTP client + error mapping                | `create-appointment/api/postOwnerManualPublicBooking.js`                                     |
-| Wizard state → JSON body                   | `create-appointment/utils/buildOwnerBookingPayload.js` (`buildOwnerManualPublicBookingBody`) |
-| 12h slot label → API `startTime` (`HH:mm`) | `create-appointment/utils/ownerBookingFieldFormats.js` (`startTime12hToApiStartTime`)        |
-| Phone digits for `customer.phone`          | `ownerBookingFieldFormats.js` (`bookingCustomerPhoneDigits`)                                 |
-| Confirm mutation + cache invalidation      | `create-appointment/hooks/useCreateAppointmentController.js`                                 |
-| Supabase JWT on the wire                   | `CreateAppointmentFlow.jsx` passes `session.access_token` into the controller                |
+| Concern                                | Location (this repo)                                                                                      |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| HTTP client + error mapping            | `create-appointment/api/postOwnerManualPublicBooking.js`                                                  |
+| Wizard state → JSON body               | `create-appointment/utils/buildOwnerBookingPayload.js`                                                    |
+| `serviceLocationType` + shop/mobile UX | `create-appointment/utils/createAppointmentServiceLocation.js`, `hooks/useCreateAppointmentController.js` |
+| 12h slot → API `startTime`             | `create-appointment/utils/ownerBookingFieldFormats.js`                                                    |
+| Bearer JWT                             | `CreateAppointmentFlow.jsx` → `session.access_token`                                                      |
 
-## Request contract (summary)
+**Mobile sends:** top-level `serviceLocationType` (`"mobile"` \| `"shop"`). Does **not** send `customerServiceLocation` (web alias).
 
-- **`ownerManualBooking`:** always `true` for this flow.
-- **`Authorization`:** `Bearer <Supabase session access_token>` (required).
-- **Top-level:** `businessSlug`, `businessId`, `serviceName` (base name only), optional `serviceId`, optional `servicePriceOptionLabel` when the tier is not `Standard`, `servicePriceCents`, `selectedAddOns`, `durationMinutes`, `scheduledDate` (`YYYY-MM-DD`), `startTime` (24h `HH:mm`), `paymentMethodSelected: "none"`, `customer` (all string fields per server validation).
-- **`customer`:** mirrors `CreateBookingRequest` / `bookingCustomerFieldLimits` on the server; empty `email` means **no** confirmation email.
+---
 
-The authoritative contract lives with the web app (`src/app/api/public/bookings/route.ts`, `CreateBookingRequest` in `src/features/availability/booking/types.ts`). This document describes how **mobile** satisfies that contract.
+## Endpoint
 
-## Success and caching
+|                     |                                           |
+| ------------------- | ----------------------------------------- |
+| **Method**          | `POST`                                    |
+| **Path**            | `/api/public/bookings`                    |
+| **Example (local)** | `https://<your-host>/api/public/bookings` |
 
-- **HTTP 201** with `{ success: true, data: { id } }` — response may include `X-Request-ID` for support.
-- On success, `useCreateAppointmentController` calls `invalidateBookingCachesAfterMutation` (bookings queries + home + new booking details) and invalidates the customers list query so CRM cards stay in sync.
+Use `EXPO_PUBLIC_WEB_APP_URL` / `resolveStripeMobileCheckoutOrigin()` in release builds (HTTPS required in production).
 
-## Errors
+---
 
-`postOwnerManualPublicBooking` maps status codes to short user-facing messages (`mapOwnerManualBookingHttpError`). The server `error` string is preferred when present (`400`, `403`, etc.).
+## Authentication (required for owner flow)
 
-## Production HTTPS
+| Header          | Value                                             |
+| --------------- | ------------------------------------------------- |
+| `Authorization` | `Bearer <Supabase session access_token>`          |
+| `Content-Type`  | `application/json`                                |
+| `X-Request-ID`  | Optional; mobile sends a UUID for support tracing |
 
-Non-dev builds require `EXPO_PUBLIC_WEB_APP_URL` to use `https://` (`productionWebApiHttpsGuard` in `src/lib/productionWebApiHttpsGuard.js`). This guard is shared with other mobile → Next.js clients (e.g. quotes).
+When `ownerManualBooking` is `true`, the server requires auth. Authenticated user must own `businessId` → mismatch **403**.
 
-## Removed client-only path
+---
 
-Previous versions upserted `customers` and inserted `bookings` via Supabase from `insertOwnerBooking` / `upsertCustomerForBooking`. That skipped server-side email and policy checks and has been **removed** in favor of this API.
+## Request body (JSON)
+
+Set **`ownerManualBooking`** to **`true`**.
+
+### Top-level fields
+
+| Field                     | Type    | Required | Notes                                                                             |
+| ------------------------- | ------- | -------- | --------------------------------------------------------------------------------- |
+| `businessSlug`            | string  | Yes      | Must match business public slug.                                                  |
+| `businessId`              | string  | Yes      | UUID `business_profiles.id`; must match slug + owner.                             |
+| `serviceName`             | string  | Yes      | Base service name.                                                                |
+| `serviceId`               | string  | No       | Optional service id.                                                              |
+| `servicePriceOptionLabel` | string  | No       | Non-`Standard` tier label.                                                        |
+| `servicePriceCents`       | number  | No       | Omit or `0` when free.                                                            |
+| `selectedAddOns`          | array   | No       | `{ id, name, priceCents, durationMinutes? }`.                                     |
+| `durationMinutes`         | number  | Yes      | Total length (service + add-ons). Integer ≥ 1.                                    |
+| `scheduledDate`           | string  | Yes      | `YYYY-MM-DD`.                                                                     |
+| `startTime`               | string  | Yes      | 24h `H:mm` or `HH:mm`.                                                            |
+| `customer`                | object  | Yes      | See below.                                                                        |
+| `paymentMethodSelected`   | string  | No       | Send **`"none"`** for owner manual booking.                                       |
+| `ownerManualBooking`      | boolean | Yes      | Must be **`true`**.                                                               |
+| `serviceLocationType`     | string  | Yes\*    | **`"mobile"`** or **`"shop"`**. New mobile always sends this.                     |
+| `customerServiceLocation` | string  | No       | Web alias — **mobile does not send**; `serviceLocationType` wins if both present. |
+
+\*Older mobile builds may omit → server stores `NULL` on `bookings.service_location_type`.
+
+### `serviceLocationType` rules
+
+| Value      | Meaning                                                                                                                              |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `"mobile"` | Owner travels to customer. `customer.*` address = service address (entered in app).                                                  |
+| `"shop"`   | Customer visits shop. `customer.*` address = business shop address (from `business_profiles`; app pre-fills, no address step in UI). |
+
+**Server validation:**
+
+- Must be `"mobile"` or `"shop"` when sent.
+- `"shop"` rejected if `service_location_mode` is `mobile_only`.
+- `"mobile"` rejected if `service_location_mode` is `shop_only`.
+- For `both`, either allowed.
+
+**Persistence:** `bookings.service_location_type` (`text`, nullable).
+
+### Customer object
+
+All keys are **strings** in JSON.
+
+| Field                                        | Required    | Notes                            |
+| -------------------------------------------- | ----------- | -------------------------------- |
+| `fullName`                                   | Yes         | Max 120 chars.                   |
+| `email`                                      | No          | Empty → no confirmation email.   |
+| `phone`                                      | Yes         | 10-digit NANP in mobile payload. |
+| `streetAddress`                              | Yes         | Max 200 chars.                   |
+| `unitApt`                                    | No          | Max 50 chars.                    |
+| `city`                                       | Yes         | Max 100 chars.                   |
+| `state`                                      | Yes         | 2-letter uppercase.              |
+| `zip`                                        | Yes         | US 5 or 9 digits (server).       |
+| `vehicleYear`, `vehicleMake`, `vehicleModel` | Conditional | All three if any set.            |
+| `notes`                                      | No          |                                  |
+
+### Example (minimal owner booking)
+
+```json
+{
+  "businessSlug": "acme-detail",
+  "businessId": "uuid-of-business_profiles-row",
+  "serviceName": "Full detail",
+  "servicePriceCents": 15000,
+  "durationMinutes": 120,
+  "scheduledDate": "2026-05-20",
+  "startTime": "10:00",
+  "paymentMethodSelected": "none",
+  "ownerManualBooking": true,
+  "serviceLocationType": "mobile",
+  "customer": {
+    "fullName": "Jordan Lee",
+    "email": "jordan@example.com",
+    "phone": "5551234567",
+    "streetAddress": "123 Main St",
+    "unitApt": "",
+    "city": "Austin",
+    "state": "TX",
+    "zip": "78701",
+    "vehicleYear": "",
+    "vehicleMake": "",
+    "vehicleModel": "",
+    "notes": ""
+  }
+}
+```
+
+---
+
+## Success response
+
+**HTTP:** `201 Created` — `{ "success": true, "data": { "id": "<uuid>" } }`  
+Header **`X-Request-ID`** for support.
+
+**Server side effects:** `bookings` (+ `service_location_type`), `booking_payments`, owner notification/push, customer email if `customer.email` set.
+
+---
+
+## Error responses
+
+`{ "success": false, "error": "<message>" }`
+
+| HTTP  | Typical cause                                                |
+| ----- | ------------------------------------------------------------ |
+| `400` | Invalid fields, slug/id mismatch, bad `serviceLocationType`. |
+| `401` | Missing/invalid Bearer.                                      |
+| `403` | Not business owner or free-tier cap.                         |
+| `404` | Unknown slug / not public.                                   |
+| `409` | Time-off conflict.                                           |
+| `500` | Server failure.                                              |
+
+Mobile maps these in `mapOwnerManualBookingHttpError` (`postOwnerManualPublicBooking.js`).
+
+---
+
+## Public customer self-serve
+
+Same path without `ownerManualBooking: true` and without Bearer — **not** this contract. Owner mobile **always** sends `ownerManualBooking: true` + Bearer.
+
+---
+
+## Related server code (web repo)
+
+| Piece                    | Location                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| Route handler            | `src/app/api/public/bookings/route.ts`                                         |
+| Service location persist | `src/features/availability/booking/utils/resolveBookingServiceLocationType.ts` |
+| Booking insert           | `src/features/availability/services/bookingService.ts` → `createBooking`       |

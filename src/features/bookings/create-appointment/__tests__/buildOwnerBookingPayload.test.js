@@ -82,6 +82,7 @@ describe('buildOwnerBookingPayload', () => {
       expect(b.serviceName).toBe('Detail');
       expect(b.ownerManualBooking).toBe(true);
       expect(b.paymentMethodSelected).toBe('none');
+      expect(b.serviceLocationType).toBe('mobile');
       expect(b.startTime).toBe('14:00');
       expect(b.scheduledDate).toBe('2026-05-01');
       expect(b.durationMinutes).toBe(90);
@@ -110,6 +111,23 @@ describe('buildOwnerBookingPayload', () => {
         customer: { fullName: 'Jane D', email: '  ', phone: '(555) 234-5678' },
       });
       expect(b.customer.email).toBe('');
+    });
+
+    it('sends shop serviceLocationType when selected', () => {
+      const b = buildOwnerManualPublicBookingBody({
+        ...base,
+        appointmentLocationType: 'shop',
+      });
+      expect(b.serviceLocationType).toBe('shop');
+    });
+
+    it('does not send web alias customerServiceLocation', () => {
+      const b = buildOwnerManualPublicBookingBody({
+        ...base,
+        appointmentLocationType: 'shop',
+      });
+      expect(b.customerServiceLocation).toBeUndefined();
+      expect(b.serviceLocationType).toBe('shop');
     });
 
     it('sends servicePriceOptionLabel instead of combined service name when tier is not Standard', () => {

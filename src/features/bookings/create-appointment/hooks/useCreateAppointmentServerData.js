@@ -5,10 +5,12 @@ import { getBookingCalendarRange } from '../../../availability/booking';
 import { ownerHasProAccess } from '../../../bookingLink/api/bookingLink';
 import { fetchAccountSettingsBundle } from '../../../more/api/fetchAccountSettings';
 import { fetchActivePriceOptionsForService } from '../api/priceOptions';
+import { fetchBusinessServiceLocation } from '../api/fetchBusinessServiceLocation';
 import { fetchBlockingBookingsInRange } from '../api/schedulingBookings';
 import {
   createAppointmentAvailabilityQueryKey,
   createAppointmentBlockingBookingsQueryKey,
+  createAppointmentBusinessLocationQueryKey,
   createAppointmentPriceOptionsQueryKey,
 } from '../queryKeys';
 
@@ -68,9 +70,23 @@ export function useCreateAppointmentServerData({ businessId, userId, selectedSer
     staleTime: 60 * 1000,
   });
 
+  const businessLocationQ = useQuery({
+    queryKey: createAppointmentBusinessLocationQueryKey(businessId),
+    queryFn: async () => {
+      const { data, error } = await fetchBusinessServiceLocation(businessId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: Boolean(businessId),
+    staleTime: 60 * 1000,
+  });
+
   return {
     ownerHasPro,
     ownerProfileLoading: ownerQ.isPending,
+    businessServiceLocation: businessLocationQ.data ?? null,
+    businessServiceLocationLoading: businessLocationQ.isPending,
+    businessServiceLocationError: businessLocationQ.error?.message ?? null,
     availabilityRow: availabilityQ.data ?? null,
     availabilityLoading: availabilityQ.isPending,
     availabilityError: availabilityQ.error?.message ?? null,
