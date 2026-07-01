@@ -14,7 +14,17 @@ import {
   createEmptyCustomerForm,
   createEmptyVehicleForm,
 } from '../constants';
+import { isAddressStepComplete } from '../utils/createAppointmentValidators';
 import { buildOwnerManualPublicBookingBody } from '../utils/buildOwnerBookingPayload';
+import {
+  CREATE_APPOINTMENT_LOCATION_MOBILE,
+  CREATE_APPOINTMENT_LOCATION_SHOP,
+  addressFormFromBusinessShopLocation,
+  getCreateAppointmentAddressStepCopy,
+  getDefaultAppointmentLocationType,
+  isCreateAppointmentAddressStepSkipped,
+  isCreateAppointmentLocationStepSkipped,
+} from '../utils/createAppointmentServiceLocation';
 import { invalidateBookingCachesAfterMutation } from '../../booking-details/utils/invalidateBookingCachesAfterMutation';
 import { canContinueCreateAppointmentStep } from '../utils/createFlowContinueGate';
 import {
@@ -57,6 +67,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   const [selectedDateKey, setSelectedDateKey] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [customer, setCustomer] = useState(createEmptyCustomerForm);
+  const [appointmentLocationType, setAppointmentLocationType] = useState(null);
   const [address, setAddress] = useState(createEmptyAddressForm);
   const [vehicle, setVehicle] = useState(createEmptyVehicleForm);
   const [notes, setNotes] = useState('');
@@ -199,6 +210,62 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
 
   const { acceptBookings, timeSlots, isDateUnavailable, minDate, maxDate } = bookingCalendar;
 
+  const businessServiceMode = server.businessServiceLocation?.mode ?? null;
+  const locationSkipped = useMemo(
+    () =>
+      !server.businessServiceLocationLoading &&
+      isCreateAppointmentLocationStepSkipped(businessServiceMode),
+    [server.businessServiceLocationLoading, businessServiceMode],
+  );
+
+  const shopAddressForm = useMemo(
+    () => addressFormFromBusinessShopLocation(server.businessServiceLocation ?? {}),
+    [server.businessServiceLocation],
+  );
+
+  const shopAddressMissing = useMemo(
+    () =>
+      appointmentLocationType === CREATE_APPOINTMENT_LOCATION_SHOP &&
+      !isAddressStepComplete(shopAddressForm),
+    [appointmentLocationType, shopAddressForm],
+  );
+
+  const addressSkipped = useMemo(
+    () => isCreateAppointmentAddressStepSkipped(appointmentLocationType),
+    [appointmentLocationType],
+  );
+
+  useEffect(() => {
+    if (server.businessServiceLocationLoading) return;
+    if (!locationSkipped) return;
+    const defaultType = getDefaultAppointmentLocationType(businessServiceMode);
+    if (defaultType) {
+      setAppointmentLocationType(defaultType);
+    }
+  }, [server.businessServiceLocationLoading, locationSkipped, businessServiceMode]);
+
+  useEffect(() => {
+    if (appointmentLocationType !== CREATE_APPOINTMENT_LOCATION_SHOP) return;
+    setAddress(shopAddressForm);
+  }, [appointmentLocationType, shopAddressForm]);
+
+  useEffect(() => {
+    if (step !== CREATE_APPOINTMENT_STEP.ADDRESS || !addressSkipped) return;
+    setStep(CREATE_APPOINTMENT_STEP.VEHICLE);
+  }, [step, addressSkipped]);
+
+  const handleSelectLocationType = useCallback(
+    (type) => {
+      setAppointmentLocationType(type);
+      if (type === CREATE_APPOINTMENT_LOCATION_MOBILE) {
+        setAddress(createEmptyAddressForm());
+        return;
+      }
+      setAddress(addressFormFromBusinessShopLocation(server.businessServiceLocation ?? {}));
+    },
+    [server.businessServiceLocation],
+  );
+
   const createBookingMutation = useMutation({
     mutationFn: async () => {
       const token = String(accessToken ?? '').trim();
@@ -218,6 +285,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         address,
         vehicle,
         notes,
+        appointmentLocationType,
       });
       const res = await postOwnerManualPublicBooking(token, body);
       if (!res.ok) {
@@ -260,9 +328,11 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         step: CREATE_APPOINTMENT_STEP.PRICING,
         addonsSkipped,
         pricingSkipped: true,
+        locationSkipped,
+        addressSkipped,
       }),
     );
-  }, [step, pricingSkipped, addonsSkipped]);
+  }, [step, pricingSkipped, addonsSkipped, locationSkipped, addressSkipped]);
 
   const canContinue = useMemo(
     () =>
@@ -272,6 +342,9 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         selectedServiceId,
         selectedPricingId,
         pricingSkipped,
+        locationSkipped,
+        addressSkipped,
+        businessServiceLocationLoading: server.businessServiceLocationLoading,
         pricingOptions: pricingPayload.options,
         priceOptionsLoading: server.priceOptionsLoading,
         priceOptionsEnabled,
@@ -281,6 +354,8 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         selectedTime,
         timeSlots,
         customer,
+        appointmentLocationType,
+        shopAddressMissing,
         address,
         vehicle,
       }),
@@ -290,6 +365,9 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       selectedServiceId,
       selectedPricingId,
       pricingSkipped,
+      locationSkipped,
+      addressSkipped,
+      server.businessServiceLocationLoading,
       pricingPayload.options,
       server.priceOptionsLoading,
       priceOptionsEnabled,
@@ -299,6 +377,8 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       selectedTime,
       timeSlots,
       customer,
+      appointmentLocationType,
+      shopAddressMissing,
       address,
       vehicle,
     ],
@@ -310,11 +390,27 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         appointmentConfirmed,
         pricingSkipped,
         addonsSkipped,
+        locationSkipped,
+        addressSkipped,
       }) * 100,
-    [appointmentConfirmed, step, pricingSkipped, addonsSkipped],
+    [appointmentConfirmed, step, pricingSkipped, addonsSkipped, locationSkipped, addressSkipped],
   );
 
   const meta = CREATE_APPOINTMENT_STEP_META[step];
+  const addressStepCopy = useMemo(
+    () => getCreateAppointmentAddressStepCopy(appointmentLocationType),
+    [appointmentLocationType],
+  );
+  const mainTitle = useMemo(() => {
+    if (appointmentConfirmed) return '';
+    if (step === CREATE_APPOINTMENT_STEP.ADDRESS) return addressStepCopy.title;
+    return meta?.title ?? '';
+  }, [appointmentConfirmed, step, addressStepCopy.title, meta?.title]);
+  const mainSubtitle = useMemo(() => {
+    if (appointmentConfirmed) return '';
+    if (step === CREATE_APPOINTMENT_STEP.ADDRESS) return addressStepCopy.subtitle;
+    return meta?.subtitle ?? '';
+  }, [appointmentConfirmed, step, addressStepCopy.subtitle, meta?.subtitle]);
 
   const handleBack = useCallback(() => {
     if (appointmentConfirmed) {
@@ -327,12 +423,22 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
           step,
           addonsSkipped,
           pricingSkipped,
+          locationSkipped,
+          addressSkipped,
         }),
       );
       return;
     }
     navigation.goBack();
-  }, [addonsSkipped, appointmentConfirmed, navigation, pricingSkipped, step]);
+  }, [
+    addonsSkipped,
+    addressSkipped,
+    appointmentConfirmed,
+    locationSkipped,
+    navigation,
+    pricingSkipped,
+    step,
+  ]);
 
   const handleContinue = useCallback(() => {
     if (appointmentConfirmed) return;
@@ -346,13 +452,17 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         step,
         addonsSkipped,
         pricingSkipped,
+        locationSkipped,
+        addressSkipped,
       }),
     );
   }, [
     addonsSkipped,
+    addressSkipped,
     appointmentConfirmed,
     canContinue,
     createBookingMutation,
+    locationSkipped,
     pricingSkipped,
     step,
   ]);
@@ -401,6 +511,9 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       onSelectTime: setSelectedTime,
       customer,
       onChangeCustomer: setCustomer,
+      appointmentLocationType,
+      onSelectLocationType: handleSelectLocationType,
+      shopAddressMissing,
       address,
       onChangeAddress: setAddress,
       vehicle,
@@ -435,7 +548,10 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       selectedTime,
       timeSlots,
       customer,
+      appointmentLocationType,
+      handleSelectLocationType,
       address,
+      shopAddressMissing,
       vehicle,
       notes,
       totalDurationMinutes,
@@ -448,8 +564,8 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     progressPercent,
     appointmentConfirmed,
     showMainTitle: createAppointmentStepShowsMainTitle(step) && !appointmentConfirmed,
-    mainTitle: meta?.title ?? '',
-    mainSubtitle: meta?.subtitle ?? '',
+    mainTitle,
+    mainSubtitle,
     stepContentProps,
     footer: {
       appointmentConfirmed,

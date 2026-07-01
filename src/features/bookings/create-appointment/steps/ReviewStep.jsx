@@ -20,6 +20,8 @@ import {
 } from '../../../../utils/phone';
 import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
 import { formatBookingDurationMinutes } from '../utils/createFlowDuration';
+import { formatAppointmentAddressSingleLine } from '../utils/formatAppointmentAddress';
+import { CREATE_APPOINTMENT_LOCATION_SHOP } from '../utils/createAppointmentServiceLocation';
 
 /**
  * Single-line mailing style, e.g. `14301 N IH 35, Pflugerville, TX, 78660`.
@@ -27,14 +29,7 @@ import { formatBookingDurationMinutes } from '../utils/createFlowDuration';
  * @param {{ street?: string; unit?: string; city?: string; state?: string; zip?: string }} address
  */
 function formatFullServiceAddress(address) {
-  const parts = [
-    address.street?.trim(),
-    address.unit?.trim(),
-    address.city?.trim(),
-    address.state?.trim(),
-    address.zip?.trim(),
-  ].filter(Boolean);
-  return parts.length ? parts.join(', ') : '—';
+  return formatAppointmentAddressSingleLine(address);
 }
 
 /**
@@ -47,6 +42,7 @@ function formatFullServiceAddress(address) {
  *   selectedTime: string | null;
  *   customer: { fullName: string; email?: string; phone: string };
  *   address: { street: string; unit: string; city: string; state: string; zip: string };
+ *   appointmentLocationType?: 'mobile' | 'shop' | null;
  *   vehicle: { year: string; make: string; model: string };
  *   notes: string;
  *   totalDurationMinutes: number;
@@ -61,6 +57,7 @@ export function ReviewStep({
   selectedTime,
   customer,
   address,
+  appointmentLocationType,
   vehicle,
   notes,
   totalDurationMinutes,
@@ -90,6 +87,7 @@ export function ReviewStep({
     selectedPricingOption?.priceLabel?.trim() || selectedService?.priceLabel?.trim() || '—';
 
   const fullAddress = useMemo(() => formatFullServiceAddress(address), [address]);
+  const showAddressSection = appointmentLocationType !== CREATE_APPOINTMENT_LOCATION_SHOP;
 
   const vehicleLine = useMemo(() => {
     const parts = [vehicle.year?.trim(), vehicle.make?.trim(), vehicle.model?.trim()].filter(
@@ -370,16 +368,18 @@ export function ReviewStep({
         <InfoSection bodyPadding="roomy" rowGap={14} rows={customerRows} title="Customer" />
       ) : null}
 
-      <DetailsSectionCard bodyPadding="roomy" title="Service address">
-        <View style={styles.addressRow}>
-          <View style={styles.activityIconWrap}>
-            <Ionicons color={colors.accentMuted} name="location-outline" size={21} />
+      {showAddressSection ? (
+        <DetailsSectionCard bodyPadding="roomy" title="Service address">
+          <View style={styles.addressRow}>
+            <View style={styles.activityIconWrap}>
+              <Ionicons color={colors.accentMuted} name="location-outline" size={21} />
+            </View>
+            <View style={styles.addressTextWrap}>
+              <AppText style={styles.addressBody}>{fullAddress}</AppText>
+            </View>
           </View>
-          <View style={styles.addressTextWrap}>
-            <AppText style={styles.addressBody}>{fullAddress}</AppText>
-          </View>
-        </View>
-      </DetailsSectionCard>
+        </DetailsSectionCard>
+      ) : null}
 
       {hasVehicle ? (
         <DetailsSectionCard bodyPadding="roomy" title="Vehicle">

@@ -1,9 +1,25 @@
 import {
-  bookingLinkTextBaselineFromProps,
-  bookingLinkTextDraftFromEditFields,
-  bookingLinkTextDirtyVsProps,
-  bookingLinkTextIsDirty,
+  bookingLinkEditBaselineFromProps,
+  bookingLinkEditDraftFromFields,
+  bookingLinkEditDirtyVsProps,
+  bookingLinkEditIsDirty,
 } from '../utils/bookingLinkTextSave';
+import { BOOKING_SERVICE_TYPE_MOBILE } from '../edit/constants/bookingLinkBookingTab';
+
+const defaultEditFields = {
+  nameInput: '',
+  typeInput: '',
+  cityInput: '',
+  stateInput: '',
+  zipInput: '',
+  bioInput: '',
+  phoneInput: '',
+  serviceTypeInput: BOOKING_SERVICE_TYPE_MOBILE,
+  shopStreetInput: '',
+  shopUnitInput: '',
+  spanishEnabled: false,
+  defaultLanguageInput: 'en',
+};
 
 describe('bookingLinkTextSave', () => {
   it('marks dirty when name changes', () => {
@@ -12,17 +28,20 @@ describe('bookingLinkTextSave', () => {
       businessType: 'T',
       businessCity: '',
       businessState: '',
+      businessZip: '',
       businessBio: '',
       phoneNumber: '',
+      serviceLocationMode: 'mobile_only',
+      shopStreetAddress: '',
+      shopUnit: '',
+      publicBookingLocales: ['en'],
+      publicBookingDefaultLocale: 'en',
     };
     expect(
-      bookingLinkTextDirtyVsProps(base, {
+      bookingLinkEditDirtyVsProps(base, {
+        ...defaultEditFields,
         nameInput: 'B',
         typeInput: 'T',
-        cityInput: '',
-        stateInput: '',
-        bioInput: '',
-        phoneInput: '',
       }),
     ).toBe(true);
   });
@@ -33,24 +52,36 @@ describe('bookingLinkTextSave', () => {
       businessType: 'Detailing',
       businessCity: 'Austin',
       businessState: 'tx',
+      businessZip: '78701',
       businessBio: '',
       phoneNumber: '+15552345678',
+      serviceLocationMode: 'mobile_only',
+      shopStreetAddress: '',
+      shopUnit: '',
+      publicBookingLocales: ['en'],
+      publicBookingDefaultLocale: 'en',
     };
     expect(
-      bookingLinkTextDirtyVsProps(baseProps, {
+      bookingLinkEditDirtyVsProps(baseProps, {
+        ...defaultEditFields,
         nameInput: 'Shop',
         typeInput: 'Detailing',
         cityInput: 'Austin',
         stateInput: 'TX',
-        bioInput: '',
+        zipInput: '78701',
         phoneInput: '(555) 234-5678',
       }),
     ).toBe(false);
   });
 
   it('snapshots equal after normalize state', () => {
-    const b = bookingLinkTextBaselineFromProps({ businessState: 'ca', businessBio: undefined });
-    const d = bookingLinkTextDraftFromEditFields({ stateInput: 'CA' });
-    expect(bookingLinkTextIsDirty(b, d)).toBe(false);
+    const b = bookingLinkEditBaselineFromProps({
+      businessState: 'ca',
+      businessBio: undefined,
+      serviceLocationMode: 'mobile_only',
+      publicBookingLocales: ['en'],
+    });
+    const d = bookingLinkEditDraftFromFields({ ...defaultEditFields, stateInput: 'CA' });
+    expect(bookingLinkEditIsDirty(b, d)).toBe(false);
   });
 });

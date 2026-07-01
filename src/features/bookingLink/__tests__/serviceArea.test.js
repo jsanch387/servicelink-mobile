@@ -1,18 +1,37 @@
-import { buildServiceArea, splitServiceAreaCityState } from '../utils/serviceArea';
+import {
+  buildServiceArea,
+  parseServiceAreaCityState,
+  splitServiceAreaCityState,
+} from '../utils/serviceArea';
 
-describe('splitServiceAreaCityState', () => {
-  it('returns empty tuple for blank input', () => {
-    expect(splitServiceAreaCityState(null)).toEqual(['', '']);
-    expect(splitServiceAreaCityState('   ')).toEqual(['', '']);
+describe('parseServiceAreaCityState', () => {
+  it('returns empty fields for blank input', () => {
+    expect(parseServiceAreaCityState(null)).toEqual({ city: '', state: '' });
+    expect(parseServiceAreaCityState('   ')).toEqual({ city: '', state: '' });
   });
 
   it('splits city and state', () => {
-    expect(splitServiceAreaCityState('Austin, TX')).toEqual(['Austin', 'TX']);
-    expect(splitServiceAreaCityState('San Antonio, TX')).toEqual(['San Antonio', 'TX']);
+    expect(parseServiceAreaCityState('Austin, TX')).toEqual({
+      city: 'Austin',
+      state: 'TX',
+    });
+  });
+
+  it('strips legacy zip from state segment', () => {
+    expect(parseServiceAreaCityState('Austin, TX 78701')).toEqual({
+      city: 'Austin',
+      state: 'TX',
+    });
   });
 
   it('uses whole string as city when no comma', () => {
-    expect(splitServiceAreaCityState('Dallas')).toEqual(['Dallas', '']);
+    expect(parseServiceAreaCityState('Dallas')).toEqual({ city: 'Dallas', state: '' });
+  });
+});
+
+describe('splitServiceAreaCityState', () => {
+  it('returns tuple', () => {
+    expect(splitServiceAreaCityState('Austin, TX')).toEqual(['Austin', 'TX']);
   });
 });
 
@@ -25,7 +44,7 @@ describe('buildServiceArea', () => {
     expect(buildServiceArea('Houston', '')).toBe('Houston');
   });
 
-  it('returns null when both empty', () => {
+  it('returns null when all empty', () => {
     expect(buildServiceArea('', '')).toBe(null);
   });
 });

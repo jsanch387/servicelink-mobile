@@ -19,10 +19,16 @@ import {
 import { bookingLinkGalleryAccessCopy } from '../constants/galleryAccessCopy';
 import { showWebAccountFeatureAlert } from '../../../subscription';
 import { useSaveBookingLinkText } from '../../hooks/useSaveBookingLinkText';
+import { validateBookingLinkEditFields } from '../../utils/bookingLinkEditValidation';
 import {
   buildSaveBookingLinkTextVariables,
-  bookingLinkTextDirtyVsProps,
+  bookingLinkEditDirtyVsProps,
 } from '../../utils/bookingLinkTextSave';
+import { buildProfileCompletionChecklist } from '../utils/profileCompletionChecklist';
+import {
+  BOOKING_DEFAULT_LANGUAGE_EN,
+  BOOKING_SERVICE_TYPE_MOBILE,
+} from '../constants/bookingLinkBookingTab';
 import {
   pickCoverPhotoUri,
   pickGalleryPhotoUri,
@@ -43,8 +49,16 @@ export function useBookingLinkEditController({
   businessType,
   businessCity,
   businessState,
+  businessZip,
   businessBio,
   phoneNumber,
+  serviceType: initialServiceType = BOOKING_SERVICE_TYPE_MOBILE,
+  serviceLocationMode,
+  shopStreetAddress,
+  shopUnit,
+  spanishEnabled: initialSpanishEnabled = false,
+  defaultLanguage: initialDefaultLanguage = BOOKING_DEFAULT_LANGUAGE_EN,
+  publicBookingLocales,
   portfolioImages = [],
   hasProAccess = false,
   isOwnerProfileLoaded = false,
@@ -76,8 +90,20 @@ export function useBookingLinkEditController({
       .slice(0, 2)
       .toUpperCase(),
   );
+  const [zipInput, setZipInput] = useState(() =>
+    String(businessZip ?? '')
+      .replace(/\D/g, '')
+      .slice(0, 5),
+  );
   const [bioInput, setBioInput] = useState(() => String(businessBio ?? ''));
   const [phoneInput, setPhoneInput] = useState(() => formatPhoneForDisplay(phoneNumber));
+  const [serviceTypeInput, setServiceTypeInput] = useState(() => initialServiceType);
+  const [shopStreetInput, setShopStreetInput] = useState(() => String(shopStreetAddress ?? ''));
+  const [shopUnitInput, setShopUnitInput] = useState(() => String(shopUnit ?? ''));
+  const [spanishEnabled, setSpanishEnabled] = useState(() => Boolean(initialSpanishEnabled));
+  const [defaultLanguageInput, setDefaultLanguageInput] = useState(() =>
+    initialDefaultLanguage === 'es' ? 'es' : BOOKING_DEFAULT_LANGUAGE_EN,
+  );
 
   const onPhoneInputChange = useCallback((text) => {
     setPhoneInput(formatPhoneInputAsYouType(text));
@@ -196,31 +222,84 @@ export function useBookingLinkEditController({
     );
   }, []);
 
+  const onZipInputChange = useCallback((t) => {
+    setZipInput(t.replace(/\D/g, '').slice(0, 5));
+  }, []);
+
+  const onSpanishEnabledChange = useCallback((next) => {
+    setSpanishEnabled(next);
+    if (!next) {
+      setDefaultLanguageInput(BOOKING_DEFAULT_LANGUAGE_EN);
+    }
+  }, []);
+
+  const editFieldsForSnapshot = useMemo(
+    () => ({
+      nameInput,
+      typeInput,
+      cityInput,
+      stateInput,
+      zipInput,
+      bioInput,
+      phoneInput,
+      serviceTypeInput,
+      shopStreetInput,
+      shopUnitInput,
+      spanishEnabled,
+      defaultLanguageInput,
+    }),
+    [
+      nameInput,
+      typeInput,
+      cityInput,
+      stateInput,
+      zipInput,
+      bioInput,
+      phoneInput,
+      serviceTypeInput,
+      shopStreetInput,
+      shopUnitInput,
+      spanishEnabled,
+      defaultLanguageInput,
+    ],
+  );
+
   const saveMutation = useSaveBookingLinkText();
 
-  const textBaselineProps = useMemo(
+  const editBaselineProps = useMemo(
     () => ({
       businessBio,
       businessCity,
       businessName,
       businessState,
+      businessZip,
       businessType,
       phoneNumber,
+      serviceLocationMode,
+      shopStreetAddress,
+      shopUnit,
+      publicBookingLocales,
+      publicBookingDefaultLocale: initialDefaultLanguage,
     }),
-    [businessBio, businessCity, businessName, businessState, businessType, phoneNumber],
+    [
+      businessBio,
+      businessCity,
+      businessName,
+      businessState,
+      businessZip,
+      businessType,
+      phoneNumber,
+      serviceLocationMode,
+      shopStreetAddress,
+      shopUnit,
+      publicBookingLocales,
+      initialDefaultLanguage,
+    ],
   );
 
   const hasTextChanges = useMemo(
-    () =>
-      bookingLinkTextDirtyVsProps(textBaselineProps, {
-        nameInput,
-        typeInput,
-        cityInput,
-        stateInput,
-        bioInput,
-        phoneInput,
-      }),
-    [textBaselineProps, nameInput, typeInput, cityInput, stateInput, bioInput, phoneInput],
+    () => bookingLinkEditDirtyVsProps(editBaselineProps, editFieldsForSnapshot),
+    [editBaselineProps, editFieldsForSnapshot],
   );
 
   const hasImageChanges = Boolean(localCoverUri || localLogoUri);
@@ -242,6 +321,38 @@ export function useBookingLinkEditController({
   const hasRequiredNameType = Boolean(nameInput.trim() && typeInput.trim());
 
   const phoneInputError = useMemo(() => getPhoneInputValidationMessage(phoneInput), [phoneInput]);
+
+  const profileCompletion = useMemo(
+    () =>
+      buildProfileCompletionChecklist({
+        hasCover: Boolean(coverDisplayUri),
+        hasLogo: Boolean(logoDisplayUri),
+        nameInput,
+        typeInput,
+        cityInput,
+        stateInput,
+        zipInput,
+        phoneInput,
+        bioInput,
+        serviceTypeInput,
+        shopStreetInput,
+        galleryImageCount,
+      }),
+    [
+      coverDisplayUri,
+      logoDisplayUri,
+      nameInput,
+      typeInput,
+      cityInput,
+      stateInput,
+      zipInput,
+      phoneInput,
+      bioInput,
+      serviceTypeInput,
+      shopStreetInput,
+      galleryImageCount,
+    ],
+  );
 
   const canSave = Boolean(
     businessId &&
@@ -270,6 +381,17 @@ export function useBookingLinkEditController({
       Alert.alert('Phone number', phoneErr);
       return;
     }
+    const locationValidation = validateBookingLinkEditFields({
+      cityInput,
+      stateInput,
+      zipInput,
+      serviceTypeInput,
+      shopStreetInput,
+    });
+    if (!locationValidation.ok) {
+      Alert.alert(locationValidation.title, locationValidation.message);
+      return;
+    }
     try {
       const galleryPayload =
         hasGalleryChanges && businessId
@@ -285,12 +407,7 @@ export function useBookingLinkEditController({
         buildSaveBookingLinkTextVariables({
           userId: user.id,
           businessId,
-          nameInput,
-          typeInput,
-          cityInput,
-          stateInput,
-          bioInput,
-          phoneInput,
+          ...editFieldsForSnapshot,
           coverImageUri: localCoverUri,
           logoImageUri: localLogoUri,
           previousBannerPath: coverImagePath,
@@ -305,12 +422,7 @@ export function useBookingLinkEditController({
   }, [
     businessId,
     user?.id,
-    nameInput,
-    typeInput,
-    cityInput,
-    stateInput,
-    bioInput,
-    phoneInput,
+    editFieldsForSnapshot,
     localCoverUri,
     localLogoUri,
     coverImagePath,
@@ -321,6 +433,12 @@ export function useBookingLinkEditController({
     onSaved,
     saveMutation,
     galleryMaxImages,
+    phoneInput,
+    cityInput,
+    stateInput,
+    zipInput,
+    serviceTypeInput,
+    shopStreetInput,
   ]);
 
   return {
@@ -338,6 +456,18 @@ export function useBookingLinkEditController({
     setCityInput,
     stateInput,
     onStateInputChange,
+    zipInput,
+    onZipInputChange,
+    serviceTypeInput,
+    setServiceTypeInput,
+    shopStreetInput,
+    setShopStreetInput,
+    shopUnitInput,
+    setShopUnitInput,
+    spanishEnabled,
+    onSpanishEnabledChange,
+    defaultLanguageInput,
+    setDefaultLanguageInput,
     bioInput,
     setBioInput,
     phoneInput,
@@ -355,9 +485,11 @@ export function useBookingLinkEditController({
     localGalleryUris,
     removePortfolioImage,
     removeLocalGalleryItem,
-    onPreview: onBack,
+    onDoneEditing: onBack,
     handleSave,
     canSave,
     saveMutation,
+    profileCompletionPercent: profileCompletion.percent,
+    profileCompletionItems: profileCompletion.items,
   };
 }

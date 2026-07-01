@@ -1,4 +1,5 @@
 import { bookingCustomerPhoneDigits, startTime12hToApiStartTime } from './ownerBookingFieldFormats';
+import { appointmentLocationTypeForApi } from './createAppointmentServiceLocation';
 import { parsePriceLabelToUsd } from './priceLabelMath';
 
 /**
@@ -61,6 +62,7 @@ export function buildSelectedAddOnsForPublicApi(selectedAddonRows) {
  * @param {{ street: string; unit?: string; city: string; state: string; zip: string }} args.address
  * @param {{ year: string; make: string; model: string }} args.vehicle
  * @param {string} [args.notes]
+ * @param {'mobile' | 'shop' | null} [args.appointmentLocationType]
  */
 export function buildOwnerManualPublicBookingBody({
   catalog,
@@ -75,6 +77,7 @@ export function buildOwnerManualPublicBookingBody({
   address,
   vehicle,
   notes,
+  appointmentLocationType,
 }) {
   const notesTrimmed = typeof notes === 'string' ? notes.trim() : '';
   const tierRaw =
@@ -94,6 +97,7 @@ export function buildOwnerManualPublicBookingBody({
     startTime: startTime12hToApiStartTime(selectedTime),
     paymentMethodSelected: 'none',
     ownerManualBooking: true,
+    serviceLocationType: appointmentLocationTypeForApi(appointmentLocationType),
     customer: {
       fullName: customer.fullName.trim(),
       email: String(customer.email ?? '').trim(),

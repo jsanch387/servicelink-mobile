@@ -1,5 +1,5 @@
 import { AddonsStep } from '../steps/AddonsStep';
-import { AddressStep } from '../steps/AddressStep';
+import { AddressStep, LocationStep } from '../steps/AddressStep';
 import { AppointmentConfirmedStep } from '../steps/AppointmentConfirmedStep';
 import { CustomerStep } from '../steps/CustomerStep';
 import { PricingStep } from '../steps/PricingStep';
@@ -7,6 +7,7 @@ import { ReviewStep } from '../steps/ReviewStep';
 import { ScheduleStep } from '../steps/ScheduleStep';
 import { ServiceStep } from '../steps/ServiceStep';
 import { VehicleStep } from '../steps/VehicleStep';
+import { CREATE_APPOINTMENT_STEP } from '../constants';
 
 /**
  * Renders the active wizard step (or confirmation). Keeps {@link CreateAppointmentFlow} declarative.
@@ -45,8 +46,11 @@ export function CreateAppointmentStepContent(p) {
     onSelectTime,
     customer,
     onChangeCustomer,
+    appointmentLocationType,
+    onSelectLocationType,
     address,
     onChangeAddress,
+    shopAddressMissing,
     vehicle,
     notes,
     onChangeVehicle,
@@ -59,7 +63,7 @@ export function CreateAppointmentStepContent(p) {
   }
 
   switch (step) {
-    case 0:
+    case CREATE_APPOINTMENT_STEP.SERVICE:
       return (
         <ServiceStep
           catalogError={catalogError}
@@ -70,7 +74,7 @@ export function CreateAppointmentStepContent(p) {
           onSelectServiceId={onSelectServiceId}
         />
       );
-    case 1:
+    case CREATE_APPOINTMENT_STEP.PRICING:
       return (
         <PricingStep
           priceOptionsLoading={priceOptionsLoading}
@@ -80,7 +84,7 @@ export function CreateAppointmentStepContent(p) {
           onSelectPricingId={onSelectPricingId}
         />
       );
-    case 2:
+    case CREATE_APPOINTMENT_STEP.ADDONS:
       return (
         <AddonsStep
           selectedAddonIds={selectedAddonIds}
@@ -90,7 +94,7 @@ export function CreateAppointmentStepContent(p) {
           onToggleAddon={onToggleAddon}
         />
       );
-    case 3:
+    case CREATE_APPOINTMENT_STEP.SCHEDULE:
       return (
         <ScheduleStep
           acceptBookings={acceptBookings}
@@ -106,11 +110,19 @@ export function CreateAppointmentStepContent(p) {
           onSelectTime={onSelectTime}
         />
       );
-    case 4:
+    case CREATE_APPOINTMENT_STEP.CUSTOMER:
       return <CustomerStep customer={customer} onChangeCustomer={onChangeCustomer} />;
-    case 5:
+    case CREATE_APPOINTMENT_STEP.LOCATION:
+      return (
+        <LocationStep
+          appointmentLocationType={appointmentLocationType}
+          shopAddressMissing={shopAddressMissing}
+          onSelectLocationType={onSelectLocationType}
+        />
+      );
+    case CREATE_APPOINTMENT_STEP.ADDRESS:
       return <AddressStep address={address} onChangeAddress={onChangeAddress} />;
-    case 6:
+    case CREATE_APPOINTMENT_STEP.VEHICLE:
       return (
         <VehicleStep
           notes={notes}
@@ -119,10 +131,11 @@ export function CreateAppointmentStepContent(p) {
           onChangeVehicle={onChangeVehicle}
         />
       );
-    case 7:
+    case CREATE_APPOINTMENT_STEP.REVIEW:
       return (
         <ReviewStep
           address={address}
+          appointmentLocationType={appointmentLocationType}
           customer={customer}
           notes={notes}
           selectedAddonIds={selectedAddonIds}
