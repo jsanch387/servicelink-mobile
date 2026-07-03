@@ -66,12 +66,9 @@ describe('navigateFromPushPayload', () => {
     expect(navigation.navigate).not.toHaveBeenCalled();
   });
 
-  it('falls back to bookings list when payload has no routing keys', () => {
+  it('no-ops when payload has no routing keys', () => {
     const navigation = { navigate: jest.fn() };
     navigateFromPushPayload(navigation, {});
-    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
-      screen: ROUTES.BOOKINGS,
-      params: { screen: ROUTES.BOOKINGS_LIST },
-    });
+    expect(navigation.navigate).not.toHaveBeenCalled();
   });
 });

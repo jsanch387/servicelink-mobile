@@ -27,13 +27,13 @@ export const APP_UPDATE_ANNOUNCEMENTS = [
     id: 'booking-mobile-shop-v1',
     badge: "What's new",
     icon: 'storefront-outline',
-    title: 'Mobile or shop',
+    title: 'Shop, mobile, or both?',
     bullets: [
-      'Choose mobile, shop, or both on your booking link',
-      'Add your shop address when clients come to you',
-      'Set where you work so customers know how to book',
+      'Customers have been asking — you can now show every way you work',
+      'Let them know if you come to them, have a shop, or offer both',
+      'Add your shop address if clients visit you in person',
     ],
-    primaryLabel: 'Take a look',
+    primaryLabel: 'Set it up',
     secondaryLabel: 'Got it',
     cta: {
       tab: ROUTES.MORE,

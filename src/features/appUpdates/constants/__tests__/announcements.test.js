@@ -6,8 +6,8 @@ describe('APP_UPDATE_ANNOUNCEMENTS', () => {
   it('includes mobile or shop announcement with booking link edit CTA', () => {
     const entry = APP_UPDATE_ANNOUNCEMENTS.find((item) => item.id === 'booking-mobile-shop-v1');
     expect(entry).toMatchObject({
-      title: 'Mobile or shop',
-      primaryLabel: 'Take a look',
+      title: 'Shop, mobile, or both?',
+      primaryLabel: 'Set it up',
       secondaryLabel: 'Got it',
       cta: {
         tab: ROUTES.MORE,
