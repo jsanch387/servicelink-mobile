@@ -25,7 +25,8 @@ export function AddonsStep({
 
   const selectedAddonRows = useMemo(() => {
     const list = serviceAddons ?? [];
-    return list.filter((a) => selectedAddonIds.includes(a.id));
+    const idSet = new Set((selectedAddonIds ?? []).map(String));
+    return list.filter((a) => idSet.has(String(a.id)));
   }, [serviceAddons, selectedAddonIds]);
 
   const addonsUsdSum = selectedAddonRows.reduce(
@@ -177,7 +178,7 @@ export function AddonsStep({
       <AppText style={styles.sectionTitle}>Optional add-ons</AppText>
 
       {addons.map((addon) => {
-        const selected = selectedAddonIds.includes(addon.id);
+        const selected = selectedAddonIds.some((id) => String(id) === String(addon.id));
         const priceLine = addon.priceLabel ?? addon.price ?? '';
         return (
           <ChoiceRow

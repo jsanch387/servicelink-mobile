@@ -5,7 +5,9 @@ export function normalizeBusinessSlug(slug) {
   if (slug == null) {
     return '';
   }
-  return String(slug).trim().replace(/^\/+|\/+$/g, '');
+  return String(slug)
+    .trim()
+    .replace(/^\/+|\/+$/g, '');
 }
 
 /** e.g. `myservicelink.app/your-slug` — empty slug returns empty string. */

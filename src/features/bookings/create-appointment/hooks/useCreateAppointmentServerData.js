@@ -18,7 +18,12 @@ import {
  * Loads availability, owner Pro flag, price options for the selected service, and blocking bookings
  * for the create-appointment schedule step.
  */
-export function useCreateAppointmentServerData({ businessId, userId, selectedServiceId }) {
+export function useCreateAppointmentServerData({
+  businessId,
+  userId,
+  selectedServiceId,
+  excludeBookingId,
+}) {
   const { rangeFrom, rangeTo } = useMemo(() => getBookingCalendarRange(), []);
 
   const ownerQ = useQuery({
@@ -60,9 +65,17 @@ export function useCreateAppointmentServerData({ businessId, userId, selectedSer
   });
 
   const blockingQ = useQuery({
-    queryKey: createAppointmentBlockingBookingsQueryKey(businessId, rangeFrom, rangeTo),
+    queryKey: [
+      ...createAppointmentBlockingBookingsQueryKey(businessId, rangeFrom, rangeTo),
+      excludeBookingId ?? '',
+    ],
     queryFn: async () => {
-      const { data, error } = await fetchBlockingBookingsInRange(businessId, rangeFrom, rangeTo);
+      const { data, error } = await fetchBlockingBookingsInRange(
+        businessId,
+        rangeFrom,
+        rangeTo,
+        excludeBookingId,
+      );
       if (error) throw new Error(error.message ?? 'Could not load bookings');
       return data ?? [];
     },

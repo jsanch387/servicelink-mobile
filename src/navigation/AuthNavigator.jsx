@@ -18,6 +18,7 @@ import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
 import { MobileSetupRequiredScreen } from '../features/onboarding/screens/MobileSetupRequiredScreen';
 import { PENDING_NAVIGATE_TO_BOOKING_LINK_KEY } from '../features/onboarding/constants/postOnboardingNavigation';
 import { CreateAppointmentScreen } from '../features/bookings';
+import { EditBookingScreen } from '../features/bookings/screens/EditBookingScreen';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
 import { CreateQuoteScreen } from '../features/quotes/screens/CreateQuoteScreen';
 import { useSubscription } from '../features/subscription';
@@ -261,6 +262,19 @@ export function AuthNavigator() {
                 options={{
                   headerShown: true,
                   title: 'New appointment',
+                  headerBackButtonDisplayMode: 'minimal',
+                  headerBackTitleVisible: false,
+                  headerTitleStyle: {
+                    fontFamily: FONT_FAMILIES.semibold,
+                  },
+                }}
+              />
+              <Stack.Screen
+                component={EditBookingScreen}
+                name={ROUTES.EDIT_BOOKING}
+                options={{
+                  headerShown: true,
+                  title: 'Edit appointment',
                   headerBackButtonDisplayMode: 'minimal',
                   headerBackTitleVisible: false,
                   headerTitleStyle: {

@@ -64,8 +64,7 @@ class LargeSecureStore {
   }
 }
 
-const authStorage =
-  Platform.OS === 'web' ? AsyncStorage : new LargeSecureStore();
+const authStorage = Platform.OS === 'web' ? AsyncStorage : new LargeSecureStore();
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

@@ -18,6 +18,7 @@ import {
   SurfaceCard,
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import { ROUTES } from '../../../routes/routes';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
@@ -172,6 +173,13 @@ export function BookingDetailsScreen({ route }) {
       );
     }
   }, [markCompleteFlow]);
+  const handleEditBooking = useCallback(() => {
+    if (isCancelledStatus || isCompletedStatus || !bookingId) {
+      return;
+    }
+    navigation.navigate(ROUTES.EDIT_BOOKING, { bookingId });
+  }, [bookingId, isCancelledStatus, isCompletedStatus, navigation]);
+
   const handleReschedule = useCallback(() => {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
       return;
@@ -386,11 +394,13 @@ export function BookingDetailsScreen({ route }) {
                 isCancelDisabled={isCancelledStatus || isCompletedStatus}
                 isCancellingBooking={bookingActions.isCancellingBooking}
                 isDeletingBooking={bookingActions.isDeletingBooking}
+                isEditDisabled={isCancelledStatus || isCompletedStatus}
                 isMarkCompletedDisabled={isCompletedStatus}
                 isMarkingCompleted={markCompleteFlow.isConfirming}
                 isRescheduleDisabled={isCancelledStatus || isCompletedStatus}
                 isReschedulingBooking={bookingActions.isReschedulingBooking}
                 onCancelBooking={handleCancelBooking}
+                onEdit={handleEditBooking}
                 onMarkCompleted={handleMarkCompleted}
                 onReschedule={handleReschedule}
               />

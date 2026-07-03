@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { parseLocalYyyyMmDd, toLocalYyyyMmDd } from '../../../../components/ui/calendarDateKey';
 import { getBookingCalendarRange } from '../utils/bookingCalendarRange';
 import {
   createIsDateUnavailableFn,
@@ -19,6 +20,9 @@ import { parseScheduleInputs } from '../utils/scheduleInputs';
  * @param {(key: string | null) => void} p.onSelectDateKey
  * @param {(time: string | null) => void} p.onSelectTime
  * @param {boolean} p.scheduleLoading
+ * @param {boolean} [p.relaxScheduleValidation] keep pinned date/time when editing an existing booking
+ * @param {string | null} [p.pinnedDateKey]
+ * @param {string | null} [p.pinnedTime]
  */
 export function useBookingCalendar({
   availabilityRow,
@@ -29,6 +33,9 @@ export function useBookingCalendar({
   onSelectDateKey,
   onSelectTime,
   scheduleLoading,
+  relaxScheduleValidation = false,
+  pinnedDateKey = null,
+  pinnedTime = null,
 }) {
   const { acceptBookings, weeklySchedule, timeOffBlocks } = useMemo(
     () => parseScheduleInputs(availabilityRow),
@@ -48,15 +55,49 @@ export function useBookingCalendar({
 
   const { minDate, maxDate } = useMemo(() => getBookingCalendarRange(), []);
 
-  const timeSlots = useMemo(
-    () => getTimeSlotsForDateKey(selectedDateKey, scheduleCtx),
-    [selectedDateKey, scheduleCtx],
-  );
+  const timeSlots = useMemo(() => {
+    const slots = getTimeSlotsForDateKey(selectedDateKey, scheduleCtx);
+    if (
+      relaxScheduleValidation &&
+      pinnedTime &&
+      selectedDateKey &&
+      pinnedDateKey &&
+      selectedDateKey === pinnedDateKey &&
+      !slots.includes(pinnedTime)
+    ) {
+      return [...slots, pinnedTime];
+    }
+    return slots;
+  }, [selectedDateKey, scheduleCtx, relaxScheduleValidation, pinnedDateKey, pinnedTime]);
 
-  const isDateUnavailable = useMemo(() => createIsDateUnavailableFn(scheduleCtx), [scheduleCtx]);
+  const isDateUnavailable = useMemo(() => {
+    const base = createIsDateUnavailableFn(scheduleCtx);
+    if (!relaxScheduleValidation || !pinnedDateKey) {
+      return base;
+    }
+    return (d) => {
+      const key = toLocalYyyyMmDd(d);
+      if (key && key === pinnedDateKey) {
+        return false;
+      }
+      return base(d);
+    };
+  }, [scheduleCtx, relaxScheduleValidation, pinnedDateKey]);
 
   useEffect(() => {
     if (scheduleLoading || !selectedDateKey) return;
+
+    if (
+      relaxScheduleValidation &&
+      pinnedDateKey &&
+      selectedDateKey === pinnedDateKey &&
+      parseLocalYyyyMmDd(selectedDateKey)
+    ) {
+      if (pinnedTime && selectedTime === pinnedTime) {
+        return;
+      }
+    }
+
     const { dateValid, timeValid } = isSelectedScheduleStillValid(
       scheduleCtx,
       selectedDateKey,
@@ -71,7 +112,17 @@ export function useBookingCalendar({
     if (selectedTime && !timeValid) {
       onSelectTime(null);
     }
-  }, [scheduleLoading, selectedDateKey, selectedTime, scheduleCtx, onSelectDateKey, onSelectTime]);
+  }, [
+    scheduleLoading,
+    selectedDateKey,
+    selectedTime,
+    scheduleCtx,
+    onSelectDateKey,
+    onSelectTime,
+    relaxScheduleValidation,
+    pinnedDateKey,
+    pinnedTime,
+  ]);
 
   return {
     acceptBookings,
