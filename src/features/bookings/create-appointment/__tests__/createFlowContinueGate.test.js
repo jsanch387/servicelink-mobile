@@ -1,11 +1,14 @@
 import { canContinueCreateAppointmentStep } from '../utils/createFlowContinueGate';
+import { CREATE_APPOINTMENT_STEP } from '../constants';
 
 const reviewReady = {
   selectedServiceId: 's1',
   selectedPricingId: 'p1',
+  pricingOptions: [{ id: 'p1' }],
   selectedDateKey: '2026-06-01',
   selectedTime: '9:00 AM',
   customer: { fullName: 'A B', email: 'a@b.co', phone: '(555) 234-5678' },
+  appointmentLocationType: 'mobile',
   address: { street: '1 St', city: 'X', state: 'TX', zip: '11111' },
   vehicle: { year: '2020', make: 'Y', model: 'Z' },
 };
@@ -72,8 +75,8 @@ describe('canContinueCreateAppointmentStep', () => {
         step: 1,
         selectedServiceId: 's',
         selectedPricingId: null,
-        selectedPricingOption: null,
         pricingSkipped: false,
+        pricingOptions: [{ id: 'p1' }, { id: 'p2' }],
         acceptBookings: true,
         scheduleLoading: false,
         selectedDateKey: null,
@@ -89,27 +92,9 @@ describe('canContinueCreateAppointmentStep', () => {
         appointmentConfirmed: false,
         step: 1,
         selectedServiceId: 's',
-        selectedPricingId: null,
-        selectedPricingOption: null,
-        pricingSkipped: true,
-        acceptBookings: true,
-        scheduleLoading: false,
-        selectedDateKey: null,
-        selectedTime: null,
-        timeSlots: [],
-        customer: {},
-        address: {},
-        vehicle: {},
-      }),
-    ).toBe(true);
-    expect(
-      canContinueCreateAppointmentStep({
-        appointmentConfirmed: false,
-        step: 1,
-        selectedServiceId: 's',
         selectedPricingId: 'stale-base-id',
-        selectedPricingOption: null,
         pricingSkipped: false,
+        pricingOptions: [{ id: 'p1' }, { id: 'p2' }],
         acceptBookings: true,
         scheduleLoading: false,
         selectedDateKey: null,
@@ -126,8 +111,25 @@ describe('canContinueCreateAppointmentStep', () => {
         step: 1,
         selectedServiceId: 's',
         selectedPricingId: 'p1',
-        selectedPricingOption: { id: 'p1', label: 'Basic' },
         pricingSkipped: false,
+        pricingOptions: [{ id: 'p1' }, { id: 'p2' }],
+        acceptBookings: true,
+        scheduleLoading: false,
+        selectedDateKey: null,
+        selectedTime: null,
+        timeSlots: [],
+        customer: {},
+        address: {},
+        vehicle: {},
+      }),
+    ).toBe(true);
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: 1,
+        selectedServiceId: 's',
+        selectedPricingId: null,
+        pricingSkipped: true,
         acceptBookings: true,
         scheduleLoading: false,
         selectedDateKey: null,
@@ -140,16 +142,17 @@ describe('canContinueCreateAppointmentStep', () => {
     ).toBe(true);
   });
 
-  it('step 1 blocks Continue while price options load', () => {
+  it('step 1 blocks while tiered price options are loading', () => {
     expect(
       canContinueCreateAppointmentStep({
         appointmentConfirmed: false,
         step: 1,
         selectedServiceId: 's',
         selectedPricingId: 'p1',
-        selectedPricingOption: { id: 'p1', label: 'Basic' },
         pricingSkipped: false,
+        pricingOptions: [{ id: 'p1' }],
         priceOptionsLoading: true,
+        priceOptionsEnabled: true,
         acceptBookings: true,
         scheduleLoading: false,
         selectedDateKey: null,
@@ -197,11 +200,11 @@ describe('canContinueCreateAppointmentStep', () => {
     ).toBe(true);
   });
 
-  it('step 7 uses isReviewStepComplete', () => {
+  it('step 8 uses isReviewStepComplete', () => {
     expect(
       canContinueCreateAppointmentStep({
         appointmentConfirmed: false,
-        step: 7,
+        step: CREATE_APPOINTMENT_STEP.REVIEW,
         ...reviewReady,
         acceptBookings: true,
         scheduleLoading: false,

@@ -1,86 +1,107 @@
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, InlineCardError, SkeletonBox } from '../../../../components/ui';
+import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../../components/ui';
+import { SCREEN_GUTTER } from '../../../../constants/layout';
+import { BOOKING_LINK_ALL_CATEGORY_ID } from '../../../bookingLink/constants/bookingLinkServiceCategories';
+import { BookingLinkServiceCategoryFilters } from '../../../bookingLink/preview/components/BookingLinkServiceCategoryFilters';
 import {
-  ServiceCategoryTabs,
-  shouldShowCategoryTabs,
-  useServiceCategoryTabs,
-} from '../../../services/categories';
-import { ChoiceRow } from '../components/ChoiceRow';
+  buildBookingLinkCategoryFilterTabs,
+  filterBookingLinkServicesByCategory,
+  shouldShowBookingLinkCategoryFilters,
+} from '../../../bookingLink/preview/utils/bookingLinkServiceCategoryPreview';
+import { ServicePreviewCard } from '../../../services/components/ServicePreviewCard';
+import { mapCatalogServiceToPreviewCard } from '../../../services/utils/mapCatalogServiceToPreviewCard';
 import { useTheme } from '../../../../theme';
 
-function ServiceListSkeleton() {
+function CategoryFilterSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={filterSkeletonStyles.row}>
+      {[72, 88, 64].map((width) => (
+        <SkeletonBox
+          key={width}
+          borderRadius={10}
+          height={36}
+          pulse
+          style={{ backgroundColor: colors.cardSurface }}
+          width={width}
+        />
+      ))}
+    </View>
+  );
+}
+
+const filterSkeletonStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+});
+
+function ServiceListSkeleton({ showCategoryTabs = false }) {
   const { colors } = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        row: {
+        card: {
+          backgroundColor: colors.cardSurface,
           borderColor: colors.border,
-          borderRadius: 14,
+          borderRadius: 18,
           borderWidth: 1,
-          marginBottom: 10,
+          marginBottom: 12,
           paddingHorizontal: 16,
-          paddingVertical: 14,
+          paddingVertical: 12,
         },
       }),
     [colors],
   );
 
+  const cardSkeleton = (
+    <SurfaceCard outlined={false} padding="none" style={styles.card}>
+      <SkeletonBox borderRadius={8} height={18} pulse width="48%" />
+      <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 10 }} width="36%" />
+      <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 12 }} width="55%" />
+    </SurfaceCard>
+  );
+
   return (
     <>
-      {[0, 1, 2, 4].map((key) => (
-        <View key={key} style={styles.row}>
-          <SkeletonBox borderRadius={8} height={18} pulse width="62%" />
-        </View>
-      ))}
+      {showCategoryTabs ? <CategoryFilterSkeleton /> : null}
+      {cardSkeleton}
+      {cardSkeleton}
     </>
   );
 }
 
-/**
- * @param {object} props
- * @param {string | null | undefined} props.catalogError
- * @param {boolean} props.isLoading
- * @param {Array<{ id: string; name: string; priceLabel?: string }>} props.services
- * @param {Array<{ id: string; name: string }>} [props.categories]
- * @param {Record<string, string | undefined>} [props.serviceCategoryById]
- * @param {string | null | undefined} props.selectedServiceId
- * @param {(id: string) => void} props.onSelectServiceId
- */
 export function ServiceStep({
   catalogError,
+  categories = [],
   isLoading,
   services,
-  categories = [],
-  serviceCategoryById = {},
   selectedServiceId,
   onSelectServiceId,
 }) {
   const { colors } = useTheme();
+  const [selectedCategoryTabId, setSelectedCategoryTabId] = useState(BOOKING_LINK_ALL_CATEGORY_ID);
 
-  const categoryTabsEnabled = useMemo(
-    () =>
-      shouldShowCategoryTabs({
-        categories,
-        services,
-        serviceCategoryById,
-      }),
-    [categories, serviceCategoryById, services],
+  const showCategoryTabs = shouldShowBookingLinkCategoryFilters(categories, services);
+
+  const categoryFilterTabs = useMemo(
+    () => buildBookingLinkCategoryFilterTabs(categories, services),
+    [categories, services],
   );
 
-  const {
-    tabs: serviceCategoryTabs,
-    selectedTabId: selectedServiceCategoryTabId,
-    setSelectedTabId: setSelectedServiceCategoryTabId,
-    visibleServices,
-  } = useServiceCategoryTabs({
-    enabled: categoryTabsEnabled,
-    services,
-    categories,
-    serviceCategoryById,
-  });
+  useEffect(() => {
+    setSelectedCategoryTabId(BOOKING_LINK_ALL_CATEGORY_ID);
+  }, [categories, services]);
 
-  const listServices = categoryTabsEnabled ? visibleServices : services;
+  const visibleServices = useMemo(() => {
+    if (!showCategoryTabs) {
+      return services;
+    }
+    return filterBookingLinkServicesByCategory(services, selectedCategoryTabId);
+  }, [selectedCategoryTabId, services, showCategoryTabs]);
 
   const styles = useMemo(
     () =>
@@ -93,8 +114,30 @@ export function ServiceStep({
         errorWrap: {
           marginBottom: 12,
         },
+        filtersBleed: {
+          marginHorizontal: -SCREEN_GUTTER,
+        },
+        servicesList: {
+          rowGap: 0,
+        },
       }),
     [colors],
+  );
+
+  const renderServiceCard = useCallback(
+    (svc) => {
+      const card = mapCatalogServiceToPreviewCard(svc);
+      return (
+        <ServicePreviewCard
+          hideDescription
+          key={svc.id}
+          selected={selectedServiceId === svc.id}
+          service={card}
+          onPress={() => onSelectServiceId(svc.id)}
+        />
+      );
+    },
+    [onSelectServiceId, selectedServiceId],
   );
 
   if (catalogError) {
@@ -106,7 +149,7 @@ export function ServiceStep({
   }
 
   if (isLoading) {
-    return <ServiceListSkeleton />;
+    return <ServiceListSkeleton showCategoryTabs={categories.length > 0} />;
   }
 
   if (!services.length) {
@@ -119,27 +162,23 @@ export function ServiceStep({
 
   return (
     <View>
-      {categoryTabsEnabled && serviceCategoryTabs ? (
-        <ServiceCategoryTabs
-          onSelectTab={setSelectedServiceCategoryTabId}
-          selectedTabId={selectedServiceCategoryTabId}
-          tabs={serviceCategoryTabs}
-        />
+      {showCategoryTabs && categoryFilterTabs ? (
+        <View style={styles.filtersBleed}>
+          <BookingLinkServiceCategoryFilters
+            selectedTabId={selectedCategoryTabId}
+            tabs={categoryFilterTabs}
+            onSelectTab={setSelectedCategoryTabId}
+          />
+        </View>
       ) : null}
 
-      {!listServices.length ? (
-        <AppText style={styles.empty}>No services in this category.</AppText>
-      ) : (
-        listServices.map((svc) => (
-          <ChoiceRow
-            key={svc.id}
-            rightLabel={svc.priceLabel ?? undefined}
-            selected={selectedServiceId === svc.id}
-            title={svc.name}
-            onPress={() => onSelectServiceId(svc.id)}
-          />
-        ))
-      )}
+      <View style={styles.servicesList}>
+        {visibleServices.length > 0 ? (
+          visibleServices.map((svc) => renderServiceCard(svc))
+        ) : (
+          <AppText style={styles.empty}>No services in this category.</AppText>
+        )}
+      </View>
     </View>
   );
 }

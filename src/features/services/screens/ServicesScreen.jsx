@@ -39,13 +39,18 @@ import {
   useSaveServiceCategoriesOrder,
   useServiceCategoryTabs,
   withCategoryServiceCounts,
+  ServiceCategoriesHowItWorksSheet,
+  SERVICE_CATEGORIES_HOW_IT_WORKS_TAB_LINK_LABEL,
 } from '../categories';
 import { AddServiceFab } from '../components/AddServiceFab';
 import { AddCategoryFab } from '../components/AddCategoryFab';
 import { AddAddonFab } from '../components/AddAddonFab';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
 import { CatalogEntityCard } from '../components/CatalogEntityCard';
+import { CatalogHowItWorksLink } from '../components/CatalogHowItWorksLink';
+import { ServiceAddonsHowItWorksSheet } from '../components/ServiceAddonsHowItWorksSheet';
 import { ServiceCreateSheet } from '../components/ServiceCreateSheet';
+import { SERVICE_ADDONS_HOW_IT_WORKS_LINK_LABEL } from '../constants/serviceAddonsHowItWorksCopy';
 import {
   ENTITY_VIEW_ADDONS,
   ENTITY_VIEW_CATEGORIES,
@@ -84,7 +89,7 @@ function sectionCopy(view) {
     return {
       title: 'Categories',
       subtitle:
-        'Optional groups for browsing — e.g. Cars, RVs, Boats. Each service is still its own offering with its own price and duration.',
+        'Optional groups for browsing. Each service still has its own name, price, and duration.',
       addLabel: 'Add category',
       emptyTitle: 'No categories yet',
       emptyBody:
@@ -143,6 +148,8 @@ export function ServicesScreen() {
   const [categorySheetError, setCategorySheetError] = useState('');
   const [serviceSheetOpen, setServiceSheetOpen] = useState(false);
   const [serviceSheetError, setServiceSheetError] = useState('');
+  const [categoriesHowItWorksOpen, setCategoriesHowItWorksOpen] = useState(false);
+  const [addonsHowItWorksOpen, setAddonsHowItWorksOpen] = useState(false);
   const [catalogManualRefreshing, setCatalogManualRefreshing] = useState(false);
   const isServicesView = selectedView === ENTITY_VIEW_SERVICES;
   const isCategoriesView = selectedView === ENTITY_VIEW_CATEGORIES;
@@ -716,7 +723,24 @@ export function ServicesScreen() {
           />
         ) : null}
 
-        {isAddonsView ? <ServiceCatalogMetaRow countLabel={titleLabel} /> : null}
+        {isCategoriesView && !isSortMode ? (
+          <CatalogHowItWorksLink
+            accessibilityHint="Opens an explanation of service categories"
+            label={SERVICE_CATEGORIES_HOW_IT_WORKS_TAB_LINK_LABEL}
+            onPress={() => setCategoriesHowItWorksOpen(true)}
+          />
+        ) : null}
+
+        {isAddonsView && !isSortMode ? (
+          <>
+            <ServiceCatalogMetaRow countLabel={titleLabel} />
+            <CatalogHowItWorksLink
+              accessibilityHint="Opens an explanation of service add-ons"
+              label={SERVICE_ADDONS_HOW_IT_WORKS_LINK_LABEL}
+              onPress={() => setAddonsHowItWorksOpen(true)}
+            />
+          </>
+        ) : null}
 
         {showCategoryTabsUi && serviceCategoryTabs ? (
           <ServiceCategoryTabs
@@ -1071,6 +1095,14 @@ export function ServicesScreen() {
           setServiceSheetError('');
         }}
         onSave={handleServiceSheetSave}
+      />
+      <ServiceCategoriesHowItWorksSheet
+        visible={categoriesHowItWorksOpen}
+        onRequestClose={() => setCategoriesHowItWorksOpen(false)}
+      />
+      <ServiceAddonsHowItWorksSheet
+        visible={addonsHowItWorksOpen}
+        onRequestClose={() => setAddonsHowItWorksOpen(false)}
       />
     </SafeAreaView>
   );

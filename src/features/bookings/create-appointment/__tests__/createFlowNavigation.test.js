@@ -18,25 +18,32 @@ describe('createFlowNavigation', () => {
   });
 
   describe('getCreateAppointmentVisibleStepOrder', () => {
-    it('drops pricing and add-ons when both skipped', () => {
-      const o = getCreateAppointmentVisibleStepOrder(true, true);
-      expect(o).toEqual([0, 3, 4, 5, 6, 7]);
+    it('drops pricing, add-ons, location, and address when all skipped', () => {
+      const o = getCreateAppointmentVisibleStepOrder(true, true, true, true);
+      expect(o).toEqual([0, 3, 4, 7, 8]);
     });
 
     it('keeps pricing when not skipped', () => {
-      const o = getCreateAppointmentVisibleStepOrder(false, true);
-      expect(o).toEqual([0, 1, 3, 4, 5, 6, 7]);
+      const o = getCreateAppointmentVisibleStepOrder(false, true, true, true);
+      expect(o).toEqual([0, 1, 3, 4, 7, 8]);
+    });
+
+    it('keeps location and address when business offers both and mobile selected', () => {
+      const o = getCreateAppointmentVisibleStepOrder(true, true, false, false);
+      expect(o).toEqual([0, 3, 4, 5, 6, 7, 8]);
     });
   });
 
   describe('getCreateAppointmentProgressFraction', () => {
-    it('uses visible step count when both optional steps skipped', () => {
+    it('uses visible step count when optional steps skipped', () => {
       const f = getCreateAppointmentProgressFraction(CREATE_APPOINTMENT_STEP.SCHEDULE, {
         appointmentConfirmed: false,
         pricingSkipped: true,
         addonsSkipped: true,
+        locationSkipped: true,
+        addressSkipped: true,
       });
-      expect(f).toBeCloseTo(2 / 6);
+      expect(f).toBeCloseTo(2 / 5);
     });
   });
 
@@ -47,110 +54,96 @@ describe('createFlowNavigation', () => {
           step: CREATE_APPOINTMENT_STEP.SERVICE,
           addonsSkipped: true,
           pricingSkipped: true,
+          locationSkipped: true,
+          addressSkipped: true,
         }),
       ).toBe(CREATE_APPOINTMENT_STEP.SCHEDULE);
     });
 
-    it('service → add-ons when only pricing skipped', () => {
+    it('customer → location when business offers both', () => {
       expect(
         getNextStepOnContinue({
-          step: CREATE_APPOINTMENT_STEP.SERVICE,
-          addonsSkipped: false,
+          step: CREATE_APPOINTMENT_STEP.CUSTOMER,
+          addonsSkipped: true,
           pricingSkipped: true,
+          locationSkipped: false,
+          addressSkipped: false,
         }),
-      ).toBe(CREATE_APPOINTMENT_STEP.ADDONS);
+      ).toBe(CREATE_APPOINTMENT_STEP.LOCATION);
     });
 
-    it('service → pricing when pricing not skipped', () => {
+    it('customer → vehicle when location and address skipped (shop only)', () => {
       expect(
         getNextStepOnContinue({
-          step: CREATE_APPOINTMENT_STEP.SERVICE,
+          step: CREATE_APPOINTMENT_STEP.CUSTOMER,
           addonsSkipped: true,
-          pricingSkipped: false,
+          pricingSkipped: true,
+          locationSkipped: true,
+          addressSkipped: true,
         }),
-      ).toBe(CREATE_APPOINTMENT_STEP.PRICING);
+      ).toBe(CREATE_APPOINTMENT_STEP.VEHICLE);
     });
 
-    it('pricing → schedule when add-ons skipped', () => {
+    it('location → vehicle when address skipped (shop selected)', () => {
       expect(
         getNextStepOnContinue({
-          step: CREATE_APPOINTMENT_STEP.PRICING,
+          step: CREATE_APPOINTMENT_STEP.LOCATION,
           addonsSkipped: true,
-          pricingSkipped: false,
+          pricingSkipped: true,
+          locationSkipped: false,
+          addressSkipped: true,
         }),
-      ).toBe(CREATE_APPOINTMENT_STEP.SCHEDULE);
+      ).toBe(CREATE_APPOINTMENT_STEP.VEHICLE);
     });
 
-    it('pricing → add-ons when add-ons exist', () => {
+    it('location → address when mobile selected', () => {
       expect(
         getNextStepOnContinue({
-          step: CREATE_APPOINTMENT_STEP.PRICING,
-          addonsSkipped: false,
-          pricingSkipped: false,
+          step: CREATE_APPOINTMENT_STEP.LOCATION,
+          addonsSkipped: true,
+          pricingSkipped: true,
+          locationSkipped: false,
+          addressSkipped: false,
         }),
-      ).toBe(CREATE_APPOINTMENT_STEP.ADDONS);
-    });
-
-    it('increments normally from add-ons', () => {
-      expect(
-        getNextStepOnContinue({
-          step: CREATE_APPOINTMENT_STEP.ADDONS,
-          addonsSkipped: false,
-          pricingSkipped: false,
-        }),
-      ).toBe(CREATE_APPOINTMENT_STEP.SCHEDULE);
+      ).toBe(CREATE_APPOINTMENT_STEP.ADDRESS);
     });
   });
 
   describe('getPreviousStepOnBack', () => {
-    it('schedule → service when both optional steps were skipped', () => {
+    it('vehicle → location when address skipped but location shown', () => {
       expect(
         getPreviousStepOnBack({
-          step: CREATE_APPOINTMENT_STEP.SCHEDULE,
+          step: CREATE_APPOINTMENT_STEP.VEHICLE,
           addonsSkipped: true,
           pricingSkipped: true,
+          locationSkipped: false,
+          addressSkipped: true,
         }),
-      ).toBe(CREATE_APPOINTMENT_STEP.SERVICE);
+      ).toBe(CREATE_APPOINTMENT_STEP.LOCATION);
     });
 
-    it('schedule → pricing when only add-ons skipped', () => {
+    it('vehicle → customer when location and address skipped', () => {
       expect(
         getPreviousStepOnBack({
-          step: CREATE_APPOINTMENT_STEP.SCHEDULE,
+          step: CREATE_APPOINTMENT_STEP.VEHICLE,
           addonsSkipped: true,
-          pricingSkipped: false,
-        }),
-      ).toBe(CREATE_APPOINTMENT_STEP.PRICING);
-    });
-
-    it('schedule → add-ons when add-ons exist', () => {
-      expect(
-        getPreviousStepOnBack({
-          step: CREATE_APPOINTMENT_STEP.SCHEDULE,
-          addonsSkipped: false,
-          pricingSkipped: false,
-        }),
-      ).toBe(CREATE_APPOINTMENT_STEP.ADDONS);
-    });
-
-    it('add-ons → service when pricing was skipped', () => {
-      expect(
-        getPreviousStepOnBack({
-          step: CREATE_APPOINTMENT_STEP.ADDONS,
-          addonsSkipped: false,
           pricingSkipped: true,
+          locationSkipped: true,
+          addressSkipped: true,
         }),
-      ).toBe(CREATE_APPOINTMENT_STEP.SERVICE);
+      ).toBe(CREATE_APPOINTMENT_STEP.CUSTOMER);
     });
 
-    it('add-ons → pricing when pricing was shown', () => {
+    it('address → location when location step shown', () => {
       expect(
         getPreviousStepOnBack({
-          step: CREATE_APPOINTMENT_STEP.ADDONS,
-          addonsSkipped: false,
-          pricingSkipped: false,
+          step: CREATE_APPOINTMENT_STEP.ADDRESS,
+          addonsSkipped: true,
+          pricingSkipped: true,
+          locationSkipped: false,
+          addressSkipped: false,
         }),
-      ).toBe(CREATE_APPOINTMENT_STEP.PRICING);
+      ).toBe(CREATE_APPOINTMENT_STEP.LOCATION);
     });
   });
 });

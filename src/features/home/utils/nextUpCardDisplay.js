@@ -1,20 +1,14 @@
+import { splitBookingServiceName } from '../../../utils/splitBookingServiceName';
+
 /**
- * Splits stored `service_name` when it includes a pricing tier after an em dash.
- * Next Up shows {@link buildNextUpHeadlines} `servicePrimary` only (base service name).
+ * Splits stored `service_name` (often "Base — tier" from booking flow) for scannable Next Up layout.
  *
  * @param {string | null | undefined} serviceName
  * @returns {{ primary: string; detail: string | null }}
  */
 export function splitServiceNameForNextUp(serviceName) {
-  const raw = String(serviceName ?? '').trim() || 'Service';
-  const parts = raw
-    .split(/\s*—\s*/u)
-    .map((p) => p.trim())
-    .filter(Boolean);
-  if (parts.length >= 2) {
-    return { primary: parts[0], detail: parts.slice(1).join(' — ') };
-  }
-  return { primary: raw, detail: null };
+  const { primary, pricingOption } = splitBookingServiceName(serviceName);
+  return { primary, detail: pricingOption };
 }
 
 /**
@@ -32,14 +26,17 @@ export function buildNextUpHeadlines(booking) {
 }
 
 /**
- * Service title for Next Up — base service name only (pricing tier omitted).
+ * Service title for Next Up: base service name only (pricing tier omitted).
  *
  * @param {string | null | undefined} primary
- * @param {string | null | undefined} [_detail] ignored; kept for callers that still pass tier segments
+ * @param {string | null | undefined} [_detail] ignored; kept for call-site compatibility
  */
 export function formatNextUpServiceLine(primary, _detail) {
   const p = String(primary ?? '').trim();
-  return p || 'Service';
+  if (p) {
+    return p;
+  }
+  return 'Service';
 }
 
 /**

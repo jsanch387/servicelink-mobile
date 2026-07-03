@@ -26,6 +26,11 @@ export const CREATE_APPOINTMENT_STEP_META = [
     subtitle: 'Enter who this appointment is for.',
   },
   {
+    key: 'location',
+    title: 'Mobile or shop',
+    subtitle: 'Choose where this appointment happens.',
+  },
+  {
     key: 'address',
     title: 'Where is the service?',
     subtitle: 'Where will you perform the service?',
@@ -49,14 +54,28 @@ export const CREATE_APPOINTMENT_STEP = Object.freeze({
   ADDONS: 2,
   SCHEDULE: 3,
   CUSTOMER: 4,
-  ADDRESS: 5,
-  VEHICLE: 6,
-  REVIEW: 7,
+  LOCATION: 5,
+  ADDRESS: 6,
+  VEHICLE: 7,
+  REVIEW: 8,
 });
 
 export const CREATE_APPOINTMENT_STEP_COUNT = CREATE_APPOINTMENT_STEP_META.length;
 
 export const CREATE_APPOINTMENT_LAST_STEP = CREATE_APPOINTMENT_STEP_COUNT - 1;
+
+/** Pricing and add-ons steps use their own in-card headings (edit flow). */
+const STEPS_WITHOUT_MAIN_TITLE = new Set([
+  CREATE_APPOINTMENT_STEP.PRICING,
+  CREATE_APPOINTMENT_STEP.ADDONS,
+]);
+
+/**
+ * @param {number} step
+ */
+export function createAppointmentStepShowsMainTitle(step) {
+  return !STEPS_WITHOUT_MAIN_TITLE.has(step);
+}
 
 /** Fallback copy when booking creation fails and the server returns no safe message. */
 export const CREATE_APPOINTMENT_SUBMIT_ERROR_FALLBACK = 'Could not create booking. Try again.';

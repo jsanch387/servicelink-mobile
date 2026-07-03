@@ -7,12 +7,14 @@ import { CREATE_APPOINTMENT_STEP } from '../constants';
  * @param {{ title?: string; subtitle?: string } | undefined} meta
  * @param {{ name?: string } | null | undefined} selectedService
  * @param {{ label?: string } | null | undefined} selectedPricingOption
+ * @param {{ title?: string; subtitle?: string } | null | undefined} [addressStepCopy]
  */
 export function resolveCreateAppointmentWizardHeader(
   step,
   meta,
   selectedService,
   selectedPricingOption,
+  addressStepCopy = null,
 ) {
   if (step === CREATE_APPOINTMENT_STEP.PRICING && selectedService?.name) {
     return {
@@ -28,6 +30,13 @@ export function resolveCreateAppointmentWizardHeader(
       subtitle: tierLabel
         ? `${tierLabel} · Optional add-ons`
         : 'Optional add-ons — skip if none needed',
+    };
+  }
+
+  if (step === CREATE_APPOINTMENT_STEP.ADDRESS && addressStepCopy) {
+    return {
+      title: addressStepCopy.title ?? meta?.title ?? '',
+      subtitle: addressStepCopy.subtitle ?? meta?.subtitle ?? '',
     };
   }
 

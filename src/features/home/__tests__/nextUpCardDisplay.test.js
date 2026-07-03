@@ -26,11 +26,11 @@ describe('splitServiceNameForNextUp', () => {
 });
 
 describe('formatNextUpServiceLine', () => {
-  it('returns primary service name only', () => {
+  it('returns primary only and ignores pricing tier detail', () => {
     expect(formatNextUpServiceLine('Signature Shine', 'SUV')).toBe('Signature Shine');
   });
 
-  it('ignores multi-segment detail', () => {
+  it('ignores multi-segment detail after split', () => {
     expect(formatNextUpServiceLine('A', 'B — C')).toBe('A');
   });
 
@@ -38,7 +38,7 @@ describe('formatNextUpServiceLine', () => {
     expect(formatNextUpServiceLine('Full detail', null)).toBe('Full detail');
   });
 
-  it('defaults when primary is empty', () => {
+  it('falls back to Service when primary is empty', () => {
     expect(formatNextUpServiceLine('', 'Premium')).toBe('Service');
   });
 });

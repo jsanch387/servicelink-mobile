@@ -34,6 +34,12 @@ import { useTheme } from '../../../theme';
 import { serviceCardTitleStyle } from '../../../utils/serviceCardTypography';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import {
+  getMinNativeAppVersion,
+  isNativeStoreUpdateRequired,
+  openNativeStoreUpdate,
+  StoreUpdateBanner,
+} from '../../appUpdates';
 import { useNotificationUnreadCount } from '../../notifications/hooks/useNotificationUnreadCount';
 import { useBookingsFreeTierUsage } from '../../bookings/hooks/useBookingsFreeTierUsage';
 import { bookingsFreeTierCountQueryKey } from '../../bookings/queryKeys';
@@ -137,6 +143,9 @@ export function HomeScreen() {
   const showTodayTimelineSection =
     Boolean(dashboard.business?.id) || (dashboard.isPendingBusiness && !dashboard.businessError);
 
+  const storeUpdateMinimumVersion = getMinNativeAppVersion();
+  const showStoreUpdateBanner = Boolean(storeUpdateMinimumVersion) && isNativeStoreUpdateRequired();
+
   const todayTimelineLoading = dashboard.isPendingBusiness || dashboard.isPendingTodayBookings;
 
   const showFreeTierBookingCount =
@@ -238,6 +247,9 @@ export function HomeScreen() {
           right: -2,
           top: -2,
           width: 8,
+        },
+        storeUpdateWrap: {
+          marginBottom: 12,
         },
         designPreviewRow: {
           flexDirection: 'row',
@@ -445,6 +457,14 @@ export function HomeScreen() {
           </Pressable>
         </View>
         <View style={styles.headerDivider} />
+        {showStoreUpdateBanner ? (
+          <View style={styles.storeUpdateWrap}>
+            <StoreUpdateBanner
+              minimumVersion={storeUpdateMinimumVersion}
+              onPressUpdate={openNativeStoreUpdate}
+            />
+          </View>
+        ) : null}
         {showLifecycleDesignPreview || showCompleteVisitDesignPreview ? (
           <View style={styles.designPreviewRow}>
             {showLifecycleDesignPreview ? (

@@ -1,4 +1,9 @@
 import { ROUTES } from '../../../../routes/routes';
+import {
+  BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS,
+  BOOKING_LINK_ROUTE_PARAMS,
+} from '../../../bookingLink/constants/bookingLinkRouteParams';
+import { BOOKING_LINK_EDIT_TAB_DETAILS } from '../../../bookingLink/edit/constants/bookingLinkEditTabs';
 import { openNotificationTarget } from '../openNotificationTarget';
 
 function nav() {
@@ -20,6 +25,14 @@ describe('openNotificationTarget', () => {
           index: 1,
         },
       },
+    });
+  });
+
+  it('navigates to booking edit on root stack', () => {
+    const navigation = nav();
+    openNotificationTarget(navigation, { referenceType: 'booking_edit', referenceId: 'bid-edit' });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.EDIT_BOOKING, {
+      bookingId: 'bid-edit',
     });
   });
 
@@ -71,6 +84,23 @@ describe('openNotificationTarget', () => {
     });
   });
 
+  it('navigates to customer details from customers tab', () => {
+    const navigation = nav();
+    openNotificationTarget(navigation, { referenceType: 'customer', referenceId: 'cust-9' });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.CUSTOMERS,
+      params: {
+        state: {
+          routes: [
+            { name: ROUTES.CUSTOMERS_LIST },
+            { name: ROUTES.CUSTOMER_DETAILS, params: { customerId: 'cust-9' } },
+          ],
+          index: 1,
+        },
+      },
+    });
+  });
+
   it.each(['payment', 'payout', 'deposit'])(
     'navigates to More payments for %s',
     (referenceType) => {
@@ -102,13 +132,59 @@ describe('openNotificationTarget', () => {
     });
   });
 
-  it('falls back to bookings list when type unknown', () => {
+  it('navigates to home for broadcast screen slug', () => {
+    const navigation = nav();
+    openNotificationTarget(navigation, { referenceType: 'screen', referenceId: 'home' });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, { screen: ROUTES.HOME });
+  });
+
+  it('navigates to booking link edit for booking_link screen slug', () => {
+    const navigation = nav();
+    openNotificationTarget(navigation, { referenceType: 'screen', referenceId: 'booking_link' });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.MORE,
+      params: {
+        state: {
+          routes: [
+            { name: ROUTES.MORE_HOME },
+            {
+              name: ROUTES.BOOKING_LINK,
+              params: BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS,
+            },
+          ],
+          index: 1,
+        },
+      },
+    });
+  });
+
+  it('navigates to profile edit on booking link details tab', () => {
+    const navigation = nav();
+    openNotificationTarget(navigation, { referenceType: 'screen', referenceId: 'profile' });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.MORE,
+      params: {
+        state: {
+          routes: [
+            { name: ROUTES.MORE_HOME },
+            {
+              name: ROUTES.BOOKING_LINK,
+              params: {
+                [BOOKING_LINK_ROUTE_PARAMS.OPEN_EDIT]: true,
+                [BOOKING_LINK_ROUTE_PARAMS.EDIT_TAB]: BOOKING_LINK_EDIT_TAB_DETAILS,
+              },
+            },
+          ],
+          index: 1,
+        },
+      },
+    });
+  });
+
+  it('falls back to home when type unknown', () => {
     const navigation = nav();
     openNotificationTarget(navigation, { referenceType: 'unknown', referenceId: '' });
-    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
-      screen: ROUTES.BOOKINGS,
-      params: { screen: ROUTES.BOOKINGS_LIST },
-    });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, { screen: ROUTES.HOME });
   });
 
   it('falls back to bookings list when booking id missing', () => {
@@ -116,7 +192,12 @@ describe('openNotificationTarget', () => {
     openNotificationTarget(navigation, { referenceType: 'booking', referenceId: '' });
     expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
       screen: ROUTES.BOOKINGS,
-      params: { screen: ROUTES.BOOKINGS_LIST },
+      params: {
+        state: {
+          routes: [{ name: ROUTES.BOOKINGS_LIST }],
+          index: 0,
+        },
+      },
     });
   });
 });

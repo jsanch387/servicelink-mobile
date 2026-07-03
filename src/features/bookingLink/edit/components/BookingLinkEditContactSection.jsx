@@ -4,12 +4,13 @@ import { US_NANP_FORMATTED_MAX_LENGTH } from '../../../../utils/phone';
 
 export function BookingLinkEditContactSection({
   styles,
+  rootStyle,
   phoneInput,
   phoneInputError,
   onPhoneInputChange,
 }) {
   return (
-    <View style={styles.contactSection}>
+    <View style={[styles.contactSection, rootStyle]}>
       <AppText style={styles.sectionTitle}>Contact</AppText>
       <SurfaceCard style={styles.editSectionCard} padding="md">
         <SurfaceTextField

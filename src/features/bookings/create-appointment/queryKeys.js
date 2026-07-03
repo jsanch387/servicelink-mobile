@@ -9,3 +9,7 @@ export function createAppointmentPriceOptionsQueryKey(businessId, serviceId) {
 export function createAppointmentBlockingBookingsQueryKey(businessId, fromYyyyMmDd, toYyyyMmDd) {
   return ['createAppointment', 'blockingBookings', businessId, fromYyyyMmDd, toYyyyMmDd];
 }
+
+export function createAppointmentBusinessLocationQueryKey(businessId) {
+  return ['createAppointment', 'businessLocation', businessId];
+}

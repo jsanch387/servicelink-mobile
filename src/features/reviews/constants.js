@@ -13,19 +13,6 @@ export const REVIEWS_FILTER_OPTIONS = [
   { key: REVIEWS_FILTER_NEEDS_REPLY, label: 'Needs reply' },
 ];
 
-export const REVIEWS_HOW_IT_WORKS_TITLE = 'How reviews work';
-
-export const REVIEWS_HOW_IT_WORKS_DISMISS_LABEL = 'Got it';
-
-export const REVIEWS_HOW_IT_WORKS_INTRO =
-  "Mark a visit complete and we'll email your customer a link to leave a review.";
-
-export const REVIEWS_HOW_IT_WORKS_BULLETS = [
-  'Customer email required — text message coming soon',
-  'One review per customer on your profile',
-  'Shows on your public profile',
-];
-
 export const REVIEWS_EMPTY_STATE_COPY = {
   title: 'No reviews yet',
   body: "When customers leave a review after a visit, they'll show up here.",

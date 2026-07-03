@@ -40,5 +40,7 @@ yarn-error.*
 !.env.example
 !.env.sample
 *.keystore
+# Firebase — never commit (use EAS file env GOOGLE_SERVICES_JSON for cloud builds).
 google-services.json
+**/google-services.json
 GoogleService-Info.plist

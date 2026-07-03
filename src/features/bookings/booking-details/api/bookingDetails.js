@@ -7,6 +7,7 @@ export const BOOKING_DETAILS_SELECT = [
   'start_time',
   'duration_minutes',
   'service_name',
+  'service_id',
   'service_price_cents',
   'addon_details',
   'customer_name',

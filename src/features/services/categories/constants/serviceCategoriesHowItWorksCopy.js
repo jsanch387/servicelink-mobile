@@ -1,27 +1,28 @@
 export const SERVICE_CATEGORIES_HOW_IT_WORKS_TITLE = 'How categories work';
 export const SERVICE_CATEGORIES_HOW_IT_WORKS_LINK_LABEL = 'How categories work?';
+export const SERVICE_CATEGORIES_HOW_IT_WORKS_TAB_LINK_LABEL = 'How it works';
 export const SERVICE_CATEGORIES_HOW_IT_WORKS_DISMISS_LABEL = 'Got it';
 
 export const SERVICE_CATEGORIES_HOW_IT_WORKS_INTRO =
-  'Categories help customers find the right service faster.';
+  'Groups help customers browse your services on your booking link.';
 
 export const SERVICE_CATEGORIES_HOW_IT_WORKS_ITEMS = [
   {
     icon: 'albums-outline',
-    title: 'Organize your services',
-    body: 'Group services into categories — like Cars, RVs, or Boats.',
+    title: 'Create groups',
+    body: 'Name them for your business — like Basic, Premium, or Commercial.',
   },
   {
     icon: 'checkmark-circle-outline',
-    title: 'One category per service',
-    body: 'Each service can be assigned to a single category.',
+    title: 'Pick one per service',
+    body: 'When you edit a service, choose which group it belongs to.',
   },
   {
     icon: 'link-outline',
-    title: 'Shown on your booking link',
-    body: 'Categories appear on your booking link for easier browsing.',
+    title: 'Customers see tabs',
+    body: 'Your link shows tabs so people find the right service faster.',
   },
 ];
 
 export const SERVICE_CATEGORIES_HOW_IT_WORKS_OPTIONAL_NOTE =
-  'Categories are optional. Without them, all services show in one list.';
+  'Optional. Without groups, all services show in one list.';

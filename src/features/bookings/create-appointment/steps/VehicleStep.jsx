@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { DetailsSectionCard, SurfaceTextField } from '../../../../components/ui';
+import { AppText, AppTextInput, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
+import { useTheme } from '../../../../theme';
 
 const FIELD_SHELL = { marginBottom: 0 };
 
@@ -12,25 +13,52 @@ function sanitizeVehicleYearInput(raw) {
 }
 
 export function VehicleStep({ vehicle, notes, onChangeVehicle, onChangeNotes }) {
+  const { colors } = useTheme();
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
         root: {
           gap: 18,
         },
+        card: {
+          paddingHorizontal: 16,
+          paddingVertical: 16,
+        },
         fieldStack: {
           gap: 18,
         },
-        notesField: {
-          marginBottom: 0,
+        notesSection: {
+          gap: 8,
+        },
+        notesTitle: {
+          color: colors.textSecondary,
+          fontSize: 15,
+          fontWeight: '600',
+          letterSpacing: -0.2,
+        },
+        notesCard: {
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+        },
+        notesInput: {
+          color: colors.text,
+          fontSize: 15,
+          fontWeight: '500',
+          letterSpacing: -0.15,
+          lineHeight: 22,
+          minHeight: 120,
+          paddingBottom: 2,
+          paddingTop: 2,
+          textAlignVertical: 'top',
         },
       }),
-    [],
+    [colors],
   );
 
   return (
     <View style={styles.root}>
-      <DetailsSectionCard bodyPadding="roomy" title="Vehicle">
+      <SurfaceCard padding="none" style={styles.card}>
         <View style={styles.fieldStack}>
           <SurfaceTextField
             autoCapitalize="none"
@@ -64,18 +92,22 @@ export function VehicleStep({ vehicle, notes, onChangeVehicle, onChangeNotes }) 
             onChangeText={(t) => onChangeVehicle({ ...vehicle, model: t })}
           />
         </View>
-      </DetailsSectionCard>
-      <SurfaceTextField
-        compact
-        containerStyle={styles.notesField}
-        label="Notes"
-        multiline
-        numberOfLines={5}
-        placeholder="Optional — notes for this booking."
-        value={notes}
-        style={{ minHeight: 120, paddingTop: 10, textAlignVertical: 'top' }}
-        onChangeText={onChangeNotes}
-      />
+      </SurfaceCard>
+
+      <View style={styles.notesSection}>
+        <AppText style={styles.notesTitle}>Notes</AppText>
+        <SurfaceCard padding="none" style={styles.notesCard}>
+          <AppTextInput
+            autoCapitalize="sentences"
+            multiline
+            placeholder="Optional notes for this booking."
+            placeholderTextColor={colors.placeholder}
+            style={styles.notesInput}
+            value={notes}
+            onChangeText={onChangeNotes}
+          />
+        </SurfaceCard>
+      </View>
     </View>
   );
 }

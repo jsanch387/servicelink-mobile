@@ -5,10 +5,12 @@ import { getBookingCalendarRange } from '../../../availability/booking';
 import { ownerHasProAccess } from '../../../bookingLink/api/bookingLink';
 import { fetchAccountSettingsBundle } from '../../../more/api/fetchAccountSettings';
 import { fetchActivePriceOptionsForService } from '../api/priceOptions';
+import { fetchBusinessServiceLocation } from '../api/fetchBusinessServiceLocation';
 import { fetchBlockingBookingsInRange } from '../api/schedulingBookings';
 import {
   createAppointmentAvailabilityQueryKey,
   createAppointmentBlockingBookingsQueryKey,
+  createAppointmentBusinessLocationQueryKey,
   createAppointmentPriceOptionsQueryKey,
 } from '../queryKeys';
 
@@ -16,7 +18,12 @@ import {
  * Loads availability, owner Pro flag, price options for the selected service, and blocking bookings
  * for the create-appointment schedule step.
  */
-export function useCreateAppointmentServerData({ businessId, userId, selectedServiceId }) {
+export function useCreateAppointmentServerData({
+  businessId,
+  userId,
+  selectedServiceId,
+  excludeBookingId,
+}) {
   const { rangeFrom, rangeTo } = useMemo(() => getBookingCalendarRange(), []);
 
   const ownerQ = useQuery({
@@ -58,11 +65,30 @@ export function useCreateAppointmentServerData({ businessId, userId, selectedSer
   });
 
   const blockingQ = useQuery({
-    queryKey: createAppointmentBlockingBookingsQueryKey(businessId, rangeFrom, rangeTo),
+    queryKey: [
+      ...createAppointmentBlockingBookingsQueryKey(businessId, rangeFrom, rangeTo),
+      excludeBookingId ?? '',
+    ],
     queryFn: async () => {
-      const { data, error } = await fetchBlockingBookingsInRange(businessId, rangeFrom, rangeTo);
+      const { data, error } = await fetchBlockingBookingsInRange(
+        businessId,
+        rangeFrom,
+        rangeTo,
+        excludeBookingId,
+      );
       if (error) throw new Error(error.message ?? 'Could not load bookings');
       return data ?? [];
+    },
+    enabled: Boolean(businessId),
+    staleTime: 60 * 1000,
+  });
+
+  const businessLocationQ = useQuery({
+    queryKey: createAppointmentBusinessLocationQueryKey(businessId),
+    queryFn: async () => {
+      const { data, error } = await fetchBusinessServiceLocation(businessId);
+      if (error) throw error;
+      return data;
     },
     enabled: Boolean(businessId),
     staleTime: 60 * 1000,
@@ -71,6 +97,9 @@ export function useCreateAppointmentServerData({ businessId, userId, selectedSer
   return {
     ownerHasPro,
     ownerProfileLoading: ownerQ.isPending,
+    businessServiceLocation: businessLocationQ.data ?? null,
+    businessServiceLocationLoading: businessLocationQ.isPending,
+    businessServiceLocationError: businessLocationQ.error?.message ?? null,
     availabilityRow: availabilityQ.data ?? null,
     availabilityLoading: availabilityQ.isPending,
     availabilityError: availabilityQ.error?.message ?? null,

@@ -81,4 +81,52 @@ describe('CreateFlowFooter', () => {
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' });
     expect(confirmBtn.props.accessibilityState?.disabled).toBe(true);
   });
+
+  it('shows Cancel and Save changes in edit hub mode', () => {
+    const onBack = jest.fn();
+    const onContinue = jest.fn();
+    renderFooter({
+      appointmentConfirmed: false,
+      editHubMode: true,
+      step: -1,
+      lastStepIndex: 7,
+      canContinue: true,
+      confirmLoading: false,
+      paddingBottom: 20,
+      onBack,
+      onContinue,
+      onDone: jest.fn(),
+      lastStepPrimaryTitle: 'Save changes',
+    });
+
+    fireEvent.press(screen.getByText('Cancel'));
+    expect(onBack).toHaveBeenCalled();
+
+    fireEvent.press(screen.getByText('Save changes'));
+    expect(onContinue).toHaveBeenCalled();
+  });
+
+  it('shows Back and Done in edit section mode', () => {
+    const onBack = jest.fn();
+    const onContinue = jest.fn();
+    renderFooter({
+      appointmentConfirmed: false,
+      editSectionMode: true,
+      step: 2,
+      lastStepIndex: 7,
+      canContinue: true,
+      confirmLoading: false,
+      paddingBottom: 20,
+      onBack,
+      onContinue,
+      onDone: jest.fn(),
+      sectionPrimaryTitle: 'Done',
+    });
+
+    fireEvent.press(screen.getByText('Back'));
+    expect(onBack).toHaveBeenCalled();
+
+    fireEvent.press(screen.getByText('Done'));
+    expect(onContinue).toHaveBeenCalled();
+  });
 });

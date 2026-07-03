@@ -1,4 +1,4 @@
-import { Alert, Linking } from 'react-native';
+import { openNativeSms } from '../../../../utils/openNativeSms';
 import { phoneForSmsUri } from '../../../../utils/phone';
 
 /**
@@ -7,23 +7,9 @@ import { phoneForSmsUri } from '../../../../utils/phone';
  */
 export async function openCustomerCheckInSms({ phone }) {
   const addr = phoneForSmsUri(phone);
-  if (!addr) {
-    Alert.alert('No phone number', 'Add a phone number for this customer to send a text.');
-    return;
-  }
-  const url = `sms:${addr}`;
-
-  try {
-    const supported = await Linking.canOpenURL(url);
-    if (!supported) {
-      Alert.alert(
-        'Unable to open Messages',
-        'Open your SMS app manually to contact this customer.',
-      );
-      return;
-    }
-    await Linking.openURL(url);
-  } catch {
-    Alert.alert('Unable to open Messages', 'Something went wrong opening the messaging app.');
-  }
+  await openNativeSms({
+    address: addr,
+    noAddressMessage: 'Add a phone number for this customer to send a text.',
+    unsupportedMessage: 'Open your SMS app manually to contact this customer.',
+  });
 }

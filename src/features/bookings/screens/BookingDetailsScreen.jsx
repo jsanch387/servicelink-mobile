@@ -1,5 +1,13 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Alert,
+  InteractionManager,
+  Linking,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -10,6 +18,7 @@ import {
   SurfaceCard,
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import { ROUTES } from '../../../routes/routes';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { isOnTheWayActionDone } from '../constants/jobStatus';
 import { useBookingAction } from '../hooks/useBookingAction';
@@ -35,6 +44,8 @@ export function BookingDetailsScreen({ route }) {
   const navigation = useNavigation();
   const bookingId = route?.params?.bookingId;
   const [rescheduleSheetOpen, setRescheduleSheetOpen] = useState(false);
+  const [completeScrollRequestId, setCompleteScrollRequestId] = useState(0);
+  const scrollRef = useRef(/** @type {ScrollView | null} */ (null));
   const detailsQuery = useBookingDetails(bookingId);
   const bookingActions = useBookingActions(bookingId);
   const details = useMemo(
@@ -61,6 +72,24 @@ export function BookingDetailsScreen({ route }) {
   const bookingAction = useBookingAction(null);
   const onMyWayAlreadySent =
     isOnTheWayActionDone(detailsQuery.booking) || bookingAction.isOnTheWayDone(bookingId);
+
+  useEffect(() => {
+    setCompleteScrollRequestId(0);
+  }, [bookingId]);
+
+  useEffect(() => {
+    if (completeScrollRequestId === 0 || !isCompletedStatus) {
+      return undefined;
+    }
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ animated: true, y: 0 });
+      });
+    });
+    return () => task.cancel();
+  }, [completeScrollRequestId, isCompletedStatus]);
+
   const customerPhoneDigits = useMemo(
     () => String(details.customer.phone ?? '').replace(/\D/g, ''),
     [details.customer.phone],
@@ -150,6 +179,7 @@ export function BookingDetailsScreen({ route }) {
     async (checkout) => {
       try {
         await markCompleteFlow.confirmComplete(checkout);
+        setCompleteScrollRequestId((id) => id + 1);
       } catch (error) {
         Alert.alert(
           'Could not mark completed',
@@ -159,6 +189,12 @@ export function BookingDetailsScreen({ route }) {
     },
     [markCompleteFlow],
   );
+  const handleEditBooking = useCallback(() => {
+    if (isCancelledStatus || isCompletedStatus || !bookingId) {
+      return;
+    }
+    navigation.navigate(ROUTES.EDIT_BOOKING, { bookingId });
+  }, [bookingId, isCancelledStatus, isCompletedStatus, navigation]);
   const handleReschedule = useCallback(() => {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
       return;
@@ -307,6 +343,7 @@ export function BookingDetailsScreen({ route }) {
         onRequestClose={() => setRescheduleSheetOpen(false)}
       />
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.content}
         refreshControl={detailsRefreshControl}
         showsVerticalScrollIndicator={false}
@@ -392,6 +429,7 @@ export function BookingDetailsScreen({ route }) {
                 isCancelDisabled={isCancelledStatus || isCompletedStatus}
                 isCancellingBooking={bookingActions.isCancellingBooking}
                 isDeletingBooking={bookingActions.isDeletingBooking}
+                isEditDisabled={isCancelledStatus || isCompletedStatus}
                 isMarkCompletedDisabled={isCompletedStatus}
                 isMarkingCompleted={markCompleteFlow.isConfirming}
                 isOnMyWayDisabled={bookingAction.disabled}
@@ -400,6 +438,7 @@ export function BookingDetailsScreen({ route }) {
                 isReschedulingBooking={bookingActions.isReschedulingBooking}
                 onMyWayAlreadySent={onMyWayAlreadySent}
                 onCancelBooking={handleCancelBooking}
+                onEdit={handleEditBooking}
                 onMarkCompleted={handleMarkCompleted}
                 onOnMyWayPress={handleOnMyWay}
                 onReschedule={handleReschedule}

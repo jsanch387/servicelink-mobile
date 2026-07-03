@@ -1,8 +1,11 @@
 import { ROUTES } from '../../../routes/routes';
 
 /**
- * In-app feature announcements — one entry per shipped feature. Each `id` is shown at most once.
- * Replace the list when you ship the next headline feature (keep only what is current).
+ * In-app feature announcements — one modal at a time. Each `id` is shown at most once per device.
+ *
+ * When you OTA a new announcement, **remove the previous entry** from this array. Retired modals
+ * are not kept in the queue — users who never saw an old one simply won't see it; everyone else
+ * gets only the latest feature. Replace the array contents (or swap the single entry), don't append.
  *
  * @typedef {{
  *   id: string;

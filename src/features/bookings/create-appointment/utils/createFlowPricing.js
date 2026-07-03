@@ -143,3 +143,25 @@ export function getSelectedCreateFlowPricingOption(options, selectedPricingId) {
   if (!selectedPricingId || !options?.length) return null;
   return options.find((o) => o.id === selectedPricingId) ?? null;
 }
+
+/**
+ * Pricing is satisfied only when the selected id matches a loaded option.
+ * Blocks continue while Pro tier rows are still loading.
+ *
+ * @param {object} p
+ * @param {string | null} p.selectedPricingId
+ * @param {Array<{ id: string }>} [p.pricingOptions]
+ * @param {boolean} [p.priceOptionsLoading]
+ * @param {boolean} [p.priceOptionsEnabled]
+ */
+export function isCreateFlowPricingSelectionValid({
+  selectedPricingId,
+  pricingOptions,
+  priceOptionsLoading = false,
+  priceOptionsEnabled = false,
+}) {
+  if (priceOptionsEnabled && priceOptionsLoading) return false;
+  const options = pricingOptions ?? [];
+  if (!options.length || !selectedPricingId) return false;
+  return options.some((o) => o.id === selectedPricingId);
+}

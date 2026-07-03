@@ -1,5 +1,6 @@
 import { parseBookingStartLocalMs } from '../../../home/utils/bookingStart';
 import { formatPhoneForDisplay } from '../../../../utils/phone';
+import { splitBookingServiceName } from '../../../../utils/splitBookingServiceName';
 
 function formatMoney(amount) {
   const safe = Number.isFinite(amount) ? amount : 0;
@@ -301,7 +302,9 @@ function buildTimeLine(ms) {
 
 export function buildBookingDetailsModel(booking) {
   const ms = parseBookingStartLocalMs(booking?.scheduled_date, booking?.start_time);
-  const serviceName = clean(booking?.service_name, 'Detail package');
+  const serviceNameRaw = clean(booking?.service_name, 'Detail package');
+  const { primary: serviceName, pricingOption: servicePricingOption } =
+    splitBookingServiceName(serviceNameRaw);
   const addOns = normalizeAddonItems(booking?.addon_details);
   const servicePrice = Number.isFinite(Number(booking?.service_price_cents))
     ? Number(booking.service_price_cents) / 100
@@ -332,6 +335,7 @@ export function buildBookingDetailsModel(booking) {
     status: clean(booking?.status, 'confirmed'),
     schedule: {
       serviceName,
+      pricingOption: servicePricingOption,
       date: buildDateLine(ms),
       time: buildTimeLine(ms),
       duration: formatDuration(booking?.duration_minutes),

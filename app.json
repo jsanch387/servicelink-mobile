@@ -3,7 +3,7 @@
     "name": "ServiceLink",
     "slug": "servicelink-mobile",
     "icon": "./assets/images/app-icon.png",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "scheme": "servicelinkmobile",
     "splash": {
       "image": "./assets/images/servicelink-logo.png",
@@ -23,7 +23,14 @@
         }
       ],
       "expo-asset",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/servicelink-logo.png",
+          "color": "#0a0a0a",
+          "defaultChannel": "default"
+        }
+      ],
       "expo-web-browser",
       [
         "expo-image-picker",
@@ -66,14 +73,22 @@
     },
     "android": {
       "package": "com.myservicelink.app",
-      "versionCode": 17
+      "versionCode": 17,
+      "permissions": ["android.permission.POST_NOTIFICATIONS"],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/servicelink-logo.png",
+        "backgroundColor": "#0a0a0a"
+      }
     },
-    "runtimeVersion": "1.0.6",
+    "runtimeVersion": "1.0.7",
     "updates": {
       "url": "https://u.expo.dev/0bcb9f83-d0dc-4157-a81c-ecc3e1a069ee",
       "enabled": true,
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "requestHeaders": {
+        "expo-channel-name": "production"
+      }
     }
   }
 }

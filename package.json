@@ -1,6 +1,6 @@
 {
   "name": "servicelink-mobile",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "main": "index.js",
   "scripts": {
     "start": "expo start --dev-client",
@@ -15,9 +15,11 @@
     "prepare": "husky",
     "test": "jest --runInBand --forceExit",
     "test:watch": "jest --watch --runInBand",
+    "eas-build-post-install": "node scripts/copyGoogleServicesForAndroidBuild.js",
     "eas:build:ios:preview": "eas build --platform ios --profile preview",
     "eas:update:preview": "eas update --channel preview",
-    "eas:update:production": "eas update --channel production"
+    "eas:update:production": "eas update --channel production --environment production",
+    "eas:update:production:1.0.6": "node scripts/easUpdateProduction.js --runtime 1.0.6 --platform all --message \"Production OTA for App Store 1.0.6 users\""
   },
   "dependencies": {
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",

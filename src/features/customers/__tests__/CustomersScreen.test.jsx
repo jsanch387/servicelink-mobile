@@ -107,7 +107,7 @@ describe('CustomersScreen', () => {
     expect(screen.getByText('Add customer')).toBeTruthy();
     expect(screen.getByText('Add a new customer to your list.')).toBeTruthy();
     expect(screen.getByText('Name *')).toBeTruthy();
-    expect(screen.getByText('Phone number (optional)')).toBeTruthy();
+    expect(screen.getByText('Phone *')).toBeTruthy();
     expect(screen.getByText('Email (optional)')).toBeTruthy();
     expect(screen.getByText('Notes (optional)')).toBeTruthy();
     fireEvent.press(screen.getByText('Cancel'));
@@ -124,14 +124,15 @@ describe('CustomersScreen', () => {
     const view = renderWithProviders(<CustomersScreen />);
     fireEvent.press(screen.getByLabelText('Add customer'));
     const inputs = view.UNSAFE_getAllByType(TextInput);
-    /** [0] search bar; [1] name in add-customer sheet */
+    /** [0] search bar; [1] name; [2] phone in add-customer sheet */
     fireEvent.changeText(inputs[1], 'Jamie Chen');
+    fireEvent.changeText(inputs[2], '(555) 234-5678');
     fireEvent.press(screen.getByRole('button', { name: 'Add' }));
 
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith({
         fullName: 'Jamie Chen',
-        phone: '',
+        phone: '(555) 234-5678',
         email: '',
         notes: '',
       });

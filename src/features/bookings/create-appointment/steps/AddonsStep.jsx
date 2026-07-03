@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, Divider, SurfaceCard } from '../../../../components/ui';
+import { AppText, DetailsSectionCard, Divider } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 import { ChoiceRow } from '../components/ChoiceRow';
 import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
@@ -25,7 +25,8 @@ export function AddonsStep({
 
   const selectedAddonRows = useMemo(() => {
     const list = serviceAddons ?? [];
-    return list.filter((a) => selectedAddonIds.includes(a.id));
+    const idSet = new Set((selectedAddonIds ?? []).map(String));
+    return list.filter((a) => idSet.has(String(a.id)));
   }, [serviceAddons, selectedAddonIds]);
 
   const addonsUsdSum = selectedAddonRows.reduce(
@@ -37,18 +38,15 @@ export function AddonsStep({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        summaryCard: {
-          marginTop: 20,
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-        },
-        summaryHeading: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 11,
-          letterSpacing: 0.5,
+        sectionTitle: {
+          color: colors.text,
+          fontSize: 17,
+          fontWeight: '700',
+          letterSpacing: -0.2,
           marginBottom: 12,
-          textTransform: 'uppercase',
+        },
+        summarySection: {
+          marginTop: 20,
         },
         serviceRow: {
           alignItems: 'flex-start',
@@ -72,10 +70,13 @@ export function AddonsStep({
           color: colors.textMuted,
           fontSize: 13,
           fontWeight: '500',
-          marginBottom: 16,
+          marginBottom: 12,
+        },
+        serviceDivider: {
+          marginBottom: 12,
         },
         addonBlock: {
-          marginTop: 4,
+          marginTop: 0,
         },
         addonBlockLabel: {
           color: colors.textMuted,
@@ -174,8 +175,10 @@ export function AddonsStep({
 
   return (
     <View>
+      <AppText style={styles.sectionTitle}>Optional add-ons</AppText>
+
       {addons.map((addon) => {
-        const selected = selectedAddonIds.includes(addon.id);
+        const selected = selectedAddonIds.some((id) => String(id) === String(addon.id));
         const priceLine = addon.priceLabel ?? addon.price ?? '';
         return (
           <ChoiceRow
@@ -190,43 +193,46 @@ export function AddonsStep({
         );
       })}
 
-      <SurfaceCard padding="none" style={styles.summaryCard}>
-        <AppText style={styles.summaryHeading}>Summary</AppText>
-
-        <View style={styles.serviceRow}>
-          <AppText numberOfLines={2} style={styles.serviceName}>
-            {service.name}
-          </AppText>
-          <AppText style={styles.servicePrice}>{headerOptionPrice}</AppText>
-        </View>
-        {selectedPricingOption ? (
-          <AppText style={styles.optionSummaryLine}>{selectedPricingOption.label}</AppText>
-        ) : (
-          <View style={{ height: 4 }} />
-        )}
-
-        {selectedAddonRows.length > 0 ? (
-          <View style={styles.addonBlock}>
-            <AppText style={styles.addonBlockLabel}>Add-ons</AppText>
-            {selectedAddonRows.map((a) => (
-              <View key={a.id} style={styles.addonRow}>
-                <AppText numberOfLines={2} style={styles.addonName}>
-                  {a.name}
-                </AppText>
-                <AppText style={styles.addonPrice}>
-                  {formatUsdFromNumber(parsePriceLabelToUsd(a.priceLabel ?? a.price))}
-                </AppText>
-              </View>
-            ))}
+      <View style={styles.summarySection}>
+        <DetailsSectionCard bodyPadding="roomy" title="Summary">
+          <View style={styles.serviceRow}>
+            <AppText numberOfLines={2} style={styles.serviceName}>
+              {service.name}
+            </AppText>
+            <AppText style={styles.servicePrice}>{headerOptionPrice}</AppText>
           </View>
-        ) : null}
+          {selectedPricingOption ? (
+            <AppText style={styles.optionSummaryLine}>{selectedPricingOption.label}</AppText>
+          ) : (
+            <View style={{ height: 4 }} />
+          )}
 
-        <Divider style={styles.divider} />
-        <View style={styles.totalRow}>
-          <AppText style={styles.totalLabel}>Total</AppText>
-          <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>
-        </View>
-      </SurfaceCard>
+          {selectedAddonRows.length > 0 ? (
+            <>
+              <Divider style={styles.serviceDivider} />
+              <View style={styles.addonBlock}>
+                <AppText style={styles.addonBlockLabel}>Add-ons</AppText>
+                {selectedAddonRows.map((a) => (
+                  <View key={a.id} style={styles.addonRow}>
+                    <AppText numberOfLines={2} style={styles.addonName}>
+                      {a.name}
+                    </AppText>
+                    <AppText style={styles.addonPrice}>
+                      {formatUsdFromNumber(parsePriceLabelToUsd(a.priceLabel ?? a.price))}
+                    </AppText>
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : null}
+
+          <Divider style={styles.divider} />
+          <View style={styles.totalRow}>
+            <AppText style={styles.totalLabel}>Total</AppText>
+            <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>
+          </View>
+        </DetailsSectionCard>
+      </View>
     </View>
   );
 }

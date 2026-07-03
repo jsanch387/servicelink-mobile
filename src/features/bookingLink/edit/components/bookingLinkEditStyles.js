@@ -3,6 +3,9 @@ import { StyleSheet } from 'react-native';
 /** Vertical gap between stacked edit sections (no hairline dividers). */
 const SECTION_STACK_GAP = 24;
 
+/** Even vertical rhythm for edit-mode chrome (header → tabs → content). */
+const EDIT_CHROME_GAP = 12;
+
 /** @param {object} colors Theme palette from `useTheme()`. */
 export function createBookingLinkEditStyles(colors, galleryGap) {
   return StyleSheet.create({
@@ -11,43 +14,122 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       paddingHorizontal: 16,
       paddingTop: 0,
     },
-    content: {
-      paddingBottom: 28,
+    scroll: {
+      flex: 1,
     },
-    stickyHeaderShell: {
-      alignSelf: 'stretch',
+    scrollTopPad: {
+      paddingTop: EDIT_CHROME_GAP,
+    },
+    stickyTabsShell: {
       backgroundColor: colors.shell,
-      borderBottomColor: colors.border,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      elevation: 6,
-      marginBottom: 10,
-      paddingBottom: 8,
-      paddingTop: 10,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 10,
       zIndex: 10,
     },
-    topActionsCard: {
-      alignSelf: 'stretch',
-      backgroundColor: colors.cardSurface,
-      borderColor: colors.border,
-      borderRadius: 20,
-      borderWidth: 1,
-      marginBottom: 0,
-      padding: 8,
+    tabPanel: {
+      paddingTop: EDIT_CHROME_GAP,
     },
-    topActionsRow: {
+    content: {},
+    tabPanelFirstSection: {
+      marginTop: 0,
+    },
+    bookingTabSection: {
       alignSelf: 'stretch',
+    },
+    bookingBlock: {
+      marginBottom: SECTION_STACK_GAP,
+    },
+    bookingHelperText: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '400',
+      letterSpacing: -0.05,
+      lineHeight: 18,
+      marginTop: 12,
+    },
+    bookingShopFields: {
+      marginTop: 14,
+    },
+    bookingAreaFooter: {
+      alignItems: 'center',
+      borderTopColor: colors.border,
+      borderTopWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
-      gap: 10,
-      width: '100%',
+      flexWrap: 'wrap',
+      marginHorizontal: -16,
+      marginTop: 14,
+      paddingHorizontal: 16,
+      paddingTop: 12,
     },
-    actionCell: {
+    bookingAreaFooterText: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '500',
+      lineHeight: 17,
+    },
+    bookingAreaFooterLink: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 17,
+      textDecorationLine: 'underline',
+    },
+    bookingLanguageRowSolo: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    bookingLanguageDefaultRow: {
+      alignItems: 'center',
+      borderTopColor: colors.border,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 14,
+      paddingTop: 14,
+    },
+    bookingLanguageLabel: {
+      color: colors.text,
       flex: 1,
-      flexBasis: 0,
+      fontSize: 15,
+      fontWeight: '500',
+      letterSpacing: -0.15,
       minWidth: 0,
+      paddingRight: 12,
+    },
+    inlineSegmentTrack: {
+      backgroundColor: colors.shellElevated,
+      borderColor: colors.border,
+      borderRadius: 10,
+      borderWidth: 1,
+      flexDirection: 'row',
+      padding: 4,
+    },
+    inlineSegmentTrackCompact: {
+      flexShrink: 0,
+    },
+    inlineSegmentOption: {
+      alignItems: 'center',
+      borderRadius: 8,
+      flex: 1,
+      justifyContent: 'center',
+      minHeight: 36,
+      paddingHorizontal: 8,
+    },
+    inlineSegmentOptionCompact: {
+      flex: 0,
+      minWidth: 76,
+      paddingHorizontal: 12,
+    },
+    inlineSegmentOptionActive: {
+      backgroundColor: colors.accent,
+    },
+    inlineSegmentLabel: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '600',
+      letterSpacing: -0.1,
+    },
+    inlineSegmentLabelActive: {
+      color: colors.shell,
     },
     sectionTitle: {
       color: colors.textSecondary,
@@ -201,6 +283,24 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
     },
     infoFieldLast: {
       marginBottom: 2,
+    },
+    locationFieldsRow: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    locationFieldState: {
+      flex: 0.42,
+      minWidth: 0,
+    },
+    locationFieldZip: {
+      flex: 0.58,
+      minWidth: 0,
+    },
+    bioSection: {
+      marginTop: SECTION_STACK_GAP,
+    },
+    bioFieldWrap: {
+      marginTop: 10,
     },
     infoSelectFieldFlushTop: {
       marginTop: 0,

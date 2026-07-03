@@ -12,22 +12,34 @@ import { useTheme } from '../../../../theme';
  * @param {number} props.step
  * @param {number} props.lastStepIndex
  * @param {boolean} props.canContinue
+ * @param {boolean} [props.confirmLoading]
  * @param {boolean} [props.hideWhileSubmitPanel]
  * @param {number} props.paddingBottom
  * @param {() => void} props.onBack
  * @param {() => void} props.onContinue
  * @param {() => void} props.onDone
+ * @param {string} [props.lastStepPrimaryTitle]
+ * @param {string} [props.lastStepAccessibilityLabel]
+ * @param {boolean} [props.editHubMode] Cancel + Save changes (edit hub)
+ * @param {boolean} [props.editSectionMode] Back + Done (single-section edit)
+ * @param {string} [props.sectionPrimaryTitle]
  */
 export function CreateFlowFooter({
   appointmentConfirmed,
   step,
   lastStepIndex,
   canContinue,
+  confirmLoading = false,
   hideWhileSubmitPanel = false,
   paddingBottom,
   onBack,
   onContinue,
   onDone,
+  lastStepPrimaryTitle = 'Confirm',
+  lastStepAccessibilityLabel,
+  editHubMode = false,
+  editSectionMode = false,
+  sectionPrimaryTitle = 'Done',
 }) {
   const { colors } = useTheme();
   const styles = useMemo(
@@ -65,6 +77,46 @@ export function CreateFlowFooter({
     );
   }
 
+  if (editHubMode) {
+    return (
+      <View style={[styles.footer, { paddingBottom }]}>
+        <View style={styles.footerBtn}>
+          <Button fullWidth title="Cancel" variant="secondary" onPress={onBack} />
+        </View>
+        <View style={styles.footerBtn}>
+          <Button
+            accessibilityLabel={lastStepAccessibilityLabel ?? lastStepPrimaryTitle}
+            disabled={!canContinue || confirmLoading}
+            fullWidth
+            loading={confirmLoading}
+            title={lastStepPrimaryTitle}
+            variant="primary"
+            onPress={onContinue}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  if (editSectionMode) {
+    return (
+      <View style={[styles.footer, { paddingBottom }]}>
+        <View style={styles.footerBtn}>
+          <Button fullWidth title="Back" variant="secondary" onPress={onBack} />
+        </View>
+        <View style={styles.footerBtn}>
+          <Button
+            disabled={!canContinue}
+            fullWidth
+            title={sectionPrimaryTitle}
+            variant="primary"
+            onPress={onContinue}
+          />
+        </View>
+      </View>
+    );
+  }
+
   const isLast = step === lastStepIndex;
 
   return (
@@ -79,10 +131,13 @@ export function CreateFlowFooter({
       </View>
       <View style={styles.footerBtn}>
         <Button
-          accessibilityLabel={isLast ? 'Create appointment' : undefined}
-          disabled={!canContinue}
+          accessibilityLabel={
+            isLast ? (lastStepAccessibilityLabel ?? lastStepPrimaryTitle) : undefined
+          }
+          disabled={!canContinue || (isLast && confirmLoading)}
           fullWidth
-          title={isLast ? 'Confirm' : 'Continue'}
+          loading={isLast && confirmLoading}
+          title={isLast ? lastStepPrimaryTitle : 'Continue'}
           variant="primary"
           onPress={onContinue}
         />

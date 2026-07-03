@@ -10,6 +10,12 @@ const MEDIA_BUCKET_NAME = 'business_images';
  * @property {string | null} business_name
  * @property {string | null} business_type
  * @property {string | null} service_area
+ * @property {string | null} business_zip
+ * @property {string | null} service_location_mode
+ * @property {string | null} shop_street_address
+ * @property {string | null} shop_unit
+ * @property {string[] | null} public_booking_locales
+ * @property {string | null} public_booking_default_locale
  * @property {string | null} bio
  * @property {string | null} phone_number_call
  * @property {string | null} business_slug
@@ -32,6 +38,12 @@ const BUSINESS_PROFILE_SELECT = [
   'business_name',
   'business_type',
   'service_area',
+  'business_zip',
+  'service_location_mode',
+  'shop_street_address',
+  'shop_unit',
+  'public_booking_locales',
+  'public_booking_default_locale',
   'bio',
   'phone_number_call',
   'business_slug',
@@ -221,6 +233,16 @@ export async function normalizeMobileBusinessProfile({
     business_name: cleanTextOrNull(businessProfileRow?.business_name),
     business_type: cleanTextOrNull(businessProfileRow?.business_type),
     service_area: cleanTextOrNull(businessProfileRow?.service_area),
+    business_zip: cleanTextOrNull(businessProfileRow?.business_zip),
+    service_location_mode: cleanTextOrNull(businessProfileRow?.service_location_mode),
+    shop_street_address: cleanTextOrNull(businessProfileRow?.shop_street_address),
+    shop_unit: cleanTextOrNull(businessProfileRow?.shop_unit),
+    public_booking_locales: Array.isArray(businessProfileRow?.public_booking_locales)
+      ? businessProfileRow.public_booking_locales.filter((l) => l === 'en' || l === 'es')
+      : null,
+    public_booking_default_locale: cleanTextOrNull(
+      businessProfileRow?.public_booking_default_locale,
+    ),
     bio: cleanTextOrNull(businessProfileRow?.bio),
     phone_number_call: cleanTextOrNull(businessProfileRow?.phone_number_call),
     business_slug: cleanTextOrNull(businessProfileRow?.business_slug),

@@ -14,6 +14,7 @@ import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { MaintenanceEnrollmentCard } from '../components/MaintenanceEnrollmentCard';
+import { MaintenanceHowItWorks } from '../components/MaintenanceHowItWorks';
 import {
   MAINTENANCE_LIST_EMPTY_COMPLETED,
   MAINTENANCE_LIST_EMPTY_CONFIRMED,
@@ -69,6 +70,9 @@ export function MaintenanceScreen() {
           paddingTop: 16,
         },
         pills: {
+          marginBottom: 12,
+        },
+        howItWorksBlock: {
           marginBottom: 16,
         },
         list: {
@@ -146,6 +150,10 @@ export function MaintenanceScreen() {
             options={MAINTENANCE_TAB_OPTIONS}
             selectedKey={listTab}
           />
+        </View>
+
+        <View style={styles.howItWorksBlock}>
+          <MaintenanceHowItWorks />
         </View>
 
         {inbox.businessError ? (

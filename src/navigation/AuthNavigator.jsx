@@ -17,7 +17,10 @@ import { LoginScreen } from '../features/auth/screens/LoginScreen';
 import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
 import { MobileSetupRequiredScreen } from '../features/onboarding/screens/MobileSetupRequiredScreen';
 import { PENDING_NAVIGATE_TO_BOOKING_LINK_KEY } from '../features/onboarding/constants/postOnboardingNavigation';
+import { consumePendingPushNavigation } from '../features/notifications/constants/pendingPushNavigation';
+import { attemptPushNavigation } from '../features/notifications/utils/attemptPushNavigation';
 import { CreateAppointmentScreen } from '../features/bookings';
+import { EditBookingScreen } from '../features/bookings/screens/EditBookingScreen';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
 import { CreateQuoteScreen } from '../features/quotes/screens/CreateQuoteScreen';
 import { useSubscription } from '../features/subscription';
@@ -132,13 +135,34 @@ export function AuthNavigator() {
     handoffOverlayOpacity,
   ]);
 
-  /** Post–step 5: `MainTabNavigator` may not mount during subscription boot — consume pending nav here. */
+  /** Post–step 5 / cold-start push: consume deferred navigation once main tabs are interactive. */
   const pendingBookingLinkNavBusyRef = useRef(false);
+  const pendingPushNavBusyRef = useRef(false);
   useEffect(() => {
     if (!mainTabsInteractive) {
       return undefined;
     }
     let cancelled = false;
+
+    const tryConsumePendingPushNav = async () => {
+      if (cancelled || pendingPushNavBusyRef.current) {
+        return;
+      }
+      try {
+        const data = await consumePendingPushNavigation();
+        if (cancelled || !data) {
+          return;
+        }
+        pendingPushNavBusyRef.current = true;
+        try {
+          attemptPushNavigation(data, { canNavigateMain: true });
+        } finally {
+          pendingPushNavBusyRef.current = false;
+        }
+      } catch {
+        pendingPushNavBusyRef.current = false;
+      }
+    };
 
     const tryConsumePendingBookingLinkNav = async () => {
       if (cancelled || pendingBookingLinkNavBusyRef.current) {
@@ -167,10 +191,20 @@ export function AuthNavigator() {
       }
     };
 
+    void tryConsumePendingPushNav();
     void tryConsumePendingBookingLinkNav();
-    const t1 = setTimeout(() => void tryConsumePendingBookingLinkNav(), 120);
-    const t2 = setTimeout(() => void tryConsumePendingBookingLinkNav(), 450);
-    const t3 = setTimeout(() => void tryConsumePendingBookingLinkNav(), 900);
+    const t1 = setTimeout(() => {
+      void tryConsumePendingPushNav();
+      void tryConsumePendingBookingLinkNav();
+    }, 120);
+    const t2 = setTimeout(() => {
+      void tryConsumePendingPushNav();
+      void tryConsumePendingBookingLinkNav();
+    }, 450);
+    const t3 = setTimeout(() => {
+      void tryConsumePendingPushNav();
+      void tryConsumePendingBookingLinkNav();
+    }, 900);
     return () => {
       cancelled = true;
       clearTimeout(t1);
@@ -261,6 +295,19 @@ export function AuthNavigator() {
                 options={{
                   headerShown: true,
                   title: 'New appointment',
+                  headerBackButtonDisplayMode: 'minimal',
+                  headerBackTitleVisible: false,
+                  headerTitleStyle: {
+                    fontFamily: FONT_FAMILIES.semibold,
+                  },
+                }}
+              />
+              <Stack.Screen
+                component={EditBookingScreen}
+                name={ROUTES.EDIT_BOOKING}
+                options={{
+                  headerShown: true,
+                  title: 'Edit appointment',
                   headerBackButtonDisplayMode: 'minimal',
                   headerBackTitleVisible: false,
                   headerTitleStyle: {

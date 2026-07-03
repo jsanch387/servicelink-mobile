@@ -47,4 +47,5 @@ export { SurfacePhoneField } from './SurfacePhoneField';
 export { SurfaceTextField } from './SurfaceTextField';
 export { TimeSelectField } from './TimeSelectField';
 export { ToastProvider, useToast } from './ToastProvider';
+export { WizardProgressBar } from './WizardProgressBar';
 export { WizardStepHeader } from './WizardStepHeader';

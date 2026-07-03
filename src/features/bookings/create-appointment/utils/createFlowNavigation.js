@@ -11,29 +11,41 @@ export function isAddonsStepSkipped(addonCatalogKnown, addonsCount) {
 }
 
 /**
- * Linear order of wizard step indices with optional pricing / add-ons removed.
+ * Linear order of wizard step indices with optional steps removed.
  * @param {boolean} pricingSkipped
  * @param {boolean} addonsSkipped
+ * @param {boolean} [locationSkipped]
+ * @param {boolean} [addressSkipped]
  */
-export function getCreateAppointmentVisibleStepOrder(pricingSkipped, addonsSkipped) {
+export function getCreateAppointmentVisibleStepOrder(
+  pricingSkipped,
+  addonsSkipped,
+  locationSkipped = false,
+  addressSkipped = false,
+) {
   const o = [CREATE_APPOINTMENT_STEP.SERVICE];
   if (!pricingSkipped) o.push(CREATE_APPOINTMENT_STEP.PRICING);
   if (!addonsSkipped) o.push(CREATE_APPOINTMENT_STEP.ADDONS);
-  o.push(
-    CREATE_APPOINTMENT_STEP.SCHEDULE,
-    CREATE_APPOINTMENT_STEP.CUSTOMER,
-    CREATE_APPOINTMENT_STEP.ADDRESS,
-    CREATE_APPOINTMENT_STEP.VEHICLE,
-    CREATE_APPOINTMENT_STEP.REVIEW,
-  );
+  o.push(CREATE_APPOINTMENT_STEP.SCHEDULE, CREATE_APPOINTMENT_STEP.CUSTOMER);
+  if (!locationSkipped) o.push(CREATE_APPOINTMENT_STEP.LOCATION);
+  if (!addressSkipped) o.push(CREATE_APPOINTMENT_STEP.ADDRESS);
+  o.push(CREATE_APPOINTMENT_STEP.VEHICLE, CREATE_APPOINTMENT_STEP.REVIEW);
   return o;
 }
 
 /**
- * 0-based index within the visible wizard steps (pricing / add-ons may be skipped).
+ * 0-based index within the visible wizard steps (pricing / add-ons / location / address may be skipped).
  */
-export function getCreateAppointmentWizardStepIndex(step, { pricingSkipped, addonsSkipped }) {
-  const order = getCreateAppointmentVisibleStepOrder(pricingSkipped, addonsSkipped);
+export function getCreateAppointmentWizardStepIndex(
+  step,
+  { pricingSkipped, addonsSkipped, locationSkipped = false, addressSkipped = false },
+) {
+  const order = getCreateAppointmentVisibleStepOrder(
+    pricingSkipped,
+    addonsSkipped,
+    locationSkipped,
+    addressSkipped,
+  );
   const idx = order.indexOf(step);
   if (idx < 0) {
     return Math.min(order.length - 1, Math.max(0, step));
@@ -42,10 +54,25 @@ export function getCreateAppointmentWizardStepIndex(step, { pricingSkipped, addo
 }
 
 /**
- * @param {{ pricingSkipped: boolean; addonsSkipped: boolean }} p
+ * @param {{
+ *   pricingSkipped: boolean;
+ *   addonsSkipped: boolean;
+ *   locationSkipped?: boolean;
+ *   addressSkipped?: boolean;
+ * }} p
  */
-export function getCreateAppointmentWizardStepCount({ pricingSkipped, addonsSkipped }) {
-  return getCreateAppointmentVisibleStepOrder(pricingSkipped, addonsSkipped).length;
+export function getCreateAppointmentWizardStepCount({
+  pricingSkipped,
+  addonsSkipped,
+  locationSkipped = false,
+  addressSkipped = false,
+}) {
+  return getCreateAppointmentVisibleStepOrder(
+    pricingSkipped,
+    addonsSkipped,
+    locationSkipped,
+    addressSkipped,
+  ).length;
 }
 
 /**
@@ -53,11 +80,27 @@ export function getCreateAppointmentWizardStepCount({ pricingSkipped, addonsSkip
  */
 export function getCreateAppointmentProgressFraction(
   step,
-  { appointmentConfirmed, pricingSkipped, addonsSkipped },
+  {
+    appointmentConfirmed,
+    pricingSkipped,
+    addonsSkipped,
+    locationSkipped = false,
+    addressSkipped = false,
+  },
 ) {
   if (appointmentConfirmed) return 1;
-  const stepCount = getCreateAppointmentWizardStepCount({ pricingSkipped, addonsSkipped });
-  const stepIndex = getCreateAppointmentWizardStepIndex(step, { pricingSkipped, addonsSkipped });
+  const stepCount = getCreateAppointmentWizardStepCount({
+    pricingSkipped,
+    addonsSkipped,
+    locationSkipped,
+    addressSkipped,
+  });
+  const stepIndex = getCreateAppointmentWizardStepIndex(step, {
+    pricingSkipped,
+    addonsSkipped,
+    locationSkipped,
+    addressSkipped,
+  });
   return (stepIndex + 1) / stepCount;
 }
 
@@ -66,10 +109,18 @@ export function getCreateAppointmentProgressFraction(
  *
  * @param {object} p
  * @param {number} p.step
- * @param {boolean} p.addonsSkipped — {@link isAddonsStepSkipped}
- * @param {boolean} p.pricingSkipped — {@link shouldSkipCreateFlowPricingStep}
+ * @param {boolean} p.addonsSkipped
+ * @param {boolean} p.pricingSkipped
+ * @param {boolean} [p.locationSkipped]
+ * @param {boolean} [p.addressSkipped]
  */
-export function getNextStepOnContinue({ step, addonsSkipped, pricingSkipped }) {
+export function getNextStepOnContinue({
+  step,
+  addonsSkipped,
+  pricingSkipped,
+  locationSkipped = false,
+  addressSkipped = false,
+}) {
   if (step === CREATE_APPOINTMENT_STEP.SERVICE) {
     if (pricingSkipped) {
       return addonsSkipped ? CREATE_APPOINTMENT_STEP.SCHEDULE : CREATE_APPOINTMENT_STEP.ADDONS;
@@ -81,18 +132,37 @@ export function getNextStepOnContinue({ step, addonsSkipped, pricingSkipped }) {
     return addonsSkipped ? CREATE_APPOINTMENT_STEP.SCHEDULE : CREATE_APPOINTMENT_STEP.ADDONS;
   }
 
+  if (step === CREATE_APPOINTMENT_STEP.CUSTOMER) {
+    if (locationSkipped) {
+      return addressSkipped ? CREATE_APPOINTMENT_STEP.VEHICLE : CREATE_APPOINTMENT_STEP.ADDRESS;
+    }
+    return CREATE_APPOINTMENT_STEP.LOCATION;
+  }
+
+  if (step === CREATE_APPOINTMENT_STEP.LOCATION) {
+    return addressSkipped ? CREATE_APPOINTMENT_STEP.VEHICLE : CREATE_APPOINTMENT_STEP.ADDRESS;
+  }
+
   return step + 1;
 }
 
 /**
- * Previous step when pressing Back (handles skipped pricing and add-ons).
+ * Previous step when pressing Back (handles skipped pricing, add-ons, location, and address).
  *
  * @param {object} p
  * @param {number} p.step
  * @param {boolean} p.addonsSkipped
  * @param {boolean} p.pricingSkipped
+ * @param {boolean} [p.locationSkipped]
+ * @param {boolean} [p.addressSkipped]
  */
-export function getPreviousStepOnBack({ step, addonsSkipped, pricingSkipped }) {
+export function getPreviousStepOnBack({
+  step,
+  addonsSkipped,
+  pricingSkipped,
+  locationSkipped = false,
+  addressSkipped = false,
+}) {
   if (step === CREATE_APPOINTMENT_STEP.SCHEDULE) {
     if (!addonsSkipped) {
       return CREATE_APPOINTMENT_STEP.ADDONS;
@@ -108,6 +178,17 @@ export function getPreviousStepOnBack({ step, addonsSkipped, pricingSkipped }) {
       return CREATE_APPOINTMENT_STEP.PRICING;
     }
     return CREATE_APPOINTMENT_STEP.SERVICE;
+  }
+
+  if (step === CREATE_APPOINTMENT_STEP.VEHICLE) {
+    if (addressSkipped) {
+      return locationSkipped ? CREATE_APPOINTMENT_STEP.CUSTOMER : CREATE_APPOINTMENT_STEP.LOCATION;
+    }
+    return CREATE_APPOINTMENT_STEP.ADDRESS;
+  }
+
+  if (step === CREATE_APPOINTMENT_STEP.ADDRESS) {
+    return locationSkipped ? CREATE_APPOINTMENT_STEP.CUSTOMER : CREATE_APPOINTMENT_STEP.LOCATION;
   }
 
   return step - 1;

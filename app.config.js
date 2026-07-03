@@ -11,6 +11,13 @@
  * Optional — Expo push token (`getExpoPushTokenAsync`); set after `eas init` / from Expo dashboard:
  * EXPO_PUBLIC_EAS_PROJECT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
  *
+ * Android push (FCM) — download from Firebase for package `com.myservicelink.app`:
+ * - Local: place `google-services.json` at repo root (gitignored); run
+ *   `node scripts/copyGoogleServicesForAndroidBuild.js` before native Android builds.
+ * - EAS Build: `eas env:create --scope project --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json`
+ *   prebuildCommand copies it into android/app/ (never commit that file).
+ * Also upload FCM v1 service account key via `eas credentials` (see Expo FCM credentials docs).
+ *
  * Optional — Stripe Connect onboarding redirect prefix used by app auth session:
  * EXPO_PUBLIC_STRIPE_CONNECT_ONBOARDING_AUTH_RETURN_URL=servicelinkmobile://payments/connect
  *
@@ -27,6 +34,9 @@
  *   `STRIPE_MOBILE_CONNECT_DEEP_LINK_REFRESH_URL` (default
  *   `servicelinkmobile://payments/connect?connect=refresh`)
  */
+const fs = require('fs');
+const path = require('path');
+
 const DEFAULT_WEB_APP_URL = 'https://myservicelink.app';
 
 const envWebRaw =
@@ -45,6 +55,22 @@ function isEasProjectUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 }
 
+/** Bare android/ in git: copy EAS file env into android/app before Gradle (prebuild may not run). */
+function ensureAndroidGoogleServicesFile() {
+  const fromEnv = String(process.env.GOOGLE_SERVICES_JSON ?? '').trim();
+  const fromRoot = path.join(process.cwd(), 'google-services.json');
+  const target = path.join(process.cwd(), 'android/app/google-services.json');
+  const source =
+    (fromEnv && fs.existsSync(fromEnv) && fromEnv) || (fs.existsSync(fromRoot) && fromRoot) || null;
+  if (!source) {
+    return;
+  }
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.copyFileSync(source, target);
+}
+
+ensureAndroidGoogleServicesFile();
+
 module.exports = ({ config }) => {
   const envEas = String(process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '').trim();
   const jsonEas = String(config?.extra?.eas?.projectId ?? '').trim();
@@ -54,11 +80,36 @@ module.exports = ({ config }) => {
       ? jsonEas
       : '';
 
+  // Only set when the file exists — avoids Expo config parse errors before Firebase is wired up.
+  const googleServicesFromEnv = String(process.env.GOOGLE_SERVICES_JSON ?? '').trim();
+  const googleServicesLocal = path.join(process.cwd(), 'google-services.json');
+  const resolvedGoogleServicesFile =
+    (googleServicesFromEnv && fs.existsSync(googleServicesFromEnv) && googleServicesFromEnv) ||
+    (fs.existsSync(googleServicesLocal) && './google-services.json') ||
+    null;
+
+  const minNativeAppVersion =
+    String(process.env.EXPO_PUBLIC_MIN_NATIVE_APP_VERSION ?? '').trim() ||
+    String(config?.version ?? '').trim();
+  const iosAppStoreUrl =
+    String(process.env.EXPO_PUBLIC_IOS_APP_STORE_URL ?? '').trim() ||
+    'https://apps.apple.com/app/id6768877250';
+  const androidPlayStoreUrl =
+    String(process.env.EXPO_PUBLIC_ANDROID_PLAY_STORE_URL ?? '').trim() ||
+    'https://play.google.com/store/apps/details?id=com.myservicelink.app';
+
   return {
     ...config,
+    android: {
+      ...(config.android ?? {}),
+      ...(resolvedGoogleServicesFile ? { googleServicesFile: resolvedGoogleServicesFile } : {}),
+    },
     extra: {
       ...(config.extra ?? {}),
       webAppUrl: resolvedWebAppUrl,
+      ...(minNativeAppVersion ? { minNativeAppVersion } : {}),
+      iosAppStoreUrl,
+      androidPlayStoreUrl,
       ...(resolvedEasProjectId
         ? { eas: { ...(config.extra?.eas ?? {}), projectId: resolvedEasProjectId } }
         : {}),

@@ -1,0 +1,5 @@
+# Leftover Tap to Pay native project (lives on complete-booking-addons branch).
+# Must not be uploaded with main-branch App Store builds.
+ios/ServiceLink/
+ios/ServiceLink.xcodeproj/
+ios/ServiceLink.xcworkspace/

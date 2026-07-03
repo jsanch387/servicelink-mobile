@@ -165,6 +165,9 @@ export function ReviewsScreen() {
         list: {
           gap: 12,
         },
+        howItWorksBlock: {
+          marginTop: -4,
+        },
         errorBlock: {
           marginBottom: 4,
         },
@@ -216,8 +219,6 @@ export function ReviewsScreen() {
           showsVerticalScrollIndicator={false}
           style={styles.scroll}
         >
-          <ReviewsHowItWorks />
-
           {inbox.businessError ? (
             <View style={styles.errorBlock}>
               <SurfaceCard padding="md">
@@ -243,6 +244,10 @@ export function ReviewsScreen() {
                 breakdown={inbox.summary.breakdown}
                 totalCount={inbox.summary.totalCount}
               />
+
+              <View style={styles.howItWorksBlock}>
+                <ReviewsHowItWorks />
+              </View>
 
               {hasReviews ? (
                 <View style={styles.filtersBlock}>
