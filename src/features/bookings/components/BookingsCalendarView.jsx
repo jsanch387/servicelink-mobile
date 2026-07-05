@@ -70,7 +70,7 @@ export function BookingsCalendarView({
           flex: 1,
           paddingLeft: safeHorizontalInset.left,
           paddingRight: safeHorizontalInset.right,
-          paddingTop: 4,
+          paddingTop: 8,
         },
       }),
     [contentBottomPad, safeHorizontalInset.left, safeHorizontalInset.right],

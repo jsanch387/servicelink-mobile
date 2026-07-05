@@ -6,7 +6,7 @@ import { useTheme } from '../../theme';
 
 /**
  * @param {object} props
- * @param {string} props.title
+ * @param {string} [props.title]
  * @param {import('react').ReactNode} props.children
  * @param {'default' | 'overline'} [props.titleTone]
  * @param {'default' | 'roomy'} [props.bodyPadding]
@@ -55,7 +55,9 @@ export function DetailsSectionCard({
 
   return (
     <View style={styles.section}>
-      <AppText style={isOverline ? styles.titleOverline : styles.titleDefault}>{title}</AppText>
+      {title ? (
+        <AppText style={isOverline ? styles.titleOverline : styles.titleDefault}>{title}</AppText>
+      ) : null}
       <SurfaceCard style={isRoomy ? styles.cardRoomy : styles.cardDefault}>{children}</SurfaceCard>
     </View>
   );

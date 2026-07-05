@@ -1,3 +1,5 @@
+import { COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY } from './markCompleteFeatureFlags';
+
 /**
  * Customer notification copy for complete visit — no phone numbers or emails in UI.
  *
@@ -5,6 +7,14 @@
  * @returns {{ visible: boolean; message: string; iconName: 'chatbubble-ellipses-outline' | 'mail-outline' | 'information-circle-outline' }}
  */
 export function getCompleteVisitFollowUpMessage(p) {
+  if (!COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY) {
+    return {
+      visible: false,
+      message: '',
+      iconName: 'information-circle-outline',
+    };
+  }
+
   if (p.showReviewSms) {
     return {
       visible: true,
@@ -33,6 +43,10 @@ export function getCompleteVisitFollowUpMessage(p) {
  * @returns {string}
  */
 export function getCompleteVisitSuccessDetail(p) {
+  if (!COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY) {
+    return 'This service is marked complete on your calendar.';
+  }
+
   if (p.showReviewSms) {
     return 'We texted your customer their receipt and a review link.';
   }

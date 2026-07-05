@@ -19,7 +19,10 @@ import { HomeErrorBanner } from '../components/HomeErrorBanner';
 import { LinkStatsSection } from '../components/LinkStatsSection';
 import { NextUpCard } from '../components/NextUpCard';
 import { RestOfTodayCard } from '../components/restOfToday';
-import { NEXT_UP_LIFECYCLE_DESIGN_PREVIEW } from '../constants/nextUpDesignFlags';
+import {
+  NEXT_UP_LIFECYCLE_DESIGN_PREVIEW,
+  NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS,
+} from '../constants/nextUpDesignFlags';
 import { useNextUpLifecycleDesignPreview } from '../hooks/useNextUpLifecycleDesignPreview';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
 import { useLinkViewsAnalytics } from '../hooks/useLinkViewsAnalytics';
@@ -134,10 +137,12 @@ export function HomeScreen() {
     lifecycleDesignPreview.isActive,
   ]);
 
-  const nextUpSectionTitle = useMemo(
-    () => resolveNextUpSectionTitle(nextUpActionMode),
-    [nextUpActionMode],
-  );
+  const nextUpSectionTitle = useMemo(() => {
+    if (!NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS) {
+      return 'Next Up';
+    }
+    return resolveNextUpSectionTitle(nextUpActionMode);
+  }, [nextUpActionMode]);
 
   /** Show while business exists, or during first business fetch so the timeline skeleton paints with the rest of home. */
   const showTodayTimelineSection =
@@ -369,9 +374,11 @@ export function HomeScreen() {
     );
   }, [dashboard.nextBooking, lifecycleDesignPreview.isActive, lifecycleDesignPreview.workingPhase]);
 
-  const nextUpMarkCompleteEnabled = lifecycleDesignPreview.isActive
-    ? lifecycleDesignPreview.workingPhase === 'ready'
-    : nextUpActionMode === 'working' && Boolean(nextBookingId) && nextUpWorkingPhase === 'ready';
+  const nextUpMarkCompleteEnabled =
+    NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS &&
+    (lifecycleDesignPreview.isActive
+      ? lifecycleDesignPreview.workingPhase === 'ready'
+      : nextUpActionMode === 'working' && Boolean(nextBookingId) && nextUpWorkingPhase === 'ready');
 
   const handleConfirmMarkComplete = useCallback(
     async (checkout) => {
@@ -537,6 +544,7 @@ export function HomeScreen() {
           bookingsError={lifecycleDesignPreview.isActive ? null : homeErrors.nextUpBookingsError}
           businessError={lifecycleDesignPreview.isActive ? null : homeErrors.nextUpBusinessError}
           businessId={dashboard.business?.id ?? null}
+          businessName={dashboard.business?.business_name?.trim() || null}
           isLoading={lifecycleDesignPreview.isActive ? false : sectionLoading}
           markCompleteLoading={
             lifecycleDesignPreview.isActive ? false : markCompleteFlow.isConfirming
@@ -544,12 +552,14 @@ export function HomeScreen() {
           nextBooking={effectiveNextBooking}
           onMarkComplete={nextUpMarkCompleteEnabled ? handleNextUpMarkComplete : undefined}
           onNotifyWorkFinished={
-            lifecycleDesignPreview.isActive
+            NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS && lifecycleDesignPreview.isActive
               ? lifecycleDesignPreview.requestWorkFinishedNotify
               : undefined
           }
           onSkipWorkNotify={
-            lifecycleDesignPreview.isActive ? lifecycleDesignPreview.skipWorkNotify : undefined
+            NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS && lifecycleDesignPreview.isActive
+              ? lifecycleDesignPreview.skipWorkNotify
+              : undefined
           }
           spotlightMode={effectiveSpotlightMode}
           subtitle={effectiveNextSubtitle}

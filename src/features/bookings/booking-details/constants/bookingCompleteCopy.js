@@ -1,3 +1,5 @@
+import { COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY } from './markCompleteFeatureFlags';
+
 export const BOOKING_MARK_COMPLETE_CANCEL_LABEL = 'Cancel';
 
 export const BOOKING_MARK_COMPLETE_CONFIRM_LABEL = 'Complete visit';
@@ -23,6 +25,15 @@ export const BOOKING_MARK_COMPLETE_CONFIRM_LABEL = 'Complete visit';
  * @returns {BookingMarkCompleteSheetCopy}
  */
 export function getBookingMarkCompleteSheetCopy(modalCopy) {
+  if (!COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY) {
+    return {
+      title: 'Complete this visit?',
+      highlightVariant: null,
+      body: 'This will mark the appointment as completed on your calendar.',
+      confirmLabel: BOOKING_MARK_COMPLETE_CONFIRM_LABEL,
+    };
+  }
+
   if (modalCopy?.showReviewSmsMessage) {
     return {
       title: 'Complete this visit?',

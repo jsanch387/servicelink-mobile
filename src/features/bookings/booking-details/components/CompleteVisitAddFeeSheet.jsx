@@ -1,23 +1,26 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Animated,
-  Keyboard,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, AppTextInput, Button, TextField } from '../../../../components/ui';
-import { useModalFadeBackdropSlideSheet } from '../../../../components/ui/useModalFadeBackdropSlideSheet';
-import { useTheme } from '../../../../theme';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Keyboard, StyleSheet, View } from 'react-native';
+import { BottomSheetModal, Button, SurfaceTextField } from '../../../../components/ui';
 
-function sanitizeFeeAmountInput(text) {
-  const cleaned = String(text ?? '').replace(/[^0-9.]/g, '');
-  const parts = cleaned.split('.');
+const CLOSE_ANIMATION_MS = 280;
+
+function normalizeFeeAmountInput(rawText) {
+  const input = String(rawText ?? '').replace(/\$/g, '');
+  let out = '';
+  let dotSeen = false;
+  for (const ch of input) {
+    if (ch >= '0' && ch <= '9') {
+      out += ch;
+      continue;
+    }
+    if (ch === '.' && !dotSeen) {
+      out += ch;
+      dotSeen = true;
+    }
+  }
+  const parts = out.split('.');
   if (parts.length <= 1) {
-    return parts[0] ?? '';
+    return out;
   }
   return `${parts[0]}.${parts.slice(1).join('').slice(0, 2)}`;
 }
@@ -31,40 +34,36 @@ function sanitizeFeeAmountInput(text) {
  * }} props
  */
 export function CompleteVisitAddFeeSheet({ onClose, onAdd }) {
-  const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
-  const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
-    useModalFadeBackdropSlideSheet();
-
+  const [visible, setVisible] = useState(true);
+  const pendingAfterCloseRef = useRef(null);
   const [label, setLabel] = useState('');
   const [amount, setAmount] = useState('');
-  const [iosKeyboardScrollPadding, setIosKeyboardScrollPadding] = useState(0);
 
-  const close = useCallback(() => {
-    runClose(onClose);
-  }, [runClose, onClose]);
+  const runClose = useCallback((afterClose) => {
+    pendingAfterCloseRef.current = typeof afterClose === 'function' ? afterClose : null;
+    setVisible(false);
+  }, []);
+
+  const finishPendingClose = useCallback(() => {
+    const afterClose = pendingAfterCloseRef.current;
+    pendingAfterCloseRef.current = null;
+    afterClose?.();
+  }, []);
 
   useEffect(() => {
-    prepareOpen();
-    const id = requestAnimationFrame(() => runOpen());
-    return () => cancelAnimationFrame(id);
-  }, [prepareOpen, runOpen]);
-
-  useEffect(() => {
-    if (Platform.OS !== 'ios') {
+    if (visible) {
       return undefined;
     }
-    const onShow = (e) => {
-      setIosKeyboardScrollPadding(Math.max(0, e?.endCoordinates?.height ?? 0));
-    };
-    const onHide = () => setIosKeyboardScrollPadding(0);
-    const subShow = Keyboard.addListener('keyboardWillShow', onShow);
-    const subHide = Keyboard.addListener('keyboardWillHide', onHide);
-    return () => {
-      subShow.remove();
-      subHide.remove();
-    };
-  }, []);
+    const delay =
+      typeof process !== 'undefined' && process.env.NODE_ENV === 'test' ? 0 : CLOSE_ANIMATION_MS;
+    const id = setTimeout(finishPendingClose, delay);
+    return () => clearTimeout(id);
+  }, [finishPendingClose, visible]);
+
+  const close = useCallback(() => {
+    Keyboard.dismiss();
+    runClose(onClose);
+  }, [onClose, runClose]);
 
   const parsedAmount = Number.parseFloat(amount.replace(/[^0-9.]/g, ''));
   const canAdd = Number.isFinite(parsedAmount) && parsedAmount > 0;
@@ -72,94 +71,26 @@ export function CompleteVisitAddFeeSheet({ onClose, onAdd }) {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        overlayRoot: {
-          ...StyleSheet.absoluteFillObject,
-          justifyContent: 'flex-end',
-        },
-        backdropFill: {
-          backgroundColor: 'rgba(0,0,0,0.55)',
-        },
-        sheetWrap: {
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderTopWidth: 1,
-          bottom: 0,
-          left: 0,
-          maxHeight: '62%',
-          position: 'absolute',
-          right: 0,
-        },
-        sheetScroll: {
-          flexGrow: 0,
-        },
-        sheetContent: {
-          paddingHorizontal: 20,
-          paddingTop: 18,
-        },
-        sheetTitle: {
-          color: colors.text,
-          fontSize: 18,
-          fontWeight: '800',
-          letterSpacing: -0.25,
-          marginBottom: 6,
-        },
-        sheetHint: {
-          color: colors.textMuted,
-          fontSize: 14,
-          fontWeight: '500',
-          lineHeight: 20,
-          marginBottom: 16,
-        },
-        headerDivider: {
-          backgroundColor: colors.border,
-          height: 1,
-          marginBottom: 16,
-        },
         fields: {
-          gap: 8,
+          gap: 16,
+          width: '100%',
         },
         fieldFlush: {
           marginBottom: 0,
         },
-        amountField: {
-          gap: 8,
-        },
-        amountLabel: {
-          fontSize: 14,
-          fontWeight: '500',
-        },
-        amountInputRow: {
-          alignItems: 'center',
-          borderRadius: 14,
-          borderWidth: 1.5,
-          flexDirection: 'row',
-          paddingHorizontal: 16,
-          paddingVertical: 14,
-        },
-        amountPrefix: {
-          fontSize: 16,
-          fontWeight: '600',
-          marginRight: 4,
-        },
-        amountInput: {
-          flex: 1,
-          fontSize: 16,
-          minWidth: 0,
-          padding: 0,
+        footerWrap: {
+          width: '100%',
         },
         footer: {
           flexDirection: 'row',
           gap: 12,
-          marginTop: 22,
         },
         footerGrow: {
           flex: 1,
         },
       }),
-    [colors],
+    [],
   );
-
-  const scrollPaddingBottom = Math.max(insets.bottom, 16) + 12 + iosKeyboardScrollPadding;
 
   const handleAdd = () => {
     if (!canAdd) {
@@ -169,76 +100,13 @@ export function CompleteVisitAddFeeSheet({ onClose, onAdd }) {
       label: label.trim() || 'Additional fee',
       amount: parsedAmount,
     });
-    Keyboard.dismiss();
     close();
   };
 
   return (
-    <View style={styles.overlayRoot}>
-      <Animated.View
-        pointerEvents="box-none"
-        style={[StyleSheet.absoluteFillObject, backdropStyle, styles.backdropFill]}
-      >
-        <Pressable
-          accessibilityRole="button"
-          onPress={close}
-          style={StyleSheet.absoluteFillObject}
-        />
-      </Animated.View>
-
-      <Animated.View
-        style={[
-          styles.sheetWrap,
-          sheetStyle,
-          {
-            backgroundColor: colors.shellElevated,
-            borderTopColor: colors.borderStrong,
-          },
-        ]}
-      >
-        <ScrollView
-          contentContainerStyle={[styles.sheetContent, { paddingBottom: scrollPaddingBottom }]}
-          keyboardDismissMode="interactive"
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          style={styles.sheetScroll}
-        >
-          <AppText style={styles.sheetTitle}>Add fee</AppText>
-          <AppText style={styles.sheetHint}>
-            Extra charge for this service — shows on the breakdown.
-          </AppText>
-          <View style={styles.headerDivider} />
-          <View style={styles.fields}>
-            <TextField
-              containerStyle={styles.fieldFlush}
-              label="Description"
-              placeholder="Extra soil removal"
-              value={label}
-              onChangeText={setLabel}
-            />
-            <View style={styles.amountField}>
-              <AppText style={[styles.amountLabel, { color: colors.textMuted }]}>Amount</AppText>
-              <View
-                style={[
-                  styles.amountInputRow,
-                  {
-                    backgroundColor: colors.inputBg,
-                    borderColor: colors.inputBorder,
-                  },
-                ]}
-              >
-                <AppText style={[styles.amountPrefix, { color: colors.text }]}>$</AppText>
-                <AppTextInput
-                  keyboardType="decimal-pad"
-                  placeholder="0.00"
-                  placeholderTextColor={colors.placeholder}
-                  style={[styles.amountInput, { color: colors.inputText }]}
-                  value={amount}
-                  onChangeText={(text) => setAmount(sanitizeFeeAmountInput(text))}
-                />
-              </View>
-            </View>
-          </View>
+    <BottomSheetModal
+      footer={
+        <View style={styles.footerWrap}>
           <View style={styles.footer}>
             <View style={styles.footerGrow}>
               <Button fullWidth title="Cancel" variant="secondary" onPress={close} />
@@ -253,8 +121,32 @@ export function CompleteVisitAddFeeSheet({ onClose, onAdd }) {
               />
             </View>
           </View>
-        </ScrollView>
-      </Animated.View>
-    </View>
+        </View>
+      }
+      sheetHeightPercent={92}
+      stickyFooter
+      subtitle="Extra charge for this service — shows on the breakdown."
+      title="Add fee"
+      visible={visible}
+      onRequestClose={close}
+    >
+      <View style={styles.fields}>
+        <SurfaceTextField
+          containerStyle={styles.fieldFlush}
+          label="Description"
+          placeholder="Extra soil removal"
+          value={label}
+          onChangeText={setLabel}
+        />
+        <SurfaceTextField
+          containerStyle={styles.fieldFlush}
+          keyboardType="decimal-pad"
+          label="Amount"
+          placeholder="$0.00"
+          value={amount ? `$${amount}` : ''}
+          onChangeText={(text) => setAmount(normalizeFeeAmountInput(text))}
+        />
+      </View>
+    </BottomSheetModal>
   );
 }

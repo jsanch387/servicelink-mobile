@@ -136,10 +136,10 @@ describe('resolveTapToPaySheetCopy', () => {
     expect(cold.hint).toBe(
       'Apple will show the contactless reader on your iPhone when it is ready.',
     );
-    expect(cold.statusLine).toBe('Setting up Tap to Pay…');
+    expect(cold.statusLine).toBe('Setting up Tap to Pay');
 
     const warm = resolveTapToPaySheetCopy('preparing', 25, null, { readerWasWarm: true });
-    expect(warm.statusLine).toBe('Opening Tap to Pay…');
+    expect(warm.statusLine).toBe('Opening Tap to Pay');
   });
 
   it('shows preparing payment while intent loads', () => {
@@ -149,7 +149,7 @@ describe('resolveTapToPaySheetCopy', () => {
 
   it('shows processing messaging after card read', () => {
     const copy = resolveTapToPaySheetCopy('processing', 25, null);
-    expect(copy.statusLine).toBe('Processing payment…');
+    expect(copy.statusLine).toBe('Processing payment');
     expect(copy.hint).toMatch(/keep this screen open/i);
   });
 

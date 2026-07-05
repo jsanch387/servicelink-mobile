@@ -12,15 +12,13 @@ import Animated, {
 import { AppText, EchoBarsLoader } from '../../../../components/ui';
 import { SUBMIT_OUTCOME_SUCCESS } from '../../../../components/ui/submitOutcomeTokens';
 import { useTheme } from '../../../../theme';
+import { COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY } from '../constants/markCompleteFeatureFlags';
 
 const enableMotion = typeof process !== 'undefined' && process.env.NODE_ENV !== 'test';
 
-const PENDING_MESSAGES = [
-  'Completing',
-  'Sending receipt',
-  'Sending review link',
-  'Updating booking',
-];
+const PENDING_MESSAGES = COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY
+  ? ['Completing', 'Sending receipt', 'Sending review link', 'Updating booking']
+  : ['Completing', 'Updating booking'];
 const PENDING_MESSAGE_MS = 1200;
 
 /**

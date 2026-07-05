@@ -16,6 +16,8 @@ import {
   BOOKINGS_CALENDAR_DAY,
   BOOKINGS_CALENDAR_MONTH,
   BOOKINGS_CALENDAR_WEEK,
+  BOOKINGS_DEFAULT_CALENDAR_GRANULARITY,
+  BOOKINGS_DEFAULT_VIEW_MODE,
   BOOKINGS_FILTER_PAST,
   BOOKINGS_FILTER_UPCOMING,
   BOOKINGS_LIST_SCREEN_PADDING,
@@ -49,8 +51,10 @@ export function BookingsScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const bottomPad = 28 + Math.max(tabBarHeight, 72) + FAB_VERTICAL_GAP;
 
-  const [viewMode, setViewMode] = useState(BOOKINGS_VIEW_LIST);
-  const [calendarGranularity, setCalendarGranularity] = useState(BOOKINGS_CALENDAR_MONTH);
+  const [viewMode, setViewMode] = useState(BOOKINGS_DEFAULT_VIEW_MODE);
+  const [calendarGranularity, setCalendarGranularity] = useState(
+    BOOKINGS_DEFAULT_CALENDAR_GRANULARITY,
+  );
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [visibleMonthStart, setVisibleMonthStart] = useState(() => {
     const d = new Date();

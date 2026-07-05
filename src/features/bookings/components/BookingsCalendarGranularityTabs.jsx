@@ -39,8 +39,9 @@ export function BookingsCalendarGranularityTabs({ value, onChange }) {
     () =>
       StyleSheet.create({
         wrap: {
+          paddingBottom: 16,
           paddingHorizontal: BOOKINGS_LIST_SCREEN_PADDING,
-          paddingTop: 4,
+          paddingTop: 8,
         },
         tabRow: {
           flexDirection: 'row',

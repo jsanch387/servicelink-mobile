@@ -9,6 +9,9 @@ import { Platform } from 'react-native';
  *
  * Platform: v1 is iPhone-only. Android uses the same flow in code but UI stays hidden until
  * the Android app ships to production (then flip `isTapToPayPlatformSupported` or remove the guard).
+ *
+ * UI can show on iOS even in Expo Go; charging requires a dev client with Terminal linked
+ * (`isTapToPayNativeRuntimeAvailable`).
  */
 
 export const TAP_TO_PAY_USE_SERVER_APIS = true;
@@ -20,13 +23,14 @@ export const TAP_TO_PAY_USE_TERMINAL_SDK = true;
 export const TAP_TO_PAY_DEV_MOCK_COLLECTION =
   typeof __DEV__ !== 'undefined' && __DEV__ && !TAP_TO_PAY_USE_TERMINAL_SDK;
 
-/** Whether Tap to Pay is supported on the current device OS (v1: iOS only). */
+/** Whether Tap to Pay UI is offered on this OS (v1: iOS only). */
 export function isTapToPayPlatformSupported() {
   return Platform.OS === 'ios';
 }
 
 /**
- * Whether the Complete sheet should show an active Tap to Pay entry point.
+ * Whether the Complete sheet should show a Tap to Pay entry point.
+ * Does not guarantee Terminal is linked — press handlers check native runtime.
  */
 export function isTapToPayUiEnabled() {
   if (!isTapToPayPlatformSupported()) {

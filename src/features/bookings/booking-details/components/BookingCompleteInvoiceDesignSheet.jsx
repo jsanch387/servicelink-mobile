@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Keyboard,
   Modal,
@@ -20,15 +21,18 @@ import {
   DetailsSectionCard,
   InlineCardError,
   LabelValueRow,
+  ToastModalHost,
   useBottomSheetOverlay,
+  useToast,
 } from '../../../../components/ui';
 import { useModalFadeBackdropSlideSheet } from '../../../../components/ui/useModalFadeBackdropSlideSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SUBMIT_OUTCOME_SUCCESS } from '../../../../components/ui/submitOutcomeTokens';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 import {
-  BOOKING_COMPLETE_INVOICE_DESIGN_MOCK,
   getCompleteVisitFollowUpInfo,
+  getCompleteVisitPaidRowLabel,
+  resolveCompleteVisitDesignMock,
 } from '../constants/bookingCompleteInvoiceDesignMock';
 import { getCompleteVisitPaymentSettledBanner } from '../constants/completeVisitNotificationCopy';
 import { getCompleteVisitSuccessCopy } from '../constants/completeVisitSuccessCopy';
@@ -38,7 +42,17 @@ import {
 } from '../utils/buildJobCompletedPayload';
 import { CompleteVisitSubmitOverlay } from './CompleteVisitSubmitOverlay';
 import { CompleteVisitAddFeeSheet } from './CompleteVisitAddFeeSheet';
+import { CompleteVisitReceiptEmailDialog } from './CompleteVisitReceiptEmailDialog';
+import { CompleteVisitReceiptEmailNotice } from './CompleteVisitReceiptEmailNotice';
+import { updateBookingCustomerEmail } from '../api/updateBookingCustomerEmail';
+import {
+  COMPLETE_VISIT_RECEIPT_EMAIL_INVALID_TOAST,
+  COMPLETE_VISIT_RECEIPT_EMAIL_SAVE_ERROR_TOAST,
+} from '../constants/completeVisitReceiptEmailCopy';
+import { bookingsDetailsQueryKey } from '../../queryKeys';
 import { useNavigation } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
+import { isValidEmailFormat } from '../../../../utils/email';
 import {
   TapToPaySheet,
   TAP_TO_PAY_RECEIPT_ROW_LABEL,
@@ -54,6 +68,7 @@ import {
 import { useTapToPayReaderPrewarm } from '../../../tap-to-pay/hooks/useTapToPayReaderPrewarm';
 import { TapToPayCheckoutIcon } from '../../../tap-to-pay/components/TapToPayCheckoutIcon';
 import { TapToPaySetupRequiredSheet } from '../../../tap-to-pay/components/TapToPaySetupRequiredSheet';
+import { isTapToPayNativeRuntimeAvailable } from '../../../tap-to-pay/utils/isTapToPayNativeRuntimeAvailable';
 import { useAuth } from '../../../auth';
 import {
   CompleteVisitMarkPaidSheet,
@@ -149,6 +164,9 @@ function CompleteVisitBreakdownRow({ label, sublabel, value, noTopMargin = false
  *   followUpInfo: { visible: boolean; message: string; iconName: string };
  *   iosKeyboardScrollPadding: number;
  *   lineItems: Array<{ id: string; label: string; sublabel?: string | null; amount: number }>;
+ *   savedReceiptEmail: string;
+ *   onPressAddReceiptEmail: () => void;
+ *   showReceiptEmailNotice?: boolean;
  * }} props
  */
 function CompleteVisitDesignBody({
@@ -175,6 +193,9 @@ function CompleteVisitDesignBody({
   iosKeyboardScrollPadding,
   onMarkPaidInPerson,
   lineItems,
+  savedReceiptEmail,
+  onPressAddReceiptEmail,
+  showReceiptEmailNotice = false,
 }) {
   const { colors } = useTheme();
   const overlay = useBottomSheetOverlay();
@@ -187,8 +208,8 @@ function CompleteVisitDesignBody({
       StyleSheet.create({
         scrollContent: {
           gap: 16,
-          paddingHorizontal: 20,
-          paddingTop: 16,
+          paddingHorizontal: 16,
+          paddingTop: 24,
         },
         breakdownRows: {
           gap: 2,
@@ -328,9 +349,18 @@ function CompleteVisitDesignBody({
   ]);
 
   const canUseTapToPay = tapToPayConnectReady && !tapToPayConnectLoading;
+  const hasReceiptEmailForTapToPay = isValidEmailFormat(savedReceiptEmail);
+  const tapToPayNeedsReceiptEmail = showReceiptEmailNotice && !hasReceiptEmailForTapToPay;
 
   const handleTapToPayPress = useCallback(() => {
-    if (tapToPayConnectLoading) {
+    if (tapToPayConnectLoading || tapToPayNeedsReceiptEmail) {
+      return;
+    }
+    if (!isTapToPayNativeRuntimeAvailable()) {
+      Alert.alert(
+        'Development build required',
+        'Tap to Pay needs a development build with Stripe Terminal. It is not available in Expo Go.',
+      );
       return;
     }
     if (canUseTapToPay) {
@@ -338,7 +368,7 @@ function CompleteVisitDesignBody({
       return;
     }
     setSetupSheetVisible(true);
-  }, [canUseTapToPay, openTapToPaySheet, tapToPayConnectLoading]);
+  }, [canUseTapToPay, openTapToPaySheet, tapToPayConnectLoading, tapToPayNeedsReceiptEmail]);
 
   const handleSetupPaymentsPress = useCallback(() => {
     setSetupSheetVisible(false);
@@ -427,15 +457,16 @@ function CompleteVisitDesignBody({
             {showTapToPay ? (
               <Button
                 accessibilityHint={
-                  canUseTapToPay
-                    ? TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT
-                    : TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT
+                  tapToPayNeedsReceiptEmail
+                    ? 'Add a customer email below to use Tap to Pay'
+                    : canUseTapToPay
+                      ? TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT
+                      : TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT
                 }
-                disabled={tapToPayConnectLoading}
+                disabled={tapToPayConnectLoading || tapToPayNeedsReceiptEmail}
                 fullWidth
                 iconNode={<TapToPayCheckoutIcon size={22} />}
                 loading={tapToPayConnectLoading}
-                subduedWhenDisabled={false}
                 title={TAP_TO_PAY_CHECKOUT_BUTTON_LABEL}
                 variant="surfaceLight"
                 onPress={handleTapToPayPress}
@@ -451,6 +482,10 @@ function CompleteVisitDesignBody({
           </View>
         ) : null}
       </DetailsSectionCard>
+
+      {showReceiptEmailNotice ? (
+        <CompleteVisitReceiptEmailNotice onPressAddEmail={onPressAddReceiptEmail} />
+      ) : null}
 
       <DetailsSectionCard bodyPadding="roomy" title="Breakdown">
         <View style={styles.breakdownRows}>
@@ -560,7 +595,9 @@ export function BookingCompleteVisitSheet({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
+  const toast = useToast();
   const navigation = useNavigation();
+  const queryClient = useQueryClient();
   const accessToken = session?.access_token ?? null;
   const {
     isConnectReady: tapToPayConnectReady,
@@ -572,8 +609,7 @@ export function BookingCompleteVisitSheet({
   } = useTapToPayConnectReadiness();
   const showTapToPay = isTapToPayUiEnabled();
   const isDesignPreview = !visitModel && !isLoading && !loadError;
-  const resolvedModel =
-    visitModel ?? (isDesignPreview ? BOOKING_COMPLETE_INVOICE_DESIGN_MOCK : null);
+  const resolvedModel = visitModel ?? (isDesignPreview ? resolveCompleteVisitDesignMock() : null);
 
   const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
     useModalFadeBackdropSlideSheet();
@@ -593,6 +629,9 @@ export function BookingCompleteVisitSheet({
   const [submitPhase, setSubmitPhase] = useState(
     /** @type {'idle' | 'pending' | 'success'} */ ('idle'),
   );
+  const [receiptEmailDraft, setReceiptEmailDraft] = useState('');
+  const [savedReceiptEmail, setSavedReceiptEmail] = useState('');
+  const [receiptEmailDialogVisible, setReceiptEmailDialogVisible] = useState(false);
   const completeTimeoutRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
 
   const MOCK_COMPLETE_MS = 2400;
@@ -630,6 +669,9 @@ export function BookingCompleteVisitSheet({
       setInPersonPayment(null);
       setStripePaymentIntentId(null);
       setSubmitPhase('idle');
+      setReceiptEmailDraft('');
+      setSavedReceiptEmail('');
+      setReceiptEmailDialogVisible(false);
       if (completeTimeoutRef.current) {
         clearTimeout(completeTimeoutRef.current);
         completeTimeoutRef.current = null;
@@ -662,6 +704,15 @@ export function BookingCompleteVisitSheet({
     };
   }, []);
 
+  useEffect(() => {
+    if (!visible || !resolvedModel) {
+      return;
+    }
+    const email = String(resolvedModel.customerEmail ?? '').trim();
+    setSavedReceiptEmail(email);
+    setReceiptEmailDraft(email);
+  }, [resolvedModel, visible]);
+
   const subtotal = useMemo(() => {
     if (!resolvedModel) {
       return 0;
@@ -675,17 +726,100 @@ export function BookingCompleteVisitSheet({
   const inPersonPaid = inPersonPayment?.amount ?? 0;
   const amountDue = Math.max(0, subtotal - paidOnline - tapToPayAmount - inPersonPaid);
 
+  const isPaidInFullOnline =
+    Boolean(resolvedModel?.isPaidInFullOnline) &&
+    amountDue <= 0 &&
+    tapToPayAmount <= 0 &&
+    inPersonPaid <= 0;
+
   const onlinePaidRowLabel = useMemo(() => {
     if (paidOnline <= 0) {
       return null;
     }
-    if (paidOnline >= subtotal && tapToPayAmount <= 0 && inPersonPaid <= 0) {
-      return 'Paid in full';
+    if (isPaidInFullOnline) {
+      return 'Paid online';
     }
-    return 'Deposit paid';
-  }, [inPersonPaid, paidOnline, subtotal, tapToPayAmount]);
+    return getCompleteVisitPaidRowLabel(paidOnline, amountDue);
+  }, [amountDue, isPaidInFullOnline, paidOnline]);
 
   const showCollectActions = amountDue > 0;
+  const showReceiptEmailNotice =
+    showTapToPay && showCollectActions && !isValidEmailFormat(savedReceiptEmail);
+  const hasSavedReceiptEmail = isValidEmailFormat(savedReceiptEmail);
+
+  const followUpInfo = useMemo(() => {
+    if (!resolvedModel) {
+      return { visible: false, message: '', iconName: 'information-circle-outline' };
+    }
+    const showReviewSms = resolvedModel.showReviewSms ?? false;
+    return getCompleteVisitFollowUpInfo({
+      showInvoiceEmail: hasSavedReceiptEmail,
+      showReviewSms,
+      showReviewEmail: hasSavedReceiptEmail && !showReviewSms,
+      showReviewInvite: resolvedModel.showReviewInvite,
+    });
+  }, [hasSavedReceiptEmail, resolvedModel]);
+
+  const successCopy = useMemo(() => {
+    if (!resolvedModel) {
+      return getCompleteVisitSuccessCopy({});
+    }
+    const showReviewSms = resolvedModel.showReviewSms ?? false;
+    return getCompleteVisitSuccessCopy({
+      showReviewSms,
+      showReviewEmail: hasSavedReceiptEmail && !showReviewSms,
+    });
+  }, [hasSavedReceiptEmail, resolvedModel]);
+
+  const handleSaveReceiptEmail = useCallback(
+    async (emailInput) => {
+      const email = String(emailInput ?? receiptEmailDraft).trim();
+      if (!isValidEmailFormat(email)) {
+        toast.error(COMPLETE_VISIT_RECEIPT_EMAIL_INVALID_TOAST);
+        throw new Error('invalid_email');
+      }
+
+      if (isDesignPreview) {
+        setSavedReceiptEmail(email);
+        setReceiptEmailDraft(email);
+        setReceiptEmailDialogVisible(false);
+        Keyboard.dismiss();
+        return;
+      }
+
+      const id = bookingId?.trim();
+      if (!id) {
+        throw new Error('missing_booking');
+      }
+
+      const cached = queryClient.getQueryData(bookingsDetailsQueryKey(id));
+      const customerId =
+        cached && typeof cached === 'object' && cached.customer_id
+          ? String(cached.customer_id).trim()
+          : null;
+      const businessId =
+        cached && typeof cached === 'object' && cached.business_id
+          ? String(cached.business_id).trim()
+          : null;
+
+      const { error } = await updateBookingCustomerEmail(id, email, {
+        businessId,
+        customerId,
+      });
+      if (error) {
+        toast.error(error.message ?? COMPLETE_VISIT_RECEIPT_EMAIL_SAVE_ERROR_TOAST);
+        throw error;
+      }
+      setSavedReceiptEmail(email);
+      setReceiptEmailDraft(email);
+      queryClient.setQueryData(bookingsDetailsQueryKey(id), (old) =>
+        old && typeof old === 'object' ? { ...old, customer_email: email } : old,
+      );
+      setReceiptEmailDialogVisible(false);
+      Keyboard.dismiss();
+    },
+    [bookingId, isDesignPreview, queryClient, receiptEmailDraft, toast],
+  );
 
   const tapToPayBlocksComplete =
     tapToPayAmount > 0 && !stripePaymentIntentId?.trim() && !isDesignPreview;
@@ -705,28 +839,6 @@ export function BookingCompleteVisitSheet({
     }
     return null;
   }, [amountDue, tapToPayBlocksComplete]);
-
-  const followUpInfo = useMemo(() => {
-    if (!resolvedModel) {
-      return { visible: false, message: '', iconName: 'information-circle-outline' };
-    }
-    return getCompleteVisitFollowUpInfo({
-      showInvoiceEmail: resolvedModel.showInvoiceEmail,
-      showReviewSms: resolvedModel.showReviewSms ?? false,
-      showReviewEmail: resolvedModel.showReviewEmail ?? resolvedModel.showReviewInvite ?? false,
-      showReviewInvite: resolvedModel.showReviewInvite,
-    });
-  }, [resolvedModel]);
-
-  const successCopy = useMemo(() => {
-    if (!resolvedModel) {
-      return getCompleteVisitSuccessCopy({});
-    }
-    return getCompleteVisitSuccessCopy({
-      showReviewSms: resolvedModel.showReviewSms ?? false,
-      showReviewEmail: resolvedModel.showReviewEmail ?? resolvedModel.showReviewInvite ?? false,
-    });
-  }, [resolvedModel]);
 
   const isSubmitting = submitPhase === 'pending';
   const isSuccess = submitPhase === 'success';
@@ -823,25 +935,21 @@ export function BookingCompleteVisitSheet({
           alignItems: 'center',
           flex: 1,
           justifyContent: 'center',
-          paddingHorizontal: 20,
+          paddingHorizontal: 16,
         },
         errorWrap: {
-          paddingHorizontal: 20,
+          paddingHorizontal: 16,
           paddingTop: 16,
         },
         footer: {
           borderTopColor: colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
           gap: 8,
-          paddingHorizontal: 20,
+          paddingHorizontal: 16,
           paddingTop: 12,
         },
-        completeHint: {
-          color: colors.textMuted,
-          fontSize: 13,
-          fontWeight: '500',
-          lineHeight: 18,
-          textAlign: 'left',
+        completeButtonBlocked: {
+          opacity: 0.45,
         },
         footerOverlay: {
           backgroundColor: colors.shell,
@@ -922,6 +1030,14 @@ export function BookingCompleteVisitSheet({
     tapToPayAmount,
   ]);
 
+  const handleCompletePress = useCallback(() => {
+    if (!canCompleteVisit) {
+      toast.error(completeHint ?? 'Collect payment to complete this booking.');
+      return;
+    }
+    void handleCompleteVisit();
+  }, [canCompleteVisit, completeHint, handleCompleteVisit, toast]);
+
   const handleDoneAfterSuccess = () => {
     handleClose();
   };
@@ -982,7 +1098,7 @@ export function BookingCompleteVisitSheet({
                   size={24}
                 />
               </Pressable>
-              <AppText style={styles.headerTitle}>Complete</AppText>
+              <AppText style={styles.headerTitle}>Payment</AppText>
               <View style={styles.headerSide} />
             </View>
 
@@ -1012,12 +1128,15 @@ export function BookingCompleteVisitSheet({
                     onlinePaidRowLabel={onlinePaidRowLabel}
                     paidOnline={paidOnline}
                     showCollectActions={showCollectActions}
+                    showReceiptEmailNotice={showReceiptEmailNotice}
                     showTapToPay={showTapToPay}
                     tapToPayConnectLoading={resolvedTapToPayConnectLoading}
                     tapToPayConnectReady={resolvedTapToPayConnectReady}
                     tapToPayPrewarmConnectParams={tapToPayPrewarmConnectParams}
                     subtotal={subtotal}
                     tapToPayAmount={tapToPayAmount}
+                    savedReceiptEmail={savedReceiptEmail}
+                    onPressAddReceiptEmail={() => setReceiptEmailDialogVisible(true)}
                     onAddFee={handleAddFee}
                     onMarkPaidInPerson={handleMarkPaidInPerson}
                     onRemoveFee={handleRemoveFee}
@@ -1026,21 +1145,23 @@ export function BookingCompleteVisitSheet({
                   />
 
                   <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-                    {!canCompleteVisit && completeHint ? (
-                      <AppText style={styles.completeHint}>{completeHint}</AppText>
-                    ) : null}
                     <Button
                       accessibilityHint={
                         canCompleteVisit
                           ? undefined
                           : 'Collect the remaining balance with Tap to Pay or Mark as paid'
                       }
-                      disabled={!canCompleteVisit}
+                      disabled={isSubmitting}
                       fullWidth
                       iconName="checkmark-done-outline"
+                      style={
+                        !canCompleteVisit && !isSubmitting
+                          ? styles.completeButtonBlocked
+                          : undefined
+                      }
                       title="Complete"
                       variant="primary"
-                      onPress={() => void handleCompleteVisit()}
+                      onPress={handleCompletePress}
                     />
                   </View>
                 </>
@@ -1073,6 +1194,15 @@ export function BookingCompleteVisitSheet({
               ) : null}
             </View>
           </Animated.View>
+          <ToastModalHost />
+          {receiptEmailDialogVisible ? (
+            <CompleteVisitReceiptEmailDialog
+              initialEmail={savedReceiptEmail || receiptEmailDraft}
+              visible={receiptEmailDialogVisible}
+              onClose={() => setReceiptEmailDialogVisible(false)}
+              onSave={handleSaveReceiptEmail}
+            />
+          ) : null}
         </View>
       </BottomSheetOverlayProvider>
     </Modal>

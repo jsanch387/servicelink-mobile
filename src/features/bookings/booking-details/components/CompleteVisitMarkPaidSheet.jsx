@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Animated, Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button } from '../../../../components/ui';
-import { useModalFadeBackdropSlideSheet } from '../../../../components/ui/useModalFadeBackdropSlideSheet';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText, BottomSheetModal, Button } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 
 /** @typedef {'cash' | 'payment_app' | 'other'} InPersonPaymentMethod */
+
+const CLOSE_ANIMATION_MS = 280;
 
 const METHOD_OPTIONS = /** @type {const} */ ([
   { id: 'cash', label: 'Cash' },
@@ -44,93 +44,85 @@ function formatUsd(amount) {
  * }} props
  */
 export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
-  const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
-  const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
-    useModalFadeBackdropSlideSheet();
-
+  const { colors, isDark } = useTheme();
+  const [visible, setVisible] = useState(true);
+  const pendingAfterCloseRef = useRef(null);
   const [selectedMethod, setSelectedMethod] = useState(
     /** @type {InPersonPaymentMethod} */ ('cash'),
   );
 
-  const close = useCallback(() => {
-    runClose(onClose);
-  }, [runClose, onClose]);
+  const runClose = useCallback((afterClose) => {
+    pendingAfterCloseRef.current = typeof afterClose === 'function' ? afterClose : null;
+    setVisible(false);
+  }, []);
+
+  const finishPendingClose = useCallback(() => {
+    const afterClose = pendingAfterCloseRef.current;
+    pendingAfterCloseRef.current = null;
+    afterClose?.();
+  }, []);
 
   useEffect(() => {
-    prepareOpen();
-    const id = requestAnimationFrame(() => runOpen());
-    return () => cancelAnimationFrame(id);
-  }, [prepareOpen, runOpen]);
+    if (visible) {
+      return undefined;
+    }
+    const delay =
+      typeof process !== 'undefined' && process.env.NODE_ENV === 'test' ? 0 : CLOSE_ANIMATION_MS;
+    const id = setTimeout(finishPendingClose, delay);
+    return () => clearTimeout(id);
+  }, [finishPendingClose, visible]);
+
+  const close = useCallback(() => {
+    runClose(onClose);
+  }, [onClose, runClose]);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        overlayRoot: {
-          ...StyleSheet.absoluteFillObject,
-          justifyContent: 'flex-end',
+        body: {
+          gap: 24,
+          width: '100%',
         },
-        backdropFill: {
-          backgroundColor: 'rgba(0,0,0,0.55)',
+        amountBlock: {
+          gap: 6,
         },
-        sheetWrap: {
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderTopWidth: 1,
-          bottom: 0,
-          left: 0,
-          position: 'absolute',
-          right: 0,
-        },
-        sheetContent: {
-          paddingBottom: Math.max(insets.bottom, 16) + 12,
-          paddingHorizontal: 20,
-          paddingTop: 18,
-        },
-        sheetTitle: {
+        amountLine: {
           color: colors.text,
-          fontSize: 18,
+          fontSize: 28,
           fontWeight: '800',
-          letterSpacing: -0.25,
-          marginBottom: 8,
+          letterSpacing: -0.5,
+          lineHeight: 34,
         },
         sheetHint: {
           color: colors.textMuted,
           fontSize: 14,
           fontWeight: '500',
           lineHeight: 20,
-          marginBottom: 16,
         },
-        amountDue: {
-          color: colors.text,
-          fontWeight: '700',
+        methodPanel: {
+          borderColor: isDark ? 'rgba(255,255,255,0.14)' : colors.border,
+          borderRadius: 16,
+          borderWidth: 1,
+          padding: 5,
         },
-        headerDivider: {
-          backgroundColor: colors.border,
-          height: 1,
-          marginBottom: 14,
-        },
-        methodRow: {
-          columnGap: 8,
+        methodTrack: {
           flexDirection: 'row',
+          gap: 5,
         },
         methodOption: {
           alignItems: 'center',
-          borderRadius: 12,
-          borderWidth: 2,
+          borderRadius: 11,
           flex: 1,
           justifyContent: 'center',
           minHeight: 48,
           paddingHorizontal: 8,
-          paddingVertical: 10,
+          paddingVertical: 12,
         },
         methodOptionSelected: {
           backgroundColor: colors.buttonPrimaryBg,
-          borderColor: colors.buttonPrimaryBg,
         },
         methodOptionUnselected: {
-          backgroundColor: colors.cardSurface,
-          borderColor: colors.border,
+          backgroundColor: 'transparent',
         },
         methodLabel: {
           fontSize: 14,
@@ -144,16 +136,18 @@ export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
         methodLabelUnselected: {
           color: colors.textSecondary,
         },
+        footerWrap: {
+          marginTop: 24,
+        },
         footer: {
           flexDirection: 'row',
           gap: 12,
-          marginTop: 22,
         },
         footerGrow: {
           flex: 1,
         },
       }),
-    [colors, insets.bottom],
+    [colors, isDark],
   );
 
   const handleConfirm = () => {
@@ -162,36 +156,34 @@ export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
   };
 
   return (
-    <View style={styles.overlayRoot}>
-      <Animated.View
-        pointerEvents="box-none"
-        style={[StyleSheet.absoluteFillObject, backdropStyle, styles.backdropFill]}
-      >
-        <Pressable
-          accessibilityRole="button"
-          onPress={close}
-          style={StyleSheet.absoluteFillObject}
-        />
-      </Animated.View>
-
-      <Animated.View
-        style={[
-          styles.sheetWrap,
-          sheetStyle,
-          {
-            backgroundColor: colors.shellElevated,
-            borderTopColor: colors.borderStrong,
-          },
-        ]}
-      >
-        <View style={styles.sheetContent}>
-          <AppText style={styles.sheetTitle}>Mark as paid</AppText>
-          <AppText style={styles.sheetHint}>
-            Record <AppText style={styles.amountDue}>{formatUsd(amountDue)}</AppText> collected
-            outside the app.
+    <BottomSheetModal
+      fitContent
+      footer={
+        <View style={styles.footerWrap}>
+          <View style={styles.footer}>
+            <View style={styles.footerGrow}>
+              <Button fullWidth title="Cancel" variant="secondary" onPress={close} />
+            </View>
+            <View style={styles.footerGrow}>
+              <Button fullWidth title="Mark as paid" variant="primary" onPress={handleConfirm} />
+            </View>
+          </View>
+        </View>
+      }
+      title="Mark as paid"
+      visible={visible}
+      onRequestClose={close}
+    >
+      <View style={styles.body}>
+        <View style={styles.amountBlock}>
+          <AppText accessibilityRole="text" style={styles.amountLine}>
+            {formatUsd(amountDue)}
           </AppText>
-          <View style={styles.headerDivider} />
-          <View style={styles.methodRow}>
+          <AppText style={styles.sheetHint}>Record payment collected outside the app.</AppText>
+        </View>
+
+        <View style={styles.methodPanel}>
+          <View style={styles.methodTrack}>
             {METHOD_OPTIONS.map((option) => {
               const selected = selectedMethod === option.id;
               return (
@@ -199,6 +191,7 @@ export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
                   key={option.id}
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
+                  hitSlop={{ top: 4, bottom: 4 }}
                   style={[
                     styles.methodOption,
                     selected ? styles.methodOptionSelected : styles.methodOptionUnselected,
@@ -217,16 +210,8 @@ export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
               );
             })}
           </View>
-          <View style={styles.footer}>
-            <View style={styles.footerGrow}>
-              <Button fullWidth title="Cancel" variant="secondary" onPress={close} />
-            </View>
-            <View style={styles.footerGrow}>
-              <Button fullWidth title="Mark as paid" variant="primary" onPress={handleConfirm} />
-            </View>
-          </View>
         </View>
-      </Animated.View>
-    </View>
+      </View>
+    </BottomSheetModal>
   );
 }

@@ -1,3 +1,7 @@
+jest.mock('../constants/markCompleteFeatureFlags', () => ({
+  COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY: true,
+}));
+
 import {
   getCompleteVisitFollowUpMessage,
   getCompleteVisitPaymentSettledBanner,
@@ -58,5 +62,44 @@ describe('completeVisitNotificationCopy', () => {
       title: 'Paid in full',
       detail: 'Balance collected for this service.',
     });
+  });
+
+  it('getCompleteVisitPaymentSettledBanner covers prepaid online bookings', () => {
+    expect(
+      getCompleteVisitPaymentSettledBanner({
+        paidOnline: 145,
+        subtotal: 145,
+        tapToPayAmount: 0,
+        inPersonPayment: null,
+      }),
+    ).toEqual({
+      title: 'Paid in full',
+      detail: 'Paid online before this service.',
+    });
+  });
+});
+
+describe('completeVisitNotificationCopy (ship mode — notification copy hidden)', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.doMock('../constants/markCompleteFeatureFlags', () => ({
+      COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY: false,
+    }));
+  });
+
+  it('hides follow-up row and uses neutral success detail', () => {
+    const {
+      getCompleteVisitFollowUpMessage: followUp,
+      getCompleteVisitSuccessDetail: successDetail,
+    } = require('../constants/completeVisitNotificationCopy');
+
+    expect(followUp({ showReviewSms: true, showReviewEmail: true })).toEqual({
+      visible: false,
+      message: '',
+      iconName: 'information-circle-outline',
+    });
+    expect(successDetail({ showReviewSms: true })).toBe(
+      'This service is marked complete on your calendar.',
+    );
   });
 });

@@ -197,27 +197,18 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
         setPreview(nextPreview);
 
         if (useCompleteVisitScreen) {
-          let bookingForVisit =
-            queryClient.getQueryData(bookingsDetailsQueryKey(booking.id)) ?? booking;
-          const hasVisitPricing =
-            bookingForVisit?.service_price_cents != null ||
-            bookingForVisit?.addon_details != null ||
-            bookingForVisit?.payment != null;
-          if (!hasVisitPricing) {
-            const { data, error } = await fetchBookingDetailsById(booking.id);
-            if (cancelled || loadGenerationRef.current !== generation) {
-              return;
-            }
-            if (error || !data) {
-              setIsLoadingPreview(false);
-              setPreviewError(error?.message ?? 'Could not load booking details.');
-              return;
-            }
-            bookingForVisit = data;
-            queryClient.setQueryData(bookingsDetailsQueryKey(booking.id), data);
+          const { data, error } = await fetchBookingDetailsById(booking.id);
+          if (cancelled || loadGenerationRef.current !== generation) {
+            return;
           }
+          if (error || !data) {
+            setIsLoadingPreview(false);
+            setPreviewError(error?.message ?? 'Could not load booking details.');
+            return;
+          }
+          queryClient.setQueryData(bookingsDetailsQueryKey(booking.id), data);
 
-          const model = buildCompleteVisitModelFromBooking(bookingForVisit, nextPreview);
+          const model = buildCompleteVisitModelFromBooking(data, nextPreview);
           if (!model) {
             setIsLoadingPreview(false);
             setPreviewError('Could not prepare the visit receipt.');

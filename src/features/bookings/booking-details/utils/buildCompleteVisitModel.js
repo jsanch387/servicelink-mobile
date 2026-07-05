@@ -1,3 +1,4 @@
+import { isCompleteVisitPaidInFullOnline } from './completeVisitPaymentState';
 import { getMarkCompletePreviewFromBooking } from './markCompletePreview';
 import { parseAddonLineItemsFromBooking } from './parseAddonLineItemsFromBooking';
 import { parseCompleteVisitServiceLine } from './parseCompleteVisitServiceLine';
@@ -6,6 +7,8 @@ import { parseCompleteVisitServiceLine } from './parseCompleteVisitServiceLine';
  * @typedef {object} CompleteVisitModel
  * @property {Array<{ id: string; label: string; sublabel?: string | null; amount: number }>} lineItems
  * @property {number} paidOnline — dollars already collected online
+ * @property {number} remainingAmountCents — from booking_payments; 0 when nothing left to collect
+ * @property {boolean} isPaidInFullOnline — customer prepaid the full total online
  * @property {string | null} customerEmail
  * @property {boolean} showReviewSms
  * @property {boolean} showReviewEmail
@@ -51,6 +54,20 @@ export function buildCompleteVisitModelFromBooking(booking, preview) {
     Number(payment?.paidOnlineAmountCents ?? payment?.paid_online_amount_cents ?? 0) || 0,
   );
   const paidOnline = paidOnlineCents / 100;
+  const subtotalCents = lineItems.reduce(
+    (sum, item) => sum + Math.max(0, Math.round(Number(item.amount) * 100)),
+    0,
+  );
+  const remainingRaw = payment?.remainingAmountCents ?? payment?.remaining_amount_cents;
+  const remainingAmountCents =
+    remainingRaw != null && Number.isFinite(Number(remainingRaw))
+      ? Math.max(0, Math.round(Number(remainingRaw)))
+      : Math.max(0, subtotalCents - paidOnlineCents);
+  const isPaidInFullOnline = isCompleteVisitPaidInFullOnline({
+    paidOnlineCents,
+    remainingAmountCents,
+    subtotalCents,
+  });
 
   const customerEmail = String(booking.customer_email ?? '').trim() || null;
   const resolvedPreview = preview ?? getMarkCompletePreviewFromBooking(booking);
@@ -58,6 +75,8 @@ export function buildCompleteVisitModelFromBooking(booking, preview) {
   return {
     lineItems,
     paidOnline,
+    remainingAmountCents,
+    isPaidInFullOnline,
     customerEmail,
     showReviewSms: Boolean(resolvedPreview.showReviewSmsMessage),
     showReviewEmail: Boolean(resolvedPreview.showReviewInviteMessage),

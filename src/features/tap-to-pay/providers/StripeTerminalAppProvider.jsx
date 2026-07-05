@@ -1,25 +1,19 @@
-import { useCallback } from 'react';
-import { StripeTerminalProvider } from '@stripe/stripe-terminal-react-native';
-import { fetchTapToPayConnectionTokenFromRegistry } from '../terminal/tapToPayConnectionTokenRegistry';
+import { isTapToPayNativeRuntimeAvailable } from '../utils/isTapToPayNativeRuntimeAvailable';
 
 /**
  * App-root Stripe Terminal provider. Connection tokens are fetched via
  * {@link setMerchantTapToPayConnectionTokenFetcher} (app warm-up) and
  * {@link setBookingTapToPayConnectionTokenFetcher} while the Tap to Pay sheet is open.
  *
+ * Expo Go has no Terminal native module — render children only so the rest of the app can load.
+ *
  * @param {{ children: import('react').ReactNode }} props
  */
 export function StripeTerminalAppProvider({ children }) {
-  const tokenProvider = useCallback(async () => {
-    return fetchTapToPayConnectionTokenFromRegistry();
-  }, []);
+  if (!isTapToPayNativeRuntimeAvailable()) {
+    return children;
+  }
 
-  return (
-    <StripeTerminalProvider
-      logLevel={typeof __DEV__ !== 'undefined' && __DEV__ ? 'verbose' : 'warning'}
-      tokenProvider={tokenProvider}
-    >
-      {children}
-    </StripeTerminalProvider>
-  );
+  const { StripeTerminalAppProviderNative } = require('./StripeTerminalAppProviderNative');
+  return <StripeTerminalAppProviderNative>{children}</StripeTerminalAppProviderNative>;
 }

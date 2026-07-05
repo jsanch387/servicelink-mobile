@@ -13,7 +13,8 @@ import {
 import { useTheme } from '../../../theme';
 import { phoneForSmsUri } from '../../../utils/phone';
 import { useBookingAction } from '../../bookings/hooks/useBookingAction';
-import { openMapsForBooking } from '../utils/appointmentOutbound';
+import { NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS } from '../constants/nextUpDesignFlags';
+import { openMapsForBooking, openSmsOnMyWay } from '../utils/appointmentOutbound';
 import { hasBookingAddressForMaps } from '../utils/bookingAddress';
 import { buildNextUpHeadlines, formatNextUpVehicleLine } from '../utils/nextUpCardDisplay';
 import {
@@ -114,6 +115,7 @@ export function NextUpCard({
   businessError,
   bookingsError,
   businessId,
+  businessName = null,
   spotlightMode = 'none',
   onMarkComplete,
   markCompleteLoading = false,
@@ -127,11 +129,14 @@ export function NextUpCard({
   const scheduleError = businessError || bookingsError || null;
   const empty = !isLoading && !scheduleError && !nextBooking;
   const bone = colors.nextUpTextMuted;
+  const useLifecycleActions = NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS;
 
-  const actionMode = useMemo(
-    () => resolveNextUpCardActionMode(nextBooking?.job_status),
-    [nextBooking?.job_status],
-  );
+  const actionMode = useMemo(() => {
+    if (!useLifecycleActions) {
+      return 'upcoming';
+    }
+    return resolveNextUpCardActionMode(nextBooking?.job_status);
+  }, [nextBooking?.job_status, useLifecycleActions]);
 
   const showLivePulse = useMemo(() => shouldShowNextUpLivePulse(actionMode), [actionMode]);
 
@@ -268,10 +273,16 @@ export function NextUpCard({
       actionHandlers.onOnMyWay();
       return;
     }
+    if (!useLifecycleActions) {
+      if (nextBooking) {
+        void openSmsOnMyWay(nextBooking, { businessName });
+      }
+      return;
+    }
     if (nextBooking?.id) {
       bookingAction.notifyOnTheWay(nextBooking.id);
     }
-  }, [actionHandlers, nextBooking?.id, bookingAction]);
+  }, [actionHandlers, bookingAction, businessName, nextBooking, useLifecycleActions]);
 
   const startJob = useCallback(() => {
     if (actionHandlers?.onStartJob) {
@@ -325,8 +336,12 @@ export function NextUpCard({
       'ready'
     );
   }, [nextBooking?.job_status, nextBooking?.work_handoff_status, workingPhase]);
-  const actionSending = actionHandlers?.isSending ?? bookingAction.isSending;
-  const actionDisabled = actionHandlers?.disabled ?? bookingAction.disabled;
+  const actionSending = useLifecycleActions
+    ? (actionHandlers?.isSending ?? bookingAction.isSending)
+    : false;
+  const actionDisabled = useLifecycleActions
+    ? (actionHandlers?.disabled ?? bookingAction.disabled)
+    : false;
 
   if (isLoading) {
     return <NextUpSkeleton bone={bone} />;
@@ -495,7 +510,9 @@ export function NextUpCard({
                 <Button
                   accessibilityHint={
                     hasCustomerSmsNumber
-                      ? 'Texts the customer that you are on the way'
+                      ? useLifecycleActions
+                        ? 'Texts the customer that you are on the way'
+                        : 'Opens Messages with a prefilled on-my-way text'
                       : 'Add a phone on this booking to notify the customer'
                   }
                   accessibilityLabel="On my way"

@@ -32,14 +32,14 @@ export const TAP_TO_PAY_MERCHANT_LIMIT =
 export const TAP_TO_PAY_TERMINAL_NOT_CONFIGURED =
   'Tap to Pay reader is not configured for your account yet.';
 
-export const TAP_TO_PAY_PREPARING_COLD = 'Setting up Tap to Pay…';
+export const TAP_TO_PAY_PREPARING_COLD = 'Setting up Tap to Pay';
 
-export const TAP_TO_PAY_PREPARING_WARM = 'Opening Tap to Pay…';
+export const TAP_TO_PAY_PREPARING_WARM = 'Opening Tap to Pay';
 
 export const TAP_TO_PAY_PREPARING_HINT =
   'Apple will show the contactless reader on your iPhone when it is ready.';
 
-export const TAP_TO_PAY_PROCESSING_STATUS = 'Processing payment…';
+export const TAP_TO_PAY_PROCESSING_STATUS = 'Processing payment';
 
 export const TAP_TO_PAY_PROCESSING_HINT = 'Keep this screen open until payment completes.';
 

@@ -4,9 +4,10 @@ import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } fro
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
+import { BOOKINGS_LIST_SCREEN_PADDING } from '../constants';
 import { getBookingStatusLabel, getBookingStatusVisualKind } from '../utils/bookingStatusVisual';
 import { layoutPlannerDay } from '../utils/plannerDayLayout';
-import { BookingCardSkeleton } from './BookingCardSkeleton';
+import { BookingsDayPlannerSkeleton } from './BookingsDayPlannerSkeleton';
 
 /** Wide enough for "12:00" at 10pt; clock is right-aligned inside so colons line up. */
 const HOUR_LABEL_CLOCK_WIDTH = 40;
@@ -74,6 +75,9 @@ export function BookingsDayPlanner({
 
   const layout = useMemo(() => layoutPlannerDay(bookings), [bookings]);
 
+  const showEmptyDay = !isLoading && !dayError && bookings.length === 0;
+  const showTimeline = !isLoading && !dayError && bookings.length > 0;
+
   const nowLineTop = useMemo(() => {
     if (!isToday || !showNowLine) {
       return null;
@@ -97,8 +101,8 @@ export function BookingsDayPlanner({
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'space-between',
-          marginBottom: 12,
-          paddingHorizontal: 0,
+          marginBottom: 16,
+          paddingHorizontal: BOOKINGS_LIST_SCREEN_PADDING,
         },
         navHit: {
           padding: 10,
@@ -137,7 +141,11 @@ export function BookingsDayPlanner({
           flex: 1,
         },
         scrollContent: {
+          flexGrow: 1,
           paddingBottom: 120,
+        },
+        scrollContentEmpty: {
+          minHeight: 420,
         },
         timelineRow: {
           flexDirection: 'row',
@@ -323,22 +331,37 @@ export function BookingsDayPlanner({
         blockStatusCancelled: {
           color: isDark ? '#fecaca' : '#991b1b',
         },
-        emptyWrap: {
+        emptyScreen: {
           alignItems: 'center',
-          marginTop: 48,
-          paddingHorizontal: 8,
+          flexGrow: 1,
+          justifyContent: 'center',
+          paddingBottom: 40,
+          paddingHorizontal: BOOKINGS_LIST_SCREEN_PADDING + 8,
+          paddingTop: 8,
+        },
+        emptyIconRing: {
+          alignItems: 'center',
+          backgroundColor: colors.shellElevated,
+          borderRadius: 999,
+          height: 72,
+          justifyContent: 'center',
+          marginBottom: 18,
+          width: 72,
         },
         emptyTitle: {
-          color: colors.textSecondary,
-          fontSize: 16,
+          color: colors.text,
+          fontSize: 18,
           fontWeight: '700',
+          letterSpacing: -0.25,
+          textAlign: 'center',
         },
         emptyBody: {
           color: colors.textMuted,
-          fontSize: 14,
+          fontSize: 15,
           fontWeight: '500',
-          lineHeight: 20,
+          lineHeight: 22,
           marginTop: 8,
+          maxWidth: 280,
           textAlign: 'center',
         },
         loadingSkeleton: {
@@ -348,10 +371,13 @@ export function BookingsDayPlanner({
     [colors, isDark, layout.hourHeightPx],
   );
 
-  if (!hasBusiness) {
+  if (!hasBusiness && !isLoading) {
     return (
-      <View style={styles.root}>
-        <View style={styles.emptyWrap}>
+      <View style={[styles.root, styles.scrollContentEmpty]}>
+        <View style={styles.emptyScreen}>
+          <View style={styles.emptyIconRing}>
+            <Ionicons color={colors.textMuted} name="business-outline" size={30} />
+          </View>
           <AppText style={styles.emptyTitle}>No business profile</AppText>
           <AppText style={styles.emptyBody}>
             Once your business is set up in ServiceLink, the planner will load appointments here.
@@ -363,7 +389,10 @@ export function BookingsDayPlanner({
 
   return (
     <ScrollView
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent,
+        showEmptyDay ? styles.scrollContentEmpty : null,
+      ]}
       refreshControl={
         <RefreshControl
           colors={[colors.accent]}
@@ -432,17 +461,20 @@ export function BookingsDayPlanner({
       ) : null}
 
       {isLoading ? (
-        <View style={styles.loadingSkeleton}>
-          <BookingCardSkeleton count={3} />
+        <View style={[styles.loadingSkeleton, { paddingHorizontal: BOOKINGS_LIST_SCREEN_PADDING }]}>
+          <BookingsDayPlannerSkeleton />
         </View>
-      ) : !dayError && bookings.length === 0 ? (
-        <View style={styles.emptyWrap}>
-          <AppText style={styles.emptyTitle}>No appointments this day</AppText>
+      ) : showEmptyDay ? (
+        <View style={styles.emptyScreen}>
+          <View style={styles.emptyIconRing}>
+            <Ionicons color={colors.textMuted} name="calendar-outline" size={30} />
+          </View>
+          <AppText style={styles.emptyTitle}>Nothing scheduled</AppText>
           <AppText style={styles.emptyBody}>
-            All statuses are shown. Use the arrows to check other days.
+            This day is clear. Use the arrows above to browse other dates.
           </AppText>
         </View>
-      ) : !dayError ? (
+      ) : showTimeline ? (
         <View style={styles.timelineRow}>
           <View style={styles.timeGutter}>
             {layout.hourLabels.map((h) => {

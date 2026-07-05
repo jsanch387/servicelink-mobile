@@ -11,7 +11,7 @@ Order matches the scroll layout; useful when tracing UX or adding a section.
 1. **Header** — Business display name (`business_profiles.business_name`, fallback “there”) + notifications affordance → `ROUTES.NOTIFICATIONS_INBOX`.
 2. **`Updating…`** — Shown when any home query is refetching and the screen is not on the initial blank load (`isFetching && !isLoading`).
 3. **`HomeErrorBanner`** — Top-level message when `computeHomeErrorPresentation` sets `bannerError` (e.g. business profile failed, or deduped same error across queries).
-4. **Next Up block** — Section title (**`In progress`** vs **`Next Up`**) from `dashboard.spotlightMode`, then **`NextUpCard`** (see [Next Up card](#next-up-card-nextupcardjsx) below).
+4. **Next Up block** — Section title (**`In progress`** vs **`Next Up`**) from `dashboard.spotlightMode`, then **`NextUpCard`** (see [Next Up card](#next-up-card-nextupcardjsx) below). **Temporary SMS hold:** until server SMS is approved, Home only shows device Messages **On my way** + **Navigate** (`NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS = false`). Full notes / restore checklist: [`docs/NEXT_UP_SMS_HOLD.md`](./docs/NEXT_UP_SMS_HOLD.md) (delete that doc when the hold is over).
 5. **Booking link** — `LinkStatsSection` (views + slug URL).
 6. **Rest of Today** — `RestOfTodayCard` (separate query for today’s bookings).
 7. **`FloatingCreateMenu`** — Create appointment / quote entry points (overlay).

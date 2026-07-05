@@ -2,6 +2,7 @@ import { supabase } from '../../../../lib/supabase';
 
 export const BOOKING_DETAILS_SELECT = [
   'id',
+  'business_id',
   'status',
   'scheduled_date',
   'start_time',

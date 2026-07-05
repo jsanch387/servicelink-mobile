@@ -20,6 +20,50 @@ export const BOOKING_COMPLETE_INVOICE_DESIGN_MOCK = {
 };
 
 /**
+ * Applies {@link BOOKING_COMPLETE_INVOICE_DESIGN_MOCK.paymentScenario} for design previews.
+ *
+ * @returns {import('../utils/buildCompleteVisitModel').CompleteVisitModel}
+ */
+export function resolveCompleteVisitDesignMock() {
+  const baseSubtotal = BOOKING_COMPLETE_INVOICE_DESIGN_MOCK.lineItems.reduce(
+    (sum, item) => sum + item.amount,
+    0,
+  );
+
+  let paidOnline = BOOKING_COMPLETE_INVOICE_DESIGN_MOCK.paidOnline;
+  let remainingAmountCents = Math.max(0, Math.round((baseSubtotal - paidOnline) * 100));
+
+  switch (BOOKING_COMPLETE_INVOICE_DESIGN_MOCK.paymentScenario) {
+    case 'paid_online':
+      paidOnline = baseSubtotal;
+      remainingAmountCents = 0;
+      break;
+    case 'deposit':
+      paidOnline = 50;
+      remainingAmountCents = Math.max(0, Math.round((baseSubtotal - paidOnline) * 100));
+      break;
+    default:
+      paidOnline = 0;
+      remainingAmountCents = Math.round(baseSubtotal * 100);
+      break;
+  }
+
+  const paidOnlineCents = Math.round(paidOnline * 100);
+
+  return {
+    ...BOOKING_COMPLETE_INVOICE_DESIGN_MOCK,
+    paidOnline,
+    remainingAmountCents,
+    isPaidInFullOnline: paidOnlineCents > 0 && remainingAmountCents === 0,
+    customerEmail:
+      BOOKING_COMPLETE_INVOICE_DESIGN_MOCK.paymentScenario === 'paid_online'
+        ? BOOKING_COMPLETE_INVOICE_DESIGN_MOCK.customerEmail
+        : null,
+    showInvoiceEmail: BOOKING_COMPLETE_INVOICE_DESIGN_MOCK.paymentScenario === 'paid_online',
+  };
+}
+
+/**
  * Matches booking details payment copy: partial online payment is a deposit, not generic "paid online".
  *
  * @param {number} paidOnline

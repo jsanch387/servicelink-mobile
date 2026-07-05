@@ -3,7 +3,6 @@ import { Alert } from 'react-native';
 import { useTapToPayEnablement } from '../hooks/useTapToPayEnablement';
 import { warmTapToPayReader } from '../terminal/tapToPayTerminalConnect';
 import {
-  isTapToPayReaderWarm,
   markTapToPayConnected,
   markTapToPayInitialized,
   resetTapToPayTerminalSession,

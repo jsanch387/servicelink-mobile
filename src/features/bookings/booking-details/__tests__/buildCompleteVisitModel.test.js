@@ -46,11 +46,32 @@ describe('buildCompleteVisitModelFromBooking', () => {
         { id: 'a1', label: 'Engine bay', amount: 25 },
       ],
       paidOnline: 50,
+      remainingAmountCents: 9500,
+      isPaidInFullOnline: false,
       customerEmail: 'jane@example.com',
       showReviewSms: true,
       showReviewEmail: false,
       showInvoiceEmail: true,
     });
+  });
+
+  it('marks prepaid online bookings as paid in full when nothing remains due', () => {
+    const model = buildCompleteVisitModelFromBooking({
+      service_name: 'Full Detail',
+      service_price_cents: 12000,
+      addon_details: {
+        addons: [{ id: 'a1', name: 'Engine bay', price_cents: 2500 }],
+      },
+      payment: {
+        paidOnlineAmountCents: 14500,
+        remainingAmountCents: 0,
+        totalAmountCents: 14500,
+      },
+    });
+
+    expect(model?.paidOnline).toBe(145);
+    expect(model?.remainingAmountCents).toBe(0);
+    expect(model?.isPaidInFullOnline).toBe(true);
   });
 
   it('returns null when booking is missing', () => {

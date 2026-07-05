@@ -17,6 +17,11 @@ let mockBookingActionState = {
   isJobStartedDone: () => false,
 };
 
+jest.mock('../constants/nextUpDesignFlags', () => ({
+  NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS: true,
+  NEXT_UP_LIFECYCLE_DESIGN_PREVIEW: false,
+}));
+
 jest.mock('../../bookings/hooks/useBookingAction', () => ({
   useBookingAction: () => mockBookingActionState,
 }));

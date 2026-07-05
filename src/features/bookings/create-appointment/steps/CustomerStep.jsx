@@ -78,7 +78,9 @@ export function CustomerStep({ customer, onChangeCustomer }) {
           value={customer.email}
           onChangeText={(t) => onChangeCustomer({ ...customer, email: t })}
         />
-        <AppText style={styles.footnote}>No email, no confirmation will be sent.</AppText>
+        {!emailTrim ? (
+          <AppText style={styles.footnote}>No email, no confirmation will be sent.</AppText>
+        ) : null}
       </View>
     </SurfaceCard>
   );

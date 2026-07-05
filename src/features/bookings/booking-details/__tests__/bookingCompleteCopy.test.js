@@ -1,3 +1,7 @@
+jest.mock('../constants/markCompleteFeatureFlags', () => ({
+  COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY: true,
+}));
+
 import { getBookingMarkCompleteSheetCopy } from '../constants/bookingCompleteCopy';
 
 describe('getBookingMarkCompleteSheetCopy', () => {
@@ -36,5 +40,24 @@ describe('getBookingMarkCompleteSheetCopy', () => {
     const copy = getBookingMarkCompleteSheetCopy(null);
     expect(copy.highlightVariant).toBeNull();
     expect(copy.body).toMatch(/appointment.*completed/i);
+  });
+});
+
+describe('getBookingMarkCompleteSheetCopy (ship mode — notification copy hidden)', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.doMock('../constants/markCompleteFeatureFlags', () => ({
+      COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY: false,
+    }));
+  });
+
+  it('never shows SMS/email highlight when flag is off', () => {
+    const {
+      getBookingMarkCompleteSheetCopy: getCopy,
+    } = require('../constants/bookingCompleteCopy');
+    const copy = getCopy({ showReviewSmsMessage: true });
+    expect(copy.highlightVariant).toBeNull();
+    expect(copy.body).toMatch(/appointment.*completed/i);
+    expect(copy.highlightTitle).toBeUndefined();
   });
 });

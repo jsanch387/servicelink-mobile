@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { resolveToastAutoDismissMs } from './toastAutoDismiss';
 import { ToastView } from './Toast';
 
@@ -7,6 +8,8 @@ import { ToastView } from './Toast';
  *
  * Mount {@link ToastProvider} once near the app root (inside the theme + safe-area providers),
  * then call {@link useToast} anywhere to show a single, consistent toast.
+ *
+ * Inside full-screen modals, mount {@link ToastModalHost} so toasts appear above the sheet.
  *
  * @typedef {import('./Toast').ToastType} ToastType
  *
@@ -20,6 +23,8 @@ import { ToastView } from './Toast';
  * @property {() => void} [onPress] Tap handler. When omitted, tapping dismisses the toast.
  */
 
+/** @typedef {{ id: string; type: ToastType; variant: ToastVariant; title: string | null; message: string; onPress: (() => void) | null }} ToastRecord */
+
 const ToastContext = createContext(null);
 
 let counter = 0;
@@ -28,9 +33,37 @@ function nextId() {
   return `toast-${counter}`;
 }
 
+/**
+ * @param {{
+ *   toast: ToastRecord;
+ *   dismissing: boolean;
+ *   dismiss: (id?: string) => void;
+ *   finalizeHide: () => void;
+ * }} props
+ */
+function ToastLayer({ toast, dismissing, dismiss, finalizeHide }) {
+  return (
+    <View pointerEvents="box-none" style={styles.rootLayer}>
+      <ToastView
+        dismissing={dismissing}
+        message={toast.message}
+        variant={toast.variant ?? 'default'}
+        onDismiss={() => dismiss(toast.id)}
+        onHidden={finalizeHide}
+        onPress={() => {
+          toast.onPress?.();
+        }}
+        title={toast.title}
+        type={toast.type}
+      />
+    </View>
+  );
+}
+
 export function ToastProvider({ children }) {
-  const [toast, setToast] = useState(null);
+  const [toast, setToast] = useState(/** @type {ToastRecord | null} */ (null));
   const [dismissing, setDismissing] = useState(false);
+  const [modalHostCount, setModalHostCount] = useState(0);
   const currentRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -140,6 +173,20 @@ export function ToastProvider({ children }) {
     [show, update],
   );
 
+  const registerModalHost = useCallback(() => {
+    setModalHostCount((count) => count + 1);
+    return () => {
+      setModalHostCount((count) => Math.max(0, count - 1));
+    };
+  }, []);
+
+  const toastPresentation = useMemo(() => {
+    if (!toast) {
+      return null;
+    }
+    return { toast, dismissing, dismiss, finalizeHide };
+  }, [dismiss, dismissing, finalizeHide, toast]);
+
   const value = useMemo(
     () => ({
       show,
@@ -149,32 +196,25 @@ export function ToastProvider({ children }) {
       error: (message, opts) => notify('error', message, opts),
       loading: (message, opts) => notify('loading', message, opts),
       info: (message, opts) => notify('info', message, opts),
-      /** SMS confirmation card — auto-dismisses after a readable pause; swipe up or tap to dismiss sooner. */
       sms: (message, opts = {}) =>
         notify(opts.type ?? 'success', message, { ...opts, variant: 'sms' }),
-      /** Email confirmation card — auto-dismisses after a readable pause; swipe up or tap to dismiss sooner. */
       email: (message, opts = {}) =>
         notify(opts.type ?? 'success', message, { ...opts, variant: 'email' }),
+      registerModalHost,
+      toastPresentation,
     }),
-    [show, update, dismiss, notify],
+    [dismiss, notify, registerModalHost, show, toastPresentation, update],
   );
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {toast ? (
-        <ToastView
-          key={toast.id}
+      {toast && modalHostCount === 0 ? (
+        <ToastLayer
+          dismiss={dismiss}
           dismissing={dismissing}
-          message={toast.message}
-          variant={toast.variant ?? 'default'}
-          onDismiss={() => dismiss(toast.id)}
-          onHidden={finalizeHide}
-          onPress={() => {
-            toast.onPress?.();
-          }}
-          title={toast.title}
-          type={toast.type}
+          finalizeHide={finalizeHide}
+          toast={toast}
         />
       ) : null}
     </ToastContext.Provider>
@@ -188,3 +228,10 @@ export function useToast() {
   }
   return ctx;
 }
+
+const styles = StyleSheet.create({
+  rootLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+  },
+});
