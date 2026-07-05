@@ -151,7 +151,7 @@ export function useTapToPayWarmup() {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Warm-up failed';
-      logTapToPayDebug('warmup.failed', { message });
+      logTapToPayFailure('warmup', { message });
     } finally {
       prepareInFlightRef.current = false;
     }

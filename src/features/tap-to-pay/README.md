@@ -30,6 +30,11 @@ tap-to-pay/
 
 Payments screen owns `PaymentTapToPayCard` (feature boundary: settings UI lives under `payments/`).
 
+## Logging
+
+- **Production / TestFlight:** `logTapToPayInfo` (payment success, intent ready, enable) and `logTapToPayFailure` only.
+- **Verbose diagnostics** (warmup, connect, API traces): set `EXPO_PUBLIC_TAP_TO_PAY_VERBOSE_LOGS=true` in `.env.local` for local dev.
+
 ## Flags (`constants/tapToPayFeatureFlags.js`)
 
 Production: server APIs + Terminal SDK on, iOS-only UI. Android collection code exists but the button is hidden until the Android app ships.

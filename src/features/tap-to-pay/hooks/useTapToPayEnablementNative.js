@@ -10,7 +10,12 @@ import {
   getTapToPayTerminalSessionSnapshot,
   isTapToPayReaderWarm,
 } from '../terminal/tapToPayTerminalSession';
-import { logTapToPayDebug, maskId } from '../utils/logTapToPayDebug';
+import {
+  logTapToPayDebug,
+  logTapToPayFailure,
+  logTapToPayInfo,
+  maskId,
+} from '../utils/logTapToPayDebug';
 import {
   buildTapToPayMerchantEnablementKey,
   isTapToPayMerchantEnabled,
@@ -221,11 +226,11 @@ export function useTapToPayEnablement() {
       }
 
       await refresh('enable_ok');
-      logTapToPayDebug('enable.ok', { stripeAccountId: maskId(accountId) });
+      logTapToPayInfo('enable.ok', { stripeAccountId: maskId(accountId) });
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : TAP_TO_PAY_ENABLE_FAILED;
-      logTapToPayDebug('enable.failed', { message });
+      logTapToPayFailure('enable', { message });
       Alert.alert('Tap to Pay', message.trim() || TAP_TO_PAY_ENABLE_FAILED);
       return false;
     } finally {

@@ -15,7 +15,12 @@ import {
   setTapToPayConnectionTokenStripeAccountId,
 } from '../terminal/tapToPayConnectionTokenRegistry';
 import { isTapToPayReaderWarm } from '../terminal/tapToPayTerminalSession';
-import { logTapToPayDebug, logTapToPayFailure, maskId } from '../utils/logTapToPayDebug';
+import {
+  logTapToPayDebug,
+  logTapToPayFailure,
+  logTapToPayInfo,
+  maskId,
+} from '../utils/logTapToPayDebug';
 import { useTapToPayTerminalCollection } from './useTapToPayTerminalCollection';
 import {
   fireTapToPayCollectStartHaptic,
@@ -206,7 +211,7 @@ export function useTapToPaySheet({
 
     setAmountCents(intentResult.amountCents);
     setTapToPayConnectionTokenStripeAccountId(intentResult.connectParams?.stripeAccountId);
-    logTapToPayDebug('intent.ok', {
+    logTapToPayInfo('intent.ok', {
       bookingId: maskId(bookingId),
       paymentIntentId: maskId(intentResult.paymentIntentId),
       amountCents: intentResult.amountCents,
@@ -322,7 +327,7 @@ export function useTapToPaySheet({
           if (runId !== sessionRunRef.current) {
             return;
           }
-          logTapToPayDebug('session.success', {
+          logTapToPayInfo('payment.success', {
             runId,
             paymentIntentId: maskId(result.paymentIntentId),
             amountCents: result.amountCents,

@@ -1,21 +1,17 @@
 import { APP_UPDATE_ANNOUNCEMENTS } from '../announcements';
 import { ROUTES } from '../../../../routes/routes';
-import { BOOKING_LINK_ROUTE_PARAMS } from '../../../bookingLink/constants/bookingLinkRouteParams';
 
 describe('APP_UPDATE_ANNOUNCEMENTS', () => {
-  it('includes mobile or shop announcement with booking link edit CTA', () => {
-    const entry = APP_UPDATE_ANNOUNCEMENTS.find((item) => item.id === 'booking-mobile-shop-v1');
+  it('includes Tap to Pay on iPhone announcement with Payments CTA', () => {
+    const entry = APP_UPDATE_ANNOUNCEMENTS.find((item) => item.id === 'tap-to-pay-iphone-v1');
     expect(entry).toMatchObject({
-      title: 'Shop, mobile, or both?',
-      primaryLabel: 'Set it up',
+      title: 'Tap to Pay on iPhone',
+      primaryLabel: 'Take a look',
       secondaryLabel: 'Got it',
+      platforms: ['ios'],
       cta: {
         tab: ROUTES.MORE,
-        screen: ROUTES.BOOKING_LINK,
-        params: {
-          [BOOKING_LINK_ROUTE_PARAMS.OPEN_EDIT]: true,
-          [BOOKING_LINK_ROUTE_PARAMS.EDIT_TAB]: 'booking',
-        },
+        screen: ROUTES.MORE_PAYMENTS,
       },
     });
     expect(entry?.bullets?.length).toBeGreaterThan(0);

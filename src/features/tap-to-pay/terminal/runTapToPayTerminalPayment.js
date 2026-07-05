@@ -1,4 +1,9 @@
-import { logTapToPayDebug, logTapToPayFailure, maskId } from '../utils/logTapToPayDebug';
+import {
+  logTapToPayDebug,
+  logTapToPayFailure,
+  logTapToPayInfo,
+  maskId,
+} from '../utils/logTapToPayDebug';
 import { mapTapToPayTerminalErrorMessage } from './tapToPayTerminalConnect';
 
 /** @typedef {import('@stripe/stripe-terminal-react-native').PaymentIntent.Type} StripePaymentIntent */
@@ -77,7 +82,7 @@ export async function runTapToPayTerminalPayment({
     );
   }
 
-  logTapToPayDebug('terminal.confirm.done', {
+  logTapToPayInfo('payment.confirmed', {
     paymentIntentId: maskId(confirmedIntent.id),
     status: confirmedIntent.status,
     amount: confirmedIntent.amount,

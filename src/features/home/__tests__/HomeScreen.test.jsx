@@ -209,7 +209,7 @@ describe('HomeScreen', () => {
     expect(screen.getByText('9:00 AM')).toBeTruthy();
   });
 
-  it('uses In progress as the spotlight section title when a visit is underway', () => {
+  it('keeps Next Up as the section title while lifecycle actions are on hold', () => {
     mockUseHomeDashboard.mockReturnValue(
       baseDashboard({
         spotlightMode: 'in_progress',
@@ -227,8 +227,8 @@ describe('HomeScreen', () => {
       }),
     );
     renderWithProviders(<HomeScreen />);
-    expect(screen.getByText('In progress')).toBeTruthy();
-    expect(screen.queryByText('Next Up')).toBeNull();
+    expect(screen.getByText('Next Up')).toBeTruthy();
+    expect(screen.getByLabelText(/In progress.*Alex/i)).toBeTruthy();
   });
 
   it('shows free bookings usage card for non-Pro users', () => {
