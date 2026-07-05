@@ -231,17 +231,17 @@ describe('BookingsScreen list empty states', () => {
     expect(setListFilter).toHaveBeenCalledWith(BOOKINGS_FILTER_PAST);
   });
 
-  it('opens calendar day view by default', () => {
+  it('opens list view by default', () => {
     renderWithProviders(<BookingsScreen />);
+    expect(screen.getByLabelText('Upcoming appointments')).toBeTruthy();
+    expect(screen.queryByLabelText('Day calendar view')).toBeNull();
+  });
+
+  it('shows calendar tabs after switching to calendar view', () => {
+    renderWithProviders(<BookingsScreen />);
+    fireEvent.press(screen.getByLabelText('Calendar view'));
     expect(screen.getByLabelText('Day calendar view')).toBeTruthy();
     expect(screen.getByLabelText('Week calendar view')).toBeTruthy();
     expect(screen.getByLabelText('Month calendar view')).toBeTruthy();
-    expect(screen.queryByLabelText('Upcoming appointments')).toBeNull();
-  });
-
-  it('shows list tabs after switching to list view', () => {
-    renderWithProviders(<BookingsScreen />);
-    openListView();
-    expect(screen.getByLabelText('Upcoming appointments')).toBeTruthy();
   });
 });

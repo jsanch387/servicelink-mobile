@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Animated,
   Keyboard,
@@ -40,6 +39,7 @@ import {
   buildCompleteVisitCheckoutFromSheetState,
   canSubmitJobCompletedCheckout,
 } from '../utils/buildJobCompletedPayload';
+import { CompleteVisitPaymentSkeleton } from './CompleteVisitPaymentSkeleton';
 import { CompleteVisitSubmitOverlay } from './CompleteVisitSubmitOverlay';
 import { CompleteVisitAddFeeSheet } from './CompleteVisitAddFeeSheet';
 import { CompleteVisitReceiptEmailDialog } from './CompleteVisitReceiptEmailDialog';
@@ -931,12 +931,6 @@ export function BookingCompleteVisitSheet({
           flex: 1,
           position: 'relative',
         },
-        loadingWrap: {
-          alignItems: 'center',
-          flex: 1,
-          justifyContent: 'center',
-          paddingHorizontal: 16,
-        },
         errorWrap: {
           paddingHorizontal: 16,
           paddingTop: 16,
@@ -1103,11 +1097,7 @@ export function BookingCompleteVisitSheet({
             </View>
 
             <View style={styles.bodyFlex}>
-              {isLoading ? (
-                <View style={styles.loadingWrap}>
-                  <ActivityIndicator color={colors.accent} />
-                </View>
-              ) : null}
+              {isLoading ? <CompleteVisitPaymentSkeleton bottomInset={insets.bottom} /> : null}
               {!showSubmitOverlay && !isLoading && loadError ? (
                 <View style={styles.errorWrap}>
                   <InlineCardError message={loadError} />

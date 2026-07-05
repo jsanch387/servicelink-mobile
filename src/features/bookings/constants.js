@@ -45,7 +45,7 @@ export const BOOKINGS_VIEW_LIST = 'list';
 export const BOOKINGS_VIEW_CALENDAR = 'calendar';
 
 /** Default when opening the Bookings tab. */
-export const BOOKINGS_DEFAULT_VIEW_MODE = BOOKINGS_VIEW_CALENDAR;
+export const BOOKINGS_DEFAULT_VIEW_MODE = BOOKINGS_VIEW_LIST;
 
 /** @typedef {'day' | 'week' | 'month'} BookingsCalendarGranularity */
 

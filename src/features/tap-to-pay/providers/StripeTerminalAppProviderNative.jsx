@@ -13,10 +13,7 @@ export function StripeTerminalAppProviderNative({ children }) {
   }, []);
 
   return (
-    <StripeTerminalProvider
-      logLevel={typeof __DEV__ !== 'undefined' && __DEV__ ? 'verbose' : 'warning'}
-      tokenProvider={tokenProvider}
-    >
+    <StripeTerminalProvider logLevel="warning" tokenProvider={tokenProvider}>
       {children}
     </StripeTerminalProvider>
   );
