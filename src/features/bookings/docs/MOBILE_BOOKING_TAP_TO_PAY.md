@@ -12,19 +12,19 @@ Owner collects the **remaining balance** on-site using **Stripe Tap to Pay on iP
 
 ## Status (mobile)
 
-| Item                                                 | Status                                                              |
-| ---------------------------------------------------- | ------------------------------------------------------------------- |
-| Complete sheet entry + Connect gating                | Done                                                                |
-| Tap to Pay sheet (auto-start on open)                | Done                                                                |
-| Server APIs (connection-token, intent)               | Wired                                                               |
-| Stripe Terminal SDK collection                       | Wired                                                               |
-| Auto `job_completed` after successful tap (SDK path) | Done                                                                |
-| Apple merchant education (ProximityReader, once)     | Done                                                                |
-| Payments “How it works” + What’s new (iOS)           | Done                                                                |
-| Android UI                                           | Hidden for v1 (`isTapToPayPlatformSupported`)                       |
-| **Production blocker**                               | Apple **Tap to Pay on iPhone** entitlement approval + new iOS build |
+| Item                                                 | Status                                                                |
+| ---------------------------------------------------- | --------------------------------------------------------------------- |
+| Complete sheet entry + Connect gating                | Done                                                                  |
+| Tap to Pay sheet (auto-start on open)                | Done                                                                  |
+| Server APIs (connection-token, intent)               | Wired                                                                 |
+| Stripe Terminal SDK collection                       | Wired                                                                 |
+| Auto `job_completed` after successful tap (SDK path) | Done                                                                  |
+| Apple merchant education (ProximityReader, once)     | Done                                                                  |
+| Payments “How it works” + What’s new (iOS)           | Done                                                                  |
+| Android UI                                           | Hidden for v1 (`isTapToPayPlatformSupported`)                         |
+| **Production blocker**                               | Distribution provisioning profile must include Tap to Pay entitlement |
 
-**Next step:** After Apple approves, run `EXPO_NO_CAPABILITY_SYNC=1 eas build --profile development --platform ios`, install on a physical iPhone, and verify `terminal.connect.ok` in Metro.
+**Next step (TestFlight / App Store):** Confirm Apple granted **distribution** Tap to Pay (not development-only), regenerate the iOS provisioning profile on EAS, then `eas build --platform ios --profile production` **without** `EXPO_NO_CAPABILITY_SYNC=1`.
 
 ---
 
@@ -168,16 +168,30 @@ Without it, Terminal `easyConnect` fails with `UNSUPPORTED_OPERATION` even when 
 
 **Checklist:**
 
-1. [Apple Developer](https://developer.apple.com) → **Identifiers** → `com.jsanchdev.servicelinkmobile` → enable **Tap to Pay on iPhone** (Apple approval required).
-2. `app.json` includes `@stripe/stripe-terminal-react-native` with `"tapToPayCheck": true`.
-3. **New EAS iOS build** (Metro/OTA cannot add entitlements):
+1. [Apple Developer](https://developer.apple.com) → **Identifiers** → `com.jsanchdev.servicelinkmobile` → enable **Tap to Pay on iPhone** (Apple approval required). TestFlight requires **distribution** provisioning support — if the portal shows **Development** only, reply to Apple’s approval email and request distribution access.
+2. `app.json` includes `@stripe/stripe-terminal-react-native` with `"tapToPayCheck": true` and `ios.entitlements.com.apple.developer.proximity-reader.payment.acceptance`.
+3. **Regenerate provisioning profile** after Apple adds the entitlement (cached profiles from before approval will fail signing):
 
    ```bash
-   EXPO_NO_CAPABILITY_SYNC=1 eas build --profile development --platform ios
+   npx eas-cli credentials:configure-build -p ios -e production
    ```
 
-4. Install on a **physical iPhone** (not Simulator, not Expo Go).
-5. Metro success path: `terminal.connect.ok` → `terminal.process.start` (not `UNSUPPORTED_OPERATION`).
+   Choose **Provisioning Profile** → remove or regenerate for App Store distribution.
+
+4. **New EAS iOS build** (Metro/OTA cannot add entitlements). Do **not** set `EXPO_NO_CAPABILITY_SYNC=1` for production — EAS must sync capabilities to Apple:
+
+   ```bash
+   npx eas-cli build --platform ios --profile production
+   ```
+
+   Dev client smoke test (optional):
+
+   ```bash
+   npx eas-cli build --platform ios --profile development
+   ```
+
+5. Install on a **physical iPhone** (not Simulator, not Expo Go).
+6. Metro success path: `terminal.connect.ok` → `terminal.process.start` (not `UNSUPPORTED_OPERATION`).
 
 ---
 

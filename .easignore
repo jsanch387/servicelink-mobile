@@ -46,7 +46,5 @@ android/build/
 android/.gradle/
 **/DerivedData/
 
-# Leftover Tap to Pay native project (complete-booking-addons branch).
-ios/ServiceLink/
-ios/ServiceLink.xcodeproj/
-ios/ServiceLink.xcworkspace/
+# Stale duplicate Xcode project (Podfile target is ServiceLink; use that scheme).
+ios/servicelinkmobile.xcodeproj/

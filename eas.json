@@ -20,7 +20,7 @@
       "environment": "production",
       "channel": "production",
       "ios": {
-        "scheme": "servicelinkmobile"
+        "scheme": "ServiceLink"
       },
       "android": {
         "prebuildCommand": "node scripts/copyGoogleServicesForAndroidBuild.js"
