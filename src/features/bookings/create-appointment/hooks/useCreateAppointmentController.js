@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { showUserFacingErrorAlert } from '../../../../utils/safeUserFacingMessage';
-import { useTheme } from '../../../../theme';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { InteractionManager } from 'react-native';
+import { useToast } from '../../../../components/ui';
 import { customersListQueryKey } from '../../../customers/queryKeys';
 import { catalogAddonsForService } from '../../../services/utils/catalogAddonsForService';
 import { postOwnerManualPublicBooking } from '../api/postOwnerManualPublicBooking';
@@ -9,7 +9,6 @@ import {
   CREATE_APPOINTMENT_LAST_STEP,
   CREATE_APPOINTMENT_STEP,
   CREATE_APPOINTMENT_STEP_META,
-  createAppointmentStepShowsMainTitle,
   createEmptyAddressForm,
   createEmptyCustomerForm,
   createEmptyVehicleForm,
@@ -32,7 +31,8 @@ import {
   totalBookingDurationMinutes,
 } from '../utils/createFlowDuration';
 import {
-  getCreateAppointmentProgressFraction,
+  getCreateAppointmentWizardStepCount,
+  getCreateAppointmentWizardStepIndex,
   getNextStepOnContinue,
   getPreviousStepOnBack,
   isAddonsStepSkipped,
@@ -45,7 +45,10 @@ import {
 } from '../utils/createFlowPricing';
 import { useBookingCalendar } from '../../../availability/booking';
 import { createAppointmentFlowStyles } from '../styles/createAppointmentFlowStyles';
+import { showAppointmentConfirmationSmsToast } from '../utils/appointmentConfirmationSmsToast';
+import { resolveCreateAppointmentWizardHeader } from '../utils/resolveCreateAppointmentWizardHeader';
 import { useCreateAppointmentServerData } from './useCreateAppointmentServerData';
+import { useCreateAppointmentSubmitPanel } from './useCreateAppointmentSubmitPanel';
 
 /**
  * All wizard state, server data, scheduling, save mutation, and navigation for create appointment.
@@ -57,7 +60,7 @@ import { useCreateAppointmentServerData } from './useCreateAppointmentServerData
  * @param {object} args.navigation React Navigation object with `goBack`
  */
 export function useCreateAppointmentController({ catalog, userId, accessToken, navigation }) {
-  const { colors } = useTheme();
+  const toast = useToast();
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(CREATE_APPOINTMENT_STEP.SERVICE);
@@ -71,6 +74,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   const [address, setAddress] = useState(createEmptyAddressForm);
   const [vehicle, setVehicle] = useState(createEmptyVehicleForm);
   const [notes, setNotes] = useState('');
+  const [successReplayKey, setSuccessReplayKey] = useState(0);
   const [appointmentConfirmed, setAppointmentConfirmed] = useState(false);
 
   const catalogError = catalog.businessError || catalog.catalogError;
@@ -110,6 +114,11 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     return rows.find((r) => String(r.id) === String(selectedServiceId)) ?? null;
   }, [catalog.serviceRows, selectedServiceId]);
 
+  const priceOptionsEnabled = useMemo(
+    () => isServicePriceTiersEnabled(selectedServiceRow),
+    [selectedServiceRow],
+  );
+
   const pricingPayload = useMemo(() => {
     if (
       server.ownerHasPro &&
@@ -131,11 +140,6 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     server.priceOptionsLoading,
     priceOptionsEnabled,
   ]);
-
-  const priceOptionsEnabled = useMemo(
-    () => isServicePriceTiersEnabled(selectedServiceRow),
-    [selectedServiceRow],
-  );
 
   const pricingSkipped = useMemo(
     () =>
@@ -266,6 +270,8 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     [server.businessServiceLocation],
   );
 
+  const submitMutationErrorRef = useRef(/** @type {(error: unknown) => void} */ ((_) => {}));
+
   const createBookingMutation = useMutation({
     mutationFn: async () => {
       const token = String(accessToken ?? '').trim();
@@ -300,12 +306,31 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
           queryKey: customersListQueryKey(catalog.businessId),
         }),
       ]);
+      setSuccessReplayKey((n) => n + 1);
       setAppointmentConfirmed(true);
+      InteractionManager.runAfterInteractions(() => {
+        showAppointmentConfirmationSmsToast(toast, customer.phone, customer.email, data.smsOutcome);
+      });
     },
     onError: (e) => {
-      showUserFacingErrorAlert('Could not create booking', e, { fallback: 'Try again.' });
+      submitMutationErrorRef.current(e);
     },
   });
+
+  const {
+    clearSubmitError,
+    handleMutationError,
+    hasCustomerPhone,
+    isSubmitting,
+    showSubmitPanel,
+    submitError,
+  } = useCreateAppointmentSubmitPanel({
+    step,
+    appointmentConfirmed,
+    isMutationPending: createBookingMutation.isPending,
+    customerPhone: customer.phone,
+  });
+  submitMutationErrorRef.current = handleMutationError;
 
   const addonCatalogKnown = !catalog.isLoading && !catalogError;
   const addonsCount = addonsForSelectedService.length;
@@ -384,38 +409,53 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     ],
   );
 
-  const progressPercent = useMemo(
-    () =>
-      getCreateAppointmentProgressFraction(step, {
-        appointmentConfirmed,
-        pricingSkipped,
-        addonsSkipped,
-        locationSkipped,
-        addressSkipped,
-      }) * 100,
-    [appointmentConfirmed, step, pricingSkipped, addonsSkipped, locationSkipped, addressSkipped],
-  );
-
   const meta = CREATE_APPOINTMENT_STEP_META[step];
   const addressStepCopy = useMemo(
     () => getCreateAppointmentAddressStepCopy(appointmentLocationType),
     [appointmentLocationType],
   );
-  const mainTitle = useMemo(() => {
-    if (appointmentConfirmed) return '';
-    if (step === CREATE_APPOINTMENT_STEP.ADDRESS) return addressStepCopy.title;
-    return meta?.title ?? '';
-  }, [appointmentConfirmed, step, addressStepCopy.title, meta?.title]);
-  const mainSubtitle = useMemo(() => {
-    if (appointmentConfirmed) return '';
-    if (step === CREATE_APPOINTMENT_STEP.ADDRESS) return addressStepCopy.subtitle;
-    return meta?.subtitle ?? '';
-  }, [appointmentConfirmed, step, addressStepCopy.subtitle, meta?.subtitle]);
+
+  const wizardHeader = useMemo(() => {
+    if (appointmentConfirmed) {
+      return null;
+    }
+    const skipArgs = { pricingSkipped, addonsSkipped, locationSkipped, addressSkipped };
+    const stepCount = getCreateAppointmentWizardStepCount(skipArgs);
+    const stepIndex = getCreateAppointmentWizardStepIndex(step, skipArgs);
+    const { title, subtitle } = resolveCreateAppointmentWizardHeader(
+      step,
+      meta,
+      selectedService,
+      selectedPricingOption,
+      addressStepCopy,
+    );
+    return {
+      stepIndex,
+      stepCount,
+      title,
+      subtitle,
+      scrollWithContent: step === CREATE_APPOINTMENT_STEP.REVIEW,
+    };
+  }, [
+    addonsSkipped,
+    addressSkipped,
+    addressStepCopy,
+    appointmentConfirmed,
+    locationSkipped,
+    meta,
+    pricingSkipped,
+    selectedPricingOption,
+    selectedService,
+    step,
+  ]);
 
   const handleBack = useCallback(() => {
     if (appointmentConfirmed) {
       navigation.goBack();
       return;
+    }
+    if (submitError) {
+      clearSubmitError();
     }
     if (step > CREATE_APPOINTMENT_STEP.SERVICE) {
       setStep(
@@ -434,16 +474,19 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     addonsSkipped,
     addressSkipped,
     appointmentConfirmed,
+    clearSubmitError,
     locationSkipped,
     navigation,
     pricingSkipped,
     step,
+    submitError,
   ]);
 
   const handleContinue = useCallback(() => {
     if (appointmentConfirmed) return;
     if (!canContinue) return;
     if (step === CREATE_APPOINTMENT_LAST_STEP) {
+      clearSubmitError();
       createBookingMutation.mutate();
       return;
     }
@@ -461,6 +504,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     addressSkipped,
     appointmentConfirmed,
     canContinue,
+    clearSubmitError,
     createBookingMutation,
     locationSkipped,
     pricingSkipped,
@@ -477,12 +521,13 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     );
   }, []);
 
-  const styles = useMemo(() => createAppointmentFlowStyles(colors), [colors]);
+  const styles = useMemo(() => createAppointmentFlowStyles(), []);
 
   const stepContentProps = useMemo(
     () => ({
       step,
       appointmentConfirmed,
+      confirmationReplayKey: successReplayKey,
       catalogError,
       catalogIsLoading: catalog.isLoading,
       enabledServices,
@@ -521,10 +566,21 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       totalDurationMinutes,
       onChangeVehicle: setVehicle,
       onChangeNotes: setNotes,
+      showSubmitPanel,
+      submitPanelActive: isSubmitting,
+      submitPanelError: submitError,
+      submitPanelHasCustomerPhone: hasCustomerPhone,
+      onSubmitErrorRetry: clearSubmitError,
     }),
     [
       step,
       appointmentConfirmed,
+      successReplayKey,
+      showSubmitPanel,
+      isSubmitting,
+      submitError,
+      hasCustomerPhone,
+      clearSubmitError,
       catalogError,
       catalog.isLoading,
       enabledServices,
@@ -561,16 +617,14 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   return {
     styles,
     step,
-    progressPercent,
     appointmentConfirmed,
-    showMainTitle: createAppointmentStepShowsMainTitle(step) && !appointmentConfirmed,
-    mainTitle,
-    mainSubtitle,
+    showSubmitPanel,
+    wizardHeader,
     stepContentProps,
     footer: {
       appointmentConfirmed,
       canContinue,
-      confirmLoading: createBookingMutation.isPending,
+      hideWhileSubmitPanel: showSubmitPanel,
       lastStepIndex: CREATE_APPOINTMENT_LAST_STEP,
       step,
       onBack: handleBack,

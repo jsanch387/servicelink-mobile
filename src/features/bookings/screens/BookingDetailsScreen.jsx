@@ -20,9 +20,13 @@ import {
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
+import { isOnTheWayActionDone } from '../constants/jobStatus';
+import { useBookingAction } from '../hooks/useBookingAction';
 import { useTheme } from '../../../theme';
+import { phoneForSmsUri } from '../../../utils/phone';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BookingActionsSection } from '../booking-details/components/BookingActionsSection';
+import { BookingCompleteVisitSheet } from '../booking-details/components/BookingCompleteInvoiceDesignSheet';
 import { BookingMarkCompleteSheet } from '../booking-details/components/BookingMarkCompleteSheet';
 import { BookingPaymentSection } from '../booking-details/components/BookingPaymentSection';
 import { BookingDetailsStatusBanner } from '../booking-details/components/BookingDetailsStatusBanner';
@@ -54,12 +58,20 @@ export function BookingDetailsScreen({ route }) {
           id: detailsQuery.booking.id,
           customer_id: detailsQuery.booking.customer_id ?? null,
           customer_email: detailsQuery.booking.customer_email ?? null,
+          customer_phone: detailsQuery.booking.customer_phone ?? null,
+          customer_name: detailsQuery.booking.customer_name ?? null,
         }
       : null,
   });
   const statusLower = details.status.toLowerCase();
   const isCompletedStatus = statusLower === 'completed' || statusLower === 'complete';
   const isCancelledStatus = statusLower === 'cancelled' || statusLower === 'canceled';
+  const isConfirmedStatus = statusLower === 'confirmed';
+  const showOnMyWayAction = isConfirmedStatus && !isCompletedStatus && !isCancelledStatus;
+  const hasCustomerSmsPhone = Boolean(phoneForSmsUri(detailsQuery.booking?.customer_phone));
+  const bookingAction = useBookingAction(null);
+  const onMyWayAlreadySent =
+    isOnTheWayActionDone(detailsQuery.booking) || bookingAction.isOnTheWayDone(bookingId);
 
   useEffect(() => {
     setCompleteScrollRequestId(0);
@@ -77,6 +89,7 @@ export function BookingDetailsScreen({ route }) {
     });
     return () => task.cancel();
   }, [completeScrollRequestId, isCompletedStatus]);
+
   const customerPhoneDigits = useMemo(
     () => String(details.customer.phone ?? '').replace(/\D/g, ''),
     [details.customer.phone],
@@ -162,30 +175,39 @@ export function BookingDetailsScreen({ route }) {
     markCompleteFlow.openSheet();
   }, [bookingId, isCancelledStatus, isCompletedStatus, markCompleteFlow]);
 
-  const handleConfirmMarkCompleted = useCallback(async () => {
-    try {
-      await markCompleteFlow.confirmComplete();
-      setCompleteScrollRequestId((id) => id + 1);
-    } catch (error) {
-      Alert.alert(
-        'Could not mark completed',
-        safeUserFacingMessage(error, { fallback: 'Please try again.' }),
-      );
-    }
-  }, [markCompleteFlow]);
+  const handleConfirmMarkCompleted = useCallback(
+    async (checkout) => {
+      try {
+        await markCompleteFlow.confirmComplete(checkout);
+        setCompleteScrollRequestId((id) => id + 1);
+      } catch (error) {
+        Alert.alert(
+          'Could not mark completed',
+          safeUserFacingMessage(error, { fallback: 'Please try again.' }),
+        );
+      }
+    },
+    [markCompleteFlow],
+  );
   const handleEditBooking = useCallback(() => {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
       return;
     }
     navigation.navigate(ROUTES.EDIT_BOOKING, { bookingId });
   }, [bookingId, isCancelledStatus, isCompletedStatus, navigation]);
-
   const handleReschedule = useCallback(() => {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
       return;
     }
     setRescheduleSheetOpen(true);
   }, [bookingId, isCancelledStatus, isCompletedStatus]);
+
+  const handleOnMyWay = useCallback(() => {
+    if (!bookingId || onMyWayAlreadySent || bookingAction.disabled) {
+      return;
+    }
+    bookingAction.notifyOnTheWay(bookingId);
+  }, [bookingId, onMyWayAlreadySent, bookingAction]);
 
   const bookingStartMs = useMemo(() => {
     const raw = detailsQuery.booking;
@@ -292,15 +314,27 @@ export function BookingDetailsScreen({ route }) {
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
-      <BookingMarkCompleteSheet
-        isLoadingPreview={markCompleteFlow.isLoadingPreview}
-        isSubmitting={markCompleteFlow.isConfirming}
-        preview={markCompleteFlow.preview}
-        previewError={markCompleteFlow.previewError}
-        visible={markCompleteFlow.sheetVisible}
-        onConfirm={() => void handleConfirmMarkCompleted()}
-        onRequestClose={markCompleteFlow.closeSheet}
-      />
+      {markCompleteFlow.useCompleteVisitScreen ? (
+        <BookingCompleteVisitSheet
+          bookingId={bookingId}
+          isLoading={markCompleteFlow.isLoadingPreview}
+          loadError={markCompleteFlow.previewError}
+          visitModel={markCompleteFlow.completeVisitModel}
+          visible={markCompleteFlow.sheetVisible}
+          onComplete={handleConfirmMarkCompleted}
+          onRequestClose={markCompleteFlow.closeSheet}
+        />
+      ) : (
+        <BookingMarkCompleteSheet
+          isLoadingPreview={markCompleteFlow.isLoadingPreview}
+          isSubmitting={markCompleteFlow.isConfirming}
+          preview={markCompleteFlow.preview}
+          previewError={markCompleteFlow.previewError}
+          visible={markCompleteFlow.sheetVisible}
+          onConfirm={() => void handleConfirmMarkCompleted()}
+          onRequestClose={markCompleteFlow.closeSheet}
+        />
+      )}
       <BookingRescheduleSheet
         initialStartMs={Number.isFinite(bookingStartMs) ? bookingStartMs : undefined}
         isSubmitting={bookingActions.isReschedulingBooking}
@@ -391,18 +425,24 @@ export function BookingDetailsScreen({ route }) {
 
             <View style={styles.actionsWrap}>
               <BookingActionsSection
+                hasCustomerSmsPhone={hasCustomerSmsPhone}
                 isCancelDisabled={isCancelledStatus || isCompletedStatus}
                 isCancellingBooking={bookingActions.isCancellingBooking}
                 isDeletingBooking={bookingActions.isDeletingBooking}
                 isEditDisabled={isCancelledStatus || isCompletedStatus}
                 isMarkCompletedDisabled={isCompletedStatus}
                 isMarkingCompleted={markCompleteFlow.isConfirming}
+                isOnMyWayDisabled={bookingAction.disabled}
+                isOnMyWaySending={bookingAction.isSending}
                 isRescheduleDisabled={isCancelledStatus || isCompletedStatus}
                 isReschedulingBooking={bookingActions.isReschedulingBooking}
+                onMyWayAlreadySent={onMyWayAlreadySent}
                 onCancelBooking={handleCancelBooking}
                 onEdit={handleEditBooking}
                 onMarkCompleted={handleMarkCompleted}
+                onOnMyWayPress={handleOnMyWay}
                 onReschedule={handleReschedule}
+                showOnMyWayAction={showOnMyWayAction}
               />
             </View>
             <View style={styles.deleteSection}>

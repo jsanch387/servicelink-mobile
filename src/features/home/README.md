@@ -11,12 +11,12 @@ Order matches the scroll layout; useful when tracing UX or adding a section.
 1. **Header** — Business display name (`business_profiles.business_name`, fallback “there”) + notifications affordance → `ROUTES.NOTIFICATIONS_INBOX`.
 2. **`Updating…`** — Shown when any home query is refetching and the screen is not on the initial blank load (`isFetching && !isLoading`).
 3. **`HomeErrorBanner`** — Top-level message when `computeHomeErrorPresentation` sets `bannerError` (e.g. business profile failed, or deduped same error across queries).
-4. **Next Up block** — Section title (**`In progress`** vs **`Next Up`**) from `dashboard.spotlightMode`, then **`NextUpCard`** (see [Next Up card](#next-up-card-nextupcardjsx) below).
+4. **Next Up block** — Section title (**`In progress`** vs **`Next Up`**) from `dashboard.spotlightMode`, then **`NextUpCard`** (see [Next Up card](#next-up-card-nextupcardjsx) below). **Temporary SMS hold:** until server SMS is approved, Home only shows device Messages **On my way** + **Navigate** (`NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS = false`). Full notes / restore checklist: [`docs/NEXT_UP_SMS_HOLD.md`](./docs/NEXT_UP_SMS_HOLD.md) (delete that doc when the hold is over).
 5. **Booking link** — `LinkStatsSection` (views + slug URL).
 6. **Rest of Today** — `RestOfTodayCard` (separate query for today’s bookings).
 7. **`FloatingCreateMenu`** — Create appointment / quote entry points (overlay).
 
-`useHomeDashboard()` is called once; **`useMarkBookingCompleteFlow()`** handles mark-complete from the Next Up card (Supabase complete + review-invite when eligible).
+`useHomeDashboard()` is called once; **`useMarkBookingCompleteFlow()`** handles mark-complete from the Next Up card (`POST …/actions` `job_completed` when feature flag is on).
 
 > **`TotalScheduledCard`** exists under `components/` (upcoming count → Bookings tab) but is **not** mounted on the current Home screen; keep the component/tests if you reintroduce that row.
 
@@ -28,7 +28,6 @@ Order matches the scroll layout; useful when tracing UX or adding a section.
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `screens/HomeScreen.jsx`            | Composes sections; calls `useHomeDashboard()` once and passes props to children (avoids duplicate fetches).                                                                      |
 | `hooks/useHomeDashboard.js`         | **TanStack Query** for business + upcoming spotlight bookings + “today” list; **stale-only refetch** on tab focus; exposes `refetch()` for pull-to-refresh; errors per query.    |
-| `hooks/useHomeQuickMarkComplete.js` | Direct complete mutation (Supabase + review-invite) when no sheet is needed.                                                                                                     |
 | `api/homeDashboard.js`              | `fetchBusinessProfileForUser` only; booking list helpers live in **`bookings/api/bookings.js`** (re-exported here for compatibility).                                            |
 | `utils/bookingStart.js`             | Combines `scheduled_date` + `start_time` in **device local** time; relative “Starts in …” and in-progress subtitle copy.                                                         |
 | `utils/bookingLink.js`              | Host + display/HTTPS URL helpers; slug comes **only** from `business_profiles.business_slug` (see Link row empty state if missing).                                              |
@@ -46,71 +45,67 @@ Shared UI: `SurfaceCard` / `SpotlightCard` (`src/components/ui/Card.jsx`), `Butt
 
 ## Next Up card (`NextUpCard.jsx`)
 
-The card is the **hero** for the owner’s next actionable visit. What it shows depends on **loading**, **errors**, **whether a spotlight booking exists**, and **`spotlightMode`** (from server rows + `pickHomeSpotlight` in `bookings/api/bookings.js`).
+The card is the **hero** for the owner’s next actionable visit. CTAs are driven by **`bookings.job_status`** via `resolveNextUpCardActionMode` in `utils/resolveNextUpCardActions.js` (not time-based `spotlightMode` alone).
 
-### Where `spotlightMode` comes from
+### `job_status` → card UI
 
-`useHomeDashboard` runs `pickHomeSpotlight(rows, nowMs)` on confirmed bookings from today onward:
+| `job_status`  | `work_handoff_status`  | Section title | Actions                                            |
+| ------------- | ---------------------- | ------------- | -------------------------------------------------- |
+| `not_started` | —                      | Next Up       | **On my way** + **Navigate**                       |
+| `on_the_way`  | —                      | Next Up       | **Slide to start job** + navigate icon (top-right) |
+| `in_progress` | `NULL`                 | In progress   | **Done** + **Skip** + live pulse                   |
+| `in_progress` | `notified` / `skipped` | In progress   | **Mark complete** + live pulse                     |
+| `completed`   | —                      | —             | No actions (card hidden from action row)           |
 
-| `spotlightMode`   | Meaning                                                                                                                                                                      | `nextBooking` in payload |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| **`in_progress`** | A **confirmed** booking has **started** (start ≤ now) and is still **before expected end** (start + `duration_minutes`, default **120** if missing). Earliest such row wins. | That in-progress row     |
-| **`upcoming`**    | No row in that in-progress window; show the **earliest future** confirmed start (same as `partitionUpcomingConfirmed` “next”).                                               | That upcoming row        |
-| **`none`**        | No upcoming row after filtering.                                                                                                                                             | `null`                   |
+- **On my way** → `useBookingAction.notifyOnTheWay` → `POST` `on_the_way` (SMS toast on success).
+- **Slide to start job** → `useBookingAction.startJob` → `POST` `job_started`.
+- **Done** → `useBookingAction.workFinished(id, true)` → `POST` `work_finished` with `notify: true` (SMS toast; UI advances even if SMS fails).
+- **Skip** → `useBookingAction.workFinished(id, false)` → `POST` `work_finished` with `notify: false` (silent; moves to Mark complete).
+- **Navigate** → `openMapsForBooking` (header icon when en route; outline button when upcoming).
+- **Mark complete** → `useMarkBookingCompleteFlow` on `HomeScreen` → Complete sheet → `job_completed` (see [`MOBILE_BOOKING_JOB_COMPLETED.md`](../bookings/docs/MOBILE_BOOKING_JOB_COMPLETED.md)).
 
-Subtitle on Home (`nextSubtitle`): **in progress** → `formatInProgressSubtitle` (e.g. started time); **upcoming** → `formatNextUpWhenLine` (e.g. relative “Starts in …”).
+Handoff phase resolution: `resolveNextUpWorkingPhase` in `utils/resolveNextUpCardActions.js`.
+
+Shared UI: `SlideToStartJob`, `NextUpNavigateIconButton` (en-route maps chip).
+
+### Where `spotlightMode` still matters
+
+`useHomeDashboard` runs `pickHomeSpotlight(rows, nowMs)` for **which booking** to show and the **subtitle** (in-progress vs upcoming timing). Section title prefers `job_status` (`resolveNextUpSectionTitle`) when the row is in progress.
+
+| `spotlightMode`   | Meaning                                                |
+| ----------------- | ------------------------------------------------------ |
+| **`in_progress`** | Started booking still within expected duration window. |
+| **`upcoming`**    | Earliest future confirmed start.                       |
+| **`none`**        | No row to spotlight.                                   |
 
 ### Props (contract)
 
-| Prop                              | Source on Home                                                           | Role                                                                                        |
-| --------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `isLoading`                       | `sectionLoading` = pending business **or** pending upcoming bookings     | Skeleton state                                                                              |
-| `businessError` / `bookingsError` | `homeErrors.nextUpBusinessError` / `homeErrors.nextUpBookingsError`      | First non-null becomes in-card `InlineCardError` (see dedupe in `homeErrorPresentation.js`) |
-| `nextBooking`                     | `dashboard.nextBooking`                                                  | Spotlight row or `null`                                                                     |
-| `subtitle`                        | `dashboard.nextSubtitle`                                                 | Time / “started” line under customer name when not empty                                    |
-| `spotlightMode`                   | `dashboard.spotlightMode`                                                | `'in_progress' \| 'upcoming' \| 'none'`                                                     |
-| `onMarkComplete`                  | Set only when `spotlightMode === 'in_progress'` **and** booking has `id` | Async handler from `HomeScreen`                                                             |
-| `markCompleteLoading`             | `markCompleteMutation.isPending`                                         | Disables button + loading UI                                                                |
+| Prop                              | Source on Home                      | Role                           |
+| --------------------------------- | ----------------------------------- | ------------------------------ |
+| `isLoading`                       | `sectionLoading`                    | Skeleton                       |
+| `businessError` / `bookingsError` | `homeErrors.*`                      | In-card error                  |
+| `nextBooking`                     | `dashboard.nextBooking`             | Spotlight row                  |
+| `subtitle`                        | `dashboard.nextSubtitle`            | Time line under name           |
+| `businessId`                      | `dashboard.business?.id`            | `useBookingAction` cache scope |
+| `spotlightMode`                   | `dashboard.spotlightMode`           | Accessibility summary only     |
+| `onMarkComplete`                  | When `job_status === 'in_progress'` | Mark-complete sheet flow       |
+| `markCompleteLoading`             | `markCompleteFlow.isConfirming`     | Disables Mark complete         |
 
-### Visual / UX states (render priority in code: **loading → error → empty → filled**)
+### Visual / UX states (render priority: **loading → error → empty → filled**)
 
-`NextUpCard` returns the skeleton **first** when `isLoading` is true, so a refetch that keeps `isLoading` true (e.g. first paint) shows skeleton even if an error string is also passed—after bookings resolve, errors or empty state appear.
-
-1. **Loading** (`isLoading`)
-   - **Skeleton** inside `SpotlightCard` (name/when lines + action placeholders).
-   - Home sets this when **business** or **upcoming bookings** query is still pending (`sectionLoading`).
-
-2. **Schedule error** (`businessError || bookingsError`, when not loading)
-   - Renders **`InlineCardError`** with that message.
-   - **No** empty state and **no** action row.
-
-3. **Empty** (not loading, no error, `nextBooking == null`)
-   - **Badge:** 44×44 circle — **black** fill + **white** `calendar-outline` on light Next Up surfaces; **inverted** (white circle, dark icon) on dark Next Up surfaces so the badge stays visible.
-   - **Title:** “Nothing scheduled yet”
-   - **Body:** “Your next booking will show up here.”
-   - **No** primary/secondary actions.
-
-4. **Filled — `spotlightMode === 'upcoming'`**
-   - Customer name, optional `subtitle`, service line (from `buildNextUpHeadlines` / `formatNextUpServiceLine`), optional vehicle line.
-   - **No** live pulse (`testID="next-up-live-pulse"` absent).
-   - **Actions:** **`On my way`** (SMS) + **`Navigate`** (maps).
-   - Buttons **disabled** without usable phone / formatted address (same rules as before).
-
-5. **Filled — `spotlightMode === 'in_progress'`**
-   - Name row includes **animated green pulse** dot (`testID="next-up-live-pulse"`).
-   - **Single full-width** primary: **Mark complete** (`variant` flips with surface: `surfaceDark` on white card, `surfaceLight` on dark).
-   - **Mark complete** is disabled if `onMarkComplete` is missing **or** `markCompleteLoading`.
-   - **Confirmation:** tap **Mark complete** opens a bottom sheet (preview from web API when available); **Cancel** / **Mark complete**; copy explains whether a review email will be sent.
-   - On failure, `HomeScreen` shows **`Alert.alert`** with `safeUserFacingMessage`.
-
-6. **Accessibility**
-   - When filled and no schedule error, the card gets an **`accessibilityLabel`** summarizing in-progress vs name, subtitle, service, vehicle.
+1. **Loading** — skeleton inside `SpotlightCard`.
+2. **Schedule error** — `InlineCardError`; no empty state or actions.
+3. **Empty** — calendar badge + “Nothing scheduled yet”.
+4. **Filled** — customer, subtitle, service/vehicle lines; actions per table above.
 
 ### Related code
 
-- **Selection logic:** `pickHomeSpotlight`, `bookingExpectedEndMs`, `partitionUpcomingConfirmed` — `src/features/bookings/api/bookings.js`.
-- **Mark complete + cache:** `useHomeQuickMarkComplete.js`, `invalidateBookingCachesAfterMutation.js` (booking-details feature).
-- **Tests:** `NextUpCard.test.jsx` (skeleton, empty, upcoming vs in-progress, alert confirm/cancel, SMS/maps mocks).
+- **Action resolution:** `resolveNextUpCardActions.js`
+- **Booking actions API:** `useBookingAction.js`, `postBookingAction`
+- **Server spec (start job):** `src/features/bookings/docs/BOOKING_JOB_STARTED_SERVER.md`
+- **Mobile integration:** `src/features/bookings/docs/MOBILE_BOOKING_ACTIONS.md`
+- **Tests:** `NextUpCard.test.jsx`, `resolveNextUpCardActions.test.js`, `SlideToStartJob.test.jsx`, `postBookingAction.test.js`, `useBookingAction.test.jsx`, `bookingActionFeedback.test.js`
+- **Lifecycle server spec:** `src/features/bookings/docs/BOOKING_JOB_LIFECYCLE_SERVER.md`
 
 ---
 
@@ -152,15 +147,17 @@ Shared helpers: `testUtils.jsx` (`renderWithProviders`, test `QueryClient`). Glo
 - **Join:** `business_id` → `business_profiles.id`.
 - **Fields used on Home:**
 
-  | Column                                                                                            | Home usage                                                                                 |
-  | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-  | `scheduled_date`                                                                                  | `date`; combined with `start_time` for ordering and “future” checks.                       |
-  | `start_time`                                                                                      | `time`; combined with `scheduled_date` in JS (device local).                               |
-  | `status`                                                                                          | Only **`confirmed`** rows are loaded for upcoming logic.                                   |
-  | `service_name`                                                                                    | Second line of “Next up” title: `{customer} — {service}`.                                  |
-  | `customer_name`                                                                                   | First part of “Next up” title.                                                             |
-  | `customer_phone`                                                                                  | **On my way** — native SMS (`sms:`) with a preset message.                                 |
-  | `customer_street_address`, `customer_unit_apt`, `customer_city`, `customer_state`, `customer_zip` | **Navigate** — concatenated in app (see below); no single `customer_address` column today. |
+  | Column                                                                                            | Home usage                                                                                     |
+  | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+  | `scheduled_date`                                                                                  | `date`; combined with `start_time` for ordering and “future” checks.                           |
+  | `start_time`                                                                                      | `time`; combined with `scheduled_date` in JS (device local).                                   |
+  | `status`                                                                                          | Only **`confirmed`** rows are loaded for upcoming logic.                                       |
+  | `job_status`                                                                                      | Next Up action mode (`not_started` → on my way → start → handoff → complete).                  |
+  | `work_handoff_status`                                                                             | In-progress handoff: `NULL` = **Done** / **Skip**; `notified` / `skipped` = **Mark complete**. |
+  | `service_name`                                                                                    | Second line of “Next up” title: `{customer} — {service}`.                                      |
+  | `customer_name`                                                                                   | First part of “Next up” title.                                                                 |
+  | `customer_phone`                                                                                  | **On my way** — native SMS (`sms:`) with a preset message.                                     |
+  | `customer_street_address`, `customer_unit_apt`, `customer_city`, `customer_state`, `customer_zip` | **Navigate** — concatenated in app (see below); no single `customer_address` column today.     |
 
 **Ignored on Home (by design):** `booking_requests` and non-`confirmed` statuses (`cancelled`, `complete`, etc.) for upcoming/next counts.
 

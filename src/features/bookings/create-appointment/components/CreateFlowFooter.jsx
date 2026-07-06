@@ -12,7 +12,8 @@ import { useTheme } from '../../../../theme';
  * @param {number} props.step
  * @param {number} props.lastStepIndex
  * @param {boolean} props.canContinue
- * @param {boolean} props.confirmLoading
+ * @param {boolean} [props.confirmLoading]
+ * @param {boolean} [props.hideWhileSubmitPanel]
  * @param {number} props.paddingBottom
  * @param {() => void} props.onBack
  * @param {() => void} props.onContinue
@@ -28,7 +29,8 @@ export function CreateFlowFooter({
   step,
   lastStepIndex,
   canContinue,
-  confirmLoading,
+  confirmLoading = false,
+  hideWhileSubmitPanel = false,
   paddingBottom,
   onBack,
   onContinue,
@@ -62,6 +64,10 @@ export function CreateFlowFooter({
       }),
     [colors],
   );
+
+  if (hideWhileSubmitPanel) {
+    return null;
+  }
 
   if (appointmentConfirmed) {
     return (

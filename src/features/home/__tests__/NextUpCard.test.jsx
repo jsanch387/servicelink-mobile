@@ -1,14 +1,57 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen } from '@testing-library/react-native';
 import { NextUpCard } from '../components/NextUpCard';
 import * as outbound from '../utils/appointmentOutbound';
 import { renderWithProviders } from './testUtils';
 
-jest.spyOn(outbound, 'openSmsOnMyWay').mockImplementation(() => {});
+const mockNotifyOnTheWay = jest.fn();
+const mockStartJob = jest.fn();
+const mockRunAction = jest.fn();
+let mockBookingActionState = {
+  notifyOnTheWay: mockNotifyOnTheWay,
+  startJob: mockStartJob,
+  workFinished: jest.fn(),
+  runAction: mockRunAction,
+  isSending: false,
+  disabled: false,
+  isOnTheWayDone: () => false,
+  isJobStartedDone: () => false,
+};
+
+jest.mock('../constants/nextUpDesignFlags', () => ({
+  NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS: true,
+  NEXT_UP_LIFECYCLE_DESIGN_PREVIEW: false,
+}));
+
+jest.mock('../../bookings/hooks/useBookingAction', () => ({
+  useBookingAction: () => mockBookingActionState,
+}));
+
 jest.spyOn(outbound, 'openMapsForBooking').mockImplementation(() => {});
+
+const baseBooking = {
+  id: '1',
+  customer_name: 'Alex',
+  service_name: 'Install',
+  customer_phone: '5552345678',
+  customer_street_address: '1 Main',
+  customer_city: 'Austin',
+  customer_state: 'TX',
+  customer_zip: '78701',
+};
 
 describe('NextUpCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockBookingActionState = {
+      notifyOnTheWay: mockNotifyOnTheWay,
+      startJob: mockStartJob,
+      workFinished: jest.fn(),
+      runAction: mockRunAction,
+      isSending: false,
+      disabled: false,
+      isOnTheWayDone: () => false,
+      isJobStartedDone: () => false,
+    };
   });
 
   it('renders skeleton while loading', () => {
@@ -40,17 +83,7 @@ describe('NextUpCard', () => {
     expect(screen.queryByLabelText('Navigate')).toBeNull();
   });
 
-  it('in progress: live pulse, customer row, subtitle, single Mark complete, no navigate/on-my-way', () => {
-    const nextBooking = {
-      id: '1',
-      customer_name: 'Alex',
-      service_name: 'Install',
-      customer_phone: '5552345678',
-      customer_street_address: '1 Main',
-      customer_city: 'Austin',
-      customer_state: 'TX',
-      customer_zip: '78701',
-    };
+  it('working: live pulse and single Mark complete action', () => {
     const onMarkComplete = jest.fn().mockResolvedValue(undefined);
     renderWithProviders(
       <NextUpCard
@@ -58,9 +91,12 @@ describe('NextUpCard', () => {
         businessError={null}
         isLoading={false}
         markCompleteLoading={false}
-        nextBooking={nextBooking}
+        nextBooking={{
+          ...baseBooking,
+          job_status: 'in_progress',
+          work_handoff_status: 'skipped',
+        }}
         onMarkComplete={onMarkComplete}
-        spotlightMode="in_progress"
         subtitle="Started at 2:00 PM"
       />,
     );
@@ -68,107 +104,203 @@ describe('NextUpCard', () => {
     expect(screen.getByText('Started at 2:00 PM')).toBeTruthy();
     expect(screen.getByText('Alex')).toBeTruthy();
     expect(screen.getByLabelText('Mark complete')).toBeTruthy();
-    expect(screen.getByLabelText('Mark complete')).not.toBeDisabled();
+    expect(screen.queryByLabelText('Text customer')).toBeNull();
     expect(screen.queryByLabelText('On my way')).toBeNull();
     expect(screen.queryByLabelText('Navigate')).toBeNull();
   });
 
-  it('upcoming spotlight: shows On my way and Navigate, no live pulse', () => {
-    const nextBooking = {
-      id: '1',
-      customer_name: 'Alex',
-      service_name: 'Install',
-      customer_phone: '5552345678',
-      customer_street_address: '1 Main',
-      customer_city: 'Austin',
-      customer_state: 'TX',
-      customer_zip: '78701',
-    };
+  it('upcoming: shows On my way and Navigate below, no header Maps', () => {
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
         businessError={null}
         isLoading={false}
-        nextBooking={nextBooking}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
         spotlightMode="upcoming"
         subtitle="Today at 2:00 PM"
       />,
     );
     expect(screen.queryByTestId('next-up-live-pulse')).toBeNull();
+    expect(screen.queryByTestId('next-up-navigate-icon')).toBeNull();
     expect(screen.getByLabelText('On my way')).toBeTruthy();
     expect(screen.getByLabelText('Navigate')).toBeTruthy();
     expect(screen.queryByLabelText('Mark complete')).toBeNull();
   });
 
-  it('in progress: Mark complete disabled without onMarkComplete', () => {
-    const nextBooking = {
-      id: '1',
-      customer_name: 'Alex',
-      service_name: 'Install',
-      customer_phone: '5552345678',
-      customer_street_address: '1 Main',
-      customer_city: 'Austin',
-      customer_state: 'TX',
-      customer_zip: '78701',
+  it('en route: shows Navigate in header and slide to start job below', () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'on_the_way' }}
+        subtitle="On the way"
+      />,
+    );
+    expect(screen.getByTestId('slide-to-start-job-track')).toBeTruthy();
+    expect(screen.getByTestId('next-up-navigate-icon')).toBeTruthy();
+    expect(screen.getByLabelText('Navigate')).toBeTruthy();
+    expect(screen.queryByText('Navigate')).toBeNull();
+    expect(screen.queryByLabelText('On my way')).toBeNull();
+  });
+
+  it('en route: keeps Navigate in header when spotlight is in progress by time', () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'on_the_way' }}
+        spotlightMode="in_progress"
+        subtitle="On the way"
+      />,
+    );
+    expect(screen.getByTestId('next-up-navigate-icon')).toBeTruthy();
+    expect(screen.queryByTestId('next-up-live-pulse')).toBeNull();
+    expect(screen.getByTestId('slide-to-start-job-track')).toBeTruthy();
+  });
+
+  it('en route: navigate icon opens maps', () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'on_the_way' }}
+        subtitle="On the way"
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('Navigate'));
+    expect(outbound.openMapsForBooking).toHaveBeenCalledWith({
+      ...baseBooking,
+      job_status: 'on_the_way',
+    });
+  });
+
+  it('completed job shows booking details without actions', () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'completed' }}
+        subtitle="Completed at 3:40 PM"
+      />,
+    );
+    expect(screen.getByText('Alex')).toBeTruthy();
+    expect(screen.queryByLabelText('Mark complete')).toBeNull();
+    expect(screen.queryByLabelText('On my way')).toBeNull();
+  });
+
+  it('working ready: shows Mark complete when handoff is done', () => {
+    const onMarkComplete = jest.fn().mockResolvedValue(undefined);
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        markCompleteLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'in_progress', work_handoff_status: 'notified' }}
+        onMarkComplete={onMarkComplete}
+        subtitle="Started at 2:00 PM"
+      />,
+    );
+    expect(screen.getByLabelText('Mark complete')).toBeTruthy();
+    expect(screen.queryByLabelText('Done')).toBeNull();
+  });
+
+  it('working handoff: shows Done and Skip from work_handoff_status', () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'in_progress', work_handoff_status: null }}
+        subtitle="Started at 2:00 PM"
+      />,
+    );
+    expect(screen.getByLabelText('Done')).toBeTruthy();
+    expect(screen.getByLabelText('Skip')).toBeTruthy();
+    expect(screen.queryByLabelText('Mark complete')).toBeNull();
+  });
+
+  it('working handoff: Done calls workFinished with notify true', () => {
+    const mockWorkFinished = jest.fn();
+    mockBookingActionState = {
+      ...mockBookingActionState,
+      workFinished: mockWorkFinished,
     };
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
         businessError={null}
         isLoading={false}
-        nextBooking={nextBooking}
-        spotlightMode="in_progress"
+        nextBooking={{ ...baseBooking, job_status: 'in_progress', work_handoff_status: null }}
         subtitle="Started at 2:00 PM"
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('Done'));
+    expect(mockWorkFinished).toHaveBeenCalledWith('1', true);
+  });
+
+  it('uses actionHandlers instead of booking action hook', () => {
+    const onOnMyWay = jest.fn();
+    renderWithProviders(
+      <NextUpCard
+        actionHandlers={{ onOnMyWay, isSending: false, disabled: false }}
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        subtitle="Today at 2:00 PM"
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('On my way'));
+    expect(onOnMyWay).toHaveBeenCalledTimes(1);
+    expect(mockNotifyOnTheWay).not.toHaveBeenCalled();
+  });
+
+  it('working: Mark complete disabled without onMarkComplete', () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'in_progress' }}
+        subtitle="Started at 2:00 PM"
+        workingPhase="ready"
       />,
     );
     expect(screen.getByLabelText('Mark complete')).toBeDisabled();
   });
 
-  it('in progress: Mark complete disabled while loading', () => {
-    const nextBooking = {
-      id: '1',
-      customer_name: 'Alex',
-      service_name: 'Install',
-      customer_phone: '5552345678',
-      customer_street_address: '1 Main',
-      customer_city: 'Austin',
-      customer_state: 'TX',
-      customer_zip: '78701',
-    };
+  it('working: Mark complete disabled while loading', () => {
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
         businessError={null}
         isLoading={false}
         markCompleteLoading
-        nextBooking={nextBooking}
+        nextBooking={{
+          ...baseBooking,
+          job_status: 'in_progress',
+          work_handoff_status: 'notified',
+        }}
         onMarkComplete={jest.fn()}
-        spotlightMode="in_progress"
         subtitle="Started at 2:00 PM"
       />,
     );
     expect(screen.getByLabelText('Mark complete')).toBeDisabled();
   });
 
-  it('in progress: card accessibility label leads with In progress', () => {
-    const nextBooking = {
-      id: '1',
-      customer_name: 'Alex',
-      service_name: 'Install',
-      customer_phone: '5552345678',
-      customer_street_address: '1 Main',
-      customer_city: 'Austin',
-      customer_state: 'TX',
-      customer_zip: '78701',
-    };
+  it('working: card accessibility label leads with In progress', () => {
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
         businessError={null}
         isLoading={false}
-        nextBooking={nextBooking}
+        nextBooking={{ ...baseBooking, job_status: 'in_progress' }}
         onMarkComplete={jest.fn()}
-        spotlightMode="in_progress"
         subtitle="Started at 2:00 PM"
       />,
     );
@@ -177,24 +309,17 @@ describe('NextUpCard', () => {
 
   it('calls onMarkComplete when Mark complete is pressed', () => {
     const onMarkComplete = jest.fn().mockResolvedValue(undefined);
-    const nextBooking = {
-      id: '1',
-      customer_name: 'Alex',
-      service_name: 'Install',
-      customer_phone: '5552345678',
-      customer_street_address: '1 Main',
-      customer_city: 'Austin',
-      customer_state: 'TX',
-      customer_zip: '78701',
-    };
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
         businessError={null}
         isLoading={false}
-        nextBooking={nextBooking}
+        nextBooking={{
+          ...baseBooking,
+          job_status: 'in_progress',
+          work_handoff_status: 'skipped',
+        }}
         onMarkComplete={onMarkComplete}
-        spotlightMode="in_progress"
         subtitle="Started at 2:00 PM"
       />,
     );
@@ -203,22 +328,12 @@ describe('NextUpCard', () => {
   });
 
   it('shows customer, service, subtitle, and enables actions when booking has phone and address', () => {
-    const nextBooking = {
-      id: '1',
-      customer_name: 'Alex',
-      service_name: 'Install',
-      customer_phone: '5552345678',
-      customer_street_address: '1 Main',
-      customer_city: 'Austin',
-      customer_state: 'TX',
-      customer_zip: '78701',
-    };
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
         businessError={null}
         isLoading={false}
-        nextBooking={nextBooking}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
         subtitle="Today at 2:00 PM"
       />,
     );
@@ -229,7 +344,7 @@ describe('NextUpCard', () => {
     expect(screen.getByLabelText('Navigate')).not.toBeDisabled();
   });
 
-  it('shows base service name without pricing tier and vehicle on the muted line', () => {
+  it('shows service name only (no pricing tier) and vehicle on the muted line', () => {
     const nextBooking = {
       id: '2',
       customer_name: 'Jordan Lee',
@@ -242,6 +357,7 @@ describe('NextUpCard', () => {
       customer_city: 'Austin',
       customer_state: 'TX',
       customer_zip: '78701',
+      job_status: 'not_started',
     };
     renderWithProviders(
       <NextUpCard
@@ -258,77 +374,77 @@ describe('NextUpCard', () => {
     expect(screen.getByText('2017 Toyota Tacoma')).toBeTruthy();
   });
 
-  it('upcoming: On my way stays enabled without a customer phone (compose opens with prefilled text)', () => {
-    const nextBooking = {
-      id: '1',
-      customer_name: 'Alex',
-      service_name: 'Install',
-      customer_phone: null,
-      customer_street_address: '1 Main',
-      customer_city: 'Austin',
-      customer_state: 'TX',
-      customer_zip: '78701',
-    };
+  it('upcoming: On my way disabled without a customer phone', () => {
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
         businessError={null}
         isLoading={false}
-        nextBooking={nextBooking}
+        nextBooking={{ ...baseBooking, customer_phone: null, job_status: 'not_started' }}
         spotlightMode="upcoming"
         subtitle="Today at 2:00 PM"
       />,
     );
-    expect(screen.getByLabelText('On my way')).not.toBeDisabled();
+    expect(screen.getByLabelText('On my way')).toBeDisabled();
+    fireEvent.press(screen.getByLabelText('On my way'));
+    expect(mockNotifyOnTheWay).not.toHaveBeenCalled();
   });
 
-  it('invokes SMS and maps helpers when buttons are pressed', () => {
-    const nextBooking = {
-      id: '1',
-      customer_name: 'Alex',
-      service_name: 'Install',
-      customer_phone: '5552345678',
-      customer_street_address: '1 Main',
-      customer_city: 'Austin',
-      customer_state: 'TX',
-      customer_zip: '78701',
-    };
+  it('notifies on-my-way with the booking id and invokes maps helper on press', () => {
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
         businessError={null}
         isLoading={false}
-        nextBooking={nextBooking}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
         subtitle=""
       />,
     );
     fireEvent.press(screen.getByLabelText('On my way'));
-    expect(outbound.openSmsOnMyWay).toHaveBeenCalledWith(nextBooking, { businessName: undefined });
+    expect(mockNotifyOnTheWay).toHaveBeenCalledWith('1');
     fireEvent.press(screen.getByLabelText('Navigate'));
-    expect(outbound.openMapsForBooking).toHaveBeenCalledWith(nextBooking);
+    expect(outbound.openMapsForBooking).toHaveBeenCalledWith({
+      ...baseBooking,
+      job_status: 'not_started',
+    });
   });
 
-  it('passes businessName into On my way SMS', () => {
-    const nextBooking = {
-      id: '1',
-      customer_name: 'Alex',
-      service_name: 'Install',
-      customer_phone: '5552345678',
+  it('disables On my way while a send is in flight', () => {
+    mockBookingActionState = {
+      notifyOnTheWay: mockNotifyOnTheWay,
+      runAction: mockRunAction,
+      isSending: true,
+      disabled: true,
+      isOnTheWayDone: () => false,
     };
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
         businessError={null}
-        businessName="Coastal Clean Co."
         isLoading={false}
-        nextBooking={nextBooking}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        spotlightMode="upcoming"
         subtitle=""
       />,
     );
-    fireEvent.press(screen.getByLabelText('On my way'));
-    expect(outbound.openSmsOnMyWay).toHaveBeenCalledWith(nextBooking, {
-      businessName: 'Coastal Clean Co.',
+    expect(screen.getByLabelText('On my way')).toBeDisabled();
+  });
+
+  it('start job calls booking action when en route slider completes', () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'on_the_way' }}
+        subtitle="On the way"
+      />,
+    );
+    const track = screen.getByTestId('slide-to-start-job-track');
+    act(() => {
+      track.props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } });
     });
+    expect(mockStartJob).toHaveBeenCalledWith('1');
   });
 
   it('shows schedule error from bookings', () => {

@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -104,6 +105,14 @@ export function WhatsNewModal({
           marginBottom: 18,
           width: 48,
         },
+        iconBadgeDark: {
+          backgroundColor: colors.buttonPrimaryBg,
+          borderColor: colors.buttonPrimaryBg,
+        },
+        iconBadgeLight: {
+          backgroundColor: '#ffffff',
+          borderColor: colors.border,
+        },
         badge: {
           alignSelf: 'flex-start',
           backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
@@ -164,6 +173,14 @@ export function WhatsNewModal({
   const hasPrimary = Boolean(onPrimaryAction && announcement.primaryLabel);
   const heroIcon = announcement.icon ?? 'sparkles-outline';
   const iconColor = announcement.iconColor ?? colors.text;
+  const iconLibrary = announcement.iconLibrary ?? 'ionicons';
+
+  const heroIconNode =
+    iconLibrary === 'material-community' ? (
+      <MaterialCommunityIcons color={iconColor} name={heroIcon} size={24} />
+    ) : (
+      <Ionicons color={iconColor} name={heroIcon} size={24} />
+    );
 
   return (
     <Modal
@@ -189,8 +206,17 @@ export function WhatsNewModal({
           <Animated.View style={{ opacity, transform: [{ scale }] }}>
             <View style={styles.card}>
               <View style={styles.accentBar} />
-              <View style={styles.iconBadge}>
-                <Ionicons color={iconColor} name={heroIcon} size={24} />
+              <View
+                style={[
+                  styles.iconBadge,
+                  announcement.iconBadgeVariant === 'dark'
+                    ? styles.iconBadgeDark
+                    : announcement.iconBadgeVariant === 'light'
+                      ? styles.iconBadgeLight
+                      : null,
+                ]}
+              >
+                {heroIconNode}
               </View>
               {announcement.badge ? (
                 <View style={styles.badge}>

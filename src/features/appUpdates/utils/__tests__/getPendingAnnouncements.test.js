@@ -29,4 +29,16 @@ describe('getPendingAnnouncements', () => {
       ),
     ).toEqual([{ id: 'ok', title: 'Ok', bullets: [] }]);
   });
+
+  it('filters announcements by platform', () => {
+    const announcements = [
+      { id: 'ios-only', title: 'iOS', bullets: [], platforms: ['ios'] },
+      { id: 'both', title: 'Both', bullets: [] },
+    ];
+
+    expect(getPendingAnnouncements(announcements, [], { platform: 'ios' })).toEqual(announcements);
+    expect(getPendingAnnouncements(announcements, [], { platform: 'android' })).toEqual([
+      { id: 'both', title: 'Both', bullets: [] },
+    ]);
+  });
 });

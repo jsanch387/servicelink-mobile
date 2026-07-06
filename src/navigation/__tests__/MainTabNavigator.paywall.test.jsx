@@ -45,6 +45,10 @@ jest.mock('../../features/auth/components/IosAppPresenceRegistration', () => ({
   IosAppPresenceRegistration: () => null,
 }));
 
+jest.mock('../../features/tap-to-pay/components/TapToPayWarmupBootstrap', () => ({
+  TapToPayWarmupBootstrap: () => null,
+}));
+
 function renderTabs() {
   return renderWithProviders(
     <NavigationContainer>

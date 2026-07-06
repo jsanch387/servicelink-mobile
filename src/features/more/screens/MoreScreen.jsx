@@ -11,9 +11,12 @@ import {
   SettingsSection,
 } from '../../../components/ui';
 import { resetAppUpdatesForDev } from '../../appUpdates';
+import { clearTapToPayEducationSeen } from '../../tap-to-pay/native/presentTapToPayEducation';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import { CONTACT_US_ROW_LABEL } from '../../help/constants/helpCopy';
+import { isTapToPayPlatformSupported } from '../../tap-to-pay/constants/tapToPayFeatureFlags';
 
 export function MoreScreen() {
   const { colors } = useTheme();
@@ -50,8 +53,8 @@ export function MoreScreen() {
   );
 
   const handleDevResetAppUpdates = () => {
-    void resetAppUpdatesForDev().then(() => {
-      Alert.alert('Dev', "What's new announcements reset.");
+    void Promise.all([resetAppUpdatesForDev(), clearTapToPayEducationSeen()]).then(() => {
+      Alert.alert('Dev', "What's new and Tap to Pay dev flags reset.");
     });
   };
 
@@ -119,9 +122,16 @@ export function MoreScreen() {
         </SettingsSection>
 
         <SettingsSection title="Support">
+          {isTapToPayPlatformSupported() ? (
+            <SettingsNavRow
+              icon="help-circle-outline"
+              label="Help"
+              onPress={() => navigation.navigate(ROUTES.HELP)}
+            />
+          ) : null}
           <SettingsNavRow
             icon="chatbubble-ellipses-outline"
-            label="Support"
+            label={CONTACT_US_ROW_LABEL}
             onPress={() => navigation.navigate(ROUTES.SUPPORT)}
           />
           <SettingsNavRow

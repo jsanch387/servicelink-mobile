@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { DeviceEventEmitter } from 'react-native';
+import { DeviceEventEmitter, Platform } from 'react-native';
 import { APP_UPDATE_ANNOUNCEMENTS } from '../constants/announcements';
 import { APP_UPDATES_DEV_RESET_EVENT } from '../dev/resetAppUpdatesForDev';
 import { markAnnouncementSeen, readSeenAnnouncementIds } from '../storage/seenAnnouncements';
@@ -13,7 +13,9 @@ export function useAppUpdateAnnouncement() {
 
   const refresh = useCallback(async () => {
     const seenIds = await readSeenAnnouncementIds();
-    setPending(getPendingAnnouncements(APP_UPDATE_ANNOUNCEMENTS, seenIds));
+    setPending(
+      getPendingAnnouncements(APP_UPDATE_ANNOUNCEMENTS, seenIds, { platform: Platform.OS }),
+    );
     setIsReady(true);
   }, []);
 

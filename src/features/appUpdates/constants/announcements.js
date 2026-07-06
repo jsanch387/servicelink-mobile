@@ -1,5 +1,4 @@
 import { ROUTES } from '../../../routes/routes';
-import { BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS } from '../../bookingLink/constants/bookingLinkRouteParams';
 
 /**
  * In-app feature announcements — one modal at a time. Each `id` is shown at most once per device.
@@ -12,33 +11,39 @@ import { BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS } from '../../bookingLink/constan
  *   id: string;
  *   badge?: string;
  *   icon?: import('@expo/vector-icons').IconProps['name'];
+ *   iconLibrary?: 'ionicons' | 'material-community';
  *   iconColor?: string;
+ *   iconBadgeVariant?: 'default' | 'dark' | 'light';
  *   title: string;
  *   bullets: string[];
  *   primaryLabel?: string;
  *   secondaryLabel?: string;
  *   cta?: { tab: string; screen?: string; params?: Record<string, unknown> };
+ *   platforms?: Array<'ios' | 'android'>;
  * }} WhatsNewAnnouncement
  */
 
 /** @type {WhatsNewAnnouncement[]} */
 export const APP_UPDATE_ANNOUNCEMENTS = [
   {
-    id: 'booking-mobile-shop-v1',
+    id: 'tap-to-pay-iphone-v1',
     badge: "What's new",
-    icon: 'storefront-outline',
-    title: 'Shop, mobile, or both?',
+    icon: 'contactless-payment',
+    iconLibrary: 'material-community',
+    iconColor: '#0a0a0a',
+    iconBadgeVariant: 'light',
+    title: 'Tap to Pay on iPhone',
+    platforms: ['ios'],
     bullets: [
-      'Customers have been asking — you can now show every way you work',
-      'Let them know if you come to them, have a shop, or offer both',
-      'Add your shop address if clients visit you in person',
+      'Accept contactless cards and Apple Pay when you complete a job',
+      'Your iPhone is the payment terminal — no extra hardware',
+      'Quick checkout at the end of every visit',
     ],
-    primaryLabel: 'Set it up',
+    primaryLabel: 'Take a look',
     secondaryLabel: 'Got it',
     cta: {
       tab: ROUTES.MORE,
-      screen: ROUTES.BOOKING_LINK,
-      params: BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS,
+      screen: ROUTES.MORE_PAYMENTS,
     },
   },
 ];

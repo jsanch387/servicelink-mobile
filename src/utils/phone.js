@@ -134,6 +134,29 @@ function formatPartialUsNanp(digitsOnlyTen) {
  * @param {string | null | undefined} raw
  * @returns {string}
  */
+/**
+ * Owner-facing privacy mask — area code + last four only.
+ * `(512) 321-4324` → `(512) ***-4324`
+ *
+ * @param {string | null | undefined} raw
+ * @returns {string}
+ */
+export function maskPhoneForDisplay(raw) {
+  const digits = canonicalNanpDigits(raw);
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ***-${digits.slice(6)}`;
+  }
+  const formatted = formatPhoneForDisplay(raw).trim();
+  if (!formatted) {
+    return '';
+  }
+  const allDigits = digitsOnly(raw);
+  if (allDigits.length >= 4) {
+    return `***-${allDigits.slice(-4)}`;
+  }
+  return formatted;
+}
+
 export function formatPhoneForDisplay(raw) {
   if (raw == null || typeof raw !== 'string') {
     return '';

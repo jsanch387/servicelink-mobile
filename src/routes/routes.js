@@ -56,6 +56,8 @@ export const ROUTES = {
   /** Root stack — new appointment from home FAB (back returns to tabs). */
   CREATE_APPOINTMENT: 'CreateAppointment',
   SUPPORT: 'Support',
+  /** More stack — merchant help guides (Tap to Pay education, etc.). */
+  HELP: 'Help',
   /** More stack — privacy policy & terms of service (hosted web links). */
   LEGAL: 'Legal',
 };
@@ -95,6 +97,7 @@ export const PATHS = {
   NOTIFICATIONS_INBOX: '/notifications',
   CREATE_APPOINTMENT: '/create-appointment',
   SUPPORT: '/more/support',
+  HELP: '/more/help',
   LEGAL: '/more/legal',
   /** Hosted legal pages on the Next.js site (opened from More tab). */
   PRIVACY_POLICY: '/privacy',

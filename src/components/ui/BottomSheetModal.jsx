@@ -25,6 +25,8 @@ export function BottomSheetModal({
   visible,
   onRequestClose,
   title,
+  /** Muted line under the title, above the header divider. */
+  subtitle = null,
   children,
   footer = null,
   allowBackdropClose = true,
@@ -32,6 +34,8 @@ export function BottomSheetModal({
   sheetHeightPercent = 92,
   /** When true, sheet height wraps title + children + footer (use for short option lists). */
   fitContent = false,
+  /** Pin `footer` below scrollable content (tall sheets with keyboard). Ignored when `fitContent`. */
+  stickyFooter = false,
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -90,23 +94,45 @@ export function BottomSheetModal({
 
   const fitSheetPaddingBottom = useMemo(() => Math.max(insets.bottom, 16) + 8, [insets.bottom]);
 
+  const stickyFooterPaddingBottom = useMemo(() => Math.max(insets.bottom, 16), [insets.bottom]);
+
+  const useStickyFooter = Boolean(stickyFooter && footer && !fitContent);
+
   const scrollContentStyle = useMemo(
     () => [
       styles.sheetContent,
       fitContent && styles.sheetContentFit,
-      !fitContent && { paddingBottom: scrollPaddingBottom },
+      !fitContent && !useStickyFooter && { paddingBottom: scrollPaddingBottom },
+      useStickyFooter && { paddingBottom: 12 + iosKeyboardScrollPadding },
     ],
-    [fitContent, scrollPaddingBottom],
+    [fitContent, scrollPaddingBottom, useStickyFooter, iosKeyboardScrollPadding],
+  );
+
+  const headerBlock = (
+    <>
+      {title ? (
+        <AppText
+          style={[
+            styles.sheetTitle,
+            subtitle ? styles.sheetTitleWithSubtitle : null,
+            { color: colors.text },
+          ]}
+        >
+          {title}
+        </AppText>
+      ) : null}
+      {subtitle ? (
+        <AppText style={[styles.sheetSubtitle, { color: colors.textMuted }]}>{subtitle}</AppText>
+      ) : null}
+      {title ? <View style={[styles.headerDivider, { backgroundColor: colors.border }]} /> : null}
+    </>
   );
 
   const sheetBody = (
     <>
-      {title ? (
-        <AppText style={[styles.sheetTitle, { color: colors.text }]}>{title}</AppText>
-      ) : null}
-      {title ? <View style={[styles.headerDivider, { backgroundColor: colors.border }]} /> : null}
+      {headerBlock}
       {children}
-      {footer}
+      {!useStickyFooter ? footer : null}
     </>
   );
 
@@ -135,6 +161,30 @@ export function BottomSheetModal({
       >
         {fitContent ? (
           <View style={[scrollContentStyle, styles.sheetFitInner]}>{sheetBody}</View>
+        ) : useStickyFooter ? (
+          <>
+            <ScrollView
+              contentContainerStyle={scrollContentStyle}
+              keyboardDismissMode="interactive"
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              style={styles.sheetScroll}
+            >
+              {headerBlock}
+              {children}
+            </ScrollView>
+            <View
+              style={[
+                styles.stickyFooter,
+                {
+                  marginBottom: iosKeyboardScrollPadding,
+                  paddingBottom: stickyFooterPaddingBottom,
+                },
+              ]}
+            >
+              {footer}
+            </View>
+          </>
         ) : (
           <ScrollView
             contentContainerStyle={scrollContentStyle}
@@ -198,8 +248,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 16,
   },
+  sheetTitleWithSubtitle: {
+    marginBottom: 6,
+  },
+  sheetSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
   headerDivider: {
     height: 1,
     marginBottom: 16,
+  },
+  stickyFooter: {
+    paddingTop: 12,
   },
 });

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Vibration, View } from 'react-native';
 import { AppText } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
+import { BookingOnMyWayActionRow } from './BookingOnMyWayActionRow';
 
 /** @typedef {'edit' | 'schedule' | 'success' | 'danger'} ActionIconTone */
 
@@ -199,6 +200,12 @@ export function BookingActionsSection({
   onMarkCompleted,
   onReschedule,
   isReschedulingBooking = false,
+  showOnMyWayAction = false,
+  onMyWayAlreadySent = false,
+  isOnMyWaySending = false,
+  isOnMyWayDisabled = false,
+  hasCustomerSmsPhone = false,
+  onOnMyWayPress,
 }) {
   const { colors } = useTheme();
   const styles = useMemo(
@@ -210,6 +217,9 @@ export function BookingActionsSection({
           fontWeight: '600',
           letterSpacing: -0.2,
           marginBottom: 8,
+        },
+        onMyWayWrap: {
+          marginBottom: 10,
         },
         rows: {
           gap: 10,
@@ -225,11 +235,26 @@ export function BookingActionsSection({
   );
 
   const actionsBusy =
-    isCancellingBooking || isMarkingCompleted || isReschedulingBooking || isDeletingBooking;
+    isCancellingBooking ||
+    isMarkingCompleted ||
+    isReschedulingBooking ||
+    isDeletingBooking ||
+    isOnMyWaySending;
 
   return (
     <View>
       <AppText style={styles.sectionTitle}>Actions</AppText>
+      {showOnMyWayAction ? (
+        <View style={styles.onMyWayWrap}>
+          <BookingOnMyWayActionRow
+            alreadySent={onMyWayAlreadySent}
+            disabled={actionsBusy || isOnMyWayDisabled}
+            hasCustomerSmsPhone={hasCustomerSmsPhone}
+            loading={isOnMyWaySending}
+            onPress={onOnMyWayPress}
+          />
+        </View>
+      ) : null}
       <View style={styles.rows}>
         <View style={styles.row}>
           <ActionGridTile

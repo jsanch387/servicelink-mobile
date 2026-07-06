@@ -16,8 +16,8 @@ Owners switch between **List** and **Calendar** with the floating toggle (`Booki
 
 State on `BookingsScreen`:
 
-- `viewMode` — `list` \| `calendar`
-- `calendarGranularity` — `day` \| `week` \| `month`
+- `viewMode` — `list` \| `calendar` (default: **calendar**)
+- `calendarGranularity` — `day` \| `week` \| `month` (default: **day**)
 - `anchorDate` — selected calendar day (local)
 - `visibleMonthStart` — first day of month shown in month picker (drives count fetch)
 

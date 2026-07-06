@@ -13,7 +13,7 @@ function timelineDotColor(statusKind, colors) {
 function RestOfTodaySkeleton() {
   return (
     <SurfaceCard style={styles.card}>
-      {[0, 1].map((k) => (
+      {[0, 1, 2].map((k) => (
         <View key={k} style={styles.row}>
           <View style={styles.railCol}>
             <SkeletonBox
@@ -23,13 +23,19 @@ function RestOfTodaySkeleton() {
               style={styles.markerCircle}
               width={14}
             />
-            {k === 0 ? (
+            {k < 2 ? (
               <SkeletonBox borderRadius={2} height={40} pulse style={{ marginTop: 6 }} width={2} />
             ) : null}
           </View>
           <View style={styles.content}>
-            <SkeletonBox borderRadius={8} height={13} pulse width={90} />
-            <SkeletonBox borderRadius={8} height={16} pulse style={{ marginTop: 8 }} width="72%" />
+            <SkeletonBox borderRadius={8} height={13} pulse width={k === 1 ? 72 : 90} />
+            <SkeletonBox
+              borderRadius={8}
+              height={16}
+              pulse
+              style={{ marginTop: 8 }}
+              width={k === 0 ? '78%' : '64%'}
+            />
           </View>
         </View>
       ))}

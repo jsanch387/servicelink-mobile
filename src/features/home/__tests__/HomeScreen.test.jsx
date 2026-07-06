@@ -30,6 +30,15 @@ jest.mock('../hooks/useLinkViewsAnalytics', () => ({
   useLinkViewsAnalytics: jest.fn(),
 }));
 
+jest.mock('../../bookings/hooks/useBookingAction', () => ({
+  useBookingAction: () => ({
+    notifyOnTheWay: jest.fn(),
+    isSending: false,
+    disabled: false,
+    isOnTheWayDone: () => false,
+  }),
+}));
+
 jest.mock('../../notifications/hooks/useNotificationUnreadCount', () => ({
   useNotificationUnreadCount: () => ({ unreadCount: 0 }),
 }));
@@ -62,6 +71,8 @@ const mockMarkCompleteFlow = {
   openSheet: jest.fn(),
   closeSheet: jest.fn(),
   preview: null,
+  completeVisitModel: null,
+  useCompleteVisitScreen: true,
   isLoadingPreview: false,
   previewError: null,
   confirmComplete: jest.fn(),
@@ -71,6 +82,15 @@ const mockMarkCompleteFlow = {
 
 jest.mock('../../bookings/booking-details/hooks/useMarkBookingCompleteFlow', () => ({
   useMarkBookingCompleteFlow: jest.fn(() => mockMarkCompleteFlow),
+}));
+
+jest.mock('../../bookings/booking-details/components/BookingCompleteInvoiceDesignSheet', () => ({
+  BookingCompleteVisitSheet: () => null,
+  BookingCompleteInvoiceDesignSheet: () => null,
+}));
+
+jest.mock('../../bookings/booking-details/components/BookingMarkCompleteSheet', () => ({
+  BookingMarkCompleteSheet: () => null,
 }));
 
 const mockUseHomeDashboard = useHomeDashboard;
@@ -138,6 +158,20 @@ describe('HomeScreen', () => {
     expect(screen.getByText('12')).toBeTruthy();
   });
 
+  it('shows today timeline section while business is still loading', () => {
+    mockUseHomeDashboard.mockReturnValue(
+      baseDashboard({
+        business: null,
+        isPendingBusiness: true,
+        isPendingBookings: true,
+        isLoading: true,
+      }),
+    );
+    renderWithProviders(<HomeScreen />);
+    expect(screen.getByText("Today's timeline")).toBeTruthy();
+    expect(screen.queryByText('Nothing on the calendar')).toBeNull();
+  });
+
   it('does not show free-tier booking usage for Pro users', () => {
     renderWithProviders(<HomeScreen />);
     expect(screen.queryByLabelText(/Bookings used:/)).toBeNull();
@@ -175,7 +209,7 @@ describe('HomeScreen', () => {
     expect(screen.getByText('9:00 AM')).toBeTruthy();
   });
 
-  it('uses In progress as the spotlight section title when a visit is underway', () => {
+  it('keeps Next Up as the section title while lifecycle actions are on hold', () => {
     mockUseHomeDashboard.mockReturnValue(
       baseDashboard({
         spotlightMode: 'in_progress',
@@ -193,8 +227,8 @@ describe('HomeScreen', () => {
       }),
     );
     renderWithProviders(<HomeScreen />);
-    expect(screen.getByText('In progress')).toBeTruthy();
-    expect(screen.queryByText('Next Up')).toBeNull();
+    expect(screen.getByText('Next Up')).toBeTruthy();
+    expect(screen.getByLabelText(/In progress.*Alex/i)).toBeTruthy();
   });
 
   it('shows free bookings usage card for non-Pro users', () => {

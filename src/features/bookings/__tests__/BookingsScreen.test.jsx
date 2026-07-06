@@ -96,6 +96,10 @@ function baseList(overrides = {}) {
   };
 }
 
+function openListView() {
+  fireEvent.press(screen.getByLabelText('List view'));
+}
+
 describe('BookingsScreen list empty states', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -119,6 +123,7 @@ describe('BookingsScreen list empty states', () => {
 
   it('shows upcoming empty copy when there are no upcoming bookings', () => {
     renderWithProviders(<BookingsScreen />);
+    openListView();
     expect(screen.getByText('No upcoming appointments')).toBeTruthy();
     expect(
       screen.getByText(/Confirmed visits from today onward that have not started yet show here/i),
@@ -128,6 +133,7 @@ describe('BookingsScreen list empty states', () => {
   it('shows past empty copy on the Past tab', () => {
     mockUseBookingsList.mockReturnValue(baseList({ listFilter: BOOKINGS_FILTER_PAST }));
     renderWithProviders(<BookingsScreen />);
+    openListView();
     expect(screen.getByText('No past appointments')).toBeTruthy();
     expect(
       screen.getByText(
@@ -139,6 +145,7 @@ describe('BookingsScreen list empty states', () => {
   it('shows canceled empty copy on the Canceled tab', () => {
     mockUseBookingsList.mockReturnValue(baseList({ listFilter: BOOKINGS_FILTER_CANCELLED }));
     renderWithProviders(<BookingsScreen />);
+    openListView();
     expect(screen.getByText('No canceled appointments')).toBeTruthy();
     expect(screen.getByText(/Canceled appointments appear here, most recent first/i)).toBeTruthy();
   });
@@ -152,6 +159,7 @@ describe('BookingsScreen list empty states', () => {
       }),
     );
     renderWithProviders(<BookingsScreen />);
+    openListView();
     expect(screen.getByText('No business profile')).toBeTruthy();
     expect(
       screen.getByText(/Once your business is set up in ServiceLink, appointments will show here/i),
@@ -218,16 +226,22 @@ describe('BookingsScreen list empty states', () => {
     const setListFilter = jest.fn();
     mockUseBookingsList.mockReturnValue(baseList({ setListFilter }));
     renderWithProviders(<BookingsScreen />);
+    openListView();
     fireEvent.press(screen.getByLabelText('Past appointments'));
     expect(setListFilter).toHaveBeenCalledWith(BOOKINGS_FILTER_PAST);
   });
 
-  it('shows calendar granularity tabs after switching to calendar view', () => {
+  it('opens list view by default', () => {
+    renderWithProviders(<BookingsScreen />);
+    expect(screen.getByLabelText('Upcoming appointments')).toBeTruthy();
+    expect(screen.queryByLabelText('Day calendar view')).toBeNull();
+  });
+
+  it('shows calendar tabs after switching to calendar view', () => {
     renderWithProviders(<BookingsScreen />);
     fireEvent.press(screen.getByLabelText('Calendar view'));
     expect(screen.getByLabelText('Day calendar view')).toBeTruthy();
     expect(screen.getByLabelText('Week calendar view')).toBeTruthy();
     expect(screen.getByLabelText('Month calendar view')).toBeTruthy();
-    expect(screen.queryByLabelText('Upcoming appointments')).toBeNull();
   });
 });

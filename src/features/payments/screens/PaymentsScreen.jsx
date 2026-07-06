@@ -15,6 +15,7 @@ import { PaymentsStripeConnectSetupCard } from '../components/PaymentsStripeConn
 import { StripeConnectLaunchOverlay } from '../components/StripeConnectLaunchOverlay';
 import { PaymentDepositsSection } from '../components/PaymentDepositsSection';
 import { PaymentHowCustomersPayCard } from '../components/PaymentHowCustomersPayCard';
+import { PaymentsTapToPaySection } from '../components/PaymentsTapToPaySection';
 import { PaymentStripeDashboardCard } from '../components/PaymentStripeDashboardCard';
 import { DEPOSIT_AMOUNT_MODE } from '../constants/depositAmount';
 import {
@@ -77,6 +78,7 @@ export function PaymentsScreen() {
 
   const [connectSubmitting, setConnectSubmitting] = useState(false);
   const [enableSubmitting, setEnableSubmitting] = useState(false);
+  const [tapToPayEnablePromptSignal, setTapToPayEnablePromptSignal] = useState(0);
 
   const onStripeConnectPress = useCallback(async () => {
     const token = session?.access_token ?? null;
@@ -104,6 +106,7 @@ export function PaymentsScreen() {
         await postStripeConnectSync(token).catch(() => {});
         await payment.refetchPayments();
         await refetchSubscription();
+        setTapToPayEnablePromptSignal((n) => n + 1);
       }
     } catch (e) {
       Alert.alert(
@@ -310,11 +313,7 @@ export function PaymentsScreen() {
           alignSelf: 'stretch',
           gap: 16,
         },
-        /** Gate: entire payments column (including Stripe) is de-emphasized. */
-        cardsColumnLocked: {
-          opacity: 0.5,
-        },
-        /** ServiceLink off: only checkout + deposits; accept + Stripe stay full opacity. */
+        /** Checkout + deposits muted when gate is on or ServiceLink checkout is off. */
         checkoutDepositsStack: {
           alignSelf: 'stretch',
           gap: 16,
@@ -478,10 +477,7 @@ export function PaymentsScreen() {
             </SurfaceCard>
           ) : null}
 
-          <View
-            pointerEvents={settingsLocked ? 'none' : 'auto'}
-            style={[styles.cardsColumn, settingsLocked && styles.cardsColumnLocked]}
-          >
+          <View style={styles.cardsColumn}>
             {!payment.gateServicelinkCheckout ? (
               <PaymentAcceptServicelinkCard
                 value={acceptServicelinkPayments}
@@ -493,11 +489,12 @@ export function PaymentsScreen() {
                 stripeAccountId={payment.paymentAccount?.stripe_account_id ?? null}
               />
             ) : null}
+            <PaymentsTapToPaySection enablePromptSignal={tapToPayEnablePromptSignal} />
             <View
               pointerEvents={settingsLocked || !acceptServicelinkPayments ? 'none' : 'auto'}
               style={[
                 styles.checkoutDepositsStack,
-                !settingsLocked && !acceptServicelinkPayments && styles.checkoutDepositsMuted,
+                (settingsLocked || !acceptServicelinkPayments) && styles.checkoutDepositsMuted,
               ]}
               testID="payments-checkout-deposits-stack"
             >

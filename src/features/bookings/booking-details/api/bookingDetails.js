@@ -2,6 +2,7 @@ import { supabase } from '../../../../lib/supabase';
 
 export const BOOKING_DETAILS_SELECT = [
   'id',
+  'business_id',
   'status',
   'scheduled_date',
   'start_time',
@@ -23,6 +24,8 @@ export const BOOKING_DETAILS_SELECT = [
   'customer_vehicle_make',
   'customer_vehicle_model',
   'customer_notes',
+  'job_status',
+  'work_handoff_status',
 ].join(', ');
 
 const BOOKING_PAYMENTS_SELECT = [

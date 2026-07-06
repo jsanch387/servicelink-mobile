@@ -44,6 +44,9 @@ export const BOOKINGS_VIEW_LIST = 'list';
 /** @type {BookingsViewMode} */
 export const BOOKINGS_VIEW_CALENDAR = 'calendar';
 
+/** Default when opening the Bookings tab. */
+export const BOOKINGS_DEFAULT_VIEW_MODE = BOOKINGS_VIEW_LIST;
+
 /** @typedef {'day' | 'week' | 'month'} BookingsCalendarGranularity */
 
 /** @type {BookingsCalendarGranularity} */
@@ -60,3 +63,6 @@ export const BOOKINGS_CALENDAR_GRANULARITY_OPTIONS = [
   { id: BOOKINGS_CALENDAR_WEEK, label: 'Week' },
   { id: BOOKINGS_CALENDAR_MONTH, label: 'Month' },
 ];
+
+/** Default calendar tab when opening Bookings (day timeline). */
+export const BOOKINGS_DEFAULT_CALENDAR_GRANULARITY = BOOKINGS_CALENDAR_DAY;
