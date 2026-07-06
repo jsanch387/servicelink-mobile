@@ -19,9 +19,11 @@
       "autoIncrement": true,
       "environment": "production",
       "channel": "production",
-      "prebuildCommand": "node scripts/copyGoogleServicesForAndroidBuild.js",
       "ios": {
         "scheme": "servicelinkmobile"
+      },
+      "android": {
+        "prebuildCommand": "node scripts/copyGoogleServicesForAndroidBuild.js"
       }
     }
   },

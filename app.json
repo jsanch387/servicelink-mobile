@@ -68,7 +68,8 @@
         "com.apple.developer.proximity-reader.payment.acceptance": true
       },
       "infoPlist": {
-        "CFBundleDisplayName": "ServiceLink"
+        "CFBundleDisplayName": "ServiceLink",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

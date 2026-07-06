@@ -1,5 +1,52 @@
-# Leftover Tap to Pay native project (lives on complete-booking-addons branch).
-# Must not be uploaded with main-branch App Store builds.
+# EAS upload ignore — when this file exists, .gitignore is NOT used (see expo/fyi/eas-build-archive).
+# Include all .gitignore patterns, then add build-only exclusions.
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native secrets / local artifacts
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.keystore
+.env
+.env.*
+!.env.example
+!.env.sample
+google-services.json
+**/google-services.json
+GoogleService-Info.plist
+
+# Metro / debug
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# TypeScript
+*.tsbuildinfo
+
+# Generated native artifacts (rebuilt on EAS workers)
+ios/Pods/
+ios/build/
+android/build/
+android/.gradle/
+**/DerivedData/
+
+# Leftover Tap to Pay native project (complete-booking-addons branch).
 ios/ServiceLink/
 ios/ServiceLink.xcodeproj/
 ios/ServiceLink.xcworkspace/
