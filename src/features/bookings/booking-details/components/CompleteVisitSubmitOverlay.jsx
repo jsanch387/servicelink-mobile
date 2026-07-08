@@ -16,10 +16,29 @@ import { COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY } from '../constants/mar
 
 const enableMotion = typeof process !== 'undefined' && process.env.NODE_ENV !== 'test';
 
-const PENDING_MESSAGES = COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY
-  ? ['Completing', 'Sending receipt', 'Sending review link', 'Updating booking']
-  : ['Completing', 'Updating booking'];
+const PENDING_MESSAGES_WITH_REVIEW = [
+  'Completing',
+  'Sending receipt',
+  'Sending review link',
+  'Updating booking',
+];
+const PENDING_MESSAGES_RECEIPT_ONLY = ['Completing', 'Sending receipt', 'Updating booking'];
+const PENDING_MESSAGES_NEUTRAL = ['Completing', 'Updating booking'];
 const PENDING_MESSAGE_MS = 1200;
+
+/**
+ * @param {boolean | undefined} includesReviewLink
+ * @returns {string[]}
+ */
+function getPendingMessages(includesReviewLink) {
+  if (!COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY) {
+    return PENDING_MESSAGES_NEUTRAL;
+  }
+  if (includesReviewLink === false) {
+    return PENDING_MESSAGES_RECEIPT_ONLY;
+  }
+  return PENDING_MESSAGES_WITH_REVIEW;
+}
 
 /**
  * Full-screen pending / success overlay for the complete-visit design flow (mock submit).
@@ -29,6 +48,7 @@ const PENDING_MESSAGE_MS = 1200;
  *   pendingTitle?: string;
  *   successTitle: string;
  *   successDetail: string;
+ *   includesReviewLink?: boolean;
  *   bottomInset?: number;
  * }} props
  */
@@ -37,9 +57,11 @@ export function CompleteVisitSubmitOverlay({
   pendingTitle = 'Completing',
   successTitle,
   successDetail,
+  includesReviewLink,
   bottomInset = 0,
 }) {
   const { colors } = useTheme();
+  const pendingMessages = getPendingMessages(includesReviewLink);
   const [pendingMessageIndex, setPendingMessageIndex] = useState(0);
   const iconScale = useSharedValue(enableMotion ? 0.72 : 1);
   const iconOpacity = useSharedValue(enableMotion ? 0 : 1);
@@ -53,11 +75,11 @@ export function CompleteVisitSubmitOverlay({
     }
 
     const intervalId = setInterval(() => {
-      setPendingMessageIndex((prev) => (prev + 1) % PENDING_MESSAGES.length);
+      setPendingMessageIndex((prev) => (prev + 1) % pendingMessages.length);
     }, PENDING_MESSAGE_MS);
 
     return () => clearInterval(intervalId);
-  }, [phase]);
+  }, [phase, pendingMessages.length]);
 
   useEffect(() => {
     if (phase !== 'success') {
@@ -104,7 +126,7 @@ export function CompleteVisitSubmitOverlay({
   const overlayInsetStyle = { paddingBottom: bottomInset };
 
   if (phase === 'pending') {
-    const activePendingTitle = PENDING_MESSAGES[pendingMessageIndex] ?? pendingTitle;
+    const activePendingTitle = pendingMessages[pendingMessageIndex] ?? pendingTitle;
     return (
       <View style={[styles.root, overlayInsetStyle, { backgroundColor: colors.shell }]}>
         <View style={styles.pendingWrap}>

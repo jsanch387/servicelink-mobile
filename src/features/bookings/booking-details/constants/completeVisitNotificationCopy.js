@@ -3,7 +3,7 @@ import { COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY } from './markCompleteFe
 /**
  * Customer notification copy for complete visit — no phone numbers or emails in UI.
  *
- * @param {{ showReviewSms?: boolean; showReviewEmail?: boolean }} p
+ * @param {{ showReviewSms?: boolean; showReviewEmail?: boolean; showReviewInvite?: boolean }} p
  * @returns {{ visible: boolean; message: string; iconName: 'chatbubble-ellipses-outline' | 'mail-outline' | 'information-circle-outline' }}
  */
 export function getCompleteVisitFollowUpMessage(p) {
@@ -15,10 +15,14 @@ export function getCompleteVisitFollowUpMessage(p) {
     };
   }
 
+  const includesReviewLink = p.showReviewInvite !== false;
+
   if (p.showReviewSms) {
     return {
       visible: true,
-      message: "We'll text your customer a receipt and a link to leave a review.",
+      message: includesReviewLink
+        ? "We'll text your customer a receipt and a link to leave a review."
+        : "We'll text your customer their receipt.",
       iconName: 'chatbubble-ellipses-outline',
     };
   }
@@ -26,7 +30,9 @@ export function getCompleteVisitFollowUpMessage(p) {
   if (p.showReviewEmail) {
     return {
       visible: true,
-      message: "We'll email your customer a receipt and a link to leave a review.",
+      message: includesReviewLink
+        ? "We'll email your customer a receipt and a link to leave a review."
+        : "We'll email your customer their receipt.",
       iconName: 'mail-outline',
     };
   }
@@ -39,7 +45,7 @@ export function getCompleteVisitFollowUpMessage(p) {
 }
 
 /**
- * @param {{ showReviewSms?: boolean; showReviewEmail?: boolean }} p
+ * @param {{ showReviewSms?: boolean; showReviewEmail?: boolean; showReviewInvite?: boolean }} p
  * @returns {string}
  */
 export function getCompleteVisitSuccessDetail(p) {
@@ -47,12 +53,18 @@ export function getCompleteVisitSuccessDetail(p) {
     return 'This service is marked complete on your calendar.';
   }
 
+  const includesReviewLink = p.showReviewInvite !== false;
+
   if (p.showReviewSms) {
-    return 'We texted your customer their receipt and a review link.';
+    return includesReviewLink
+      ? 'We texted your customer their receipt and a review link.'
+      : 'We texted your customer their receipt.';
   }
 
   if (p.showReviewEmail) {
-    return 'We emailed your customer their receipt and a review link.';
+    return includesReviewLink
+      ? 'We emailed your customer their receipt and a review link.'
+      : 'We emailed your customer their receipt.';
   }
 
   return 'This service is marked complete on your calendar.';

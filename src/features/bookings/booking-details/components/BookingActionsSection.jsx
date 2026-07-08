@@ -202,8 +202,6 @@ export function BookingActionsSection({
   isReschedulingBooking = false,
   showOnMyWayAction = false,
   onMyWayAlreadySent = false,
-  isOnMyWaySending = false,
-  isOnMyWayDisabled = false,
   hasCustomerSmsPhone = false,
   onOnMyWayPress,
 }) {
@@ -235,11 +233,7 @@ export function BookingActionsSection({
   );
 
   const actionsBusy =
-    isCancellingBooking ||
-    isMarkingCompleted ||
-    isReschedulingBooking ||
-    isDeletingBooking ||
-    isOnMyWaySending;
+    isCancellingBooking || isMarkingCompleted || isReschedulingBooking || isDeletingBooking;
 
   return (
     <View>
@@ -248,9 +242,8 @@ export function BookingActionsSection({
         <View style={styles.onMyWayWrap}>
           <BookingOnMyWayActionRow
             alreadySent={onMyWayAlreadySent}
-            disabled={actionsBusy || isOnMyWayDisabled}
+            disabled={actionsBusy}
             hasCustomerSmsPhone={hasCustomerSmsPhone}
-            loading={isOnMyWaySending}
             onPress={onOnMyWayPress}
           />
         </View>

@@ -93,6 +93,7 @@ export function getCompleteVisitFollowUpInfo(p) {
   return getCompleteVisitFollowUpMessage({
     showReviewSms: Boolean(p.showReviewSms),
     showReviewEmail: Boolean(p.showReviewEmail ?? p.showReviewInvite),
+    showReviewInvite: p.showReviewInvite,
   });
 }
 

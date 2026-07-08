@@ -6,6 +6,7 @@ describe('getMarkCompletePreviewFromBooking', () => {
       showReviewSmsMessage: true,
       showReviewInviteMessage: false,
       showNoReviewInviteMessage: false,
+      showReviewInvite: true,
     });
   });
 
@@ -19,6 +20,7 @@ describe('getMarkCompletePreviewFromBooking', () => {
       showReviewSmsMessage: false,
       showReviewInviteMessage: true,
       showNoReviewInviteMessage: false,
+      showReviewInvite: true,
     });
   });
 
@@ -29,6 +31,7 @@ describe('getMarkCompletePreviewFromBooking', () => {
       showReviewSmsMessage: false,
       showReviewInviteMessage: false,
       showNoReviewInviteMessage: true,
+      showReviewInvite: false,
     });
   });
 
@@ -42,6 +45,7 @@ describe('getMarkCompletePreviewFromBooking', () => {
       showReviewSmsMessage: true,
       showReviewInviteMessage: false,
       showNoReviewInviteMessage: false,
+      showReviewInvite: true,
     });
   });
 });

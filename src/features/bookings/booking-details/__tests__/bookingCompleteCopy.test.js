@@ -13,11 +13,29 @@ describe('getBookingMarkCompleteSheetCopy', () => {
     expect(copy.confirmLabel).toBe('Complete visit');
   });
 
+  it('highlights receipt-only SMS when customer already reviewed', () => {
+    const copy = getBookingMarkCompleteSheetCopy({
+      showReviewSmsMessage: true,
+      showReviewInvite: false,
+    });
+    expect(copy.highlightBody).toMatch(/receipt/i);
+    expect(copy.highlightBody).not.toMatch(/review/i);
+  });
+
   it('highlights review email when showReviewInviteMessage is true', () => {
     const copy = getBookingMarkCompleteSheetCopy({ showReviewInviteMessage: true });
     expect(copy.highlightVariant).toBe('review_email');
     expect(copy.highlightTitle).toMatch(/email your customer/i);
     expect(copy.confirmLabel).toBe('Complete visit');
+  });
+
+  it('highlights receipt-only email when customer already reviewed', () => {
+    const copy = getBookingMarkCompleteSheetCopy({
+      showReviewInviteMessage: true,
+      showReviewInvite: false,
+    });
+    expect(copy.highlightBody).toMatch(/receipt/i);
+    expect(copy.highlightBody).not.toMatch(/review/i);
   });
 
   it('highlights no review when showNoReviewInviteMessage is true', () => {

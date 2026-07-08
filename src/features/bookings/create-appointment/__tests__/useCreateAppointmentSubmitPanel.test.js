@@ -24,6 +24,21 @@ describe('useCreateAppointmentSubmitPanel', () => {
     expect(result.current.hasCustomerPhone).toBe(true);
   });
 
+  it('shows the submit panel immediately when confirm is requested before mutation pending', () => {
+    const { result } = renderHook(() =>
+      useCreateAppointmentSubmitPanel({
+        step: CREATE_APPOINTMENT_STEP.REVIEW,
+        appointmentConfirmed: false,
+        isMutationPending: false,
+        confirmRequested: true,
+        customerPhone: null,
+      }),
+    );
+
+    expect(result.current.showSubmitPanel).toBe(true);
+    expect(result.current.isSubmitting).toBe(false);
+  });
+
   it('stores a safe error message and fires error haptic once', () => {
     const { result } = renderHook(() =>
       useCreateAppointmentSubmitPanel({

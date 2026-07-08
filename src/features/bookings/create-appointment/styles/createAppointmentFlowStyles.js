@@ -22,6 +22,7 @@ export function createAppointmentFlowStyles() {
     },
     contentSubmitting: {
       flexGrow: 1,
+      justifyContent: 'center',
     },
   });
 }

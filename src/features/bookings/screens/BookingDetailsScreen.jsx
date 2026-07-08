@@ -21,8 +21,8 @@ import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { isOnTheWayActionDone } from '../constants/jobStatus';
-import { useBookingAction } from '../hooks/useBookingAction';
 import { useTheme } from '../../../theme';
+import { openNativeSms } from '../../../utils/openNativeSms';
 import { phoneForSmsUri } from '../../../utils/phone';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BookingActionsSection } from '../booking-details/components/BookingActionsSection';
@@ -69,9 +69,7 @@ export function BookingDetailsScreen({ route }) {
   const isConfirmedStatus = statusLower === 'confirmed';
   const showOnMyWayAction = isConfirmedStatus && !isCompletedStatus && !isCancelledStatus;
   const hasCustomerSmsPhone = Boolean(phoneForSmsUri(detailsQuery.booking?.customer_phone));
-  const bookingAction = useBookingAction(null);
-  const onMyWayAlreadySent =
-    isOnTheWayActionDone(detailsQuery.booking) || bookingAction.isOnTheWayDone(bookingId);
+  const onMyWayAlreadySent = isOnTheWayActionDone(detailsQuery.booking);
 
   useEffect(() => {
     setCompleteScrollRequestId(0);
@@ -203,11 +201,19 @@ export function BookingDetailsScreen({ route }) {
   }, [bookingId, isCancelledStatus, isCompletedStatus]);
 
   const handleOnMyWay = useCallback(() => {
-    if (!bookingId || onMyWayAlreadySent || bookingAction.disabled) {
+    if (!bookingId || onMyWayAlreadySent) {
       return;
     }
-    bookingAction.notifyOnTheWay(bookingId);
-  }, [bookingId, onMyWayAlreadySent, bookingAction]);
+    const booking = detailsQuery.booking;
+    if (!booking) {
+      return;
+    }
+    void openNativeSms({
+      address: phoneForSmsUri(booking.customer_phone),
+      body: 'On my way',
+      unsupportedMessage: 'Open your SMS app manually to contact the customer.',
+    });
+  }, [bookingId, detailsQuery.booking, onMyWayAlreadySent]);
 
   const bookingStartMs = useMemo(() => {
     const raw = detailsQuery.booking;
@@ -432,8 +438,6 @@ export function BookingDetailsScreen({ route }) {
                 isEditDisabled={isCancelledStatus || isCompletedStatus}
                 isMarkCompletedDisabled={isCompletedStatus}
                 isMarkingCompleted={markCompleteFlow.isConfirming}
-                isOnMyWayDisabled={bookingAction.disabled}
-                isOnMyWaySending={bookingAction.isSending}
                 isRescheduleDisabled={isCancelledStatus || isCompletedStatus}
                 isReschedulingBooking={bookingActions.isReschedulingBooking}
                 onMyWayAlreadySent={onMyWayAlreadySent}

@@ -21,6 +21,7 @@ export const BOOKING_MARK_COMPLETE_CONFIRM_LABEL = 'Complete visit';
  *   showReviewSmsMessage?: boolean;
  *   showReviewInviteMessage?: boolean;
  *   showNoReviewInviteMessage?: boolean;
+ *   showReviewInvite?: boolean;
  * } | null | undefined} modalCopy
  * @returns {BookingMarkCompleteSheetCopy}
  */
@@ -34,12 +35,16 @@ export function getBookingMarkCompleteSheetCopy(modalCopy) {
     };
   }
 
+  const includesReviewLink = modalCopy?.showReviewInvite !== false;
+
   if (modalCopy?.showReviewSmsMessage) {
     return {
       title: 'Complete this visit?',
       highlightVariant: 'review_sms',
       highlightTitle: "We'll text your customer",
-      highlightBody: 'They’ll get a text with their receipt and a link to leave a review.',
+      highlightBody: includesReviewLink
+        ? 'They’ll get a text with their receipt and a link to leave a review.'
+        : 'They’ll get a text with their receipt.',
       body: 'This visit will be marked complete on your calendar.',
       confirmLabel: BOOKING_MARK_COMPLETE_CONFIRM_LABEL,
     };
@@ -50,7 +55,9 @@ export function getBookingMarkCompleteSheetCopy(modalCopy) {
       title: 'Complete this visit?',
       highlightVariant: 'review_email',
       highlightTitle: "We'll email your customer",
-      highlightBody: 'They’ll get an email with their receipt and a link to leave a review.',
+      highlightBody: includesReviewLink
+        ? 'They’ll get an email with their receipt and a link to leave a review.'
+        : 'They’ll get an email with their receipt.',
       body: 'This visit will be marked complete on your calendar.',
       confirmLabel: BOOKING_MARK_COMPLETE_CONFIRM_LABEL,
     };

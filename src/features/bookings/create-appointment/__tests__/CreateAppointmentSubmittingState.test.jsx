@@ -2,6 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { ThemeProvider, TypographyProvider } from '../../../../theme';
 import { CreateAppointmentSubmittingState } from '../components/CreateAppointmentSubmittingState';
 
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
 function renderState(props) {
   return render(
     <ThemeProvider initialScheme="dark">

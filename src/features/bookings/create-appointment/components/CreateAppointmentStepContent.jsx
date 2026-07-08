@@ -1,4 +1,3 @@
-import { CreateAppointmentSubmittingState } from './CreateAppointmentSubmittingState';
 import { AddonsStep } from '../steps/AddonsStep';
 import { AddressStep, LocationStep } from '../steps/AddressStep';
 import { AppointmentConfirmedStep } from '../steps/AppointmentConfirmedStep';
@@ -59,10 +58,6 @@ export function CreateAppointmentStepContent(p) {
     onChangeNotes,
     totalDurationMinutes,
     showSubmitPanel,
-    submitPanelActive,
-    submitPanelError,
-    submitPanelHasCustomerPhone,
-    onSubmitErrorRetry,
   } = p;
 
   if (appointmentConfirmed) {
@@ -140,14 +135,7 @@ export function CreateAppointmentStepContent(p) {
       );
     case CREATE_APPOINTMENT_STEP.REVIEW:
       if (showSubmitPanel) {
-        return (
-          <CreateAppointmentSubmittingState
-            active={submitPanelActive}
-            error={submitPanelError}
-            hasCustomerPhone={submitPanelHasCustomerPhone}
-            onRetryFromError={onSubmitErrorRetry}
-          />
-        );
+        return null;
       }
       return (
         <ReviewStep

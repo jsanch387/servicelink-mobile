@@ -1,5 +1,6 @@
 import {
   customerAlreadyReviewed,
+  getCompleteVisitNotificationPreview,
   getMarkCompleteModalCopy,
   willSendReviewInviteOnComplete,
 } from '../utils/reviewInviteEligibility';
@@ -69,6 +70,47 @@ describe('reviewInviteEligibility', () => {
       getMarkCompleteModalCopy({ ...eligibleBooking, customer_email: null }, emptyCtx()),
     ).toEqual({
       showReviewInviteMessage: false,
+    });
+  });
+
+  it('getCompleteVisitNotificationPreview includes review link for SMS when not reviewed', () => {
+    expect(
+      getCompleteVisitNotificationPreview(
+        { ...eligibleBooking, customer_phone: '5552345678' },
+        emptyCtx(),
+      ),
+    ).toEqual({
+      showReviewSmsMessage: true,
+      showReviewInviteMessage: false,
+      showNoReviewInviteMessage: false,
+      showReviewInvite: true,
+    });
+  });
+
+  it('getCompleteVisitNotificationPreview is receipt-only SMS when customer already reviewed', () => {
+    const ctx = emptyCtx();
+    ctx.reviewedCustomerIds.add('cust-1');
+    expect(
+      getCompleteVisitNotificationPreview(
+        { ...eligibleBooking, customer_phone: '5552345678' },
+        ctx,
+      ),
+    ).toEqual({
+      showReviewSmsMessage: true,
+      showReviewInviteMessage: false,
+      showNoReviewInviteMessage: false,
+      showReviewInvite: false,
+    });
+  });
+
+  it('getCompleteVisitNotificationPreview is receipt-only email when customer already reviewed', () => {
+    const ctx = emptyCtx();
+    ctx.reviewedCustomerIds.add('cust-1');
+    expect(getCompleteVisitNotificationPreview(eligibleBooking, ctx)).toEqual({
+      showReviewSmsMessage: false,
+      showReviewInviteMessage: true,
+      showNoReviewInviteMessage: false,
+      showReviewInvite: false,
     });
   });
 });

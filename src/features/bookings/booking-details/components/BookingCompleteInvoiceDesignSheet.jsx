@@ -752,11 +752,12 @@ export function BookingCompleteVisitSheet({
       return { visible: false, message: '', iconName: 'information-circle-outline' };
     }
     const showReviewSms = resolvedModel.showReviewSms ?? false;
+    const showReviewInvite = resolvedModel.showReviewInvite !== false;
     return getCompleteVisitFollowUpInfo({
       showInvoiceEmail: hasSavedReceiptEmail,
       showReviewSms,
       showReviewEmail: hasSavedReceiptEmail && !showReviewSms,
-      showReviewInvite: resolvedModel.showReviewInvite,
+      showReviewInvite,
     });
   }, [hasSavedReceiptEmail, resolvedModel]);
 
@@ -765,9 +766,11 @@ export function BookingCompleteVisitSheet({
       return getCompleteVisitSuccessCopy({});
     }
     const showReviewSms = resolvedModel.showReviewSms ?? false;
+    const showReviewInvite = resolvedModel.showReviewInvite !== false;
     return getCompleteVisitSuccessCopy({
       showReviewSms,
       showReviewEmail: hasSavedReceiptEmail && !showReviewSms,
+      showReviewInvite,
     });
   }, [hasSavedReceiptEmail, resolvedModel]);
 
@@ -1160,6 +1163,7 @@ export function BookingCompleteVisitSheet({
               {showSubmitOverlay ? (
                 <CompleteVisitSubmitOverlay
                   bottomInset={isSuccess ? successFooterInset : 0}
+                  includesReviewLink={resolvedModel?.showReviewInvite !== false}
                   phase={isSubmitting ? 'pending' : 'success'}
                   successDetail={successCopy.detail}
                   successTitle={successCopy.title}

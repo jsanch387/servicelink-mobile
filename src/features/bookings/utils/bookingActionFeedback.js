@@ -8,6 +8,8 @@ export const WORK_FINISHED_SUCCESS_SMS = 'Customer notified your service is fini
 export const WORK_FINISHED_SMS_SOFT_NOTE = 'Marked done — couldn’t text customer';
 export const JOB_COMPLETED_SUCCESS_SMS = 'Customer notified with invoice and review link';
 export const JOB_COMPLETED_SUCCESS_EMAIL = 'Customer notified with invoice and review link';
+export const JOB_COMPLETED_SUCCESS_SMS_RECEIPT_ONLY = 'Customer notified with their receipt';
+export const JOB_COMPLETED_SUCCESS_EMAIL_RECEIPT_ONLY = 'Customer notified with their receipt';
 export const JOB_COMPLETED_SUCCESS_STATE_ONLY = 'Visit marked complete';
 export const JOB_COMPLETED_SMS_SOFT_NOTE = 'Marked complete — couldn’t text customer';
 
@@ -59,8 +61,9 @@ export function emailSkipMessage(reason) {
  *   emailSent?: boolean;
  *   emailReason?: string | null;
  * }} res
+ * @param {{ includeReviewLink?: boolean }} [options]
  */
-export function showBookingActionToasts(toast, action, res) {
+export function showBookingActionToasts(toast, action, res, options = {}) {
   if (action === BOOKING_ACTION.ON_THE_WAY) {
     if (res.smsSent) {
       toast.sms(ON_THE_WAY_SUCCESS_SMS, { type: 'success' });
@@ -97,17 +100,24 @@ export function showBookingActionToasts(toast, action, res) {
   }
 
   if (action === BOOKING_ACTION.JOB_COMPLETED) {
+    const includeReviewLink = options.includeReviewLink !== false;
     const isIdempotentDuplicate =
       !res.smsSent &&
       !res.emailSent &&
       (res.smsReason === 'duplicate' || res.emailReason === 'duplicate');
 
     if (res.smsSent) {
-      toast.sms(JOB_COMPLETED_SUCCESS_SMS, { type: 'success' });
+      toast.sms(
+        includeReviewLink ? JOB_COMPLETED_SUCCESS_SMS : JOB_COMPLETED_SUCCESS_SMS_RECEIPT_ONLY,
+        { type: 'success' },
+      );
       return;
     }
     if (res.emailSent) {
-      toast.email(JOB_COMPLETED_SUCCESS_EMAIL, { type: 'success' });
+      toast.email(
+        includeReviewLink ? JOB_COMPLETED_SUCCESS_EMAIL : JOB_COMPLETED_SUCCESS_EMAIL_RECEIPT_ONLY,
+        { type: 'success' },
+      );
       return;
     }
     toast.success(JOB_COMPLETED_SUCCESS_STATE_ONLY);

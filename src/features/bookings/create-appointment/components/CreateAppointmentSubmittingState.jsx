@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, EchoBarsLoader, SubmitOutcomeError } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 import { useCyclingSubmitStatusMessage } from '../hooks/useCyclingSubmitStatusMessage';
@@ -12,15 +13,18 @@ import { buildSubmitStatusMessages } from '../utils/submitStatusMessages';
  * @param {boolean} props.active
  * @param {string | null | undefined} props.error
  * @param {boolean} [props.hasCustomerPhone]
+ * @param {boolean} [props.immersive] Full-screen submit (nav header hidden)
  * @param {() => void} [props.onRetryFromError]
  */
 export function CreateAppointmentSubmittingState({
   active,
   error,
   hasCustomerPhone = false,
+  immersive = false,
   onRetryFromError,
 }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const messages = useMemo(
     () => buildSubmitStatusMessages({ hasCustomerPhone }),
     [hasCustomerPhone],
@@ -33,10 +37,12 @@ export function CreateAppointmentSubmittingState({
         root: {
           alignItems: 'center',
           alignSelf: 'stretch',
+          flex: 1,
           flexGrow: 1,
           justifyContent: 'center',
-          minHeight: 280,
-          paddingVertical: 24,
+          minHeight: immersive ? undefined : 280,
+          paddingTop: immersive ? insets.top : 0,
+          paddingVertical: immersive ? 0 : 24,
           width: '100%',
         },
         loaderWrap: {
@@ -54,7 +60,7 @@ export function CreateAppointmentSubmittingState({
           width: '100%',
         },
       }),
-    [colors],
+    [colors, immersive, insets.top],
   );
 
   if (error) {

@@ -1,4 +1,6 @@
 import { supabase } from '../../../../lib/supabase';
+import { applyCheckoutSnapshotToBooking } from '../utils/applyCheckoutSnapshotToBooking';
+import { getBookingCheckoutSnapshot } from '../utils/bookingCheckoutSnapshotStorage';
 
 export const BOOKING_DETAILS_SELECT = [
   'id',
@@ -35,7 +37,15 @@ const BOOKING_PAYMENTS_SELECT = [
   'total_amount_cents',
   'paid_online_amount_cents',
   'remaining_amount_cents',
+  'session_fees_total_cents',
+  'session_payment_method',
+  'session_payment_amount_cents',
+  'session_payment_stripe_payment_intent_id',
 ].join(', ');
+
+const BOOKING_SESSION_FEE_LINES_SELECT = ['id', 'label', 'amount_cents', 'sort_order'].join(', ');
+
+const BOOKING_DETAILS_EMBED_SELECT = `${BOOKING_DETAILS_SELECT}, booking_payments (${BOOKING_PAYMENTS_SELECT}), booking_session_fee_lines (${BOOKING_SESSION_FEE_LINES_SELECT}), booking_invoices (snapshot_json)`;
 
 /**
  * Maps a `booking_payments` row to the same camelCase shape the web dashboard uses
@@ -57,7 +67,153 @@ export function mapBookingPaymentRowToSummary(row) {
     totalAmountCents: Math.max(0, Math.round(Number(row.total_amount_cents ?? 0) || 0)),
     paidOnlineAmountCents: Math.max(0, Math.round(Number(row.paid_online_amount_cents ?? 0) || 0)),
     remainingAmountCents: Math.max(0, Math.round(Number(row.remaining_amount_cents ?? 0) || 0)),
+    sessionFeesTotalCents: Math.max(0, Math.round(Number(row.session_fees_total_cents ?? 0) || 0)),
+    sessionPaymentMethod:
+      typeof row.session_payment_method === 'string' ? row.session_payment_method : null,
+    sessionPaymentAmountCents: Math.max(
+      0,
+      Math.round(Number(row.session_payment_amount_cents ?? 0) || 0),
+    ),
+    sessionPaymentStripeIntentId:
+      typeof row.session_payment_stripe_payment_intent_id === 'string'
+        ? row.session_payment_stripe_payment_intent_id
+        : null,
   };
+}
+
+/**
+ * @param {Record<string, unknown> | null | undefined} row
+ */
+function flattenEmbeddedBookingRow(row) {
+  if (!row || typeof row !== 'object') {
+    return null;
+  }
+
+  const paymentRaw = Array.isArray(row.booking_payments)
+    ? row.booking_payments[0]
+    : row.booking_payments;
+  const feeLines = Array.isArray(row.booking_session_fee_lines)
+    ? row.booking_session_fee_lines
+    : [];
+  const invoiceRaw = Array.isArray(row.booking_invoices)
+    ? row.booking_invoices[0]
+    : row.booking_invoices;
+
+  const {
+    booking_payments: _payment,
+    booking_session_fee_lines: _feeLines,
+    booking_invoices: _invoice,
+    ...booking
+  } = row;
+
+  return {
+    ...booking,
+    ...(paymentRaw ? { payment: mapBookingPaymentRowToSummary(paymentRaw) } : {}),
+    session_fee_lines: feeLines,
+    ...(invoiceRaw?.snapshot_json ? { invoice_snapshot: invoiceRaw.snapshot_json } : {}),
+  };
+}
+
+/**
+ * @param {string} bookingId
+ */
+async function fetchBookingPaymentSummary(bookingId) {
+  const { data: row, error } = await supabase
+    .from('booking_payments')
+    .select(BOOKING_PAYMENTS_SELECT)
+    .eq('booking_id', bookingId)
+    .maybeSingle();
+
+  if (error || !row) {
+    return undefined;
+  }
+
+  return mapBookingPaymentRowToSummary(row);
+}
+
+/**
+ * @param {string} bookingId
+ * @returns {Promise<{ feeLines: unknown[]; invoiceSnapshot: unknown | null }>}
+ */
+async function fetchSessionFeeLinesForBooking(bookingId) {
+  const { data, error } = await supabase
+    .from('booking_session_fee_lines')
+    .select(BOOKING_SESSION_FEE_LINES_SELECT)
+    .eq('booking_id', bookingId)
+    .order('sort_order', { ascending: true });
+
+  if (!error && Array.isArray(data) && data.length > 0) {
+    return { feeLines: data, invoiceSnapshot: null };
+  }
+
+  const { data: invoiceRow, error: invoiceError } = await supabase
+    .from('booking_invoices')
+    .select('snapshot_json')
+    .eq('booking_id', bookingId)
+    .maybeSingle();
+
+  if (invoiceError || !invoiceRow?.snapshot_json) {
+    return { feeLines: [], invoiceSnapshot: null };
+  }
+
+  return { feeLines: [], invoiceSnapshot: invoiceRow.snapshot_json };
+}
+
+/**
+ * Prefer richer payment/fee payloads from parallel reads and embeds.
+ *
+ * @param {Record<string, unknown>} booking
+ * @param {{
+ *   payment?: Record<string, unknown>;
+ *   feeLines?: unknown[];
+ *   invoiceSnapshot?: unknown;
+ *   embedded?: Record<string, unknown> | null;
+ * }} sources
+ */
+function mergeBookingDetailsSources(booking, sources) {
+  const embedded = sources.embedded ? flattenEmbeddedBookingRow(sources.embedded) : null;
+  const embeddedPayment = embedded?.payment;
+  const directPayment = sources.payment;
+  const payment =
+    pickRicherPaymentSummary(directPayment, embeddedPayment) ?? directPayment ?? embeddedPayment;
+  const feeLines =
+    Array.isArray(sources.feeLines) && sources.feeLines.length > 0
+      ? sources.feeLines
+      : embedded?.session_fee_lines;
+  const invoiceSnapshot = sources.invoiceSnapshot ?? embedded?.invoice_snapshot ?? null;
+
+  return {
+    ...booking,
+    ...(payment ? { payment } : {}),
+    session_fee_lines: Array.isArray(feeLines) ? feeLines : [],
+    ...(invoiceSnapshot ? { invoice_snapshot: invoiceSnapshot } : {}),
+  };
+}
+
+/**
+ * @param {ReturnType<typeof mapBookingPaymentRowToSummary> | undefined} a
+ * @param {ReturnType<typeof mapBookingPaymentRowToSummary> | undefined} b
+ */
+function pickRicherPaymentSummary(a, b) {
+  if (!a) {
+    return b;
+  }
+  if (!b) {
+    return a;
+  }
+
+  const score = (payment) => {
+    let value = 0;
+    if (payment.totalAmountCents > 0) value += 1;
+    if (payment.sessionFeesTotalCents > 0) value += 4;
+    if (payment.sessionPaymentAmountCents > 0) value += 4;
+    if (payment.sessionPaymentMethod) value += 2;
+    if (payment.sessionPaymentStripeIntentId) value += 2;
+    value += payment.totalAmountCents / 1_000_000;
+    return value;
+  };
+
+  return score(a) >= score(b) ? a : b;
 }
 
 /**
@@ -70,14 +226,25 @@ export async function fetchBookingDetailsById(bookingId) {
     .eq('id', bookingId)
     .maybeSingle();
 
-  const paymentQuery = supabase
-    .from('booking_payments')
-    .select(BOOKING_PAYMENTS_SELECT)
-    .eq('booking_id', bookingId)
+  const embeddedQuery = supabase
+    .from('bookings')
+    .select(BOOKING_DETAILS_EMBED_SELECT)
+    .eq('id', bookingId)
     .maybeSingle();
 
-  const [{ data: booking, error: bookingError }, { data: payRow, error: payError }] =
-    await Promise.all([bookingQuery, paymentQuery]);
+  const [
+    { data: booking, error: bookingError },
+    payment,
+    { feeLines, invoiceSnapshot },
+    { data: embeddedRow },
+    storedCheckout,
+  ] = await Promise.all([
+    bookingQuery,
+    fetchBookingPaymentSummary(bookingId),
+    fetchSessionFeeLinesForBooking(bookingId),
+    embeddedQuery,
+    getBookingCheckoutSnapshot(bookingId),
+  ]);
 
   if (bookingError) {
     return { data: null, error: bookingError };
@@ -86,9 +253,16 @@ export async function fetchBookingDetailsById(bookingId) {
     return { data: null, error: null };
   }
 
-  // If the payments row cannot be read (RLS, missing table), still show booking details without Payment.
-  const payment = payError ? undefined : mapBookingPaymentRowToSummary(payRow);
-  const merged = payment !== undefined ? { ...booking, payment } : { ...booking };
+  let merged = mergeBookingDetailsSources(booking, {
+    payment,
+    feeLines,
+    invoiceSnapshot,
+    embedded: embeddedRow,
+  });
+
+  if (storedCheckout) {
+    merged = applyCheckoutSnapshotToBooking(merged, storedCheckout) ?? merged;
+  }
 
   return { data: merged, error: null };
 }
@@ -125,12 +299,30 @@ export async function cancelBookingById(bookingId) {
 
 /**
  * Permanently deletes the booking row. Does not delete CRM `customers` rows (bookings only store
- * snapshot fields on the row). Removes `booking_payments` first when present so FK constraints
+ * snapshot fields on the row). Removes related payment rows first when present so FK constraints
  * do not block the booking delete.
  *
  * @param {string} bookingId
  */
 export async function deleteBookingById(bookingId) {
+  const { error: feeLinesDeleteError } = await supabase
+    .from('booking_session_fee_lines')
+    .delete()
+    .eq('booking_id', bookingId);
+
+  if (feeLinesDeleteError) {
+    return { data: null, error: feeLinesDeleteError };
+  }
+
+  const { error: invoiceDeleteError } = await supabase
+    .from('booking_invoices')
+    .delete()
+    .eq('booking_id', bookingId);
+
+  if (invoiceDeleteError) {
+    return { data: null, error: invoiceDeleteError };
+  }
+
   const { error: paymentDeleteError } = await supabase
     .from('booking_payments')
     .delete()

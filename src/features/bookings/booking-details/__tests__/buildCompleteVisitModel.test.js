@@ -51,6 +51,7 @@ describe('buildCompleteVisitModelFromBooking', () => {
       customerEmail: 'jane@example.com',
       showReviewSms: true,
       showReviewEmail: false,
+      showReviewInvite: true,
       showInvoiceEmail: true,
     });
   });

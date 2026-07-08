@@ -161,6 +161,7 @@ describe('useMarkBookingCompleteFlow', () => {
       toast,
       BOOKING_ACTION.JOB_COMPLETED,
       payload.result,
+      { includeReviewLink: true },
     );
     expect(maybeRequestAppReview).toHaveBeenCalledWith({ businessId: 'biz-1' });
   });

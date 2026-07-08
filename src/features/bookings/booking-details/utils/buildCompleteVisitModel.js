@@ -12,6 +12,7 @@ import { parseCompleteVisitServiceLine } from './parseCompleteVisitServiceLine';
  * @property {string | null} customerEmail
  * @property {boolean} showReviewSms
  * @property {boolean} showReviewEmail
+ * @property {boolean} showReviewInvite
  * @property {boolean} showInvoiceEmail
  */
 
@@ -80,6 +81,7 @@ export function buildCompleteVisitModelFromBooking(booking, preview) {
     customerEmail,
     showReviewSms: Boolean(resolvedPreview.showReviewSmsMessage),
     showReviewEmail: Boolean(resolvedPreview.showReviewInviteMessage),
+    showReviewInvite: resolvedPreview.showReviewInvite !== false,
     showInvoiceEmail: Boolean(customerEmail),
   };
 }

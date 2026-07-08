@@ -1,3 +1,5 @@
+import { phoneForSmsUri } from '../../../utils/phone';
+
 /**
  * @typedef {object} BookingForReviewEligibility
  * @property {string} id
@@ -84,4 +86,45 @@ export function getMarkCompleteModalCopy(booking, ctx) {
   const hasEmail = Boolean(booking.customer_email?.trim());
   const alreadyReviewed = customerAlreadyReviewed(booking, ctx);
   return { showReviewInviteMessage: hasEmail && !alreadyReviewed };
+}
+
+/**
+ * Client preview for complete-visit customer notifications (SMS → email fallback).
+ * Receipt is sent when a channel exists; review link only when the customer is eligible.
+ *
+ * @param {BookingForReviewEligibility & { customer_phone?: string | null }} booking
+ * @param {ReviewEligibilityContext | null | undefined} ctx
+ * @returns {import('../../bookings/booking-details/utils/markCompletePreview').MarkCompletePreview}
+ */
+export function getCompleteVisitNotificationPreview(booking, ctx) {
+  const hasPhone = Boolean(phoneForSmsUri(booking?.customer_phone));
+  const hasEmail = Boolean(normalizedCustomerEmail(booking?.customer_email));
+  const alreadyReviewed = ctx ? customerAlreadyReviewed(booking, ctx) : false;
+
+  if (hasPhone) {
+    return {
+      showReviewSmsMessage: true,
+      showReviewInviteMessage: false,
+      showNoReviewInviteMessage: false,
+      showReviewInvite: !alreadyReviewed,
+    };
+  }
+
+  if (hasEmail) {
+    const showReviewInvite =
+      ctx != null ? willSendReviewInviteOnComplete(booking, ctx) : !alreadyReviewed;
+    return {
+      showReviewSmsMessage: false,
+      showReviewInviteMessage: true,
+      showNoReviewInviteMessage: false,
+      showReviewInvite,
+    };
+  }
+
+  return {
+    showReviewSmsMessage: false,
+    showReviewInviteMessage: false,
+    showNoReviewInviteMessage: true,
+    showReviewInvite: false,
+  };
 }

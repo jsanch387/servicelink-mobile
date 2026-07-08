@@ -1,13 +1,17 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { fetchBookingDetailsById } from '../api/bookingDetails';
+import { mergeBookingDetailsCheckoutFields } from '../utils/mergeBookingDetailsCheckoutFields';
 import { bookingsDetailsQueryKey } from '../../queryKeys';
 import { shouldRetryBookingsQuery } from '../../utils/queryRetryPolicy';
 
 export function useBookingDetails(bookingId) {
+  const queryClient = useQueryClient();
+
   const query = useQuery({
     queryKey: bookingsDetailsQueryKey(bookingId),
     queryFn: async () => {
+      const previous = queryClient.getQueryData(bookingsDetailsQueryKey(bookingId));
       const { data, error } = await fetchBookingDetailsById(bookingId);
       if (error) {
         throw new Error(error.message ?? 'Could not load booking details');
@@ -15,7 +19,7 @@ export function useBookingDetails(bookingId) {
       if (!data) {
         throw new Error('Booking not found');
       }
-      return data;
+      return mergeBookingDetailsCheckoutFields(data, previous);
     },
     enabled: Boolean(bookingId),
     staleTime: 30 * 1000,

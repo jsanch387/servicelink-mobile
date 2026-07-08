@@ -34,6 +34,24 @@ describe('completeVisitNotificationCopy', () => {
     );
   });
 
+  it('getCompleteVisitSuccessDetail uses receipt-only copy when review invite is skipped', () => {
+    expect(getCompleteVisitSuccessDetail({ showReviewSms: true, showReviewInvite: false })).toBe(
+      'We texted your customer their receipt.',
+    );
+    expect(getCompleteVisitSuccessDetail({ showReviewEmail: true, showReviewInvite: false })).toBe(
+      'We emailed your customer their receipt.',
+    );
+  });
+
+  it('getCompleteVisitFollowUpMessage uses receipt-only copy when review invite is skipped', () => {
+    expect(
+      getCompleteVisitFollowUpMessage({ showReviewSms: true, showReviewInvite: false }).message,
+    ).toBe("We'll text your customer their receipt.");
+    expect(
+      getCompleteVisitFollowUpMessage({ showReviewEmail: true, showReviewInvite: false }).message,
+    ).toBe("We'll email your customer their receipt.");
+  });
+
   it('getCompleteVisitFollowUpMessage warns when no contact channels', () => {
     expect(
       getCompleteVisitFollowUpMessage({ showReviewSms: false, showReviewEmail: false }),

@@ -76,6 +76,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   const [notes, setNotes] = useState('');
   const [successReplayKey, setSuccessReplayKey] = useState(0);
   const [appointmentConfirmed, setAppointmentConfirmed] = useState(false);
+  const [confirmRequested, setConfirmRequested] = useState(false);
 
   const catalogError = catalog.businessError || catalog.catalogError;
 
@@ -328,6 +329,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     step,
     appointmentConfirmed,
     isMutationPending: createBookingMutation.isPending,
+    confirmRequested,
     customerPhone: customer.phone,
   });
   submitMutationErrorRef.current = handleMutationError;
@@ -487,7 +489,12 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     if (!canContinue) return;
     if (step === CREATE_APPOINTMENT_LAST_STEP) {
       clearSubmitError();
-      createBookingMutation.mutate();
+      setConfirmRequested(true);
+      createBookingMutation.mutate(undefined, {
+        onSettled: () => {
+          setConfirmRequested(false);
+        },
+      });
       return;
     }
     setStep(
@@ -567,20 +574,12 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       onChangeVehicle: setVehicle,
       onChangeNotes: setNotes,
       showSubmitPanel,
-      submitPanelActive: isSubmitting,
-      submitPanelError: submitError,
-      submitPanelHasCustomerPhone: hasCustomerPhone,
-      onSubmitErrorRetry: clearSubmitError,
     }),
     [
       step,
       appointmentConfirmed,
       successReplayKey,
       showSubmitPanel,
-      isSubmitting,
-      submitError,
-      hasCustomerPhone,
-      clearSubmitError,
       catalogError,
       catalog.isLoading,
       enabledServices,
@@ -619,6 +618,13 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     step,
     appointmentConfirmed,
     showSubmitPanel,
+    submitPanel: {
+      visible: showSubmitPanel,
+      active: isSubmitting || confirmRequested,
+      error: submitError,
+      hasCustomerPhone,
+      onRetry: clearSubmitError,
+    },
     wizardHeader,
     stepContentProps,
     footer: {

@@ -27,6 +27,21 @@ export function PriceBreakdownSection({ formattedPrice }) {
             />
           ))
         : null}
+      {formattedPrice.hasSessionFees
+        ? formattedPrice.sessionFees.map((item) => (
+            <LabelValueRow
+              key={item.id}
+              label={item.name}
+              labelPrefixIcon="receipt-outline"
+              value={item.priceLabel}
+            />
+          ))
+        : null}
+      {formattedPrice.hasPaymentAdjustments
+        ? formattedPrice.paymentAdjustments.map((item) => (
+            <LabelValueRow key={item.id} label={item.label} value={item.value} />
+          ))
+        : null}
       <View style={styles.dividerWrap}>
         <Divider />
       </View>

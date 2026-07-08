@@ -1,6 +1,9 @@
 import { parseBookingStartLocalMs } from '../../../home/utils/bookingStart';
 import { formatPhoneForDisplay } from '../../../../utils/phone';
 import { splitBookingServiceName } from '../../../../utils/splitBookingServiceName';
+import { resolveBookingSessionFees } from './resolveBookingSessionFees';
+import { resolveSessionPaymentForDisplay } from './resolveSessionPaymentForDisplay';
+import { getSessionPaymentMethodLabel, getSessionPaymentRowLabel } from './sessionPaymentDisplay';
 
 function formatMoney(amount) {
   const safe = Number.isFinite(amount) ? amount : 0;
@@ -109,13 +112,30 @@ function normalizeBookingPaymentSummary(raw) {
       0,
       Number(read('remainingAmountCents', 'remaining_amount_cents') ?? 0) || 0,
     ),
+    sessionFeesTotalCents: Math.max(
+      0,
+      Number(read('sessionFeesTotalCents', 'session_fees_total_cents') ?? 0) || 0,
+    ),
+    sessionPaymentMethod:
+      typeof read('sessionPaymentMethod', 'session_payment_method') === 'string'
+        ? read('sessionPaymentMethod', 'session_payment_method')
+        : null,
+    sessionPaymentAmountCents: Math.max(
+      0,
+      Number(read('sessionPaymentAmountCents', 'session_payment_amount_cents') ?? 0) || 0,
+    ),
+    sessionPaymentStripeIntentId:
+      typeof read('sessionPaymentStripeIntentId', 'session_payment_stripe_payment_intent_id') ===
+      'string'
+        ? read('sessionPaymentStripeIntentId', 'session_payment_stripe_payment_intent_id')
+        : null,
   };
 }
 
 /**
  * @typedef {{
  *   visible: boolean;
- *   variant: 'pay_in_person' | 'deposit' | 'paid_full' | null;
+ *   variant: 'pay_in_person' | 'deposit' | 'paid_full' | 'session_paid' | null;
  *   status: string;
  *   detail: string | null;
  *   accessibilityLabel: string;
@@ -138,21 +158,59 @@ function emptyPaymentModel() {
  * actionable payment state (e.g. `pay_now` with zero online paid and no in-person framing).
  *
  * @param {Record<string, unknown> | null | undefined} paymentRaw
+ * @param {string | null | undefined} [bookingStatus]
  * @returns {BookingPaymentModel}
  */
-export function buildBookingPaymentSection(paymentRaw) {
+export function buildBookingPaymentSection(paymentRaw, bookingStatus, jobStatus) {
   const payment = normalizeBookingPaymentSummary(paymentRaw);
   if (!payment) {
     return emptyPaymentModel();
   }
 
-  const paid = Math.max(0, Math.round(payment.paidOnlineAmountCents));
   const rem = Math.max(0, Math.round(payment.remainingAmountCents));
   const method = String(payment.paymentMethodSelected ?? '')
     .trim()
     .toLowerCase();
   const total = Math.max(0, Math.round(payment.totalAmountCents));
+  const paymentStatus = String(payment.paymentStatus ?? '')
+    .trim()
+    .toLowerCase();
   const fmt = (cents) => formatMoneyFromCents(cents, payment.currency);
+  const resolved = resolveSessionPaymentForDisplay(payment, bookingStatus, jobStatus);
+  const paid = Math.max(0, Math.round(resolved.paidOnlineCents));
+  const sessionMethod = resolved.sessionMethod;
+  const sessionPaid = Math.max(0, Math.round(resolved.sessionPaidCents));
+
+  if (sessionMethod && sessionPaid > 0) {
+    const status = getSessionPaymentMethodLabel(sessionMethod);
+    const detail =
+      paid > 0
+        ? `${fmt(paid)} paid online · ${fmt(sessionPaid)} via ${status.toLowerCase()}`
+        : fmt(sessionPaid);
+    const accessibilityLabel =
+      paid > 0
+        ? `${status}. ${fmt(paid)} paid online and ${fmt(sessionPaid)} collected via ${status.toLowerCase()}.`
+        : `${status}. ${fmt(sessionPaid)} collected.`;
+    return {
+      visible: true,
+      variant: 'session_paid',
+      status,
+      detail,
+      accessibilityLabel,
+    };
+  }
+
+  if (paymentStatus === 'paid' || paymentStatus === 'paid_full') {
+    if (rem <= 0 && paid > 0 && total > 0 && !sessionMethod) {
+      return {
+        visible: true,
+        variant: 'paid_full',
+        status: 'Paid online',
+        detail: fmt(paid),
+        accessibilityLabel: `Paid online. ${fmt(paid)}.`,
+      };
+    }
+  }
 
   /**
    * In-person / no app checkout: explicit `pay_in_person`, or `none` from owner manual + web no-checkout
@@ -175,6 +233,15 @@ export function buildBookingPaymentSection(paymentRaw) {
   }
 
   if (variant === 'other') {
+    if (paymentStatus === 'paid' && rem <= 0 && total <= 0) {
+      return {
+        visible: true,
+        variant: 'paid_full',
+        status: 'Paid',
+        detail: 'No charge',
+        accessibilityLabel: 'Paid. No charge for this visit.',
+      };
+    }
     return emptyPaymentModel();
   }
 
@@ -306,11 +373,59 @@ export function buildBookingDetailsModel(booking) {
   const { primary: serviceName, pricingOption: servicePricingOption } =
     splitBookingServiceName(serviceNameRaw);
   const addOns = normalizeAddonItems(booking?.addon_details);
+  const paymentSummary = normalizeBookingPaymentSummary(booking?.payment);
+  const statusLower = clean(booking?.status, 'confirmed').toLowerCase();
+  const isCompleted = statusLower === 'completed' || statusLower === 'complete';
+  const resolvedSessionPayment = resolveSessionPaymentForDisplay(
+    paymentSummary,
+    booking?.status,
+    booking?.job_status,
+  );
+  const addOnsTotal = addOns.reduce((sum, item) => sum + item.price, 0);
   const servicePrice = Number.isFinite(Number(booking?.service_price_cents))
     ? Number(booking.service_price_cents) / 100
     : null;
-  const addOnsTotal = addOns.reduce((sum, item) => sum + item.price, 0);
-  const total = Number.isFinite(servicePrice) ? servicePrice + addOnsTotal : null;
+  const sessionFees = resolveBookingSessionFees({
+    sessionFeeLines: booking?.session_fee_lines ?? booking?.sessionFeeLines,
+    invoiceSnapshot: booking?.invoice_snapshot ?? booking?.invoiceSnapshot,
+    paymentSummary,
+    servicePrice,
+    addOnsTotal,
+    sessionPaymentAmountCents: resolvedSessionPayment.sessionPaidCents,
+    paidOnlineCents: resolvedSessionPayment.paidOnlineCents,
+  });
+  const sessionFeesTotal = sessionFees.reduce((sum, item) => sum + item.price, 0);
+  const computedTotal = Number.isFinite(servicePrice)
+    ? servicePrice + addOnsTotal + sessionFeesTotal
+    : null;
+  const paymentTotal =
+    paymentSummary?.totalAmountCents > 0 ? paymentSummary.totalAmountCents / 100 : null;
+  const total =
+    Number.isFinite(computedTotal) &&
+    sessionFeesTotal > 0 &&
+    (!Number.isFinite(paymentTotal) || paymentTotal < computedTotal - 0.001)
+      ? computedTotal
+      : Number.isFinite(paymentTotal)
+        ? paymentTotal
+        : computedTotal;
+
+  const paidOnline = resolvedSessionPayment.paidOnlineCents / 100;
+  const sessionPaid = resolvedSessionPayment.sessionPaidCents / 100;
+  const paymentAdjustments = [];
+  if (isCompleted && paidOnline > 0) {
+    paymentAdjustments.push({
+      id: 'paid-online',
+      label: 'Paid online',
+      value: `−${formatMoney(paidOnline)}`,
+    });
+  }
+  if (isCompleted && sessionPaid > 0 && resolvedSessionPayment.sessionMethod) {
+    paymentAdjustments.push({
+      id: 'session-payment',
+      label: getSessionPaymentRowLabel(resolvedSessionPayment.sessionMethod),
+      value: `−${formatMoney(sessionPaid)}`,
+    });
+  }
 
   const vehicleLine = buildVehicleDisplayLine(booking);
   const hasVehicle = vehicleLine.length > 0;
@@ -343,6 +458,7 @@ export function buildBookingDetailsModel(booking) {
     price: {
       servicePrice,
       addOns,
+      sessionFees,
       total,
     },
     customer: {
@@ -361,9 +477,14 @@ export function buildBookingDetailsModel(booking) {
       servicePrice: formatMoneyOrFallback(servicePrice),
       addOnsTotal: formatMoney(addOnsTotal),
       hasAddOns: addOns.length > 0,
+      sessionFeesTotal: formatMoney(sessionFeesTotal),
+      hasSessionFees: sessionFees.length > 0,
       total: formatMoneyOrFallback(total),
       addOns: addOns.map((item) => ({ ...item, priceLabel: formatMoney(item.price) })),
+      sessionFees: sessionFees.map((item) => ({ ...item, priceLabel: formatMoney(item.price) })),
+      hasPaymentAdjustments: paymentAdjustments.length > 0,
+      paymentAdjustments,
     },
-    payment: buildBookingPaymentSection(booking?.payment),
+    payment: buildBookingPaymentSection(booking?.payment, booking?.status, booking?.job_status),
   };
 }

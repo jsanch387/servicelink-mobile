@@ -106,6 +106,165 @@ describe('buildBookingDetailsModel', () => {
     expect(model.formattedPrice.total).toBe('$140.00');
   });
 
+  it('includes session fee lines in price breakdown and total', () => {
+    const model = buildBookingDetailsModel({
+      service_price_cents: 10000,
+      session_fee_lines: [
+        { id: 'fee-1', label: 'Extra soil removal', amount_cents: 1500 },
+        { id: 'fee-2', label: 'Engine bay detail', amount_cents: 2500 },
+      ],
+      payment: {
+        totalAmountCents: 14000,
+        sessionFeesTotalCents: 4000,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.hasSessionFees).toBe(true);
+    expect(model.formattedPrice.sessionFees).toEqual([
+      expect.objectContaining({ id: 'fee-1', name: 'Extra soil removal', priceLabel: '$15.00' }),
+      expect.objectContaining({ id: 'fee-2', name: 'Engine bay detail', priceLabel: '$25.00' }),
+    ]);
+    expect(model.formattedPrice.total).toBe('$140.00');
+  });
+
+  it('falls back to payment session fee total when line rows are unavailable', () => {
+    const model = buildBookingDetailsModel({
+      service_price_cents: 8000,
+      payment: {
+        totalAmountCents: 9500,
+        sessionFeesTotalCents: 1500,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.hasSessionFees).toBe(true);
+    expect(model.formattedPrice.sessionFees).toEqual([
+      expect.objectContaining({ name: 'Additional fees', priceLabel: '$15.00' }),
+    ]);
+    expect(model.formattedPrice.total).toBe('$95.00');
+  });
+
+  it('shows Tap to Pay in payment section after complete checkout', () => {
+    const model = buildBookingDetailsModel({
+      status: 'completed',
+      service_price_cents: 10000,
+      payment: {
+        paymentStatus: 'paid',
+        totalAmountCents: 10000,
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 0,
+        sessionPaymentMethod: 'tap_to_pay',
+        sessionPaymentAmountCents: 10000,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.payment.visible).toBe(true);
+    expect(model.payment.variant).toBe('session_paid');
+    expect(model.payment.status).toBe('Tap to Pay');
+    expect(model.payment.detail).toMatch(/100\.00/);
+  });
+
+  it('shows completed price breakdown with session fees and tap to pay adjustment', () => {
+    const model = buildBookingDetailsModel({
+      status: 'completed',
+      service_price_cents: 10000,
+      session_fee_lines: [{ id: 'fee-1', label: 'Extra soil', amount_cents: 1500 }],
+      payment: {
+        paymentStatus: 'paid',
+        totalAmountCents: 11500,
+        sessionFeesTotalCents: 1500,
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 0,
+        sessionPaymentMethod: 'tap_to_pay',
+        sessionPaymentAmountCents: 11500,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.sessionFees).toEqual([
+      expect.objectContaining({ name: 'Extra soil', priceLabel: '$15.00' }),
+    ]);
+    expect(model.formattedPrice.total).toBe('$115.00');
+    expect(model.formattedPrice.paymentAdjustments).toEqual([
+      expect.objectContaining({ label: 'Paid with card', value: '−$115.00' }),
+    ]);
+  });
+
+  it('infers session fees on completed booking when only total was updated server-side', () => {
+    const model = buildBookingDetailsModel({
+      status: 'completed',
+      service_price_cents: 10000,
+      payment: {
+        paymentStatus: 'paid',
+        totalAmountCents: 11500,
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 0,
+        sessionPaymentMethod: 'tap_to_pay',
+        sessionPaymentAmountCents: 11500,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.hasSessionFees).toBe(true);
+    expect(model.formattedPrice.sessionFees[0].name).toBe('Additional fees');
+    expect(model.formattedPrice.sessionFees[0].priceLabel).toBe('$15.00');
+    expect(model.formattedPrice.total).toBe('$115.00');
+  });
+
+  it('renders Signature Shinee tap-to-pay checkout with Dirt fee from Supabase shape', () => {
+    const model = buildBookingDetailsModel({
+      id: '8896bb6a-6a8f-4870-b221-bc2e6dd56e38',
+      status: 'completed',
+      job_status: 'completed',
+      service_price_cents: 200,
+      service_name: 'Signature Shinee — Sedan/Coupe',
+      session_fee_lines: [{ id: 'fee-1', label: 'Dirt', amount_cents: 100, sort_order: 0 }],
+      payment: {
+        paymentStatus: 'paid_full',
+        paymentMethodSelected: 'pay_in_person',
+        totalAmountCents: 300,
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 0,
+        sessionFeesTotalCents: 100,
+        sessionPaymentMethod: 'tap_to_pay',
+        sessionPaymentAmountCents: 300,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.servicePrice).toBe('$2.00');
+    expect(model.formattedPrice.sessionFees).toEqual([
+      expect.objectContaining({ name: 'Dirt', priceLabel: '$1.00' }),
+    ]);
+    expect(model.formattedPrice.total).toBe('$3.00');
+    expect(model.payment.status).toBe('Tap to Pay');
+  });
+
+  it('shows Tap to Pay when server stored the collection under paid_online on pay_in_person', () => {
+    const model = buildBookingDetailsModel({
+      status: 'completed',
+      service_price_cents: 10000,
+      payment: {
+        paymentStatus: 'paid',
+        paymentMethodSelected: 'pay_in_person',
+        totalAmountCents: 11500,
+        paidOnlineAmountCents: 11500,
+        remainingAmountCents: 0,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.payment.status).toBe('Tap to Pay');
+    expect(model.payment.variant).toBe('session_paid');
+    expect(model.formattedPrice.hasSessionFees).toBe(true);
+    expect(model.formattedPrice.sessionFees[0].priceLabel).toBe('$15.00');
+    expect(model.formattedPrice.paymentAdjustments).toEqual([
+      expect.objectContaining({ label: 'Paid with card', value: '−$115.00' }),
+    ]);
+  });
+
   it('hides payment section when booking has no merged payment summary', () => {
     const model = buildBookingDetailsModel({
       service_price_cents: 8000,

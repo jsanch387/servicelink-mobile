@@ -6,6 +6,7 @@ import { phoneForSmsUri } from '../../../../utils/phone';
  * @property {boolean} showReviewSmsMessage SMS review link (primary).
  * @property {boolean} showReviewInviteMessage Email review link when SMS is not available.
  * @property {boolean} showNoReviewInviteMessage No contact on file — owner should know invite won't go out.
+ * @property {boolean} [showReviewInvite] When false, customer gets receipt/thank-you only (already reviewed).
  */
 
 /**
@@ -24,6 +25,7 @@ export function getMarkCompletePreviewFromBooking(booking) {
       showReviewSmsMessage: true,
       showReviewInviteMessage: false,
       showNoReviewInviteMessage: false,
+      showReviewInvite: true,
     };
   }
 
@@ -33,6 +35,7 @@ export function getMarkCompletePreviewFromBooking(booking) {
       showReviewSmsMessage: false,
       showReviewInviteMessage: true,
       showNoReviewInviteMessage: false,
+      showReviewInvite: true,
     };
   }
 
@@ -40,5 +43,6 @@ export function getMarkCompletePreviewFromBooking(booking) {
     showReviewSmsMessage: false,
     showReviewInviteMessage: false,
     showNoReviewInviteMessage: true,
+    showReviewInvite: false,
   };
 }

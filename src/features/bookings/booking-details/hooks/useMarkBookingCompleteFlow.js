@@ -6,12 +6,14 @@ import { useAppReviewPrompt } from '../../../appReview';
 import { useAuth } from '../../../auth';
 import { fetchBusinessProfileForUser } from '../../../home/api/homeDashboard';
 import { loadReviewEligibilityContext } from '../../../reviews/api/loadReviewEligibilityContext';
-import { getMarkCompleteModalCopy } from '../../../reviews/utils/reviewInviteEligibility';
+import { getCompleteVisitNotificationPreview } from '../../../reviews/utils/reviewInviteEligibility';
 import { postBookingAction } from '../../api/postBookingAction';
 import { BOOKING_ACTION } from '../../constants/jobStatus';
 import { bookingsDetailsQueryKey } from '../../queryKeys';
 import { showBookingActionToasts } from '../../utils/bookingActionFeedback';
 import { patchBookingJobStatusInDetailsCache } from '../../utils/patchBookingJobStatusInDetailsCache';
+import { patchBookingCheckoutInDetailsCache } from '../../utils/patchBookingCheckoutInDetailsCache';
+import { saveBookingCheckoutSnapshot } from '../utils/bookingCheckoutSnapshotStorage';
 import { patchBookingJobStatusInHomeCache } from '../../utils/patchBookingJobStatusInHomeCache';
 import { completeBookingWithReviewInvite } from '../api/completeBookingWithReviewInvite';
 import { fetchBookingDetailsById } from '../api/bookingDetails';
@@ -22,7 +24,6 @@ import {
 import { buildCompleteVisitModelFromBooking } from '../utils/buildCompleteVisitModel';
 import { buildJobCompletedPayload } from '../utils/buildJobCompletedPayload';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
-import { getMarkCompletePreviewFromBooking } from '../utils/markCompletePreview';
 
 /**
  * @typedef {import('../../../reviews/utils/reviewInviteEligibility').BookingForReviewEligibility} BookingForReviewEligibility
@@ -131,6 +132,7 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
     /** @type {import('../utils/buildCompleteVisitModel').CompleteVisitModel | null} */ (null),
   );
   const loadGenerationRef = useRef(0);
+  const notificationPreviewRef = useRef(/** @type {MarkCompletePreview | null} */ (null));
 
   const resolveCurrentBooking = useCallback(() => {
     return resolveBookingForFlow(
@@ -192,35 +194,6 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
       }
       setResolvedBooking(booking);
 
-      if (useJobCompletedAction) {
-        const nextPreview = getMarkCompletePreviewFromBooking(booking);
-        setPreview(nextPreview);
-
-        if (useCompleteVisitScreen) {
-          const { data, error } = await fetchBookingDetailsById(booking.id);
-          if (cancelled || loadGenerationRef.current !== generation) {
-            return;
-          }
-          if (error || !data) {
-            setIsLoadingPreview(false);
-            setPreviewError(error?.message ?? 'Could not load booking details.');
-            return;
-          }
-          queryClient.setQueryData(bookingsDetailsQueryKey(booking.id), data);
-
-          const model = buildCompleteVisitModelFromBooking(data, nextPreview);
-          if (!model) {
-            setIsLoadingPreview(false);
-            setPreviewError('Could not prepare the visit receipt.');
-            return;
-          }
-          setCompleteVisitModel(model);
-        }
-
-        setIsLoadingPreview(false);
-        return;
-      }
-
       let businessId = normalizedBusinessId || '';
       if (!businessId) {
         if (!userId) {
@@ -249,15 +222,40 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
         return;
       }
 
-      setIsLoadingPreview(false);
-
       if (ctxError || !ctx) {
+        setIsLoadingPreview(false);
         setPreviewError(ctxError?.message ?? 'Could not load review eligibility.');
         return;
       }
 
       setEligibilityCtx(ctx);
-      setPreview(getMarkCompleteModalCopy(booking, ctx));
+
+      const nextPreview = getCompleteVisitNotificationPreview(booking, ctx);
+      notificationPreviewRef.current = nextPreview;
+      setPreview(nextPreview);
+
+      if (useJobCompletedAction && useCompleteVisitScreen) {
+        const { data, error } = await fetchBookingDetailsById(booking.id);
+        if (cancelled || loadGenerationRef.current !== generation) {
+          return;
+        }
+        if (error || !data) {
+          setIsLoadingPreview(false);
+          setPreviewError(error?.message ?? 'Could not load booking details.');
+          return;
+        }
+        queryClient.setQueryData(bookingsDetailsQueryKey(booking.id), data);
+
+        const model = buildCompleteVisitModelFromBooking(data, nextPreview);
+        if (!model) {
+          setIsLoadingPreview(false);
+          setPreviewError('Could not prepare the visit receipt.');
+          return;
+        }
+        setCompleteVisitModel(model);
+      }
+
+      setIsLoadingPreview(false);
     })();
 
     return () => {
@@ -327,11 +325,15 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
       }
       return { mode: /** @type {const} */ ('legacy'), result: result.data };
     },
-    onSuccess: async (payload) => {
+    onSuccess: async (payload, checkout) => {
       if (payload.mode === 'job_completed') {
         const { result } = payload;
         const id = bookingId?.trim();
         const businessId = resolvedBusinessId ?? normalizedBusinessId;
+        if (id && checkout) {
+          patchBookingCheckoutInDetailsCache(queryClient, id, checkout);
+          void saveBookingCheckoutSnapshot(id, checkout);
+        }
         if (id && result.jobStatus) {
           patchBookingJobStatusInHomeCache(
             queryClient,
@@ -348,7 +350,9 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
           );
         }
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        showBookingActionToasts(toast, BOOKING_ACTION.JOB_COMPLETED, result);
+        showBookingActionToasts(toast, BOOKING_ACTION.JOB_COMPLETED, result, {
+          includeReviewLink: notificationPreviewRef.current?.showReviewInvite !== false,
+        });
       }
 
       if (bookingId) {

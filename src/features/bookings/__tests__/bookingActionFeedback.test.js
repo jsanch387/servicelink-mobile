@@ -1,7 +1,9 @@
 import { BOOKING_ACTION } from '../constants/jobStatus';
 import {
   JOB_COMPLETED_SUCCESS_EMAIL,
+  JOB_COMPLETED_SUCCESS_EMAIL_RECEIPT_ONLY,
   JOB_COMPLETED_SUCCESS_SMS,
+  JOB_COMPLETED_SUCCESS_SMS_RECEIPT_ONLY,
   WORK_FINISHED_SUCCESS_SMS,
   WORK_FINISHED_SMS_SOFT_NOTE,
   showBookingActionToasts,
@@ -28,6 +30,42 @@ describe('showBookingActionToasts job_completed', () => {
     });
     expect(toast.sms).toHaveBeenCalledWith(JOB_COMPLETED_SUCCESS_SMS, { type: 'success' });
     expect(toast.email).not.toHaveBeenCalled();
+  });
+
+  it('shows receipt-only SMS success when review invite is skipped', () => {
+    const toast = createToast();
+    showBookingActionToasts(
+      toast,
+      BOOKING_ACTION.JOB_COMPLETED,
+      {
+        smsSent: true,
+        smsReason: null,
+        emailSent: false,
+        emailReason: null,
+      },
+      { includeReviewLink: false },
+    );
+    expect(toast.sms).toHaveBeenCalledWith(JOB_COMPLETED_SUCCESS_SMS_RECEIPT_ONLY, {
+      type: 'success',
+    });
+  });
+
+  it('shows receipt-only email success when review invite is skipped', () => {
+    const toast = createToast();
+    showBookingActionToasts(
+      toast,
+      BOOKING_ACTION.JOB_COMPLETED,
+      {
+        smsSent: false,
+        smsReason: 'no_phone',
+        emailSent: true,
+        emailReason: null,
+      },
+      { includeReviewLink: false },
+    );
+    expect(toast.email).toHaveBeenCalledWith(JOB_COMPLETED_SUCCESS_EMAIL_RECEIPT_ONLY, {
+      type: 'success',
+    });
   });
 
   it('shows email success when sms failed but email sent', () => {

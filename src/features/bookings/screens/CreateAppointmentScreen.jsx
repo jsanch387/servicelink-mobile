@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import { useCallback, useLayoutEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTheme } from '../../../theme';
 import { CreateAppointmentFlow } from '../create-appointment/CreateAppointmentFlow';
@@ -8,6 +9,7 @@ import { CreateAppointmentFlow } from '../create-appointment/CreateAppointmentFl
  */
 export function CreateAppointmentScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation();
 
   const styles = useMemo(
     () =>
@@ -20,9 +22,22 @@ export function CreateAppointmentScreen() {
     [colors],
   );
 
+  const handleNavigationHeaderVisibility = useCallback(
+    (hideNavigationHeader) => {
+      navigation.setOptions({ headerShown: !hideNavigationHeader });
+    },
+    [navigation],
+  );
+
+  useLayoutEffect(() => {
+    return () => {
+      navigation.setOptions({ headerShown: true });
+    };
+  }, [navigation]);
+
   return (
     <View style={styles.root}>
-      <CreateAppointmentFlow />
+      <CreateAppointmentFlow onImmersiveSubmitChange={handleNavigationHeaderVisibility} />
     </View>
   );
 }

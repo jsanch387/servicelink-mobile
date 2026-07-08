@@ -1,17 +1,12 @@
-import { Button, EchoBarsLoader } from '../../../../components/ui';
-
-/** Echo bar color on the primary CTA (white fill in dark theme). */
-const PRIMARY_ECHO_BAR_COLOR = '#0a0a0a';
+import { Button } from '../../../../components/ui';
 
 /**
- * UI for texting the customer "on my way" from booking details.
- * Wire `onPress` / `loading` when hooking up {@link useBookingAction}.
+ * Opens the device Messages app with a prefilled "On my way" text from booking details.
  *
  * @param {{
  *   alreadySent?: boolean;
  *   disabled?: boolean;
  *   hasCustomerSmsPhone?: boolean;
- *   loading?: boolean;
  *   onPress?: () => void;
  * }} props
  */
@@ -19,7 +14,6 @@ export function BookingOnMyWayActionRow({
   alreadySent = false,
   disabled = false,
   hasCustomerSmsPhone = false,
-  loading = false,
   onPress,
 }) {
   if (alreadySent) {
@@ -41,17 +35,15 @@ export function BookingOnMyWayActionRow({
     <Button
       accessibilityHint={
         hasCustomerSmsPhone
-          ? 'Texts the customer that you are on the way'
-          : 'Updates the appointment; add a phone on this booking to text the customer'
+          ? 'Opens Messages with On my way prefilled'
+          : 'Opens Messages; add a phone on this booking to prefill the customer number'
       }
       accessibilityLabel="On my way"
       disabled={disabled}
       fullWidth
       iconName="chatbubble-ellipses-outline"
-      loading={loading}
-      loadingNode={<EchoBarsLoader accessibilityLabel="Sending" color={PRIMARY_ECHO_BAR_COLOR} />}
       title="On my way"
-      variant="primary"
+      variant="secondary"
       onPress={onPress}
     />
   );

@@ -10,12 +10,14 @@ import { CREATE_APPOINTMENT_STEP, CREATE_APPOINTMENT_SUBMIT_ERROR_FALLBACK } fro
  * @param {number} args.step
  * @param {boolean} args.appointmentConfirmed
  * @param {boolean} args.isMutationPending
+ * @param {boolean} [args.confirmRequested] Set synchronously when Confirm is tapped (before mutation pending).
  * @param {string | undefined | null} args.customerPhone
  */
 export function useCreateAppointmentSubmitPanel({
   step,
   appointmentConfirmed,
   isMutationPending,
+  confirmRequested = false,
   customerPhone,
 }) {
   const [submitError, setSubmitError] = useState(null);
@@ -24,7 +26,7 @@ export function useCreateAppointmentSubmitPanel({
   const showSubmitPanel =
     step === CREATE_APPOINTMENT_STEP.REVIEW &&
     !appointmentConfirmed &&
-    (isSubmitting || Boolean(submitError));
+    (confirmRequested || isSubmitting || Boolean(submitError));
 
   const hasCustomerPhone = Boolean(String(customerPhone ?? '').trim());
 
