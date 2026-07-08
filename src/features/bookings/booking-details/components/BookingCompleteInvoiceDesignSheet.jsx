@@ -1080,24 +1080,21 @@ export function BookingCompleteVisitSheet({
             ]}
           />
           <Animated.View style={[styles.sheet, sheetStyle, { paddingTop: insets.top }]}>
-            <View style={styles.header}>
-              <Pressable
-                accessibilityLabel="Close"
-                accessibilityRole="button"
-                disabled={isSubmitting}
-                hitSlop={8}
-                style={styles.headerSide}
-                onPress={handleClose}
-              >
-                <Ionicons
-                  color={isSubmitting ? colors.border : colors.textMuted}
-                  name="close"
-                  size={24}
-                />
-              </Pressable>
-              <AppText style={styles.headerTitle}>Payment</AppText>
-              <View style={styles.headerSide} />
-            </View>
+            {!showSubmitOverlay ? (
+              <View style={styles.header}>
+                <Pressable
+                  accessibilityLabel="Close"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  style={styles.headerSide}
+                  onPress={handleClose}
+                >
+                  <Ionicons color={colors.textMuted} name="close" size={24} />
+                </Pressable>
+                <AppText style={styles.headerTitle}>Payment</AppText>
+                <View style={styles.headerSide} />
+              </View>
+            ) : null}
 
             <View style={styles.bodyFlex}>
               {isLoading ? <CompleteVisitPaymentSkeleton bottomInset={insets.bottom} /> : null}

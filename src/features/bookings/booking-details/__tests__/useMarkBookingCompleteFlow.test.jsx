@@ -157,12 +157,7 @@ describe('useMarkBookingCompleteFlow', () => {
       'completed',
     );
     expect(invalidateBookingCachesAfterMutation).toHaveBeenCalledWith(queryClient, 'booking-1');
-    expect(showBookingActionToasts).toHaveBeenCalledWith(
-      toast,
-      BOOKING_ACTION.JOB_COMPLETED,
-      payload.result,
-      { includeReviewLink: true },
-    );
+    expect(showBookingActionToasts).not.toHaveBeenCalled();
     expect(maybeRequestAppReview).toHaveBeenCalledWith({ businessId: 'biz-1' });
   });
 

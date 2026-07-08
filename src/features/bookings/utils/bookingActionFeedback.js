@@ -101,10 +101,6 @@ export function showBookingActionToasts(toast, action, res, options = {}) {
 
   if (action === BOOKING_ACTION.JOB_COMPLETED) {
     const includeReviewLink = options.includeReviewLink !== false;
-    const isIdempotentDuplicate =
-      !res.smsSent &&
-      !res.emailSent &&
-      (res.smsReason === 'duplicate' || res.emailReason === 'duplicate');
 
     if (res.smsSent) {
       toast.sms(
@@ -120,16 +116,9 @@ export function showBookingActionToasts(toast, action, res, options = {}) {
       );
       return;
     }
+
+    // Visit is complete — do not nag about SMS/email skip reasons (`not_configured`, etc.).
+    // Complete-visit UI owns success; failures are server/ops and not actionable here.
     toast.success(JOB_COMPLETED_SUCCESS_STATE_ONLY);
-    if (isIdempotentDuplicate) {
-      return;
-    }
-    if (res.smsReason && res.smsReason !== 'duplicate') {
-      toast.sms(smsSkipMessage(res.smsReason), { type: 'info' });
-    } else if (res.emailReason && res.emailReason !== 'duplicate') {
-      toast.email(emailSkipMessage(res.emailReason), { type: 'info' });
-    } else if (!res.smsReason && !res.emailReason) {
-      toast.info(JOB_COMPLETED_SMS_SOFT_NOTE);
-    }
   }
 }

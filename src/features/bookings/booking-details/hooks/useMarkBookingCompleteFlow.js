@@ -350,9 +350,11 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
           );
         }
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        showBookingActionToasts(toast, BOOKING_ACTION.JOB_COMPLETED, result, {
-          includeReviewLink: notificationPreviewRef.current?.showReviewInvite !== false,
-        });
+        if (!useCompleteVisitScreen) {
+          showBookingActionToasts(toast, BOOKING_ACTION.JOB_COMPLETED, result, {
+            includeReviewLink: notificationPreviewRef.current?.showReviewInvite !== false,
+          });
+        }
       }
 
       if (bookingId) {
