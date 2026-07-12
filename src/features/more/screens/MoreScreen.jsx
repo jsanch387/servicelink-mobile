@@ -100,6 +100,11 @@ export function MoreScreen() {
             onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
           />
           <SettingsNavRow
+            icon="megaphone-outline"
+            label="Marketing"
+            onPress={() => navigation.navigate(ROUTES.MARKETING)}
+          />
+          <SettingsNavRow
             icon="card-outline"
             label="Payments"
             showDividerBelow={false}
