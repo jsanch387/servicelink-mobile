@@ -45,9 +45,9 @@ function draftFromCampaign(campaign) {
  * @param {object} props
  * @param {boolean} props.visible
  * @param {() => void} props.onRequestClose
- * @param {(sale: import('../utils/marketingCampaignModel').MarketingCampaign) => void} props.onCreated
+ * @param {(sale: import('../utils/marketingCampaignModel').MarketingCampaign) => void | Promise<void>} props.onCreated
  * @param {import('../utils/marketingCampaignModel').MarketingCampaign | null} [props.editCampaign]
- * @param {(sale: import('../utils/marketingCampaignModel').MarketingCampaign) => void} [props.onUpdated]
+ * @param {(sale: import('../utils/marketingCampaignModel').MarketingCampaign) => void | Promise<void>} [props.onUpdated]
  */
 export function CreateSaleSheet({
   visible,
@@ -59,11 +59,15 @@ export function CreateSaleSheet({
   const isEdit = editCampaign != null;
   const [draft, setDraft] = useState(emptyDraft);
   const [errors, setErrors] = useState(/** @type {Record<string, string>} */ ({}));
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(/** @type {string | null} */ (null));
 
   useEffect(() => {
     if (!visible) return;
     setDraft(isEdit ? draftFromCampaign(editCampaign) : emptyDraft());
     setErrors({});
+    setSaveError(null);
+    setSaving(false);
   }, [visible, editCampaign, isEdit]);
 
   const styles = useMemo(
@@ -94,6 +98,7 @@ export function CreateSaleSheet({
       Object.keys(patch).forEach((key) => delete next[key]);
       return next;
     });
+    setSaveError(null);
   }
 
   function handleUseDatesChange(useDates) {
@@ -109,7 +114,7 @@ export function CreateSaleSheet({
     });
   }
 
-  function handleSave() {
+  async function handleSave() {
     const result = validateSaleDraft(draft);
     if (!result.isValid) {
       setErrors(result.errors);
@@ -120,17 +125,25 @@ export function CreateSaleSheet({
       kind: MARKETING_CAMPAIGN_KIND.SALE,
       code: '',
     });
-    if (isEdit && editCampaign) {
-      onUpdated?.({
-        ...built,
-        id: editCampaign.id,
-        createdAtIso: editCampaign.createdAtIso,
-        isEnabled: editCampaign.isEnabled,
-      });
-    } else {
-      onCreated(built);
+
+    setSaving(true);
+    setSaveError(null);
+    try {
+      if (isEdit && editCampaign) {
+        await onUpdated?.({
+          ...built,
+          id: editCampaign.id,
+          createdAtIso: editCampaign.createdAtIso,
+          isEnabled: editCampaign.isEnabled,
+        });
+      } else {
+        await onCreated(built);
+      }
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Could not save sale.');
+    } finally {
+      setSaving(false);
     }
-    onRequestClose();
   }
 
   const canSave = useMemo(() => validateSaleDraft(draft).isValid, [draft]);
@@ -141,15 +154,24 @@ export function CreateSaleSheet({
         <View style={styles.footer}>
           <View style={styles.row}>
             <View style={styles.rowGrow}>
-              <Button fullWidth title="Cancel" variant="secondary" onPress={onRequestClose} />
+              <Button
+                disabled={saving}
+                fullWidth
+                title="Cancel"
+                variant="secondary"
+                onPress={onRequestClose}
+              />
             </View>
             <View style={styles.rowGrow}>
               <Button
-                disabled={!canSave}
+                disabled={!canSave || saving}
                 fullWidth
+                loading={saving}
                 title="Save"
                 variant="primary"
-                onPress={handleSave}
+                onPress={() => {
+                  void handleSave();
+                }}
               />
             </View>
           </View>
@@ -160,11 +182,11 @@ export function CreateSaleSheet({
       subtitle="Runs on your booking link. Turn it on or off anytime."
       title={isEdit ? 'Edit sale' : 'Create sale'}
       visible={visible}
-      onRequestClose={onRequestClose}
+      onRequestClose={saving ? () => {} : onRequestClose}
     >
       <View style={styles.section}>
         <SurfaceTextField
-          errorText={errors.name}
+          errorText={errors.name || saveError || undefined}
           label="Sale name"
           placeholder="e.g. Summer special"
           value={draft.name}

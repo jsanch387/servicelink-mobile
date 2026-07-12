@@ -112,8 +112,13 @@ export function PromoCodeDetailScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          deletePromo(promo.id);
-          navigation.goBack();
+          void deletePromo(promo.id).then(({ error }) => {
+            if (error) {
+              Alert.alert('Could not delete', error.message ?? 'Try again.');
+              return;
+            }
+            navigation.goBack();
+          });
         },
       },
     ]);
@@ -141,6 +146,10 @@ export function PromoCodeDetailScreen() {
             {
               icon: 'calendar-outline',
               value: formatMarketingDateRangeShort(promo.startDateYyyyMmDd, promo.endDateYyyyMmDd),
+            },
+            {
+              icon: 'people-outline',
+              value: `${promo.currentUseCount ?? 0} uses`,
             },
           ]}
           title="Details"
@@ -172,8 +181,11 @@ export function PromoCodeDetailScreen() {
         visible={editVisible}
         onCreated={() => {}}
         onRequestClose={() => setEditVisible(false)}
-        onUpdated={(updated) => {
-          updatePromo(updated.id, updated);
+        onUpdated={async (updated) => {
+          const { error } = await updatePromo(updated.id, updated);
+          if (error) {
+            throw new Error(error.message ?? 'Could not update promo code.');
+          }
           setEditVisible(false);
         }}
       />

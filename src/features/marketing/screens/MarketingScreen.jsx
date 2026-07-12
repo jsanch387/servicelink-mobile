@@ -1,10 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, Button, SegmentedToggle } from '../../../components/ui';
+import {
+  AppText,
+  Button,
+  InlineCardError,
+  SegmentedToggle,
+  SurfaceCard,
+} from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
+import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
 import { CreatePromoCodeSheet } from '../components/CreatePromoCodeSheet';
 import { CreateSaleSheet } from '../components/CreateSaleSheet';
 import { MarketingCampaignCard } from '../components/MarketingCampaignCard';
@@ -17,7 +31,9 @@ import {
   PROMO_CODES_EMPTY,
   SALES_EMPTY,
 } from '../constants';
+import { MARKETING_PRO_ACCESS } from '../constants/marketingAccessCopy';
 import { usePromoCodes, useSales } from '../context/MarketingCampaignsContext';
+import { marketingErrorMessage } from '../utils/marketingDbMap';
 
 const CREATE_BUTTON_BOTTOM = 20;
 const CREATE_BUTTON_HEIGHT = 52;
@@ -30,10 +46,34 @@ const MARKETING_TOGGLE_OPTIONS = [
 
 export function MarketingScreen() {
   const { colors } = useTheme();
-  const { promos, addPromo, updatePromo, deletePromo } = usePromoCodes();
-  const { sales, addSale, updateSale, deleteSale } = useSales();
+  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
+  const {
+    promos,
+    addPromo,
+    updatePromo,
+    togglePromoEnabled,
+    deletePromo,
+    isLoading: promosLoading,
+    errorMessage: promosError,
+    refetch: refetchPromos,
+  } = usePromoCodes();
+  const {
+    sales,
+    addSale,
+    updateSale,
+    toggleSaleEnabled,
+    deleteSale,
+    isLoading: salesLoading,
+    errorMessage: salesError,
+    refetch: refetchSales,
+  } = useSales();
+
+  const canMutate = Boolean(isOwnerProfileLoaded && hasProAccess);
+  const isLoading = promosLoading || salesLoading || !isOwnerProfileLoaded;
+  const errorMessage = promosError || salesError;
 
   const [activeTab, setActiveTab] = useState(MARKETING_TAB_PROMOS);
+  const [listRefreshing, setListRefreshing] = useState(false);
   const [promoCreateVisible, setPromoCreateVisible] = useState(false);
   const [saleCreateVisible, setSaleCreateVisible] = useState(false);
   const [editPromo, setEditPromo] = useState(
@@ -114,42 +154,137 @@ export function MarketingScreen() {
           position: 'absolute',
           right: SCREEN_GUTTER,
         },
+        loadingWrap: {
+          alignItems: 'center',
+          flex: 1,
+          justifyContent: 'center',
+        },
+        errorBlock: {
+          marginBottom: 12,
+        },
       }),
     [bottomBarReserve, colors],
   );
 
-  function handlePromoCreated(promo) {
-    addPromo(promo);
-    pendingPromoSuccessRef.current = promo;
+  const requirePro = useCallback(() => {
+    showWebAccountFeatureAlert({
+      title: MARKETING_PRO_ACCESS.alertTitle,
+      message: MARKETING_PRO_ACCESS.alertMessage,
+    });
+  }, []);
+
+  const handleOpenCreate = useCallback(() => {
+    if (!isOwnerProfileLoaded) return;
+    if (!hasProAccess) {
+      requirePro();
+      return;
+    }
+    if (isPromosTab) setPromoCreateVisible(true);
+    else setSaleCreateVisible(true);
+  }, [hasProAccess, isOwnerProfileLoaded, isPromosTab, requirePro]);
+
+  async function handlePromoCreated(promo) {
+    const { data, error } = await addPromo(promo);
+    if (error) {
+      throw new Error(marketingErrorMessage(error, 'Could not create promo code.'));
+    }
+    pendingPromoSuccessRef.current = data ?? promo;
     setPromoCreateVisible(false);
   }
 
-  function handleSaleCreated(sale) {
-    addSale(sale);
-    pendingSaleSuccessRef.current = sale;
+  async function handleSaleCreated(sale) {
+    const { data, error } = await addSale(sale);
+    if (error) {
+      throw new Error(marketingErrorMessage(error, 'Could not create sale.'));
+    }
+    pendingSaleSuccessRef.current = data ?? sale;
     setSaleCreateVisible(false);
   }
 
+  async function handlePromoUpdated(updated) {
+    const { error } = await updatePromo(updated.id, updated);
+    if (error) {
+      throw new Error(marketingErrorMessage(error, 'Could not update promo code.'));
+    }
+    closePromoSheet();
+  }
+
+  async function handleSaleUpdated(updated) {
+    const { error } = await updateSale(updated.id, updated);
+    if (error) {
+      throw new Error(marketingErrorMessage(error, 'Could not update sale.'));
+    }
+    closeSaleSheet();
+  }
+
   function handleDeletePromo(promo) {
+    if (!isOwnerProfileLoaded) return;
+    if (!hasProAccess) {
+      requirePro();
+      return;
+    }
     Alert.alert('Delete promo code?', `Remove ${promo.code} permanently?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => deletePromo(promo.id),
+        onPress: () => {
+          void deletePromo(promo.id).then(({ error }) => {
+            if (error) {
+              Alert.alert('Could not delete', marketingErrorMessage(error));
+            }
+          });
+        },
       },
     ]);
   }
 
   function handleDeleteSale(sale) {
+    if (!isOwnerProfileLoaded) return;
+    if (!hasProAccess) {
+      requirePro();
+      return;
+    }
     Alert.alert('Delete sale?', `Remove ${sale.name} permanently?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => deleteSale(sale.id),
+        onPress: () => {
+          void deleteSale(sale.id).then(({ error }) => {
+            if (error) {
+              Alert.alert('Could not delete', marketingErrorMessage(error));
+            }
+          });
+        },
       },
     ]);
+  }
+
+  function handleTogglePromo(promo, isEnabled) {
+    if (!isOwnerProfileLoaded) return;
+    if (!hasProAccess) {
+      requirePro();
+      return;
+    }
+    void togglePromoEnabled(promo.id, isEnabled).then(({ error }) => {
+      if (error) {
+        Alert.alert('Could not update', marketingErrorMessage(error));
+      }
+    });
+  }
+
+  function handleToggleSale(sale, isEnabled) {
+    if (!isOwnerProfileLoaded) return;
+    if (!hasProAccess) {
+      requirePro();
+      return;
+    }
+    void toggleSaleEnabled(sale.id, isEnabled).then(({ error }) => {
+      if (error) {
+        Alert.alert('Could not update', marketingErrorMessage(error));
+      }
+    });
   }
 
   function closePromoSheet() {
@@ -196,7 +331,19 @@ export function MarketingScreen() {
         />
 
         <View style={styles.body}>
-          {items.length === 0 ? (
+          {errorMessage ? (
+            <View style={styles.errorBlock}>
+              <SurfaceCard padding="md">
+                <InlineCardError message={errorMessage} />
+              </SurfaceCard>
+            </View>
+          ) : null}
+
+          {isLoading && items.length === 0 ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color={colors.accent} />
+            </View>
+          ) : items.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Ionicons
                 color={colors.textMuted}
@@ -212,25 +359,53 @@ export function MarketingScreen() {
             <ScrollView
               contentContainerStyle={styles.listContent}
               keyboardShouldPersistTaps="handled"
+              refreshControl={
+                <RefreshControl
+                  refreshing={listRefreshing}
+                  tintColor={colors.accent}
+                  onRefresh={() => {
+                    setListRefreshing(true);
+                    void Promise.all([refetchPromos(), refetchSales()]).finally(() => {
+                      setListRefreshing(false);
+                    });
+                  }}
+                />
+              }
               showsVerticalScrollIndicator={false}
             >
               {isPromosTab
                 ? promos.map((promo) => (
                     <MarketingCampaignCard
                       key={promo.id}
+                      actionsDisabled={!canMutate}
                       campaign={promo}
                       onDelete={() => handleDeletePromo(promo)}
-                      onEdit={() => setEditPromo(promo)}
-                      onToggleEnabled={(isEnabled) => updatePromo(promo.id, { isEnabled })}
+                      onEdit={() => {
+                        if (!isOwnerProfileLoaded) return;
+                        if (!hasProAccess) {
+                          requirePro();
+                          return;
+                        }
+                        setEditPromo(promo);
+                      }}
+                      onToggleEnabled={(isEnabled) => handleTogglePromo(promo, isEnabled)}
                     />
                   ))
                 : sales.map((sale) => (
                     <MarketingCampaignCard
                       key={sale.id}
+                      actionsDisabled={!canMutate}
                       campaign={sale}
                       onDelete={() => handleDeleteSale(sale)}
-                      onEdit={() => setEditSale(sale)}
-                      onToggleEnabled={(isEnabled) => updateSale(sale.id, { isEnabled })}
+                      onEdit={() => {
+                        if (!isOwnerProfileLoaded) return;
+                        if (!hasProAccess) {
+                          requirePro();
+                          return;
+                        }
+                        setEditSale(sale);
+                      }}
+                      onToggleEnabled={(isEnabled) => handleToggleSale(sale, isEnabled)}
                     />
                   ))}
             </ScrollView>
@@ -244,10 +419,7 @@ export function MarketingScreen() {
           iconName={isPromosTab ? 'ticket-outline' : 'megaphone-outline'}
           title={isPromosTab ? 'New promo code' : 'New sale'}
           variant="primary"
-          onPress={() => {
-            if (isPromosTab) setPromoCreateVisible(true);
-            else setSaleCreateVisible(true);
-          }}
+          onPress={handleOpenCreate}
         />
       </View>
 
@@ -256,10 +428,7 @@ export function MarketingScreen() {
         visible={promoCreateVisible || editPromo != null}
         onCreated={handlePromoCreated}
         onRequestClose={closePromoSheet}
-        onUpdated={(updated) => {
-          updatePromo(updated.id, updated);
-          closePromoSheet();
-        }}
+        onUpdated={handlePromoUpdated}
       />
 
       <CreateSaleSheet
@@ -267,10 +436,7 @@ export function MarketingScreen() {
         visible={saleCreateVisible || editSale != null}
         onCreated={handleSaleCreated}
         onRequestClose={closeSaleSheet}
-        onUpdated={(updated) => {
-          updateSale(updated.id, updated);
-          closeSaleSheet();
-        }}
+        onUpdated={handleSaleUpdated}
       />
 
       <PromoCodeSuccessModal

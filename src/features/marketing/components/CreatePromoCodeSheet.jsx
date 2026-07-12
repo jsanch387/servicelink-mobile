@@ -46,9 +46,9 @@ function draftFromCampaign(campaign) {
  * @param {object} props
  * @param {boolean} props.visible
  * @param {() => void} props.onRequestClose
- * @param {(promo: import('../utils/marketingCampaignModel').MarketingCampaign) => void} props.onCreated
+ * @param {(promo: import('../utils/marketingCampaignModel').MarketingCampaign) => void | Promise<void>} props.onCreated
  * @param {import('../utils/marketingCampaignModel').MarketingCampaign | null} [props.editCampaign]
- * @param {(promo: import('../utils/marketingCampaignModel').MarketingCampaign) => void} [props.onUpdated]
+ * @param {(promo: import('../utils/marketingCampaignModel').MarketingCampaign) => void | Promise<void>} [props.onUpdated]
  */
 export function CreatePromoCodeSheet({
   visible,
@@ -60,11 +60,15 @@ export function CreatePromoCodeSheet({
   const isEdit = editCampaign != null;
   const [draft, setDraft] = useState(emptyDraft);
   const [errors, setErrors] = useState(/** @type {Record<string, string>} */ ({}));
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(/** @type {string | null} */ (null));
 
   useEffect(() => {
     if (!visible) return;
     setDraft(isEdit ? draftFromCampaign(editCampaign) : emptyDraft());
     setErrors({});
+    setSaveError(null);
+    setSaving(false);
   }, [visible, editCampaign, isEdit]);
 
   const styles = useMemo(
@@ -95,6 +99,7 @@ export function CreatePromoCodeSheet({
       Object.keys(patch).forEach((key) => delete next[key]);
       return next;
     });
+    setSaveError(null);
   }
 
   function handleUseDatesChange(useDates) {
@@ -110,7 +115,7 @@ export function CreatePromoCodeSheet({
     });
   }
 
-  function handleSave() {
+  async function handleSave() {
     const result = validatePromoDraft(draft);
     if (!result.isValid) {
       setErrors(result.errors);
@@ -120,17 +125,27 @@ export function CreatePromoCodeSheet({
       ...draft,
       kind: MARKETING_CAMPAIGN_KIND.PROMO_CODE,
     });
-    if (isEdit && editCampaign) {
-      onUpdated?.({
-        ...built,
-        id: editCampaign.id,
-        createdAtIso: editCampaign.createdAtIso,
-        isEnabled: editCampaign.isEnabled,
-      });
-    } else {
-      onCreated(built);
+
+    setSaving(true);
+    setSaveError(null);
+    try {
+      if (isEdit && editCampaign) {
+        await onUpdated?.({
+          ...built,
+          id: editCampaign.id,
+          createdAtIso: editCampaign.createdAtIso,
+          isEnabled: editCampaign.isEnabled,
+          currentUseCount: editCampaign.currentUseCount,
+          oneUsePerCustomer: editCampaign.oneUsePerCustomer,
+        });
+      } else {
+        await onCreated(built);
+      }
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Could not save promo code.');
+    } finally {
+      setSaving(false);
     }
-    onRequestClose();
   }
 
   const canSave = useMemo(() => validatePromoDraft(draft).isValid, [draft]);
@@ -141,15 +156,24 @@ export function CreatePromoCodeSheet({
         <View style={styles.footer}>
           <View style={styles.row}>
             <View style={styles.rowGrow}>
-              <Button fullWidth title="Cancel" variant="secondary" onPress={onRequestClose} />
+              <Button
+                disabled={saving}
+                fullWidth
+                title="Cancel"
+                variant="secondary"
+                onPress={onRequestClose}
+              />
             </View>
             <View style={styles.rowGrow}>
               <Button
-                disabled={!canSave}
+                disabled={!canSave || saving}
                 fullWidth
+                loading={saving}
                 title="Save"
                 variant="primary"
-                onPress={handleSave}
+                onPress={() => {
+                  void handleSave();
+                }}
               />
             </View>
           </View>
@@ -160,13 +184,13 @@ export function CreatePromoCodeSheet({
       subtitle="Customers enter this code when they book."
       title={isEdit ? 'Edit code' : 'Create code'}
       visible={visible}
-      onRequestClose={onRequestClose}
+      onRequestClose={saving ? () => {} : onRequestClose}
     >
       <View style={styles.section}>
         <SurfaceTextField
           autoCapitalize="characters"
           autoCorrect={false}
-          errorText={errors.code}
+          errorText={errors.code || saveError || undefined}
           label="Promo code"
           placeholder="SPRING20"
           value={draft.code}

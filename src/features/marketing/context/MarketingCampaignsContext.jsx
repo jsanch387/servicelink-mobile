@@ -37,37 +37,99 @@ export function selectSales(campaigns) {
 }
 
 export function usePromoCodes() {
-  const { campaigns, addCampaign, updateCampaign, deleteCampaign, getCampaignById } =
-    useMarketingCampaigns();
+  const {
+    campaigns,
+    addCampaign,
+    updateCampaign,
+    toggleCampaignEnabled,
+    deleteCampaign,
+    getCampaignById,
+    businessId,
+    isLoading,
+    isRefreshing,
+    errorMessage,
+    refetch,
+  } = useMarketingCampaigns();
+
   return useMemo(
     () => ({
       promos: selectPromoCodes(campaigns),
+      businessId,
+      isLoading,
+      isRefreshing,
+      errorMessage,
+      refetch,
       addPromo: (promo) => addCampaign({ ...promo, kind: MARKETING_CAMPAIGN_KIND.PROMO_CODE }),
-      updatePromo: (id, patch) => updateCampaign(id, patch),
+      updatePromo: (id, campaign) =>
+        updateCampaign(id, { ...campaign, kind: MARKETING_CAMPAIGN_KIND.PROMO_CODE }),
+      togglePromoEnabled: (id, isEnabled) => toggleCampaignEnabled(id, isEnabled),
       deletePromo: deleteCampaign,
       getPromoById: (id) => {
         const c = getCampaignById(id);
         return c?.kind === MARKETING_CAMPAIGN_KIND.PROMO_CODE ? c : null;
       },
     }),
-    [addCampaign, campaigns, deleteCampaign, getCampaignById, updateCampaign],
+    [
+      addCampaign,
+      businessId,
+      campaigns,
+      deleteCampaign,
+      errorMessage,
+      getCampaignById,
+      isLoading,
+      isRefreshing,
+      refetch,
+      toggleCampaignEnabled,
+      updateCampaign,
+    ],
   );
 }
 
 export function useSales() {
-  const { campaigns, addCampaign, updateCampaign, deleteCampaign, getCampaignById } =
-    useMarketingCampaigns();
+  const {
+    campaigns,
+    addCampaign,
+    updateCampaign,
+    toggleCampaignEnabled,
+    deleteCampaign,
+    getCampaignById,
+    businessId,
+    isLoading,
+    isRefreshing,
+    errorMessage,
+    refetch,
+  } = useMarketingCampaigns();
+
   return useMemo(
     () => ({
       sales: selectSales(campaigns),
+      businessId,
+      isLoading,
+      isRefreshing,
+      errorMessage,
+      refetch,
       addSale: (sale) => addCampaign({ ...sale, kind: MARKETING_CAMPAIGN_KIND.SALE }),
-      updateSale: (id, patch) => updateCampaign(id, patch),
+      updateSale: (id, campaign) =>
+        updateCampaign(id, { ...campaign, kind: MARKETING_CAMPAIGN_KIND.SALE }),
+      toggleSaleEnabled: (id, isEnabled) => toggleCampaignEnabled(id, isEnabled),
       deleteSale: deleteCampaign,
       getSaleById: (id) => {
         const c = getCampaignById(id);
         return c?.kind === MARKETING_CAMPAIGN_KIND.SALE ? c : null;
       },
     }),
-    [addCampaign, campaigns, deleteCampaign, getCampaignById, updateCampaign],
+    [
+      addCampaign,
+      businessId,
+      campaigns,
+      deleteCampaign,
+      errorMessage,
+      getCampaignById,
+      isLoading,
+      isRefreshing,
+      refetch,
+      toggleCampaignEnabled,
+      updateCampaign,
+    ],
   );
 }

@@ -21,8 +21,15 @@ const DELETE_ACCENT = '#fb7185';
  * @param {() => void} props.onEdit
  * @param {() => void} props.onDelete
  * @param {(enabled: boolean) => void} props.onToggleEnabled
+ * @param {boolean} [props.actionsDisabled]
  */
-export function MarketingCampaignCard({ campaign, onEdit, onDelete, onToggleEnabled }) {
+export function MarketingCampaignCard({
+  campaign,
+  onEdit,
+  onDelete,
+  onToggleEnabled,
+  actionsDisabled = false,
+}) {
   const { colors, isDark } = useTheme();
   const isPromo = campaign.kind === MARKETING_CAMPAIGN_KIND.PROMO_CODE;
   const title = isPromo ? campaign.code : campaign.name;
@@ -174,6 +181,18 @@ export function MarketingCampaignCard({ campaign, onEdit, onDelete, onToggleEnab
             {dateRange}
           </AppText>
         </View>
+        {isPromo ? (
+          <View style={styles.infoRow}>
+            <Ionicons
+              color={colors.textMuted}
+              name="people-outline"
+              size={16}
+              style={styles.infoIcon}
+            />
+            <AppText style={styles.infoLabel}>Uses</AppText>
+            <AppText style={styles.infoValue}>{campaign.currentUseCount ?? 0}</AppText>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.actionsDivider} />
@@ -183,8 +202,9 @@ export function MarketingCampaignCard({ campaign, onEdit, onDelete, onToggleEnab
           <Pressable
             accessibilityLabel="Edit"
             accessibilityRole="button"
+            disabled={actionsDisabled}
             hitSlop={4}
-            style={styles.actionButton}
+            style={[styles.actionButton, actionsDisabled && { opacity: 0.45 }]}
             onPress={onEdit}
           >
             <Ionicons color={EDIT_ACCENT} name="create-outline" size={20} />
@@ -192,8 +212,9 @@ export function MarketingCampaignCard({ campaign, onEdit, onDelete, onToggleEnab
           <Pressable
             accessibilityLabel="Delete"
             accessibilityRole="button"
+            disabled={actionsDisabled}
             hitSlop={4}
-            style={styles.actionButton}
+            style={[styles.actionButton, actionsDisabled && { opacity: 0.45 }]}
             onPress={onDelete}
           >
             <Ionicons color={DELETE_ACCENT} name="trash-outline" size={20} />
@@ -202,6 +223,7 @@ export function MarketingCampaignCard({ campaign, onEdit, onDelete, onToggleEnab
         <View style={styles.toggleWrap}>
           <Switch
             accessibilityLabel={enabled ? 'Turn off' : 'Turn on'}
+            disabled={actionsDisabled}
             onValueChange={onToggleEnabled}
             thumbColor={enabled ? '#f8fafc' : '#f4f4f5'}
             trackColor={{ false: colors.borderStrong, true: '#10b981' }}

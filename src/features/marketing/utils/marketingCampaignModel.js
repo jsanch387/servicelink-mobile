@@ -19,6 +19,8 @@ import { MARKETING_CAMPAIGN_KIND } from '../constants';
  * @property {string} endDateYyyyMmDd
  * @property {boolean} [isEnabled]
  * @property {string} createdAtIso
+ * @property {number} [currentUseCount]
+ * @property {boolean} [oneUsePerCustomer]
  */
 
 function createCampaignId() {
@@ -35,7 +37,7 @@ export function sanitizePromoCodeInput(raw) {
   return String(raw ?? '')
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '')
-    .slice(0, 24);
+    .slice(0, 20);
 }
 
 /**
@@ -105,9 +107,9 @@ export function formatMarketingDiscountLabel(campaign) {
   const amount = String(campaign.discountAmount ?? '').trim();
   if (!amount) return 'Discount';
   if (campaign.discountMode === DEPOSIT_AMOUNT_MODE.PERCENTAGE) {
-    return `${amount}% off`;
+    return `${amount}% OFF`;
   }
-  return `$${amount} off`;
+  return `$${amount} OFF`;
 }
 
 /**
@@ -154,14 +156,22 @@ export function validateMarketingCampaignDraft(draft) {
   if (kind === MARKETING_CAMPAIGN_KIND.PROMO_CODE) {
     if (code.length < 3) {
       errors.code = 'Use at least 3 letters or numbers.';
+    } else if (!/^[A-Z0-9]+$/.test(code)) {
+      errors.code = 'Letters and numbers only.';
     }
   } else {
     const name = String(draft.name ?? '').trim();
     if (!name) errors.name = 'Give this offer a name.';
+    else if (name.length > 64) errors.name = 'Keep the name under 64 characters.';
   }
 
   if (!isPositiveDepositAmount(draft.discountMode, draft.discountAmount)) {
     errors.discountAmount = 'Enter a discount greater than zero.';
+  } else if (draft.discountMode === DEPOSIT_AMOUNT_MODE.PERCENTAGE) {
+    const pct = Number(String(draft.discountAmount ?? '').replace(/,/g, ''));
+    if (Number.isFinite(pct) && pct > 100) {
+      errors.discountAmount = 'Percentage must be 100 or less.';
+    }
   }
 
   if (draft.useDates) {

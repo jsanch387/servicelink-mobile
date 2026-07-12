@@ -96,8 +96,13 @@ export function SaleDetailScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          deleteSale(sale.id);
-          navigation.goBack();
+          void deleteSale(sale.id).then(({ error }) => {
+            if (error) {
+              Alert.alert('Could not delete', error.message ?? 'Try again.');
+              return;
+            }
+            navigation.goBack();
+          });
         },
       },
     ]);
@@ -147,8 +152,11 @@ export function SaleDetailScreen() {
         visible={editVisible}
         onCreated={() => {}}
         onRequestClose={() => setEditVisible(false)}
-        onUpdated={(updated) => {
-          updateSale(updated.id, updated);
+        onUpdated={async (updated) => {
+          const { error } = await updateSale(updated.id, updated);
+          if (error) {
+            throw new Error(error.message ?? 'Could not update sale.');
+          }
           setEditVisible(false);
         }}
       />
