@@ -18,6 +18,7 @@ import {
   BottomSheetOverlayProvider,
   Button,
   DetailsSectionCard,
+  Divider,
   InlineCardError,
   LabelValueRow,
   ToastModalHost,
@@ -213,6 +214,10 @@ function CompleteVisitDesignBody({
         },
         breakdownRows: {
           gap: 2,
+        },
+        breakdownTotalDivider: {
+          marginBottom: 4,
+          marginTop: 14,
         },
         adjustmentRow: {
           alignItems: 'center',
@@ -489,25 +494,27 @@ function CompleteVisitDesignBody({
 
       <DetailsSectionCard bodyPadding="roomy" title="Breakdown">
         <View style={styles.breakdownRows}>
-          {lineItems.map((item, index) =>
-            item.sublabel ? (
+          {lineItems.map((item, index) => {
+            const amountLabel =
+              item.amount < 0 ? `−${formatUsd(Math.abs(item.amount))}` : formatUsd(item.amount);
+            return item.sublabel ? (
               <CompleteVisitBreakdownRow
                 key={item.id}
                 colors={colors}
                 label={item.label}
                 noTopMargin={index === 0}
                 sublabel={item.sublabel}
-                value={formatUsd(item.amount)}
+                value={amountLabel}
               />
             ) : (
               <LabelValueRow
                 key={item.id}
                 label={item.label}
                 noTopMargin={index === 0}
-                value={formatUsd(item.amount)}
+                value={amountLabel}
               />
-            ),
-          )}
+            );
+          })}
 
           {adjustments.map((item) => (
             <View key={item.id} style={styles.adjustmentRow}>
@@ -534,6 +541,11 @@ function CompleteVisitDesignBody({
               <AppText style={styles.adjustmentAmount}>{formatUsd(item.amount)}</AppText>
             </View>
           ))}
+
+          <View style={styles.breakdownTotalDivider}>
+            <Divider />
+          </View>
+          <LabelValueRow emphasize label="Total" noTopMargin value={formatUsd(subtotal)} />
         </View>
       </DetailsSectionCard>
 

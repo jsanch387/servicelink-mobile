@@ -2,6 +2,7 @@ import { isCompleteVisitPaidInFullOnline } from './completeVisitPaymentState';
 import { getMarkCompletePreviewFromBooking } from './markCompletePreview';
 import { parseAddonLineItemsFromBooking } from './parseAddonLineItemsFromBooking';
 import { parseCompleteVisitServiceLine } from './parseCompleteVisitServiceLine';
+import { resolveBookingDiscount } from './resolveBookingDiscount';
 
 /**
  * @typedef {object} CompleteVisitModel
@@ -46,6 +47,15 @@ export function buildCompleteVisitModelFromBooking(booking, preview) {
     lineItems.push({ id: addon.id, label: addon.name, amount: addon.price });
   }
 
+  const discount = resolveBookingDiscount(booking);
+  if (discount) {
+    lineItems.push({
+      id: 'discount',
+      label: discount.label,
+      amount: -discount.discountDollars,
+    });
+  }
+
   const payment =
     booking.payment && typeof booking.payment === 'object'
       ? /** @type {Record<string, unknown>} */ (booking.payment)
@@ -55,15 +65,29 @@ export function buildCompleteVisitModelFromBooking(booking, preview) {
     Number(payment?.paidOnlineAmountCents ?? payment?.paid_online_amount_cents ?? 0) || 0,
   );
   const paidOnline = paidOnlineCents / 100;
-  const subtotalCents = lineItems.reduce(
-    (sum, item) => sum + Math.max(0, Math.round(Number(item.amount) * 100)),
+  const subtotalCents = Math.max(
     0,
+    lineItems.reduce((sum, item) => sum + Math.round(Number(item.amount) * 100), 0),
+  );
+  const paymentTotalCents = Math.max(
+    0,
+    Number(payment?.totalAmountCents ?? payment?.total_amount_cents ?? 0) || 0,
   );
   const remainingRaw = payment?.remainingAmountCents ?? payment?.remaining_amount_cents;
-  const remainingAmountCents =
+  let remainingAmountCents =
     remainingRaw != null && Number.isFinite(Number(remainingRaw))
       ? Math.max(0, Math.round(Number(remainingRaw)))
       : Math.max(0, subtotalCents - paidOnlineCents);
+
+  // Payment row may still store pre-discount totals; prefer line-item net for amount due.
+  if (
+    discount &&
+    paymentTotalCents > 0 &&
+    paymentTotalCents === subtotalCents + discount.discountCents &&
+    remainingAmountCents > subtotalCents - paidOnlineCents
+  ) {
+    remainingAmountCents = Math.max(0, subtotalCents - paidOnlineCents);
+  }
   const isPaidInFullOnline = isCompleteVisitPaidInFullOnline({
     paidOnlineCents,
     remainingAmountCents,

@@ -47,4 +47,28 @@ describe('resolveBookingSessionFees', () => {
       }),
     ).toEqual([{ id: 'inferred-session-fees', name: 'Additional fees', price: 15 }]);
   });
+
+  it('does not treat a sale discount gap as additional fees', () => {
+    expect(
+      resolveBookingSessionFees({
+        sessionFeeLines: [],
+        paymentSummary: { totalAmountCents: 8500, sessionFeesTotalCents: 0 },
+        servicePrice: 85,
+        addOnsTotal: 0,
+        discountDollars: 25,
+      }),
+    ).toEqual([]);
+  });
+
+  it('still infers real fees when payment total is net plus fees', () => {
+    expect(
+      resolveBookingSessionFees({
+        sessionFeeLines: [],
+        paymentSummary: { totalAmountCents: 7000 },
+        servicePrice: 85,
+        addOnsTotal: 0,
+        discountDollars: 25,
+      }),
+    ).toEqual([{ id: 'inferred-session-fees', name: 'Additional fees', price: 10 }]);
+  });
 });

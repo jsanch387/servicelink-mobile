@@ -74,10 +74,10 @@ export function useMarketingCampaignsState() {
     gcTime: 15 * 60 * 1000,
   });
 
-  const promos = promosQ.data ?? [];
-  const sales = salesQ.data ?? [];
-
-  const campaigns = useMemo(() => [...promos, ...sales], [promos, sales]);
+  const campaigns = useMemo(
+    () => [...(promosQ.data ?? []), ...(salesQ.data ?? [])],
+    [promosQ.data, salesQ.data],
+  );
 
   const invalidateMarketing = useCallback(async () => {
     await Promise.all([

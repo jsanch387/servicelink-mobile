@@ -56,6 +56,48 @@ describe('buildCompleteVisitModelFromBooking', () => {
     });
   });
 
+  it('includes discount line and reduces remaining amount due', () => {
+    const model = buildCompleteVisitModelFromBooking({
+      service_name: 'Full Detail',
+      service_price_cents: 12000,
+      addon_details: {
+        addons: [{ id: 'a1', name: 'Engine bay', price_cents: 2500 }],
+      },
+      discount_source: 'promo',
+      discount_cents: 2900,
+      discount_label: 'SUMMER20',
+      payment: { paidOnlineAmountCents: 5000 },
+    });
+
+    expect(model?.lineItems).toEqual([
+      { id: 'service', label: 'Full Detail', amount: 120 },
+      { id: 'a1', label: 'Engine bay', amount: 25 },
+      { id: 'discount', label: 'SUMMER20', amount: -29 },
+    ]);
+    expect(model?.remainingAmountCents).toBe(6600);
+    expect(model?.isPaidInFullOnline).toBe(false);
+  });
+
+  it('corrects remaining when payment total is still pre-discount', () => {
+    const model = buildCompleteVisitModelFromBooking({
+      service_name: 'Exterior Wash',
+      service_price_cents: 8500,
+      discount_source: 'sale',
+      discount_cents: 2500,
+      discount_label: 'Mobile Sale 2 — $25 off',
+      payment: {
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 8500,
+        totalAmountCents: 8500,
+      },
+    });
+
+    expect(model?.remainingAmountCents).toBe(6000);
+    expect(model?.lineItems).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'discount', amount: -25 })]),
+    );
+  });
+
   it('marks prepaid online bookings as paid in full when nothing remains due', () => {
     const model = buildCompleteVisitModelFromBooking({
       service_name: 'Full Detail',

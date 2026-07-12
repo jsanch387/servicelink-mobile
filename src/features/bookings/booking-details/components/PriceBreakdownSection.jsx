@@ -27,6 +27,12 @@ export function PriceBreakdownSection({ formattedPrice }) {
             />
           ))
         : null}
+      {formattedPrice.hasDiscount && formattedPrice.discount ? (
+        <LabelValueRow
+          label={formattedPrice.discount.label}
+          value={formattedPrice.discount.value}
+        />
+      ) : null}
       {formattedPrice.hasSessionFees
         ? formattedPrice.sessionFees.map((item) => (
             <LabelValueRow

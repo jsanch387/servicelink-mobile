@@ -112,7 +112,7 @@ export function MarketingDateField({
           overflow: 'hidden',
         },
       }),
-    [colors],
+    [],
   );
 
   function handleDateDismiss() {

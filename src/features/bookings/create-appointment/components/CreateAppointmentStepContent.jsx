@@ -58,6 +58,7 @@ export function CreateAppointmentStepContent(p) {
     onChangeNotes,
     totalDurationMinutes,
     showSubmitPanel,
+    appliedSaleDiscount = null,
   } = p;
 
   if (appointmentConfirmed) {
@@ -141,6 +142,7 @@ export function CreateAppointmentStepContent(p) {
         <ReviewStep
           address={address}
           appointmentLocationType={appointmentLocationType}
+          appliedSaleDiscount={appliedSaleDiscount}
           customer={customer}
           notes={notes}
           selectedAddonIds={selectedAddonIds}

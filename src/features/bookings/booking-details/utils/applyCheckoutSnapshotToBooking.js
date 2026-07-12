@@ -43,7 +43,9 @@ export function applyCheckoutSnapshotToBooking(booking, checkout) {
     (sum, item) => sum + Math.max(0, dollarsToCents(item.price)),
     0,
   );
-  const snapshotTotalCents = serviceCents + addonCents + sessionFeesTotalCents;
+  const discountCents = Math.max(0, Math.round(Number(booking.discount_cents ?? 0) || 0));
+  const snapshotTotalCents =
+    Math.max(0, serviceCents + addonCents - discountCents) + sessionFeesTotalCents;
   const existingTotalCents = Math.max(
     0,
     Number(existingPayment.totalAmountCents ?? existingPayment.total_amount_cents ?? 0) || 0,

@@ -11,6 +11,7 @@ import { parseSessionFeesFromInvoiceSnapshot } from './parseSessionFeesFromInvoi
  *   } | null;
  *   servicePrice?: number | null;
  *   addOnsTotal?: number;
+ *   discountDollars?: number;
  *   sessionPaymentAmountCents?: number;
  *   paidOnlineCents?: number;
  * }} params
@@ -22,6 +23,7 @@ export function resolveBookingSessionFees({
   paymentSummary,
   servicePrice,
   addOnsTotal = 0,
+  discountDollars = 0,
   sessionPaymentAmountCents = 0,
   paidOnlineCents = 0,
 }) {
@@ -44,14 +46,17 @@ export function resolveBookingSessionFees({
     ];
   }
 
-  const baseCents =
-    (Number.isFinite(servicePrice) ? Math.round(servicePrice * 100) : 0) +
-    Math.round(Math.max(0, addOnsTotal) * 100);
+  const discountCents = Math.max(0, Math.round(Number(discountDollars) * 100) || 0);
+  const serviceCents = Number.isFinite(servicePrice) ? Math.round(servicePrice * 100) : 0;
+  const addonCents = Math.round(Math.max(0, addOnsTotal) * 100);
+  const grossBaseCents = serviceCents + addonCents;
+  const baseCents = Math.max(0, grossBaseCents - discountCents);
   const baseDueCents = Math.max(0, baseCents - Math.max(0, Math.round(paidOnlineCents)));
   const sessionPaidCents = Math.max(0, Math.round(Number(sessionPaymentAmountCents ?? 0) || 0));
   if (fees.length === 0 && sessionPaidCents > baseDueCents) {
     const feeCents = sessionPaidCents - baseDueCents;
-    if (feeCents > 0) {
+    // Session collected the pre-discount gross — gap is the discount, not a fee.
+    if (feeCents > 0 && !(discountCents > 0 && feeCents === discountCents)) {
       fees = [
         {
           id: 'inferred-session-fees',
@@ -68,13 +73,17 @@ export function resolveBookingSessionFees({
   );
   const inferredCents = totalAmountCents - baseCents;
   if (fees.length === 0 && inferredCents > 0) {
-    fees = [
-      {
-        id: 'inferred-session-fees',
-        name: 'Additional fees',
-        price: inferredCents / 100,
-      },
-    ];
+    const paymentLooksPreDiscount =
+      discountCents > 0 && (totalAmountCents === grossBaseCents || inferredCents === discountCents);
+    if (!paymentLooksPreDiscount) {
+      fees = [
+        {
+          id: 'inferred-session-fees',
+          name: 'Additional fees',
+          price: inferredCents / 100,
+        },
+      ];
+    }
   }
 
   return fees;

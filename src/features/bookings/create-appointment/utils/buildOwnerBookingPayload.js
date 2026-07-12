@@ -63,6 +63,14 @@ export function buildSelectedAddOnsForPublicApi(selectedAddonRows) {
  * @param {{ year: string; make: string; model: string }} args.vehicle
  * @param {string} [args.notes]
  * @param {'mobile' | 'shop' | null} [args.appointmentLocationType]
+ * @param {{
+ *   sale: { id: string };
+ *   subtotalCents: number;
+ *   discountCents: number;
+ *   discountLabel: string;
+ *   discountType: string | null;
+ *   discountValue: number | null;
+ * } | null} [args.appliedSaleDiscount]
  */
 export function buildOwnerManualPublicBookingBody({
   catalog,
@@ -78,6 +86,7 @@ export function buildOwnerManualPublicBookingBody({
   vehicle,
   notes,
   appointmentLocationType,
+  appliedSaleDiscount = null,
 }) {
   const notesTrimmed = typeof notes === 'string' ? notes.trim() : '';
   const tierRaw =
@@ -123,6 +132,20 @@ export function buildOwnerManualPublicBookingBody({
   }
   if (optionLabel) {
     body.servicePriceOptionLabel = optionLabel;
+  }
+
+  if (
+    appliedSaleDiscount &&
+    appliedSaleDiscount.sale?.id &&
+    appliedSaleDiscount.discountCents > 0
+  ) {
+    body.discountSource = 'sale';
+    body.discountSaleId = String(appliedSaleDiscount.sale.id);
+    body.discountType = appliedSaleDiscount.discountType;
+    body.discountValue = appliedSaleDiscount.discountValue;
+    body.subtotalCents = appliedSaleDiscount.subtotalCents;
+    body.discountCents = appliedSaleDiscount.discountCents;
+    body.discountLabel = appliedSaleDiscount.discountLabel;
   }
 
   return body;

@@ -106,6 +106,52 @@ describe('buildBookingDetailsModel', () => {
     expect(model.formattedPrice.total).toBe('$140.00');
   });
 
+  it('includes sale/promo discount in price breakdown and total', () => {
+    const model = buildBookingDetailsModel({
+      service_price_cents: 10000,
+      addon_details: {
+        addons: [{ id: 'a1', name: 'Pet hair removal', price_cents: 2000 }],
+      },
+      discount_source: 'sale',
+      discount_cents: 2400,
+      discount_label: '20% OFF',
+      payment: {
+        totalAmountCents: 9600,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.hasDiscount).toBe(true);
+    expect(model.formattedPrice.discount).toEqual({
+      label: '20% OFF',
+      value: '−$24.00',
+    });
+    expect(model.formattedPrice.total).toBe('$96.00');
+  });
+
+  it('does not invent additional fees when payment total is still pre-discount', () => {
+    const model = buildBookingDetailsModel({
+      service_price_cents: 8500,
+      discount_source: 'sale',
+      discount_cents: 2500,
+      discount_label: 'Mobile Sale 2 — $25 off',
+      payment: {
+        paymentMethodSelected: 'none',
+        totalAmountCents: 8500,
+        remainingAmountCents: 8500,
+        paidOnlineAmountCents: 0,
+        sessionFeesTotalCents: 0,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.hasSessionFees).toBe(false);
+    expect(model.formattedPrice.hasDiscount).toBe(true);
+    expect(model.formattedPrice.total).toBe('$60.00');
+    expect(model.payment.detail).toMatch(/60\.00/);
+    expect(model.payment.detail).toMatch(/due/i);
+  });
+
   it('includes session fee lines in price breakdown and total', () => {
     const model = buildBookingDetailsModel({
       service_price_cents: 10000,
@@ -265,6 +311,25 @@ describe('buildBookingDetailsModel', () => {
     ]);
   });
 
+  it('shows Deposit in price breakdown when a partial online payment remains due', () => {
+    const model = buildBookingDetailsModel({
+      service_price_cents: 24225,
+      payment: {
+        paymentMethodSelected: 'pay_now',
+        paidOnlineAmountCents: 200,
+        remainingAmountCents: 24025,
+        totalAmountCents: 24225,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.payment.status).toBe('Deposit paid');
+    expect(model.payment.detail).toBe('$240.25 due');
+    expect(model.formattedPrice.paymentAdjustments).toEqual([
+      expect.objectContaining({ label: 'Deposit', value: '−$2.00' }),
+    ]);
+  });
+
   it('hides payment section when booking has no merged payment summary', () => {
     const model = buildBookingDetailsModel({
       service_price_cents: 8000,
@@ -305,7 +370,7 @@ describe('buildBookingDetailsModel', () => {
     expect(model.payment.detail).toBe('No charge');
   });
 
-  it('deposit variant: status + paid and due on one line', () => {
+  it('deposit variant: status + amount due without deposit amount', () => {
     const model = buildBookingDetailsModel({
       payment: {
         paymentMethodSelected: 'pay_now',
@@ -318,9 +383,11 @@ describe('buildBookingDetailsModel', () => {
     expect(model.payment.visible).toBe(true);
     expect(model.payment.variant).toBe('deposit');
     expect(model.payment.status).toBe('Deposit paid');
-    expect(model.payment.detail).toMatch(/50\.00/);
-    expect(model.payment.detail).toMatch(/due/i);
-    expect(model.payment.detail).toMatch(/paid/i);
+    expect(model.payment.detail).toBe('$50.00 due');
+    expect(model.payment.detail).not.toMatch(/paid/i);
+    expect(model.formattedPrice.paymentAdjustments).toEqual([
+      expect.objectContaining({ label: 'Deposit', value: '−$50.00' }),
+    ]);
   });
 
   it('paid in full: Paid online + amount', () => {
@@ -351,6 +418,10 @@ describe('buildBookingDetailsModel', () => {
     });
     expect(model.payment.variant).toBe('deposit');
     expect(model.payment.status).toBe('Deposit paid');
+    expect(model.payment.detail).toBe('Pay in person · $70.00 due');
+    expect(model.formattedPrice.paymentAdjustments).toEqual([
+      expect.objectContaining({ label: 'Deposit', value: '−$30.00' }),
+    ]);
   });
 
   it('hides payment for pay_now with no online payment (ambiguous state)', () => {

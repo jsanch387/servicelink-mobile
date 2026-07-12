@@ -138,7 +138,7 @@ export function MarketingCampaignCard({
           marginLeft: 16,
         },
       }),
-    [colors, isDark, isLive, isPromo],
+    [colors, enabled, isDark, isLive, isPromo],
   );
 
   const discountLabel = formatMarketingDiscountLabel(campaign);
