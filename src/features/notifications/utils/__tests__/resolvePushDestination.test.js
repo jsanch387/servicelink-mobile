@@ -47,6 +47,21 @@ describe('resolvePushDestination', () => {
     });
   });
 
+  it('opens Marketing for marketing slug (feature broadcasts)', () => {
+    expect(resolvePushDestination({ referenceType: 'screen', referenceId: 'marketing' })).toEqual({
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.MARKETING,
+    });
+    expect(
+      resolvePushDestination({ referenceType: 'announcement', referenceId: 'marketing' }),
+    ).toEqual({
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.MARKETING,
+    });
+  });
+
   it('opens business profile edit on booking link details tab', () => {
     expect(resolvePushDestination({ referenceType: 'screen', referenceId: 'profile' })).toEqual({
       kind: 'main_app_tab',
