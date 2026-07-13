@@ -25,8 +25,9 @@ import {
  * @param {boolean} props.visible
  * @param {import('../utils/marketingCampaignModel').MarketingCampaign | null} props.sale
  * @param {() => void} props.onDone
+ * @param {(sale: import('../utils/marketingCampaignModel').MarketingCampaign) => void} [props.onShare]
  */
-export function SaleSuccessModal({ visible, sale, onDone }) {
+export function SaleSuccessModal({ visible, sale, onDone, onShare }) {
   const { colors, isDark } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const [mounted, setMounted] = useState(false);
@@ -230,6 +231,20 @@ export function SaleSuccessModal({ visible, sale, onDone }) {
           fontWeight: '500',
           textAlign: 'center',
         },
+        shareBtn: {
+          alignItems: 'center',
+          backgroundColor: colors.text,
+          borderRadius: 12,
+          flexDirection: 'row',
+          gap: 8,
+          justifyContent: 'center',
+          paddingVertical: 14,
+        },
+        shareLabel: {
+          color: colors.surface,
+          fontSize: 15,
+          fontWeight: '700',
+        },
       }),
     [cardWidth, colors, isDark],
   );
@@ -237,6 +252,11 @@ export function SaleSuccessModal({ visible, sale, onDone }) {
   const handleClose = useCallback(() => {
     onDone();
   }, [onDone]);
+
+  const handleShare = useCallback(() => {
+    if (!sale || !onShare) return;
+    onShare(sale);
+  }, [onShare, sale]);
 
   if (!mounted || !sale) return null;
 
@@ -291,6 +311,18 @@ export function SaleSuccessModal({ visible, sale, onDone }) {
             ) : null}
             {dateRange ? <AppText style={styles.dates}>{dateRange}</AppText> : null}
           </View>
+
+          {onShare ? (
+            <Pressable
+              accessibilityLabel="Share"
+              accessibilityRole="button"
+              style={styles.shareBtn}
+              onPress={handleShare}
+            >
+              <Ionicons color={colors.surface} name="share-social-outline" size={18} />
+              <AppText style={styles.shareLabel}>Share</AppText>
+            </Pressable>
+          ) : null}
         </Animated.View>
       </View>
     </Modal>

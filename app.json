@@ -40,6 +40,14 @@
         }
       ],
       [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Servicelink to save promo story images to your photo library.",
+          "savePhotosPermission": "Allow Servicelink to save promo story images to your photo library.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
         "@stripe/stripe-terminal-react-native",
         {
           "bluetoothBackgroundMode": true,

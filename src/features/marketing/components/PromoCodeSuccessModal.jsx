@@ -27,8 +27,9 @@ import {
  * @param {boolean} props.visible
  * @param {import('../utils/marketingCampaignModel').MarketingCampaign | null} props.promo
  * @param {() => void} props.onDone
+ * @param {(promo: import('../utils/marketingCampaignModel').MarketingCampaign) => void} [props.onShare]
  */
-export function PromoCodeSuccessModal({ visible, promo, onDone }) {
+export function PromoCodeSuccessModal({ visible, promo, onDone, onShare }) {
   const { colors, isDark } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const [mounted, setMounted] = useState(false);
@@ -236,6 +237,9 @@ export function PromoCodeSuccessModal({ visible, promo, onDone }) {
           fontWeight: '500',
           textAlign: 'center',
         },
+        actions: {
+          gap: 10,
+        },
         copyBtn: {
           alignItems: 'center',
           backgroundColor: colors.text,
@@ -256,6 +260,22 @@ export function PromoCodeSuccessModal({ visible, promo, onDone }) {
         copyLabelDone: {
           color: colors.textSuccess,
         },
+        shareBtn: {
+          alignItems: 'center',
+          backgroundColor: isDark ? colors.shellElevated : colors.shell,
+          borderColor: colors.borderStrong,
+          borderRadius: 12,
+          borderWidth: 1,
+          flexDirection: 'row',
+          gap: 8,
+          justifyContent: 'center',
+          paddingVertical: 14,
+        },
+        shareLabel: {
+          color: colors.text,
+          fontSize: 15,
+          fontWeight: '700',
+        },
       }),
     [cardWidth, colors, isDark],
   );
@@ -271,6 +291,11 @@ export function PromoCodeSuccessModal({ visible, promo, onDone }) {
   const handleClose = useCallback(() => {
     onDone();
   }, [onDone]);
+
+  const handleShare = useCallback(() => {
+    if (!promo || !onShare) return;
+    onShare(promo);
+  }, [onShare, promo]);
 
   if (!mounted || !promo) return null;
 
@@ -322,23 +347,36 @@ export function PromoCodeSuccessModal({ visible, promo, onDone }) {
             {dateRange ? <AppText style={styles.dates}>{dateRange}</AppText> : null}
           </View>
 
-          <Pressable
-            accessibilityLabel={copied ? 'Code copied' : 'Copy promo code'}
-            accessibilityRole="button"
-            style={[styles.copyBtn, copied && styles.copyBtnDone]}
-            onPress={() => {
-              void handleCopy();
-            }}
-          >
-            <Ionicons
-              color={copied ? colors.textSuccess : colors.surface}
-              name={copied ? 'checkmark-circle' : 'copy-outline'}
-              size={18}
-            />
-            <AppText style={[styles.copyLabel, copied && styles.copyLabelDone]}>
-              {copied ? 'Copied!' : 'Copy code'}
-            </AppText>
-          </Pressable>
+          <View style={styles.actions}>
+            <Pressable
+              accessibilityLabel={copied ? 'Code copied' : 'Copy promo code'}
+              accessibilityRole="button"
+              style={[styles.copyBtn, copied && styles.copyBtnDone]}
+              onPress={() => {
+                void handleCopy();
+              }}
+            >
+              <Ionicons
+                color={copied ? colors.textSuccess : colors.surface}
+                name={copied ? 'checkmark-circle' : 'copy-outline'}
+                size={18}
+              />
+              <AppText style={[styles.copyLabel, copied && styles.copyLabelDone]}>
+                {copied ? 'Copied!' : 'Copy code'}
+              </AppText>
+            </Pressable>
+            {onShare ? (
+              <Pressable
+                accessibilityLabel="Share"
+                accessibilityRole="button"
+                style={styles.shareBtn}
+                onPress={handleShare}
+              >
+                <Ionicons color={colors.text} name="share-social-outline" size={18} />
+                <AppText style={styles.shareLabel}>Share</AppText>
+              </Pressable>
+            ) : null}
+          </View>
         </Animated.View>
       </View>
     </Modal>

@@ -13,6 +13,7 @@ import {
 } from '../utils/marketingCampaignModel';
 
 const EDIT_ACCENT = '#34d399';
+const SHARE_ACCENT = '#60a5fa';
 const DELETE_ACCENT = '#fb7185';
 
 /**
@@ -20,6 +21,7 @@ const DELETE_ACCENT = '#fb7185';
  * @param {import('../utils/marketingCampaignModel').MarketingCampaign} props.campaign
  * @param {() => void} props.onEdit
  * @param {() => void} props.onDelete
+ * @param {() => void} [props.onShare]
  * @param {(enabled: boolean) => void} props.onToggleEnabled
  * @param {boolean} [props.actionsDisabled]
  */
@@ -27,6 +29,7 @@ export function MarketingCampaignCard({
   campaign,
   onEdit,
   onDelete,
+  onShare,
   onToggleEnabled,
   actionsDisabled = false,
 }) {
@@ -219,6 +222,17 @@ export function MarketingCampaignCard({
           >
             <Ionicons color={DELETE_ACCENT} name="trash-outline" size={20} />
           </Pressable>
+          {onShare ? (
+            <Pressable
+              accessibilityLabel="Share"
+              accessibilityRole="button"
+              hitSlop={4}
+              style={styles.actionButton}
+              onPress={onShare}
+            >
+              <Ionicons color={SHARE_ACCENT} name="share-social-outline" size={20} />
+            </Pressable>
+          ) : null}
         </View>
         <View style={styles.toggleWrap}>
           <Switch

@@ -25,6 +25,7 @@ import { MarketingCampaignCard } from '../components/MarketingCampaignCard';
 import { MarketingHowItWorks } from '../components/MarketingHowItWorks';
 import { PromoCodeSuccessModal } from '../components/PromoCodeSuccessModal';
 import { SaleSuccessModal } from '../components/SaleSuccessModal';
+import { MarketingShareStorySheet } from '../components/MarketingShareStorySheet';
 import {
   MARKETING_TAB_PROMOS,
   MARKETING_TAB_SALES,
@@ -34,6 +35,7 @@ import {
 import { MARKETING_PRO_ACCESS } from '../constants/marketingAccessCopy';
 import { usePromoCodes, useSales } from '../context/MarketingCampaignsContext';
 import { marketingErrorMessage } from '../utils/marketingDbMap';
+import { requestMarketingCampaignShare } from '../utils/requestMarketingCampaignShare';
 
 const CREATE_BUTTON_BOTTOM = 20;
 const CREATE_BUTTON_HEIGHT = 52;
@@ -88,6 +90,10 @@ export function MarketingScreen() {
   const [successSale, setSuccessSale] = useState(
     /** @type {import('../utils/marketingCampaignModel').MarketingCampaign | null} */ (null),
   );
+  const [shareCampaign, setShareCampaign] = useState(
+    /** @type {import('../utils/marketingCampaignModel').MarketingCampaign | null} */ (null),
+  );
+  const shareOpenTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
   const pendingPromoSuccessRef = useRef(
     /** @type {import('../utils/marketingCampaignModel').MarketingCampaign | null} */ (null),
   );
@@ -297,6 +303,40 @@ export function MarketingScreen() {
     setEditSale(null);
   }
 
+  const openShareFromList = useCallback((campaign) => {
+    requestMarketingCampaignShare(campaign, () => {
+      if (shareOpenTimerRef.current) {
+        clearTimeout(shareOpenTimerRef.current);
+        shareOpenTimerRef.current = null;
+      }
+      setShareCampaign(campaign);
+    });
+  }, []);
+
+  const openShareFromSuccess = useCallback((campaign) => {
+    // Fresh creates are active/scheduled — still route through the same opener.
+    requestMarketingCampaignShare(campaign, () => {
+      setSuccessPromo(null);
+      setSuccessSale(null);
+      if (shareOpenTimerRef.current) {
+        clearTimeout(shareOpenTimerRef.current);
+      }
+      shareOpenTimerRef.current = setTimeout(() => {
+        setShareCampaign(campaign);
+        shareOpenTimerRef.current = null;
+      }, 360);
+    });
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (shareOpenTimerRef.current) {
+        clearTimeout(shareOpenTimerRef.current);
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     if (promoCreateVisible || !pendingPromoSuccessRef.current) return undefined;
 
@@ -388,6 +428,7 @@ export function MarketingScreen() {
                         }
                         setEditPromo(promo);
                       }}
+                      onShare={() => openShareFromList(promo)}
                       onToggleEnabled={(isEnabled) => handleTogglePromo(promo, isEnabled)}
                     />
                   ))
@@ -405,6 +446,7 @@ export function MarketingScreen() {
                         }
                         setEditSale(sale);
                       }}
+                      onShare={() => openShareFromList(sale)}
                       onToggleEnabled={(isEnabled) => handleToggleSale(sale, isEnabled)}
                     />
                   ))}
@@ -443,12 +485,20 @@ export function MarketingScreen() {
         promo={successPromo}
         visible={successPromo != null}
         onDone={() => setSuccessPromo(null)}
+        onShare={openShareFromSuccess}
       />
 
       <SaleSuccessModal
         sale={successSale}
         visible={successSale != null}
         onDone={() => setSuccessSale(null)}
+        onShare={openShareFromSuccess}
+      />
+
+      <MarketingShareStorySheet
+        campaign={shareCampaign}
+        visible={shareCampaign != null}
+        onRequestClose={() => setShareCampaign(null)}
       />
     </SafeAreaView>
   );

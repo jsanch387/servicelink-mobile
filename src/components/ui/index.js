@@ -2,6 +2,7 @@ export { AppText } from './AppText';
 export { BetaLabel } from './BetaLabel';
 export { AppTextInput } from './AppTextInput';
 export { BottomSheetModal } from './BottomSheetModal';
+export { SheetCloseButton } from './SheetCloseButton';
 export { FormBottomSheetModal } from './FormBottomSheetModal';
 export { useBottomSheetOverlay, BottomSheetOverlayProvider } from './bottomSheetOverlay';
 export { CalendarMonthPicker } from './CalendarMonthPicker';
