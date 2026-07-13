@@ -24,6 +24,7 @@ export { AppShellGlow } from './AppShellGlow';
 export { Divider } from './Divider';
 export { EchoBarsLoader } from './EchoBarsLoader';
 export { FilterPills } from './FilterPills';
+export { SegmentedToggle } from './SegmentedToggle';
 export { FloatingActionButton } from './FloatingActionButton';
 export { DashedBorderFrame } from './DashedBorderFrame';
 export { SpotlightCard, SurfaceCard, SURFACE_CARD_MD_PADDING_VERTICAL } from './Card';

@@ -46,6 +46,12 @@ function formatFullServiceAddress(address) {
  *   vehicle: { year: string; make: string; model: string };
  *   notes: string;
  *   totalDurationMinutes: number;
+ *   appliedSaleDiscount?: {
+ *     lineLabel: string;
+ *     discountCents: number;
+ *     totalCents: number;
+ *     subtotalCents: number;
+ *   } | null;
  * }} props
  */
 export function ReviewStep({
@@ -61,6 +67,7 @@ export function ReviewStep({
   vehicle,
   notes,
   totalDurationMinutes,
+  appliedSaleDiscount = null,
 }) {
   const { colors } = useTheme();
 
@@ -79,7 +86,13 @@ export function ReviewStep({
     [selectedAddonRows],
   );
 
-  const totalUsd = baseUsd + addonsUsdSum;
+  const subtotalUsd = baseUsd + addonsUsdSum;
+  const discountUsd = appliedSaleDiscount
+    ? Math.max(0, (appliedSaleDiscount.discountCents ?? 0) / 100)
+    : 0;
+  const totalUsd = appliedSaleDiscount
+    ? Math.max(0, (appliedSaleDiscount.totalCents ?? 0) / 100)
+    : subtotalUsd;
 
   const serviceName = selectedService?.name?.trim() || '—';
   const optionLabel = selectedPricingOption?.label?.trim() || '';
@@ -218,6 +231,25 @@ export function ReviewStep({
           fontSize: 14,
           fontWeight: '600',
         },
+        discountRow: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+          marginTop: 2,
+        },
+        discountLabel: {
+          color: colors.textSuccess ?? colors.text,
+          flex: 1,
+          fontSize: 14,
+          fontWeight: '600',
+          marginRight: 12,
+        },
+        discountValue: {
+          color: colors.textSuccess ?? colors.text,
+          fontSize: 14,
+          fontWeight: '700',
+        },
         divider: {
           marginBottom: 12,
           marginTop: 4,
@@ -328,7 +360,20 @@ export function ReviewStep({
           </>
         ) : null}
 
-        <Divider style={styles.divider} />
+        {appliedSaleDiscount && discountUsd > 0 ? (
+          <>
+            <Divider style={styles.divider} />
+            <View style={styles.discountRow}>
+              <AppText numberOfLines={2} style={styles.discountLabel}>
+                {appliedSaleDiscount.lineLabel}
+              </AppText>
+              <AppText style={styles.discountValue}>−{formatUsdFromNumber(discountUsd)}</AppText>
+            </View>
+          </>
+        ) : (
+          <Divider style={styles.divider} />
+        )}
+
         <View style={styles.totalRow}>
           <AppText style={styles.totalLabel}>Total</AppText>
           <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>

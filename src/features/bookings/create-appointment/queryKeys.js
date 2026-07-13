@@ -13,3 +13,7 @@ export function createAppointmentBlockingBookingsQueryKey(businessId, fromYyyyMm
 export function createAppointmentBusinessLocationQueryKey(businessId) {
   return ['createAppointment', 'businessLocation', businessId];
 }
+
+export function createAppointmentSalesQueryKey(businessId) {
+  return ['createAppointment', 'sales', businessId];
+}

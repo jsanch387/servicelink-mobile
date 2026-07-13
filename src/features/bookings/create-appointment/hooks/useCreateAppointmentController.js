@@ -16,6 +16,11 @@ import {
 import { isAddressStepComplete } from '../utils/createAppointmentValidators';
 import { buildOwnerManualPublicBookingBody } from '../utils/buildOwnerBookingPayload';
 import {
+  buildAppliedSaleDiscount,
+  pickActiveSaleForAppointmentDate,
+} from '../utils/applyOwnerBookingSale';
+import { parsePriceLabelToUsd } from '../utils/priceLabelMath';
+import {
   CREATE_APPOINTMENT_LOCATION_MOBILE,
   CREATE_APPOINTMENT_LOCATION_SHOP,
   addressFormFromBusinessShopLocation,
@@ -197,6 +202,29 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     [selectedServiceRow, selectedPricingOption, selectedService, selectedAddonRows],
   );
 
+  const appliedSaleDiscount = useMemo(() => {
+    const sale = pickActiveSaleForAppointmentDate(server.sales, selectedDateKey);
+    if (!sale) return null;
+    const baseCents =
+      selectedPricingOption?.priceCents != null
+        ? Math.round(Number(selectedPricingOption.priceCents) || 0)
+        : Math.round(parsePriceLabelToUsd(selectedService?.priceLabel) * 100);
+    const addonsCents = selectedAddonRows.reduce(
+      (sum, a) => sum + Math.round(parsePriceLabelToUsd(a.priceLabel ?? a.price) * 100),
+      0,
+    );
+    return buildAppliedSaleDiscount({
+      subtotalCents: baseCents + addonsCents,
+      sale,
+    });
+  }, [
+    selectedAddonRows,
+    selectedDateKey,
+    selectedPricingOption?.priceCents,
+    selectedService?.priceLabel,
+    server.sales,
+  ]);
+
   const scheduleLoading =
     server.availabilityLoading || server.blockingLoading || server.priceOptionsLoading;
   const scheduleError =
@@ -293,6 +321,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         vehicle,
         notes,
         appointmentLocationType,
+        appliedSaleDiscount,
       });
       const res = await postOwnerManualPublicBooking(token, body);
       if (!res.ok) {
@@ -574,6 +603,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       onChangeVehicle: setVehicle,
       onChangeNotes: setNotes,
       showSubmitPanel,
+      appliedSaleDiscount,
     }),
     [
       step,
@@ -610,6 +640,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       vehicle,
       notes,
       totalDurationMinutes,
+      appliedSaleDiscount,
     ],
   );
 

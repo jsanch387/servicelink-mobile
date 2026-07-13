@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { fetchBusinessAvailability } from '../../../availability/api/availability';
 import { getBookingCalendarRange } from '../../../availability/booking';
 import { ownerHasProAccess } from '../../../bookingLink/api/bookingLink';
+import { fetchSalesForBusiness } from '../../../marketing/api/sales';
 import { fetchAccountSettingsBundle } from '../../../more/api/fetchAccountSettings';
 import { fetchActivePriceOptionsForService } from '../api/priceOptions';
 import { fetchBusinessServiceLocation } from '../api/fetchBusinessServiceLocation';
@@ -12,6 +13,7 @@ import {
   createAppointmentBlockingBookingsQueryKey,
   createAppointmentBusinessLocationQueryKey,
   createAppointmentPriceOptionsQueryKey,
+  createAppointmentSalesQueryKey,
 } from '../queryKeys';
 
 /**
@@ -94,6 +96,17 @@ export function useCreateAppointmentServerData({
     staleTime: 60 * 1000,
   });
 
+  const salesQ = useQuery({
+    queryKey: createAppointmentSalesQueryKey(businessId),
+    queryFn: async () => {
+      const { data, error } = await fetchSalesForBusiness(businessId);
+      if (error) throw new Error(error.message ?? 'Could not load sales');
+      return data ?? [];
+    },
+    enabled: Boolean(businessId),
+    staleTime: 45 * 1000,
+  });
+
   return {
     ownerHasPro,
     ownerProfileLoading: ownerQ.isPending,
@@ -109,6 +122,8 @@ export function useCreateAppointmentServerData({
     blockingBookingRows: blockingQ.data ?? [],
     blockingLoading: blockingQ.isPending,
     blockingError: blockingQ.error?.message ?? null,
+    sales: salesQ.data ?? [],
+    salesLoading: salesQ.isPending,
     rangeFrom,
     rangeTo,
   };

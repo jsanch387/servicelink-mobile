@@ -1,6 +1,7 @@
 import { parseBookingStartLocalMs } from '../../../home/utils/bookingStart';
 import { formatPhoneForDisplay } from '../../../../utils/phone';
 import { splitBookingServiceName } from '../../../../utils/splitBookingServiceName';
+import { resolveBookingDiscount } from './resolveBookingDiscount';
 import { resolveBookingSessionFees } from './resolveBookingSessionFees';
 import { resolveSessionPaymentForDisplay } from './resolveSessionPaymentForDisplay';
 import { getSessionPaymentMethodLabel, getSessionPaymentRowLabel } from './sessionPaymentDisplay';
@@ -153,6 +154,48 @@ function emptyPaymentModel() {
 }
 
 /**
+ * When `booking_payments` still stores pre-discount service+add-on totals,
+ * rewrite total/remaining for UI so Pay in person / deposit match the sale.
+ *
+ * @param {ReturnType<typeof normalizeBookingPaymentSummary>} paymentSummary
+ * @param {{
+ *   servicePriceCents: number;
+ *   addOnsTotalCents: number;
+ *   discountCents: number;
+ * }} args
+ */
+export function reconcilePaymentSummaryWithDiscount(
+  paymentSummary,
+  { servicePriceCents, addOnsTotalCents, discountCents },
+) {
+  if (!paymentSummary || discountCents <= 0) return paymentSummary;
+
+  const grossCents = Math.max(0, Math.round(servicePriceCents) + Math.round(addOnsTotalCents));
+  const netCents = Math.max(0, grossCents - Math.max(0, Math.round(discountCents)));
+  const total = Math.max(0, Math.round(paymentSummary.totalAmountCents));
+  const rem = Math.max(0, Math.round(paymentSummary.remainingAmountCents));
+  const paid = Math.max(0, Math.round(paymentSummary.paidOnlineAmountCents));
+  const sessionFees = Math.max(0, Math.round(paymentSummary.sessionFeesTotalCents));
+
+  // Payment row matches pre-discount gross (common after sale snapshot lands on booking only).
+  if (total !== grossCents || sessionFees > 0) {
+    return paymentSummary;
+  }
+
+  const nextTotal = netCents;
+  const nextRem =
+    rem === total || rem === grossCents
+      ? Math.max(0, nextTotal - paid)
+      : Math.max(0, rem - discountCents);
+
+  return {
+    ...paymentSummary,
+    totalAmountCents: nextTotal,
+    remainingAmountCents: nextRem,
+  };
+}
+
+/**
  * Booking details Payment block — variant logic aligned with web `AvailabilityBookingDetailPanel`.
  * Omits the section when there is no merged `booking_payments` row, or when there is no
  * actionable payment state (e.g. `pay_now` with zero online paid and no in-person framing).
@@ -261,8 +304,12 @@ export function buildBookingPaymentSection(paymentRaw, bookingStatus, jobStatus)
   }
 
   if (variant === 'deposit') {
-    const detail = `${fmt(paid)} paid · ${fmt(rem)} due`;
-    const accessibilityLabel = `Deposit paid. ${fmt(paid)} paid online, ${fmt(rem)} still due.`;
+    const dueDetail = `${fmt(rem)} due`;
+    const detail = method === 'pay_in_person' ? `Pay in person · ${dueDetail}` : dueDetail;
+    const accessibilityLabel =
+      method === 'pay_in_person'
+        ? `Deposit paid. Pay in person. ${fmt(rem)} still due.`
+        : `Deposit paid. ${fmt(rem)} still due.`;
     return {
       visible: true,
       variant,
@@ -373,7 +420,20 @@ export function buildBookingDetailsModel(booking) {
   const { primary: serviceName, pricingOption: servicePricingOption } =
     splitBookingServiceName(serviceNameRaw);
   const addOns = normalizeAddonItems(booking?.addon_details);
-  const paymentSummary = normalizeBookingPaymentSummary(booking?.payment);
+  const addOnsTotal = addOns.reduce((sum, item) => sum + item.price, 0);
+  const servicePrice = Number.isFinite(Number(booking?.service_price_cents))
+    ? Number(booking.service_price_cents) / 100
+    : null;
+  const discount = resolveBookingDiscount(booking);
+  const discountDollars = discount?.discountDollars ?? 0;
+  const paymentSummary = reconcilePaymentSummaryWithDiscount(
+    normalizeBookingPaymentSummary(booking?.payment),
+    {
+      servicePriceCents: Number.isFinite(servicePrice) ? Math.round(servicePrice * 100) : 0,
+      addOnsTotalCents: Math.round(Math.max(0, addOnsTotal) * 100),
+      discountCents: discount?.discountCents ?? 0,
+    },
+  );
   const statusLower = clean(booking?.status, 'confirmed').toLowerCase();
   const isCompleted = statusLower === 'completed' || statusLower === 'complete';
   const resolvedSessionPayment = resolveSessionPaymentForDisplay(
@@ -381,29 +441,28 @@ export function buildBookingDetailsModel(booking) {
     booking?.status,
     booking?.job_status,
   );
-  const addOnsTotal = addOns.reduce((sum, item) => sum + item.price, 0);
-  const servicePrice = Number.isFinite(Number(booking?.service_price_cents))
-    ? Number(booking.service_price_cents) / 100
-    : null;
   const sessionFees = resolveBookingSessionFees({
     sessionFeeLines: booking?.session_fee_lines ?? booking?.sessionFeeLines,
     invoiceSnapshot: booking?.invoice_snapshot ?? booking?.invoiceSnapshot,
     paymentSummary,
     servicePrice,
     addOnsTotal,
+    discountDollars,
     sessionPaymentAmountCents: resolvedSessionPayment.sessionPaidCents,
     paidOnlineCents: resolvedSessionPayment.paidOnlineCents,
   });
   const sessionFeesTotal = sessionFees.reduce((sum, item) => sum + item.price, 0);
   const computedTotal = Number.isFinite(servicePrice)
-    ? servicePrice + addOnsTotal + sessionFeesTotal
+    ? Math.max(0, servicePrice + addOnsTotal - discountDollars) + sessionFeesTotal
     : null;
   const paymentTotal =
     paymentSummary?.totalAmountCents > 0 ? paymentSummary.totalAmountCents / 100 : null;
   const total =
     Number.isFinite(computedTotal) &&
-    sessionFeesTotal > 0 &&
-    (!Number.isFinite(paymentTotal) || paymentTotal < computedTotal - 0.001)
+    (sessionFeesTotal > 0 || discountDollars > 0) &&
+    (!Number.isFinite(paymentTotal) ||
+      paymentTotal < computedTotal - 0.001 ||
+      (discountDollars > 0 && Math.abs(paymentTotal - computedTotal) > 0.001))
       ? computedTotal
       : Number.isFinite(paymentTotal)
         ? paymentTotal
@@ -411,11 +470,16 @@ export function buildBookingDetailsModel(booking) {
 
   const paidOnline = resolvedSessionPayment.paidOnlineCents / 100;
   const sessionPaid = resolvedSessionPayment.sessionPaidCents / 100;
+  const paidOnlineCents = Math.max(0, Math.round(resolvedSessionPayment.paidOnlineCents));
+  const remainingCents = Math.max(0, Math.round(paymentSummary?.remainingAmountCents ?? 0));
+  const totalCents = Math.max(0, Math.round(paymentSummary?.totalAmountCents ?? 0));
+  const isDepositPayment =
+    paidOnlineCents > 0 && (remainingCents > 0 || (totalCents > 0 && paidOnlineCents < totalCents));
   const paymentAdjustments = [];
-  if (isCompleted && paidOnline > 0) {
+  if (paidOnline > 0 && (isCompleted || remainingCents > 0)) {
     paymentAdjustments.push({
       id: 'paid-online',
-      label: 'Paid online',
+      label: isDepositPayment ? 'Deposit' : 'Paid online',
       value: `−${formatMoney(paidOnline)}`,
     });
   }
@@ -477,6 +541,13 @@ export function buildBookingDetailsModel(booking) {
       servicePrice: formatMoneyOrFallback(servicePrice),
       addOnsTotal: formatMoney(addOnsTotal),
       hasAddOns: addOns.length > 0,
+      hasDiscount: discountDollars > 0,
+      discount: discount
+        ? {
+            label: discount.label,
+            value: `−${formatMoney(discountDollars)}`,
+          }
+        : null,
       sessionFeesTotal: formatMoney(sessionFeesTotal),
       hasSessionFees: sessionFees.length > 0,
       total: formatMoneyOrFallback(total),
@@ -485,6 +556,6 @@ export function buildBookingDetailsModel(booking) {
       hasPaymentAdjustments: paymentAdjustments.length > 0,
       paymentAdjustments,
     },
-    payment: buildBookingPaymentSection(booking?.payment, booking?.status, booking?.job_status),
+    payment: buildBookingPaymentSection(paymentSummary, booking?.status, booking?.job_status),
   };
 }

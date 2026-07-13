@@ -26,24 +26,21 @@ import { ROUTES } from '../../../routes/routes';
 /** @type {WhatsNewAnnouncement[]} */
 export const APP_UPDATE_ANNOUNCEMENTS = [
   {
-    id: 'tap-to-pay-iphone-v1',
+    id: 'marketing-v1',
     badge: "What's new",
-    icon: 'contactless-payment',
-    iconLibrary: 'material-community',
-    iconColor: '#0a0a0a',
-    iconBadgeVariant: 'light',
-    title: 'Tap to Pay on iPhone',
-    platforms: ['ios'],
+    icon: 'megaphone-outline',
+    iconLibrary: 'ionicons',
+    title: 'Marketing',
     bullets: [
-      'Accept contactless cards and Apple Pay when you complete a job',
-      'Your iPhone is the payment terminal — no extra hardware',
-      'Quick checkout at the end of every visit',
+      'Create promo codes customers can enter when they book',
+      'Run sales that automatically discount qualifying appointments',
+      'Turn offers on or off anytime from More → Marketing',
     ],
-    primaryLabel: 'Take a look',
+    primaryLabel: 'Try it out',
     secondaryLabel: 'Got it',
     cta: {
       tab: ROUTES.MORE,
-      screen: ROUTES.MORE_PAYMENTS,
+      screen: ROUTES.MARKETING,
     },
   },
 ];

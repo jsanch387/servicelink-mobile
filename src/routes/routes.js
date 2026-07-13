@@ -42,6 +42,11 @@ export const ROUTES = {
   /** Root stack — build & send quote (hides tab bar; same pattern as CREATE_APPOINTMENT). */
   CREATE_QUOTE: 'CreateQuote',
   BOOKING_LINK: 'BookingLink',
+  MARKETING: 'Marketing',
+  /** More stack — promo code detail (edit / delete). */
+  MARKETING_PROMO_DETAIL: 'MarketingPromoDetail',
+  /** More stack — sale detail (edit / delete). */
+  MARKETING_SALE_DETAIL: 'MarketingSaleDetail',
   MORE_PAYMENTS: 'MorePayments',
   PAYMENTS: 'Payments',
   /** Bottom tab: More (settings, business tools, support) */
@@ -88,6 +93,9 @@ export const PATHS = {
   MAINTENANCE_DETAIL: '/maintenance/detail',
   CREATE_QUOTE: '/quotes/create',
   BOOKING_LINK: '/booking-link',
+  MARKETING: '/marketing',
+  MARKETING_PROMO_DETAIL: '/marketing/promos/:campaignId',
+  MARKETING_SALE_DETAIL: '/marketing/sales/:campaignId',
   MORE_PAYMENTS: '/more/payments',
   PAYMENTS: '/payments',
   MORE: '/more',

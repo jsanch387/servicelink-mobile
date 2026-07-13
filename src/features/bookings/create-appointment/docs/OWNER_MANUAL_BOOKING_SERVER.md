@@ -10,13 +10,14 @@ Use this when the **signed-in business owner** books an appointment **on behalf 
 
 ## Mobile implementation map
 
-| Concern                                | Location (this repo)                                                                                      |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| HTTP client + error mapping            | `create-appointment/api/postOwnerManualPublicBooking.js`                                                  |
-| Wizard state → JSON body               | `create-appointment/utils/buildOwnerBookingPayload.js`                                                    |
-| `serviceLocationType` + shop/mobile UX | `create-appointment/utils/createAppointmentServiceLocation.js`, `hooks/useCreateAppointmentController.js` |
-| 12h slot → API `startTime`             | `create-appointment/utils/ownerBookingFieldFormats.js`                                                    |
-| Bearer JWT                             | `CreateAppointmentFlow.jsx` → `session.access_token`                                                      |
+| Concern                                 | Location (this repo)                                                                                      |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| HTTP client + error mapping             | `create-appointment/api/postOwnerManualPublicBooking.js`                                                  |
+| Wizard state → JSON body                | `create-appointment/utils/buildOwnerBookingPayload.js`                                                    |
+| `serviceLocationType` + shop/mobile UX  | `create-appointment/utils/createAppointmentServiceLocation.js`, `hooks/useCreateAppointmentController.js` |
+| 12h slot → API `startTime`              | `create-appointment/utils/ownerBookingFieldFormats.js`                                                    |
+| Bearer JWT                              | `CreateAppointmentFlow.jsx` → `session.access_token`                                                      |
+| Auto-apply **sale** on Review + payload | See [`OWNER_MANUAL_BOOKING_SALE_DISCOUNT.md`](./OWNER_MANUAL_BOOKING_SALE_DISCOUNT.md)                    |
 
 **Mobile sends:** top-level `serviceLocationType` (`"mobile"` \| `"shop"`). Does **not** send `customerServiceLocation` (web alias).
 

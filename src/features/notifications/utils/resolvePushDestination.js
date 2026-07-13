@@ -56,6 +56,7 @@ const SCREEN_SLUG_DESTINATIONS = {
     stackScreen: ROUTES.BOOKING_LINK,
     stackParams: BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS,
   },
+  marketing: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.MARKETING },
   upgrade: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.ACCOUNT_SETTINGS },
   settings: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.ACCOUNT_SETTINGS },
 };

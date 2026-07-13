@@ -139,5 +139,34 @@ describe('buildOwnerBookingPayload', () => {
       expect(b.servicePriceOptionLabel).toBe('Premium');
       expect(b.servicePriceCents).toBe(15000);
     });
+
+    it('includes sale discount snapshot fields when a sale applies', () => {
+      const b = buildOwnerManualPublicBookingBody({
+        ...base,
+        appliedSaleDiscount: {
+          sale: { id: 'sale-1' },
+          subtotalCents: 12000,
+          discountCents: 2400,
+          discountLabel: '20% OFF',
+          discountType: 'percentage',
+          discountValue: 20,
+        },
+      });
+      expect(b.discountSource).toBe('sale');
+      expect(b.discountSaleId).toBe('sale-1');
+      expect(b.discountType).toBe('percentage');
+      expect(b.discountValue).toBe(20);
+      expect(b.subtotalCents).toBe(12000);
+      expect(b.discountCents).toBe(2400);
+      expect(b.discountLabel).toBe('20% OFF');
+      expect(b.servicePriceCents).toBe(12000);
+    });
+
+    it('omits discount fields when no sale applies', () => {
+      const b = buildOwnerManualPublicBookingBody(base);
+      expect(b.discountSource).toBeUndefined();
+      expect(b.discountSaleId).toBeUndefined();
+      expect(b.discountCents).toBeUndefined();
+    });
   });
 });

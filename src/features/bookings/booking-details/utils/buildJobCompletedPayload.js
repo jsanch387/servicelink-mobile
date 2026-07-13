@@ -162,6 +162,7 @@ export function buildCompleteVisitCheckoutFromSheetState(sheetState) {
  *   sessionFees: Array<{ amountCents: number }>;
  *   paidOnlineCents: number;
  *   sessionPaymentAmountCents: number;
+ *   discountCents?: number;
  * }} params
  * @returns {number}
  */
@@ -171,6 +172,7 @@ export function computeCompleteVisitAmountDueCents({
   sessionFees,
   paidOnlineCents,
   sessionPaymentAmountCents,
+  discountCents = 0,
 }) {
   const serviceCents = Math.max(0, Number(servicePriceCents) || 0);
   const addonCents = parseAddonLineItemsFromBooking(addonDetails).reduce(
@@ -181,9 +183,10 @@ export function computeCompleteVisitAmountDueCents({
     (sum, fee) => sum + Math.max(0, Number(fee.amountCents) || 0),
     0,
   );
+  const discount = Math.max(0, Math.round(Number(discountCents) || 0));
   const paidOnline = Math.max(0, Number(paidOnlineCents) || 0);
   const sessionPaid = Math.max(0, Number(sessionPaymentAmountCents) || 0);
-  const subtotal = serviceCents + addonCents + feesCents;
+  const subtotal = Math.max(0, serviceCents + addonCents - discount) + feesCents;
   return Math.max(0, subtotal - paidOnline - sessionPaid);
 }
 
