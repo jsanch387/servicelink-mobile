@@ -1,4 +1,5 @@
 import { getBookingStatusVisualKind } from '../../bookings/utils/bookingStatusVisual';
+import { splitBookingServiceName } from '../../../utils/splitBookingServiceName';
 
 /**
  * @typedef {'scheduled' | 'completed' | 'cancelled'} RestOfTodayStatusKind
@@ -17,10 +18,11 @@ export function mapBookingsToRestOfTodayItems(rows) {
       minute: '2-digit',
     });
     const statusKind = getBookingStatusVisualKind(row?.status);
+    const serviceName = splitBookingServiceName(row.service_name).primary;
     return {
       id: row.id,
       time,
-      title: row.service_name?.trim() || 'Service',
+      title: serviceName,
       statusKind,
     };
   });

@@ -51,10 +51,10 @@ describe('buildOwnerBookingPayload', () => {
 
     it('stringifies ids for JSON', () => {
       const out = buildSelectedAddOnsForPublicApi([
-        { id: 99, name: 'Seal', priceLabel: '$10', durationMinutes: 15 },
+        { id: 99, name: 'Seal', priceCents: 1250, priceLabel: '$10', durationMinutes: 15 },
       ]);
       expect(out[0].id).toBe('99');
-      expect(out[0].priceCents).toBe(1000);
+      expect(out[0].priceCents).toBe(1250);
     });
   });
 
@@ -97,6 +97,22 @@ describe('buildOwnerBookingPayload', () => {
       });
     });
 
+    it('builds a custom job without a catalog service id', () => {
+      const b = buildOwnerManualPublicBookingBody({
+        ...base,
+        selectedService: { name: 'Custom correction' },
+        selectedServiceId: null,
+        selectedPricingOption: { label: 'Standard', priceCents: 18500 },
+        totalDurationMinutes: 120,
+      });
+      expect(b.serviceId).toBeUndefined();
+      expect(b.servicePriceOptionLabel).toBeUndefined();
+      expect(b.selectedAddOns).toBeUndefined();
+      expect(b.serviceName).toBe('Custom correction');
+      expect(b.servicePriceCents).toBe(18500);
+      expect(b.durationMinutes).toBe(120);
+    });
+
     it('trims customer notes', () => {
       const b = buildOwnerManualPublicBookingBody({
         ...base,
@@ -127,6 +143,8 @@ describe('buildOwnerBookingPayload', () => {
         appointmentLocationType: 'shop',
       });
       expect(b.customerServiceLocation).toBeUndefined();
+      expect(b.bookingSource).toBeUndefined();
+      expect(b.booking_source).toBeUndefined();
       expect(b.serviceLocationType).toBe('shop');
     });
 
@@ -138,6 +156,14 @@ describe('buildOwnerBookingPayload', () => {
       expect(b.serviceName).toBe('Detail');
       expect(b.servicePriceOptionLabel).toBe('Premium');
       expect(b.servicePriceCents).toBe(15000);
+    });
+
+    it('keeps a real pricing option labeled Standard', () => {
+      const b = buildOwnerManualPublicBookingBody({
+        ...base,
+        selectedPricingOption: { id: 'option-1', label: 'Standard', priceCents: 12000 },
+      });
+      expect(b.servicePriceOptionLabel).toBe('Standard');
     });
 
     it('includes sale discount snapshot fields when a sale applies', () => {

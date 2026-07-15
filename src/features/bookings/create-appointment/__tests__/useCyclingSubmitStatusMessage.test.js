@@ -16,7 +16,7 @@ describe('useCyclingSubmitStatusMessage', () => {
     expect(result.current).toBe('One');
   });
 
-  it('cycles through messages while active', () => {
+  it('advances through messages and holds the final message while active', () => {
     const { result } = renderHook(() => useCyclingSubmitStatusMessage(true, ['One', 'Two'], 1000));
 
     expect(result.current).toBe('One');
@@ -29,6 +29,6 @@ describe('useCyclingSubmitStatusMessage', () => {
     act(() => {
       jest.advanceTimersByTime(1000);
     });
-    expect(result.current).toBe('One');
+    expect(result.current).toBe('Two');
   });
 });

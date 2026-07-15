@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { safeUserFacingMessage } from '../../../../utils/safeUserFacingMessage';
 import { CREATE_APPOINTMENT_STEP, CREATE_APPOINTMENT_SUBMIT_ERROR_FALLBACK } from '../constants';
 
@@ -12,6 +12,7 @@ import { CREATE_APPOINTMENT_STEP, CREATE_APPOINTMENT_SUBMIT_ERROR_FALLBACK } fro
  * @param {boolean} args.isMutationPending
  * @param {boolean} [args.confirmRequested] Set synchronously when Confirm is tapped (before mutation pending).
  * @param {string | undefined | null} args.customerPhone
+ * @param {string | undefined | null} args.customerEmail
  */
 export function useCreateAppointmentSubmitPanel({
   step,
@@ -19,6 +20,7 @@ export function useCreateAppointmentSubmitPanel({
   isMutationPending,
   confirmRequested = false,
   customerPhone,
+  customerEmail,
 }) {
   const [submitError, setSubmitError] = useState(null);
 
@@ -28,31 +30,25 @@ export function useCreateAppointmentSubmitPanel({
     !appointmentConfirmed &&
     (confirmRequested || isSubmitting || Boolean(submitError));
 
-  const hasCustomerPhone = Boolean(String(customerPhone ?? '').trim());
+  const shouldNotifyCustomer = [customerPhone, customerEmail].some((value) =>
+    Boolean(String(value ?? '').trim()),
+  );
 
   const clearSubmitError = useCallback(() => {
     setSubmitError(null);
   }, []);
 
   const handleMutationError = useCallback((error) => {
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     setSubmitError(
       safeUserFacingMessage(error, { fallback: CREATE_APPOINTMENT_SUBMIT_ERROR_FALLBACK }),
     );
   }, []);
 
-  const hadSubmitErrorRef = useRef(false);
-  useEffect(() => {
-    const hasError = Boolean(submitError);
-    if (hasError && !hadSubmitErrorRef.current) {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-    }
-    hadSubmitErrorRef.current = hasError;
-  }, [submitError]);
-
   return {
     clearSubmitError,
     handleMutationError,
-    hasCustomerPhone,
+    shouldNotifyCustomer,
     isSubmitting,
     showSubmitPanel,
     submitError,

@@ -113,6 +113,7 @@ export function buildServicesCatalogModel(servicesRows, addonsRows, assignmentRo
         /** Raw minutes for booking duration when raw service row is not handy. */
         durationMinutes: dm != null && dm > 0 ? Math.max(15, dm) : 60,
         durationLabel: formatDurationLabel(durationMinutes),
+        priceCents: numberOrNull(priceCents) ?? 0,
         addonsCountLabel:
           addonsCount > 0 ? `${addonsCount} add-on${addonsCount === 1 ? '' : 's'}` : null,
         priceLabel: formatPriceLabel(priceCents),
@@ -144,6 +145,7 @@ export function buildServicesCatalogModel(servicesRows, addonsRows, assignmentRo
         /** Raw minutes for booking duration math (0 = price-only add-on). */
         durationMinutes: numberOrNull(durationMinutes) ?? 0,
         durationLabel: formatAddonDurationMinutes(durationMinutes),
+        priceCents: numberOrNull(priceCents) ?? 0,
         priceLabel: `+${formatPriceLabel(priceCents)}`,
         /** Raw price for editor forms (no $). */
         price: priceInput,

@@ -1,6 +1,6 @@
 # Contract: Mobile — Owner creates availability booking (manual)
 
-Use this when the **signed-in business owner** books an appointment **on behalf of a customer** from the native app. The server runs the **same** handler as the web dashboard flow (`/[slug]/book?for=owner`): it inserts the booking, payment summary row, owner notification + Expo push, and (when present) **sends the customer confirmation email**.
+Use this when the **signed-in business owner** books an appointment **on behalf of a customer** from the native app. Mobile supports a catalog service or custom job and mirrors the web owner flow. The server inserts the booking and payment summary, records `booking_source = 'owner'`, sends owner notifications, and sends the customer confirmation email only when an email is present.
 
 **Do not** insert rows directly into Supabase from the app for this flow — you would skip email, `booking_payments`, free-tier enforcement, time-off checks, and owner notifications.
 
@@ -20,6 +20,12 @@ Use this when the **signed-in business owner** books an appointment **on behalf 
 | Auto-apply **sale** on Review + payload | See [`OWNER_MANUAL_BOOKING_SALE_DISCOUNT.md`](./OWNER_MANUAL_BOOKING_SALE_DISCOUNT.md)                    |
 
 **Mobile sends:** top-level `serviceLocationType` (`"mobile"` \| `"shop"`). Does **not** send `customerServiceLocation` (web alias).
+
+### Required mobile branches
+
+- **From services:** send catalog `serviceId`, service name, selected option label/price, selected add-on snapshots, and total duration including add-on time.
+- **Custom job:** omit `serviceId`, `servicePriceOptionLabel`, and `selectedAddOns`; send owner-entered name, positive price, duration, and optional notes through `customer.notes`.
+- Both branches require an owner-selected schedule, customer name/phone, location, and an empty-or-complete optional vehicle.
 
 ---
 
@@ -53,25 +59,25 @@ Set **`ownerManualBooking`** to **`true`**.
 
 ### Top-level fields
 
-| Field                     | Type    | Required | Notes                                                                             |
-| ------------------------- | ------- | -------- | --------------------------------------------------------------------------------- |
-| `businessSlug`            | string  | Yes      | Must match business public slug.                                                  |
-| `businessId`              | string  | Yes      | UUID `business_profiles.id`; must match slug + owner.                             |
-| `serviceName`             | string  | Yes      | Base service name.                                                                |
-| `serviceId`               | string  | No       | Optional service id.                                                              |
-| `servicePriceOptionLabel` | string  | No       | Non-`Standard` tier label.                                                        |
-| `servicePriceCents`       | number  | No       | Omit or `0` when free.                                                            |
-| `selectedAddOns`          | array   | No       | `{ id, name, priceCents, durationMinutes? }`.                                     |
-| `durationMinutes`         | number  | Yes      | Total length (service + add-ons). Integer ≥ 1.                                    |
-| `scheduledDate`           | string  | Yes      | `YYYY-MM-DD`.                                                                     |
-| `startTime`               | string  | Yes      | 24h `H:mm` or `HH:mm`.                                                            |
-| `customer`                | object  | Yes      | See below.                                                                        |
-| `paymentMethodSelected`   | string  | No       | Send **`"none"`** for owner manual booking.                                       |
-| `ownerManualBooking`      | boolean | Yes      | Must be **`true`**.                                                               |
-| `serviceLocationType`     | string  | Yes\*    | **`"mobile"`** or **`"shop"`**. New mobile always sends this.                     |
-| `customerServiceLocation` | string  | No       | Web alias — **mobile does not send**; `serviceLocationType` wins if both present. |
+| Field                     | Type    | Required | Notes                                                                                                  |
+| ------------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| `businessSlug`            | string  | Yes      | Must match business public slug.                                                                       |
+| `businessId`              | string  | Yes      | UUID `business_profiles.id`; must match slug + owner.                                                  |
+| `serviceName`             | string  | Yes      | Base service name.                                                                                     |
+| `serviceId`               | string  | Catalog  | Required for catalog; omit for custom.                                                                 |
+| `servicePriceOptionLabel` | string  | No       | Selected real catalog option label; omit for base pricing and custom jobs.                             |
+| `servicePriceCents`       | number  | Yes      | Gross base/option/custom price in integer cents. Server accepts `0`; mobile custom jobs require `> 0`. |
+| `selectedAddOns`          | array   | No       | `{ id, name, priceCents, durationMinutes? }`.                                                          |
+| `durationMinutes`         | number  | Yes      | Total length (service + add-ons). Integer ≥ 1.                                                         |
+| `scheduledDate`           | string  | Yes      | `YYYY-MM-DD`.                                                                                          |
+| `startTime`               | string  | Yes      | 24h `H:mm` or `HH:mm`.                                                                                 |
+| `customer`                | object  | Yes      | See below.                                                                                             |
+| `paymentMethodSelected`   | string  | No       | Send **`"none"`** for owner manual booking.                                                            |
+| `ownerManualBooking`      | boolean | Yes      | Must be **`true`**.                                                                                    |
+| `serviceLocationType`     | string  | Yes\*    | **`"mobile"`** or **`"shop"`**. New mobile always sends this.                                          |
+| `customerServiceLocation` | string  | No       | Web alias — **mobile does not send**; `serviceLocationType` wins if both present.                      |
 
-\*Older mobile builds may omit → server stores `NULL` on `bookings.service_location_type`.
+\*Mobile always sends this. The server may infer single-mode businesses, but a `both` business receives `400` when omitted.
 
 ### `serviceLocationType` rules
 
@@ -87,24 +93,24 @@ Set **`ownerManualBooking`** to **`true`**.
 - `"mobile"` rejected if `service_location_mode` is `shop_only`.
 - For `both`, either allowed.
 
-**Persistence:** `bookings.service_location_type` (`text`, nullable).
+**Persistence:** the route resolves and stores a concrete `mobile` or `shop` value in `bookings.service_location_type`.
 
 ### Customer object
 
 All keys are **strings** in JSON.
 
-| Field                                        | Required    | Notes                            |
-| -------------------------------------------- | ----------- | -------------------------------- |
-| `fullName`                                   | Yes         | Max 120 chars.                   |
-| `email`                                      | No          | Empty → no confirmation email.   |
-| `phone`                                      | Yes         | 10-digit NANP in mobile payload. |
-| `streetAddress`                              | Yes         | Max 200 chars.                   |
-| `unitApt`                                    | No          | Max 50 chars.                    |
-| `city`                                       | Yes         | Max 100 chars.                   |
-| `state`                                      | Yes         | 2-letter uppercase.              |
-| `zip`                                        | Yes         | US 5 or 9 digits (server).       |
-| `vehicleYear`, `vehicleMake`, `vehicleModel` | Conditional | All three if any set.            |
-| `notes`                                      | No          |                                  |
+| Field                                        | Required    | Notes                                                   |
+| -------------------------------------------- | ----------- | ------------------------------------------------------- |
+| `fullName`                                   | Yes         | Max 120 chars.                                          |
+| `email`                                      | No          | Empty → no confirmation email.                          |
+| `phone`                                      | Yes         | 10-digit NANP in mobile payload.                        |
+| `streetAddress`                              | Conditional | Required for mobile; max 200 chars.                     |
+| `unitApt`                                    | No          | Max 50 chars for mobile.                                |
+| `city`                                       | Conditional | Required for mobile; max 100 chars.                     |
+| `state`                                      | Conditional | Required for mobile; 2-letter uppercase.                |
+| `zip`                                        | Conditional | Required for mobile; exactly 5 US digits.               |
+| `vehicleYear`, `vehicleMake`, `vehicleModel` | Conditional | All empty, or all set; year is 1900 … current year + 1. |
+| `notes`                                      | No          | Max 280 chars; stored in `customer_notes`.              |
 
 ### Example (minimal owner booking)
 
@@ -162,6 +168,14 @@ Header **`X-Request-ID`** for support.
 | `500` | Server failure.                                              |
 
 Mobile maps these in `mapOwnerManualBookingHttpError` (`postOwnerManualPublicBooking.js`).
+
+### Scheduling and retries
+
+- Mobile refreshes availability and blocking bookings immediately before the final POST.
+- If the selected slot disappeared, it returns the owner to Date and time and clears the stale time.
+- Submit is disabled while refresh/submission is active.
+- Requests are not automatically retried after ambiguous network failures because the endpoint has no idempotency key.
+- The server rejects configured time-off overlap (`409`) but does not transactionally prevent simultaneous booking overlap.
 
 ---
 

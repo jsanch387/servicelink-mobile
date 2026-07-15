@@ -16,8 +16,12 @@ import { CREATE_APPOINTMENT_STEP } from '../constants';
  * @param {number} p.step 0-based index into {@link CREATE_APPOINTMENT_STEP_META}
  * @param {string | null} p.selectedServiceId
  * @param {string | null} p.selectedPricingId
+ * @param {'chooser' | 'catalog'} [p.servicePickPhase]
+ * @param {boolean} [p.isCustomJob]
+ * @param {boolean} [p.customJobComplete]
  * @param {boolean} [p.pricingSkipped] when true, pricing step is bypassed (treat as satisfied)
  * @param {boolean} [p.locationSkipped] when true, location step is bypassed
+ * @param {boolean} [p.addressSkipped] when true, customer address is not required
  * @param {boolean} [p.businessServiceLocationLoading]
  * @param {Array<{ id: string }>} [p.pricingOptions]
  * @param {boolean} [p.priceOptionsLoading]
@@ -38,8 +42,12 @@ export function canContinueCreateAppointmentStep({
   step,
   selectedServiceId,
   selectedPricingId,
+  servicePickPhase = 'catalog',
+  isCustomJob = false,
+  customJobComplete = false,
   pricingSkipped = false,
   locationSkipped = false,
+  addressSkipped = false,
   businessServiceLocationLoading = false,
   pricingOptions = [],
   priceOptionsLoading = false,
@@ -56,8 +64,11 @@ export function canContinueCreateAppointmentStep({
   vehicle,
 }) {
   if (appointmentConfirmed) return false;
-  if (step === CREATE_APPOINTMENT_STEP.SERVICE) return Boolean(selectedServiceId);
+  if (step === CREATE_APPOINTMENT_STEP.SERVICE) {
+    return servicePickPhase === 'catalog' && Boolean(selectedServiceId) && !isCustomJob;
+  }
   if (step === CREATE_APPOINTMENT_STEP.PRICING) {
+    if (isCustomJob) return customJobComplete;
     if (pricingSkipped) return true;
     return isCreateFlowPricingSelectionValid({
       selectedPricingId,
@@ -85,10 +96,11 @@ export function canContinueCreateAppointmentStep({
   if (step === CREATE_APPOINTMENT_STEP.ADDRESS) return isAddressStepComplete(address);
   if (step === CREATE_APPOINTMENT_STEP.VEHICLE) return isVehicleStepComplete(vehicle);
   if (step === CREATE_APPOINTMENT_STEP.REVIEW) {
+    if (isCustomJob && !customJobComplete) return false;
     return isReviewStepComplete({
       selectedServiceId,
-      selectedPricingId,
-      pricingOptions,
+      selectedPricingId: isCustomJob ? selectedServiceId : selectedPricingId,
+      pricingOptions: isCustomJob ? [{ id: selectedServiceId }] : pricingOptions,
       priceOptionsLoading,
       priceOptionsEnabled,
       selectedDateKey,
@@ -96,6 +108,7 @@ export function canContinueCreateAppointmentStep({
       customer,
       appointmentLocationType,
       locationSkipped,
+      addressSkipped,
       address,
       vehicle,
     });

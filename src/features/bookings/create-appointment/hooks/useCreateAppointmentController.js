@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { InteractionManager } from 'react-native';
 import { useToast } from '../../../../components/ui';
@@ -6,6 +7,7 @@ import { customersListQueryKey } from '../../../customers/queryKeys';
 import { catalogAddonsForService } from '../../../services/utils/catalogAddonsForService';
 import { postOwnerManualPublicBooking } from '../api/postOwnerManualPublicBooking';
 import {
+  CREATE_APPOINTMENT_CUSTOM_JOB_ID,
   CREATE_APPOINTMENT_LAST_STEP,
   CREATE_APPOINTMENT_STEP,
   CREATE_APPOINTMENT_STEP_META,
@@ -13,7 +15,11 @@ import {
   createEmptyCustomerForm,
   createEmptyVehicleForm,
 } from '../constants';
-import { isAddressStepComplete } from '../utils/createAppointmentValidators';
+import { serviceDurationHHmmToMinutes } from '../../../../components/ui/durationTime';
+import {
+  isAddressStepComplete,
+  parseRequiredCustomJobPriceCents,
+} from '../utils/createAppointmentValidators';
 import { buildOwnerManualPublicBookingBody } from '../utils/buildOwnerBookingPayload';
 import {
   buildAppliedSaleDiscount,
@@ -49,6 +55,8 @@ import {
   shouldSkipCreateFlowPricingStep,
 } from '../utils/createFlowPricing';
 import { useBookingCalendar } from '../../../availability/booking';
+import { isSelectedScheduleStillValid } from '../../../availability/booking/utils/bookingCalendar';
+import { parseScheduleInputs } from '../../../availability/booking/utils/scheduleInputs';
 import { createAppointmentFlowStyles } from '../styles/createAppointmentFlowStyles';
 import { showAppointmentConfirmationSmsToast } from '../utils/appointmentConfirmationSmsToast';
 import { resolveCreateAppointmentWizardHeader } from '../utils/resolveCreateAppointmentWizardHeader';
@@ -69,7 +77,11 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(CREATE_APPOINTMENT_STEP.SERVICE);
+  const [servicePickPhase, setServicePickPhase] = useState('chooser');
   const [selectedServiceId, setSelectedServiceId] = useState(null);
+  const [customServiceName, setCustomServiceName] = useState('');
+  const [customPriceUsdText, setCustomPriceUsdText] = useState('');
+  const [customDurationHhMm, setCustomDurationHhMm] = useState('01:00');
   const [selectedPricingId, setSelectedPricingId] = useState(null);
   const [selectedAddonIds, setSelectedAddonIds] = useState([]);
   const [selectedDateKey, setSelectedDateKey] = useState(null);
@@ -84,6 +96,24 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   const [confirmRequested, setConfirmRequested] = useState(false);
 
   const catalogError = catalog.businessError || catalog.catalogError;
+  const isCustomJob = selectedServiceId === CREATE_APPOINTMENT_CUSTOM_JOB_ID;
+  const customPriceRaw = String(customPriceUsdText ?? '')
+    .replace(/\$/g, '')
+    .trim();
+  const parsedCustomPriceCents = parseRequiredCustomJobPriceCents(customPriceRaw);
+  const customPriceCents = parsedCustomPriceCents ?? NaN;
+  const customPriceError =
+    customPriceRaw.length > 0 && parsedCustomPriceCents == null
+      ? 'Price must be greater than $0.'
+      : undefined;
+  const customDurationMinutes = serviceDurationHHmmToMinutes(customDurationHhMm);
+  const customJobComplete = Boolean(
+    customServiceName.trim() &&
+    customPriceRaw.length > 0 &&
+    /\d/.test(customPriceRaw) &&
+    parsedCustomPriceCents != null &&
+    customDurationMinutes > 0,
+  );
 
   const enabledServices = useMemo(
     () => catalog.services.filter((s) => s.isEnabled !== false),
@@ -99,10 +129,28 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     setSelectedTime(null);
   }, [selectedDateKey]);
 
-  const selectedService = useMemo(
-    () => catalog.services.find((s) => String(s.id) === String(selectedServiceId)) ?? null,
-    [catalog.services, selectedServiceId],
-  );
+  const customPriceLabel = Number.isFinite(customPriceCents)
+    ? `$${(customPriceCents / 100).toFixed(2)}`
+    : '$0.00';
+
+  const selectedService = useMemo(() => {
+    if (isCustomJob) {
+      return {
+        id: CREATE_APPOINTMENT_CUSTOM_JOB_ID,
+        name: customServiceName.trim(),
+        priceLabel: customPriceLabel,
+        durationMinutes: customDurationMinutes,
+      };
+    }
+    return catalog.services.find((s) => String(s.id) === String(selectedServiceId)) ?? null;
+  }, [
+    catalog.services,
+    customDurationMinutes,
+    customPriceLabel,
+    customServiceName,
+    isCustomJob,
+    selectedServiceId,
+  ]);
 
   const addonsForSelectedService = useMemo(
     () => catalogAddonsForService(selectedServiceId, catalog.addons, catalog.addonAssignments),
@@ -112,7 +160,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   const server = useCreateAppointmentServerData({
     businessId: catalog.businessId,
     userId,
-    selectedServiceId,
+    selectedServiceId: isCustomJob ? null : selectedServiceId,
   });
 
   const selectedServiceRow = useMemo(() => {
@@ -149,6 +197,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
 
   const pricingSkipped = useMemo(
     () =>
+      !isCustomJob &&
       shouldSkipCreateFlowPricingStep({
         selectedServiceId,
         selectedServiceRow,
@@ -164,13 +213,29 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       priceOptionsEnabled,
       server.priceOptionsLoading,
       pricingPayload.options.length,
+      isCustomJob,
     ],
   );
 
-  const selectedPricingOption = useMemo(
-    () => getSelectedCreateFlowPricingOption(pricingPayload.options, selectedPricingId),
-    [pricingPayload.options, selectedPricingId],
-  );
+  const selectedPricingOption = useMemo(() => {
+    if (isCustomJob) {
+      return {
+        id: CREATE_APPOINTMENT_CUSTOM_JOB_ID,
+        label: '',
+        priceCents: Number.isFinite(customPriceCents) ? customPriceCents : 0,
+        priceLabel: customPriceLabel,
+        durationMinutes: customDurationMinutes,
+      };
+    }
+    return getSelectedCreateFlowPricingOption(pricingPayload.options, selectedPricingId);
+  }, [
+    customDurationMinutes,
+    customPriceCents,
+    customPriceLabel,
+    isCustomJob,
+    pricingPayload.options,
+    selectedPricingId,
+  ]);
 
   useEffect(() => {
     if (!selectedPricingId) return;
@@ -310,7 +375,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       const body = buildOwnerManualPublicBookingBody({
         catalog,
         selectedService,
-        selectedServiceId,
+        selectedServiceId: isCustomJob ? null : selectedServiceId,
         selectedPricingOption,
         selectedAddonRows,
         totalDurationMinutes,
@@ -350,7 +415,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   const {
     clearSubmitError,
     handleMutationError,
-    hasCustomerPhone,
+    shouldNotifyCustomer,
     isSubmitting,
     showSubmitPanel,
     submitError,
@@ -360,14 +425,15 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     isMutationPending: createBookingMutation.isPending,
     confirmRequested,
     customerPhone: customer.phone,
+    customerEmail: customer.email,
   });
   submitMutationErrorRef.current = handleMutationError;
 
   const addonCatalogKnown = !catalog.isLoading && !catalogError;
   const addonsCount = addonsForSelectedService.length;
   const addonsSkipped = useMemo(
-    () => isAddonsStepSkipped(addonCatalogKnown, addonsCount),
-    [addonCatalogKnown, addonsCount],
+    () => isCustomJob || isAddonsStepSkipped(addonCatalogKnown, addonsCount),
+    [addonCatalogKnown, addonsCount, isCustomJob],
   );
 
   useEffect(() => {
@@ -397,6 +463,9 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         step,
         selectedServiceId,
         selectedPricingId,
+        servicePickPhase,
+        isCustomJob,
+        customJobComplete,
         pricingSkipped,
         locationSkipped,
         addressSkipped,
@@ -420,6 +489,9 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       step,
       selectedServiceId,
       selectedPricingId,
+      servicePickPhase,
+      isCustomJob,
+      customJobComplete,
       pricingSkipped,
       locationSkipped,
       addressSkipped,
@@ -453,13 +525,10 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     const skipArgs = { pricingSkipped, addonsSkipped, locationSkipped, addressSkipped };
     const stepCount = getCreateAppointmentWizardStepCount(skipArgs);
     const stepIndex = getCreateAppointmentWizardStepIndex(step, skipArgs);
-    const { title, subtitle } = resolveCreateAppointmentWizardHeader(
-      step,
-      meta,
-      selectedService,
-      selectedPricingOption,
-      addressStepCopy,
-    );
+    const { title, subtitle } = resolveCreateAppointmentWizardHeader(step, meta, addressStepCopy, {
+      servicePickPhase,
+      isCustomJob,
+    });
     return {
       stepIndex,
       stepCount,
@@ -475,10 +544,28 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     locationSkipped,
     meta,
     pricingSkipped,
-    selectedPricingOption,
-    selectedService,
+    servicePickPhase,
+    isCustomJob,
     step,
   ]);
+
+  const handleChooseServices = useCallback(() => {
+    if (isCustomJob) {
+      setSelectedServiceId(null);
+    }
+    setServicePickPhase('catalog');
+  }, [isCustomJob]);
+
+  const handleChooseCustomJob = useCallback(() => {
+    setSelectedServiceId(CREATE_APPOINTMENT_CUSTOM_JOB_ID);
+    setSelectedPricingId(null);
+    setSelectedAddonIds([]);
+    setStep(CREATE_APPOINTMENT_STEP.PRICING);
+  }, []);
+
+  const handleSelectServiceId = useCallback((serviceId) => {
+    setSelectedServiceId(serviceId);
+  }, []);
 
   const handleBack = useCallback(() => {
     if (appointmentConfirmed) {
@@ -487,6 +574,15 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     }
     if (submitError) {
       clearSubmitError();
+    }
+    if (step === CREATE_APPOINTMENT_STEP.SERVICE && servicePickPhase === 'catalog') {
+      setServicePickPhase('chooser');
+      return;
+    }
+    if (step === CREATE_APPOINTMENT_STEP.PRICING && isCustomJob) {
+      setStep(CREATE_APPOINTMENT_STEP.SERVICE);
+      setServicePickPhase('chooser');
+      return;
     }
     if (step > CREATE_APPOINTMENT_STEP.SERVICE) {
       setStep(
@@ -509,16 +605,58 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     locationSkipped,
     navigation,
     pricingSkipped,
+    servicePickPhase,
+    isCustomJob,
     step,
     submitError,
   ]);
 
-  const handleContinue = useCallback(() => {
+  const handleContinue = useCallback(async () => {
     if (appointmentConfirmed) return;
+    if (confirmRequested || createBookingMutation.isPending) return;
     if (!canContinue) return;
     if (step === CREATE_APPOINTMENT_LAST_STEP) {
       clearSubmitError();
       setConfirmRequested(true);
+      let freshSchedule;
+      try {
+        freshSchedule = await server.refreshSchedulingData();
+      } catch {
+        setConfirmRequested(false);
+        handleMutationError(
+          new Error('Could not refresh availability. Check your connection and try again.'),
+        );
+        return;
+      }
+
+      const {
+        acceptBookings: freshAcceptBookings,
+        weeklySchedule,
+        timeOffBlocks,
+      } = parseScheduleInputs(freshSchedule.availabilityRow);
+      const freshScheduleCtx = {
+        acceptBookings: freshAcceptBookings,
+        weeklySchedule,
+        timeOffBlocks,
+        blockingBookingRows: freshSchedule.blockingBookingRows,
+        totalDurationMinutes,
+      };
+      const { dateValid, timeValid } = isSelectedScheduleStillValid(
+        freshScheduleCtx,
+        selectedDateKey,
+        selectedTime,
+        { scheduleLoading: false },
+      );
+      if (!dateValid || !timeValid) {
+        if (!dateValid) setSelectedDateKey(null);
+        setSelectedTime(null);
+        setStep(CREATE_APPOINTMENT_STEP.SCHEDULE);
+        setConfirmRequested(false);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+        toast.info('That time is no longer available. Choose another time.');
+        return;
+      }
+
       createBookingMutation.mutate(undefined, {
         onSettled: () => {
           setConfirmRequested(false);
@@ -541,10 +679,17 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     appointmentConfirmed,
     canContinue,
     clearSubmitError,
+    confirmRequested,
     createBookingMutation,
+    handleMutationError,
     locationSkipped,
     pricingSkipped,
+    selectedDateKey,
+    selectedTime,
+    server,
     step,
+    toast,
+    totalDurationMinutes,
   ]);
 
   const handleDone = useCallback(() => {
@@ -568,8 +713,19 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       catalogIsLoading: catalog.isLoading,
       enabledServices,
       categories: catalog.categories,
+      servicePickPhase,
+      isCustomJob,
       selectedServiceId,
-      onSelectServiceId: setSelectedServiceId,
+      onChooseServices: handleChooseServices,
+      onChooseCustomJob: handleChooseCustomJob,
+      onSelectServiceId: handleSelectServiceId,
+      customServiceName,
+      customPriceUsdText,
+      customPriceError,
+      customDurationHhMm,
+      onCustomServiceNameChange: setCustomServiceName,
+      onCustomPriceUsdTextChange: setCustomPriceUsdText,
+      onCustomDurationHhMmChange: setCustomDurationHhMm,
       pricingOptions: pricingPayload.options,
       priceOptionsLoading: server.priceOptionsLoading,
       selectedPricingId,
@@ -614,7 +770,16 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       catalog.isLoading,
       enabledServices,
       catalog.categories,
+      servicePickPhase,
+      isCustomJob,
       selectedServiceId,
+      handleChooseServices,
+      handleChooseCustomJob,
+      handleSelectServiceId,
+      customServiceName,
+      customPriceUsdText,
+      customPriceError,
+      customDurationHhMm,
       pricingPayload.options,
       server.priceOptionsLoading,
       selectedPricingId,
@@ -653,7 +818,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       visible: showSubmitPanel,
       active: isSubmitting || confirmRequested,
       error: submitError,
-      hasCustomerPhone,
+      shouldNotifyCustomer,
       onRetry: clearSubmitError,
     },
     wizardHeader,
@@ -661,9 +826,14 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     footer: {
       appointmentConfirmed,
       canContinue,
+      confirmLoading: confirmRequested || createBookingMutation.isPending,
       hideWhileSubmitPanel: showSubmitPanel,
       lastStepIndex: CREATE_APPOINTMENT_LAST_STEP,
       step,
+      backTitle:
+        step === CREATE_APPOINTMENT_STEP.SERVICE && servicePickPhase === 'catalog'
+          ? 'Back'
+          : undefined,
       onBack: handleBack,
       onContinue: handleContinue,
       onDone: handleDone,

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../../components/ui';
+import {
+  AppText,
+  InlineCardError,
+  ServicePathChooser,
+  SkeletonBox,
+  SurfaceCard,
+} from '../../../../components/ui';
 import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { BOOKING_LINK_ALL_CATEGORY_ID } from '../../../bookingLink/constants/bookingLinkServiceCategories';
 import { BookingLinkServiceCategoryFilters } from '../../../bookingLink/preview/components/BookingLinkServiceCategoryFilters';
@@ -75,11 +81,14 @@ function ServiceListSkeleton({ showCategoryTabs = false }) {
 }
 
 export function ServiceStep({
+  phase = 'chooser',
   catalogError,
   categories = [],
   isLoading,
   services,
   selectedServiceId,
+  onChooseServices,
+  onChooseCustomJob,
   onSelectServiceId,
 }) {
   const { colors } = useTheme();
@@ -140,6 +149,15 @@ export function ServiceStep({
     [onSelectServiceId, selectedServiceId],
   );
 
+  if (phase === 'chooser') {
+    return (
+      <ServicePathChooser
+        onChooseCustomJob={onChooseCustomJob}
+        onChooseServices={onChooseServices}
+      />
+    );
+  }
+
   if (catalogError) {
     return (
       <View style={styles.errorWrap}>
@@ -155,7 +173,7 @@ export function ServiceStep({
   if (!services.length) {
     return (
       <AppText style={styles.empty}>
-        No active services yet. Add services in the Services tab.
+        No active services yet. Add some in Services, or go back and choose a custom job.
       </AppText>
     );
   }

@@ -38,13 +38,6 @@ export function AddonsStep({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        sectionTitle: {
-          color: colors.text,
-          fontSize: 17,
-          fontWeight: '700',
-          letterSpacing: -0.2,
-          marginBottom: 12,
-        },
         summarySection: {
           marginTop: 20,
         },
@@ -175,8 +168,6 @@ export function AddonsStep({
 
   return (
     <View>
-      <AppText style={styles.sectionTitle}>Optional add-ons</AppText>
-
       {addons.map((addon) => {
         const selected = selectedAddonIds.some((id) => String(id) === String(addon.id));
         const priceLine = addon.priceLabel ?? addon.price ?? '';

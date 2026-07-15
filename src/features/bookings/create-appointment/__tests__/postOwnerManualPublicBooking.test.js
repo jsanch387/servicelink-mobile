@@ -37,6 +37,7 @@ describe('postOwnerManualPublicBooking', () => {
         headers: expect.objectContaining({
           Authorization: 'Bearer jwt',
           'Content-Type': 'application/json',
+          'X-Request-ID': expect.any(String),
         }),
       }),
     );
@@ -67,6 +68,25 @@ describe('postOwnerManualPublicBooking', () => {
 
   it('maps 403 with server message', () => {
     expect(mapOwnerManualBookingHttpError(403, 'Free tier limit')).toBe('Free tier limit');
+  });
+
+  it('preserves an optional server errorCode', async () => {
+    global.fetch.mockResolvedValue({
+      status: 409,
+      headers: { get: () => 'req-conflict' },
+      json: async () => ({
+        success: false,
+        error: 'That time overlaps time off.',
+        errorCode: 'TIME_OFF_CONFLICT',
+      }),
+    });
+
+    const out = await postOwnerManualPublicBooking(' jwt ', { ownerManualBooking: true });
+
+    expect(out.ok).toBe(false);
+    expect(out.httpStatus).toBe(409);
+    expect(out.errorCode).toBe('TIME_OFF_CONFLICT');
+    expect(out.requestId).toBe('req-conflict');
   });
 });
 

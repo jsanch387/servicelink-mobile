@@ -1,7 +1,12 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { AppText, InlineCardError, SkeletonBox, SurfaceCard } from '../../../../components/ui';
+import { StyleSheet, View } from 'react-native';
+import {
+  AppText,
+  InlineCardError,
+  ServicePathChooser,
+  SkeletonBox,
+  SurfaceCard,
+} from '../../../../components/ui';
 import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { BOOKING_LINK_ALL_CATEGORY_ID } from '../../../bookingLink/constants/bookingLinkServiceCategories';
 import { BookingLinkServiceCategoryFilters } from '../../../bookingLink/preview/components/BookingLinkServiceCategoryFilters';
@@ -13,76 +18,6 @@ import {
 import { ServicePreviewCard } from '../../../services/components/ServicePreviewCard';
 import { mapCatalogServiceToPreviewCard } from '../../../services/utils/mapCatalogServiceToPreviewCard';
 import { useTheme } from '../../../../theme';
-
-/**
- * @param {{
- *   title: string;
- *   subtitle: string;
- *   icon: keyof typeof Ionicons.glyphMap;
- *   onPress: () => void;
- * }} props
- */
-function PathCard({ title, subtitle, icon, onPress }) {
-  const { colors } = useTheme();
-
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        press: {
-          marginBottom: 12,
-        },
-        face: {
-          alignItems: 'center',
-          backgroundColor: colors.cardSurface,
-          borderColor: colors.border,
-          borderRadius: 18,
-          borderWidth: 1.5,
-          flexDirection: 'row',
-          gap: 14,
-          paddingHorizontal: 16,
-          paddingVertical: 18,
-        },
-        iconWrap: {
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 28,
-        },
-        textCol: {
-          flex: 1,
-          minWidth: 0,
-        },
-        title: {
-          color: colors.text,
-          fontSize: 17,
-          fontWeight: '600',
-          letterSpacing: -0.25,
-        },
-        subtitle: {
-          color: colors.textMuted,
-          fontSize: 14,
-          fontWeight: '500',
-          lineHeight: 20,
-          marginTop: 4,
-        },
-      }),
-    [colors],
-  );
-
-  return (
-    <Pressable accessibilityRole="button" style={styles.press} onPress={onPress}>
-      <View style={styles.face}>
-        <View style={styles.iconWrap}>
-          <Ionicons color={colors.textMuted} name={icon} size={24} />
-        </View>
-        <View style={styles.textCol}>
-          <AppText style={styles.title}>{title}</AppText>
-          <AppText style={styles.subtitle}>{subtitle}</AppText>
-        </View>
-        <Ionicons color={colors.textMuted} name="chevron-forward" size={22} />
-      </View>
-    </Pressable>
-  );
-}
 
 function ServiceListSkeleton({ showCategoryTabs = false }) {
   const { colors } = useTheme();
@@ -250,19 +185,9 @@ export function CreateQuoteStepServicePick({
   }
 
   return (
-    <View>
-      <PathCard
-        icon="grid-outline"
-        subtitle="Choose something you already offer."
-        title="Your services"
-        onPress={onChooseYourServices}
-      />
-      <PathCard
-        icon="create-outline"
-        subtitle="Name the work and set your own price."
-        title="Custom job"
-        onPress={onChooseCustomJob}
-      />
-    </View>
+    <ServicePathChooser
+      onChooseCustomJob={onChooseCustomJob}
+      onChooseServices={onChooseYourServices}
+    />
   );
 }

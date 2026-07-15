@@ -34,13 +34,6 @@ export function PricingStep({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        sectionTitle: {
-          color: colors.text,
-          fontSize: 17,
-          fontWeight: '700',
-          letterSpacing: -0.2,
-          marginBottom: 12,
-        },
         summarySection: {
           marginTop: 20,
         },
@@ -108,8 +101,6 @@ export function PricingStep({
 
   return (
     <View>
-      <AppText style={styles.sectionTitle}>Choose an option</AppText>
-
       {priceOptionsLoading && options.length === 0 ? (
         <AppText style={styles.loading}>Loading pricing options…</AppText>
       ) : null}

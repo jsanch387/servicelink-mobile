@@ -8,7 +8,7 @@ describe('mapBookingsToRestOfTodayItems', () => {
         scheduled_date: '2026-05-13',
         start_time: '09:00:00',
         status: 'confirmed',
-        service_name: 'Paint correction',
+        service_name: 'Paint correction — Premium',
       },
       {
         id: '2',

@@ -12,7 +12,8 @@ import { CreateFlowFooter } from './components/CreateFlowFooter';
 import { useCreateAppointmentController } from './hooks/useCreateAppointmentController';
 
 /**
- * Owner manual booking wizard: service → pricing → add-ons → schedule → customer → location → address → vehicle → review.
+ * Owner manual booking wizard: catalog service or custom job → optional pricing/add-ons → schedule → customer →
+ * location → address → vehicle → review.
  * Confirming a booking calls the Next.js `POST /api/public/bookings` pipeline (emails, payments row, caps) — see
  * `create-appointment/docs/OWNER_MANUAL_BOOKING_SERVER.md`.
  * State and side effects live in {@link useCreateAppointmentController}.
@@ -93,7 +94,7 @@ export function CreateAppointmentFlow({ onImmersiveSubmitChange }) {
           <CreateAppointmentSubmittingState
             active={flow.submitPanel.active}
             error={flow.submitPanel.error}
-            hasCustomerPhone={flow.submitPanel.hasCustomerPhone}
+            shouldNotifyCustomer={flow.submitPanel.shouldNotifyCustomer}
             immersive
             onRetryFromError={flow.submitPanel.onRetry}
           />

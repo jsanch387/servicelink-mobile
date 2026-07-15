@@ -38,6 +38,7 @@ describe('buildServicesCatalogModel', () => {
     expect(model.services.map((s) => s.id)).toEqual(['svc-a', 'svc-b']);
     expect(model.services[0].addonsCountLabel).toBe('2 add-ons');
     expect(model.services[0].categoryId).toBe('cat-cars');
+    expect(model.services[0].priceCents).toBe(15000);
     expect(model.services[1].addonsCountLabel).toBe('1 add-on');
     expect(model.services[1].isEnabled).toBe(false);
   });
@@ -55,6 +56,7 @@ describe('buildServicesCatalogModel', () => {
     expect(model.addons[0]).toMatchObject({
       id: 'ad-0',
       durationLabel: '',
+      priceCents: 0,
       priceLabel: '+$0',
       price: '0.00',
       durationHHmm: '',
