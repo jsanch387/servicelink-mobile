@@ -2,15 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Linking,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -32,6 +24,7 @@ import {
   QuoteRequestActivitySection,
   QuoteRequestDetailBody,
 } from '../components/QuoteRequestDetailBody';
+import { QuoteDetailSkeleton } from '../components/QuoteDetailSkeleton';
 import { SentQuoteDetailBody } from '../components/SentQuoteDetailBody';
 import { QUOTE_DETAIL_KIND_REQUEST } from '../constants';
 import { useQuoteDetail } from '../hooks/useQuoteDetail';
@@ -61,12 +54,14 @@ export function QuoteDetailScreen() {
   const { businessId, kind, model, isLoading, detailError, businessError, refetch, isFetching } =
     useQuoteDetail(quoteId);
   const isRequest = kind === QUOTE_DETAIL_KIND_REQUEST;
+  const isRequestRoute = route.params?.kind === QUOTE_DETAIL_KIND_REQUEST;
+  const displayIsRequest = isRequest || (!kind && isRequestRoute);
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: isRequest ? 'Quote request' : 'Sent quote',
+      title: displayIsRequest ? 'Quote request' : 'Sent quote',
     });
-  }, [navigation, isRequest]);
+  }, [displayIsRequest, navigation]);
 
   const handleCreateQuote = useCallback(() => {
     if (!model) return;
@@ -163,12 +158,6 @@ export function QuoteDetailScreen() {
         actions: {
           gap: 12,
           marginTop: 4,
-        },
-        bootWrap: {
-          alignItems: 'center',
-          flex: 1,
-          justifyContent: 'center',
-          paddingHorizontal: SCREEN_GUTTER,
         },
         errorRetry: {
           marginTop: 12,
@@ -281,14 +270,15 @@ export function QuoteDetailScreen() {
 
   if (isLoading && !model) {
     return (
-      <SafeAreaView
-        accessibilityLabel="Loading quote"
-        edges={['left', 'right', 'bottom']}
-        style={styles.root}
-      >
-        <View style={styles.bootWrap}>
-          <ActivityIndicator color={colors.accent} size="large" />
-        </View>
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.root}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={quoteDetailRefreshControl}
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          <QuoteDetailSkeleton isRequest={displayIsRequest} />
+        </ScrollView>
       </SafeAreaView>
     );
   }
