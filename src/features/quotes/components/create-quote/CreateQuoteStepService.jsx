@@ -30,6 +30,8 @@ function normalizePriceInput(rawText) {
 }
 
 /**
+ * Custom job details: name, price, and duration.
+ *
  * @param {object} props
  * @param {string} props.serviceName
  * @param {(t: string) => void} props.onServiceNameChange

@@ -1,5 +1,9 @@
 import { QUOTE_DETAIL_KIND_REQUEST, QUOTE_DETAIL_KIND_SENT } from '../constants';
-import { formatQuoteRowScheduleLabel, isValidCalendarYyyyMmDd } from './formatScheduledDateDisplay';
+import { splitBookingServiceName } from '../../../utils/splitBookingServiceName';
+import {
+  formatScheduledDateUserFacing,
+  isValidCalendarYyyyMmDd,
+} from './formatScheduledDateDisplay';
 import { dbTimeToCreateQuoteTime12hSnapped } from './validateSendQuotePayload';
 
 function startOfLocalDayMs(ms) {
@@ -114,6 +118,46 @@ function formatVehicleLine(row) {
   return parts.join(' ');
 }
 
+function quoteField(row, snakeCaseKey, camelCaseKey) {
+  return row?.[camelCaseKey] !== undefined ? row[camelCaseKey] : row?.[snakeCaseKey];
+}
+
+function formatQuoteTimeDisplay(value) {
+  const raw = String(value ?? '').trim();
+  const match = /^(\d{1,2}):(\d{2})/.exec(raw);
+  if (!match) return raw;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return raw;
+  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function normalizeQuoteAddonDetails(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((addon) => {
+      const id = String(addon?.id ?? '').trim();
+      const name = String(addon?.name ?? '').trim();
+      const priceCents = Number(addon?.priceCents ?? addon?.price_cents);
+      const durationRaw = addon?.durationMinutes ?? addon?.duration_minutes;
+      const durationMinutes = durationRaw == null ? null : Number(durationRaw);
+      if (!id || !name || !Number.isFinite(priceCents)) return null;
+      return {
+        id,
+        name,
+        priceCents: Math.max(0, Math.round(priceCents)),
+        durationMinutes:
+          Number.isFinite(durationMinutes) && durationMinutes > 0
+            ? Math.round(durationMinutes)
+            : null,
+      };
+    })
+    .filter(Boolean);
+}
+
 /**
  * @param {{ request_message?: string | null; vehicle_year?: unknown; vehicle_make?: unknown; vehicle_model?: unknown }} row
  * @param {number} [maxChars]
@@ -180,11 +224,22 @@ export function partitionQuotesForInbox(rows) {
  */
 export function mapQuoteRequestCard(row, nowMs) {
   const name = String(row.customer_name ?? '').trim() || 'Customer';
+  const service = String(row.service_name ?? '').trim();
+  const vehicle = formatVehicleLine(row);
+  const hasMessage = Boolean(String(row.request_message ?? '').trim());
+  const summary = hasMessage ? summarizeInboundQuote(row) : '';
+  const title = service || vehicle || 'Quote request';
+  const receivedLabel = formatQuoteInboxRelative(row.updated_at ?? row.created_at, nowMs);
   return {
     id: row.id,
     customerName: name,
-    summary: summarizeInboundQuote(row),
-    receivedLabel: formatQuoteInboxRelative(row.updated_at ?? row.created_at, nowMs),
+    title,
+    summary,
+    vehicleLabel: vehicle && vehicle !== title ? vehicle : '',
+    timestampLabel: receivedLabel ? `Received ${receivedLabel}` : 'Recently received',
+    receivedLabel,
+    statusLabel: 'New request',
+    statusRaw: 'requested',
   };
 }
 
@@ -194,6 +249,7 @@ export function mapQuoteRequestCard(row, nowMs) {
 export function mapSentQuoteCard(row) {
   const name = String(row.customer_name ?? '').trim() || 'Customer';
   const service = String(row.service_name ?? '').trim();
+  const serviceName = service ? splitBookingServiceName(service).primary : '';
   const price = formatQuoteMoney(row.price_cents);
   const line =
     service && row.price_cents != null ? `${service} · ${price}` : service || price || '—';
@@ -201,6 +257,9 @@ export function mapSentQuoteCard(row) {
   return {
     id: row.id,
     customerName: name,
+    title: serviceName || 'Custom quote',
+    vehicleLabel: formatVehicleLine(row),
+    timestampLabel: '',
     line,
     statusLabel: formatOwnerFacingQuoteStatus(row.status),
     statusRaw: String(row.status ?? ''),
@@ -226,41 +285,83 @@ export function deriveQuoteDetailKind(row) {
  */
 export function mapQuoteDetailModel(row, kind, opts = {}) {
   const activeLinkExpiresAt = opts.activeLinkExpiresAt ?? null;
-  const name = String(row.customer_name ?? '').trim() || 'Customer';
+  const name = String(quoteField(row, 'customer_name', 'customerName') ?? '').trim() || 'Customer';
+  const vehicleYear = quoteField(row, 'vehicle_year', 'vehicleYear');
+  const vehicleMake = quoteField(row, 'vehicle_make', 'vehicleMake');
+  const vehicleModel = quoteField(row, 'vehicle_model', 'vehicleModel');
+  const vehicle =
+    String(row.vehicleLine ?? '').trim() ||
+    formatVehicleLine({
+      vehicle_year: vehicleYear,
+      vehicle_make: vehicleMake,
+      vehicle_model: vehicleModel,
+    });
+  const service = String(quoteField(row, 'service_name', 'serviceName') ?? '').trim();
+  const scheduledDate = String(quoteField(row, 'scheduled_date', 'scheduledDate') ?? '').trim();
+  const scheduledTime = String(
+    quoteField(row, 'scheduled_start_time', 'scheduledTime') ?? '',
+  ).trim();
 
   const base = {
     id: row.id,
     customerName: name,
-    email: String(row.customer_email ?? '').trim(),
-    phone: String(row.customer_phone ?? '').trim(),
+    email: String(quoteField(row, 'customer_email', 'customerEmail') ?? '').trim(),
+    phone: String(quoteField(row, 'customer_phone', 'customerPhone') ?? '').trim(),
   };
 
   if (kind === QUOTE_DETAIL_KIND_REQUEST) {
-    const vehicle = formatVehicleLine(row);
-    const serviceName = String(row.service_name ?? '').trim();
-    const dateRaw = String(row.scheduled_date ?? '').trim();
-    const scheduledDateYyyyMmDd = isValidCalendarYyyyMmDd(dateRaw) ? dateRaw : '';
-    const scheduledStartTime12h = dbTimeToCreateQuoteTime12hSnapped(row.scheduled_start_time);
+    const requestMessage = String(
+      quoteField(row, 'request_message', 'requestMessage') ?? '',
+    ).trim();
+    const scheduledDateYyyyMmDd = isValidCalendarYyyyMmDd(scheduledDate) ? scheduledDate : '';
+    const scheduledStartTime12h = dbTimeToCreateQuoteTime12hSnapped(scheduledTime);
+    const requestedDateLabel = scheduledDateYyyyMmDd
+      ? formatScheduledDateUserFacing(scheduledDateYyyyMmDd)
+      : null;
+    const requestedTimeLabel = scheduledStartTime12h || null;
     return {
       ...base,
-      summary: summarizeInboundQuote(row, 220),
+      summary: summarizeInboundQuote(
+        {
+          request_message: requestMessage,
+          vehicle_year: vehicleYear,
+          vehicle_make: vehicleMake,
+          vehicle_model: vehicleModel,
+        },
+        220,
+      ),
       vehicle,
-      message: String(row.request_message ?? '').trim(),
-      receivedAt: formatQuoteDetailTimestamp(row.created_at ?? row.updated_at),
-      serviceName,
-      preferredTiming: formatQuoteRowScheduleLabel(row),
-      vehicleYear: row.vehicle_year != null ? String(row.vehicle_year).trim() : '',
-      vehicleMake: String(row.vehicle_make ?? '').trim(),
-      vehicleModel: String(row.vehicle_model ?? '').trim(),
+      message: requestMessage,
+      receivedAt: formatQuoteDetailTimestamp(
+        quoteField(row, 'created_at', 'createdAt') ?? quoteField(row, 'updated_at', 'activityAt'),
+      ),
+      serviceName: service,
+      vehicleYear: vehicleYear != null ? String(vehicleYear).trim() : '',
+      vehicleMake: String(vehicleMake ?? '').trim(),
+      vehicleModel: String(vehicleModel ?? '').trim(),
       scheduledDateYyyyMmDd,
       scheduledStartTime12h,
+      requestedDateLabel,
+      requestedTimeLabel,
+      serviceAddressLine: String(
+        quoteField(row, 'service_address_line', 'serviceAddressLine') ?? '',
+      ).trim(),
     };
   }
 
-  const service = String(row.service_name ?? '').trim();
-  const price = formatQuoteMoney(row.price_cents);
-  const line =
-    service && row.price_cents != null ? `${service} · ${price}` : service || price || '—';
+  const totalCents = quoteField(row, 'price_cents', 'totalCents');
+  const price = formatQuoteMoney(totalCents);
+  const line = service && totalCents != null ? `${service} · ${price}` : service || price || '—';
+  const servicePriceOptionId = quoteField(row, 'service_price_option_id', 'servicePriceOptionId');
+  const serviceParts = splitBookingServiceName(service);
+  const pricingOptionLabel = servicePriceOptionId ? serviceParts.pricingOption : null;
+  const serviceTitle = pricingOptionLabel ? serviceParts.primary : service;
+  const servicePriceCentsRaw = quoteField(row, 'service_price_cents', 'servicePriceCents');
+  const servicePriceCents =
+    servicePriceCentsRaw != null && Number.isFinite(Number(servicePriceCentsRaw))
+      ? Number(servicePriceCentsRaw)
+      : null;
+  const addonDetails = normalizeQuoteAddonDetails(quoteField(row, 'addon_details', 'addonDetails'));
 
   const st = String(row.status ?? '').toLowerCase();
   let linkHint = 'Customer opens your quote from the link you sent.';
@@ -273,10 +374,10 @@ export function mapQuoteDetailModel(row, kind, opts = {}) {
 
   const quoteSummaryParts = [];
   if (service) quoteSummaryParts.push(service);
-  if (row.price_cents != null) quoteSummaryParts.push(price);
+  if (totalCents != null) quoteSummaryParts.push(price);
   const quoteSummary = quoteSummaryParts.length ? quoteSummaryParts.join(' · ') : '—';
 
-  const dm = Number(row.duration_minutes);
+  const dm = Number(quoteField(row, 'duration_minutes', 'durationMinutes'));
   let durationLabel = null;
   if (Number.isFinite(dm) && dm > 0) {
     if (dm >= 60) {
@@ -288,20 +389,49 @@ export function mapQuoteDetailModel(row, kind, opts = {}) {
     }
   }
 
+  let scheduleLabel = 'Customer will choose date and time';
+  let scheduleState = 'customer';
+  const scheduleDateLabel = scheduledDate
+    ? isValidCalendarYyyyMmDd(scheduledDate)
+      ? formatScheduledDateUserFacing(scheduledDate)
+      : scheduledDate
+    : null;
+  const scheduleTimeLabel = scheduledTime ? formatQuoteTimeDisplay(scheduledTime) : null;
+  if (scheduledDate && scheduledTime) {
+    scheduleLabel = `${scheduleDateLabel} · ${scheduleTimeLabel}`;
+    scheduleState = 'scheduled';
+  } else if (scheduledDate || scheduledTime) {
+    scheduleLabel = 'Schedule incomplete';
+    scheduleState = 'incomplete';
+  }
+
   return {
     ...base,
     line,
-    /** Short service title — detail hero (no duplicated combined line). */
-    serviceTitle: service || '',
+    serviceTitle: serviceTitle || '',
+    pricingOptionLabel,
+    servicePriceFormatted: servicePriceCents != null ? formatQuoteMoney(servicePriceCents) : null,
+    addonDetails: addonDetails.map((addon) => ({
+      ...addon,
+      priceFormatted: formatQuoteMoney(addon.priceCents),
+    })),
     /** Formatted USD or null when unset. */
-    priceFormatted: row.price_cents != null ? price : null,
+    priceFormatted: totalCents != null ? price : null,
     durationLabel,
     statusLabel: formatOwnerFacingQuoteStatus(row.status),
     /** Raw DB enum for pill styling. */
     statusRaw: String(row.status ?? ''),
-    sentAt: formatQuoteDetailTimestamp(row.updated_at ?? row.created_at),
+    sentAt: formatQuoteDetailTimestamp(
+      quoteField(row, 'updated_at', 'activityAt') ?? quoteField(row, 'created_at', 'createdAt'),
+    ),
     goodUntil: activeLinkExpiresAt ? formatQuoteCalendarDate(activeLinkExpiresAt) : '—',
     quoteSummary,
     linkHint,
+    scheduleLabel,
+    scheduleState,
+    scheduleDateLabel,
+    scheduleTimeLabel,
+    note: String(row.note ?? '').trim(),
+    serviceAddressLine: String(row.serviceAddressLine ?? '').trim(),
   };
 }

@@ -1,6 +1,12 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, DetailIconFieldRow, DetailsSectionCard, Divider } from '../../../components/ui';
+import {
+  AppText,
+  DetailIconFieldRow,
+  DetailsSectionCard,
+  Divider,
+  InfoSection,
+} from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 
 /**
@@ -26,7 +32,9 @@ function pickRequestDetailsBody(message, summary, vehicle) {
  *   vehicle?: string;
  *   message?: string;
  *   serviceName?: string;
- *   preferredTiming?: string;
+ *   requestedDateLabel?: string | null;
+ *   requestedTimeLabel?: string | null;
+ *   serviceAddressLine?: string;
  * }} props.model
  */
 export function QuoteRequestDetailBody({ model }) {
@@ -34,18 +42,23 @@ export function QuoteRequestDetailBody({ model }) {
 
   const vehicleDisplay = String(model.vehicle ?? '').trim();
   const serviceName = String(model.serviceName ?? '').trim();
-  const preferredTiming = String(model.preferredTiming ?? '').trim();
   const detailsBody = useMemo(
     () => pickRequestDetailsBody(model.message, model.summary, vehicleDisplay),
     [model.message, model.summary, vehicleDisplay],
   );
 
-  const hasTopRows =
-    serviceName.length > 0 || preferredTiming.length > 0 || vehicleDisplay.length > 0;
+  const hasTopRows = serviceName.length > 0 || vehicleDisplay.length > 0;
+  const requestedDateLabel = String(model.requestedDateLabel ?? '').trim();
+  const requestedTimeLabel = String(model.requestedTimeLabel ?? '').trim();
+  const hasRequestedSchedule = requestedDateLabel.length > 0 || requestedTimeLabel.length > 0;
+  const serviceAddressLine = String(model.serviceAddressLine ?? '').trim();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        sectionsColumn: {
+          gap: 22,
+        },
         requestStack: {
           gap: 18,
           paddingVertical: 2,
@@ -84,34 +97,50 @@ export function QuoteRequestDetailBody({ model }) {
     );
 
   return (
-    <DetailsSectionCard title="Request">
-      <View style={styles.requestStack}>
-        {serviceName.length > 0 ? (
-          <DetailIconFieldRow icon="construct-outline" label="Service" value={serviceName} />
-        ) : null}
-        {preferredTiming.length > 0 ? (
-          <DetailIconFieldRow
-            icon="calendar-outline"
-            label="Preferred timing"
-            value={preferredTiming}
-          />
-        ) : null}
-        {vehicleDisplay.length > 0 ? (
-          <DetailIconFieldRow icon="car-sport-outline" label="Vehicle" value={vehicleDisplay} />
-        ) : null}
+    <View style={styles.sectionsColumn}>
+      <DetailsSectionCard title="Request">
+        <View style={styles.requestStack}>
+          {serviceName.length > 0 ? (
+            <DetailIconFieldRow icon="construct-outline" label="Service" value={serviceName} />
+          ) : null}
+          {vehicleDisplay.length > 0 ? (
+            <DetailIconFieldRow icon="car-sport-outline" label="Vehicle" value={vehicleDisplay} />
+          ) : null}
 
-        {hasTopRows ? (
-          <>
-            <View style={styles.dividerWrap}>
-              <Divider />
-            </View>
-            <View style={styles.detailsBlock}>{detailsContent}</View>
-          </>
-        ) : (
-          detailsContent
-        )}
-      </View>
-    </DetailsSectionCard>
+          {hasTopRows ? (
+            <>
+              <View style={styles.dividerWrap}>
+                <Divider />
+              </View>
+              <View style={styles.detailsBlock}>{detailsContent}</View>
+            </>
+          ) : (
+            detailsContent
+          )}
+        </View>
+      </DetailsSectionCard>
+
+      {hasRequestedSchedule ? (
+        <DetailsSectionCard title="Requested schedule">
+          <View style={styles.requestStack}>
+            {requestedDateLabel ? (
+              <DetailIconFieldRow icon="calendar-outline" label="Date" value={requestedDateLabel} />
+            ) : null}
+            {requestedTimeLabel ? (
+              <DetailIconFieldRow icon="time-outline" label="Time" value={requestedTimeLabel} />
+            ) : null}
+          </View>
+        </DetailsSectionCard>
+      ) : null}
+
+      {serviceAddressLine ? (
+        <InfoSection
+          rowGap={14}
+          rows={[{ icon: 'location-outline', value: serviceAddressLine }]}
+          title="Location"
+        />
+      ) : null}
+    </View>
   );
 }
 

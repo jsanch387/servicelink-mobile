@@ -1,48 +1,69 @@
+import { CREATE_QUOTE_CUSTOM_JOB_ID, CREATE_QUOTE_STEP } from '../constants/createQuoteWizard';
 import { canAdvanceCreateQuoteStep } from '../utils/createQuoteStepGuards';
 
 const baseSnapshot = {
   customerName: 'Pat',
   customerEmail: 'pat@example.com',
   customerPhoneDisplay: '',
+  selectedServiceId: CREATE_QUOTE_CUSTOM_JOB_ID,
+  isCustomJob: true,
+  selectedPricingId: null,
+  pricingOptionsCount: 0,
+  priceOptionsLoading: false,
   serviceName: 'Wash',
   priceUsdText: '50',
   durationHhMm: '01:00',
+  scheduleMode: 'pick',
   scheduledDateYyyyMmDd: '2026-09-01',
   scheduledStartTime12h: '2:00 PM',
 };
 
 describe('canAdvanceCreateQuoteStep', () => {
   it('requires name, valid email, and optional valid phone on customer step', () => {
-    expect(canAdvanceCreateQuoteStep(0, { ...baseSnapshot, customerName: '' })).toBe(false);
-    expect(canAdvanceCreateQuoteStep(0, { ...baseSnapshot, customerEmail: 'bad' })).toBe(false);
-    expect(canAdvanceCreateQuoteStep(0, { ...baseSnapshot, customerPhoneDisplay: '123' })).toBe(
-      false,
-    );
-    expect(canAdvanceCreateQuoteStep(0, baseSnapshot)).toBe(true);
+    expect(
+      canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.CUSTOMER, {
+        ...baseSnapshot,
+        customerName: '',
+      }),
+    ).toBe(false);
+    expect(canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.CUSTOMER, baseSnapshot)).toBe(true);
   });
 
   it('allows vehicle step without fields', () => {
-    expect(canAdvanceCreateQuoteStep(1, baseSnapshot)).toBe(true);
+    expect(canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.VEHICLE, baseSnapshot)).toBe(true);
   });
 
-  it('requires service, price, and duration on service step', () => {
-    expect(canAdvanceCreateQuoteStep(2, { ...baseSnapshot, priceUsdText: '' })).toBe(false);
-    expect(canAdvanceCreateQuoteStep(2, { ...baseSnapshot, serviceName: '' })).toBe(false);
-    expect(canAdvanceCreateQuoteStep(2, { ...baseSnapshot, durationHhMm: '' })).toBe(false);
-    expect(canAdvanceCreateQuoteStep(2, baseSnapshot)).toBe(true);
+  it('requires a selected service on service pick step', () => {
+    expect(
+      canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.SERVICE, {
+        ...baseSnapshot,
+        selectedServiceId: null,
+      }),
+    ).toBe(false);
+    expect(canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.SERVICE, baseSnapshot)).toBe(true);
   });
 
-  it('requires valid schedule date and time', () => {
+  it('blocks continue on the schedule path chooser', () => {
+    expect(canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.SCHEDULE, baseSnapshot)).toBe(false);
+  });
+
+  it('requires valid date and time on the calendar pick step', () => {
     expect(
-      canAdvanceCreateQuoteStep(3, { ...baseSnapshot, scheduledDateYyyyMmDd: 'not-a-date' }),
+      canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.SCHEDULE_PICK, {
+        ...baseSnapshot,
+        scheduledDateYyyyMmDd: 'not-a-date',
+      }),
     ).toBe(false);
     expect(
-      canAdvanceCreateQuoteStep(3, { ...baseSnapshot, scheduledStartTime12h: '9:15 AM' }),
+      canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.SCHEDULE_PICK, {
+        ...baseSnapshot,
+        scheduledStartTime12h: '9:15 AM',
+      }),
     ).toBe(false);
-    expect(canAdvanceCreateQuoteStep(3, baseSnapshot)).toBe(true);
+    expect(canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.SCHEDULE_PICK, baseSnapshot)).toBe(true);
   });
 
   it('always allows review step', () => {
-    expect(canAdvanceCreateQuoteStep(4, baseSnapshot)).toBe(true);
+    expect(canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.REVIEW, baseSnapshot)).toBe(true);
   });
 });
