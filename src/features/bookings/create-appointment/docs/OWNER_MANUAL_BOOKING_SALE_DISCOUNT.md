@@ -21,9 +21,9 @@ Server must apply (or re-validate) the sale when inserting the booking so amount
 
 ---
 
-## What mobile sends today
+## Mobile preview fields
 
-When a sale is previewed on Review, mobile adds these optional fields on `POST /api/public/bookings` (in addition to the existing owner body):
+When a sale is previewed on Review, mobile may add these optional fields to `POST /api/public/bookings`. They are preview metadata only: the current server ignores their values and recomputes the qualifying sale and persisted snapshot from server-side data.
 
 | Field            | Type                               | Notes                                                      |
 | ---------------- | ---------------------------------- | ---------------------------------------------------------- |
@@ -37,11 +37,11 @@ When a sale is previewed on Review, mobile adds these optional fields on `POST /
 
 **Important:** `servicePriceCents` and `selectedAddOns[].priceCents` remain **gross** (pre-discount). Do not treat them as already reduced.
 
-Mobile UI total = `subtotalCents - discountCents`.
+Mobile UI total = `subtotalCents - discountCents`. The submitted service and add-on cents remain gross; the server is the final source of truth.
 
 ---
 
-## What the server must do
+## Server behavior
 
 ### 1. Resolve the sale (source of truth)
 
@@ -51,8 +51,7 @@ On `ownerManualBooking: true`:
 2. Find the sale that should apply for `scheduledDate`:
    - Prefer `is_active = true`
    - Appointment date in window (or open-ended sale with null dates)
-3. **Ignore** any client `discountSaleId` that is inactive, wrong business, or outside the window — recompute from DB.
-4. If the client sends a qualifying `discountSaleId` that matches the server’s pick, OK to use; if mismatch, **prefer server resolution** and still persist a correct snapshot.
+3. Ignore client preview discount fields and recompute from DB.
 
 ### 2. Persist booking discount snapshot
 

@@ -36,6 +36,7 @@ export function AddressStep({ address, onChangeAddress }) {
           compact
           containerStyle={FIELD_SHELL}
           label="Street address"
+          maxLength={200}
           placeholder="123 Main Street"
           value={address.street}
           onChangeText={(t) => onChangeAddress({ ...address, street: t })}
@@ -44,6 +45,7 @@ export function AddressStep({ address, onChangeAddress }) {
           compact
           containerStyle={FIELD_SHELL}
           label="Unit or apartment (optional)"
+          maxLength={50}
           placeholder="Apt 4B"
           value={address.unit}
           onChangeText={(t) => onChangeAddress({ ...address, unit: t })}
@@ -52,6 +54,7 @@ export function AddressStep({ address, onChangeAddress }) {
           compact
           containerStyle={FIELD_SHELL}
           label="City"
+          maxLength={100}
           placeholder="Austin"
           value={address.city}
           onChangeText={(t) => onChangeAddress({ ...address, city: t })}
@@ -83,9 +86,17 @@ export function AddressStep({ address, onChangeAddress }) {
               containerStyle={FIELD_SHELL}
               keyboardType="number-pad"
               label="ZIP code"
+              maxLength={5}
               placeholder="78701"
               value={address.zip}
-              onChangeText={(t) => onChangeAddress({ ...address, zip: t })}
+              onChangeText={(t) =>
+                onChangeAddress({
+                  ...address,
+                  zip: String(t ?? '')
+                    .replace(/\D/g, '')
+                    .slice(0, 5),
+                })
+              }
             />
           </View>
         </View>

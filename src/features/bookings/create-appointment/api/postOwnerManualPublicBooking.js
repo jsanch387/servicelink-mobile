@@ -67,7 +67,7 @@ export function mapOwnerManualBookingHttpError(httpStatus, serverMessage) {
  * @param {Record<string, unknown>} body - {@link buildOwnerManualPublicBookingBody}
  * @returns {Promise<
  *   | { ok: true; data: { id: string }; requestId?: string }
- *   | { ok: false; error: Error; httpStatus: number; requestId?: string }
+ *   | { ok: false; error: Error; httpStatus: number; errorCode?: string; requestId?: string }
  * >}
  */
 export async function postOwnerManualPublicBooking(accessToken, body) {
@@ -76,7 +76,8 @@ export async function postOwnerManualPublicBooking(accessToken, body) {
   if (httpsErr) {
     return { ok: false, error: httpsErr, httpStatus: 0 };
   }
-  if (!accessToken) {
+  const token = String(accessToken ?? '').trim();
+  if (!token) {
     return { ok: false, error: new Error('Not signed in'), httpStatus: 0 };
   }
 
@@ -88,7 +89,7 @@ export async function postOwnerManualPublicBooking(accessToken, body) {
       method: 'POST',
       headers: {
         Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
         'X-Request-ID': requestId,
       },
@@ -99,6 +100,7 @@ export async function postOwnerManualPublicBooking(accessToken, body) {
       ok: false,
       error: err instanceof Error ? err : new Error('Network request failed'),
       httpStatus: 0,
+      requestId,
     };
   }
 
@@ -128,9 +130,14 @@ export async function postOwnerManualPublicBooking(accessToken, body) {
   }
 
   const msg = mapOwnerManualBookingHttpError(res.status, serverMessage);
+  const errorCode =
+    typeof parsed?.errorCode === 'string' && parsed.errorCode.trim()
+      ? parsed.errorCode.trim()
+      : undefined;
   return {
     ok: false,
     error: new Error(msg),
+    errorCode,
     httpStatus: res.status,
     requestId: echoedRequestId,
   };

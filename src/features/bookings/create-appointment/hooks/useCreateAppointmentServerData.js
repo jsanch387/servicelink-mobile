@@ -107,6 +107,19 @@ export function useCreateAppointmentServerData({
     staleTime: 45 * 1000,
   });
 
+  const refreshSchedulingData = async () => {
+    const [availabilityResult, blockingResult] = await Promise.all([
+      availabilityQ.refetch(),
+      blockingQ.refetch(),
+    ]);
+    if (availabilityResult.error) throw availabilityResult.error;
+    if (blockingResult.error) throw blockingResult.error;
+    return {
+      availabilityRow: availabilityResult.data ?? null,
+      blockingBookingRows: blockingResult.data ?? [],
+    };
+  };
+
   return {
     ownerHasPro,
     ownerProfileLoading: ownerQ.isPending,
@@ -117,7 +130,7 @@ export function useCreateAppointmentServerData({
     availabilityLoading: availabilityQ.isPending,
     availabilityError: availabilityQ.error?.message ?? null,
     priceOptionRows: priceOptionsQ.data ?? [],
-    priceOptionsLoading: priceOptionsQ.isPending,
+    priceOptionsLoading: Boolean(selectedServiceId) && priceOptionsQ.isPending,
     priceOptionsError: priceOptionsQ.error?.message ?? null,
     blockingBookingRows: blockingQ.data ?? [],
     blockingLoading: blockingQ.isPending,
@@ -126,5 +139,6 @@ export function useCreateAppointmentServerData({
     salesLoading: salesQ.isPending,
     rangeFrom,
     rangeTo,
+    refreshSchedulingData,
   };
 }

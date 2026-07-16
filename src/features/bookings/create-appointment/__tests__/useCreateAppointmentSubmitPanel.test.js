@@ -9,19 +9,20 @@ jest.mock('expo-haptics', () => ({
 }));
 
 describe('useCreateAppointmentSubmitPanel', () => {
-  it('shows the submit panel while pending on review', () => {
+  it('shows the submit panel and recognizes email notification while pending on review', () => {
     const { result } = renderHook(() =>
       useCreateAppointmentSubmitPanel({
         step: CREATE_APPOINTMENT_STEP.REVIEW,
         appointmentConfirmed: false,
         isMutationPending: true,
-        customerPhone: '5551234567',
+        customerPhone: null,
+        customerEmail: 'customer@example.com',
       }),
     );
 
     expect(result.current.showSubmitPanel).toBe(true);
     expect(result.current.isSubmitting).toBe(true);
-    expect(result.current.hasCustomerPhone).toBe(true);
+    expect(result.current.shouldNotifyCustomer).toBe(true);
   });
 
   it('shows the submit panel immediately when confirm is requested before mutation pending', () => {

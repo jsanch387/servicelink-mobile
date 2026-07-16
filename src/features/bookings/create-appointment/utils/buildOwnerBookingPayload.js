@@ -1,5 +1,6 @@
 import { bookingCustomerPhoneDigits, startTime12hToApiStartTime } from './ownerBookingFieldFormats';
 import { appointmentLocationTypeForApi } from './createAppointmentServiceLocation';
+import { isCreateFlowBasePricingId } from './createFlowPricing';
 import { parsePriceLabelToUsd } from './priceLabelMath';
 
 /**
@@ -16,7 +17,7 @@ export function buildServiceDisplayName(selectedService, selectedPricingOption) 
 }
 
 /**
- * @param {Array<{ id: unknown; name?: string; priceLabel?: string; durationMinutes?: number | null }>} selectedAddonRows
+ * @param {Array<{ id: unknown; name?: string; priceCents?: number; priceLabel?: string; durationMinutes?: number | null }>} selectedAddonRows
  */
 export function buildAddonDetailsPayload(selectedAddonRows) {
   if (!selectedAddonRows?.length) return null;
@@ -24,7 +25,10 @@ export function buildAddonDetailsPayload(selectedAddonRows) {
     addons: selectedAddonRows.map((a) => ({
       id: a.id,
       name: a.name,
-      priceCents: Math.round(parsePriceLabelToUsd(a.priceLabel) * 100),
+      priceCents:
+        a.priceCents != null && Number.isFinite(Number(a.priceCents))
+          ? Math.max(0, Math.round(Number(a.priceCents)))
+          : Math.round(parsePriceLabelToUsd(a.priceLabel) * 100),
       durationMinutes: a.durationMinutes ?? 0,
     })),
   };
@@ -32,7 +36,7 @@ export function buildAddonDetailsPayload(selectedAddonRows) {
 
 /**
  * Maps selected add-ons to `selectedAddOns` on `POST /api/public/bookings`.
- * @param {Array<{ id: unknown; name?: string; priceLabel?: string; durationMinutes?: number | null }>} selectedAddonRows
+ * @param {Array<{ id: unknown; name?: string; priceCents?: number; priceLabel?: string; durationMinutes?: number | null }>} selectedAddonRows
  * @returns {Array<{ id: string; name: string; priceCents: number; durationMinutes: number }>}
  */
 export function buildSelectedAddOnsForPublicApi(selectedAddonRows) {
@@ -40,7 +44,10 @@ export function buildSelectedAddOnsForPublicApi(selectedAddonRows) {
   return selectedAddonRows.map((a) => ({
     id: String(a.id),
     name: String(a.name ?? '').trim() || 'Add-on',
-    priceCents: Math.round(parsePriceLabelToUsd(a.priceLabel) * 100),
+    priceCents:
+      a.priceCents != null && Number.isFinite(Number(a.priceCents))
+        ? Math.max(0, Math.round(Number(a.priceCents)))
+        : Math.round(parsePriceLabelToUsd(a.priceLabel) * 100),
     durationMinutes: a.durationMinutes ?? 0,
   }));
 }
@@ -91,44 +98,55 @@ export function buildOwnerManualPublicBookingBody({
   const notesTrimmed = typeof notes === 'string' ? notes.trim() : '';
   const tierRaw =
     selectedPricingOption?.label != null ? String(selectedPricingOption.label).trim() : '';
-  const optionLabel = tierRaw && tierRaw !== 'Standard' ? tierRaw : null;
+  const isBasePrice =
+    isCreateFlowBasePricingId(selectedPricingOption?.id, selectedServiceId) ||
+    (!selectedPricingOption?.id && tierRaw === 'Standard');
+  const optionLabel = tierRaw && !isBasePrice ? tierRaw : null;
   const baseServiceName = selectedService?.name?.trim() || 'Service';
+  const selectedAddOns = buildSelectedAddOnsForPublicApi(selectedAddonRows);
+  const servicePriceCents = Math.max(0, Math.round(Number(selectedPricingOption?.priceCents) || 0));
 
   /** @type {Record<string, unknown>} */
   const body = {
     businessSlug: String(catalog.businessSlug ?? '').trim(),
     businessId: String(catalog.businessId ?? '').trim(),
     serviceName: baseServiceName,
-    servicePriceCents: selectedPricingOption?.priceCents ?? 0,
-    selectedAddOns: buildSelectedAddOnsForPublicApi(selectedAddonRows),
-    durationMinutes: totalDurationMinutes,
+    servicePriceCents,
+    durationMinutes: Math.max(1, Math.round(Number(totalDurationMinutes) || 0)),
     scheduledDate: selectedDateKey,
     startTime: startTime12hToApiStartTime(selectedTime),
     paymentMethodSelected: 'none',
     ownerManualBooking: true,
     serviceLocationType: appointmentLocationTypeForApi(appointmentLocationType),
     customer: {
-      fullName: customer.fullName.trim(),
-      email: String(customer.email ?? '').trim(),
+      fullName: customer.fullName.trim().slice(0, 120),
+      email: String(customer.email ?? '')
+        .trim()
+        .slice(0, 254),
       phone: bookingCustomerPhoneDigits(customer.phone),
-      streetAddress: address.street.trim(),
-      unitApt: String(address.unit ?? '').trim(),
-      city: address.city.trim(),
+      streetAddress: address.street.trim().slice(0, 200),
+      unitApt: String(address.unit ?? '')
+        .trim()
+        .slice(0, 50),
+      city: address.city.trim().slice(0, 100),
       state: String(address.state ?? '')
         .trim()
         .toUpperCase()
         .slice(0, 2),
-      zip: address.zip.trim(),
+      zip: address.zip.trim().slice(0, 5),
       vehicleYear: String(vehicle.year ?? '').trim(),
       vehicleMake: String(vehicle.make ?? '').trim(),
       vehicleModel: String(vehicle.model ?? '').trim(),
-      notes: notesTrimmed,
+      notes: notesTrimmed.slice(0, 280),
     },
   };
 
   const sid = selectedServiceId != null ? String(selectedServiceId).trim() : '';
   if (sid) {
     body.serviceId = sid;
+  }
+  if (selectedAddOns.length > 0 || sid) {
+    body.selectedAddOns = selectedAddOns;
   }
   if (optionLabel) {
     body.servicePriceOptionLabel = optionLabel;

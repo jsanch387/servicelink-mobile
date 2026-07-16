@@ -15,14 +15,14 @@ import {
 import { QUOTE_NOTE_MAX } from '../../constants/createQuoteFieldLimits';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 import { canonicalNanpDigits, formatPhoneForDisplay } from '../../../../utils/phone';
+import { splitBookingServiceName } from '../../../../utils/splitBookingServiceName';
 import {
   formatScheduledDateUserFacing,
   isValidCalendarYyyyMmDd,
 } from '../../utils/formatScheduledDateDisplay';
 
 /**
- * Mirrors {@link SentQuoteDetailBody} / quote detail: {@link DetailsSectionCard}, {@link InfoSection},
- * proposal headline + price + duration row, activity-style rows.
+ * Review step for create-quote: proposal, schedule, customer, vehicle, notes.
  *
  * @param {object} props
  * @param {string} props.customerName
@@ -34,6 +34,9 @@ import {
  * @param {string} props.serviceName
  * @param {string} props.priceUsdText
  * @param {string} props.durationHhMm
+ * @param {string | null} [props.pricingOptionLabel]
+ * @param {Array<{ id: string; name: string; priceLabel?: string }> | null} [props.addonLines]
+ * @param {'unset' | 'pick' | 'customer'} [props.scheduleMode]
  * @param {string} props.scheduledDateYyyyMmDd
  * @param {string} props.scheduledStartTime12h
  * @param {string} props.customerRequestNotes From the quote request (read-only).
@@ -50,6 +53,9 @@ export function CreateQuoteStepReview({
   serviceName,
   priceUsdText,
   durationHhMm,
+  pricingOptionLabel = null,
+  addonLines = null,
+  scheduleMode = 'unset',
   scheduledDateYyyyMmDd,
   scheduledStartTime12h,
   customerRequestNotes,
@@ -103,7 +109,8 @@ export function CreateQuoteStepReview({
     return t.length > 0 ? t : null;
   }, [scheduledStartTime12h]);
 
-  const showScheduleSection = Boolean(scheduleDateDisplay || scheduleTimeDisplay);
+  const showScheduleSection =
+    scheduleMode === 'customer' || Boolean(scheduleDateDisplay || scheduleTimeDisplay);
 
   const customerRows = useMemo(() => {
     const rows = [];
@@ -135,6 +142,14 @@ export function CreateQuoteStepReview({
   }, [customerEmail, customerName, phoneDigits10, phoneLine]);
 
   const showCustomerSection = customerRows.length > 0;
+  const customerRequestNotesTrimmed = String(customerRequestNotes ?? '').trim();
+  const optionLine = String(pricingOptionLabel ?? '').trim();
+  const serviceNameTrimmed = serviceName.trim() || 'Quoted service';
+  const serviceHeadline = optionLine
+    ? splitBookingServiceName(serviceNameTrimmed).primary
+    : serviceNameTrimmed;
+  const reviewAddons = Array.isArray(addonLines) ? addonLines : [];
+  const hasAddons = reviewAddons.length > 0;
 
   const styles = useMemo(
     () =>
@@ -142,13 +157,16 @@ export function CreateQuoteStepReview({
         reviewRoot: {
           gap: 22,
         },
+        heroBlock: {
+          marginBottom: 6,
+        },
         heroHeadline: {
           color: colors.text,
           fontFamily: FONT_FAMILIES.semibold,
           fontSize: 22,
           letterSpacing: -0.35,
           lineHeight: 28,
-          marginBottom: 8,
+          marginBottom: 3,
         },
         heroSub: {
           color: colors.textMuted,
@@ -157,33 +175,88 @@ export function CreateQuoteStepReview({
           fontWeight: '500',
           letterSpacing: -0.1,
           lineHeight: 21,
-          marginBottom: 4,
+        },
+        heroDivider: {
+          marginTop: 9,
         },
         proposalInner: {
-          paddingVertical: 4,
+          paddingVertical: 2,
         },
         serviceTitle: {
           color: colors.text,
           fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 22,
-          letterSpacing: -0.35,
-          lineHeight: 28,
+          fontSize: 18,
+          letterSpacing: -0.3,
+          lineHeight: 24,
         },
-        price: {
+        optionLabel: {
+          color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 14,
+          fontWeight: '500',
+          letterSpacing: -0.1,
+          lineHeight: 20,
+          marginTop: 4,
+        },
+        lineItems: {
+          marginTop: 14,
+        },
+        lineRow: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginBottom: 8,
+        },
+        lineName: {
+          color: colors.textSecondary,
+          flex: 1,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 14,
+          fontWeight: '500',
+          marginRight: 12,
+        },
+        linePrice: {
+          color: colors.textSecondary,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 14,
+          fontWeight: '600',
+        },
+        dividerWrap: {
+          marginBottom: 12,
+          marginTop: 4,
+        },
+        totalRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+        },
+        totalLabel: {
           color: colors.text,
           fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 30,
-          letterSpacing: -0.6,
-          lineHeight: 36,
-          marginTop: 8,
+          fontSize: 16,
+          letterSpacing: -0.2,
         },
-        durationRow: {
+        totalValue: {
+          color: colors.text,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 22,
+          letterSpacing: -0.4,
+        },
+        priceOnly: {
+          color: colors.text,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 28,
+          letterSpacing: -0.5,
+          lineHeight: 34,
+          marginTop: 10,
+        },
+        metaRow: {
           alignItems: 'center',
           flexDirection: 'row',
           gap: 8,
-          marginTop: 14,
+          marginTop: 12,
         },
-        durationText: {
+        metaText: {
           color: colors.textMuted,
           flex: 1,
           fontFamily: FONT_FAMILIES.medium,
@@ -277,29 +350,53 @@ export function CreateQuoteStepReview({
     [colors],
   );
 
-  const serviceHeadline = serviceName.trim() || 'Quoted service';
-
   return (
     <View style={styles.reviewRoot}>
-      <View>
+      <View style={styles.heroBlock}>
         <AppText style={styles.heroHeadline}>Review quote</AppText>
-        <AppText style={styles.heroSub}>
-          Review the details, then send quote. Your customer gets a link to accept or decline.
-        </AppText>
+        <AppText style={styles.heroSub}>Review the details, then send.</AppText>
+        <Divider style={styles.heroDivider} />
       </View>
 
       <DetailsSectionCard title="Proposal">
         <View style={styles.proposalInner}>
           <AppText style={styles.serviceTitle}>{serviceHeadline}</AppText>
-          {priceDisplay ? (
-            <AppText style={styles.price}>{priceDisplay}</AppText>
+          {optionLine ? <AppText style={styles.optionLabel}>{optionLine}</AppText> : null}
+
+          {hasAddons ? (
+            <>
+              <View style={styles.lineItems}>
+                {reviewAddons.map((a) => (
+                  <View key={a.id} style={styles.lineRow}>
+                    <AppText numberOfLines={2} style={styles.lineName}>
+                      {a.name}
+                    </AppText>
+                    {a.priceLabel ? (
+                      <AppText style={styles.linePrice}>{a.priceLabel}</AppText>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+              <View style={styles.dividerWrap}>
+                <Divider />
+              </View>
+              <View style={styles.totalRow}>
+                <AppText style={styles.totalLabel}>Total</AppText>
+                <AppText style={styles.totalValue}>{priceDisplay || '—'}</AppText>
+              </View>
+            </>
+          ) : priceDisplay ? (
+            <AppText style={styles.priceOnly}>{priceDisplay}</AppText>
           ) : (
-            <AppText style={[styles.price, { fontSize: 17, opacity: 0.85 }]}>Price not set</AppText>
+            <AppText style={[styles.priceOnly, { fontSize: 17, opacity: 0.85 }]}>
+              Price not set
+            </AppText>
           )}
+
           {durationLabel ? (
-            <View style={styles.durationRow}>
+            <View style={styles.metaRow}>
               <Ionicons color={colors.textMuted} name="timer-outline" size={18} />
-              <AppText style={styles.durationText}>Estimated duration · {durationLabel}</AppText>
+              <AppText style={styles.metaText}>Duration · {durationLabel}</AppText>
             </View>
           ) : null}
         </View>
@@ -308,28 +405,42 @@ export function CreateQuoteStepReview({
       {showScheduleSection ? (
         <DetailsSectionCard title="Schedule">
           <View style={styles.activityStack}>
-            {scheduleDateDisplay ? (
+            {scheduleMode === 'customer' ? (
               <View style={styles.activityRow}>
                 <View style={styles.activityIconWrap}>
                   <Ionicons color={colors.accentMuted} name="calendar-outline" size={19} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <AppText style={styles.activityLabel}>Date</AppText>
-                  <AppText style={styles.activityValue}>{scheduleDateDisplay}</AppText>
+                  <AppText style={styles.activityLabel}>Date & time</AppText>
+                  <AppText style={styles.activityValue}>Customer will choose</AppText>
                 </View>
               </View>
-            ) : null}
-            {scheduleTimeDisplay ? (
-              <View style={styles.activityRow}>
-                <View style={styles.activityIconWrap}>
-                  <Ionicons color={colors.accentMuted} name="time-outline" size={19} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.activityLabel}>Time</AppText>
-                  <AppText style={styles.activityValue}>{scheduleTimeDisplay}</AppText>
-                </View>
-              </View>
-            ) : null}
+            ) : (
+              <>
+                {scheduleDateDisplay ? (
+                  <View style={styles.activityRow}>
+                    <View style={styles.activityIconWrap}>
+                      <Ionicons color={colors.accentMuted} name="calendar-outline" size={19} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <AppText style={styles.activityLabel}>Date</AppText>
+                      <AppText style={styles.activityValue}>{scheduleDateDisplay}</AppText>
+                    </View>
+                  </View>
+                ) : null}
+                {scheduleTimeDisplay ? (
+                  <View style={styles.activityRow}>
+                    <View style={styles.activityIconWrap}>
+                      <Ionicons color={colors.accentMuted} name="time-outline" size={19} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <AppText style={styles.activityLabel}>Time</AppText>
+                      <AppText style={styles.activityValue}>{scheduleTimeDisplay}</AppText>
+                    </View>
+                  </View>
+                ) : null}
+              </>
+            )}
           </View>
         </DetailsSectionCard>
       ) : null}
@@ -353,20 +464,17 @@ export function CreateQuoteStepReview({
 
       <DetailsSectionCard title="Notes">
         <View style={styles.notesStack}>
-          <View>
-            <AppText style={styles.noteSectionLabel}>Customer notes</AppText>
-            <AppText
-              style={[
-                styles.noteReadonlyBody,
-                !String(customerRequestNotes ?? '').trim() && { color: colors.textMuted },
-              ]}
-            >
-              {String(customerRequestNotes ?? '').trim() || 'None'}
-            </AppText>
-          </View>
-          <View style={styles.notesDividerWrap}>
-            <Divider />
-          </View>
+          {customerRequestNotesTrimmed ? (
+            <>
+              <View>
+                <AppText style={styles.noteSectionLabel}>Customer notes</AppText>
+                <AppText style={styles.noteReadonlyBody}>{customerRequestNotesTrimmed}</AppText>
+              </View>
+              <View style={styles.notesDividerWrap}>
+                <Divider />
+              </View>
+            </>
+          ) : null}
           <View>
             <AppText style={styles.noteSectionLabel}>Business notes</AppText>
             <AppTextInput

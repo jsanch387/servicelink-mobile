@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, EchoBarsLoader, SubmitOutcomeError } from '../../../../components/ui';
+import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { useTheme } from '../../../../theme';
 import { useCyclingSubmitStatusMessage } from '../hooks/useCyclingSubmitStatusMessage';
 import { buildSubmitStatusMessages } from '../utils/submitStatusMessages';
@@ -12,22 +12,21 @@ import { buildSubmitStatusMessages } from '../utils/submitStatusMessages';
  * @param {object} props
  * @param {boolean} props.active
  * @param {string | null | undefined} props.error
- * @param {boolean} [props.hasCustomerPhone]
+ * @param {boolean} [props.shouldNotifyCustomer]
  * @param {boolean} [props.immersive] Full-screen submit (nav header hidden)
  * @param {() => void} [props.onRetryFromError]
  */
 export function CreateAppointmentSubmittingState({
   active,
   error,
-  hasCustomerPhone = false,
+  shouldNotifyCustomer = false,
   immersive = false,
   onRetryFromError,
 }) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const messages = useMemo(
-    () => buildSubmitStatusMessages({ hasCustomerPhone }),
-    [hasCustomerPhone],
+    () => buildSubmitStatusMessages({ shouldNotifyCustomer }),
+    [shouldNotifyCustomer],
   );
   const statusMessage = useCyclingSubmitStatusMessage(active, messages);
 
@@ -41,7 +40,6 @@ export function CreateAppointmentSubmittingState({
           flexGrow: 1,
           justifyContent: 'center',
           minHeight: immersive ? undefined : 280,
-          paddingTop: immersive ? insets.top : 0,
           paddingVertical: immersive ? 0 : 24,
           width: '100%',
         },
@@ -57,10 +55,11 @@ export function CreateAppointmentSubmittingState({
         },
         errorSlot: {
           alignSelf: 'stretch',
+          paddingHorizontal: SCREEN_GUTTER,
           width: '100%',
         },
       }),
-    [colors, immersive, insets.top],
+    [colors, immersive],
   );
 
   if (error) {

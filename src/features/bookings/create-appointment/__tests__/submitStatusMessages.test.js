@@ -2,17 +2,22 @@ import { buildSubmitStatusMessages, SUBMIT_STATUS_COPY } from '../utils/submitSt
 
 describe('buildSubmitStatusMessages', () => {
   it('includes notifying copy when customer has a phone', () => {
-    expect(buildSubmitStatusMessages({ hasCustomerPhone: true })).toEqual([
+    expect(buildSubmitStatusMessages({ shouldNotifyCustomer: true })).toEqual([
       SUBMIT_STATUS_COPY.submitting,
+      SUBMIT_STATUS_COPY.saving,
       SUBMIT_STATUS_COPY.calendar,
       SUBMIT_STATUS_COPY.notifying,
+      SUBMIT_STATUS_COPY.finishing,
     ]);
   });
 
-  it('omits notifying copy when customer has no phone', () => {
-    expect(buildSubmitStatusMessages({ hasCustomerPhone: false })).toEqual([
+  it('uses confirming copy when customer has no phone', () => {
+    expect(buildSubmitStatusMessages({ shouldNotifyCustomer: false })).toEqual([
       SUBMIT_STATUS_COPY.submitting,
+      SUBMIT_STATUS_COPY.saving,
       SUBMIT_STATUS_COPY.calendar,
+      SUBMIT_STATUS_COPY.confirming,
+      SUBMIT_STATUS_COPY.finishing,
     ]);
   });
 });

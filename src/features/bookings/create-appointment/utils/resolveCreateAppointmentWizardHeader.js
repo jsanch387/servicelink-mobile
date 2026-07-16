@@ -1,35 +1,30 @@
 import { CREATE_APPOINTMENT_STEP } from '../constants';
 
 /**
- * Step-specific wizard header copy (pricing / add-ons use the service name as the title).
+ * Step-specific wizard header copy.
  *
  * @param {number} step
  * @param {{ title?: string; subtitle?: string } | undefined} meta
- * @param {{ name?: string } | null | undefined} selectedService
- * @param {{ label?: string } | null | undefined} selectedPricingOption
  * @param {{ title?: string; subtitle?: string } | null | undefined} [addressStepCopy]
+ * @param {{ servicePickPhase?: 'chooser' | 'catalog'; isCustomJob?: boolean }} [context]
  */
 export function resolveCreateAppointmentWizardHeader(
   step,
   meta,
-  selectedService,
-  selectedPricingOption,
   addressStepCopy = null,
+  context = {},
 ) {
-  if (step === CREATE_APPOINTMENT_STEP.PRICING && selectedService?.name) {
+  if (step === CREATE_APPOINTMENT_STEP.SERVICE && context.servicePickPhase === 'catalog') {
     return {
-      title: selectedService.name,
-      subtitle: 'Choose a price tier',
+      title: 'Choose a service',
+      subtitle: 'Pick one of your services for this appointment.',
     };
   }
 
-  if (step === CREATE_APPOINTMENT_STEP.ADDONS && selectedService?.name) {
-    const tierLabel = String(selectedPricingOption?.label ?? '').trim();
+  if (step === CREATE_APPOINTMENT_STEP.PRICING && context.isCustomJob) {
     return {
-      title: selectedService.name,
-      subtitle: tierLabel
-        ? `${tierLabel} · Optional add-ons`
-        : 'Optional add-ons — skip if none needed',
+      title: 'Custom job',
+      subtitle: 'Name it, set a price, and estimate duration.',
     };
   }
 

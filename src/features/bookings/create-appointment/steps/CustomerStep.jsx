@@ -1,7 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   AppText,
+  RequiredFieldLabel,
   SurfaceCard,
   SurfaceEmailField,
   SurfacePhoneField,
@@ -38,13 +40,23 @@ export function CustomerStep({ customer, onChangeCustomer }) {
           paddingVertical: 16,
         },
         footnote: {
-          color: colors.textMuted,
-          fontSize: 13,
-          lineHeight: 18,
-          marginTop: 4,
+          color: colors.placeholder,
+          fontSize: 12,
+          flex: 1,
+          lineHeight: 16,
+        },
+        emailGroup: {
+          gap: 6,
+        },
+        infoRow: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          gap: 5,
+          opacity: 0.95,
+          paddingHorizontal: 2,
         },
       }),
-    [colors.textMuted],
+    [colors.placeholder],
   );
 
   return (
@@ -54,7 +66,8 @@ export function CustomerStep({ customer, onChangeCustomer }) {
           autoCapitalize="words"
           compact
           containerStyle={FIELD_SHELL}
-          label="Full name"
+          label={<RequiredFieldLabel compact text="Full name" />}
+          maxLength={120}
           placeholder="Jordan Lee"
           value={customer.fullName}
           onChangeText={(t) => onChangeCustomer({ ...customer, fullName: t })}
@@ -62,25 +75,30 @@ export function CustomerStep({ customer, onChangeCustomer }) {
         <SurfacePhoneField
           compact
           containerStyle={FIELD_SHELL}
-          label="Phone"
+          label={<RequiredFieldLabel compact text="Phone" />}
           leftIcon="call-outline"
           placeholder="(555) 234-5678"
           value={customer.phone}
           onChangeText={(t) => onChangeCustomer({ ...customer, phone: t })}
         />
-        <SurfaceEmailField
-          compact
-          containerStyle={FIELD_SHELL}
-          errorText={emailError}
-          label="Email (optional)"
-          leftIcon="mail-outline"
-          placeholder="jordan@email.com"
-          value={customer.email}
-          onChangeText={(t) => onChangeCustomer({ ...customer, email: t })}
-        />
-        {!emailTrim ? (
-          <AppText style={styles.footnote}>No email, no confirmation will be sent.</AppText>
-        ) : null}
+        <View style={styles.emailGroup}>
+          <SurfaceEmailField
+            compact
+            containerStyle={FIELD_SHELL}
+            errorText={emailError}
+            label="Email (optional)"
+            leftIcon="mail-outline"
+            placeholder="jordan@email.com"
+            value={customer.email}
+            onChangeText={(t) => onChangeCustomer({ ...customer, email: t })}
+          />
+          {!emailTrim ? (
+            <View style={styles.infoRow}>
+              <Ionicons color={colors.placeholder} name="information-circle-outline" size={14} />
+              <AppText style={styles.footnote}>No email, no confirmation will be sent.</AppText>
+            </View>
+          ) : null}
+        </View>
       </View>
     </SurfaceCard>
   );

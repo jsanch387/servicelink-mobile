@@ -142,6 +142,47 @@ describe('canContinueCreateAppointmentStep', () => {
     ).toBe(true);
   });
 
+  it('allows a complete custom job and does not require catalog pricing', () => {
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: CREATE_APPOINTMENT_STEP.PRICING,
+        selectedServiceId: '__custom_job__',
+        selectedPricingId: null,
+        isCustomJob: true,
+        customJobComplete: true,
+        acceptBookings: true,
+        scheduleLoading: false,
+        selectedDateKey: null,
+        selectedTime: null,
+        timeSlots: [],
+        customer: {},
+        address: {},
+        vehicle: {},
+      }),
+    ).toBe(true);
+  });
+
+  it('keeps Continue disabled on the initial job chooser', () => {
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: CREATE_APPOINTMENT_STEP.SERVICE,
+        selectedServiceId: 's1',
+        selectedPricingId: null,
+        servicePickPhase: 'chooser',
+        acceptBookings: true,
+        scheduleLoading: false,
+        selectedDateKey: null,
+        selectedTime: null,
+        timeSlots: [],
+        customer: {},
+        address: {},
+        vehicle: {},
+      }),
+    ).toBe(false);
+  });
+
   it('step 1 blocks while tiered price options are loading', () => {
     expect(
       canContinueCreateAppointmentStep({
@@ -200,12 +241,64 @@ describe('canContinueCreateAppointmentStep', () => {
     ).toBe(true);
   });
 
+  it('allows an empty optional vehicle but blocks partial vehicle data', () => {
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: CREATE_APPOINTMENT_STEP.VEHICLE,
+        selectedServiceId: 's',
+        selectedPricingId: 'p',
+        acceptBookings: true,
+        scheduleLoading: false,
+        selectedDateKey: null,
+        selectedTime: null,
+        timeSlots: [],
+        customer: {},
+        address: {},
+        vehicle: {},
+      }),
+    ).toBe(true);
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: CREATE_APPOINTMENT_STEP.VEHICLE,
+        selectedServiceId: 's',
+        selectedPricingId: 'p',
+        acceptBookings: true,
+        scheduleLoading: false,
+        selectedDateKey: null,
+        selectedTime: null,
+        timeSlots: [],
+        customer: {},
+        address: {},
+        vehicle: { year: '2022', make: '', model: '' },
+      }),
+    ).toBe(false);
+  });
+
   it('step 8 uses isReviewStepComplete', () => {
     expect(
       canContinueCreateAppointmentStep({
         appointmentConfirmed: false,
         step: CREATE_APPOINTMENT_STEP.REVIEW,
         ...reviewReady,
+        acceptBookings: true,
+        scheduleLoading: false,
+        timeSlots: [],
+      }),
+    ).toBe(true);
+  });
+
+  it('allows review confirmation for a complete custom job', () => {
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: CREATE_APPOINTMENT_STEP.REVIEW,
+        ...reviewReady,
+        selectedServiceId: '__custom_job__',
+        selectedPricingId: null,
+        isCustomJob: true,
+        customJobComplete: true,
         acceptBookings: true,
         scheduleLoading: false,
         timeSlots: [],

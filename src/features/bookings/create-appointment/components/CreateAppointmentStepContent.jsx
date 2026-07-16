@@ -2,6 +2,7 @@ import { AddonsStep } from '../steps/AddonsStep';
 import { AddressStep, LocationStep } from '../steps/AddressStep';
 import { AppointmentConfirmedStep } from '../steps/AppointmentConfirmedStep';
 import { CustomerStep } from '../steps/CustomerStep';
+import { CustomJobStep } from '../steps/CustomJobStep';
 import { PricingStep } from '../steps/PricingStep';
 import { ReviewStep } from '../steps/ReviewStep';
 import { ScheduleStep } from '../steps/ScheduleStep';
@@ -23,8 +24,19 @@ export function CreateAppointmentStepContent(p) {
     catalogIsLoading,
     categories = [],
     enabledServices,
+    servicePickPhase,
+    isCustomJob,
     selectedServiceId,
+    onChooseServices,
+    onChooseCustomJob,
     onSelectServiceId,
+    customServiceName,
+    customPriceUsdText,
+    customPriceError,
+    customDurationHhMm,
+    onCustomServiceNameChange,
+    onCustomPriceUsdTextChange,
+    onCustomDurationHhMmChange,
     pricingOptions,
     priceOptionsLoading,
     selectedPricingId,
@@ -72,12 +84,30 @@ export function CreateAppointmentStepContent(p) {
           catalogError={catalogError}
           categories={categories}
           isLoading={catalogIsLoading}
+          phase={servicePickPhase}
           selectedServiceId={selectedServiceId}
           services={enabledServices}
+          onChooseCustomJob={onChooseCustomJob}
+          onChooseServices={onChooseServices}
           onSelectServiceId={onSelectServiceId}
         />
       );
     case CREATE_APPOINTMENT_STEP.PRICING:
+      if (isCustomJob) {
+        return (
+          <CustomJobStep
+            durationHhMm={customDurationHhMm}
+            notes={notes}
+            priceErrorText={customPriceError}
+            priceUsdText={customPriceUsdText}
+            serviceName={customServiceName}
+            onDurationHhMmChange={onCustomDurationHhMmChange}
+            onPriceUsdTextChange={onCustomPriceUsdTextChange}
+            onServiceNameChange={onCustomServiceNameChange}
+            onNotesChange={onChangeNotes}
+          />
+        );
+      }
       return (
         <PricingStep
           priceOptionsLoading={priceOptionsLoading}
@@ -129,6 +159,7 @@ export function CreateAppointmentStepContent(p) {
       return (
         <VehicleStep
           notes={notes}
+          showNotes={!isCustomJob}
           vehicle={vehicle}
           onChangeNotes={onChangeNotes}
           onChangeVehicle={onChangeVehicle}

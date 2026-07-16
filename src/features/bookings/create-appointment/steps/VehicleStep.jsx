@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, AppTextInput, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
+import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
+import { AppointmentNotesCard } from '../components/AppointmentNotesCard';
+import { isVehicleStepComplete } from '../utils/createAppointmentValidators';
 
 const FIELD_SHELL = { marginBottom: 0 };
 
@@ -12,49 +13,15 @@ function sanitizeVehicleYearInput(raw) {
     .slice(0, 4);
 }
 
-export function VehicleStep({ vehicle, notes, onChangeVehicle, onChangeNotes }) {
+export function VehicleStep({ vehicle, notes, showNotes = true, onChangeVehicle, onChangeNotes }) {
   const { colors } = useTheme();
-
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        root: {
-          gap: 18,
-        },
-        card: {
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-        },
-        fieldStack: {
-          gap: 18,
-        },
-        notesSection: {
-          gap: 8,
-        },
-        notesTitle: {
-          color: colors.textSecondary,
-          fontSize: 15,
-          fontWeight: '600',
-          letterSpacing: -0.2,
-        },
-        notesCard: {
-          paddingHorizontal: 16,
-          paddingVertical: 14,
-        },
-        notesInput: {
-          color: colors.text,
-          fontSize: 15,
-          fontWeight: '500',
-          letterSpacing: -0.15,
-          lineHeight: 22,
-          minHeight: 120,
-          paddingBottom: 2,
-          paddingTop: 2,
-          textAlignVertical: 'top',
-        },
-      }),
-    [colors],
+  const hasAnyVehicleField = [vehicle.year, vehicle.make, vehicle.model].some((value) =>
+    String(value ?? '').trim(),
   );
+  const vehicleError =
+    hasAnyVehicleField && !isVehicleStepComplete(vehicle)
+      ? 'Please enter year, make, and model.'
+      : null;
 
   return (
     <View style={styles.root}>
@@ -91,23 +58,31 @@ export function VehicleStep({ vehicle, notes, onChangeVehicle, onChangeNotes }) 
             value={vehicle.model}
             onChangeText={(t) => onChangeVehicle({ ...vehicle, model: t })}
           />
+          {vehicleError ? (
+            <AppText style={[styles.error, { color: colors.danger }]}>{vehicleError}</AppText>
+          ) : null}
         </View>
       </SurfaceCard>
 
-      <View style={styles.notesSection}>
-        <AppText style={styles.notesTitle}>Notes</AppText>
-        <SurfaceCard padding="none" style={styles.notesCard}>
-          <AppTextInput
-            autoCapitalize="sentences"
-            multiline
-            placeholder="Optional notes for this booking."
-            placeholderTextColor={colors.placeholder}
-            style={styles.notesInput}
-            value={notes}
-            onChangeText={onChangeNotes}
-          />
-        </SurfaceCard>
-      </View>
+      {showNotes ? <AppointmentNotesCard notes={notes} onChangeNotes={onChangeNotes} /> : null}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    gap: 18,
+  },
+  card: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  fieldStack: {
+    gap: 18,
+  },
+  error: {
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 17,
+  },
+});

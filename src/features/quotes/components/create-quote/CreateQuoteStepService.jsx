@@ -1,35 +1,12 @@
-import { DurationSelectField, SurfaceTextField } from '../../../../components/ui';
+import { CustomJobFields } from '../../../../components/ui';
 import {
   QUOTE_PRICE_INPUT_MAX,
   QUOTE_SERVICE_NAME_MAX,
 } from '../../constants/createQuoteFieldLimits';
-import { CreateQuoteFieldStack } from './CreateQuoteFieldStack';
-import { QuoteRequiredFieldLabel } from './QuoteRequiredFieldLabel';
-
-const FIELD_SHELL = { marginBottom: 0 };
-const DURATION_SHELL = { marginBottom: 0, marginTop: 0 };
-
-/** Max chars in the field including `$` (one digit before decimal + cents). */
-const PRICE_DISPLAY_MAX = 1 + QUOTE_PRICE_INPUT_MAX;
-
-function normalizePriceInput(rawText) {
-  const input = String(rawText ?? '').replace(/\$/g, '');
-  let out = '';
-  let dotSeen = false;
-  for (const ch of input) {
-    if (ch >= '0' && ch <= '9') {
-      out += ch;
-      continue;
-    }
-    if (ch === '.' && !dotSeen) {
-      out += ch;
-      dotSeen = true;
-    }
-  }
-  return out.slice(0, QUOTE_PRICE_INPUT_MAX);
-}
 
 /**
+ * Custom job details: name, price, and duration.
+ *
  * @param {object} props
  * @param {string} props.serviceName
  * @param {(t: string) => void} props.onServiceNameChange
@@ -47,31 +24,15 @@ export function CreateQuoteStepService({
   onDurationHhMmChange,
 }) {
   return (
-    <CreateQuoteFieldStack>
-      <SurfaceTextField
-        containerStyle={FIELD_SHELL}
-        label={<QuoteRequiredFieldLabel text="Service" />}
-        maxLength={QUOTE_SERVICE_NAME_MAX}
-        onChangeText={onServiceNameChange}
-        placeholder="e.g. Full interior + exterior"
-        value={serviceName}
-      />
-      <SurfaceTextField
-        containerStyle={FIELD_SHELL}
-        keyboardType="decimal-pad"
-        label={<QuoteRequiredFieldLabel text="Price (USD)" />}
-        maxLength={PRICE_DISPLAY_MAX}
-        onChangeText={(t) => onPriceUsdTextChange(normalizePriceInput(t))}
-        placeholder="0.00"
-        value={priceUsdText ? `$${priceUsdText}` : ''}
-      />
-      <DurationSelectField
-        containerStyle={DURATION_SHELL}
-        label={<QuoteRequiredFieldLabel text="Duration" />}
-        mode="service"
-        onValueChange={onDurationHhMmChange}
-        value={durationHhMm}
-      />
-    </CreateQuoteFieldStack>
+    <CustomJobFields
+      durationHhMm={durationHhMm}
+      priceInputMaxLength={QUOTE_PRICE_INPUT_MAX}
+      priceUsdText={priceUsdText}
+      serviceName={serviceName}
+      serviceNameMaxLength={QUOTE_SERVICE_NAME_MAX}
+      onDurationHhMmChange={onDurationHhMmChange}
+      onPriceUsdTextChange={onPriceUsdTextChange}
+      onServiceNameChange={onServiceNameChange}
+    />
   );
 }

@@ -1,9 +1,11 @@
 /** Step copy for the create-appointment wizard (UI only). */
+export const CREATE_APPOINTMENT_CUSTOM_JOB_ID = '__custom_job__';
+
 export const CREATE_APPOINTMENT_STEP_META = [
   {
     key: 'service',
-    title: 'Choose a service',
-    subtitle: 'Pick what you’re booking for this appointment.',
+    title: "What's the job?",
+    subtitle: 'Your services, or a custom job.',
   },
   {
     key: 'pricing',

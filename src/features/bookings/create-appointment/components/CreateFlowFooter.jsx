@@ -23,6 +23,7 @@ import { useTheme } from '../../../../theme';
  * @param {boolean} [props.editHubMode] Cancel + Save changes (edit hub)
  * @param {boolean} [props.editSectionMode] Back + Done (single-section edit)
  * @param {string} [props.sectionPrimaryTitle]
+ * @param {string} [props.backTitle]
  */
 export function CreateFlowFooter({
   appointmentConfirmed,
@@ -40,6 +41,7 @@ export function CreateFlowFooter({
   editHubMode = false,
   editSectionMode = false,
   sectionPrimaryTitle = 'Done',
+  backTitle,
 }) {
   const { colors } = useTheme();
   const styles = useMemo(
@@ -124,7 +126,7 @@ export function CreateFlowFooter({
       <View style={styles.footerBtn}>
         <Button
           fullWidth
-          title={step === 0 ? 'Cancel' : 'Back'}
+          title={backTitle ?? (step === 0 ? 'Cancel' : 'Back')}
           variant="secondary"
           onPress={onBack}
         />

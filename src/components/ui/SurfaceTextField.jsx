@@ -14,6 +14,7 @@ import { SurfaceInputRow, useSurfaceInputTextStyle } from './SurfaceInputRow';
  * Optional `errorText` — small red line under the row (takes precedence over `helperText` for visibility).
  * Optional `errorHint` — muted second line under `errorText`.
  * Optional `helperText` — muted hint under the row (hidden when `errorText` is set).
+ * Optional `prefixText` — static text inside the row that cannot be edited (e.g. `$`).
  * `label` may be a string or a React node (e.g. custom label styling).
  * Ref is forwarded to the inner `TextInput` (e.g. focus chaining).
  */
@@ -21,6 +22,7 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
   {
     label,
     leftIcon,
+    prefixText,
     errorText,
     errorHint,
     helperText,
@@ -75,6 +77,12 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
         iconPad: {
           marginRight: 2,
         },
+        prefixText: {
+          color: colors.text,
+          fontSize: 15,
+          fontWeight: '500',
+          marginLeft: 6,
+        },
         toggleHit: {
           alignItems: 'center',
           height: 40,
@@ -98,7 +106,9 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
   );
 
   const leftNode =
-    leftIcon != null ? (
+    prefixText != null ? (
+      <AppText style={styles.prefixText}>{prefixText}</AppText>
+    ) : leftIcon != null ? (
       <View style={styles.iconPad}>
         <Ionicons color={colors.textMuted} name={leftIcon} size={18} />
       </View>

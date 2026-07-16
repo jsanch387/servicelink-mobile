@@ -49,6 +49,78 @@ describe('validateSendQuotePayload', () => {
     expect(r.body.priceCents).toBe(0);
   });
 
+  it('omits schedule when customer chooses the time', () => {
+    const r = validateSendQuotePayload(
+      validBase({
+        scheduleMode: 'customer',
+        scheduledDateYyyyMmDd: '',
+        scheduledStartTime12h: '',
+      }),
+    );
+    expect(r.ok).toBe(true);
+    expect(r.body.scheduledDate).toBeUndefined();
+    expect(r.body.scheduledStartTime).toBeUndefined();
+  });
+
+  it('includes schedule when owner picks date and time', () => {
+    const r = validateSendQuotePayload(validBase({ scheduleMode: 'pick' }));
+    expect(r.ok).toBe(true);
+    expect(r.body.scheduledDate).toBe('2026-08-20');
+    expect(r.body.scheduledStartTime).toBe('10:00');
+  });
+
+  it('includes catalog selection snapshots for the server', () => {
+    const addonDetails = [
+      {
+        id: 'addon-1',
+        name: 'Pet hair',
+        priceCents: 2500,
+        durationMinutes: 30,
+      },
+    ];
+    const r = validateSendQuotePayload(
+      validBase({
+        serviceName: 'Interior detail — SUV',
+        priceUsdText: '224',
+        durationHhMm: '01:30',
+        serviceId: 'service-1',
+        servicePriceOptionId: 'option-1',
+        servicePriceCents: 19900,
+        totalDurationMinutes: 90,
+        addonDetails,
+      }),
+    );
+
+    expect(r.ok).toBe(true);
+    expect(r.body).toEqual(
+      expect.objectContaining({
+        serviceId: 'service-1',
+        servicePriceOptionId: 'option-1',
+        servicePriceCents: 19900,
+        addonDetails,
+        priceCents: 22400,
+        durationMinutes: 90,
+      }),
+    );
+  });
+
+  it('keeps custom jobs free of catalog-only fields', () => {
+    const r = validateSendQuotePayload(
+      validBase({
+        serviceId: null,
+        servicePriceOptionId: null,
+        servicePriceCents: null,
+        addonDetails: null,
+      }),
+    );
+
+    expect(r.ok).toBe(true);
+    expect(r.body.serviceId).toBeUndefined();
+    expect(r.body.servicePriceOptionId).toBeUndefined();
+    expect(r.body.servicePriceCents).toBeUndefined();
+    expect(r.body.addonDetails).toBeUndefined();
+  });
+
   it('normalizes phone to 10 digits when valid NANP', () => {
     const r = validateSendQuotePayload(validBase({ customerPhoneDisplay: '(512) 555-0199' }));
     expect(r.ok).toBe(true);

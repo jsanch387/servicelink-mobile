@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
-const DEFAULT_INTERVAL_MS = 1400;
+const DEFAULT_INTERVAL_MS = 3000;
 
 /**
- * Cycles through submit status messages while `active`.
+ * Advances through submit status messages while `active`, then holds the final message.
  *
  * @param {boolean} active
  * @param {string[]} messages
@@ -23,7 +23,7 @@ export function useCyclingSubmitStatusMessage(active, messages, intervalMs = DEF
       return undefined;
     }
     const id = setInterval(() => {
-      setIndex((current) => (current + 1) % messages.length);
+      setIndex((current) => Math.min(current + 1, messages.length - 1));
     }, intervalMs);
     return () => clearInterval(id);
   }, [active, intervalMs, messages]);

@@ -79,6 +79,17 @@ function trimOrNull(s) {
  * @property {string} priceUsdText
  * @property {string} durationHhMm
  * @property {string} note
+ * @property {string | null | undefined} [serviceId]
+ * @property {string | null | undefined} [servicePriceOptionId]
+ * @property {number | null | undefined} [servicePriceCents]
+ * @property {number | null | undefined} [totalDurationMinutes]
+ * @property {Array<{
+ *   id: string;
+ *   name: string;
+ *   priceCents: number;
+ *   durationMinutes?: number;
+ * }> | null | undefined} [addonDetails]
+ * @property {'unset' | 'pick' | 'customer'} [scheduleMode]
  * @property {string} scheduledDateYyyyMmDd
  * @property {string} scheduledStartTime12h
  */
@@ -142,7 +153,12 @@ export function validateSendQuotePayload(input) {
     return { ok: false, message: 'Enter a valid price (0 or more).' };
   }
 
-  const durationMinutes = serviceDurationHHmmToMinutes(input.durationHhMm);
+  const catalogServiceId = trimOrNull(input.serviceId);
+  const durationOverride = Number(input.totalDurationMinutes);
+  const durationMinutes =
+    catalogServiceId && Number.isInteger(durationOverride) && durationOverride > 0
+      ? durationOverride
+      : serviceDurationHHmmToMinutes(input.durationHhMm);
   if (
     !Number.isFinite(durationMinutes) ||
     durationMinutes <= 0 ||
@@ -152,13 +168,26 @@ export function validateSendQuotePayload(input) {
   }
 
   const scheduledDate = String(input.scheduledDateYyyyMmDd ?? '').trim();
-  if (!isValidYyyyMmDd(scheduledDate)) {
-    return { ok: false, message: 'Scheduled date must be YYYY-MM-DD.' };
-  }
+  const scheduleModeRaw = String(input.scheduleMode ?? '').trim();
+  /** @type {'pick' | 'customer'} */
+  const resolvedScheduleMode =
+    scheduleModeRaw === 'customer' || scheduleModeRaw === 'pick'
+      ? scheduleModeRaw
+      : scheduledDate
+        ? 'pick'
+        : 'customer';
+  const customerChoosesSchedule = resolvedScheduleMode === 'customer';
 
-  const scheduledStartTime = twelveHourDisplayToHhMm(input.scheduledStartTime12h);
-  if (!scheduledStartTime) {
-    return { ok: false, message: 'Choose a start time.' };
+  /** @type {string | null} */
+  let scheduledStartTime = null;
+  if (!customerChoosesSchedule) {
+    if (!isValidYyyyMmDd(scheduledDate)) {
+      return { ok: false, message: 'Scheduled date must be YYYY-MM-DD.' };
+    }
+    scheduledStartTime = twelveHourDisplayToHhMm(input.scheduledStartTime12h);
+    if (!scheduledStartTime) {
+      return { ok: false, message: 'Choose a start time.' };
+    }
   }
 
   const noteRaw = String(input.note ?? '');
@@ -187,9 +216,61 @@ export function validateSendQuotePayload(input) {
     serviceName,
     priceCents,
     durationMinutes,
-    scheduledDate,
-    scheduledStartTime,
   };
+
+  if (catalogServiceId) {
+    const servicePriceCents = Number(input.servicePriceCents);
+    if (
+      !Number.isFinite(servicePriceCents) ||
+      !Number.isInteger(servicePriceCents) ||
+      servicePriceCents < 0
+    ) {
+      return { ok: false, message: 'Catalog service price is invalid.' };
+    }
+
+    const addonDetails = Array.isArray(input.addonDetails) ? input.addonDetails : [];
+    const normalizedAddonDetails = [];
+    for (const addon of addonDetails) {
+      const id = String(addon?.id ?? '').trim();
+      const name = String(addon?.name ?? '').trim();
+      const addonPriceCents = Number(addon?.priceCents);
+      const addonDurationRaw = addon?.durationMinutes;
+      const hasDuration = addonDurationRaw !== undefined && addonDurationRaw !== null;
+      const addonDurationMinutes = Number(addonDurationRaw);
+
+      if (
+        !id ||
+        !name ||
+        !Number.isInteger(addonPriceCents) ||
+        addonPriceCents < 0 ||
+        (hasDuration && (!Number.isInteger(addonDurationMinutes) || addonDurationMinutes <= 0))
+      ) {
+        return { ok: false, message: 'One or more selected add-ons are invalid.' };
+      }
+
+      normalizedAddonDetails.push({
+        id,
+        name,
+        priceCents: addonPriceCents,
+        ...(hasDuration ? { durationMinutes: addonDurationMinutes } : {}),
+      });
+    }
+
+    body.serviceId = catalogServiceId;
+    body.servicePriceCents = servicePriceCents;
+    const servicePriceOptionId = trimOrNull(input.servicePriceOptionId);
+    if (servicePriceOptionId) {
+      body.servicePriceOptionId = servicePriceOptionId;
+    }
+    if (normalizedAddonDetails.length > 0) {
+      body.addonDetails = normalizedAddonDetails;
+    }
+  }
+
+  if (!customerChoosesSchedule && scheduledDate && scheduledStartTime) {
+    body.scheduledDate = scheduledDate;
+    body.scheduledStartTime = scheduledStartTime;
+  }
 
   if (customerPhone) {
     body.customerPhone = customerPhone;

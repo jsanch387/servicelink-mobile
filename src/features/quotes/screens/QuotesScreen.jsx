@@ -18,10 +18,9 @@ import { useTheme } from '../../../theme';
 import { navigationRef } from '../../../navigation/navigationRef';
 import { useAuth } from '../../auth';
 import { AddQuoteFab } from '../components/AddQuoteFab';
-import { QuoteRequestCard } from '../components/QuoteRequestCard';
+import { QuoteInboxCard } from '../components/QuoteInboxCard';
 import { QuotesAcceptRequestsCard } from '../components/QuotesAcceptRequestsCard';
 import { QuotesHowItWorks } from '../components/QuotesHowItWorks';
-import { SentQuoteCard } from '../components/SentQuoteCard';
 import {
   QUOTE_DETAIL_KIND_REQUEST,
   QUOTE_DETAIL_KIND_SENT,
@@ -122,23 +121,25 @@ export function QuotesScreen() {
         content: {
           paddingBottom: 28 + Math.max(tabBarHeight, 72),
           paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: 30,
+          paddingTop: 20,
         },
         toggleBlock: {
-          marginBottom: 16,
+          marginBottom: 20,
         },
-        howItWorksBlock: {
-          marginBottom: 24,
-        },
-        inboxBlock: {
-          marginBottom: 4,
+        sectionHeader: {
+          marginBottom: 14,
         },
         sectionLabel: {
           color: colors.text,
-          fontSize: 16,
+          fontSize: 18,
           fontWeight: '700',
-          letterSpacing: -0.2,
-          marginBottom: 12,
+          letterSpacing: -0.3,
+        },
+        sectionCaption: {
+          color: colors.textMuted,
+          fontSize: 13,
+          lineHeight: 18,
+          marginTop: 3,
         },
         pills: {
           marginBottom: 16,
@@ -169,6 +170,10 @@ export function QuotesScreen() {
           marginTop: 8,
           textAlign: 'center',
         },
+        emptyHelp: {
+          alignItems: 'center',
+          marginTop: 12,
+        },
       }),
     [colors, tabBarHeight],
   );
@@ -182,6 +187,22 @@ export function QuotesScreen() {
   const rootOverlayCoversTabs = rootTopRoute !== undefined && rootTopRoute !== ROUTES.MAIN_APP;
 
   const proLocked = Boolean(userId) && isOwnerProfileLoaded && !hasProAccess;
+  const activeCount =
+    listTab === QUOTES_TAB_REQUESTS ? quotesList.quoteRequests.length : quotesList.quoteSent.length;
+  const totalQuotesCount = quotesList.quoteRequests.length + quotesList.quoteSent.length;
+  const hasNoQuotes = totalQuotesCount === 0;
+  const sectionCaption =
+    listTab === QUOTES_TAB_REQUESTS
+      ? activeCount === 0
+        ? 'No requests waiting'
+        : activeCount === 1
+          ? '1 request needs your attention'
+          : `${activeCount} requests waiting`
+      : activeCount === 0
+        ? 'No quotes sent yet'
+        : activeCount === 1
+          ? '1 quote in your history'
+          : `${activeCount} quotes in your history`;
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
@@ -222,12 +243,13 @@ export function QuotesScreen() {
             </View>
           ) : null}
 
-          <View style={styles.howItWorksBlock}>
-            <QuotesHowItWorks />
+          <View style={styles.sectionHeader}>
+            <AppText style={styles.sectionLabel}>Your quotes</AppText>
+            {!hasNoQuotes ? (
+              <AppText style={styles.sectionCaption}>{sectionCaption}</AppText>
+            ) : null}
           </View>
-
-          <View style={styles.inboxBlock}>
-            <AppText style={styles.sectionLabel}>Inbox</AppText>
+          {!hasNoQuotes || quotesList.isLoading ? (
             <View style={styles.pills}>
               <FilterPills
                 onSelect={setListTab}
@@ -235,7 +257,7 @@ export function QuotesScreen() {
                 selectedKey={listTab}
               />
             </View>
-          </View>
+          ) : null}
 
           {quotesList.businessError ? (
             <View style={styles.errorBlock}>
@@ -261,7 +283,17 @@ export function QuotesScreen() {
                 Finish onboarding on this account so we can load quotes for your business.
               </AppText>
             </View>
-          ) : quotesList.listError ? null : (
+          ) : quotesList.listError ? null : hasNoQuotes ? (
+            <View style={styles.emptyWrap}>
+              <AppText style={styles.emptyTitle}>No quotes yet</AppText>
+              <AppText style={styles.emptyBody}>
+                New requests and quotes you send will appear here.
+              </AppText>
+              <View style={styles.emptyHelp}>
+                <QuotesHowItWorks />
+              </View>
+            </View>
+          ) : (
             <View style={styles.list}>
               {listTab === QUOTES_TAB_REQUESTS ? (
                 quotesList.quoteRequests.length === 0 ? (
@@ -274,11 +306,16 @@ export function QuotesScreen() {
                   </View>
                 ) : (
                   quotesList.quoteRequests.map((row) => (
-                    <QuoteRequestCard
+                    <QuoteInboxCard
                       customerName={row.customerName}
                       key={row.id}
-                      receivedLabel={row.receivedLabel}
                       summary={row.summary}
+                      statusLabel={row.statusLabel}
+                      statusRaw={row.statusRaw}
+                      timestampLabel={row.timestampLabel}
+                      title={row.title}
+                      variant="request"
+                      vehicleLabel={row.vehicleLabel}
                       onPress={() => openRequestDetail(row.id)}
                     />
                   ))
@@ -293,12 +330,15 @@ export function QuotesScreen() {
                   </View>
                 ) : (
                   quotesList.quoteSent.map((row) => (
-                    <SentQuoteCard
+                    <QuoteInboxCard
                       customerName={row.customerName}
                       key={row.id}
-                      line={row.line}
                       statusLabel={row.statusLabel}
                       statusRaw={row.statusRaw}
+                      timestampLabel={row.timestampLabel}
+                      title={row.title}
+                      variant="sent"
+                      vehicleLabel={row.vehicleLabel}
                       onPress={() => openSentDetail(row.id)}
                     />
                   ))

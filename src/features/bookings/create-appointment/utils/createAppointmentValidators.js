@@ -3,12 +3,24 @@ import { normalizePhoneForDatabase } from '../../../../utils/phone';
 import { isCreateFlowPricingSelectionValid } from './createFlowPricing';
 import { isLocationStepComplete } from './createAppointmentServiceLocation';
 
+export function parseRequiredCustomJobPriceCents(value) {
+  const raw = String(value ?? '')
+    .replace(/\$/g, '')
+    .trim();
+  if (!raw || !/\d/.test(raw)) return null;
+  const dollars = Number.parseFloat(raw);
+  if (!Number.isFinite(dollars)) return null;
+  const cents = Math.round(dollars * 100);
+  return cents > 0 ? cents : null;
+}
+
 /** Customer step: name, complete US phone (10 NANP digits); email optional but must be valid when present. */
 export function isCustomerStepComplete(customer) {
   const c = customer ?? {};
-  if (!String(c.fullName ?? '').trim()) return false;
+  const fullName = String(c.fullName ?? '').trim();
+  if (!fullName || fullName.length > 120) return false;
   const emailTrim = String(c.email ?? '').trim();
-  if (emailTrim && !isValidEmailFormat(emailTrim)) return false;
+  if (emailTrim && (emailTrim.length > 254 || !isValidEmailFormat(emailTrim))) return false;
   if (normalizePhoneForDatabase(c.phone ?? '') == null) return false;
   return true;
 }
@@ -16,20 +28,30 @@ export function isCustomerStepComplete(customer) {
 /** Address step: street, city, state, ZIP (unit optional). */
 export function isAddressStepComplete(address) {
   const a = address ?? {};
+  const street = String(a.street ?? '').trim();
+  const unit = String(a.unit ?? '').trim();
+  const city = String(a.city ?? '').trim();
   return Boolean(
-    String(a.street ?? '').trim() &&
-    String(a.city ?? '').trim() &&
-    String(a.state ?? '').trim() &&
-    String(a.zip ?? '').trim(),
+    street &&
+    street.length <= 200 &&
+    unit.length <= 50 &&
+    city &&
+    city.length <= 100 &&
+    /^[A-Za-z]{2}$/.test(String(a.state ?? '').trim()) &&
+    /^\d{5}$/.test(String(a.zip ?? '').trim()),
   );
 }
 
-/** Vehicle step: year, make, model (notes optional). */
-export function isVehicleStepComplete(vehicle) {
+/** Vehicle is optional, but partial vehicle snapshots are rejected by the owner-booking API. */
+export function isVehicleStepComplete(vehicle, now = new Date()) {
   const v = vehicle ?? {};
-  return Boolean(
-    String(v.year ?? '').trim() && String(v.make ?? '').trim() && String(v.model ?? '').trim(),
-  );
+  const year = String(v.year ?? '').trim();
+  const make = String(v.make ?? '').trim();
+  const model = String(v.model ?? '').trim();
+  if (!year && !make && !model) return true;
+  if (!year || !make || !model || !/^\d{4}$/.test(year)) return false;
+  const yearNumber = Number(year);
+  return yearNumber >= 1900 && yearNumber <= now.getFullYear() + 1;
 }
 
 /**
@@ -45,6 +67,7 @@ export function isVehicleStepComplete(vehicle) {
  *   customer: object;
  *   appointmentLocationType?: 'mobile' | 'shop' | null;
  *   locationSkipped?: boolean;
+ *   addressSkipped?: boolean;
  *   address: object;
  *   vehicle: object;
  * }} p
@@ -62,7 +85,7 @@ export function isReviewStepComplete(p) {
     p.selectedTime &&
     isCustomerStepComplete(p.customer) &&
     (p.locationSkipped || isLocationStepComplete(p.appointmentLocationType)) &&
-    isAddressStepComplete(p.address) &&
+    (p.addressSkipped || isAddressStepComplete(p.address)) &&
     isVehicleStepComplete(p.vehicle),
   );
 }
