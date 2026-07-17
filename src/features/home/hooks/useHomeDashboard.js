@@ -22,6 +22,7 @@ import {
 } from '../utils/bookingStart';
 import { fetchBookingsForTodayTimeline } from '../api/restOfToday';
 import { mapBookingsToRestOfTodayItems } from '../utils/restOfToday';
+import { computeTodaysEarnings } from '../utils/todaysEarnings';
 
 export function useHomeDashboard() {
   const { user } = useAuth();
@@ -98,7 +99,10 @@ export function useHomeDashboard() {
         throw new Error(error.message ?? 'Could not load today bookings');
       }
       const filtered = filterBookingsToCalendarDay(rows, calendarDay);
-      return mapBookingsToRestOfTodayItems(filtered);
+      return {
+        timelineItems: mapBookingsToRestOfTodayItems(filtered),
+        earnings: computeTodaysEarnings(filtered),
+      };
     },
     enabled: hasBusinessRow,
     staleTime: 45 * 1000,
@@ -119,7 +123,13 @@ export function useHomeDashboard() {
   const upcomingCount = bookingsQ.data?.upcomingCount ?? 0;
   const nextSubtitle = bookingsQ.data?.nextSubtitle ?? '';
   const spotlightMode = bookingsQ.data?.spotlightMode ?? 'none';
-  const todayTimelineItems = todayBookingsQ.data ?? [];
+  const todayTimelineItems = todayBookingsQ.data?.timelineItems ?? [];
+  const todaysEarnings = todayBookingsQ.data?.earnings ?? {
+    jobCount: 0,
+    potentialCents: 0,
+    collectedCents: 0,
+    remainingCents: 0,
+  };
 
   const isPendingBusiness = Boolean(userId) && businessQ.isPending;
   const isPendingBookings = hasBusinessRow && bookingsQ.isPending;
@@ -141,6 +151,7 @@ export function useHomeDashboard() {
     nextSubtitle,
     spotlightMode,
     todayTimelineItems,
+    todaysEarnings,
     isPendingBusiness,
     isPendingBookings,
     isPendingTodayBookings,

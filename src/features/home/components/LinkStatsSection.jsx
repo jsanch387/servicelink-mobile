@@ -243,7 +243,7 @@ export function LinkStatsSection({
 
 const styles = StyleSheet.create({
   card: {
-    marginTop: 12,
+    marginTop: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },

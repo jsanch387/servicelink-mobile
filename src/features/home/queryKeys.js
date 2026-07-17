@@ -14,7 +14,7 @@ export function homeBookingsUpcomingQueryKey(businessId) {
  * @param {string | null | undefined} calendarYyyyMmDd - device-local calendar day; omit for prefix invalidation only
  */
 export function homeBookingsTodayQueryKey(businessId, calendarYyyyMmDd) {
-  const base = [...HOME_QUERY_KEY, 'bookings-today', businessId ?? 'none'];
+  const base = [...HOME_QUERY_KEY, 'bookings-today', 'earnings-v1', businessId ?? 'none'];
   if (calendarYyyyMmDd != null && String(calendarYyyyMmDd).trim() !== '') {
     return [...base, String(calendarYyyyMmDd).trim()];
   }

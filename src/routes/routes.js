@@ -116,7 +116,7 @@ export const PATHS = {
 
 /** Bottom tabs: order, labels, and Ionicons glyph names. */
 export const MAIN_TAB_CONFIG = [
-  { route: ROUTES.HOME, label: 'Home', icon: 'home-outline' },
+  { route: ROUTES.HOME, label: 'Home', icon: 'grid-outline' },
   { route: ROUTES.BOOKINGS, label: 'Bookings', icon: 'calendar-outline' },
   { route: ROUTES.CUSTOMERS, label: 'Customers', icon: 'people-outline' },
   // { route: ROUTES.PAYMENTS, label: 'Payments', icon: 'card-outline' },

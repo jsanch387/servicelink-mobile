@@ -122,6 +122,12 @@ function baseDashboard(overrides = {}) {
     nextSubtitle: '',
     spotlightMode: 'none',
     todayTimelineItems: [],
+    todaysEarnings: {
+      jobCount: 0,
+      potentialCents: 0,
+      collectedCents: 0,
+      remainingCents: 0,
+    },
     isPendingBusiness: false,
     isPendingBookings: false,
     isPendingTodayBookings: false,
@@ -158,6 +164,30 @@ describe('HomeScreen', () => {
     expect(screen.getByText('12')).toBeTruthy();
   });
 
+  it('shows live earnings only when priced jobs are scheduled today', () => {
+    mockUseHomeDashboard.mockReturnValue(
+      baseDashboard({
+        todaysEarnings: {
+          jobCount: 2,
+          potentialCents: 40000,
+          collectedCents: 20000,
+          remainingCents: 20000,
+        },
+      }),
+    );
+
+    renderWithProviders(<HomeScreen />);
+
+    expect(screen.getByText("Today's earnings")).toBeTruthy();
+    expect(screen.getByText('$400')).toBeTruthy();
+    expect(screen.getAllByText('$200')).toHaveLength(2);
+  });
+
+  it('hides earnings when there are no priced jobs today', () => {
+    renderWithProviders(<HomeScreen />);
+    expect(screen.queryByText("Today's earnings")).toBeNull();
+  });
+
   it('shows today timeline section while business is still loading', () => {
     mockUseHomeDashboard.mockReturnValue(
       baseDashboard({
@@ -168,8 +198,33 @@ describe('HomeScreen', () => {
       }),
     );
     renderWithProviders(<HomeScreen />);
+    expect(screen.getByLabelText('Loading business name')).toBeTruthy();
+    expect(screen.queryByText('Your business')).toBeNull();
+    expect(screen.getByText("Today's earnings")).toBeTruthy();
+    expect(screen.getByLabelText("Loading today's earnings")).toBeTruthy();
     expect(screen.getByText("Today's timeline")).toBeTruthy();
     expect(screen.queryByText('Nothing on the calendar')).toBeNull();
+  });
+
+  it('keeps long business names inside the header space', () => {
+    const longName = 'Black Label Premium Mobile Auto Detailing and Ceramic Coatings';
+    mockUseHomeDashboard.mockReturnValue(
+      baseDashboard({
+        business: {
+          id: 'b1',
+          business_name: longName,
+          business_slug: 'black-label',
+          free_bookings_count: null,
+        },
+      }),
+    );
+
+    renderWithProviders(<HomeScreen />);
+
+    const name = screen.getByText(longName);
+    expect(name.props.adjustsFontSizeToFit).toBe(true);
+    expect(name.props.minimumFontScale).toBe(0.68);
+    expect(name.props.numberOfLines).toBe(1);
   });
 
   it('does not show free-tier booking usage for Pro users', () => {

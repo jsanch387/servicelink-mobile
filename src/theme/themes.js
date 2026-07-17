@@ -5,6 +5,9 @@
 
 /** @typedef {typeof darkTheme} ThemeColors */
 
+const DARK_MONEY_GREEN = '#34c759';
+const LIGHT_MONEY_GREEN = '#15803d';
+
 export const darkTheme = {
   shell: '#0a0a0a',
   shellElevated: '#141414',
@@ -69,9 +72,11 @@ export const darkTheme = {
 
   /** Positive / success text on dark surfaces (e.g. trial, confirmations) */
   textSuccess: '#6ee7b7',
+  /** Financial progress and collected revenue — intentionally greener than `textSuccess`. */
+  moneyPositive: DARK_MONEY_GREEN,
 
   /** Home “today” timeline — completed visit marker (fill + check); tuned for `cardSurface` on dark */
-  timelineCompletedFill: '#2bbf7a',
+  timelineCompletedFill: DARK_MONEY_GREEN,
   timelineCompletedCheck: '#0a0a0a',
 
   /** Unread notification affordance on the home bell (same hue in both schemes) */
@@ -129,9 +134,11 @@ export const lightTheme = {
 
   /** Positive / success text on light surfaces */
   textSuccess: '#047857',
+  /** Financial progress and collected revenue. */
+  moneyPositive: LIGHT_MONEY_GREEN,
 
   /** Home “today” timeline — completed marker on light cards */
-  timelineCompletedFill: '#15803d',
+  timelineCompletedFill: LIGHT_MONEY_GREEN,
   timelineCompletedCheck: '#fafafa',
 
   notificationBellDot: '#f97316',

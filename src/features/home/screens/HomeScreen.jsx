@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppShellGlow, AppText } from '../../../components/ui';
+import { AppShellGlow, AppText, SkeletonBox } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { FREE_TIER_BOOKINGS_LIMIT, freeTierBookingsLimitCopy } from '../../bookings/constants';
 import { BookingCompleteVisitSheet } from '../../bookings/booking-details/components/BookingCompleteInvoiceDesignSheet';
@@ -19,6 +19,7 @@ import { HomeErrorBanner } from '../components/HomeErrorBanner';
 import { LinkStatsSection } from '../components/LinkStatsSection';
 import { NextUpCard } from '../components/NextUpCard';
 import { RestOfTodayCard } from '../components/restOfToday';
+import { TodaysPotentialCard } from '../components/TodaysPotentialCard';
 import {
   NEXT_UP_LIFECYCLE_DESIGN_PREVIEW,
   NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS,
@@ -34,7 +35,6 @@ import {
 } from '../utils/resolveNextUpCardActions';
 import { normalizeBusinessSlug } from '../utils/bookingLink';
 import { useTheme } from '../../../theme';
-import { serviceCardTitleStyle } from '../../../utils/serviceCardTypography';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import {
@@ -80,10 +80,19 @@ export function HomeScreen() {
   const businessDisplayName = useMemo(() => {
     const rawName = dashboard.business?.business_name?.trim();
     if (!rawName) {
-      return 'there';
+      return 'Your business';
     }
     return rawName;
   }, [dashboard.business?.business_name]);
+  const dashboardDate = useMemo(
+    () =>
+      new Intl.DateTimeFormat('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+      }).format(new Date()),
+    [],
+  );
 
   const linkViews = useLinkViewsAnalytics(dashboard.business?.id, {
     enabled: Boolean(dashboard.business?.id) && !dashboard.isPendingBusiness,
@@ -152,6 +161,13 @@ export function HomeScreen() {
   const showStoreUpdateBanner = Boolean(storeUpdateMinimumVersion) && isNativeStoreUpdateRequired();
 
   const todayTimelineLoading = dashboard.isPendingBusiness || dashboard.isPendingTodayBookings;
+  const showTodaysEarningsSkeleton =
+    todayTimelineLoading && !dashboard.todayBookingsError && showTodayTimelineSection;
+  const showTodaysEarnings =
+    !todayTimelineLoading &&
+    !dashboard.todayBookingsError &&
+    dashboard.todaysEarnings.jobCount > 0 &&
+    dashboard.todaysEarnings.potentialCents > 0;
 
   const showFreeTierBookingCount =
     isOwnerProfileLoaded &&
@@ -211,12 +227,23 @@ export function HomeScreen() {
         sectionLabelFirst: {
           marginTop: 10,
         },
+        secondarySectionLabel: {
+          fontSize: 15,
+          fontWeight: '600',
+          letterSpacing: -0.1,
+          marginTop: 24,
+        },
         profileRow: {
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'space-between',
           marginBottom: 12,
           marginTop: 6,
+        },
+        profileCopy: {
+          flex: 1,
+          minWidth: 0,
+          paddingRight: 12,
         },
         headerDivider: {
           backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : colors.border,
@@ -226,17 +253,33 @@ export function HomeScreen() {
           width: '100%',
         },
         profileName: {
-          flex: 1,
-          minWidth: 0,
-          paddingRight: 12,
-          ...serviceCardTitleStyle(colors),
+          color: colors.text,
+          fontSize: 25,
+          fontWeight: '700',
+          letterSpacing: -0.7,
+          lineHeight: 31,
+          width: '100%',
+        },
+        profileNameSkeleton: {
+          maxWidth: 250,
+        },
+        profileContext: {
+          color: colors.textMuted,
+          fontSize: 12,
+          fontWeight: '600',
+          lineHeight: 17,
+          marginTop: 2,
         },
         bellButton: {
           alignItems: 'center',
+          backgroundColor: colors.cardSurface,
+          borderColor: colors.border,
           borderRadius: 16,
-          height: 32,
+          borderWidth: 1,
+          height: 40,
           justifyContent: 'center',
-          width: 32,
+          transform: [{ translateY: -5 }],
+          width: 40,
         },
         bellIconWrap: {
           alignItems: 'center',
@@ -445,9 +488,33 @@ export function HomeScreen() {
         style={styles.scroll}
       >
         <View style={styles.profileRow}>
-          <AppText accessibilityRole="header" numberOfLines={1} style={styles.profileName}>
-            {businessDisplayName}
-          </AppText>
+          <View style={styles.profileCopy}>
+            {dashboard.isPendingBusiness ? (
+              <SkeletonBox
+                accessibilityLabel="Loading business name"
+                accessibilityRole="progressbar"
+                borderRadius={8}
+                height={25}
+                pulse
+                style={styles.profileNameSkeleton}
+                width="72%"
+              />
+            ) : (
+              <AppText
+                accessibilityRole="header"
+                adjustsFontSizeToFit
+                ellipsizeMode="tail"
+                minimumFontScale={0.68}
+                numberOfLines={1}
+                style={styles.profileName}
+              >
+                {businessDisplayName}
+              </AppText>
+            )}
+            <AppText numberOfLines={1} style={styles.profileContext}>
+              {dashboardDate}
+            </AppText>
+          </View>
           <Pressable
             accessibilityHint="Opens your notifications"
             accessibilityLabel={notificationsA11yLabel}
@@ -566,7 +633,33 @@ export function HomeScreen() {
           workingPhase={nextUpWorkingPhase}
         />
 
-        <AppText style={styles.sectionLabel}>Link visits</AppText>
+        {showTodaysEarnings || showTodaysEarningsSkeleton ? (
+          <>
+            <AppText style={[styles.sectionLabel, styles.secondarySectionLabel]}>
+              Today&apos;s earnings
+            </AppText>
+            <TodaysPotentialCard
+              collectedCents={dashboard.todaysEarnings.collectedCents}
+              isLoading={showTodaysEarningsSkeleton}
+              potentialCents={dashboard.todaysEarnings.potentialCents}
+            />
+          </>
+        ) : null}
+
+        {showTodayTimelineSection ? (
+          <>
+            <AppText style={[styles.sectionLabel, styles.secondarySectionLabel]}>
+              Today&apos;s timeline
+            </AppText>
+            <RestOfTodayCard
+              error={homeErrors.restOfTodayError}
+              isLoading={todayTimelineLoading}
+              items={dashboard.todayTimelineItems}
+            />
+          </>
+        ) : null}
+
+        <AppText style={[styles.sectionLabel, styles.secondarySectionLabel]}>Link visits</AppText>
         <LinkStatsSection
           businessError={homeErrors.linkBusinessError}
           hasProAccess={hasProAccess}
@@ -581,17 +674,6 @@ export function HomeScreen() {
           views={linkViews.views}
           viewsError={linkViews.viewsError}
         />
-
-        {showTodayTimelineSection ? (
-          <>
-            <AppText style={styles.sectionLabel}>Today&apos;s timeline</AppText>
-            <RestOfTodayCard
-              error={homeErrors.restOfTodayError}
-              isLoading={todayTimelineLoading}
-              items={dashboard.todayTimelineItems}
-            />
-          </>
-        ) : null}
       </ScrollView>
       <FloatingCreateMenu
         bottom={30}

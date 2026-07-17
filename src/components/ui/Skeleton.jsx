@@ -18,6 +18,7 @@ export function SkeletonBox({
   backgroundColor,
   pulse = false,
   style,
+  ...rest
 }) {
   const { colors } = useTheme();
   const bg = backgroundColor ?? colors.border;
@@ -56,6 +57,7 @@ export function SkeletonBox({
   if (enablePulse) {
     return (
       <Animated.View
+        {...rest}
         style={[
           base,
           {
@@ -69,6 +71,7 @@ export function SkeletonBox({
 
   return (
     <View
+      {...rest}
       style={[
         base,
         {

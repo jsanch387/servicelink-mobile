@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   card: {
-    marginTop: 8,
+    marginTop: 10,
   },
   emptyWrap: {
     alignItems: 'center',

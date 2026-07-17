@@ -5,6 +5,7 @@ import { useAuth } from '../../auth';
 import * as homeApi from '../api/homeDashboard';
 import * as restOfTodayApi from '../api/restOfToday';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
+import { localYyyyMmDd } from '../utils/bookingStart';
 import { createTestQueryClient } from './testUtils';
 
 jest.mock('@react-navigation/native', () => {
@@ -77,6 +78,64 @@ describe('useHomeDashboard', () => {
     expect(result.current.upcomingCount).toBe(0);
     expect(result.current.nextSubtitle).toBe('');
     expect(result.current.spotlightMode).toBe('none');
+    expect(result.current.todaysEarnings).toEqual({
+      jobCount: 0,
+      potentialCents: 0,
+      collectedCents: 0,
+      remainingCents: 0,
+    });
+  });
+
+  it('derives earnings from today bookings and payments', async () => {
+    const today = localYyyyMmDd();
+    restOfTodayApi.fetchBookingsForTodayTimeline.mockResolvedValue({
+      data: [
+        {
+          id: 'today-1',
+          scheduled_date: today,
+          start_time: '10:00:00',
+          status: 'confirmed',
+          service_name: 'Full detail',
+          subtotal_cents: 20000,
+          discount_cents: 0,
+          booking_payments: {
+            total_amount_cents: 20000,
+            paid_online_amount_cents: 5000,
+            session_fees_total_cents: 0,
+            session_payment_amount_cents: 0,
+          },
+        },
+        {
+          id: 'today-2',
+          scheduled_date: today,
+          start_time: '14:00:00',
+          status: 'completed',
+          service_name: 'Interior detail',
+          subtotal_cents: 15000,
+          discount_cents: 0,
+          booking_payments: {
+            total_amount_cents: 15000,
+            paid_online_amount_cents: 0,
+            session_fees_total_cents: 0,
+            session_payment_amount_cents: 15000,
+          },
+        },
+      ],
+      error: null,
+    });
+
+    const { result } = renderHook(() => useHomeDashboard(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.todaysEarnings.jobCount).toBe(2);
+    });
+
+    expect(result.current.todaysEarnings).toEqual({
+      jobCount: 2,
+      potentialCents: 35000,
+      collectedCents: 20000,
+      remainingCents: 15000,
+    });
   });
 
   it('derives next booking and count from confirmed future rows', async () => {

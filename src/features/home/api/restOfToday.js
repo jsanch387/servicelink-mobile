@@ -19,7 +19,25 @@ export async function fetchBookingsForTodayTimeline(
 
   const { data, error } = await supabase
     .from('bookings')
-    .select('id, scheduled_date, start_time, status, service_name')
+    .select(
+      `
+        id,
+        scheduled_date,
+        start_time,
+        status,
+        service_name,
+        service_price_cents,
+        addon_details,
+        subtotal_cents,
+        discount_cents,
+        booking_payments (
+          total_amount_cents,
+          paid_online_amount_cents,
+          session_fees_total_cents,
+          session_payment_amount_cents
+        )
+      `,
+    )
     .eq('business_id', businessId)
     .in('status', TODAY_TIMELINE_STATUSES)
     .eq('scheduled_date', day)
