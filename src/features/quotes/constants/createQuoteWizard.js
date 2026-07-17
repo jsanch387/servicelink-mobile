@@ -46,7 +46,7 @@ export const CREATE_QUOTE_WIZARD_STEPS = [
   {
     id: 'vehicle',
     title: 'Vehicle',
-    subtitle: 'Optional — leave blank if you don’t need it.',
+    subtitle: 'Optional — add year, make, and model, or leave all three blank.',
   },
   {
     id: 'service',

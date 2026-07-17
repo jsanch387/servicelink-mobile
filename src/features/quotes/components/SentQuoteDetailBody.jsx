@@ -29,6 +29,8 @@ import { getQuoteStatusPillTheme } from '../utils/quoteStatusPillTheme';
  *   scheduleState?: 'customer' | 'scheduled' | 'incomplete';
  *   scheduleDateLabel?: string | null;
  *   scheduleTimeLabel?: string | null;
+ *   customerNote?: string;
+ *   businessNote?: string;
  *   note?: string;
  *   serviceAddressLine?: string;
  * }} props.model
@@ -153,6 +155,21 @@ export function SentQuoteDetailBody({ model, betweenProposalAndActivity = null }
           lineHeight: 22,
           paddingVertical: 2,
         },
+        notesStack: {
+          gap: 0,
+          paddingVertical: 2,
+        },
+        noteLabel: {
+          color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 12,
+          fontWeight: '600',
+          letterSpacing: 0.2,
+          marginBottom: 8,
+        },
+        notesDivider: {
+          marginVertical: 16,
+        },
         activityStack: {
           gap: 18,
           paddingTop: 4,
@@ -204,6 +221,9 @@ export function SentQuoteDetailBody({ model, betweenProposalAndActivity = null }
     Boolean(model.durationLabel);
   const hasSentAt = Boolean(model.sentAt && model.sentAt !== '—');
   const hasLinkHint = Boolean(model.linkHint && model.linkHint !== '—');
+  const customerNote = String(model.customerNote ?? '').trim();
+  const businessNote = String(model.businessNote ?? model.note ?? '').trim();
+  const hasNotes = Boolean(customerNote || businessNote);
 
   const expiresCopy =
     model.goodUntil && model.goodUntil !== '—' ? `Good through ${model.goodUntil}` : null;
@@ -324,9 +344,23 @@ export function SentQuoteDetailBody({ model, betweenProposalAndActivity = null }
         />
       ) : null}
 
-      {model.note ? (
-        <DetailsSectionCard title="Note">
-          <AppText style={styles.noteText}>{model.note}</AppText>
+      {hasNotes ? (
+        <DetailsSectionCard title="Notes">
+          <View style={styles.notesStack}>
+            {customerNote ? (
+              <View>
+                <AppText style={styles.noteLabel}>Customer notes</AppText>
+                <AppText style={styles.noteText}>{customerNote}</AppText>
+              </View>
+            ) : null}
+            {customerNote && businessNote ? <Divider style={styles.notesDivider} /> : null}
+            {businessNote ? (
+              <View>
+                <AppText style={styles.noteLabel}>Business notes</AppText>
+                <AppText style={styles.noteText}>{businessNote}</AppText>
+              </View>
+            ) : null}
+          </View>
         </DetailsSectionCard>
       ) : null}
 

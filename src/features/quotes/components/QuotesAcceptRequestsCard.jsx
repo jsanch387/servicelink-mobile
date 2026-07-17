@@ -61,7 +61,7 @@ export function QuotesAcceptRequestsCard({
           <AppText style={styles.subtitle}>
             {proLocked
               ? quotesAcceptRequestsAccessCopy.cardSubtitle
-              : 'Turn on to let people ask for a quote from your booking link.'}
+              : 'Show “Request a quote” on your booking link.'}
           </AppText>
         </View>
         <Switch

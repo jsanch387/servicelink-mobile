@@ -1,5 +1,6 @@
 import { isValidEmailFormat } from '../../../utils/email';
 import { canonicalNanpDigits } from '../../../utils/phone';
+import { isOptionalVehicleComplete } from '../../../utils/vehicle';
 import { CREATE_QUOTE_CUSTOM_JOB_ID, CREATE_QUOTE_STEP } from '../constants/createQuoteWizard';
 import { twelveHourDisplayToHhMm } from './validateSendQuotePayload';
 
@@ -36,7 +37,11 @@ export function canAdvanceCreateQuoteStep(step, s) {
       return true;
     }
     case CREATE_QUOTE_STEP.VEHICLE:
-      return true;
+      return isOptionalVehicleComplete({
+        year: s.vehicleYear,
+        make: s.vehicleMake,
+        model: s.vehicleModel,
+      });
     case CREATE_QUOTE_STEP.SERVICE: {
       const id = String(s.selectedServiceId ?? '').trim();
       return Boolean(id);

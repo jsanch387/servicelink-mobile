@@ -7,6 +7,7 @@ import {
   AppText,
   FilterPills,
   InlineCardError,
+  LoadMoreLink,
   SkeletonBox,
   SurfaceCard,
 } from '../../../components/ui';
@@ -23,12 +24,28 @@ import { QuotesAcceptRequestsCard } from '../components/QuotesAcceptRequestsCard
 import { QuotesHowItWorks } from '../components/QuotesHowItWorks';
 import {
   QUOTE_DETAIL_KIND_REQUEST,
-  QUOTE_DETAIL_KIND_SENT,
-  QUOTES_TAB_OPTIONS,
-  QUOTES_TAB_REQUESTS,
-  QUOTES_TAB_SENT,
+  QUOTES_FILTER_APPROVED,
+  QUOTES_FILTER_NEEDS_ACTION,
+  QUOTES_FILTER_OPTIONS,
+  QUOTES_FILTER_WAITING,
 } from '../constants';
 import { useQuotesInbox } from '../hooks/useQuotesInbox';
+import { groupApprovedQuotesByMonth } from '../utils/groupApprovedQuotesByMonth';
+
+const FILTER_EMPTY_COPY = {
+  [QUOTES_FILTER_NEEDS_ACTION]: {
+    title: 'Nothing needs attention',
+    body: 'New requests and unfinished drafts will appear here.',
+  },
+  [QUOTES_FILTER_WAITING]: {
+    title: 'No quotes awaiting a reply',
+    body: 'Quotes you send appear here while you wait for the customer.',
+  },
+  [QUOTES_FILTER_APPROVED]: {
+    title: 'No approved quotes',
+    body: 'Quotes customers accept will appear here.',
+  },
+};
 
 function QuotesListSkeleton() {
   return (
@@ -52,7 +69,8 @@ export function QuotesScreen() {
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
   const quotesList = useQuotesInbox();
-  const [listTab, setListTab] = useState(QUOTES_TAB_REQUESTS);
+  const [activeFilter, setActiveFilter] = useState(QUOTES_FILTER_NEEDS_ACTION);
+  const [visibleApprovedMonthCount, setVisibleApprovedMonthCount] = useState(1);
   /** Root stack can show Create quote (etc.) above tabs; this scene may stay mounted and steal touches from the native header. */
   const [rootTopRoute, setRootTopRoute] = useState(undefined);
 
@@ -86,16 +104,9 @@ export function QuotesScreen() {
     });
   }, []);
 
-  const openRequestDetail = useCallback(
-    (quoteId) => {
-      navigation.navigate(ROUTES.QUOTE_DETAIL, { kind: QUOTE_DETAIL_KIND_REQUEST, quoteId });
-    },
-    [navigation],
-  );
-
-  const openSentDetail = useCallback(
-    (quoteId) => {
-      navigation.navigate(ROUTES.QUOTE_DETAIL, { kind: QUOTE_DETAIL_KIND_SENT, quoteId });
+  const openQuoteDetail = useCallback(
+    (quoteId, kind) => {
+      navigation.navigate(ROUTES.QUOTE_DETAIL, { kind, quoteId });
     },
     [navigation],
   );
@@ -147,6 +158,16 @@ export function QuotesScreen() {
         list: {
           gap: 12,
         },
+        monthGroup: {
+          gap: 12,
+        },
+        monthLabel: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '700',
+          letterSpacing: 0.1,
+          marginBottom: 2,
+        },
         errorBlock: {
           marginBottom: 16,
         },
@@ -154,6 +175,9 @@ export function QuotesScreen() {
           alignItems: 'center',
           marginTop: 24,
           paddingHorizontal: 8,
+        },
+        emptyCenteredWrap: {
+          marginTop: 56,
         },
         emptyTitle: {
           color: colors.textSecondary,
@@ -187,22 +211,55 @@ export function QuotesScreen() {
   const rootOverlayCoversTabs = rootTopRoute !== undefined && rootTopRoute !== ROUTES.MAIN_APP;
 
   const proLocked = Boolean(userId) && isOwnerProfileLoaded && !hasProAccess;
-  const activeCount =
-    listTab === QUOTES_TAB_REQUESTS ? quotesList.quoteRequests.length : quotesList.quoteSent.length;
-  const totalQuotesCount = quotesList.quoteRequests.length + quotesList.quoteSent.length;
-  const hasNoQuotes = totalQuotesCount === 0;
-  const sectionCaption =
-    listTab === QUOTES_TAB_REQUESTS
-      ? activeCount === 0
-        ? 'No requests waiting'
-        : activeCount === 1
-          ? '1 request needs your attention'
-          : `${activeCount} requests waiting`
-      : activeCount === 0
-        ? 'No quotes sent yet'
-        : activeCount === 1
-          ? '1 quote in your history'
-          : `${activeCount} quotes in your history`;
+  const filterQuotes = quotesList.quoteGroups[activeFilter] ?? [];
+  const approvedMonthGroups = useMemo(
+    () => groupApprovedQuotesByMonth(quotesList.quoteGroups[QUOTES_FILTER_APPROVED] ?? []),
+    [quotesList.quoteGroups],
+  );
+  const approvedMonthKeys = approvedMonthGroups.map((group) => group.key).join('|');
+
+  useEffect(() => {
+    setVisibleApprovedMonthCount(1);
+  }, [approvedMonthKeys]);
+
+  const visibleApprovedMonthGroups = approvedMonthGroups.slice(0, visibleApprovedMonthCount);
+  const activeQuotes =
+    activeFilter === QUOTES_FILTER_APPROVED
+      ? visibleApprovedMonthGroups.flatMap((group) => group.cards)
+      : filterQuotes;
+  const nextApprovedMonth =
+    activeFilter === QUOTES_FILTER_APPROVED
+      ? (approvedMonthGroups[visibleApprovedMonthCount] ?? null)
+      : null;
+  const activeCount = filterQuotes.length;
+  const hasNoQuotes = quotesList.totalQuotesCount === 0;
+  const sectionCaption = useMemo(() => {
+    if (activeCount === 0) return null;
+    if (activeFilter === QUOTES_FILTER_NEEDS_ACTION) {
+      return activeCount === 1 ? '1 quote needs attention' : `${activeCount} quotes need attention`;
+    }
+    if (activeFilter === QUOTES_FILTER_WAITING) {
+      return activeCount === 1
+        ? '1 quote awaiting a response'
+        : `${activeCount} quotes awaiting a response`;
+    }
+    return activeCount === 1 ? '1 approved quote' : `${activeCount} approved quotes`;
+  }, [activeCount, activeFilter]);
+  const activeEmptyCopy = FILTER_EMPTY_COPY[activeFilter];
+  const renderQuoteCard = (row) => (
+    <QuoteInboxCard
+      customerName={row.customerName}
+      key={row.id}
+      summary={row.summary}
+      statusLabel={row.statusLabel}
+      statusRaw={row.statusRaw}
+      timestampLabel={row.timestampLabel}
+      title={row.title}
+      variant={row.kind === QUOTE_DETAIL_KIND_REQUEST ? 'request' : 'sent'}
+      vehicleLabel={row.vehicleLabel}
+      onPress={() => openQuoteDetail(row.id, row.kind)}
+    />
+  );
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
@@ -245,16 +302,16 @@ export function QuotesScreen() {
 
           <View style={styles.sectionHeader}>
             <AppText style={styles.sectionLabel}>Your quotes</AppText>
-            {!hasNoQuotes ? (
+            {sectionCaption ? (
               <AppText style={styles.sectionCaption}>{sectionCaption}</AppText>
             ) : null}
           </View>
           {!hasNoQuotes || quotesList.isLoading ? (
             <View style={styles.pills}>
               <FilterPills
-                onSelect={setListTab}
-                options={QUOTES_TAB_OPTIONS}
-                selectedKey={listTab}
+                onSelect={setActiveFilter}
+                options={QUOTES_FILTER_OPTIONS}
+                selectedKey={activeFilter}
               />
             </View>
           ) : null}
@@ -284,10 +341,10 @@ export function QuotesScreen() {
               </AppText>
             </View>
           ) : quotesList.listError ? null : hasNoQuotes ? (
-            <View style={styles.emptyWrap}>
+            <View style={[styles.emptyWrap, styles.emptyCenteredWrap]}>
               <AppText style={styles.emptyTitle}>No quotes yet</AppText>
               <AppText style={styles.emptyBody}>
-                New requests and quotes you send will appear here.
+                Create a quote or accept customer requests.
               </AppText>
               <View style={styles.emptyHelp}>
                 <QuotesHowItWorks />
@@ -295,54 +352,26 @@ export function QuotesScreen() {
             </View>
           ) : (
             <View style={styles.list}>
-              {listTab === QUOTES_TAB_REQUESTS ? (
-                quotesList.quoteRequests.length === 0 ? (
-                  <View style={styles.emptyWrap}>
-                    <AppText style={styles.emptyTitle}>No quote requests</AppText>
-                    <AppText style={styles.emptyBody}>
-                      New customer requests appear here when someone asks for a quote from your
-                      booking link or website flow.
-                    </AppText>
-                  </View>
-                ) : (
-                  quotesList.quoteRequests.map((row) => (
-                    <QuoteInboxCard
-                      customerName={row.customerName}
-                      key={row.id}
-                      summary={row.summary}
-                      statusLabel={row.statusLabel}
-                      statusRaw={row.statusRaw}
-                      timestampLabel={row.timestampLabel}
-                      title={row.title}
-                      variant="request"
-                      vehicleLabel={row.vehicleLabel}
-                      onPress={() => openRequestDetail(row.id)}
-                    />
+              {activeQuotes.length === 0 ? (
+                <View style={[styles.emptyWrap, styles.emptyCenteredWrap]}>
+                  <AppText style={styles.emptyTitle}>{activeEmptyCopy.title}</AppText>
+                  <AppText style={styles.emptyBody}>{activeEmptyCopy.body}</AppText>
+                </View>
+              ) : null}
+              {activeFilter === QUOTES_FILTER_APPROVED
+                ? visibleApprovedMonthGroups.map((group) => (
+                    <View key={group.key} style={styles.monthGroup}>
+                      <AppText style={styles.monthLabel}>{group.label}</AppText>
+                      {group.cards.map(renderQuoteCard)}
+                    </View>
                   ))
-                )
-              ) : listTab === QUOTES_TAB_SENT ? (
-                quotesList.quoteSent.length === 0 ? (
-                  <View style={styles.emptyWrap}>
-                    <AppText style={styles.emptyTitle}>No sent quotes yet</AppText>
-                    <AppText style={styles.emptyBody}>
-                      Drafts and quotes you send live here while you wait on the customer.
-                    </AppText>
-                  </View>
-                ) : (
-                  quotesList.quoteSent.map((row) => (
-                    <QuoteInboxCard
-                      customerName={row.customerName}
-                      key={row.id}
-                      statusLabel={row.statusLabel}
-                      statusRaw={row.statusRaw}
-                      timestampLabel={row.timestampLabel}
-                      title={row.title}
-                      variant="sent"
-                      vehicleLabel={row.vehicleLabel}
-                      onPress={() => openSentDetail(row.id)}
-                    />
-                  ))
-                )
+                : activeQuotes.map(renderQuoteCard)}
+              {nextApprovedMonth ? (
+                <LoadMoreLink
+                  accessibilityHint="Shows approved quotes from the next older month"
+                  label={`Load ${nextApprovedMonth.label}`}
+                  onPress={() => setVisibleApprovedMonthCount((count) => count + 1)}
+                />
               ) : null}
             </View>
           )}

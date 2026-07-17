@@ -1,9 +1,15 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, SectionList, StyleSheet, View } from 'react-native';
+import { RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
+import {
+  AppText,
+  Button,
+  InlineCardError,
+  LoadMoreLink,
+  SurfaceCard,
+} from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { BookingCard } from '../components/BookingCard';
@@ -244,22 +250,6 @@ export function BookingsScreen() {
         errorBlock: {
           marginBottom: 12,
         },
-        loadMoreWrap: {
-          alignItems: 'center',
-          marginTop: 16,
-          paddingBottom: 12,
-        },
-        loadMoreLink: {
-          color: colors.link,
-          fontSize: 15,
-          fontWeight: '600',
-          letterSpacing: -0.1,
-          textAlign: 'center',
-          textDecorationLine: 'underline',
-        },
-        loadMoreLinkDisabled: {
-          opacity: 0.5,
-        },
       }),
     [colors, bottomPad, insets.bottom, insets.left, insets.right],
   );
@@ -309,25 +299,14 @@ export function BookingsScreen() {
       return null;
     }
     return (
-      <View style={styles.loadMoreWrap}>
-        <Pressable
-          accessibilityHint="Loads appointments from an earlier month"
-          accessibilityLabel={list.loadMoreLabel}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: list.isFetchingNextPage }}
-          disabled={list.isFetchingNextPage}
-          hitSlop={8}
-          onPress={list.loadMore}
-        >
-          <AppText
-            style={[styles.loadMoreLink, list.isFetchingNextPage && styles.loadMoreLinkDisabled]}
-          >
-            {list.isFetchingNextPage ? 'Loading…' : list.loadMoreLabel}
-          </AppText>
-        </Pressable>
-      </View>
+      <LoadMoreLink
+        accessibilityHint="Loads appointments from an earlier month"
+        label={list.loadMoreLabel}
+        loading={list.isFetchingNextPage}
+        onPress={list.loadMore}
+      />
     );
-  }, [list, scheduleError, styles.loadMoreLink, styles.loadMoreLinkDisabled, styles.loadMoreWrap]);
+  }, [list, scheduleError]);
 
   const listHeader = useMemo(
     () => (

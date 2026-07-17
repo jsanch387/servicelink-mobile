@@ -10,6 +10,7 @@ import {
 } from '../constants/createQuoteFieldLimits';
 import { isValidEmailFormat } from '../../../utils/email';
 import { canonicalNanpDigits } from '../../../utils/phone';
+import { isOptionalVehicleComplete } from '../../../utils/vehicle';
 
 /**
  * @param {string} display
@@ -206,6 +207,18 @@ export function validateSendQuotePayload(input) {
   const vehicleModel = trimOrNull(input.vehicleModel);
   if (vehicleModel && vehicleModel.length > QUOTE_VEHICLE_MODEL_MAX) {
     return { ok: false, message: 'Vehicle model is too long.' };
+  }
+  if (
+    !isOptionalVehicleComplete({
+      year: vehicleYear,
+      make: vehicleMake,
+      model: vehicleModel,
+    })
+  ) {
+    return {
+      ok: false,
+      message: 'Enter a valid vehicle year, make, and model, or leave all three blank.',
+    };
   }
 
   /** @type {Record<string, unknown>} */

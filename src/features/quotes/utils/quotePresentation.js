@@ -1,4 +1,10 @@
-import { QUOTE_DETAIL_KIND_REQUEST, QUOTE_DETAIL_KIND_SENT } from '../constants';
+import {
+  QUOTE_DETAIL_KIND_REQUEST,
+  QUOTE_DETAIL_KIND_SENT,
+  QUOTES_FILTER_APPROVED,
+  QUOTES_FILTER_NEEDS_ACTION,
+  QUOTES_FILTER_WAITING,
+} from '../constants';
 import { splitBookingServiceName } from '../../../utils/splitBookingServiceName';
 import {
   formatScheduledDateUserFacing,
@@ -219,6 +225,35 @@ export function partitionQuotesForInbox(rows) {
 }
 
 /**
+ * Groups quotes by the owner's next task instead of inbound/outbound source.
+ *
+ * @param {QuoteRow[]} rows
+ */
+export function groupQuotesByWorkflow(rows) {
+  const groups = {
+    [QUOTES_FILTER_NEEDS_ACTION]: [],
+    [QUOTES_FILTER_WAITING]: [],
+    [QUOTES_FILTER_APPROVED]: [],
+  };
+
+  for (const row of rows) {
+    const status = String(row.status ?? '')
+      .trim()
+      .toLowerCase();
+
+    if (status === 'sent' || status === 'viewed') {
+      groups[QUOTES_FILTER_WAITING].push(row);
+    } else if (status === 'approved') {
+      groups[QUOTES_FILTER_APPROVED].push(row);
+    } else if (status !== 'declined' && status !== 'expired' && status !== 'cancelled') {
+      groups[QUOTES_FILTER_NEEDS_ACTION].push(row);
+    }
+  }
+
+  return groups;
+}
+
+/**
  * @param {QuoteRow} row
  * @param {number} nowMs
  */
@@ -232,6 +267,7 @@ export function mapQuoteRequestCard(row, nowMs) {
   const receivedLabel = formatQuoteInboxRelative(row.updated_at ?? row.created_at, nowMs);
   return {
     id: row.id,
+    activityAt: row.updated_at ?? row.created_at ?? null,
     customerName: name,
     title,
     summary,
@@ -256,6 +292,7 @@ export function mapSentQuoteCard(row) {
 
   return {
     id: row.id,
+    activityAt: row.updated_at ?? row.created_at ?? null,
     customerName: name,
     title: serviceName || 'Custom quote',
     vehicleLabel: formatVehicleLine(row),
@@ -362,6 +399,10 @@ export function mapQuoteDetailModel(row, kind, opts = {}) {
       ? Number(servicePriceCentsRaw)
       : null;
   const addonDetails = normalizeQuoteAddonDetails(quoteField(row, 'addon_details', 'addonDetails'));
+  const customerNote = String(
+    quoteField(row, 'request_message', 'requestMessage') ?? row.customerRequestNotes ?? '',
+  ).trim();
+  const businessNote = String(row.businessNote ?? row.note ?? '').trim();
 
   const st = String(row.status ?? '').toLowerCase();
   let linkHint = 'Customer opens your quote from the link you sent.';
@@ -431,7 +472,10 @@ export function mapQuoteDetailModel(row, kind, opts = {}) {
     scheduleState,
     scheduleDateLabel,
     scheduleTimeLabel,
-    note: String(row.note ?? '').trim(),
+    customerNote,
+    businessNote,
+    /** @deprecated Use `businessNote`. */
+    note: businessNote,
     serviceAddressLine: String(row.serviceAddressLine ?? '').trim(),
   };
 }

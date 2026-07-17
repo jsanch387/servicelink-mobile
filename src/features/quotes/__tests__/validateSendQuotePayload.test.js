@@ -126,6 +126,28 @@ describe('validateSendQuotePayload', () => {
     expect(r.ok).toBe(true);
     expect(r.body.customerPhone).toBe('5125550199');
   });
+
+  it('requires a complete valid vehicle when any vehicle field is entered', () => {
+    const partial = validateSendQuotePayload(validBase({ vehicleYear: '2024' }));
+    expect(partial.ok).toBe(false);
+    expect(partial.message).toMatch(/year, make, and model/i);
+
+    const complete = validateSendQuotePayload(
+      validBase({
+        vehicleYear: '2024',
+        vehicleMake: 'Toyota',
+        vehicleModel: 'Camry',
+      }),
+    );
+    expect(complete.ok).toBe(true);
+    expect(complete.body).toEqual(
+      expect.objectContaining({
+        vehicleYear: '2024',
+        vehicleMake: 'Toyota',
+        vehicleModel: 'Camry',
+      }),
+    );
+  });
 });
 
 describe('dbTimeToCreateQuoteTime12hSnapped', () => {

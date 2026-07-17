@@ -16,6 +16,7 @@ export function QuotesHowItWorks() {
         accessibilityLabel={QUOTES_HOW_IT_WORKS_LINK_LABEL}
         accessibilityRole="button"
         hitSlop={10}
+        style={styles.linkHit}
         onPress={() => setSheetVisible(true)}
       >
         <AppText style={[styles.link, { color: colors.textSecondary }]}>
@@ -28,9 +29,14 @@ export function QuotesHowItWorks() {
 }
 
 const styles = StyleSheet.create({
+  linkHit: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
   link: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
+    textAlign: 'center',
     textDecorationLine: 'underline',
   },
 });

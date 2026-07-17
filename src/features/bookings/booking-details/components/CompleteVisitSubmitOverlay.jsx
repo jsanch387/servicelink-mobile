@@ -1,18 +1,33 @@
-import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, EchoBarsLoader, SuccessMoment } from '../../../../components/ui';
+import { useCyclingStatusMessage } from '../../../../hooks/useCyclingStatusMessage';
 import { useTheme } from '../../../../theme';
 import { COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY } from '../constants/markCompleteFeatureFlags';
 
 const PENDING_MESSAGES_WITH_REVIEW = [
-  'Completing',
+  'Completing appointment',
+  'Saving visit details',
   'Sending receipt',
   'Sending review link',
   'Updating booking',
+  'Refreshing schedule',
+  'Finishing up',
 ];
-const PENDING_MESSAGES_RECEIPT_ONLY = ['Completing', 'Sending receipt', 'Updating booking'];
-const PENDING_MESSAGES_NEUTRAL = ['Completing', 'Updating booking'];
-const PENDING_MESSAGE_MS = 1200;
+const PENDING_MESSAGES_RECEIPT_ONLY = [
+  'Completing appointment',
+  'Saving visit details',
+  'Sending receipt',
+  'Updating booking',
+  'Refreshing schedule',
+  'Finishing up',
+];
+const PENDING_MESSAGES_NEUTRAL = [
+  'Completing appointment',
+  'Saving visit details',
+  'Updating booking',
+  'Refreshing schedule',
+  'Finishing up',
+];
 
 /**
  * @param {boolean | undefined} includesReviewLink
@@ -50,31 +65,20 @@ export function CompleteVisitSubmitOverlay({
 }) {
   const { colors } = useTheme();
   const pendingMessages = getPendingMessages(includesReviewLink);
-  const [pendingMessageIndex, setPendingMessageIndex] = useState(0);
-
-  useEffect(() => {
-    if (phase !== 'pending') {
-      setPendingMessageIndex(0);
-      return undefined;
-    }
-
-    const intervalId = setInterval(() => {
-      setPendingMessageIndex((prev) => (prev + 1) % pendingMessages.length);
-    }, PENDING_MESSAGE_MS);
-
-    return () => clearInterval(intervalId);
-  }, [phase, pendingMessages.length]);
+  const pendingMessage = useCyclingStatusMessage(phase === 'pending', pendingMessages);
 
   const overlayInsetStyle = { paddingBottom: bottomInset };
 
   if (phase === 'pending') {
-    const activePendingTitle = pendingMessages[pendingMessageIndex] ?? pendingTitle;
     return (
-      <View style={[styles.root, overlayInsetStyle, { backgroundColor: colors.shell }]}>
+      <View
+        accessibilityLiveRegion="polite"
+        style={[styles.root, overlayInsetStyle, { backgroundColor: colors.shell }]}
+      >
         <View style={styles.centeredWrap}>
-          <EchoBarsLoader accessibilityLabel="Completing" />
-          <AppText style={[styles.pendingTitle, { color: colors.text }]}>
-            {activePendingTitle}
+          <EchoBarsLoader accessibilityLabel="Completing appointment" size="large" />
+          <AppText style={[styles.pendingTitle, { color: colors.textSecondary }]}>
+            {pendingMessage || pendingTitle}
           </AppText>
         </View>
       </View>
@@ -104,14 +108,14 @@ const styles = StyleSheet.create({
   centeredWrap: {
     alignItems: 'center',
     flex: 1,
-    gap: 18,
     justifyContent: 'center',
     paddingHorizontal: 28,
   },
   pendingTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.25,
+    fontSize: 16,
+    fontWeight: '500',
+    letterSpacing: -0.2,
+    marginTop: 20,
     textAlign: 'center',
   },
 });

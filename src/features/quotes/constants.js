@@ -2,15 +2,15 @@
 export const QUOTE_DETAIL_KIND_REQUEST = 'request';
 export const QUOTE_DETAIL_KIND_SENT = 'sent';
 
-/** @type {const} */
-export const QUOTES_TAB_REQUESTS = 'requests';
+export const QUOTES_FILTER_NEEDS_ACTION = 'needs_action';
+export const QUOTES_FILTER_WAITING = 'waiting';
+export const QUOTES_FILTER_APPROVED = 'approved';
 
-/** Outgoing quotes: sent to the customer, pending acceptance (then become bookings). */
-export const QUOTES_TAB_SENT = 'sent';
-
-export const QUOTES_TAB_OPTIONS = [
-  { key: QUOTES_TAB_REQUESTS, label: 'Quote requests' },
-  { key: QUOTES_TAB_SENT, label: 'Sent quotes' },
+/** Task-based quote lifecycle filters for the owner inbox. */
+export const QUOTES_FILTER_OPTIONS = [
+  { key: QUOTES_FILTER_NEEDS_ACTION, label: 'Needs action' },
+  { key: QUOTES_FILTER_WAITING, label: 'Waiting' },
+  { key: QUOTES_FILTER_APPROVED, label: 'Approved' },
 ];
 
 /** Shown when detail fetch finds no row (deleted, stale list, or sync delay). */

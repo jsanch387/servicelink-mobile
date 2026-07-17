@@ -1,5 +1,6 @@
 import { isValidEmailFormat } from '../../../../utils/email';
 import { normalizePhoneForDatabase } from '../../../../utils/phone';
+import { isOptionalVehicleComplete } from '../../../../utils/vehicle';
 import { isCreateFlowPricingSelectionValid } from './createFlowPricing';
 import { isLocationStepComplete } from './createAppointmentServiceLocation';
 
@@ -44,14 +45,7 @@ export function isAddressStepComplete(address) {
 
 /** Vehicle is optional, but partial vehicle snapshots are rejected by the owner-booking API. */
 export function isVehicleStepComplete(vehicle, now = new Date()) {
-  const v = vehicle ?? {};
-  const year = String(v.year ?? '').trim();
-  const make = String(v.make ?? '').trim();
-  const model = String(v.model ?? '').trim();
-  if (!year && !make && !model) return true;
-  if (!year || !make || !model || !/^\d{4}$/.test(year)) return false;
-  const yearNumber = Number(year);
-  return yearNumber >= 1900 && yearNumber <= now.getFullYear() + 1;
+  return isOptionalVehicleComplete(vehicle, now);
 }
 
 /**

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   RefreshControl,
   ScrollView,
@@ -24,6 +25,7 @@ import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { isValidCalendarYyyyMmDd } from '../utils/formatScheduledDateDisplay';
 import { CreateQuoteSendSuccess } from '../components/create-quote/CreateQuoteSendSuccess';
 import { CreateQuoteStepContent } from '../components/create-quote/CreateQuoteStepContent';
+import { CreateQuoteSubmittingState } from '../components/create-quote/CreateQuoteSubmittingState';
 import { CreateQuoteWizardFooter } from '../components/create-quote/CreateQuoteWizardFooter';
 import {
   CREATE_QUOTE_CATALOG_PICK_COPY,
@@ -316,6 +318,9 @@ export function CreateQuoteScreen() {
       customerName,
       customerEmail,
       customerPhoneDisplay,
+      vehicleYear,
+      vehicleMake,
+      vehicleModel,
       selectedServiceId,
       isCustomJob,
       selectedPricingId,
@@ -343,6 +348,9 @@ export function CreateQuoteScreen() {
       selectedPricingId,
       selectedServiceId,
       serviceName,
+      vehicleMake,
+      vehicleModel,
+      vehicleYear,
     ],
   );
 
@@ -440,22 +448,31 @@ export function CreateQuoteScreen() {
   );
 
   const isReviewStep = stepIndex === lastStepIndex;
+  const showSubmitPanel = isReviewStep && !sendSucceeded && (sending || Boolean(sendError));
+  const hideNavigationHeader = showSubmitPanel || sendSucceeded;
 
   useLayoutEffect(() => {
-    if (sendSucceeded) {
-      navigation.setOptions({ title: 'Quote sent' });
-    } else if (isReviewStep) {
-      navigation.setOptions({ title: 'Review' });
-    } else {
-      navigation.setOptions({
-        title: quoteRequestId ? 'Send quote' : 'New quote',
-      });
-    }
-  }, [isReviewStep, navigation, quoteRequestId, sendSucceeded]);
+    navigation.setOptions({
+      gestureEnabled: !hideNavigationHeader,
+      headerShown: !hideNavigationHeader,
+      title: isReviewStep ? 'Review' : quoteRequestId ? 'Send quote' : 'New quote',
+    });
+  }, [hideNavigationHeader, isReviewStep, navigation, quoteRequestId]);
+
+  useLayoutEffect(
+    () => () => {
+      navigation.setOptions({ gestureEnabled: true, headerShown: true });
+    },
+    [navigation],
+  );
 
   const handleSuccessDone = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
+
+  const handleBackToReview = useCallback(() => {
+    setSendError(null);
+  }, []);
 
   const handleSend = useCallback(async () => {
     setSendError(null);
@@ -768,64 +785,82 @@ export function CreateQuoteScreen() {
   }
 
   return (
-    <View style={styles.root}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.flex}
-      >
-        <View style={styles.column}>
-          {!isReviewStep ? (
-            <WizardStepHeader
-              progressAccessibilityLabel="Quote wizard progress"
-              stepCount={visibleStepCount}
-              stepIndex={visibleStepIndex}
-              subtitle={stepDef.subtitle}
-              title={stepDef.title}
-            />
-          ) : null}
+    <>
+      <View style={styles.root}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.flex}
+        >
+          <View style={styles.column}>
+            {!isReviewStep ? (
+              <WizardStepHeader
+                progressAccessibilityLabel="Quote wizard progress"
+                stepCount={visibleStepCount}
+                stepIndex={visibleStepIndex}
+                subtitle={stepDef.subtitle}
+                title={stepDef.title}
+              />
+            ) : null}
 
-          <View style={styles.scrollOuter}>
-            <ScrollView
-              ref={scrollRef}
-              automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
-              contentContainerStyle={[
-                styles.content,
-                isReviewStep && !sendSucceeded && styles.contentReview,
-                sendSucceeded && styles.contentSuccessConfirm,
-              ]}
-              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              style={styles.scroll}
-            >
-              {sendError && !sendSucceeded ? <InlineCardError message={sendError} /> : null}
-              {!businessSlug ? (
-                <InlineCardError message="Your business slug is not set. Finish your booking profile on the web app, then return here." />
-              ) : null}
+            <View style={styles.scrollOuter}>
+              <ScrollView
+                ref={scrollRef}
+                automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+                contentContainerStyle={[
+                  styles.content,
+                  isReviewStep && !sendSucceeded && styles.contentReview,
+                  sendSucceeded && styles.contentSuccessConfirm,
+                ]}
+                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                style={styles.scroll}
+              >
+                {!businessSlug ? (
+                  <InlineCardError message="Your business slug is not set. Finish your booking profile on the web app, then return here." />
+                ) : null}
 
-              {sendSucceeded ? (
-                <CreateQuoteSendSuccess customerEmail={customerEmail} />
-              ) : (
-                <CreateQuoteStepContent form={formBag} stepIndex={stepIndex} />
-              )}
-            </ScrollView>
+                {sendSucceeded ? (
+                  <CreateQuoteSendSuccess customerEmail={customerEmail} />
+                ) : (
+                  <CreateQuoteStepContent form={formBag} stepIndex={stepIndex} />
+                )}
+              </ScrollView>
+            </View>
+
+            {!showSubmitPanel ? (
+              <CreateQuoteWizardFooter
+                canContinue={canContinue}
+                disabled={!businessSlug || !accessToken}
+                lastStepIndex={lastStepIndex}
+                paddingBottom={12 + insets.bottom}
+                sendButtonTitle={sendButtonTitle}
+                sendSuccessMode={sendSucceeded}
+                sending={sending}
+                stepIndex={stepIndex}
+                onBack={handleFooterBack}
+                onContinue={handleFooterContinue}
+                onSuccessDone={handleSuccessDone}
+              />
+            ) : null}
           </View>
+        </KeyboardAvoidingView>
+      </View>
 
-          <CreateQuoteWizardFooter
-            canContinue={canContinue}
-            disabled={!businessSlug || !accessToken}
-            lastStepIndex={lastStepIndex}
-            paddingBottom={12 + insets.bottom}
-            sendButtonTitle={sendButtonTitle}
-            sendSuccessMode={sendSucceeded}
-            sending={sending}
-            stepIndex={stepIndex}
-            onBack={handleFooterBack}
-            onContinue={handleFooterContinue}
-            onSuccessDone={handleSuccessDone}
-          />
-        </View>
-      </KeyboardAvoidingView>
-    </View>
+      <Modal
+        animationType="fade"
+        presentationStyle="fullScreen"
+        statusBarTranslucent
+        visible={showSubmitPanel}
+        onRequestClose={() => {}}
+      >
+        <SafeAreaView
+          edges={['top', 'bottom', 'left', 'right']}
+          style={{ backgroundColor: colors.shell, flex: 1 }}
+        >
+          <CreateQuoteSubmittingState error={sendError} onBackToReview={handleBackToReview} />
+        </SafeAreaView>
+      </Modal>
+    </>
   );
 }

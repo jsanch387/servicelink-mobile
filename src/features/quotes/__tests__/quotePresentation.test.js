@@ -1,7 +1,14 @@
-import { QUOTE_DETAIL_KIND_REQUEST, QUOTE_DETAIL_KIND_SENT } from '../constants';
+import {
+  QUOTE_DETAIL_KIND_REQUEST,
+  QUOTE_DETAIL_KIND_SENT,
+  QUOTES_FILTER_APPROVED,
+  QUOTES_FILTER_NEEDS_ACTION,
+  QUOTES_FILTER_WAITING,
+} from '../constants';
 import {
   deriveQuoteDetailKind,
   formatOwnerFacingQuoteStatus,
+  groupQuotesByWorkflow,
   mapQuoteDetailModel,
   mapQuoteRequestCard,
   mapSentQuoteCard,
@@ -23,6 +30,33 @@ describe('partitionQuotesForInbox', () => {
     const { requests, sent } = partitionQuotesForInbox([inbound, outbound]);
     expect(requests).toEqual([inbound]);
     expect(sent).toEqual([outbound]);
+  });
+});
+
+describe('groupQuotesByWorkflow', () => {
+  it('groups quote lifecycle states by the owner task', () => {
+    const rows = [
+      { id: 'request', status: 'requested' },
+      { id: 'draft', status: 'draft' },
+      { id: 'sent', status: 'sent' },
+      { id: 'viewed', status: 'viewed' },
+      { id: 'approved', status: 'approved' },
+      { id: 'declined', status: 'declined' },
+      { id: 'expired', status: 'expired' },
+      { id: 'cancelled', status: 'cancelled' },
+    ];
+
+    const groups = groupQuotesByWorkflow(rows);
+
+    expect(groups[QUOTES_FILTER_NEEDS_ACTION].map((row) => row.id)).toEqual(['request', 'draft']);
+    expect(groups[QUOTES_FILTER_WAITING].map((row) => row.id)).toEqual(['sent', 'viewed']);
+    expect(groups[QUOTES_FILTER_APPROVED].map((row) => row.id)).toEqual(['approved']);
+    const visibleIds = Object.values(groups)
+      .flat()
+      .map((row) => row.id);
+    expect(visibleIds).not.toContain('declined');
+    expect(visibleIds).not.toContain('expired');
+    expect(visibleIds).not.toContain('cancelled');
   });
 });
 
@@ -180,6 +214,7 @@ describe('mapQuoteDetailModel', () => {
         ],
         scheduledDate: '2026-07-20',
         scheduledTime: '09:30:00',
+        requestMessage: 'Customer needs pet hair removed',
         note: 'Includes clay bar',
         vehicleLine: '2024 Ford Explorer',
         serviceAddressLine: '123 Main St, Austin, TX 78701',
@@ -201,6 +236,8 @@ describe('mapQuoteDetailModel', () => {
     expect(model.scheduleDateLabel).toMatch(/July 20, 2026/i);
     expect(model.scheduleTimeLabel).toMatch(/9:30 AM/i);
     expect(model.serviceAddressLine).toContain('123 Main St');
+    expect(model.customerNote).toBe('Customer needs pet hair removed');
+    expect(model.businessNote).toBe('Includes clay bar');
     expect(model.note).toBe('Includes clay bar');
   });
 });

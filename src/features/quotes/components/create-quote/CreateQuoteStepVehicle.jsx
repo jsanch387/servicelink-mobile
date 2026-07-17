@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { SurfaceTextField } from '../../../../components/ui';
+import { StyleSheet } from 'react-native';
+import { AppText, SurfaceTextField } from '../../../../components/ui';
+import { useTheme } from '../../../../theme';
+import { isOptionalVehicleComplete } from '../../../../utils/vehicle';
 import {
   QUOTE_VEHICLE_MAKE_MAX,
   QUOTE_VEHICLE_MODEL_MAX,
@@ -70,6 +73,20 @@ export function CreateQuoteStepVehicle({
   vehicleModel,
   onVehicleModelChange,
 }) {
+  const { colors } = useTheme();
+  const hasAnyVehicleField = [vehicleYear, vehicleMake, vehicleModel].some((value) =>
+    Boolean(String(value ?? '').trim()),
+  );
+  const vehicleError =
+    hasAnyVehicleField &&
+    !isOptionalVehicleComplete({
+      year: vehicleYear,
+      make: vehicleMake,
+      model: vehicleModel,
+    })
+      ? 'Please enter a valid year, make, and model.'
+      : null;
+
   return (
     <CreateQuoteFieldStack>
       <VehicleYearField value={vehicleYear} onValueChange={onVehicleYearChange} />
@@ -89,6 +106,17 @@ export function CreateQuoteStepVehicle({
         placeholder="e.g. Camry, 185 Sport"
         value={vehicleModel}
       />
+      {vehicleError ? (
+        <AppText style={[styles.error, { color: colors.danger }]}>{vehicleError}</AppText>
+      ) : null}
     </CreateQuoteFieldStack>
   );
 }
+
+const styles = StyleSheet.create({
+  error: {
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 17,
+  },
+});

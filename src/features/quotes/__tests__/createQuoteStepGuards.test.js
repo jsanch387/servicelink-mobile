@@ -5,6 +5,9 @@ const baseSnapshot = {
   customerName: 'Pat',
   customerEmail: 'pat@example.com',
   customerPhoneDisplay: '',
+  vehicleYear: '',
+  vehicleMake: '',
+  vehicleModel: '',
   selectedServiceId: CREATE_QUOTE_CUSTOM_JOB_ID,
   isCustomJob: true,
   selectedPricingId: null,
@@ -29,8 +32,33 @@ describe('canAdvanceCreateQuoteStep', () => {
     expect(canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.CUSTOMER, baseSnapshot)).toBe(true);
   });
 
-  it('allows vehicle step without fields', () => {
+  it('allows an empty vehicle or a complete valid vehicle', () => {
     expect(canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.VEHICLE, baseSnapshot)).toBe(true);
+    expect(
+      canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.VEHICLE, {
+        ...baseSnapshot,
+        vehicleYear: '2024',
+        vehicleMake: 'Toyota',
+        vehicleModel: 'Camry',
+      }),
+    ).toBe(true);
+  });
+
+  it('requires year, make, and model when any vehicle field is entered', () => {
+    expect(
+      canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.VEHICLE, {
+        ...baseSnapshot,
+        vehicleYear: '2024',
+      }),
+    ).toBe(false);
+    expect(
+      canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.VEHICLE, {
+        ...baseSnapshot,
+        vehicleYear: '24',
+        vehicleMake: 'Toyota',
+        vehicleModel: 'Camry',
+      }),
+    ).toBe(false);
   });
 
   it('requires a selected service on service pick step', () => {

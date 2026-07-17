@@ -110,7 +110,8 @@ export function CreateQuoteStepReview({
   }, [scheduledStartTime12h]);
 
   const showScheduleSection =
-    scheduleMode === 'customer' || Boolean(scheduleDateDisplay || scheduleTimeDisplay);
+    scheduleMode === 'customer' ||
+    Boolean(scheduleDateDisplay || scheduleTimeDisplay || durationLabel);
 
   const customerRows = useMemo(() => {
     const rows = [];
@@ -250,21 +251,6 @@ export function CreateQuoteStepReview({
           lineHeight: 34,
           marginTop: 10,
         },
-        metaRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          gap: 8,
-          marginTop: 12,
-        },
-        metaText: {
-          color: colors.textMuted,
-          flex: 1,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 14,
-          fontWeight: '500',
-          letterSpacing: -0.1,
-          lineHeight: 20,
-        },
         activityStack: {
           gap: 16,
           paddingTop: 2,
@@ -392,13 +378,6 @@ export function CreateQuoteStepReview({
               Price not set
             </AppText>
           )}
-
-          {durationLabel ? (
-            <View style={styles.metaRow}>
-              <Ionicons color={colors.textMuted} name="timer-outline" size={18} />
-              <AppText style={styles.metaText}>Duration · {durationLabel}</AppText>
-            </View>
-          ) : null}
         </View>
       </DetailsSectionCard>
 
@@ -441,6 +420,17 @@ export function CreateQuoteStepReview({
                 ) : null}
               </>
             )}
+            {durationLabel ? (
+              <View style={styles.activityRow}>
+                <View style={styles.activityIconWrap}>
+                  <Ionicons color={colors.accentMuted} name="hourglass-outline" size={19} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <AppText style={styles.activityLabel}>Duration</AppText>
+                  <AppText style={styles.activityValue}>{durationLabel}</AppText>
+                </View>
+              </View>
+            ) : null}
           </View>
         </DetailsSectionCard>
       ) : null}

@@ -17,9 +17,9 @@ import { CreateQuoteStepVehicle } from './CreateQuoteStepVehicle';
 
 const inputSurfacePad = StyleSheet.create({
   surface: {
-    paddingBottom: 30,
+    paddingBottom: 18,
     paddingHorizontal: 14,
-    paddingTop: 30,
+    paddingTop: 18,
   },
   sections: {
     gap: 16,
@@ -97,13 +97,11 @@ export function CreateQuoteStepContent({ stepIndex, form }) {
                 onServiceNameChange={form.setServiceName}
               />,
             )}
-            {wrapInputStepSurface(
-              <CreateQuoteStepNote
-                note={form.businessNote}
-                onNoteChange={form.setBusinessNote}
-                onFocus={form.onBusinessNoteFocus}
-              />,
-            )}
+            <CreateQuoteStepNote
+              note={form.businessNote}
+              onNoteChange={form.setBusinessNote}
+              onFocus={form.onBusinessNoteFocus}
+            />
           </View>
         );
       }

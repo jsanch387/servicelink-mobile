@@ -8,10 +8,12 @@ import { updateAcceptQuoteRequests } from '../api/acceptQuoteRequests';
 import { fetchQuotesForBusiness } from '../api/quotes';
 import { QUOTES_QUERY_ROOT, quotesListQueryKey } from '../queryKeys';
 import {
+  deriveQuoteDetailKind,
+  groupQuotesByWorkflow,
   mapQuoteRequestCard,
   mapSentQuoteCard,
-  partitionQuotesForInbox,
 } from '../utils/quotePresentation';
+import { QUOTE_DETAIL_KIND_REQUEST } from '../constants';
 import { quotesDebugError, quotesFormatSupabaseError } from '../utils/quotesDebug';
 
 export function useQuotesInbox() {
@@ -113,13 +115,29 @@ export function useQuotesInbox() {
     gcTime: 15 * 60 * 1000,
   });
 
-  const { quoteRequests, quoteSent } = useMemo(() => {
+  const { quoteGroups, totalQuotesCount } = useMemo(() => {
     const rows = listQ.data ?? [];
     const nowMs = Date.now();
-    const { requests, sent } = partitionQuotesForInbox(rows);
+    const groups = groupQuotesByWorkflow(rows);
+    const mappedGroups = Object.fromEntries(
+      Object.entries(groups).map(([key, groupRows]) => [
+        key,
+        groupRows.map((row) => {
+          const kind = deriveQuoteDetailKind(row);
+          const card =
+            kind === QUOTE_DETAIL_KIND_REQUEST
+              ? mapQuoteRequestCard(row, nowMs)
+              : mapSentQuoteCard(row);
+          return { ...card, kind };
+        }),
+      ]),
+    );
     return {
-      quoteRequests: requests.map((row) => mapQuoteRequestCard(row, nowMs)),
-      quoteSent: sent.map((row) => mapSentQuoteCard(row)),
+      quoteGroups: mappedGroups,
+      totalQuotesCount: Object.values(mappedGroups).reduce(
+        (total, groupRows) => total + groupRows.length,
+        0,
+      ),
     };
   }, [listQ.data]);
 
@@ -146,8 +164,8 @@ export function useQuotesInbox() {
     business,
     businessError,
     listError,
-    quoteRequests,
-    quoteSent,
+    quoteGroups,
+    totalQuotesCount,
     acceptQuoteRequests,
     acceptQuoteRequestsSaving,
     acceptQuoteRequestsError,
