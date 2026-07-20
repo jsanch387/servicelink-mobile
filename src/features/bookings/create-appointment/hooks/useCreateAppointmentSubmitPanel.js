@@ -1,5 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useCallback, useState } from 'react';
+import { isValidEmailFormat } from '../../../../utils/email';
 import { safeUserFacingMessage } from '../../../../utils/safeUserFacingMessage';
 import { CREATE_APPOINTMENT_STEP, CREATE_APPOINTMENT_SUBMIT_ERROR_FALLBACK } from '../constants';
 
@@ -30,9 +31,7 @@ export function useCreateAppointmentSubmitPanel({
     !appointmentConfirmed &&
     (confirmRequested || isSubmitting || Boolean(submitError));
 
-  const shouldNotifyCustomer = [customerPhone, customerEmail].some((value) =>
-    Boolean(String(value ?? '').trim()),
-  );
+  const shouldNotifyCustomer = isValidEmailFormat(customerEmail);
 
   const clearSubmitError = useCallback(() => {
     setSubmitError(null);

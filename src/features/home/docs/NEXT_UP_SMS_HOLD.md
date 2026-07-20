@@ -103,23 +103,28 @@ Because Home lifecycle is off, owners open **Complete** while `job_status` may s
 1. Confirm server returns `sms` / `email` outcomes on booking actions (including `not_configured` → real sends).
 2. Set `NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS = true`.
 3. Set `COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY = true`.
-4. Smoke-test Home: On my way (server toast), Start job, Done/Skip, Mark complete.
-5. Smoke-test Complete sheet: follow-up copy + success detail mention receipt/review.
-6. Delete **this file** and trim the “temporary ship mode” comments on the flags if nothing else references the hold.
+4. Set `CUSTOMER_SMS_TOASTS_ENABLED = true` (`sms/constants/customerSmsHold.js`).
+5. Smoke-test Home: On my way (server toast), Start job, Done/Skip, Mark complete.
+6. Smoke-test Complete sheet: follow-up copy + success detail mention receipt/review.
+7. Smoke-test create appointment: confirmation SMS toast when phone is present.
+8. Delete **this file** and trim the “temporary ship mode” comments on the flags if nothing else references the hold.
 
 ---
 
 ## Related code (quick map)
 
-| Piece                            | Path                                                                  |
-| -------------------------------- | --------------------------------------------------------------------- |
-| Home flag                        | `constants/nextUpDesignFlags.js`                                      |
-| Complete visit flag              | `bookings/booking-details/constants/markCompleteFeatureFlags.js`      |
-| Follow-up / success copy         | `bookings/booking-details/constants/completeVisitNotificationCopy.js` |
-| Card CTAs                        | `components/NextUpCard.jsx`                                           |
-| Home wiring                      | `screens/HomeScreen.jsx`                                              |
-| Device Messages body / open      | `utils/appointmentOutbound.js` → `openSmsOnMyWay`                     |
-| Server action hook (dormant)     | `bookings/hooks/useBookingAction.js`                                  |
-| SMS contract                     | `bookings/docs/MOBILE_SMS_AND_BOOKING_ACTIONS.md`                     |
-| Lifecycle tests (flag forced on) | `__tests__/NextUpCard.test.jsx`                                       |
-| Ship-mode tests (flag off)       | `__tests__/NextUpCard.deviceOutbound.test.jsx`                        |
+| Piece                            | Path                                                                   |
+| -------------------------------- | ---------------------------------------------------------------------- |
+| Home flag                        | `constants/nextUpDesignFlags.js`                                       |
+| Complete visit flag              | `bookings/booking-details/constants/markCompleteFeatureFlags.js`       |
+| SMS toast flag                   | `sms/constants/customerSmsHold.js`                                     |
+| Booking action toasts            | `bookings/utils/bookingActionFeedback.js`                              |
+| Create-appointment confirm toast | `bookings/create-appointment/utils/appointmentConfirmationSmsToast.js` |
+| Follow-up / success copy         | `bookings/booking-details/constants/completeVisitNotificationCopy.js`  |
+| Card CTAs                        | `components/NextUpCard.jsx`                                            |
+| Home wiring                      | `screens/HomeScreen.jsx`                                               |
+| Device Messages body / open      | `utils/appointmentOutbound.js` → `openSmsOnMyWay`                      |
+| Server action hook (dormant)     | `bookings/hooks/useBookingAction.js`                                   |
+| SMS contract                     | `bookings/docs/MOBILE_SMS_AND_BOOKING_ACTIONS.md`                      |
+| Lifecycle tests (flag forced on) | `__tests__/NextUpCard.test.jsx`                                        |
+| Ship-mode tests (flag off)       | `__tests__/NextUpCard.deviceOutbound.test.jsx`                         |

@@ -1,10 +1,13 @@
+import { CUSTOMER_SMS_TOASTS_ENABLED } from '../../sms/constants/customerSmsHold';
 import { BOOKING_ACTION } from '../constants/jobStatus';
 
 export const ON_THE_WAY_SUCCESS_SMS = 'Customer notified you’re on the way';
 export const ON_THE_WAY_SUCCESS_STATE_ONLY = 'Marked on the way';
 export const JOB_STARTED_SUCCESS_SMS = 'Customer notified the service is starting';
+export const JOB_STARTED_SUCCESS_STATE_ONLY = 'Marked started';
 export const JOB_STARTED_SMS_SOFT_NOTE = 'Marked started — couldn’t text customer';
 export const WORK_FINISHED_SUCCESS_SMS = 'Customer notified your service is finished';
+export const WORK_FINISHED_SUCCESS_STATE_ONLY = 'Marked done';
 export const WORK_FINISHED_SMS_SOFT_NOTE = 'Marked done — couldn’t text customer';
 export const JOB_COMPLETED_SUCCESS_SMS = 'Customer notified with invoice and review link';
 export const JOB_COMPLETED_SUCCESS_EMAIL = 'Customer notified with invoice and review link';
@@ -65,21 +68,27 @@ export function emailSkipMessage(reason) {
  */
 export function showBookingActionToasts(toast, action, res, options = {}) {
   if (action === BOOKING_ACTION.ON_THE_WAY) {
-    if (res.smsSent) {
+    if (CUSTOMER_SMS_TOASTS_ENABLED && res.smsSent) {
       toast.sms(ON_THE_WAY_SUCCESS_SMS, { type: 'success' });
       return;
     }
     toast.success(ON_THE_WAY_SUCCESS_STATE_ONLY);
-    toast.sms(smsSkipMessage(res.smsReason), { type: 'info' });
+    if (CUSTOMER_SMS_TOASTS_ENABLED) {
+      toast.sms(smsSkipMessage(res.smsReason), { type: 'info' });
+    }
     return;
   }
 
   if (action === BOOKING_ACTION.JOB_STARTED) {
-    if (res.smsSent) {
+    if (CUSTOMER_SMS_TOASTS_ENABLED && res.smsSent) {
       toast.sms(JOB_STARTED_SUCCESS_SMS, { type: 'success' });
       return;
     }
-    toast.info(JOB_STARTED_SMS_SOFT_NOTE);
+    if (CUSTOMER_SMS_TOASTS_ENABLED) {
+      toast.info(JOB_STARTED_SMS_SOFT_NOTE);
+      return;
+    }
+    toast.success(JOB_STARTED_SUCCESS_STATE_ONLY);
     return;
   }
 
@@ -87,22 +96,26 @@ export function showBookingActionToasts(toast, action, res, options = {}) {
     if (res.smsReason === 'duplicate') {
       return;
     }
-    if (res.smsSent) {
+    if (CUSTOMER_SMS_TOASTS_ENABLED && res.smsSent) {
       toast.sms(WORK_FINISHED_SUCCESS_SMS, { type: 'success' });
       return;
     }
-    if (res.smsReason) {
-      toast.sms(smsSkipMessage(res.smsReason), { type: 'info' });
+    if (CUSTOMER_SMS_TOASTS_ENABLED) {
+      if (res.smsReason) {
+        toast.sms(smsSkipMessage(res.smsReason), { type: 'info' });
+        return;
+      }
+      toast.info(WORK_FINISHED_SMS_SOFT_NOTE);
       return;
     }
-    toast.info(WORK_FINISHED_SMS_SOFT_NOTE);
+    toast.success(WORK_FINISHED_SUCCESS_STATE_ONLY);
     return;
   }
 
   if (action === BOOKING_ACTION.JOB_COMPLETED) {
     const includeReviewLink = options.includeReviewLink !== false;
 
-    if (res.smsSent) {
+    if (CUSTOMER_SMS_TOASTS_ENABLED && res.smsSent) {
       toast.sms(
         includeReviewLink ? JOB_COMPLETED_SUCCESS_SMS : JOB_COMPLETED_SUCCESS_SMS_RECEIPT_ONLY,
         { type: 'success' },

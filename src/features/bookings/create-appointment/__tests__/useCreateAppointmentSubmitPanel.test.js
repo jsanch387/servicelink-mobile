@@ -40,6 +40,20 @@ describe('useCreateAppointmentSubmitPanel', () => {
     expect(result.current.isSubmitting).toBe(false);
   });
 
+  it('does not treat phone-only customers as notify targets', () => {
+    const { result } = renderHook(() =>
+      useCreateAppointmentSubmitPanel({
+        step: CREATE_APPOINTMENT_STEP.REVIEW,
+        appointmentConfirmed: false,
+        isMutationPending: true,
+        customerPhone: '(555) 234-5678',
+        customerEmail: '',
+      }),
+    );
+
+    expect(result.current.shouldNotifyCustomer).toBe(false);
+  });
+
   it('stores a safe error message and fires error haptic once', () => {
     const { result } = renderHook(() =>
       useCreateAppointmentSubmitPanel({

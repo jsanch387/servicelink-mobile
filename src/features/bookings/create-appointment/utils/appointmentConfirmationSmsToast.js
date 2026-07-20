@@ -1,4 +1,5 @@
 import { isValidEmailFormat } from '../../../../utils/email';
+import { CUSTOMER_SMS_TOASTS_ENABLED } from '../../../sms/constants/customerSmsHold';
 import { bookingCustomerPhoneDigits } from './ownerBookingFieldFormats';
 
 const SMS_SENT_TOAST = 'Confirmation text sent to your customer';
@@ -48,7 +49,7 @@ function smsSkipToastMessage(reason, emailed) {
 
 /**
  * Non-blocking confirmation feedback after a booking is created (screen stays simple).
- * SMS outcomes use the SMS toast card (stays until dismissed).
+ * While {@link CUSTOMER_SMS_TOASTS_ENABLED} is false, only email toasts are shown.
  *
  * @param {{ email: (msg: string) => void; sms: (msg: string, opts?: { type?: string }) => void }} toast
  * @param {string | null | undefined} customerPhone
@@ -61,8 +62,16 @@ export function showAppointmentConfirmationSmsToast(
   customerEmail,
   serverSms,
 ) {
-  const hasPhone = Boolean(bookingCustomerPhoneDigits(customerPhone));
   const hasEmail = hasCustomerEmail(customerEmail);
+
+  if (!CUSTOMER_SMS_TOASTS_ENABLED) {
+    if (hasEmail) {
+      toast.email(EMAIL_ONLY_SENT_TOAST);
+    }
+    return;
+  }
+
+  const hasPhone = Boolean(bookingCustomerPhoneDigits(customerPhone));
 
   if (!hasPhone && !hasEmail) {
     return;
