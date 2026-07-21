@@ -6,10 +6,9 @@ The Location Collection feature enables the app to collect service location info
 
 ## Purpose
 
-This feature collects three key pieces of information:
-1. **City** - Where the business is based
-2. **State** - The state where the business operates
-3. **Service Radius** - How far (in miles) the business travels to service customers
+This feature collects two key pieces of information:
+1. **Location** - Where the business is based (city and state via single autocomplete input)
+2. **Service Radius** - How far (in miles) the business travels to service customers
 
 This information will be used to:
 - Match customers with detailers in their area
@@ -28,14 +27,16 @@ The modal appears ~800ms after the main app loads, giving the user time to orien
 
 ### Modal Content
 - **Clear value proposition**: Explains why we need location (to connect them with customers)
-- **Benefits highlighted**: 
-  - Get matched with nearby customers
-  - Show up in local searches
-  - Fill schedule faster
-- **Simple form**: City, State (2-letter), and Radius dropdown
+- **Benefits as bullets**: 
+  - Get matched with nearby customers looking for detailing
+  - Show up in local searches so customers can find you
+  - Fill your schedule faster with bookings from your area
+- **Simple form**: 
+  - Single location input field (will support autocomplete when location service is integrated)
+  - Service radius dropdown (5-100 miles)
 - **Two actions**: 
   - "Save location" (primary CTA)
-  - "I'll do this later" (dismisses permanently)
+  - "I'll do this later" (secondary, dismisses permanently)
 
 ### Business Type Considerations
 The location collection is designed with the booking link service types in mind:
@@ -54,7 +55,10 @@ App.js
 └── LocationPromptProvider (Context)
     └── MainTabNavigator
         └── LocationCollectionModal (Component)
+            └── [Future: LocationAutocompleteInput with service integration]
 ```
+
+**Design Pattern**: Uses the same announcement modal pattern as `WhatsNewModal` from the app updates feature, ensuring consistency across the app.
 
 ### Key Components
 
@@ -65,10 +69,13 @@ App.js
 - Auto-shows modal after 800ms delay if needed
 
 #### 2. LocationCollectionModal (`components/LocationCollectionModal.jsx`)
-- Styled modal matching app's design system
-- Form with city, state, and radius fields
+- Uses WhatsNewModal announcement pattern for consistency
+- Animated entrance (fade + scale spring)
+- Single location input field (prepared for autocomplete integration)
+- Service radius dropdown selector
 - Save and dismiss actions
-- Responsive and accessible
+- Currently parses manual input ("City, ST" format)
+- Ready to integrate with location autocomplete service
 
 #### 3. Location API (`api/locationApi.js`)
 Four main functions:
@@ -76,6 +83,16 @@ Four main functions:
 - `saveUserLocation()` - Save location data to database
 - `checkLocationPromptDismissed()` - Check if prompt was dismissed
 - `markLocationPromptDismissed()` - Mark prompt as dismissed
+
+#### 4. Location Autocomplete Service (`services/locationAutocomplete.js`)
+**Status**: Placeholder for future integration
+
+This module is structured to accept a location service API (e.g., Google Places, Mapbox) when ready:
+- `searchLocations(query)` - Search for location suggestions
+- `formatLocationDisplay(result)` - Format location for display
+- `parseLocationResult(result)` - Parse into city/state/country
+
+Currently returns empty array (manual entry only). Modal UI is ready for autocomplete dropdown when service is integrated.
 
 ### Database Schema
 
@@ -104,16 +121,26 @@ The `LocationCollectionModal` is rendered in `MainTabNavigator.jsx` so it:
 
 ## Future Enhancements
 
+### Phase 1.5: Location Autocomplete Service
+- Integrate with location API (Google Places, Mapbox, or similar)
+- Add autocomplete dropdown to location input field
+- Auto-populate city, state from selected result
+- Add debounced search (300-500ms)
+- Handle edge cases (network errors, no results, etc.)
+- Optionally store lat/lng for accurate distance calculations
+
 ### Phase 2: Marketplace Integration
 - Geocoding: Convert city/state to lat/lng for accurate distance calculations
 - Search radius: Allow customers to search for detailers within X miles
 - Distance calculations: Use PostGIS or similar for geo queries
 - Service area display: Show detailers' service areas on maps
 
-### Phase 3: Smart Location
+### Phase 3: Enhanced Location Features
 - Auto-detect location from device GPS (with permission)
+- "Use my current location" button
 - Multiple service areas for businesses that cover multiple cities
 - Adjust radius based on service type (mobile needs radius, shop doesn't)
+- Location validation (ensure business location is valid)
 
 ### Phase 4: Re-prompting
 - Allow re-prompting users who skipped (e.g., after 30 days)
@@ -123,20 +150,24 @@ The `LocationCollectionModal` is rendered in `MainTabNavigator.jsx` so it:
 ## Testing Considerations
 
 ### Manual Testing Checklist
-- [ ] Modal appears on first app launch after onboarding
-- [ ] Form validates (requires city, state, radius)
-- [ ] Save button disabled when fields empty
-- [ ] State field converts to uppercase
+- [ ] Modal appears on first app launch after onboarding with animated entrance
+- [ ] Form validates (requires location text and radius)
+- [ ] Save button disabled when location field is empty
+- [ ] Manual input "Austin, TX" correctly parses to city="Austin", state="TX"
 - [ ] Save successfully stores data to database
 - [ ] Modal doesn't reappear after saving
 - [ ] Dismiss prevents modal from showing again
 - [ ] Modal doesn't show if location already set
+- [ ] Modal matches WhatsNewModal styling and animation
 - [ ] Modal respects dark/light theme
 
 ### Edge Cases
 - User closes app while modal is open (should reappear next launch)
 - Network error during save (should show error, allow retry)
+- User enters invalid format (currently accepts any text, validation happens server-side)
+- User enters only city without state (saves city, state empty - acceptable for now)
 - User changes location later (would need Settings UI - future)
+- Typos in manual entry (why autocomplete service is needed!)
 
 ## Files Created
 
@@ -145,15 +176,17 @@ src/features/location/
 ├── README.md (this file)
 ├── index.js (exports)
 ├── components/
-│   └── LocationCollectionModal.jsx
+│   └── LocationCollectionModal.jsx (announcement pattern modal)
 ├── context/
-│   └── LocationPromptContext.jsx
+│   └── LocationPromptContext.jsx (state management)
 ├── api/
-│   └── locationApi.js
+│   └── locationApi.js (database operations)
+├── services/
+│   └── locationAutocomplete.js (placeholder for future location service)
 ├── docs/
-│   └── DATABASE_SCHEMA.md
+│   └── DATABASE_SCHEMA.md (schema documentation)
 └── migrations/
-    └── 001_add_location_fields.sql
+    └── 001_add_location_fields.sql (database migration)
 ```
 
 ## Related Features
@@ -167,5 +200,8 @@ src/features/location/
 - Location collection is **not mandatory** - users can dismiss and continue using the app
 - We track dismissal to avoid annoying users with repeated prompts
 - The feature is built to be extended later with marketplace functionality
-- No external location library integrated yet (as requested)
+- **Single input field** prevents typos that would occur with separate city/state fields
+- **Location service integration ready**: Just plug in the API when available
+- Uses the same **announcement modal pattern** as other app features for consistency
+- No external location library integrated yet - UI is ready for when it's added
 - Database migration must be run before deploying this feature

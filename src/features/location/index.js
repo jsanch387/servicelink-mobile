@@ -6,3 +6,8 @@ export {
   markLocationPromptDismissed,
   checkLocationPromptDismissed,
 } from './api/locationApi';
+export {
+  searchLocations,
+  formatLocationDisplay,
+  parseLocationResult,
+} from './services/locationAutocomplete';

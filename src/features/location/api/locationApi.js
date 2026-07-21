@@ -63,7 +63,7 @@ export async function checkUserLocationStatus(userId) {
 /**
  * Save user location information
  * @param {string} userId - The user's profile ID
- * @param {{ city: string, state: string, radius: number }} locationData
+ * @param {{ location: string, city: string, state: string, radius: number }} locationData
  * @returns {Promise<{ ok: boolean, error: Error | null }>}
  */
 export async function saveUserLocation(userId, locationData) {
@@ -75,7 +75,8 @@ export async function saveUserLocation(userId, locationData) {
     return { ok: false, error: new Error('Invalid location data') };
   }
 
-  const serviceArea = `${locationData.city}, ${locationData.state}`;
+  // Use the formatted location string, or build from city/state
+  const serviceArea = locationData.location || `${locationData.city}, ${locationData.state}`;
 
   try {
     const { error } = await supabase
