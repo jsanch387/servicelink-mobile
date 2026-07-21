@@ -6,16 +6,18 @@ import { AppText, Button, SurfaceTextField, SelectField } from '../../../compone
 import { useTheme } from '../../../theme';
 
 const RADIUS_OPTIONS = [
-  { label: '5 miles', value: '5' },
-  { label: '10 miles', value: '10' },
-  { label: '15 miles', value: '15' },
-  { label: '20 miles', value: '20' },
-  { label: '25 miles', value: '25' },
-  { label: '30 miles', value: '30' },
-  { label: '40 miles', value: '40' },
-  { label: '50 miles', value: '50' },
-  { label: '75 miles', value: '75' },
-  { label: '100 miles', value: '100' },
+  { label: 'Up to 5 miles', value: '5' },
+  { label: 'Up to 10 miles', value: '10' },
+  { label: 'Up to 15 miles', value: '15' },
+  { label: 'Up to 20 miles', value: '20' },
+  { label: 'Up to 25 miles', value: '25' },
+  { label: 'Up to 30 miles', value: '30' },
+  { label: 'Up to 40 miles', value: '40' },
+  { label: 'Up to 50 miles', value: '50' },
+  { label: 'Up to 75 miles', value: '75' },
+  { label: 'Up to 100 miles', value: '100' },
+  { label: 'Up to 150 miles', value: '150' },
+  { label: 'Up to 200 miles', value: '200' },
 ];
 
 /**
@@ -291,11 +293,14 @@ export function LocationCollectionModal({ visible = false, onDismiss, onSave }) 
                 </View>
 
                 <SelectField
-                  label="How far do you travel?"
+                  label="Service radius"
                   options={RADIUS_OPTIONS}
-                  selectedKey={radius}
-                  onSelect={setRadius}
+                  value={radius}
+                  onValueChange={setRadius}
                 />
+                <AppText style={styles.helperText}>
+                  Select the maximum distance you'll travel from your location to service customers
+                </AppText>
               </View>
 
               <View style={styles.actions}>

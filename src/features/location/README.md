@@ -19,9 +19,14 @@ This information will be used to:
 
 ### When the Modal Shows
 The location collection modal automatically appears when:
-- User has successfully completed onboarding
+- User is authenticated (logged in)
 - User hasn't provided their service location yet
 - User hasn't previously dismissed the prompt
+
+**Works for both mobile and web users:**
+- Mobile users: See modal after completing onboarding
+- Web users: See modal when they first use the app (web has no onboarding)
+- All authenticated users: See modal on any subsequent app launch until location is provided or dismissed
 
 The modal appears ~800ms after the main app loads, giving the user time to orient themselves.
 
@@ -33,7 +38,8 @@ The modal appears ~800ms after the main app loads, giving the user time to orien
   - Fill your schedule faster with bookings from your area
 - **Simple form**: 
   - Single location input field (will support autocomplete when location service is integrated)
-  - Service radius dropdown (5-100 miles)
+  - Service radius selector (up to 5-200 miles)
+  - Helper text explaining what radius means
 - **Two actions**: 
   - "Save location" (primary CTA)
   - "I'll do this later" (secondary, dismisses permanently)
@@ -108,9 +114,11 @@ See `docs/DATABASE_SCHEMA.md` for full details.
 ## Integration Points
 
 ### App Entry Point
-The `LocationPromptProvider` is added to the provider tree in `App.js`, wrapping the navigator but inside the auth/onboarding gates. This ensures:
-- It only runs for authenticated users
-- It doesn't interfere with onboarding
+The `LocationPromptProvider` is added to the provider tree in `App.js`, wrapping the navigator but inside the auth gates. This ensures:
+- It only runs for authenticated users (both mobile and web)
+- Works independently of onboarding status
+- Web users (no onboarding) see prompt when authenticated
+- Mobile users see prompt after completing onboarding
 - It has access to user context
 
 ### Main Tab Navigator

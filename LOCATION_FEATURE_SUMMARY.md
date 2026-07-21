@@ -22,7 +22,8 @@ A beautiful, user-friendly modal that:
 - Provides a simple form with:
   - **Single location input field** (prevents typos from separate city/state fields)
   - Helper text: "Type your city and state (e.g., Austin, TX)"
-  - Service radius dropdown: "How far do you travel?" (5-100 miles)
+  - Service radius selector: "Service radius" (up to 5-200 miles)
+  - Helper text explaining radius: "Select the maximum distance you'll travel..."
 - Two action buttons:
   - "Save location" (primary CTA)
   - "I'll do this later" (secondary, dismisses permanently)
@@ -45,10 +46,14 @@ A React context provider that:
 Logic for showing prompt:
 ```
 Show IF:
-  - User is authenticated
-  - User has completed onboarding
+  - User is authenticated (logged in)
   - User hasn't provided location (service_area + service_radius)
   - User hasn't dismissed the prompt before
+
+Works for:
+  - Mobile users (shows after onboarding completion)
+  - Web users (shows when authenticated, no onboarding required)
+  - Both platforms treat location collection independently of onboarding
 ```
 
 ### 3. Location API Functions
@@ -200,16 +205,26 @@ src/navigation/MainTabNavigator.jsx        # Added LocationCollectionModal
 
 ## Testing Scenarios
 
-### Scenario 1: New User
-1. User signs up and completes onboarding
+### Scenario 1: New Mobile User
+1. User signs up and completes mobile onboarding
 2. User reaches main app
 3. After 800ms, location modal appears with animation
 4. User types "Austin, TX" in location field
-5. User selects "15 miles" from radius dropdown
+5. User selects "Up to 15 miles" from radius selector
 6. Clicks "Save location"
 7. Modal parses input: city="Austin", state="TX", radius=15
 8. Data saved to DB, modal closes
 9. Next app launch → modal doesn't show
+
+### Scenario 1b: New Web User
+1. User signs up on web (no onboarding on web)
+2. User is authenticated and opens the app
+3. After 800ms, location modal appears with animation
+4. User types "Dallas, TX" in location field
+5. User selects "Up to 25 miles" from radius selector
+6. Clicks "Save location"
+7. Data saved to DB, modal closes
+8. Next app launch → modal doesn't show
 
 ### Scenario 2: Existing User (No Location)
 1. Existing user opens app

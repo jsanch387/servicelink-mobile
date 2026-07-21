@@ -32,8 +32,9 @@ export function LocationPromptProvider({ children }) {
       ]);
 
       // Only show prompt if:
-      // 1. User hasn't provided location yet
+      // 1. User hasn't provided location yet (regardless of onboarding status)
       // 2. User hasn't dismissed the prompt before
+      // Note: Works for both mobile (post-onboarding) and web (no onboarding) users
       const shouldShow = !locationStatus.hasLocation && !dismissStatus.dismissed;
 
       setShouldShowPrompt(shouldShow);
