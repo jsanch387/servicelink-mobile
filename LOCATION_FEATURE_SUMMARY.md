@@ -47,16 +47,17 @@ Logic for showing prompt:
 ```
 Show IF:
   - User is authenticated (logged in)
-  - User hasn't dismissed the prompt before
+  - User hasn't saved location data (no service_area + service_radius in DB)
 
-That's it! No location check!
-
-Why no location check:
-  - This is a NEW location collection system
-  - Old location data may be inaccurate or incomplete
-  - We want to collect fresh, clean location data from ALL users
-  - Even users with existing location data should update via this new flow
-  - Modal shows for everyone until they save location or dismiss it
+Dismiss behavior:
+  - "I'll do this later" just closes modal temporarily
+  - Modal will show AGAIN next time user opens app
+  - Only way to stop seeing it: save location data
+  - Encourages users to provide location (critical for marketplace)
+  
+Future consideration:
+  - May make it completely undismissable (must provide location)
+  - For now, users can dismiss but will see it every time until they save
 ```
 
 ### 3. Location API Functions
@@ -229,22 +230,23 @@ src/navigation/MainTabNavigator.jsx        # Added LocationCollectionModal
 7. Data saved to DB, modal closes
 8. Next session → modal doesn't show
 
-### Scenario 2: Existing User (Old Location Data)
-1. Existing user opens app
-2. Has old location data from previous system
-3. After 800ms, location modal STILL appears (we want fresh data!)
-4. User can update their location with the new system
-5. OR user clicks "I'll do this later"
-6. Modal closes, dismissed flag set
-7. Next app launch → modal doesn't show
-
-### Scenario 3: User Dismisses
-1. Any user opens app
+### Scenario 2: User Dismisses (Temporary)
+1. User opens app
 2. After 800ms, location modal appears
 3. User clicks "I'll do this later"
-4. Modal closes, dismissed flag set in database
-5. Next app launch → modal doesn't show
-6. User never gets prompted again (unless dismissed flag is reset)
+4. Modal closes (no database write)
+5. User continues using app normally
+6. **Next time user opens app** → modal appears again!
+7. Keeps showing until user saves location data
+
+### Scenario 3: User Saves Location
+1. User opens app
+2. After 800ms, location modal appears
+3. User types "Austin, TX" and selects "Up to 15 miles"
+4. Clicks "Save location"
+5. Data saved to database (service_area + service_radius)
+6. Modal closes
+7. **Next app launch → modal doesn't show anymore** ✅
 
 ## Business Value
 

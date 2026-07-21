@@ -101,67 +101,7 @@ export async function saveUserLocation(userId, locationData) {
   }
 }
 
-/**
- * Mark that the location prompt has been dismissed
- * @param {string} userId - The user's profile ID
- * @returns {Promise<{ ok: boolean, error: Error | null }>}
- */
-export async function markLocationPromptDismissed(userId) {
-  if (!userId) {
-    return { ok: false, error: new Error('Not signed in') };
-  }
-
-  try {
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        location_prompt_dismissed: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId);
-
-    if (error) {
-      return { ok: false, error: new Error(error.message) };
-    }
-
-    return { ok: true, error: null };
-  } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err : new Error('Failed to mark prompt dismissed'),
-    };
-  }
-}
-
-/**
- * Check if the location prompt has been dismissed
- * @param {string} userId - The user's profile ID
- * @returns {Promise<{ dismissed: boolean, error: Error | null }>}
- */
-export async function checkLocationPromptDismissed(userId) {
-  if (!userId) {
-    return { dismissed: false, error: new Error('Not signed in') };
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('location_prompt_dismissed')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) {
-      return { dismissed: false, error: new Error(error.message) };
-    }
-
-    return {
-      dismissed: Boolean(data?.location_prompt_dismissed),
-      error: null,
-    };
-  } catch (err) {
-    return {
-      dismissed: false,
-      error: err instanceof Error ? err : new Error('Failed to check prompt status'),
-    };
-  }
-}
+// Note: We don't persist dismiss state anymore
+// Users can dismiss the modal, but it will show again next time they open the app
+// The only way to stop seeing it is to save location data
+// Future: May make it completely undismissable

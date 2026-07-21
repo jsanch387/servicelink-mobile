@@ -20,13 +20,14 @@ This information will be used to:
 ### When the Modal Shows
 The location collection modal automatically appears when:
 - User is authenticated (logged in)
-- User hasn't dismissed the prompt before
+- User hasn't saved location data yet (no service_area + service_radius)
 
-**That's it!** No other checks. Here's why:
-- This is a **NEW location system** to collect clean, accurate data
-- Even users with old location data need to update via this new flow
-- We want to re-collect location from everyone to ensure data quality
-- Users can dismiss it, but it will show for everyone until they do
+**Important behavior:**
+- "I'll do this later" button just closes the modal temporarily
+- Modal will appear again next time user opens the app
+- **Only way to stop seeing it: save location data**
+- This encourages users to provide their location (critical for marketplace)
+- Future: may make it completely undismissable
 
 The modal appears ~800ms after the main app loads, giving the user time to orient themselves.
 
@@ -70,8 +71,9 @@ App.js
 
 #### 1. LocationPromptProvider (`context/LocationPromptContext.jsx`)
 - Manages location prompt state globally
-- Checks if user has dismissed the prompt (only check!)
-- Does NOT check for existing location data (we want fresh data from everyone)
+- Checks if user has saved location data (service_area + service_radius)
+- If no location data → shows modal every time app opens
+- Dismiss button just closes modal temporarily (shows again next time)
 - Provides handlers for saving location and dismissing
 - Auto-shows modal after 800ms delay if needed
 
@@ -172,10 +174,11 @@ The `LocationCollectionModal` is rendered in `MainTabNavigator.jsx` so it:
 - [ ] Modal respects dark/light theme
 
 ### Edge Cases
-- User closes app while modal is open (should reappear next launch)
-- Network error during save (should show error, allow retry)
+- User closes app while modal is open (reappears next launch - no data saved)
+- Network error during save (shows error, allow retry)
 - User enters invalid format (currently accepts any text, validation happens server-side)
 - User enters only city without state (saves city, state empty - acceptable for now)
+- User dismisses without saving (modal shows again next time - persistent until data saved)
 - User changes location later (would need Settings UI - future)
 - Typos in manual entry (why autocomplete service is needed!)
 

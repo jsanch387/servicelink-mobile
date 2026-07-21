@@ -1,8 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth';
 import {
-  checkLocationPromptDismissed,
-  markLocationPromptDismissed,
+  checkUserLocationStatus,
   saveUserLocation,
 } from '../api/locationApi';
 
@@ -25,13 +24,14 @@ export function LocationPromptProvider({ children }) {
 
     setIsLoading(true);
     try {
-      // Only check if user has dismissed the prompt
-      // Don't check for existing location data - this is a NEW location system
-      // and we want to collect fresh, clean location data from all users
-      const dismissStatus = await checkLocationPromptDismissed(userId);
+      // Check if user has saved location data via this new system
+      // If they have service_area AND service_radius, don't show the prompt
+      // If they dismiss without saving, we'll ask again next time!
+      const locationStatus = await checkUserLocationStatus(userId);
 
-      // Show prompt unless user has explicitly dismissed it
-      const shouldShow = !dismissStatus.dismissed;
+      // Show prompt if user hasn't provided location yet
+      // Dismiss just closes the modal temporarily - we ask again next time
+      const shouldShow = !locationStatus.hasLocation;
 
       setShouldShowPrompt(shouldShow);
 
@@ -73,14 +73,12 @@ export function LocationPromptProvider({ children }) {
     [userId],
   );
 
-  const handleDismissPrompt = useCallback(async () => {
+  const handleDismissPrompt = useCallback(() => {
+    // Just close the modal - don't mark as permanently dismissed
+    // User will see this again next time they open the app
+    // Only way to stop seeing it is to actually save location data
     setPromptVisible(false);
-
-    if (userId) {
-      await markLocationPromptDismissed(userId);
-      setShouldShowPrompt(false);
-    }
-  }, [userId]);
+  }, []);
 
   const showPromptManually = useCallback(() => {
     setPromptVisible(true);
