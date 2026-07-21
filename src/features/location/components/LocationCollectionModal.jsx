@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Modal, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button, SurfaceTextField, SelectField } from '../../../components/ui';
+import { AppText, Button, Divider, SurfaceTextField, SelectField } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
 const RADIUS_OPTIONS = [
@@ -21,8 +21,8 @@ const RADIUS_OPTIONS = [
 ];
 
 /**
- * Location collection modal using announcement pattern.
- * Uses single autocomplete input for location (future: will integrate with location service).
+ * Compact location collection modal.
+ * Collects service location + radius for marketplace matching.
  *
  * @param {{
  *   visible?: boolean;
@@ -81,7 +81,6 @@ export function LocationCollectionModal({ visible = false, onDismiss, onSave }) 
         city = parts[0];
         state = parts[1].toUpperCase().slice(0, 2);
       } else if (parts.length === 1) {
-        // If user only enters one part, treat it as city
         city = parts[0];
       }
 
@@ -92,7 +91,6 @@ export function LocationCollectionModal({ visible = false, onDismiss, onSave }) 
         radius: parseInt(radius, 10),
       });
 
-      // Clear form after successful save
       setLocationInput('');
       setRadius('15');
     } finally {
@@ -118,108 +116,63 @@ export function LocationCollectionModal({ visible = false, onDismiss, onSave }) 
           ...StyleSheet.absoluteFillObject,
           justifyContent: 'center',
           paddingBottom: Math.max(insets.bottom, 16),
-          paddingHorizontal: 22,
+          paddingHorizontal: 16,
           paddingTop: Math.max(insets.top, 16),
         },
         card: {
           alignSelf: 'center',
           backgroundColor: colors.cardSurface,
           borderColor: colors.borderStrong,
-          borderRadius: 22,
+          borderRadius: 18,
           borderWidth: 1,
           elevation: 16,
-          maxWidth: 400,
           overflow: 'hidden',
-          paddingBottom: 22,
-          paddingHorizontal: 24,
-          paddingTop: 26,
+          paddingBottom: 16,
+          paddingHorizontal: 20,
+          paddingTop: 20,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: 24 },
+          shadowOffset: { width: 0, height: 16 },
           shadowOpacity: isDark ? 0.5 : 0.12,
-          shadowRadius: 36,
+          shadowRadius: 28,
           width: '100%',
-        },
-        accentBar: {
-          alignSelf: 'flex-start',
-          backgroundColor: colors.buttonPrimaryBg,
-          borderRadius: 3,
-          height: 3,
-          marginBottom: 18,
-          width: 44,
         },
         iconBadge: {
           alignItems: 'center',
-          alignSelf: 'flex-start',
+          alignSelf: 'center',
           backgroundColor: colors.shellElevated,
           borderColor: colors.border,
-          borderRadius: 14,
+          borderRadius: 12,
           borderWidth: 1,
-          height: 48,
+          height: 40,
           justifyContent: 'center',
-          marginBottom: 18,
-          width: 48,
-        },
-        badge: {
-          alignSelf: 'flex-start',
-          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-          borderRadius: 999,
-          marginBottom: 12,
-          paddingHorizontal: 10,
-          paddingVertical: 4,
-        },
-        badgeText: {
-          color: colors.textMuted,
-          fontSize: 11,
-          fontWeight: '700',
-          letterSpacing: 0.5,
-          textTransform: 'uppercase',
+          marginBottom: 14,
+          width: 40,
         },
         title: {
           color: colors.text,
-          fontSize: 26,
-          fontWeight: '800',
-          letterSpacing: -0.7,
-          lineHeight: 32,
-          marginBottom: 18,
+          fontSize: 20,
+          fontWeight: '700',
+          letterSpacing: -0.4,
+          lineHeight: 26,
+          marginBottom: 6,
+          textAlign: 'center',
         },
-        bulletList: {
-          gap: 12,
-          marginBottom: 18,
-        },
-        bulletRow: {
-          alignItems: 'flex-start',
-          flexDirection: 'row',
-          gap: 12,
-        },
-        bulletDot: {
-          backgroundColor: colors.buttonPrimaryBg,
-          borderRadius: 999,
-          height: 6,
-          marginTop: 8,
-          width: 6,
-        },
-        bulletText: {
-          color: colors.textSecondary,
-          flex: 1,
-          fontSize: 15,
+        subtitle: {
+          color: colors.textMuted,
+          fontSize: 14,
           fontWeight: '500',
-          lineHeight: 22,
+          lineHeight: 20,
+          marginBottom: 14,
+          textAlign: 'center',
         },
-        formSection: {
-          marginBottom: 18,
-        },
-        fieldSpacing: {
+        headerDivider: {
           marginBottom: 16,
         },
-        helperText: {
-          color: colors.textMuted,
-          fontSize: 13,
-          fontWeight: '500',
-          lineHeight: 18,
-          marginTop: 6,
+        formSection: {
+          marginBottom: 16,
         },
         actions: {
-          gap: 10,
+          gap: 4,
         },
       }),
     [colors, isDark, insets.bottom, insets.top],
@@ -231,76 +184,44 @@ export function LocationCollectionModal({ visible = false, onDismiss, onSave }) 
       statusBarTranslucent
       transparent
       visible={visible}
-      onRequestClose={handleSkip}
+      onRequestClose={() => {}}
     >
       <View style={styles.fill}>
         <Animated.View style={[styles.fill, { opacity }]}>
-          <Pressable
-            accessibilityLabel="Skip location setup"
-            accessibilityRole="button"
-            style={styles.fill}
-            onPress={handleSkip}
-          >
-            <View style={styles.backdrop} />
-          </Pressable>
+          <View style={styles.backdrop} />
         </Animated.View>
 
         <View pointerEvents="box-none" style={styles.centerLayer}>
           <Animated.View style={{ opacity, transform: [{ scale }] }}>
             <View style={styles.card}>
-              <View style={styles.accentBar} />
               <View style={styles.iconBadge}>
-                <Ionicons color={colors.text} name="location-outline" size={24} />
+                <Ionicons color={colors.text} name="location-outline" size={22} />
               </View>
-              <View style={styles.badge}>
-                <AppText style={styles.badgeText}>Get more bookings</AppText>
-              </View>
-              <AppText style={styles.title}>Where do you service?</AppText>
-
-              <View style={styles.bulletList}>
-                <View style={styles.bulletRow}>
-                  <View style={styles.bulletDot} />
-                  <AppText style={styles.bulletText}>
-                    Get matched with nearby customers looking for detailing
-                  </AppText>
-                </View>
-                <View style={styles.bulletRow}>
-                  <View style={styles.bulletDot} />
-                  <AppText style={styles.bulletText}>
-                    Show up in local searches so customers can find you
-                  </AppText>
-                </View>
-                <View style={styles.bulletRow}>
-                  <View style={styles.bulletDot} />
-                  <AppText style={styles.bulletText}>
-                    Fill your schedule faster with bookings from your area
-                  </AppText>
-                </View>
-              </View>
+              <AppText style={styles.title}>Please update your location</AppText>
+              <AppText style={styles.subtitle}>
+                This helps customers find you more easily and book with you.
+              </AppText>
+              <Divider style={styles.headerDivider} />
 
               <View style={styles.formSection}>
-                <View style={styles.fieldSpacing}>
-                  <SurfaceTextField
-                    autoCapitalize="words"
-                    label="Your location"
-                    placeholder="Austin, TX"
-                    value={locationInput}
-                    onChangeText={setLocationInput}
-                  />
-                  <AppText style={styles.helperText}>
-                    Type your city and state (e.g., Austin, TX)
-                  </AppText>
-                </View>
+                <SurfaceTextField
+                  autoCapitalize="words"
+                  compact
+                  containerStyle={{ marginBottom: 10 }}
+                  label="Location"
+                  placeholder="Search city or address"
+                  value={locationInput}
+                  onChangeText={setLocationInput}
+                />
 
                 <SelectField
+                  fieldStyle={{ marginTop: 0 }}
                   label="Service radius"
                   options={RADIUS_OPTIONS}
+                  presentation="wheel"
                   value={radius}
                   onValueChange={setRadius}
                 />
-                <AppText style={styles.helperText}>
-                  Select the maximum distance you'll travel from your location to service customers
-                </AppText>
               </View>
 
               <View style={styles.actions}>
@@ -316,7 +237,7 @@ export function LocationCollectionModal({ visible = false, onDismiss, onSave }) 
                   disabled={isSaving}
                   fullWidth
                   title="I'll do this later"
-                  variant="secondary"
+                  variant="ghost"
                   onPress={handleSkip}
                 />
               </View>
