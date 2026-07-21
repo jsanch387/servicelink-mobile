@@ -6,6 +6,7 @@ import { ToastProvider } from './src/components/ui';
 import { AuthProvider } from './src/features/auth';
 import { OnboardingGateProvider } from './src/features/onboarding';
 import { SubscriptionProvider } from './src/features/subscription';
+import { LocationPromptProvider } from './src/features/location';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { queryClient } from './src/lib/queryClient';
 import { ThemeProvider, TypographyProvider, useTheme } from './src/theme';
@@ -22,7 +23,9 @@ function AppShell() {
           <AuthProvider>
             <SubscriptionProvider>
               <OnboardingGateProvider>
-                <AuthNavigator />
+                <LocationPromptProvider>
+                  <AuthNavigator />
+                </LocationPromptProvider>
               </OnboardingGateProvider>
             </SubscriptionProvider>
           </AuthProvider>
