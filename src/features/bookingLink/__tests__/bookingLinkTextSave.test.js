@@ -14,6 +14,8 @@ const defaultEditFields = {
   zipInput: '',
   bioInput: '',
   phoneInput: '',
+  instagramInput: '',
+  tiktokInput: '',
   serviceTypeInput: BOOKING_SERVICE_TYPE_MOBILE,
   shopStreetInput: '',
   shopUnitInput: '',
@@ -31,6 +33,7 @@ describe('bookingLinkTextSave', () => {
       businessZip: '',
       businessBio: '',
       phoneNumber: '',
+      socialMedia: {},
       serviceLocationMode: 'mobile_only',
       shopStreetAddress: '',
       shopUnit: '',
@@ -55,6 +58,7 @@ describe('bookingLinkTextSave', () => {
       businessZip: '78701',
       businessBio: '',
       phoneNumber: '+15552345678',
+      socialMedia: { instagram: 'shop', tiktok: '' },
       serviceLocationMode: 'mobile_only',
       shopStreetAddress: '',
       shopUnit: '',
@@ -70,8 +74,36 @@ describe('bookingLinkTextSave', () => {
         stateInput: 'TX',
         zipInput: '78701',
         phoneInput: '(555) 234-5678',
+        instagramInput: 'shop',
+        tiktokInput: '',
       }),
     ).toBe(false);
+  });
+
+  it('marks dirty when social handle changes', () => {
+    const baseProps = {
+      businessName: 'Shop',
+      businessType: 'Detailing',
+      businessCity: '',
+      businessState: '',
+      businessZip: '',
+      businessBio: '',
+      phoneNumber: '',
+      socialMedia: { instagram: 'old', tiktok: '' },
+      serviceLocationMode: 'mobile_only',
+      shopStreetAddress: '',
+      shopUnit: '',
+      publicBookingLocales: ['en'],
+      publicBookingDefaultLocale: 'en',
+    };
+    expect(
+      bookingLinkEditDirtyVsProps(baseProps, {
+        ...defaultEditFields,
+        nameInput: 'Shop',
+        typeInput: 'Detailing',
+        instagramInput: 'new',
+      }),
+    ).toBe(true);
   });
 
   it('snapshots equal after normalize state', () => {

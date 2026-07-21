@@ -36,6 +36,7 @@ import {
 } from '../../utils/pickProfileImage';
 import { portfolioImageKey } from '../../utils/portfolio';
 import { portfolioRowStoragePath } from '../../utils/storagePath';
+import { normalizeSocialHandle, socialMediaFromDb } from '../../utils/socialMedia';
 
 export function useBookingLinkEditController({
   onBack,
@@ -52,6 +53,7 @@ export function useBookingLinkEditController({
   businessZip,
   businessBio,
   phoneNumber,
+  socialMedia,
   serviceType: initialServiceType = BOOKING_SERVICE_TYPE_MOBILE,
   serviceLocationMode,
   shopStreetAddress,
@@ -97,6 +99,10 @@ export function useBookingLinkEditController({
   );
   const [bioInput, setBioInput] = useState(() => String(businessBio ?? ''));
   const [phoneInput, setPhoneInput] = useState(() => formatPhoneForDisplay(phoneNumber));
+  const [instagramInput, setInstagramInput] = useState(
+    () => socialMediaFromDb(socialMedia).instagram,
+  );
+  const [tiktokInput, setTiktokInput] = useState(() => socialMediaFromDb(socialMedia).tiktok);
   const [serviceTypeInput, setServiceTypeInput] = useState(() => initialServiceType);
   const [shopStreetInput, setShopStreetInput] = useState(() => String(shopStreetAddress ?? ''));
   const [shopUnitInput, setShopUnitInput] = useState(() => String(shopUnit ?? ''));
@@ -107,6 +113,14 @@ export function useBookingLinkEditController({
 
   const onPhoneInputChange = useCallback((text) => {
     setPhoneInput(formatPhoneInputAsYouType(text));
+  }, []);
+
+  const onInstagramInputChange = useCallback((text) => {
+    setInstagramInput(normalizeSocialHandle(text));
+  }, []);
+
+  const onTiktokInputChange = useCallback((text) => {
+    setTiktokInput(normalizeSocialHandle(text));
   }, []);
 
   const [localCoverUri, setLocalCoverUri] = useState(null);
@@ -242,6 +256,8 @@ export function useBookingLinkEditController({
       zipInput,
       bioInput,
       phoneInput,
+      instagramInput,
+      tiktokInput,
       serviceTypeInput,
       shopStreetInput,
       shopUnitInput,
@@ -256,6 +272,8 @@ export function useBookingLinkEditController({
       zipInput,
       bioInput,
       phoneInput,
+      instagramInput,
+      tiktokInput,
       serviceTypeInput,
       shopStreetInput,
       shopUnitInput,
@@ -275,6 +293,7 @@ export function useBookingLinkEditController({
       businessZip,
       businessType,
       phoneNumber,
+      socialMedia,
       serviceLocationMode,
       shopStreetAddress,
       shopUnit,
@@ -289,6 +308,7 @@ export function useBookingLinkEditController({
       businessZip,
       businessType,
       phoneNumber,
+      socialMedia,
       serviceLocationMode,
       shopStreetAddress,
       shopUnit,
@@ -473,6 +493,10 @@ export function useBookingLinkEditController({
     phoneInput,
     phoneInputError,
     onPhoneInputChange,
+    instagramInput,
+    onInstagramInputChange,
+    tiktokInput,
+    onTiktokInputChange,
     onCoverPhotoPress,
     onLogoPhotoPress,
     onGalleryAddPress,

@@ -16,6 +16,7 @@ import { getServiceDescriptionCopy } from '../utils/servicePreviewCopy';
  *     id: string;
  *     title: string;
  *     price: string;
+ *     compareAtPrice?: string;
  *     description: string;
  *     isLongDescription: boolean;
  *     duration: string;
@@ -104,11 +105,25 @@ export function ServicePreviewCard({
           marginBottom: 3,
           textAlign: 'right',
         },
+        priceRow: {
+          alignItems: 'baseline',
+          flexDirection: 'row',
+          gap: 6,
+          justifyContent: 'flex-end',
+        },
+        compareAtPrice: {
+          color: colors.textMuted,
+          fontFamily: SERVICE_CARD_TITLE_SYSTEM_FONT,
+          fontSize: 15,
+          fontWeight: '600',
+          lineHeight: 20,
+          textDecorationLine: 'line-through',
+        },
         price: {
           color: colors.text,
           fontFamily: SERVICE_CARD_TITLE_SYSTEM_FONT,
           fontSize: 20,
-          fontWeight: '900',
+          fontWeight: '700',
           lineHeight: 24,
           textAlign: 'right',
         },
@@ -206,7 +221,12 @@ export function ServicePreviewCard({
         </View>
         <View style={styles.priceCol}>
           <AppText style={styles.startingAt}>Starting at</AppText>
-          <AppText style={styles.price}>{service.price}</AppText>
+          <View style={styles.priceRow}>
+            {service.compareAtPrice ? (
+              <AppText style={styles.compareAtPrice}>{service.compareAtPrice}</AppText>
+            ) : null}
+            <AppText style={styles.price}>{service.price}</AppText>
+          </View>
         </View>
       </View>
       {!hideDescription ? <View style={styles.headerDivider} /> : null}

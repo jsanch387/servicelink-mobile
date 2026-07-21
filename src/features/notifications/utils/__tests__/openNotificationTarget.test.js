@@ -1,5 +1,6 @@
 import { ROUTES } from '../../../../routes/routes';
 import {
+  BOOKING_LINK_ANNOUNCEMENT_CONTACT_PARAMS,
   BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS,
   BOOKING_LINK_ROUTE_PARAMS,
 } from '../../../bookingLink/constants/bookingLinkRouteParams';
@@ -173,6 +174,29 @@ describe('openNotificationTarget', () => {
                 [BOOKING_LINK_ROUTE_PARAMS.OPEN_EDIT]: true,
                 [BOOKING_LINK_ROUTE_PARAMS.EDIT_TAB]: BOOKING_LINK_EDIT_TAB_DETAILS,
               },
+            },
+          ],
+          index: 1,
+        },
+      },
+    });
+  });
+
+  it('navigates to booking link contact tab for booking_link_contact screen slug', () => {
+    const navigation = nav();
+    openNotificationTarget(navigation, {
+      referenceType: 'screen',
+      referenceId: 'booking_link_contact',
+    });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.MORE,
+      params: {
+        state: {
+          routes: [
+            { name: ROUTES.MORE_HOME },
+            {
+              name: ROUTES.BOOKING_LINK,
+              params: BOOKING_LINK_ANNOUNCEMENT_CONTACT_PARAMS,
             },
           ],
           index: 1,

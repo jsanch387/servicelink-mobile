@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabase';
 import { fetchServiceCategories } from '../../services/categories/api/serviceCategories';
 import { hasProAccessFromProfile } from '../../more/utils/subscriptionPresentation';
+import { socialMediaFromDb } from '../utils/socialMedia';
 
 const MEDIA_BUCKET_NAME = 'business_images';
 
@@ -18,6 +19,7 @@ const MEDIA_BUCKET_NAME = 'business_images';
  * @property {string | null} public_booking_default_locale
  * @property {string | null} bio
  * @property {string | null} phone_number_call
+ * @property {Record<string, string>} social_media
  * @property {string | null} business_slug
  * @property {string | null} business_link
  * @property {boolean | null} accept_quote_req
@@ -46,6 +48,7 @@ const BUSINESS_PROFILE_SELECT = [
   'public_booking_default_locale',
   'bio',
   'phone_number_call',
+  'social_media',
   'business_slug',
   'business_link',
   'accept_quote_req',
@@ -245,6 +248,7 @@ export async function normalizeMobileBusinessProfile({
     ),
     bio: cleanTextOrNull(businessProfileRow?.bio),
     phone_number_call: cleanTextOrNull(businessProfileRow?.phone_number_call),
+    social_media: socialMediaFromDb(businessProfileRow?.social_media),
     business_slug: cleanTextOrNull(businessProfileRow?.business_slug),
     business_link: cleanTextOrNull(businessProfileRow?.business_link),
     accept_quote_req:

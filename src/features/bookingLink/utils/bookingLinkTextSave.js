@@ -6,6 +6,7 @@ import {
   serviceLocationToDb,
   uiServiceTypeToDbMode,
 } from './bookingLinkBookingSettings';
+import { socialMediaFingerprint, socialMediaToDb } from './socialMedia';
 
 /**
  * @typedef {object} BookingLinkEditSnapshot
@@ -16,6 +17,7 @@ import {
  * @property {string} zip Five-digit ZIP or ''
  * @property {string} bio
  * @property {string} phoneComparableDigits Canonical 10-digit NANP for equality (display vs DB).
+ * @property {string} socialMediaKey
  * @property {string} serviceLocationMode DB mode: mobile_only | shop_only | both
  * @property {string} shopStreetAddress
  * @property {string} shopUnit
@@ -51,6 +53,7 @@ export function phoneDigitsFingerprint(value) {
  *   businessZip?: string,
  *   businessBio?: string,
  *   phoneNumber?: string,
+ *   socialMedia?: { instagram?: string; tiktok?: string },
  *   serviceLocationMode?: string,
  *   shopStreetAddress?: string,
  *   shopUnit?: string,
@@ -68,6 +71,7 @@ export function bookingLinkEditBaselineFromProps(props) {
     zip: normalizeZipSlice(props.businessZip),
     bio: String(props.businessBio ?? '').trim(),
     phoneComparableDigits: phoneDigitsFingerprint(props.phoneNumber ?? ''),
+    socialMediaKey: socialMediaFingerprint(props.socialMedia),
     serviceLocationMode: normalizeDbServiceLocationMode(props.serviceLocationMode),
     shopStreetAddress: String(props.shopStreetAddress ?? '').trim(),
     shopUnit: String(props.shopUnit ?? '').trim(),
@@ -95,6 +99,10 @@ export function bookingLinkEditDraftFromFields(fields) {
     zip: normalizeZipSlice(fields.zipInput),
     bio: String(fields.bioInput ?? '').trim(),
     phoneComparableDigits: phoneDigitsFingerprint(fields.phoneInput ?? ''),
+    socialMediaKey: socialMediaFingerprint({
+      instagram: fields.instagramInput,
+      tiktok: fields.tiktokInput,
+    }),
     serviceLocationMode: uiServiceTypeToDbMode(fields.serviceTypeInput),
     shopStreetAddress: String(fields.shopStreetInput ?? '').trim(),
     shopUnit: String(fields.shopUnitInput ?? '').trim(),
@@ -116,6 +124,7 @@ export function bookingLinkEditSnapshotsEqual(a, b) {
     a.zip === b.zip &&
     a.bio === b.bio &&
     a.phoneComparableDigits === b.phoneComparableDigits &&
+    a.socialMediaKey === b.socialMediaKey &&
     a.serviceLocationMode === b.serviceLocationMode &&
     a.shopStreetAddress === b.shopStreetAddress &&
     a.shopUnit === b.shopUnit &&
@@ -178,6 +187,8 @@ export function buildSaveBookingLinkTextVariables(args) {
     previousLogoPath,
     previousBannerPath,
     gallery,
+    instagramInput,
+    tiktokInput,
   } = args;
 
   const { public_booking_locales, public_booking_default_locale } = languagesToDb(
@@ -186,6 +197,10 @@ export function buildSaveBookingLinkTextVariables(args) {
   );
 
   const serviceLocationDb = serviceLocationToDb(serviceTypeInput, shopStreetInput, shopUnitInput);
+  const social_media = socialMediaToDb({
+    instagram: instagramInput,
+    tiktok: tiktokInput,
+  });
 
   return {
     userId,
@@ -197,6 +212,7 @@ export function buildSaveBookingLinkTextVariables(args) {
     zip: zipInput,
     bio: bioInput,
     phoneInput,
+    social_media,
     service_location_mode: serviceLocationDb.service_location_mode,
     shop_street_address: serviceLocationDb.shop_street_address,
     shop_unit: serviceLocationDb.shop_unit,

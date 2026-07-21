@@ -14,7 +14,7 @@ export const SERVICE_CARD_TITLE_FONT_SIZE = 17;
 export const BOOKING_LINK_PROFILE_BUSINESS_NAME_FONT_SIZE = 25;
 
 /**
- * Title row on service cards: black/heavy system sans.
+ * Title row on service cards: system sans (semibold, not ultra-black).
  * @param {{ text: string }} colors Theme token object (`colors.text`).
  */
 export function serviceCardTitleStyle(colors) {
@@ -22,14 +22,15 @@ export function serviceCardTitleStyle(colors) {
     color: colors.text,
     fontFamily: SERVICE_CARD_TITLE_SYSTEM_FONT,
     fontSize: SERVICE_CARD_TITLE_FONT_SIZE,
-    fontWeight: '900',
+    fontWeight: '700',
   };
 }
 
-/** Same weight/font family as service cards, larger size for profile hero name. */
+/** Same font family as service cards, larger + heavier for profile hero name. */
 export function bookingLinkProfileBusinessNameStyle(colors) {
   return {
     ...serviceCardTitleStyle(colors),
     fontSize: BOOKING_LINK_PROFILE_BUSINESS_NAME_FONT_SIZE,
+    fontWeight: '900',
   };
 }

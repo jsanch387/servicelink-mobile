@@ -7,6 +7,7 @@ import { useTheme } from '../../../../theme';
 import { phoneForSmsUri } from '../../../../utils/phone';
 import { REVIEW_STAR_COLOR } from '../../../reviews/constants';
 import { bookingLinkProfileBusinessNameStyle } from '../../../../utils/serviceCardTypography';
+import { socialMediaFromDb, socialMediaPublicUrl } from '../../utils/socialMedia';
 import { resolveBookingProfileCtaVisibility } from '../utils/profileCtaVisibility';
 import { BookingLinkRequestQuoteOwnerHintSheet } from './BookingLinkRequestQuoteOwnerHintSheet';
 
@@ -28,6 +29,7 @@ export function BookingProfileHeader({
   averageRating = null,
   phoneNumber,
   showRequestQuoteCta = false,
+  socialMedia = null,
   isLoading,
 }) {
   const { colors } = useTheme();
@@ -41,6 +43,24 @@ export function BookingProfileHeader({
       }),
     [phoneNumber, showRequestQuoteCta],
   );
+
+  const socialLinks = useMemo(() => {
+    const handles = socialMediaFromDb(socialMedia);
+    return [
+      {
+        key: 'instagram',
+        icon: 'logo-instagram',
+        label: 'Instagram',
+        url: socialMediaPublicUrl('instagram', handles.instagram),
+      },
+      {
+        key: 'tiktok',
+        icon: 'logo-tiktok',
+        label: 'TikTok',
+        url: socialMediaPublicUrl('tiktok', handles.tiktok),
+      },
+    ].filter((item) => Boolean(item.url));
+  }, [socialMedia]);
 
   const styles = useMemo(
     () =>
@@ -138,7 +158,7 @@ export function BookingProfileHeader({
           flexDirection: 'row',
           gap: 8,
           justifyContent: 'center',
-          marginTop: 12,
+          marginTop: 6,
         },
         locationText: {
           color: colors.textMuted,
@@ -146,12 +166,32 @@ export function BookingProfileHeader({
           fontWeight: '600',
           letterSpacing: 0.2,
         },
+        socialRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 10,
+          justifyContent: 'center',
+          marginTop: 14,
+        },
+        socialRowAfterCta: {
+          marginTop: 16,
+        },
+        socialButton: {
+          alignItems: 'center',
+          backgroundColor: colors.shellElevated,
+          borderColor: colors.border,
+          borderRadius: 999,
+          borderWidth: 1,
+          height: 36,
+          justifyContent: 'center',
+          width: 36,
+        },
         ratingRow: {
           alignItems: 'center',
           flexDirection: 'row',
           gap: 4,
           justifyContent: 'center',
-          marginTop: 8,
+          marginTop: 10,
         },
         ratingText: {
           color: colors.text,
@@ -353,6 +393,25 @@ export function BookingProfileHeader({
                 </Pressable>
               )
             ) : null}
+          </View>
+        ) : null}
+
+        {socialLinks.length > 0 ? (
+          <View style={[styles.socialRow, showCtaRow ? styles.socialRowAfterCta : null]}>
+            {socialLinks.map((item) => (
+              <Pressable
+                key={item.key}
+                accessibilityLabel={`Open ${item.label}`}
+                accessibilityRole="link"
+                hitSlop={8}
+                style={styles.socialButton}
+                onPress={() => {
+                  void Linking.openURL(item.url);
+                }}
+              >
+                <Ionicons color={colors.text} name={item.icon} size={18} />
+              </Pressable>
+            ))}
           </View>
         ) : null}
       </View>

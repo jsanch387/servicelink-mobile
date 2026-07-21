@@ -6,6 +6,7 @@ import { BioTabContent } from './components/BioTabContent';
 import { BookingLinkTabs } from './components/BookingLinkTabs';
 import { BookingProfileHeader } from './components/BookingProfileHeader';
 import { GalleryTabContent } from './components/GalleryTabContent';
+import { PublicActiveSaleMarqueeBanner } from './components/PublicActiveSaleMarqueeBanner';
 import { ReviewsTabContent } from './components/ReviewsTabContent';
 import { ServicesTabContent } from './components/ServicesTabContent';
 import {
@@ -14,6 +15,7 @@ import {
   BOOKING_LINK_TAB_REVIEWS,
   BOOKING_LINK_TAB_SERVICES,
 } from '../constants/bookingLinkPreviewTabs';
+import { mapSaleToMarqueeBanner } from './utils/mapSaleToMarqueeBanner';
 
 const FAB_CLEARANCE = 56 + 28;
 
@@ -33,6 +35,7 @@ export function BookingLinkPreview({
   location,
   phoneNumber,
   showRequestQuoteCta,
+  socialMedia,
   coverImageUrl,
   logoUrl,
   showVerifiedBadge,
@@ -41,12 +44,15 @@ export function BookingLinkPreview({
   galleryImages,
   bio,
   businessId,
+  /** Active marketing sale for today (optional). */
+  activeSale = null,
 }) {
   const { colors } = useTheme();
   const [pullRefreshing, setPullRefreshing] = useState(false);
   const reviewsState = useBookingLinkPublicReviews(businessId, Boolean(businessId));
   const headerAverageRating =
     reviewsState.summary.totalCount > 0 ? reviewsState.summary.averageRating : null;
+  const marqueeSale = useMemo(() => mapSaleToMarqueeBanner(activeSale), [activeSale]);
 
   const styles = useMemo(
     () =>
@@ -89,6 +95,7 @@ export function BookingLinkPreview({
       showsVerticalScrollIndicator={false}
       style={styles.root}
     >
+      {marqueeSale ? <PublicActiveSaleMarqueeBanner sale={marqueeSale} /> : null}
       <BookingProfileHeader
         averageRating={headerAverageRating}
         businessName={businessName}
@@ -100,6 +107,7 @@ export function BookingLinkPreview({
         phoneNumber={phoneNumber}
         showRequestQuoteCta={showRequestQuoteCta}
         showVerifiedBadge={showVerifiedBadge}
+        socialMedia={socialMedia}
       />
       <BookingLinkTabs activeTab={activeTab} onChangeTab={onChangeTab} />
       {activeTab === BOOKING_LINK_TAB_SERVICES ? (

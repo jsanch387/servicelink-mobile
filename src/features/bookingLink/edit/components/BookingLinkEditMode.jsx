@@ -139,11 +139,15 @@ export function BookingLinkEditMode({ initialEditTab = BOOKING_LINK_EDIT_DEFAULT
 
           {activeTab === BOOKING_LINK_EDIT_TAB_CONTACT ? (
             <BookingLinkEditContactSection
+              instagramInput={ctrl.instagramInput}
               phoneInput={ctrl.phoneInput}
               phoneInputError={ctrl.phoneInputError}
               rootStyle={styles.tabPanelFirstSection}
               styles={styles}
+              tiktokInput={ctrl.tiktokInput}
+              onInstagramInputChange={ctrl.onInstagramInputChange}
               onPhoneInputChange={ctrl.onPhoneInputChange}
+              onTiktokInputChange={ctrl.onTiktokInputChange}
             />
           ) : null}
         </View>

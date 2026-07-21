@@ -1,3 +1,4 @@
+import { DEPOSIT_AMOUNT_MODE } from '../../payments/constants/depositAmount';
 import { getServiceDescriptionCopy, mapServicesForCards } from '../utils/bookingLinkModel';
 
 describe('mapServicesForCards', () => {
@@ -23,6 +24,27 @@ describe('mapServicesForCards', () => {
         categoryId: 'cat-cars',
       }),
     ]);
+    expect(mapServicesForCards(rows)[0].compareAtPrice).toBeUndefined();
+  });
+
+  it('applies an active sale with compare-at and sale prices', () => {
+    const sale = {
+      isEnabled: true,
+      discountMode: DEPOSIT_AMOUNT_MODE.PERCENTAGE,
+      discountAmount: '10',
+      startDateYyyyMmDd: '2020-01-01',
+      endDateYyyyMmDd: '2099-12-31',
+    };
+    const [card] = mapServicesForCards(
+      [{ id: 's1', name: 'Signature Shinee', price_cents: 17500 }],
+      { activeSale: sale },
+    );
+    expect(card).toEqual(
+      expect.objectContaining({
+        price: '$158',
+        compareAtPrice: '$175',
+      }),
+    );
   });
 
   it('marks long descriptions', () => {

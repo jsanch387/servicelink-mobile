@@ -42,8 +42,8 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow Servicelink to save promo story images to your photo library.",
-          "savePhotosPermission": "Allow Servicelink to save promo story images to your photo library.",
+          "photosPermission": "Allow Servicelink to save QR codes and promo images to your photo library.",
+          "savePhotosPermission": "Allow Servicelink to save QR codes and promo images to your photo library.",
           "isAccessMediaLocationEnabled": false
         }
       ],

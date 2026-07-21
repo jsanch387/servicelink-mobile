@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -34,6 +34,10 @@ import {
   BOOKING_LINK_EDIT_DEFAULT_TAB,
   BOOKING_LINK_EDIT_TABS,
 } from '../edit/constants/bookingLinkEditTabs';
+import { fetchSalesForBusiness } from '../../marketing/api/sales';
+import { createAppointmentSalesQueryKey } from '../../bookings/create-appointment/queryKeys';
+import { pickActiveSaleForAppointmentDate } from '../../bookings/create-appointment/utils/applyOwnerBookingSale';
+import { localYyyyMmDd } from '../../home/utils/bookingStart';
 
 const VALID_EDIT_TABS = new Set(BOOKING_LINK_EDIT_TABS.map((tab) => tab.key));
 
@@ -102,7 +106,25 @@ export function BookingLinkScreen() {
     };
   }, [bookingWelcomeVisible]);
 
-  const services = useMemo(() => mapServicesForCards(profile?.services), [profile?.services]);
+  const businessId = profile?.id ?? null;
+  const salesQ = useQuery({
+    queryKey: createAppointmentSalesQueryKey(businessId),
+    queryFn: async () => {
+      const { data, error } = await fetchSalesForBusiness(businessId);
+      if (error) throw new Error(error.message ?? 'Could not load sales');
+      return data ?? [];
+    },
+    enabled: Boolean(businessId),
+    staleTime: 45 * 1000,
+  });
+  const activeSale = useMemo(
+    () => pickActiveSaleForAppointmentDate(salesQ.data ?? [], localYyyyMmDd()),
+    [salesQ.data],
+  );
+  const services = useMemo(
+    () => mapServicesForCards(profile?.services, { activeSale }),
+    [profile?.services, activeSale],
+  );
   const serviceCategories = useMemo(
     () => buildServiceCategoriesFromRows(profile?.serviceCategories),
     [profile?.serviceCategories],
@@ -118,8 +140,9 @@ export function BookingLinkScreen() {
   const serviceAreaTrimmed = profile?.service_area?.trim() ?? '';
   const [city, state] = splitServiceAreaCityState(profile?.service_area);
   const zip = normalizeBusinessZip(profile?.business_zip);
+  // View mode: city + state only (ZIP stays on the profile for edit / other uses).
   const location =
-    formatBookingServiceAreaLabel(city, state, zip) ||
+    formatBookingServiceAreaLabel(city, state) ||
     (serviceAreaTrimmed.length > 0 ? serviceAreaTrimmed : null);
   const bio = profile?.bio?.trim() || '';
   const bookingLanguages = useMemo(() => languagesFromProfile(profile ?? {}), [profile]);
@@ -246,6 +269,7 @@ export function BookingLinkScreen() {
           serviceLocationMode={normalizeDbServiceLocationMode(profile?.service_location_mode)}
           shopStreetAddress={profile?.shop_street_address ?? ''}
           shopUnit={profile?.shop_unit ?? ''}
+          socialMedia={profile?.social_media}
           spanishEnabled={bookingLanguages.offerSpanish}
           serviceType={dbModeToUiServiceType(profile?.service_location_mode)}
           onBack={handleEditBack}
@@ -263,6 +287,7 @@ export function BookingLinkScreen() {
       ) : (
         <View style={styles.previewLayer}>
           <BookingLinkPreview
+            activeSale={activeSale}
             activeTab={activeTab}
             bio={bio}
             businessId={profile?.id}
@@ -281,6 +306,7 @@ export function BookingLinkScreen() {
             services={services}
             showRequestQuoteCta={showRequestQuoteCta}
             showVerifiedBadge={profile?.showVerifiedBadge ?? false}
+            socialMedia={profile?.social_media}
           />
           <BookingLinkEditFab
             bottom={30}

@@ -1,5 +1,6 @@
 import { ROUTES } from '../../../../routes/routes';
 import {
+  BOOKING_LINK_ANNOUNCEMENT_CONTACT_PARAMS,
   BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS,
   BOOKING_LINK_ROUTE_PARAMS,
 } from '../../../bookingLink/constants/bookingLinkRouteParams';
@@ -44,6 +45,17 @@ describe('resolvePushDestination', () => {
       tab: ROUTES.MORE,
       stackScreen: ROUTES.BOOKING_LINK,
       stackParams: BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS,
+    });
+  });
+
+  it('opens booking link contact tab for booking_link_contact slug', () => {
+    expect(
+      resolvePushDestination({ referenceType: 'screen', referenceId: 'booking_link_contact' }),
+    ).toEqual({
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.BOOKING_LINK,
+      stackParams: BOOKING_LINK_ANNOUNCEMENT_CONTACT_PARAMS,
     });
   });
 

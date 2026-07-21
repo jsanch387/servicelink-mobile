@@ -4,6 +4,7 @@ import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { AvailabilityScreen } from '../../availability/screens/AvailabilityScreen';
 import { BookingLinkScreen } from '../../bookingLink/screens/BookingLinkScreen';
 import { PaymentsScreen } from '../../payments/screens/PaymentsScreen';
+import { QrCodeScreen } from '../../qrCode';
 import { QuoteDetailScreen } from '../../quotes/screens/QuoteDetailScreen';
 import { QuotesScreen } from '../../quotes/screens/QuotesScreen';
 import { CustomerDetailsScreen } from '../../customers/screens/CustomerDetailsScreen';
@@ -176,6 +177,15 @@ export function MoreNavigator() {
           name={ROUTES.BOOKING_LINK}
           options={{
             title: 'Booking link',
+            headerBackButtonDisplayMode: 'minimal',
+            headerBackTitleVisible: false,
+          }}
+        />
+        <Stack.Screen
+          component={QrCodeScreen}
+          name={ROUTES.QR_CODE}
+          options={{
+            title: 'QR code',
             headerBackButtonDisplayMode: 'minimal',
             headerBackTitleVisible: false,
           }}

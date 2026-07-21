@@ -1,5 +1,6 @@
 import { ROUTES } from '../../../routes/routes';
 import {
+  BOOKING_LINK_ANNOUNCEMENT_CONTACT_PARAMS,
   BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS,
   BOOKING_LINK_ROUTE_PARAMS,
 } from '../../bookingLink/constants/bookingLinkRouteParams';
@@ -55,6 +56,12 @@ const SCREEN_SLUG_DESTINATIONS = {
     tab: ROUTES.MORE,
     stackScreen: ROUTES.BOOKING_LINK,
     stackParams: BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS,
+  },
+  booking_link_contact: {
+    kind: 'main_app_tab',
+    tab: ROUTES.MORE,
+    stackScreen: ROUTES.BOOKING_LINK,
+    stackParams: BOOKING_LINK_ANNOUNCEMENT_CONTACT_PARAMS,
   },
   marketing: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.MARKETING },
   upgrade: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.ACCOUNT_SETTINGS },

@@ -26,6 +26,7 @@ const MEDIA_BUCKET = BUSINESS_IMAGES_BUCKET;
  * @param {string} input.zip
  * @param {string} input.bio
  * @param {string} input.phoneInput
+ * @param {Record<string, string>} [input.social_media]
  * @param {string} input.service_location_mode
  * @param {string | null} input.shop_street_address
  * @param {string | null} input.shop_unit
@@ -49,6 +50,7 @@ export async function saveOwnerBookingLink(input) {
     zip,
     bio,
     phoneInput,
+    social_media,
     service_location_mode,
     shop_street_address,
     shop_unit,
@@ -145,6 +147,7 @@ export async function saveOwnerBookingLink(input) {
     business_zip: businessZip,
     bio: bioText || null,
     phone_number_call: phoneDb,
+    social_media: social_media && typeof social_media === 'object' ? social_media : {},
     service_location_mode,
     shop_street_address,
     shop_unit,

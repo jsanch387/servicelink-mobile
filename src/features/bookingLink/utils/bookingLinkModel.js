@@ -1,3 +1,4 @@
+import { computeSaleDiscountCents } from '../../bookings/create-appointment/utils/applyOwnerBookingSale';
 import {
   SERVICE_DESCRIPTION_PREVIEW_CHARS,
   getServiceDescriptionCopy,
@@ -5,15 +6,27 @@ import {
 
 export { getServiceDescriptionCopy };
 
-export function mapServicesForCards(rows) {
+/**
+ * @param {Array<Record<string, unknown>> | null | undefined} rows
+ * @param {{
+ *   activeSale?: import('../../marketing/utils/marketingCampaignModel').MarketingCampaign | null;
+ * }} [options]
+ */
+export function mapServicesForCards(rows, options = {}) {
+  const activeSale = options.activeSale ?? null;
+
   return (rows ?? []).map((row) => {
     const raw = String(row?.description ?? '').trim();
     const description = raw || 'No description yet.';
+    const priceCents = Math.max(0, Math.round(Number(row?.price_cents) || 0));
+    const discountCents = computeSaleDiscountCents(priceCents, activeSale);
+    const salePriceCents = discountCents > 0 ? Math.max(0, priceCents - discountCents) : null;
 
     return {
       id: String(row?.id ?? `service-${row?.name ?? 'unknown'}`),
       title: String(row?.name ?? 'Service'),
-      price: formatPriceLabel(row?.price_cents),
+      price: formatPriceLabel(salePriceCents != null ? salePriceCents : priceCents),
+      ...(salePriceCents != null ? { compareAtPrice: formatPriceLabel(priceCents) } : null),
       description,
       isLongDescription: description.length > SERVICE_DESCRIPTION_PREVIEW_CHARS,
       duration: formatDurationLabel(row?.duration_minutes),

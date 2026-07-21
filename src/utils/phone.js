@@ -76,11 +76,8 @@ export function getPhoneInputValidationMessage(raw) {
   if (d.length === 0) {
     return null;
   }
-  if (d.length < 10) {
-    return 'Enter a complete 10-digit U.S. phone number, or clear this field.';
-  }
-  if (!isValidUsNanpTenDigits(d)) {
-    return 'That is not a valid U.S. phone number.';
+  if (d.length < 10 || !isValidUsNanpTenDigits(d)) {
+    return 'Enter a valid phone number, or leave empty.';
   }
   return null;
 }

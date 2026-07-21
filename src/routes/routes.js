@@ -42,6 +42,8 @@ export const ROUTES = {
   /** Root stack — build & send quote (hides tab bar; same pattern as CREATE_APPOINTMENT). */
   CREATE_QUOTE: 'CreateQuote',
   BOOKING_LINK: 'BookingLink',
+  /** More stack — shareable booking-link QR (Pro). */
+  QR_CODE: 'QrCode',
   MARKETING: 'Marketing',
   /** More stack — promo code detail (edit / delete). */
   MARKETING_PROMO_DETAIL: 'MarketingPromoDetail',
@@ -93,6 +95,7 @@ export const PATHS = {
   MAINTENANCE_DETAIL: '/maintenance/detail',
   CREATE_QUOTE: '/quotes/create',
   BOOKING_LINK: '/booking-link',
+  QR_CODE: '/more/qr-code',
   MARKETING: '/marketing',
   MARKETING_PROMO_DETAIL: '/marketing/promos/:campaignId',
   MARKETING_SALE_DETAIL: '/marketing/sales/:campaignId',
