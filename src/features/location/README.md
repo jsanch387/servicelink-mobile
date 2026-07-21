@@ -20,14 +20,13 @@ This information will be used to:
 ### When the Modal Shows
 The location collection modal automatically appears when:
 - User is authenticated (logged in)
-- User hasn't provided their service location yet
-- User hasn't previously dismissed the prompt
+- User hasn't dismissed the prompt before
 
-**Platform-agnostic behavior:**
-- Onboarding happens on web only (users can't onboard in mobile app)
-- Mobile app users are already onboarded before using the app
-- Location modal shows regardless of onboarding status
-- Simply: any authenticated user without location data sees the modal
+**That's it!** No other checks. Here's why:
+- This is a **NEW location system** to collect clean, accurate data
+- Even users with old location data need to update via this new flow
+- We want to re-collect location from everyone to ensure data quality
+- Users can dismiss it, but it will show for everyone until they do
 
 The modal appears ~800ms after the main app loads, giving the user time to orient themselves.
 
@@ -71,7 +70,8 @@ App.js
 
 #### 1. LocationPromptProvider (`context/LocationPromptContext.jsx`)
 - Manages location prompt state globally
-- Checks if user needs to see the prompt on mount
+- Checks if user has dismissed the prompt (only check!)
+- Does NOT check for existing location data (we want fresh data from everyone)
 - Provides handlers for saving location and dismissing
 - Auto-shows modal after 800ms delay if needed
 

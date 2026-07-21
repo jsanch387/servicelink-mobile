@@ -2,7 +2,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useAuth } from '../../auth';
 import {
   checkLocationPromptDismissed,
-  checkUserLocationStatus,
   markLocationPromptDismissed,
   saveUserLocation,
 } from '../api/locationApi';
@@ -26,17 +25,13 @@ export function LocationPromptProvider({ children }) {
 
     setIsLoading(true);
     try {
-      const [locationStatus, dismissStatus] = await Promise.all([
-        checkUserLocationStatus(userId),
-        checkLocationPromptDismissed(userId),
-      ]);
+      // Only check if user has dismissed the prompt
+      // Don't check for existing location data - this is a NEW location system
+      // and we want to collect fresh, clean location data from all users
+      const dismissStatus = await checkLocationPromptDismissed(userId);
 
-      // Only show prompt if:
-      // 1. User hasn't provided location yet
-      // 2. User hasn't dismissed the prompt before
-      // Note: Onboarding happens on web only. Mobile users are already onboarded.
-      //       Location prompt is completely independent of onboarding status.
-      const shouldShow = !locationStatus.hasLocation && !dismissStatus.dismissed;
+      // Show prompt unless user has explicitly dismissed it
+      const shouldShow = !dismissStatus.dismissed;
 
       setShouldShowPrompt(shouldShow);
 

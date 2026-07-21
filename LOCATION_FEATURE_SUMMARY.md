@@ -47,15 +47,16 @@ Logic for showing prompt:
 ```
 Show IF:
   - User is authenticated (logged in)
-  - User hasn't provided location (service_area + service_radius)
   - User hasn't dismissed the prompt before
 
-Note:
-  - Onboarding happens on WEB ONLY
-  - Mobile users can't onboard in the app (must onboard on web first)
-  - Therefore: onboarding status is IRRELEVANT to this feature
-  - Location prompt is completely independent of onboarding
-  - Simply shows for any authenticated user without location data
+That's it! No location check!
+
+Why no location check:
+  - This is a NEW location collection system
+  - Old location data may be inaccurate or incomplete
+  - We want to collect fresh, clean location data from ALL users
+  - Even users with existing location data should update via this new flow
+  - Modal shows for everyone until they save location or dismiss it
 ```
 
 ### 3. Location API Functions
@@ -228,19 +229,22 @@ src/navigation/MainTabNavigator.jsx        # Added LocationCollectionModal
 7. Data saved to DB, modal closes
 8. Next session → modal doesn't show
 
-### Scenario 2: Existing User (No Location)
+### Scenario 2: Existing User (Old Location Data)
 1. Existing user opens app
-2. Has completed onboarding, but no location set
-3. After 800ms, location modal appears
-4. User clicks "I'll do this later"
-5. Modal closes, dismissed flag set
-6. Next app launch → modal doesn't show
+2. Has old location data from previous system
+3. After 800ms, location modal STILL appears (we want fresh data!)
+4. User can update their location with the new system
+5. OR user clicks "I'll do this later"
+6. Modal closes, dismissed flag set
+7. Next app launch → modal doesn't show
 
-### Scenario 3: Existing User (Location Set)
-1. Existing user opens app
-2. Has already provided location
-3. Modal never appears
-4. Normal app usage
+### Scenario 3: User Dismisses
+1. Any user opens app
+2. After 800ms, location modal appears
+3. User clicks "I'll do this later"
+4. Modal closes, dismissed flag set in database
+5. Next app launch → modal doesn't show
+6. User never gets prompted again (unless dismissed flag is reset)
 
 ## Business Value
 
