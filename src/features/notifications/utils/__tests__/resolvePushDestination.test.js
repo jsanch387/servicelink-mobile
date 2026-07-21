@@ -74,6 +74,21 @@ describe('resolvePushDestination', () => {
     });
   });
 
+  it('opens QR code for qr_code slug (feature broadcasts)', () => {
+    expect(resolvePushDestination({ referenceType: 'screen', referenceId: 'qr_code' })).toEqual({
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.QR_CODE,
+    });
+    expect(
+      resolvePushDestination({ referenceType: 'announcement', referenceId: 'qr_code' }),
+    ).toEqual({
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.QR_CODE,
+    });
+  });
+
   it('opens business profile edit on booking link details tab', () => {
     expect(resolvePushDestination({ referenceType: 'screen', referenceId: 'profile' })).toEqual({
       kind: 'main_app_tab',
