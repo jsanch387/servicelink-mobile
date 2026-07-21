@@ -23,10 +23,11 @@ The location collection modal automatically appears when:
 - User hasn't provided their service location yet
 - User hasn't previously dismissed the prompt
 
-**Works for both mobile and web users:**
-- Mobile users: See modal after completing onboarding
-- Web users: See modal when they first use the app (web has no onboarding)
-- All authenticated users: See modal on any subsequent app launch until location is provided or dismissed
+**Platform-agnostic behavior:**
+- Onboarding happens on web only (users can't onboard in mobile app)
+- Mobile app users are already onboarded before using the app
+- Location modal shows regardless of onboarding status
+- Simply: any authenticated user without location data sees the modal
 
 The modal appears ~800ms after the main app loads, giving the user time to orient themselves.
 
@@ -115,11 +116,12 @@ See `docs/DATABASE_SCHEMA.md` for full details.
 
 ### App Entry Point
 The `LocationPromptProvider` is added to the provider tree in `App.js`, wrapping the navigator but inside the auth gates. This ensures:
-- It only runs for authenticated users (both mobile and web)
-- Works independently of onboarding status
-- Web users (no onboarding) see prompt when authenticated
-- Mobile users see prompt after completing onboarding
+- It only runs for authenticated users
+- Works completely independently of onboarding status
+- Shows for any authenticated user who hasn't provided location
 - It has access to user context
+
+Note: Onboarding happens on web only. Mobile users come to the app already onboarded, so the location prompt isn't tied to onboarding at all.
 
 ### Main Tab Navigator
 The `LocationCollectionModal` is rendered in `MainTabNavigator.jsx` so it:

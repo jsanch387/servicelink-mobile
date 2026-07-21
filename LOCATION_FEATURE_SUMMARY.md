@@ -50,10 +50,12 @@ Show IF:
   - User hasn't provided location (service_area + service_radius)
   - User hasn't dismissed the prompt before
 
-Works for:
-  - Mobile users (shows after onboarding completion)
-  - Web users (shows when authenticated, no onboarding required)
-  - Both platforms treat location collection independently of onboarding
+Note:
+  - Onboarding happens on WEB ONLY
+  - Mobile users can't onboard in the app (must onboard on web first)
+  - Therefore: onboarding status is IRRELEVANT to this feature
+  - Location prompt is completely independent of onboarding
+  - Simply shows for any authenticated user without location data
 ```
 
 ### 3. Location API Functions
@@ -205,9 +207,9 @@ src/navigation/MainTabNavigator.jsx        # Added LocationCollectionModal
 
 ## Testing Scenarios
 
-### Scenario 1: New Mobile User
-1. User signs up and completes mobile onboarding
-2. User reaches main app
+### Scenario 1: User Opens Mobile App
+1. User has already onboarded on web (required before using mobile)
+2. User opens mobile app for first time (or any time without location data)
 3. After 800ms, location modal appears with animation
 4. User types "Austin, TX" in location field
 5. User selects "Up to 15 miles" from radius selector
@@ -216,15 +218,15 @@ src/navigation/MainTabNavigator.jsx        # Added LocationCollectionModal
 8. Data saved to DB, modal closes
 9. Next app launch → modal doesn't show
 
-### Scenario 1b: New Web User
-1. User signs up on web (no onboarding on web)
-2. User is authenticated and opens the app
+### Scenario 1b: User on Web
+1. User is authenticated on web (onboarded)
+2. User opens the web app without location data
 3. After 800ms, location modal appears with animation
 4. User types "Dallas, TX" in location field
 5. User selects "Up to 25 miles" from radius selector
 6. Clicks "Save location"
 7. Data saved to DB, modal closes
-8. Next app launch → modal doesn't show
+8. Next session → modal doesn't show
 
 ### Scenario 2: Existing User (No Location)
 1. Existing user opens app
