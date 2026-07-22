@@ -32,6 +32,11 @@ export const TAP_TO_PAY_MERCHANT_LIMIT =
 export const TAP_TO_PAY_TERMINAL_NOT_CONFIGURED =
   'Tap to Pay reader is not configured for your account yet.';
 
+export const TAP_TO_PAY_READER_NOT_CONNECTED =
+  'Tap to Pay lost connection on this iPhone. Try again — keep the app open while collecting.';
+
+export const TAP_TO_PAY_READER_NOT_CONNECTED_STATUS = 'Reader not connected';
+
 export const TAP_TO_PAY_PREPARING_COLD = 'Setting up Tap to Pay';
 
 export const TAP_TO_PAY_PREPARING_WARM = 'Opening Tap to Pay';
@@ -189,6 +194,13 @@ export function formatTapToPayErrorStatusLine(message, context = 'intent') {
 
   if (lower.includes('sign in')) {
     return 'Sign in required';
+  }
+  if (
+    lower.includes('no reader is connected') ||
+    lower.includes('connect to a reader') ||
+    text === TAP_TO_PAY_READER_NOT_CONNECTED
+  ) {
+    return TAP_TO_PAY_READER_NOT_CONNECTED_STATUS;
   }
   if (
     lower.includes('terminal') ||

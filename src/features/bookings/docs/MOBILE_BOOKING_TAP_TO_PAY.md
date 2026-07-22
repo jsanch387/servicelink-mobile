@@ -6,6 +6,7 @@ Owner collects the **remaining balance** on-site using **Stripe Tap to Pay on iP
 
 **Server contract (web repo):** `docs/contracts/mobile-booking-tap-to-pay.md`  
 **Terminal Location (web):** [`TAP_TO_PAY_TERMINAL_SERVER.md`](./TAP_TO_PAY_TERMINAL_SERVER.md) — implemented  
+**Client diagnostics (web):** [`TAP_TO_PAY_CLIENT_DIAGNOSTICS_SERVER.md`](./TAP_TO_PAY_CLIENT_DIAGNOSTICS_SERVER.md) — DB ready; route must be deployed  
 **DB migration (server):** `docs/sql/booking_tap_to_pay_phase2_migration.sql`
 
 ---

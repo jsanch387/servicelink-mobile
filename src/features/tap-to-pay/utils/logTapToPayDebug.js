@@ -1,3 +1,5 @@
+import { getTapToPayClientDiagnostics } from './getTapToPayClientDiagnostics';
+
 /**
  * Tap to Pay logging tiers:
  * - `logTapToPayInfo` / `logTapToPayFailure` — always on (TestFlight + App Store).
@@ -95,12 +97,20 @@ export function logTapToPayInfo(event, details = {}) {
 
 /**
  * Failures — always logged so TestFlight / production issues are visible.
+ * Automatically attaches app/OS/device diagnostics (no PII).
  *
  * @param {string} stage
  * @param {{ message?: string; httpStatus?: number; requestId?: string; [key: string]: unknown }} [details]
  */
 export function logTapToPayFailure(stage, details = {}) {
-  const suffix = formatDetails(details);
+  let diagnostics = {};
+  try {
+    diagnostics = getTapToPayClientDiagnostics();
+  } catch {
+    diagnostics = {};
+  }
+  const merged = { ...diagnostics, ...details };
+  const suffix = formatDetails(merged);
   const line = suffix ? `[TapToPay:${stage}] ${suffix}` : `[TapToPay:${stage}]`;
   console.warn(line);
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { postTapToPayConnectionToken } from '../api/postTapToPayConnectionToken';
 import { postTapToPayIntent } from '../api/postTapToPayIntent';
+import { postTapToPayClientEvent } from '../api/postTapToPayClientEvent';
 import {
   TAP_TO_PAY_DEV_MOCK_COLLECTION,
   TAP_TO_PAY_USE_SERVER_APIS,
@@ -203,6 +204,15 @@ export function useTapToPaySheet({
         httpStatus: intentResult.httpStatus,
         requestId: intentResult.requestId,
       });
+      void postTapToPayClientEvent({
+        accessToken,
+        bookingId,
+        outcome: 'failure',
+        stage: 'intent',
+        message: intentResult.error.message,
+        httpStatus: intentResult.httpStatus,
+        requestId: intentResult.requestId,
+      });
       setIntentError(intentResult.error.message);
       setPhase('intent_error');
       fireTapToPayErrorHaptic();
@@ -313,6 +323,7 @@ export function useTapToPaySheet({
       readerWarm: isTapToPayReaderWarm(),
     });
 
+    const collectionStartedAt = Date.now();
     try {
       if (TAP_TO_PAY_USE_SERVER_APIS && intentResult.paymentIntentId && intentResult.clientSecret) {
         if (TAP_TO_PAY_USE_TERMINAL_SDK) {
@@ -332,6 +343,14 @@ export function useTapToPaySheet({
             paymentIntentId: maskId(result.paymentIntentId),
             amountCents: result.amountCents,
           });
+          void postTapToPayClientEvent({
+            accessToken,
+            bookingId,
+            outcome: 'success',
+            stage: 'success',
+            paymentIntentId: result.paymentIntentId,
+            durationMs: Date.now() - collectionStartedAt,
+          });
           finishSuccess(result.amountCents, result.paymentIntentId);
           return;
         }
@@ -345,6 +364,14 @@ export function useTapToPaySheet({
           if (runId !== sessionRunRef.current) {
             return;
           }
+          void postTapToPayClientEvent({
+            accessToken,
+            bookingId,
+            outcome: 'success',
+            stage: 'success',
+            paymentIntentId: intentResult.paymentIntentId,
+            durationMs: Date.now() - collectionStartedAt,
+          });
           runMockCollection(intentResult.amountCents, intentResult.paymentIntentId);
           return;
         }
@@ -361,10 +388,34 @@ export function useTapToPaySheet({
       fireTapToPayErrorHaptic();
       const message =
         err instanceof Error ? err.message : 'Payment failed. Try again or mark as paid.';
-      logTapToPayFailure('collection', { message });
+      const code =
+        err && typeof err === 'object' && 'code' in err && typeof err.code === 'string'
+          ? err.code
+          : null;
+      const stage =
+        err && typeof err === 'object' && 'stage' in err && typeof err.stage === 'string'
+          ? err.stage
+          : 'collection';
+      logTapToPayFailure('collection', {
+        message,
+        code,
+        stage,
+        paymentIntentId: maskId(intentResult.paymentIntentId),
+      });
+      void postTapToPayClientEvent({
+        accessToken,
+        bookingId,
+        outcome: 'failure',
+        stage,
+        message,
+        code,
+        paymentIntentId: intentResult.paymentIntentId,
+        durationMs: Date.now() - collectionStartedAt,
+      });
       setIntentError(message);
     }
   }, [
+    accessToken,
     amountDueDollars,
     beginProcessingPhase,
     bookingId,

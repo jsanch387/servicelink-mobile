@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useStripeTerminal } from '@stripe/stripe-terminal-react-native';
 import { TAP_TO_PAY_USE_TERMINAL_SDK } from '../constants/tapToPayFeatureFlags';
+import { createTapToPayStagedError } from '../utils/createTapToPayStagedError';
 import { logTapToPayDebug, logTapToPayFailure, maskId } from '../utils/logTapToPayDebug';
 import { markTapToPayMerchantEnabled } from '../utils/tapToPayEnablementStorage';
 import { requestTapToPayAndroidPermissions } from '../utils/requestTapToPayAndroidPermissions';
@@ -48,23 +49,38 @@ export function useTapToPayTerminalCollection() {
       });
 
       if (!clientSecret?.trim()) {
-        throw new Error('Couldn’t start Tap to Pay. Try again or mark as paid.');
+        throw createTapToPayStagedError(
+          'intent',
+          'Couldn’t start Tap to Pay. Try again or mark as paid.',
+        );
       }
 
       const androidReady = await requestTapToPayAndroidPermissions();
       if (!androidReady) {
-        throw new Error('Location access is required for Tap to Pay on Android.');
+        throw createTapToPayStagedError(
+          'connect',
+          'Location access is required for Tap to Pay on Android.',
+        );
       }
 
       const stripeAccountId = connectParams?.stripeAccountId?.trim() ?? null;
 
-      await ensureTapToPayTerminalInitialized({
-        initialize,
-        disconnectReader,
-        clearCachedCredentials,
-        stripeAccountId,
-        reason: 'collect',
-      });
+      try {
+        await ensureTapToPayTerminalInitialized({
+          initialize,
+          disconnectReader,
+          clearCachedCredentials,
+          stripeAccountId,
+          reason: 'collect',
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Could not start Tap to Pay.';
+        const code =
+          err && typeof err === 'object' && 'code' in err && typeof err.code === 'string'
+            ? err.code
+            : undefined;
+        throw createTapToPayStagedError('connect', message, code);
+      }
 
       const { readerSupportResult, error: supportError } = await supportsReadersOfType({
         deviceType: 'tapToPay',
@@ -76,27 +92,38 @@ export function useTapToPayTerminalCollection() {
           message: supportError.message,
           code: supportError.code,
         });
-        throw new Error(
+        throw createTapToPayStagedError(
+          'connect',
           mapTapToPayTerminalErrorMessage(
             supportError.code,
             supportError.message || 'This device does not support Tap to Pay.',
           ),
+          supportError.code,
         );
       }
       if (!readerSupportResult) {
         logTapToPayFailure('terminal.support', { message: 'Device does not support Tap to Pay' });
-        throw new Error('This device does not support Tap to Pay.');
+        throw createTapToPayStagedError('connect', 'This device does not support Tap to Pay.');
       }
       logTapToPayDebug('terminal.support.ok');
 
-      await ensureTapToPayReaderConnected({
-        easyConnect,
-        disconnectReader,
-        getLocations,
-        connectParams,
-        merchantDisplayName,
-        reason: 'collect',
-      });
+      try {
+        await ensureTapToPayReaderConnected({
+          easyConnect,
+          disconnectReader,
+          getLocations,
+          connectParams,
+          merchantDisplayName,
+          reason: 'collect',
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Could not connect to Tap to Pay.';
+        const code =
+          err && typeof err === 'object' && 'code' in err && typeof err.code === 'string'
+            ? err.code
+            : undefined;
+        throw createTapToPayStagedError('connect', message, code);
+      }
 
       await markTapToPayMerchantEnabled(
         connectParams?.stripeAccountId,
@@ -112,11 +139,13 @@ export function useTapToPayTerminalCollection() {
           message: retrieveError?.message,
           code: retrieveError?.code,
         });
-        throw new Error(
+        throw createTapToPayStagedError(
+          'retrieve',
           mapTapToPayTerminalErrorMessage(
             retrieveError?.code,
             retrieveError?.message || 'Couldn’t start Tap to Pay. Try again or mark as paid.',
           ),
+          retrieveError?.code,
         );
       }
       logTapToPayDebug('terminal.retrieve.ok', {
@@ -134,21 +163,21 @@ export function useTapToPayTerminalCollection() {
       });
 
       if (processedIntent.status !== 'succeeded') {
-        throw new Error('Payment has not completed yet.');
+        throw createTapToPayStagedError('confirm', 'Payment has not completed yet.');
       }
 
       const resolvedId = processedIntent.id?.trim() || paymentIntentId?.trim();
       if (!resolvedId) {
-        throw new Error('Payment could not be verified.');
+        throw createTapToPayStagedError('confirm', 'Payment could not be verified.');
       }
 
       if (paymentIntentId?.trim() && resolvedId !== paymentIntentId.trim()) {
-        throw new Error('Payment could not be verified.');
+        throw createTapToPayStagedError('confirm', 'Payment could not be verified.');
       }
 
       const processedAmount = Math.max(0, Math.round(Number(processedIntent.amount) || 0));
       if (processedAmount > 0 && processedAmount !== amountCents) {
-        throw new Error('Payment amount does not match.');
+        throw createTapToPayStagedError('confirm', 'Payment amount does not match.');
       }
 
       logTapToPayDebug('terminal.collect.ok', {

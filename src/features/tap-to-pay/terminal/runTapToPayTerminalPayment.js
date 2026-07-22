@@ -4,6 +4,7 @@ import {
   logTapToPayInfo,
   maskId,
 } from '../utils/logTapToPayDebug';
+import { createTapToPayStagedError } from '../utils/createTapToPayStagedError';
 import { mapTapToPayTerminalErrorMessage } from './tapToPayTerminalConnect';
 
 /** @typedef {import('@stripe/stripe-terminal-react-native').PaymentIntent.Type} StripePaymentIntent */
@@ -46,11 +47,13 @@ export async function runTapToPayTerminalPayment({
       message: collectError?.message,
       code: collectError?.code,
     });
-    throw new Error(
+    throw createTapToPayStagedError(
+      'collect',
       mapTapToPayTerminalErrorMessage(
         collectError?.code,
         collectError?.message || 'Payment failed. Try again or mark as paid.',
       ),
+      collectError?.code,
     );
   }
 
@@ -74,11 +77,13 @@ export async function runTapToPayTerminalPayment({
       message: confirmError?.message,
       code: confirmError?.code,
     });
-    throw new Error(
+    throw createTapToPayStagedError(
+      'confirm',
       mapTapToPayTerminalErrorMessage(
         confirmError?.code,
         confirmError?.message || 'Payment failed. Try again or mark as paid.',
       ),
+      confirmError?.code,
     );
   }
 

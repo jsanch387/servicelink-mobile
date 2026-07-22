@@ -5,10 +5,12 @@ import {
   TAP_TO_PAY_MERCHANT_LIMIT,
   TAP_TO_PAY_PAYMENT_CANCELED,
   TAP_TO_PAY_PAYMENT_TIMED_OUT,
+  TAP_TO_PAY_READER_NOT_CONNECTED,
   TAP_TO_PAY_SETUP_NOT_FINISHED,
   TAP_TO_PAY_TERMINAL_NOT_CONFIGURED,
 } from '../constants/tapToPayCopy';
 import { mapTapToPayOsVersionTerminalError } from '../utils/tapToPayOsVersionError';
+import { isTapToPayReaderNotConnectedError } from '../utils/isTapToPayReaderNotConnectedError';
 import { logTapToPayDebug, logTapToPayFailure, maskId } from '../utils/logTapToPayDebug';
 import { requestTapToPayAndroidPermissions } from '../utils/requestTapToPayAndroidPermissions';
 import { maybePresentTapToPayEducationAfterConnect } from '../education/maybePresentTapToPayEducationAfterConnect';
@@ -49,6 +51,9 @@ export function mapTapToPayTerminalErrorMessage(code, fallback) {
   }
   if (code === 'READER_MERCHANT_BLOCKED') {
     return TAP_TO_PAY_MERCHANT_LIMIT;
+  }
+  if (isTapToPayReaderNotConnectedError(code, fallback)) {
+    return TAP_TO_PAY_READER_NOT_CONNECTED;
   }
   if (isTapToPayAppleLinkTerminalError(code, fallback)) {
     return TAP_TO_PAY_SETUP_NOT_FINISHED;
@@ -233,11 +238,20 @@ export async function ensureTapToPayReaderConnected({
   const connectKey = `${locationId}|${stripeAccountId ?? ''}`;
 
   if (tapToPayTerminalSession.lastConnectKey === connectKey) {
-    logTapToPayDebug('terminal.connect.skip', {
+    // Collect must not trust a stale in-memory warm flag — Stripe may have
+    // dropped the reader while our session still says connected.
+    if (reason !== 'collect' && reason !== 'collect_retry') {
+      logTapToPayDebug('terminal.connect.skip', {
+        locationId: maskId(locationId),
+        reason,
+      });
+      return { locationId, connectKey };
+    }
+    logTapToPayDebug('terminal.connect.force', {
       locationId: maskId(locationId),
       reason,
+      note: 'reconnecting for collect even though session looks warm',
     });
-    return { locationId, connectKey };
   }
 
   if (tapToPayTerminalSession.lastConnectKey) {

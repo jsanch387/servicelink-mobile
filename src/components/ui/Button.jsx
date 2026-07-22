@@ -52,6 +52,8 @@ export function Button({
   iconPosition = 'left',
   iconSize = 18,
   iconColor,
+  /** Optional node after the title (e.g. `<BetaLabel />`). */
+  titleAccessory = null,
   labelColor,
   style,
   ...rest
@@ -209,6 +211,7 @@ export function Button({
             >
               {title}
             </AppText>
+            {titleAccessory ? <View style={styles.titleAccessory}>{titleAccessory}</View> : null}
             {showRightIcon ? <View style={styles.iconRight}>{resolvedIconNode}</View> : null}
             {showRightNamed ? renderIcon('right') : null}
           </>
@@ -313,6 +316,9 @@ const styles = StyleSheet.create({
   },
   iconRight: {
     marginLeft: 8,
+  },
+  titleAccessory: {
+    marginLeft: 0,
   },
   busy: {
     opacity: 0.55,

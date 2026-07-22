@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import {
   AppText,
+  BetaLabel,
   BottomSheetOverlayProvider,
   Button,
   DetailsSectionCard,
@@ -473,6 +474,7 @@ function CompleteVisitDesignBody({
                 iconNode={<TapToPayCheckoutIcon size={22} />}
                 loading={tapToPayConnectLoading}
                 title={TAP_TO_PAY_CHECKOUT_BUTTON_LABEL}
+                titleAccessory={<BetaLabel />}
                 variant="surfaceLight"
                 onPress={handleTapToPayPress}
               />
