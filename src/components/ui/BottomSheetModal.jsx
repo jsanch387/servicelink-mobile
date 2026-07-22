@@ -34,6 +34,7 @@ import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet
  * @param {number} [props.sheetHeightPercent]
  * @param {boolean} [props.fitContent]
  * @param {boolean} [props.stickyFooter]
+ * @param {boolean} [props.liftFooterWithKeyboard] — when false, sticky footer stays put while typing (more room for in-sheet lists)
  * @param {boolean} [props.showCloseButton] — default true for native page sheets / tall overlay sheets
  * @param {boolean} [props.centerContent] — vertically center children in the scroll area
  */
@@ -48,6 +49,7 @@ export function BottomSheetModal({
   sheetHeightPercent = 92,
   fitContent = false,
   stickyFooter = false,
+  liftFooterWithKeyboard = true,
   showCloseButton,
   centerContent = false,
 }) {
@@ -61,6 +63,7 @@ export function BottomSheetModal({
         allowBackdropClose={allowBackdropClose}
         centerContent={centerContent}
         footer={footer}
+        liftFooterWithKeyboard={liftFooterWithKeyboard}
         showCloseButton={showClose}
         stickyFooter={stickyFooter}
         subtitle={subtitle}
@@ -79,6 +82,7 @@ export function BottomSheetModal({
       centerContent={centerContent}
       fitContent={fitContent}
       footer={footer}
+      liftFooterWithKeyboard={liftFooterWithKeyboard}
       sheetHeightPercent={sheetHeightPercent}
       showCloseButton={showClose}
       stickyFooter={stickyFooter}
@@ -103,6 +107,7 @@ function NativePageSheetModal({
   children,
   footer,
   stickyFooter,
+  liftFooterWithKeyboard = true,
   showCloseButton,
   centerContent,
   allowBackdropClose,
@@ -111,12 +116,14 @@ function NativePageSheetModal({
   const insets = useSafeAreaInsets();
   const [iosKeyboardScrollPadding, setIosKeyboardScrollPadding] = useState(0);
   const useStickyFooter = Boolean(stickyFooter && footer);
+  const keyboardPadding = liftFooterWithKeyboard ? iosKeyboardScrollPadding : 0;
 
   useEffect(() => {
     if (!visible) setIosKeyboardScrollPadding(0);
   }, [visible]);
 
   useEffect(() => {
+    if (!liftFooterWithKeyboard) return undefined;
     const onShow = (e) => {
       setIosKeyboardScrollPadding(Math.max(0, e?.endCoordinates?.height ?? 0));
     };
@@ -127,7 +134,7 @@ function NativePageSheetModal({
       subShow.remove();
       subHide.remove();
     };
-  }, []);
+  }, [liftFooterWithKeyboard]);
 
   const styles = useMemo(
     () => createSharedSheetStyles(colors, insets, { nativePageSheet: true }),
@@ -138,11 +145,11 @@ function NativePageSheetModal({
     () => [
       styles.sheetContent,
       useStickyFooter
-        ? { paddingBottom: 12 + iosKeyboardScrollPadding }
-        : { paddingBottom: Math.max(insets.bottom, 16) + 12 + iosKeyboardScrollPadding },
+        ? { paddingBottom: 12 + keyboardPadding }
+        : { paddingBottom: Math.max(insets.bottom, 16) + 12 + keyboardPadding },
       centerContent ? styles.centerContent : null,
     ],
-    [styles, useStickyFooter, iosKeyboardScrollPadding, insets.bottom, centerContent],
+    [styles, useStickyFooter, keyboardPadding, insets.bottom, centerContent],
   );
 
   return (
@@ -177,7 +184,7 @@ function NativePageSheetModal({
               style={[
                 styles.stickyFooter,
                 {
-                  marginBottom: iosKeyboardScrollPadding,
+                  marginBottom: keyboardPadding,
                   paddingBottom: Math.max(insets.bottom, 16),
                 },
               ]}
@@ -216,6 +223,7 @@ function OverlayBottomSheetModal({
   sheetHeightPercent,
   fitContent,
   stickyFooter,
+  liftFooterWithKeyboard = true,
   showCloseButton,
   centerContent,
 }) {
@@ -230,6 +238,7 @@ function OverlayBottomSheetModal({
   const sheetHeight = `${Math.min(100, Math.max(30, sheetHeightPercent))}%`;
   const useStickyFooter = Boolean(stickyFooter && footer && !fitContent);
   const showGrabber = Platform.OS === 'android' && !fitContent;
+  const keyboardPadding = liftFooterWithKeyboard ? iosKeyboardScrollPadding : 0;
 
   useEffect(() => {
     if (visible) {
@@ -253,6 +262,7 @@ function OverlayBottomSheetModal({
   }, [visible]);
 
   useEffect(() => {
+    if (!liftFooterWithKeyboard) return undefined;
     if (Platform.OS !== 'ios') return undefined;
     const onShow = (e) => {
       setIosKeyboardScrollPadding(Math.max(0, e?.endCoordinates?.height ?? 0));
@@ -264,7 +274,7 @@ function OverlayBottomSheetModal({
       subShow.remove();
       subHide.remove();
     };
-  }, []);
+  }, [liftFooterWithKeyboard]);
 
   function closeFromBackdrop() {
     if (!allowBackdropClose) return;
@@ -272,8 +282,8 @@ function OverlayBottomSheetModal({
   }
 
   const scrollPaddingBottom = useMemo(
-    () => Math.max(insets.bottom, 16) + 12 + iosKeyboardScrollPadding,
-    [insets.bottom, iosKeyboardScrollPadding],
+    () => Math.max(insets.bottom, 16) + 12 + keyboardPadding,
+    [insets.bottom, keyboardPadding],
   );
 
   const fitSheetPaddingBottom = useMemo(() => Math.max(insets.bottom, 16) + 8, [insets.bottom]);
@@ -290,17 +300,10 @@ function OverlayBottomSheetModal({
       styles.sheetContent,
       fitContent && styles.sheetContentFit,
       !fitContent && !useStickyFooter && { paddingBottom: scrollPaddingBottom },
-      useStickyFooter && { paddingBottom: 12 + iosKeyboardScrollPadding },
+      useStickyFooter && { paddingBottom: 12 + keyboardPadding },
       centerContent ? styles.centerContent : null,
     ],
-    [
-      styles,
-      fitContent,
-      scrollPaddingBottom,
-      useStickyFooter,
-      iosKeyboardScrollPadding,
-      centerContent,
-    ],
+    [styles, fitContent, scrollPaddingBottom, useStickyFooter, keyboardPadding, centerContent],
   );
 
   const headerBlock = (
@@ -363,7 +366,7 @@ function OverlayBottomSheetModal({
               style={[
                 styles.stickyFooter,
                 {
-                  marginBottom: iosKeyboardScrollPadding,
+                  marginBottom: keyboardPadding,
                   paddingBottom: stickyFooterPaddingBottom,
                 },
               ]}

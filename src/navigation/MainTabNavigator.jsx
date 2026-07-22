@@ -11,6 +11,7 @@ import { AppUpdateAnnouncementsBootstrap } from '../features/appUpdates';
 import { NotificationsRealtimeBridge } from '../features/notifications/components/NotificationsRealtimeBridge';
 import { PushTokenRegistration } from '../features/notifications/components/PushTokenRegistration';
 import { PaymentsScreen } from '../features/payments/screens/PaymentsScreen';
+import { LocationCollectionModal, useLocationPrompt } from '../features/location';
 import { MAIN_TAB_CONFIG, ROUTES } from '../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../theme';
 import { MainTabBar } from './MainTabBar';
@@ -40,6 +41,7 @@ const tabScreens = {
 
 export function MainTabNavigator() {
   const { colors } = useTheme();
+  const { promptVisible, handleSaveLocation, handleDismissPrompt } = useLocationPrompt();
 
   return (
     <>
@@ -48,6 +50,11 @@ export function MainTabNavigator() {
       <TapToPayWarmupBootstrap />
       <PushTokenRegistration />
       <AppUpdateAnnouncementsBootstrap />
+      <LocationCollectionModal
+        visible={promptVisible}
+        onDismiss={handleDismissPrompt}
+        onSave={handleSaveLocation}
+      />
       <Tab.Navigator
         screenOptions={{
           headerShown: false,

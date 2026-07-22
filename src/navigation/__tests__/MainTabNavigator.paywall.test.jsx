@@ -49,6 +49,15 @@ jest.mock('../../features/tap-to-pay/components/TapToPayWarmupBootstrap', () => 
   TapToPayWarmupBootstrap: () => null,
 }));
 
+jest.mock('../../features/location', () => ({
+  LocationCollectionModal: () => null,
+  useLocationPrompt: () => ({
+    promptVisible: false,
+    handleSaveLocation: jest.fn(),
+    handleDismissPrompt: jest.fn(),
+  }),
+}));
+
 function renderTabs() {
   return renderWithProviders(
     <NavigationContainer>
