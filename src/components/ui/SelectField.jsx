@@ -5,14 +5,17 @@ import { Animated, Modal, Platform, Pressable, StyleSheet, View } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
+import { BottomSheetModal } from './BottomSheetModal';
+import { Button } from './Button';
 import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
 
 /**
  * Opens a bottom sheet to pick one option. Trigger matches {@link TextField} outline styling.
  * Layout: full-screen backdrop (dismiss) + sheet only at the bottom (so touches work reliably).
  *
- * `presentation`: `sheet` (default) = scrollable rows; `wheel` = native picker in a compact sheet
- * (iOS spinner, Android dropdown). Web uses `sheet`.
+ * `presentation`: `sheet` (default) = scrollable rows; `wheel` = native picker in a compact
+ * app bottom sheet (same chrome as {@link BottomSheetModal} `fitContent`, not a full page sheet).
+ * Web uses `sheet`.
  *
  * @param {{
  *   label?: string;
@@ -61,14 +64,18 @@ export function SelectField({
     useModalFadeBackdropSlideSheet();
 
   const close = useCallback(() => {
+    if (useWheel) {
+      setOpen(false);
+      return;
+    }
     runClose(() => setOpen(false));
-  }, [runClose]);
+  }, [runClose, useWheel]);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open || useWheel) return undefined;
     const id = requestAnimationFrame(() => runOpen());
     return () => cancelAnimationFrame(id);
-  }, [open, runOpen]);
+  }, [open, runOpen, useWheel]);
 
   const styles = useMemo(
     () =>
@@ -125,44 +132,22 @@ export function SelectField({
         sheetWrapInset: {
           paddingHorizontal: 16,
         },
-        sheetWrapWheel: {
-          alignSelf: 'stretch',
-          backgroundColor: colors.shellElevated,
-          borderTopColor: colors.borderStrong,
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
-          borderTopWidth: 1,
-          overflow: 'hidden',
-          paddingHorizontal: 0,
-          width: '100%',
-        },
         sheet: {
+          backgroundColor: colors.shellElevated,
+          borderColor: colors.borderStrong,
+          borderRadius: 20,
+          borderWidth: 1,
           overflow: 'hidden',
-          ...(useWheel
-            ? {
-                backgroundColor: 'transparent',
-                borderRadius: 0,
-                borderWidth: 0,
-              }
-            : {
-                backgroundColor: colors.shellElevated,
-                borderColor: colors.borderStrong,
-                borderRadius: 20,
-                borderWidth: 1,
-                ...Platform.select({
-                  ios: {
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: -4 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 12,
-                  },
-                  android: { elevation: 12 },
-                  default: {},
-                }),
-              }),
-        },
-        sheetWheelBody: {
-          paddingBottom: 8,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+            },
+            android: { elevation: 12 },
+            default: {},
+          }),
         },
         grabber: {
           alignSelf: 'center',
@@ -179,15 +164,9 @@ export function SelectField({
           borderBottomWidth: StyleSheet.hairlineWidth,
           flexDirection: 'row',
           justifyContent: 'space-between',
-        },
-        sheetHeaderInset: {
           paddingBottom: 14,
           paddingHorizontal: 18,
           paddingTop: 4,
-        },
-        sheetHeaderWheel: {
-          paddingHorizontal: 16,
-          paddingVertical: 12,
         },
         sheetTitle: {
           color: colors.text,
@@ -197,21 +176,8 @@ export function SelectField({
           letterSpacing: -0.35,
           marginRight: 12,
         },
-        sheetTitleWheel: {
-          color: colors.textMuted,
-          fontSize: 14,
-          fontWeight: '500',
-          letterSpacing: 0,
-        },
         closeHit: {
           padding: 4,
-        },
-        sheetDone: {
-          color: colors.tabBarActive,
-          fontSize: 17,
-          fontWeight: '600',
-          paddingVertical: 4,
-          paddingHorizontal: 4,
         },
         row: {
           alignItems: 'center',
@@ -246,17 +212,19 @@ export function SelectField({
           width: 24,
         },
         pickerWrap: {
-          backgroundColor: useWheel ? 'transparent' : colors.shellElevated,
-          paddingBottom: Platform.OS === 'ios' ? 8 : 4,
-          paddingHorizontal: useWheel ? 0 : 4,
+          marginHorizontal: -4,
+          paddingBottom: Platform.OS === 'ios' ? 4 : 0,
           width: '100%',
         },
         pickerIOS: {
           height: 200,
           width: '100%',
         },
+        wheelFooter: {
+          marginTop: 4,
+        },
       }),
-    [colors, insets.bottom, pressed, useWheel],
+    [colors, insets.bottom, pressed],
   );
 
   const onSelect = useCallback(
@@ -280,7 +248,7 @@ export function SelectField({
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
         onPress={() => {
-          prepareOpen();
+          if (!useWheel) prepareOpen();
           setOpen(true);
         }}
         style={({ pressed: pressedState }) => [styles.trigger, pressedState && { opacity: 0.9 }]}
@@ -298,104 +266,93 @@ export function SelectField({
         </View>
       </Pressable>
 
-      <Modal
-        animationType="none"
-        onRequestClose={close}
-        statusBarTranslucent
-        transparent
-        visible={open}
-      >
-        <View style={styles.modalRoot}>
-          <Animated.View
-            pointerEvents="box-none"
-            style={[
-              StyleSheet.absoluteFillObject,
-              backdropStyle,
-              {
-                backgroundColor: useWheel ? 'rgba(0,0,0,0.60)' : 'rgba(0,0,0,0.55)',
-              },
-            ]}
-          >
-            <Pressable
-              accessibilityLabel={useWheel ? 'Dismiss picker' : 'Close list'}
-              accessibilityRole="button"
-              onPress={close}
-              style={StyleSheet.absoluteFillObject}
-            />
-          </Animated.View>
-          <Animated.View
-            style={[
-              styles.sheetWrap,
-              useWheel ? styles.sheetWrapWheel : styles.sheetWrapInset,
-              sheetStyle,
-            ]}
-          >
-            <View style={[styles.sheet, useWheel && styles.sheetWheelBody]}>
-              {!useWheel ? <View style={styles.grabber} /> : null}
-              <View
-                style={[
-                  styles.sheetHeader,
-                  useWheel ? styles.sheetHeaderWheel : styles.sheetHeaderInset,
-                ]}
-              >
-                <AppText
-                  accessibilityRole="header"
-                  style={[styles.sheetTitle, useWheel && styles.sheetTitleWheel]}
-                >
-                  {sheetTitle}
-                </AppText>
-                {useWheel ? (
-                  <Pressable
-                    accessibilityLabel="Done"
-                    accessibilityRole="button"
-                    hitSlop={12}
-                    onPress={close}
-                    style={({ pressed }) => [styles.closeHit, pressed && { opacity: 0.6 }]}
-                  >
-                    <AppText style={styles.sheetDone}>Done</AppText>
-                  </Pressable>
-                ) : (
+      {useWheel ? (
+        <BottomSheetModal
+          allowBackdropClose
+          fitContent
+          footer={
+            <View style={styles.wheelFooter}>
+              <Button fullWidth title="Done" variant="primary" onPress={close} />
+            </View>
+          }
+          showCloseButton={false}
+          title={sheetTitle}
+          visible={open}
+          onRequestClose={close}
+        >
+          <View style={styles.pickerWrap}>
+            <Picker
+              dropdownIconColor={colors.textMuted}
+              itemStyle={
+                Platform.OS === 'ios'
+                  ? {
+                      color: colors.text,
+                      fontSize: 20,
+                      fontWeight: '600',
+                      textAlign: 'left',
+                    }
+                  : undefined
+              }
+              mode={Platform.OS === 'ios' ? 'spinner' : 'dropdown'}
+              selectedValue={pickerSelectedValue}
+              style={Platform.OS === 'ios' ? styles.pickerIOS : { width: '100%' }}
+              themeVariant={isDark ? 'dark' : 'light'}
+              onValueChange={(itemValue) => {
+                if (itemValue === '') return;
+                onValueChange(String(itemValue));
+              }}
+            >
+              {options.map((opt) => (
+                <Picker.Item key={String(opt.value)} label={opt.label} value={opt.value} />
+              ))}
+            </Picker>
+          </View>
+        </BottomSheetModal>
+      ) : (
+        <Modal
+          animationType="none"
+          statusBarTranslucent
+          transparent
+          visible={open}
+          onRequestClose={close}
+        >
+          <View style={styles.modalRoot}>
+            <Animated.View
+              pointerEvents="box-none"
+              style={[
+                StyleSheet.absoluteFillObject,
+                backdropStyle,
+                { backgroundColor: 'rgba(0,0,0,0.55)' },
+              ]}
+            >
+              <Pressable
+                accessibilityLabel="Close list"
+                accessibilityRole="button"
+                style={StyleSheet.absoluteFillObject}
+                onPress={close}
+              />
+            </Animated.View>
+            <Animated.View style={[styles.sheetWrap, styles.sheetWrapInset, sheetStyle]}>
+              <View style={styles.sheet}>
+                <View style={styles.grabber} />
+                <View style={styles.sheetHeader}>
+                  <AppText accessibilityRole="header" style={styles.sheetTitle}>
+                    {sheetTitle}
+                  </AppText>
                   <Pressable
                     accessibilityLabel="Close"
                     accessibilityRole="button"
                     hitSlop={12}
+                    style={({ pressed: closePressed }) => [
+                      styles.closeHit,
+                      closePressed && { opacity: 0.6 },
+                    ]}
                     onPress={close}
-                    style={({ pressed }) => [styles.closeHit, pressed && { opacity: 0.6 }]}
                   >
                     <Ionicons color={colors.textMuted} name="close" size={26} />
                   </Pressable>
-                )}
-              </View>
-              {useWheel ? (
-                <View style={styles.pickerWrap}>
-                  <Picker
-                    dropdownIconColor={colors.textMuted}
-                    itemStyle={
-                      Platform.OS === 'ios'
-                        ? {
-                            color: colors.text,
-                            fontSize: 20,
-                            fontWeight: '600',
-                            textAlign: 'left',
-                          }
-                        : undefined
-                    }
-                    mode={Platform.OS === 'ios' ? 'spinner' : 'dropdown'}
-                    onValueChange={(itemValue) => {
-                      if (itemValue === '') return;
-                      onValueChange(String(itemValue));
-                    }}
-                    selectedValue={pickerSelectedValue}
-                    style={Platform.OS === 'ios' ? styles.pickerIOS : { width: '100%' }}
-                    themeVariant={isDark ? 'dark' : 'light'}
-                  >
-                    {options.map((opt) => (
-                      <Picker.Item key={String(opt.value)} label={opt.label} value={opt.value} />
-                    ))}
-                  </Picker>
                 </View>
-              ) : (
-                options.map((opt, index) => {
+                {options.map((opt, index) => {
                   const selected = opt.value === value;
                   const isLast = index === options.length - 1;
                   return (
@@ -403,12 +360,12 @@ export function SelectField({
                       key={String(opt.value)}
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
-                      onPress={() => onSelect(opt.value)}
-                      style={({ pressed }) => [
+                      style={({ pressed: rowPressed }) => [
                         styles.row,
                         !isLast && styles.rowBorder,
-                        pressed && { backgroundColor: colors.buttonGhostPressed },
+                        rowPressed && { backgroundColor: colors.buttonGhostPressed },
                       ]}
+                      onPress={() => onSelect(opt.value)}
                     >
                       <AppText style={[styles.rowLabel, !selected && styles.rowLabelDim]}>
                         {opt.label}
@@ -420,12 +377,12 @@ export function SelectField({
                       )}
                     </Pressable>
                   );
-                })
-              )}
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
+                })}
+              </View>
+            </Animated.View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }

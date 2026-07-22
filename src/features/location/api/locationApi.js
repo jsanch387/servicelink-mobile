@@ -1,107 +1,206 @@
+import { getSession } from '../../auth/api/auth';
 import { supabase } from '../../../lib/supabase';
+import {
+  assertStripeCheckoutOriginAllowed,
+  resolveStripeMobileCheckoutOrigin,
+} from '../../../lib/stripeMobileCheckoutOrigin';
+import { clearServiceAreaSessionSkip } from '../constants/serviceAreaPrompt';
 
 /**
- * Check if user has provided location information
- * @param {string} userId - The user's profile ID
- * @returns {Promise<{ hasLocation: boolean, data: { city: string | null, state: string | null, radius: number | null } | null, error: Error | null }>}
+ * Resolve the owner's business_profiles.id.
+ * @param {string} userId
+ * @returns {Promise<{ businessProfileId: string | null, error: Error | null }>}
  */
-export async function checkUserLocationStatus(userId) {
+export async function fetchOwnerBusinessProfileId(userId) {
   if (!userId) {
-    return { hasLocation: false, data: null, error: new Error('Not signed in') };
+    return { businessProfileId: null, error: new Error('Not signed in') };
   }
 
   try {
     const { data, error } = await supabase
       .from('business_profiles')
-      .select('service_area, service_radius')
+      .select('id')
       .eq('profile_id', userId)
       .maybeSingle();
 
     if (error) {
-      return { hasLocation: false, data: null, error: new Error(error.message) };
+      return { businessProfileId: null, error: new Error(error.message) };
     }
 
-    if (!data) {
-      return { hasLocation: false, data: null, error: null };
-    }
-
-    const serviceArea = data.service_area ?? null;
-    const serviceRadius = data.service_radius ?? null;
-
-    // Parse service_area (format: "City, ST")
-    let city = null;
-    let state = null;
-
-    if (serviceArea) {
-      const parts = serviceArea.split(',').map((p) => p.trim());
-      if (parts.length >= 2) {
-        city = parts[0];
-        state = parts[1];
-      }
-    }
-
-    const hasLocation = Boolean(city && state && serviceRadius);
-
-    return {
-      hasLocation,
-      data: {
-        city,
-        state,
-        radius: serviceRadius,
-      },
-      error: null,
-    };
+    return { businessProfileId: data?.id ?? null, error: null };
   } catch (err) {
     return {
-      hasLocation: false,
-      data: null,
-      error: err instanceof Error ? err : new Error('Failed to check location'),
+      businessProfileId: null,
+      error: err instanceof Error ? err : new Error('Failed to load business profile'),
     };
   }
 }
 
 /**
- * Save user location information
- * @param {string} userId - The user's profile ID
- * @param {{ location: string, city: string, state: string, radius: number }} locationData
- * @returns {Promise<{ ok: boolean, error: Error | null }>}
+ * Source of truth: primary active row on `business_service_areas`.
+ * @param {string} userId
+ * @returns {Promise<{
+ *   hasConfirmedServiceArea: boolean;
+ *   businessProfileId: string | null;
+ *   error: Error | null;
+ * }>}
  */
-export async function saveUserLocation(userId, locationData) {
+export async function checkUserLocationStatus(userId) {
   if (!userId) {
-    return { ok: false, error: new Error('Not signed in') };
+    return {
+      hasConfirmedServiceArea: false,
+      businessProfileId: null,
+      error: new Error('Not signed in'),
+    };
   }
-
-  if (!locationData?.city || !locationData?.state || !locationData?.radius) {
-    return { ok: false, error: new Error('Invalid location data') };
-  }
-
-  // Use the formatted location string, or build from city/state
-  const serviceArea = locationData.location || `${locationData.city}, ${locationData.state}`;
 
   try {
-    const { error } = await supabase
-      .from('business_profiles')
-      .update({
-        service_area: serviceArea,
-        service_radius: locationData.radius,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('profile_id', userId);
-
-    if (error) {
-      return { ok: false, error: new Error(error.message) };
+    const { businessProfileId, error: profileError } = await fetchOwnerBusinessProfileId(userId);
+    if (profileError) {
+      return { hasConfirmedServiceArea: false, businessProfileId: null, error: profileError };
+    }
+    if (!businessProfileId) {
+      return { hasConfirmedServiceArea: false, businessProfileId: null, error: null };
     }
 
-    return { ok: true, error: null };
+    const { data, error } = await supabase
+      .from('business_service_areas')
+      .select('id')
+      .eq('business_profile_id', businessProfileId)
+      .eq('is_primary', true)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      return {
+        hasConfirmedServiceArea: false,
+        businessProfileId,
+        error: new Error(error.message),
+      };
+    }
+
+    return {
+      hasConfirmedServiceArea: Boolean(data?.id),
+      businessProfileId,
+      error: null,
+    };
   } catch (err) {
     return {
-      ok: false,
-      error: err instanceof Error ? err : new Error('Failed to save location'),
+      hasConfirmedServiceArea: false,
+      businessProfileId: null,
+      error: err instanceof Error ? err : new Error('Failed to check service area'),
     };
   }
 }
 
-// Note: We don't persist dismiss state anymore
-// Users can dismiss the modal, but it will show again next time they open the app
-// The only way to stop seeing it is to save location data
-// Future: May make it completely undismissable
+/**
+ * Build POST body for `/api/business-profile/service-area`.
+ * @param {import('../types/location').StructuredLocation} location
+ * @param {number} radiusMiles
+ */
+export function buildServiceAreaPayload(location, radiusMiles) {
+  return {
+    label: location.label?.trim() || `${location.city}, ${location.state}`,
+    city: location.city.trim(),
+    stateCode: location.state.trim().toUpperCase().slice(0, 2),
+    postalCode: location.zip?.trim() || null,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    radiusMiles,
+    placeType: location.placeType || null,
+    providerPlaceId: location.providerId || null,
+  };
+}
+
+/**
+ * Prefer the web API so mobile stays in sync with legacy profile columns.
+ * @param {{
+ *   label: string;
+ *   city: string;
+ *   stateCode: string;
+ *   postalCode?: string | null;
+ *   latitude: number;
+ *   longitude: number;
+ *   radiusMiles: number;
+ *   placeType?: string | null;
+ *   providerPlaceId?: string | null;
+ * }} payload
+ * @param {string} [businessProfileId] — used to clear session skip after success
+ * @returns {Promise<{ ok: boolean, error: Error | null }>}
+ */
+export async function saveUserLocation(payload, businessProfileId) {
+  if (
+    !payload?.city ||
+    !payload?.stateCode ||
+    !Number.isFinite(payload.latitude) ||
+    !Number.isFinite(payload.longitude) ||
+    !payload?.radiusMiles
+  ) {
+    return { ok: false, error: new Error('Invalid location data') };
+  }
+
+  const origin = resolveStripeMobileCheckoutOrigin();
+  if (!origin) {
+    return { ok: false, error: new Error('EXPO_PUBLIC_WEB_APP_URL is not set') };
+  }
+
+  try {
+    assertStripeCheckoutOriginAllowed(origin);
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error : new Error('Invalid web origin'),
+    };
+  }
+
+  const { data: sessionData } = await getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) {
+    return { ok: false, error: new Error('Not signed in') };
+  }
+
+  let res;
+  try {
+    res = await fetch(`${origin}/api/business-profile/service-area`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error : new Error('Network request failed'),
+    };
+  }
+
+  let body = {};
+  try {
+    body = await res.json();
+  } catch {
+    body = {};
+  }
+
+  const serverError =
+    typeof body?.error === 'string'
+      ? body.error
+      : typeof body?.message === 'string'
+        ? body.message
+        : null;
+
+  if (!res.ok || body?.success === false) {
+    return {
+      ok: false,
+      error: new Error(serverError || `Request failed (${res.status})`),
+    };
+  }
+
+  if (businessProfileId) {
+    clearServiceAreaSessionSkip(businessProfileId);
+  }
+
+  return { ok: true, error: null };
+}

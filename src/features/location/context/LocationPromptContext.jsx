@@ -1,9 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth';
+import { checkUserLocationStatus, saveUserLocation } from '../api/locationApi';
 import {
-  checkUserLocationStatus,
-  saveUserLocation,
-} from '../api/locationApi';
+  SERVICE_AREA_PROMPT_DISMISSIBLE,
+  isServiceAreaSkippedThisSession,
+  markServiceAreaSkippedThisSession,
+} from '../constants/serviceAreaPrompt';
 
 const LocationPromptContext = createContext(null);
 
@@ -14,36 +16,48 @@ export function LocationPromptProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [shouldShowPrompt, setShouldShowPrompt] = useState(false);
   const [promptVisible, setPromptVisible] = useState(false);
+  const [businessProfileId, setBusinessProfileId] = useState(null);
 
   const checkIfShouldPrompt = useCallback(async () => {
     if (!userId) {
       setIsLoading(false);
       setShouldShowPrompt(false);
+      setPromptVisible(false);
+      setBusinessProfileId(null);
       return;
     }
 
     setIsLoading(true);
     try {
-      // Check if user has saved location data via this new system
-      // If they have service_area AND service_radius, don't show the prompt
-      // If they dismiss without saving, we'll ask again next time!
       const locationStatus = await checkUserLocationStatus(userId);
+      const nextBusinessId = locationStatus.businessProfileId;
+      setBusinessProfileId(nextBusinessId);
 
-      // Show prompt if user hasn't provided location yet
-      // Dismiss just closes the modal temporarily - we ask again next time
-      const shouldShow = !locationStatus.hasLocation;
+      if (locationStatus.hasConfirmedServiceArea) {
+        setShouldShowPrompt(false);
+        setPromptVisible(false);
+        return;
+      }
 
+      const skipped =
+        SERVICE_AREA_PROMPT_DISMISSIBLE &&
+        nextBusinessId &&
+        isServiceAreaSkippedThisSession(nextBusinessId);
+
+      const shouldShow = !skipped;
       setShouldShowPrompt(shouldShow);
 
-      // Auto-show the prompt after a brief delay if needed
       if (shouldShow) {
         setTimeout(() => {
           setPromptVisible(true);
         }, 800);
+      } else {
+        setPromptVisible(false);
       }
     } catch (error) {
       console.error('Error checking location prompt status:', error);
       setShouldShowPrompt(false);
+      setPromptVisible(false);
     } finally {
       setIsLoading(false);
     }
@@ -54,15 +68,15 @@ export function LocationPromptProvider({ children }) {
   }, [checkIfShouldPrompt]);
 
   const handleSaveLocation = useCallback(
-    async (locationData) => {
+    async (payload) => {
       if (!userId) {
         throw new Error('Not signed in');
       }
 
-      const result = await saveUserLocation(userId, locationData);
+      const result = await saveUserLocation(payload, businessProfileId);
 
       if (!result.ok) {
-        throw result.error ?? new Error('Failed to save location');
+        throw result.error ?? new Error('Failed to save service area');
       }
 
       setPromptVisible(false);
@@ -70,15 +84,17 @@ export function LocationPromptProvider({ children }) {
 
       return result;
     },
-    [userId],
+    [userId, businessProfileId],
   );
 
   const handleDismissPrompt = useCallback(() => {
-    // Just close the modal - don't mark as permanently dismissed
-    // User will see this again next time they open the app
-    // Only way to stop seeing it is to actually save location data
+    if (!SERVICE_AREA_PROMPT_DISMISSIBLE) return;
+    if (businessProfileId) {
+      markServiceAreaSkippedThisSession(businessProfileId);
+    }
     setPromptVisible(false);
-  }, []);
+    setShouldShowPrompt(false);
+  }, [businessProfileId]);
 
   const showPromptManually = useCallback(() => {
     setPromptVisible(true);
@@ -89,6 +105,7 @@ export function LocationPromptProvider({ children }) {
       isLoading,
       shouldShowPrompt,
       promptVisible,
+      businessProfileId,
       handleSaveLocation,
       handleDismissPrompt,
       showPromptManually,
@@ -98,6 +115,7 @@ export function LocationPromptProvider({ children }) {
       isLoading,
       shouldShowPrompt,
       promptVisible,
+      businessProfileId,
       handleSaveLocation,
       handleDismissPrompt,
       showPromptManually,
