@@ -8,6 +8,8 @@ import { generateTimeSlots } from './slotGeneration';
  * @property {number} totalDurationMinutes
  * @property {unknown[]} blockingBookingRows
  * @property {unknown[]} timeOffBlocks
+ * @property {string} [minimumNotice]
+ * @property {boolean} [ownerManualBooking] Owner create/edit — skip lead time + time off; allow scheduling even when public booking is off.
  */
 
 /**
@@ -26,18 +28,27 @@ export function formatSelectedDateLabel(dateKey) {
 }
 
 /**
+ * @param {BookingScheduleContext} ctx
+ */
+function scheduleAllowsBooking(ctx) {
+  return Boolean(ctx.acceptBookings || ctx.ownerManualBooking);
+}
+
+/**
  * @param {string | null} dateKey local YYYY-MM-DD
  * @param {BookingScheduleContext} ctx
  * @returns {string[]}
  */
 export function getTimeSlotsForDateKey(dateKey, ctx) {
-  if (!dateKey || !ctx.acceptBookings) return [];
+  if (!dateKey || !scheduleAllowsBooking(ctx)) return [];
   return generateTimeSlots({
     dateKey,
     weeklySchedule: ctx.weeklySchedule,
     serviceDurationMinutes: ctx.totalDurationMinutes,
     existingBookings: ctx.blockingBookingRows,
     timeOffBlocks: ctx.timeOffBlocks,
+    minimumNotice: ctx.minimumNotice ?? 'none',
+    ownerManualBooking: Boolean(ctx.ownerManualBooking),
   });
 }
 
@@ -48,7 +59,7 @@ export function getTimeSlotsForDateKey(dateKey, ctx) {
 export function createIsDateUnavailableFn(ctx) {
   const cache = new Map();
   return (d) => {
-    if (!ctx.acceptBookings) return true;
+    if (!scheduleAllowsBooking(ctx)) return true;
     const key = toLocalYyyyMmDd(d);
     if (!key) return true;
     if (cache.has(key)) return cache.get(key);
@@ -69,7 +80,7 @@ export function isSelectedScheduleStillValid(
   selectedTime,
   { scheduleLoading },
 ) {
-  if (scheduleLoading || !ctx.acceptBookings || !selectedDateKey) {
+  if (scheduleLoading || !scheduleAllowsBooking(ctx) || !selectedDateKey) {
     return { dateValid: !selectedDateKey, timeValid: !selectedTime };
   }
   const d = parseLocalYyyyMmDd(selectedDateKey);

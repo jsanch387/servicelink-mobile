@@ -5,6 +5,69 @@ export const PRESET_OPTIONS = [
   { value: 'custom', label: 'Custom' },
 ];
 
+/** Allowed `business_availability.minimum_notice` values (DB check constraint). */
+export const MINIMUM_NOTICE_OPTIONS = [
+  { value: 'none', label: 'None' },
+  { value: '30m', label: '30 minutes' },
+  { value: '1h', label: '1 hour' },
+  { value: '2h', label: '2 hours' },
+  { value: '3h', label: '3 hours' },
+  { value: '4h', label: '4 hours' },
+  { value: '8h', label: '8 hours' },
+  { value: '12h', label: '12 hours' },
+  { value: '24h', label: '1 day' },
+  { value: '48h', label: '2 days' },
+  { value: '72h', label: '3 days' },
+  { value: '1w', label: '1 week' },
+];
+
+const MINIMUM_NOTICE_VALUES = new Set(MINIMUM_NOTICE_OPTIONS.map((o) => o.value));
+
+/**
+ * @param {unknown} raw
+ * @returns {string} canonical minimum_notice value
+ */
+export function normalizeMinimumNotice(raw) {
+  const value = String(raw ?? '').trim();
+  if (MINIMUM_NOTICE_VALUES.has(value)) return value;
+  return 'none';
+}
+
+/**
+ * Lead time in minutes for slot filtering. `none` → 0.
+ * @param {unknown} raw
+ * @returns {number}
+ */
+export function minimumNoticeToMinutes(raw) {
+  switch (normalizeMinimumNotice(raw)) {
+    case '30m':
+      return 30;
+    case '1h':
+      return 60;
+    case '2h':
+      return 120;
+    case '3h':
+      return 180;
+    case '4h':
+      return 240;
+    case '8h':
+      return 480;
+    case '12h':
+      return 720;
+    case '24h':
+      return 1440;
+    case '48h':
+      return 2880;
+    case '72h':
+      return 4320;
+    case '1w':
+      return 10080;
+    case 'none':
+    default:
+      return 0;
+  }
+}
+
 export const DAY_DEFINITIONS = [
   { key: 'monday', label: 'Monday' },
   { key: 'tuesday', label: 'Tuesday' },
@@ -136,6 +199,7 @@ export function buildDefaultAvailabilityUiModel() {
       ]),
     ),
     timeOffBlocks: [],
+    minimumNotice: 'none',
   };
 }
 
@@ -163,6 +227,7 @@ export function buildAvailabilityUiModel(row) {
       ]),
     ),
     timeOffBlocks: Array.isArray(row.time_off_blocks) ? row.time_off_blocks : [],
+    minimumNotice: normalizeMinimumNotice(row.minimum_notice),
   };
 }
 
@@ -179,25 +244,90 @@ export function buildWeeklySchedulePayloadFromUi(dayEnabledMap, dayTimeRanges) {
   );
 }
 
+const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
+export const TIME_OFF_ALL_DAY_START = '00:00';
+export const TIME_OFF_ALL_DAY_END = '23:59';
+
+function isValidDateKey(raw) {
+  return DATE_KEY_RE.test(String(raw ?? '').trim());
+}
+
+/**
+ * Resolve inclusive start/end date keys from legacy `{ date }` or range fields.
+ * @param {{ date?: string; start_date?: string; end_date?: string; startDate?: string; endDate?: string }} block
+ * @returns {{ startDate: string; endDate: string } | null}
+ */
+export function resolveTimeOffDateRange(block) {
+  const legacyDate = String(block?.date ?? '').trim();
+  const startDate = String(block?.start_date ?? block?.startDate ?? legacyDate).trim();
+  const endDate = String(block?.end_date ?? block?.endDate ?? startDate).trim();
+  if (!isValidDateKey(startDate) || !isValidDateKey(endDate)) return null;
+  if (endDate < startDate) return null;
+  return { startDate, endDate };
+}
+
+/**
+ * Airbnb-style date range tap: one day or a range; tap again to clear / restart.
+ * @param {string | null} rangeStartKey
+ * @param {string | null} rangeEndKey
+ * @param {string} tappedKey
+ * @returns {{ startKey: string | null; endKey: string | null }}
+ */
+export function advanceTimeOffDateSelection(rangeStartKey, rangeEndKey, tappedKey) {
+  const tapped = String(tappedKey ?? '').trim();
+  if (!isValidDateKey(tapped)) {
+    return { startKey: rangeStartKey, endKey: rangeEndKey };
+  }
+
+  if (!rangeStartKey) {
+    return { startKey: tapped, endKey: null };
+  }
+
+  if (!rangeEndKey) {
+    if (tapped === rangeStartKey) {
+      return { startKey: null, endKey: null };
+    }
+    if (tapped < rangeStartKey) {
+      return { startKey: tapped, endKey: rangeStartKey };
+    }
+    return { startKey: rangeStartKey, endKey: tapped };
+  }
+
+  return { startKey: tapped, endKey: null };
+}
+
 export function normalizeTimeOffBlocksForSave(blocks) {
   if (!Array.isArray(blocks)) return [];
   return blocks
     .map((b) => {
       const id = String(b?.id ?? '').trim();
-      const date = String(b?.date ?? '').trim();
-      const start = normalizeHourMinute(b?.start_time ?? b?.startTime);
-      const end = normalizeHourMinute(b?.end_time ?? b?.endTime);
+      const range = resolveTimeOffDateRange(b);
+      const allDay = Boolean(b?.all_day ?? b?.allDay);
       const titleRaw = b?.title == null ? '' : String(b.title);
       const title = titleRaw.trim().slice(0, 500);
+
+      let start = normalizeHourMinute(b?.start_time ?? b?.startTime);
+      let end = normalizeHourMinute(b?.end_time ?? b?.endTime);
+      if (allDay) {
+        start = TIME_OFF_ALL_DAY_START;
+        end = TIME_OFF_ALL_DAY_END;
+      }
+
+      if (!id || !range || !start || !end) return null;
+
+      const isSingleDay = range.startDate === range.endDate;
       return {
         id,
-        date,
+        start_date: range.startDate,
+        end_date: range.endDate,
+        ...(isSingleDay ? { date: range.startDate } : {}),
+        all_day: allDay,
         start_time: start,
         end_time: end,
         title: title || undefined,
       };
     })
-    .filter((b) => Boolean(b.id && b.date && b.start_time && b.end_time));
+    .filter(Boolean);
 }
 
 export function validateTimeOffBlocks(blocks) {
@@ -208,9 +338,20 @@ export function validateTimeOffBlocks(blocks) {
     const b = blocks[i];
     if (!String(b?.id ?? '').trim()) return 'Each time off block requires an id.';
     if (String(b.id).trim().length > 80) return 'Time off id is too long.';
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(b?.date ?? '').trim())) {
-      return 'Each time off date must use YYYY-MM-DD format.';
+
+    const range = resolveTimeOffDateRange(b);
+    if (!range) {
+      return 'Each time off block needs a valid start and end date.';
     }
+
+    const allDay = Boolean(b?.all_day ?? b?.allDay);
+    if (allDay) {
+      if (b?.title != null && String(b.title).trim().length > 500) {
+        return 'Time off title is too long.';
+      }
+      continue;
+    }
+
     const startMinutes = timeToMinutes(b?.start_time ?? b?.startTime);
     const endMinutes = timeToMinutes(b?.end_time ?? b?.endTime);
     if (startMinutes == null || endMinutes == null) {

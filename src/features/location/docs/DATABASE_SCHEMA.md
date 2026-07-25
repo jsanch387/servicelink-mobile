@@ -18,6 +18,7 @@ COMMENT ON COLUMN business_profiles.service_radius IS 'Service radius in miles -
 ```
 
 **Notes:**
+
 - The `service_area` column already exists and stores location as "City, ST" format
 - The new `service_radius` column stores the radius in miles as an integer
 - This will be used for marketplace matching to connect customers with nearby detailers
@@ -26,11 +27,13 @@ COMMENT ON COLUMN business_profiles.service_radius IS 'Service radius in miles -
 ## Data Flow
 
 ### Location Check
+
 1. App checks `business_profiles.service_area` and `business_profiles.service_radius`
 2. App checks `profiles.location_prompt_dismissed`
 3. If location is incomplete AND prompt not dismissed → show modal
 
 ### Location Save
+
 1. User enters location and radius in modal
 2. App saves to `business_profiles`:
    - `service_area` = "City, ST" (e.g., "Austin, TX")
@@ -39,6 +42,7 @@ COMMENT ON COLUMN business_profiles.service_radius IS 'Service radius in miles -
 3. Modal stops showing after successful save
 
 ### Prompt Dismiss
+
 1. User clicks "I'll do this later"
 2. Modal closes (no database write)
 3. **Modal will show again next time user opens app**
@@ -48,18 +52,22 @@ COMMENT ON COLUMN business_profiles.service_radius IS 'Service radius in miles -
 ## Future Considerations
 
 ### Marketplace Matching Algorithm
+
 When implementing the marketplace:
+
 - Use `service_area` to get the business's base location
 - Use `service_radius` to determine service boundary
 - Match customers within the radius
 - Consider implementing PostGIS for accurate distance calculations
 
 ### Geocoding
+
 - Currently storing city/state as text
 - Future: Consider geocoding to lat/lng for more accurate distance calculations
 - Could add `latitude` and `longitude` columns to `business_profiles`
 
 ### Service Types
+
 - Mobile detailers need location + radius
 - Shop-only businesses need shop address but not radius
 - "Both" type businesses may need special handling

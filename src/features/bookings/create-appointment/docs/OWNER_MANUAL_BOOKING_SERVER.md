@@ -158,14 +158,14 @@ Header **`X-Request-ID`** for support.
 
 `{ "success": false, "error": "<message>" }`
 
-| HTTP  | Typical cause                                                |
-| ----- | ------------------------------------------------------------ |
-| `400` | Invalid fields, slug/id mismatch, bad `serviceLocationType`. |
-| `401` | Missing/invalid Bearer.                                      |
-| `403` | Not business owner or free-tier cap.                         |
-| `404` | Unknown slug / not public.                                   |
-| `409` | Time-off conflict.                                           |
-| `500` | Server failure.                                              |
+| HTTP  | Typical cause                                                                                                                                                                                                                     |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `400` | Invalid fields, slug/id mismatch, bad `serviceLocationType`.                                                                                                                                                                      |
+| `401` | Missing/invalid Bearer.                                                                                                                                                                                                           |
+| `403` | Not business owner or free-tier cap.                                                                                                                                                                                              |
+| `404` | Unknown slug / not public.                                                                                                                                                                                                        |
+| `409` | Public only: time-off conflict or lead time (“too soon to book”). **Not** returned for `ownerManualBooking: true` — see [`OWNER_MANUAL_BOOKING_SCHEDULE_OVERRIDE_SERVER.md`](./OWNER_MANUAL_BOOKING_SCHEDULE_OVERRIDE_SERVER.md). |
+| `500` | Server failure.                                                                                                                                                                                                                   |
 
 Mobile maps these in `mapOwnerManualBookingHttpError` (`postOwnerManualPublicBooking.js`).
 
@@ -175,7 +175,7 @@ Mobile maps these in `mapOwnerManualBookingHttpError` (`postOwnerManualPublicBoo
 - If the selected slot disappeared, it returns the owner to Date and time and clears the stale time.
 - Submit is disabled while refresh/submission is active.
 - Requests are not automatically retried after ambiguous network failures because the endpoint has no idempotency key.
-- The server rejects configured time-off overlap (`409`) but does not transactionally prevent simultaneous booking overlap.
+- For **owners**, the route skips time-off and lead-time checks. It still does not transactionally prevent simultaneous booking overlap.
 
 ---
 

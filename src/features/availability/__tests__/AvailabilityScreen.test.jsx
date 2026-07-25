@@ -40,6 +40,7 @@ const BASE_MODEL = {
     Sunday: { start: '9:00 AM', end: '5:00 PM' },
   },
   timeOffBlocks: [],
+  minimumNotice: 'none',
 };
 
 describe('AvailabilityScreen', () => {

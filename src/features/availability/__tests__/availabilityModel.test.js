@@ -1,9 +1,12 @@
 import {
+  advanceTimeOffDateSelection,
   buildAvailabilityUiFromPreset,
   buildAvailabilityUiModel,
   buildWeeklySchedulePayloadFromUi,
   dayEnabledMapHasAtLeastOneEnabled,
   format24HourTo12Hour,
+  minimumNoticeToMinutes,
+  normalizeMinimumNotice,
   normalizeTimeOffBlocksForSave,
   to24Hour,
   validateTimeOffBlocks,
@@ -86,6 +89,7 @@ describe('availabilityModel', () => {
           sunday: { start: '10:00', end: '14:00', enabled: false },
         },
         time_off_blocks: [{ id: 'a', date: '2026-04-27', start_time: '09:00', end_time: '10:00' }],
+        minimum_notice: '2h',
       });
 
       expect(model.acceptBookings).toBe(true);
@@ -94,6 +98,24 @@ describe('availabilityModel', () => {
       expect(model.dayEnabledMap.Tuesday).toBe(false);
       expect(model.dayTimeRanges.Monday).toEqual({ start: '8:00 AM', end: '4:30 PM' });
       expect(model.timeOffBlocks).toHaveLength(1);
+      expect(model.minimumNotice).toBe('2h');
+    });
+  });
+
+  describe('minimum notice', () => {
+    it('normalizes known and unknown values', () => {
+      expect(normalizeMinimumNotice('30m')).toBe('30m');
+      expect(normalizeMinimumNotice('1w')).toBe('1w');
+      expect(normalizeMinimumNotice('nope')).toBe('none');
+      expect(normalizeMinimumNotice(null)).toBe('none');
+    });
+
+    it('converts values to minutes', () => {
+      expect(minimumNoticeToMinutes('none')).toBe(0);
+      expect(minimumNoticeToMinutes('30m')).toBe(30);
+      expect(minimumNoticeToMinutes('1h')).toBe(60);
+      expect(minimumNoticeToMinutes('24h')).toBe(1440);
+      expect(minimumNoticeToMinutes('1w')).toBe(10080);
     });
   });
 
@@ -139,10 +161,35 @@ describe('availabilityModel', () => {
 
       expect(normalized[0]).toEqual({
         id: 'id-1',
+        start_date: '2026-04-27',
+        end_date: '2026-04-27',
         date: '2026-04-27',
+        all_day: false,
         start_time: '09:00',
         end_time: '10:30',
         title: 'Dentist',
+      });
+    });
+
+    it('normalizes date ranges and all-day blocks', () => {
+      const normalized = normalizeTimeOffBlocksForSave([
+        {
+          id: 'vac-1',
+          start_date: '2026-07-24',
+          end_date: '2026-07-27',
+          all_day: true,
+          title: 'Vacation',
+        },
+      ]);
+
+      expect(normalized[0]).toEqual({
+        id: 'vac-1',
+        start_date: '2026-07-24',
+        end_date: '2026-07-27',
+        all_day: true,
+        start_time: '00:00',
+        end_time: '23:59',
+        title: 'Vacation',
       });
     });
 
@@ -168,6 +215,41 @@ describe('availabilityModel', () => {
         },
       ]);
       expect(error).toBe('');
+    });
+
+    it('accepts all-day range blocks', () => {
+      const error = validateTimeOffBlocks([
+        {
+          id: 'id-2',
+          start_date: '2026-07-24',
+          end_date: '2026-07-27',
+          all_day: true,
+          start_time: '00:00',
+          end_time: '23:59',
+        },
+      ]);
+      expect(error).toBe('');
+    });
+  });
+
+  describe('advanceTimeOffDateSelection', () => {
+    it('supports single day, range, and clear', () => {
+      expect(advanceTimeOffDateSelection(null, null, '2026-07-24')).toEqual({
+        startKey: '2026-07-24',
+        endKey: null,
+      });
+      expect(advanceTimeOffDateSelection('2026-07-24', null, '2026-07-24')).toEqual({
+        startKey: null,
+        endKey: null,
+      });
+      expect(advanceTimeOffDateSelection('2026-07-24', null, '2026-07-27')).toEqual({
+        startKey: '2026-07-24',
+        endKey: '2026-07-27',
+      });
+      expect(advanceTimeOffDateSelection('2026-07-24', '2026-07-27', '2026-08-01')).toEqual({
+        startKey: '2026-08-01',
+        endKey: null,
+      });
     });
   });
 });

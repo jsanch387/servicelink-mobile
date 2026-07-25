@@ -1,17 +1,21 @@
 # Location Collection Feature - Implementation Summary
 
 ## Branch
+
 `cursor/location-collection-modal-e39a`
 
 ## Overview
+
 Implemented a location collection feature that prompts users to provide their service location (city, state, and radius) when they first open the app after onboarding. This is a foundational step toward building a detailing marketplace that connects customers with nearby detailers.
 
 ## What Was Built
 
 ### 1. Location Collection Modal
+
 **File**: `src/features/location/components/LocationCollectionModal.jsx`
 
 A beautiful, user-friendly modal that:
+
 - **Uses the WhatsNewModal announcement pattern** (same as app updates feature)
 - Animated entrance (fade + scale spring animation)
 - Explains the value proposition: "Where do you service?"
@@ -31,9 +35,11 @@ A beautiful, user-friendly modal that:
 - Currently parses manual input: "Austin, TX" → city: "Austin", state: "TX"
 
 ### 2. Location Prompt Context
+
 **File**: `src/features/location/context/LocationPromptContext.jsx`
 
 A React context provider that:
+
 - Manages the location prompt state globally
 - Checks on mount if user needs to see the prompt
 - Auto-shows the modal after 800ms delay if needed
@@ -44,6 +50,7 @@ A React context provider that:
   - Rechecking prompt status
 
 Logic for showing prompt:
+
 ```
 Show IF:
   - User is authenticated (logged in)
@@ -54,13 +61,14 @@ Dismiss behavior:
   - Modal will show AGAIN next time user opens app
   - Only way to stop seeing it: save location data
   - Encourages users to provide location (critical for marketplace)
-  
+
 Future consideration:
   - May make it completely undismissable (must provide location)
   - For now, users can dismiss but will see it every time until they save
 ```
 
 ### 3. Location API Functions
+
 **File**: `src/features/location/api/locationApi.js`
 
 Four main functions:
@@ -80,9 +88,11 @@ Four main functions:
    - Marks prompt as dismissed in profiles table
 
 ### 4. Location Autocomplete Service (Placeholder)
+
 **File**: `src/features/location/services/locationAutocomplete.js`
 
 A placeholder module ready for location service integration:
+
 - `searchLocations(query)` - Will fetch autocomplete suggestions
 - `formatLocationDisplay(result)` - Will format location for display
 - `parseLocationResult(result)` - Will extract city/state/country
@@ -90,21 +100,26 @@ A placeholder module ready for location service integration:
 Currently returns empty array (manual entry only). Modal UI is structured to add autocomplete dropdown when service is integrated.
 
 ### 5. Database Schema & Migration
-**Files**: 
+
+**Files**:
+
 - `src/features/location/docs/DATABASE_SCHEMA.md` (documentation)
 - `src/features/location/migrations/001_add_location_fields.sql` (SQL migration)
 
 Two new database fields required:
 
 **business_profiles table:**
+
 - `service_radius` (INTEGER) - Miles the business travels to service customers
 
 **profiles table:**
+
 - `location_prompt_dismissed` (BOOLEAN) - Whether user dismissed the prompt
 
 The `service_area` column already exists in business_profiles (stores "City, ST" format).
 
 ### 6. Integration
+
 **Modified Files**: `App.js`, `src/navigation/MainTabNavigator.jsx`
 
 - Added `LocationPromptProvider` to the app provider tree (inside auth/onboarding gates)
@@ -112,7 +127,9 @@ The `service_area` column already exists in business_profiles (stores "City, ST"
 - Modal appears above all tab content when user opens the app
 
 ### 7. Documentation
+
 **Files**:
+
 - `src/features/location/README.md` - Complete feature documentation
 - `src/features/location/docs/DATABASE_SCHEMA.md` - Database schema details
 - `LOCATION_FEATURE_SUMMARY.md` (this file) - Implementation summary
@@ -120,6 +137,7 @@ The `service_area` column already exists in business_profiles (stores "City, ST"
 ## Key Design Decisions
 
 ### 1. Single Input Field (Ready for Autocomplete)
+
 - **Single location input** prevents typos that occur with separate city/state fields
 - Format: "Austin, TX" (city, state)
 - UI is structured to add autocomplete dropdown when location service is ready
@@ -127,6 +145,7 @@ The `service_area` column already exists in business_profiles (stores "City, ST"
 - No external library integrated yet, but architecture is ready for it
 
 ### 2. Announcement Modal Pattern
+
 - Uses the same `WhatsNewModal` pattern from app updates feature
 - Consistent animation (fade + scale spring)
 - Same card styling, accent bar, icon badge
@@ -134,17 +153,21 @@ The `service_area` column already exists in business_profiles (stores "City, ST"
 - Easy to maintain alongside other feature announcements
 
 ### 3. Non-Blocking UX
+
 - Users can dismiss and continue using the app
 - Dismissal is tracked to prevent repeated annoyance
 - Can be re-prompted in future if needed (just reset the flag)
 
 ### 4. Marketplace Preparation
+
 - Designed with marketplace matching in mind
 - Service radius will enable distance-based customer matching
 - Ready to extend with geocoding (lat/lng) when needed
 
 ### 5. Business Type Awareness
+
 The app already has service type options in booking link settings:
+
 - **Mobile**: Goes to customers (needs location + radius)
 - **Shop**: Customers come to shop (has shop address, no radius needed)
 - **Both**: Offers both services
@@ -181,7 +204,9 @@ src/navigation/MainTabNavigator.jsx        # Added LocationCollectionModal
 ## Next Steps (Before Deployment)
 
 ### Required:
+
 1. **Run database migration**
+
    ```sql
    -- Execute: src/features/location/migrations/001_add_location_fields.sql
    ```
@@ -197,6 +222,7 @@ src/navigation/MainTabNavigator.jsx        # Added LocationCollectionModal
    - Check business_profiles and profiles RLS rules
 
 ### Optional (Future Enhancements):
+
 - **Integrate location autocomplete service** (Google Places, Mapbox, etc.)
   - Update `services/locationAutocomplete.js` with real API
   - Add autocomplete dropdown to modal
@@ -210,6 +236,7 @@ src/navigation/MainTabNavigator.jsx        # Added LocationCollectionModal
 ## Testing Scenarios
 
 ### Scenario 1: User Opens Mobile App
+
 1. User has already onboarded on web (required before using mobile)
 2. User opens mobile app for first time (or any time without location data)
 3. After 800ms, location modal appears with animation
@@ -221,6 +248,7 @@ src/navigation/MainTabNavigator.jsx        # Added LocationCollectionModal
 9. Next app launch → modal doesn't show
 
 ### Scenario 1b: User on Web
+
 1. User is authenticated on web (onboarded)
 2. User opens the web app without location data
 3. After 800ms, location modal appears with animation
@@ -231,6 +259,7 @@ src/navigation/MainTabNavigator.jsx        # Added LocationCollectionModal
 8. Next session → modal doesn't show
 
 ### Scenario 2: User Dismisses (Temporary)
+
 1. User opens app
 2. After 800ms, location modal appears
 3. User clicks "I'll do this later"
@@ -240,6 +269,7 @@ src/navigation/MainTabNavigator.jsx        # Added LocationCollectionModal
 7. Keeps showing until user saves location data
 
 ### Scenario 3: User Saves Location
+
 1. User opens app
 2. After 800ms, location modal appears
 3. User types "Austin, TX" and selects "Up to 15 miles"
@@ -258,6 +288,7 @@ This feature prepares the platform for marketplace functionality by:
 4. **Data Foundation**: Builds the location database needed for geo-based features
 
 The marketplace can later use this data to:
+
 - Show "detailers near you" to customers
 - Filter by distance when customers search
 - Recommend detailers based on location match

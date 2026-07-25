@@ -1,6 +1,6 @@
 import { calendarYyyyMmDdFromScheduledDate } from '../../../home/utils/bookingStart';
-import { format24HourTo12Hour } from '../../utils/availabilityModel';
-import { parseLocalYyyyMmDd, toLocalYyyyMmDd } from '../../../../components/ui/calendarDateKey';
+import { format24HourTo12Hour, minimumNoticeToMinutes } from '../../utils/availabilityModel';
+import { parseLocalYyyyMmDd } from '../../../../components/ui/calendarDateKey';
 import { BOOKING_SLOT_INCREMENT_MINUTES } from '../constants';
 
 const WEEK_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -64,10 +64,20 @@ function dayWindowMinutes(dateKey, weeklySchedule) {
   return { startM, endM };
 }
 
+function timeOffBlockCoversDate(block, dateKey) {
+  const legacyDate = String(block?.date ?? '').trim();
+  const startDate = String(block?.start_date ?? block?.startDate ?? legacyDate).trim();
+  const endDate = String(block?.end_date ?? block?.endDate ?? startDate).trim();
+  if (!startDate || !endDate) return false;
+  return dateKey >= startDate && dateKey <= endDate;
+}
+
 function timeOffBlocksOverlap(dateKey, slotStartM, durationM, blocks) {
   for (const b of blocks ?? []) {
-    const bDate = String(b?.date ?? '').trim();
-    if (bDate !== dateKey) continue;
+    if (!timeOffBlockCoversDate(b, dateKey)) continue;
+    if (Boolean(b?.all_day ?? b?.allDay)) {
+      return true;
+    }
     const bs = timeStringToMinutesFromMidnight(b?.start_time ?? b?.startTime);
     const be = timeStringToMinutesFromMidnight(b?.end_time ?? b?.endTime);
     if (bs == null || be == null || be <= bs) continue;
@@ -100,9 +110,12 @@ function existingOverlap(dateKey, slotStartM, durationM, existingRows) {
  *   serviceDurationMinutes: number;
  *   existingBookings: Record<string, unknown>[];
  *   timeOffBlocks: unknown[];
+ *   minimumNotice?: string;
+ *   ownerManualBooking?: boolean;
  *   incrementMinutes?: number;
  *   nowMs?: number;
  * }} params
+ * `ownerManualBooking` — owner create/edit: skip lead time + time off (still respects weekly hours, past times, overlaps).
  * @returns {string[]}
  */
 export function generateTimeSlots({
@@ -111,6 +124,8 @@ export function generateTimeSlots({
   serviceDurationMinutes,
   existingBookings,
   timeOffBlocks,
+  minimumNotice = 'none',
+  ownerManualBooking = false,
   incrementMinutes = BOOKING_SLOT_INCREMENT_MINUTES,
   nowMs = Date.now(),
 }) {
@@ -120,18 +135,22 @@ export function generateTimeSlots({
   const duration = Math.max(15, Number(serviceDurationMinutes) || 60);
   const { startM, endM } = window;
 
-  if (!parseLocalYyyyMmDd(dateKey)) return [];
+  const dayDate = parseLocalYyyyMmDd(dateKey);
+  if (!dayDate) return [];
 
-  const todayKey = toLocalYyyyMmDd(new Date(nowMs));
-  const isToday = dateKey === todayKey;
-  const now = new Date(nowMs);
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  // Owners can squeeze last-minute jobs; customers still need lead time.
+  const leadMinutes = ownerManualBooking ? 0 : minimumNoticeToMinutes(minimumNotice);
+  const earliestStartMs = nowMs + leadMinutes * 60 * 1000;
 
   const out = [];
   for (let t = startM; t + duration <= endM; t += incrementMinutes) {
-    if (isToday && t <= nowMinutes) continue;
+    const slotStart = new Date(dayDate);
+    slotStart.setHours(Math.floor(t / 60), t % 60, 0, 0);
+    if (slotStart.getTime() < earliestStartMs) continue;
     if (existingOverlap(dateKey, t, duration, existingBookings)) continue;
-    if (timeOffBlocksOverlap(dateKey, t, duration, timeOffBlocks)) continue;
+    if (!ownerManualBooking && timeOffBlocksOverlap(dateKey, t, duration, timeOffBlocks)) {
+      continue;
+    }
     const hh = String(Math.floor(t / 60)).padStart(2, '0');
     const mm = String(t % 60).padStart(2, '0');
     out.push(format24HourTo12Hour(`${hh}:${mm}`));

@@ -21,8 +21,12 @@ const WEEK_HEADERS_COMPACT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
  * Month calendar: weekday headers + rows aligned to Sun–Sat; only in-month dates are shown.
  *
  * @param {{
- *   selectedDateKey: string | null;
+ *   selectedDateKey?: string | null;
  *   onSelectDateKey: (isoLocalYyyyMmDd: string) => void;
+ *   selectionMode?: 'single' | 'range';
+ *   selectionAppearance?: 'fill' | 'outline';
+ *   rangeStartKey?: string | null;
+ *   rangeEndKey?: string | null;
  *   minDate?: Date;
  *   maxDate?: Date;
  *   isDateUnavailable?: (d: Date) => boolean;
@@ -31,8 +35,12 @@ const WEEK_HEADERS_COMPACT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
  * }} props
  */
 export function CalendarMonthPicker({
-  selectedDateKey,
+  selectedDateKey = null,
   onSelectDateKey,
+  selectionMode = 'single',
+  selectionAppearance = 'fill',
+  rangeStartKey = null,
+  rangeEndKey = null,
   minDate: minDateProp,
   maxDate: maxDateProp,
   isDateUnavailable,
@@ -41,6 +49,7 @@ export function CalendarMonthPicker({
 }) {
   const { colors, isDark } = useTheme();
   const ownerCalendar = bookingCountByDateKey !== undefined;
+  const isRangeMode = selectionMode === 'range';
 
   const today = useMemo(() => startOfLocalDay(new Date()), []);
   const todayKey = useMemo(() => toLocalYyyyMmDd(today), [today]);
@@ -52,17 +61,19 @@ export function CalendarMonthPicker({
     return startOfLocalDay(d);
   }, [maxDateProp, today]);
 
+  const anchorKeyForMonth = isRangeMode ? rangeStartKey || rangeEndKey : selectedDateKey;
+
   const [visibleMonthStart, setVisibleMonthStart] = useState(() => {
-    const s = parseLocalYyyyMmDd(selectedDateKey);
+    const s = parseLocalYyyyMmDd(anchorKeyForMonth);
     if (s) return new Date(s.getFullYear(), s.getMonth(), 1);
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
 
   useEffect(() => {
-    const s = parseLocalYyyyMmDd(selectedDateKey);
+    const s = parseLocalYyyyMmDd(anchorKeyForMonth);
     if (!s) return;
     setVisibleMonthStart(new Date(s.getFullYear(), s.getMonth(), 1));
-  }, [selectedDateKey]);
+  }, [anchorKeyForMonth]);
 
   useEffect(() => {
     onVisibleMonthChange?.(visibleMonthStart);
@@ -116,6 +127,10 @@ export function CalendarMonthPicker({
   }, [canGoNext]);
 
   const busyFillColor = useMemo(() => (isDark ? 'rgba(250,250,250,' : 'rgba(10,10,10,'), [isDark]);
+  const rangeFill = useMemo(
+    () => (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'),
+    [isDark],
+  );
 
   const styles = useMemo(
     () =>
@@ -180,9 +195,25 @@ export function CalendarMonthPicker({
           height: ownerCalendar ? 46 : 42,
           justifyContent: 'center',
           width: ownerCalendar ? 44 : 40,
+          zIndex: 1,
         },
         dayInnerSelected: {
           backgroundColor: ownerCalendar ? colors.buttonPrimaryBg : '#FFFFFF',
+        },
+        dayInnerSelectedOutline: {
+          backgroundColor: 'transparent',
+          borderColor: isDark ? 'rgba(255,255,255,0.55)' : colors.borderStrong,
+          borderWidth: 1.5,
+        },
+        rangeTrack: {
+          backgroundColor: rangeFill,
+          bottom: ownerCalendar ? 2 : 1,
+          position: 'absolute',
+          top: ownerCalendar ? 2 : 1,
+        },
+        rangeTrackMiddle: {
+          left: 0,
+          right: 0,
         },
         dayInnerToday: {
           borderColor: ownerCalendar ? colors.tabBarActive : colors.borderStrong,
@@ -202,6 +233,9 @@ export function CalendarMonthPicker({
         dayNumSelected: {
           color: ownerCalendar ? colors.buttonPrimaryText : '#000000',
         },
+        dayNumSelectedOutline: {
+          color: colors.text,
+        },
         markerRow: {
           alignItems: 'center',
           justifyContent: 'center',
@@ -209,7 +243,7 @@ export function CalendarMonthPicker({
           minHeight: 8,
         },
       }),
-    [colors, ownerCalendar],
+    [colors, isDark, ownerCalendar, rangeFill],
   );
 
   const isDisabled = useCallback(
@@ -225,6 +259,28 @@ export function CalendarMonthPicker({
   );
 
   const weekHeaders = ownerCalendar ? WEEK_HEADERS_COMPACT : WEEK_HEADERS;
+  const rangeRadius = ownerCalendar ? 12 : 10;
+
+  const effectiveRangeEnd = rangeEndKey || (rangeStartKey && !rangeEndKey ? rangeStartKey : null);
+  const hasCompleteRange = Boolean(
+    isRangeMode && rangeStartKey && rangeEndKey && rangeStartKey !== rangeEndKey,
+  );
+  const firstInRangeKey = hasCompleteRange
+    ? (() => {
+        const d = parseLocalYyyyMmDd(rangeStartKey);
+        if (!d) return '';
+        d.setDate(d.getDate() + 1);
+        return toLocalYyyyMmDd(d);
+      })()
+    : '';
+  const lastInRangeKey = hasCompleteRange
+    ? (() => {
+        const d = parseLocalYyyyMmDd(rangeEndKey);
+        if (!d) return '';
+        d.setDate(d.getDate() - 1);
+        return toLocalYyyyMmDd(d);
+      })()
+    : '';
 
   return (
     <View>
@@ -273,29 +329,65 @@ export function CalendarMonthPicker({
               }
 
               const key = toLocalYyyyMmDd(date);
-              const selected = selectedDateKey === key;
-              const isToday = key === todayKey;
               const disabled = isDisabled(date);
+              const isToday = key === todayKey;
               const bookingCount = bookingCountByDateKey?.[key] ?? 0;
               const hasBookings = bookingCount > 0;
+
+              let selected = false;
+              let inRange = false;
+              if (isRangeMode) {
+                const start = rangeStartKey;
+                const end = effectiveRangeEnd;
+                selected = Boolean(start && (key === start || (end && key === end)));
+                inRange = Boolean(hasCompleteRange && key > rangeStartKey && key < rangeEndKey);
+              } else {
+                selected = selectedDateKey === key;
+              }
+
+              const showRangeTrack = !disabled && inRange;
+              const roundRangeLeft = inRange && (key === firstInRangeKey || colIndex === 0);
+              const roundRangeRight = inRange && (key === lastInRangeKey || colIndex === 6);
+
               const fillOpacity =
-                ownerCalendar && hasBookings && !disabled && !selected
+                ownerCalendar && hasBookings && !disabled && !selected && !inRange
                   ? appointmentDayFillOpacity(bookingCount)
                   : 0;
 
               return (
                 <View key={key} style={styles.dayCell}>
+                  {showRangeTrack ? (
+                    <View
+                      pointerEvents="none"
+                      style={[
+                        styles.rangeTrack,
+                        styles.rangeTrackMiddle,
+                        roundRangeLeft
+                          ? {
+                              borderBottomLeftRadius: rangeRadius,
+                              borderTopLeftRadius: rangeRadius,
+                            }
+                          : null,
+                        roundRangeRight
+                          ? {
+                              borderBottomRightRadius: rangeRadius,
+                              borderTopRightRadius: rangeRadius,
+                            }
+                          : null,
+                      ]}
+                    />
+                  ) : null}
                   <Pressable
-                    accessibilityLabel={`${key}${isToday ? ', today' : ''}${selected ? ', selected' : ''}${hasBookings ? `, ${bookingCount} appointment${bookingCount === 1 ? '' : 's'}` : ''}${disabled ? ', unavailable' : ''}`}
+                    accessibilityLabel={`${key}${isToday ? ', today' : ''}${selected ? ', selected' : ''}${inRange ? ', in range' : ''}${hasBookings ? `, ${bookingCount} appointment${bookingCount === 1 ? '' : 's'}` : ''}${disabled ? ', unavailable' : ''}`}
                     accessibilityRole="button"
-                    accessibilityState={{ disabled, selected }}
+                    accessibilityState={{ disabled, selected: selected || inRange }}
                     disabled={disabled}
                     style={[
                       styles.dayInner,
                       fillOpacity > 0
                         ? { backgroundColor: `${busyFillColor}${fillOpacity})` }
                         : null,
-                      isToday && !selected && !disabled ? styles.dayInnerToday : null,
+                      isToday && !selected && !inRange && !disabled ? styles.dayInnerToday : null,
                       selected && !disabled ? styles.dayInnerSelected : null,
                     ]}
                     onPress={() => onSelectDateKey(key)}

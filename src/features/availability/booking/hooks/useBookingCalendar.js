@@ -20,6 +20,7 @@ import { parseScheduleInputs } from '../utils/scheduleInputs';
  * @param {(key: string | null) => void} p.onSelectDateKey
  * @param {(time: string | null) => void} p.onSelectTime
  * @param {boolean} p.scheduleLoading
+ * @param {boolean} [p.ownerManualBooking] Owner create/edit — skip lead time + time off
  * @param {boolean} [p.relaxScheduleValidation] keep pinned date/time when editing an existing booking
  * @param {string | null} [p.pinnedDateKey]
  * @param {string | null} [p.pinnedTime]
@@ -33,11 +34,12 @@ export function useBookingCalendar({
   onSelectDateKey,
   onSelectTime,
   scheduleLoading,
+  ownerManualBooking = false,
   relaxScheduleValidation = false,
   pinnedDateKey = null,
   pinnedTime = null,
 }) {
-  const { acceptBookings, weeklySchedule, timeOffBlocks } = useMemo(
+  const { acceptBookings, weeklySchedule, timeOffBlocks, minimumNotice } = useMemo(
     () => parseScheduleInputs(availabilityRow),
     [availabilityRow],
   );
@@ -49,8 +51,18 @@ export function useBookingCalendar({
       totalDurationMinutes,
       blockingBookingRows: blockingBookingRows ?? [],
       timeOffBlocks,
+      minimumNotice,
+      ownerManualBooking,
     }),
-    [acceptBookings, weeklySchedule, totalDurationMinutes, blockingBookingRows, timeOffBlocks],
+    [
+      acceptBookings,
+      weeklySchedule,
+      totalDurationMinutes,
+      blockingBookingRows,
+      timeOffBlocks,
+      minimumNotice,
+      ownerManualBooking,
+    ],
   );
 
   const { minDate, maxDate } = useMemo(() => getBookingCalendarRange(), []);
@@ -125,7 +137,8 @@ export function useBookingCalendar({
   ]);
 
   return {
-    acceptBookings,
+    /** For owner manual booking, treated as open so schedule UI/gates aren't blocked by the public toggle. */
+    acceptBookings: ownerManualBooking ? true : acceptBookings,
     minDate,
     maxDate,
     timeSlots,

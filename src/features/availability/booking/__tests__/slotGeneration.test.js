@@ -67,4 +67,75 @@ describe('slotGeneration', () => {
     expect(slots.includes('11:30 AM')).toBe(false);
     expect(slots.includes('9:00 AM')).toBe(true);
   });
+
+  it('generateTimeSlots blocks all days in an all-day range', () => {
+    const blocks = [
+      {
+        id: 'vac',
+        start_date: '2026-04-28',
+        end_date: '2026-04-30',
+        all_day: true,
+        start_time: '00:00',
+        end_time: '23:59',
+      },
+    ];
+    const mid = generateTimeSlots({
+      dateKey: '2026-04-29',
+      weeklySchedule: weekly,
+      serviceDurationMinutes: 60,
+      existingBookings: [],
+      timeOffBlocks: blocks,
+      nowMs: Date.parse('2026-04-01T12:00:00'),
+    });
+    expect(mid).toEqual([]);
+
+    const outside = generateTimeSlots({
+      dateKey: '2026-05-06',
+      weeklySchedule: weekly,
+      serviceDurationMinutes: 60,
+      existingBookings: [],
+      timeOffBlocks: blocks,
+      nowMs: Date.parse('2026-04-01T12:00:00'),
+    });
+    expect(outside.includes('9:00 AM')).toBe(true);
+  });
+
+  it('generateTimeSlots respects minimum notice lead time', () => {
+    const slots = generateTimeSlots({
+      dateKey: '2026-04-29',
+      weeklySchedule: weekly,
+      serviceDurationMinutes: 60,
+      existingBookings: [],
+      timeOffBlocks: [],
+      minimumNotice: '30m',
+      nowMs: Date.parse('2026-04-29T09:00:00'),
+    });
+    expect(slots.includes('9:00 AM')).toBe(false);
+    expect(slots.includes('9:30 AM')).toBe(true);
+  });
+
+  it('ownerManualBooking skips lead time and time off', () => {
+    const blocks = [
+      {
+        id: 'vac',
+        start_date: '2026-04-29',
+        end_date: '2026-04-29',
+        all_day: true,
+        start_time: '00:00',
+        end_time: '23:59',
+      },
+    ];
+    const slots = generateTimeSlots({
+      dateKey: '2026-04-29',
+      weeklySchedule: weekly,
+      serviceDurationMinutes: 60,
+      existingBookings: [],
+      timeOffBlocks: blocks,
+      minimumNotice: '2h',
+      ownerManualBooking: true,
+      nowMs: Date.parse('2026-04-29T09:00:00'),
+    });
+    expect(slots.includes('9:00 AM')).toBe(true);
+    expect(slots.includes('9:30 AM')).toBe(true);
+  });
 });

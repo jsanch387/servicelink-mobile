@@ -1,136 +1,204 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { AppText, BottomSheetModal, Button, TimeSelectField } from '../../../components/ui';
+import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import {
+  AppText,
+  BottomSheetModal,
+  Button,
+  SurfaceCard,
+  SurfaceTextField,
+  TimeSelectField,
+} from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import { BookingCalendarCard } from '../booking';
+import {
+  advanceTimeOffDateSelection,
+  TIME_OFF_ALL_DAY_END,
+  TIME_OFF_ALL_DAY_START,
+} from '../utils/availabilityModel';
 
-function formatDateForDisplay(date) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
-    return 'Select date';
-  }
-  return date.toLocaleDateString(undefined, {
-    weekday: 'short',
+const NOTE_MAX_LEN = 120;
+const SWITCH_ON_TRACK = '#10b981';
+
+/**
+ * @param {string | null | undefined} rawDate YYYY-MM-DD
+ */
+function formatDateShort(rawDate) {
+  const raw = String(rawDate ?? '').trim();
+  if (!raw) return '';
+  const parsed = new Date(`${raw}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
   });
 }
 
-function formatDateForPayload(date) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  }
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function normalizeDateValue(raw) {
-  if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
-    return raw;
-  }
-  if (typeof raw === 'number') {
-    const byNumber = new Date(raw);
-    if (!Number.isNaN(byNumber.getTime())) return byNumber;
-  }
-  if (typeof raw === 'string') {
-    const byString = new Date(raw);
-    if (!Number.isNaN(byString.getTime())) return byString;
-  }
-  if (raw && typeof raw === 'object') {
-    const ts = raw.timestamp ?? raw?.nativeEvent?.timestamp ?? raw?.value ?? raw?.date ?? null;
-    if (typeof ts === 'number' || typeof ts === 'string') {
-      const byTs = new Date(ts);
-      if (!Number.isNaN(byTs.getTime())) return byTs;
-    }
-  }
-  return null;
+/**
+ * @param {string | null} startKey
+ * @param {string | null} endKey
+ */
+function formatSelectionSummary(startKey, endKey) {
+  if (!startKey) return '';
+  const startLabel = formatDateShort(startKey);
+  if (!endKey || endKey === startKey) return startLabel;
+  return `${startLabel} – ${formatDateShort(endKey)}`;
 }
 
 export function TimeOffSheet({ visible, onRequestClose, onAddTimeOff }) {
   const { colors } = useTheme();
-  const [dateValue, setDateValue] = useState(() => new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [rangeStartKey, setRangeStartKey] = useState(/** @type {string | null} */ (null));
+  const [rangeEndKey, setRangeEndKey] = useState(/** @type {string | null} */ (null));
+  const [allDay, setAllDay] = useState(true);
   const [startTime, setStartTime] = useState('9:00 AM');
   const [endTime, setEndTime] = useState('5:00 PM');
+  const [note, setNote] = useState('');
 
   useEffect(() => {
     if (!visible) return;
-    setDateValue(new Date());
-    setShowDatePicker(false);
+    setRangeStartKey(null);
+    setRangeEndKey(null);
+    setAllDay(true);
     setStartTime('9:00 AM');
     setEndTime('5:00 PM');
+    setNote('');
   }, [visible]);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        field: {
-          marginBottom: 14,
+        section: {
+          marginBottom: 20,
         },
-        dateTrigger: {
-          alignItems: 'center',
-          backgroundColor: colors.cardSurface,
-          borderColor: colors.inputBorder,
-          borderRadius: 16,
-          borderWidth: 1,
+        sectionTight: {
+          marginBottom: 12,
+        },
+        fieldLabel: {
+          color: colors.textMuted,
+          fontSize: 14,
+          fontWeight: '500',
+          marginBottom: 6,
+        },
+        datesHeader: {
+          alignItems: 'flex-start',
           flexDirection: 'row',
-          minHeight: 40,
-          paddingHorizontal: 10,
-          paddingVertical: 6,
+          gap: 12,
+          justifyContent: 'space-between',
+          marginBottom: 12,
         },
-        dateTriggerTextWrap: {
+        datesCopy: {
           flex: 1,
           minWidth: 0,
         },
-        dateTriggerText: {
+        summary: {
           color: colors.text,
           fontSize: 15,
+          fontWeight: '600',
+          letterSpacing: -0.2,
+        },
+        fieldHint: {
+          color: colors.textMuted,
+          fontSize: 13,
           fontWeight: '500',
-          minHeight: 34,
-          paddingLeft: 6,
-          paddingRight: 10,
-          paddingVertical: 8,
+          lineHeight: 18,
         },
-        pickerInlineWrap: {
-          marginTop: 8,
+        clearHit: {
+          paddingHorizontal: 2,
+          paddingVertical: 4,
         },
-        actions: {
+        clearLabel: {
+          color: colors.textMuted,
+          fontSize: 14,
+          fontWeight: '600',
+        },
+        optionsCard: {
+          borderRadius: 14,
+          overflow: 'hidden',
+          paddingHorizontal: 14,
+          paddingVertical: 4,
+        },
+        optionRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          paddingVertical: 12,
+        },
+        optionCopy: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+          paddingRight: 12,
+        },
+        optionLabel: {
+          color: colors.text,
+          fontSize: 15,
+          fontWeight: '600',
+        },
+        optionHint: {
+          color: colors.textMuted,
+          fontSize: 12,
+          fontWeight: '500',
+          marginTop: 2,
+        },
+        switchWrap: {
+          justifyContent: 'center',
+        },
+        divider: {
+          backgroundColor: colors.border,
+          height: StyleSheet.hairlineWidth,
+        },
+        timesBlock: {
           flexDirection: 'row',
           gap: 10,
-          marginTop: 20,
+          paddingBottom: 12,
+          paddingTop: 10,
         },
-        actionBtn: {
+        timeField: {
+          flex: 1,
+          gap: 6,
+          minWidth: 0,
+        },
+        timeLabel: {
+          color: colors.textMuted,
+          fontSize: 14,
+          fontWeight: '500',
+        },
+        footer: {
+          flexDirection: 'row',
+          gap: 10,
+        },
+        footerBtn: {
           flex: 1,
         },
       }),
     [colors],
   );
 
-  const dateLabel = useMemo(() => formatDateForDisplay(dateValue), [dateValue]);
-  const canSave = Boolean(startTime && endTime);
+  const hasDateSelection = Boolean(rangeStartKey);
+  const resolvedEndKey = rangeEndKey || rangeStartKey;
+  const canSave = hasDateSelection && (allDay || Boolean(startTime && endTime));
+  const selectionSummary = formatSelectionSummary(rangeStartKey, rangeEndKey);
 
-  function handleDateValueChange(nextDateLike) {
-    const nextDate = normalizeDateValue(nextDateLike);
-    if (!nextDate) return;
-    setDateValue(nextDate);
+  function handleSelectDateKey(key) {
+    const next = advanceTimeOffDateSelection(rangeStartKey, rangeEndKey, key);
+    setRangeStartKey(next.startKey);
+    setRangeEndKey(next.endKey);
   }
 
-  function handleDateDismiss() {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-    }
+  function handleClearDates() {
+    setRangeStartKey(null);
+    setRangeEndKey(null);
   }
 
   function handleAddTimeOff() {
-    if (!canSave) return;
+    if (!canSave || !rangeStartKey || !resolvedEndKey) return;
     onAddTimeOff?.({
-      date: formatDateForPayload(dateValue),
-      start_time: startTime,
-      end_time: endTime,
+      start_date: rangeStartKey,
+      end_date: resolvedEndKey,
+      date: rangeStartKey === resolvedEndKey ? rangeStartKey : undefined,
+      all_day: allDay,
+      start_time: allDay ? TIME_OFF_ALL_DAY_START : startTime,
+      end_time: allDay ? TIME_OFF_ALL_DAY_END : endTime,
+      title: note.trim(),
     });
     onRequestClose?.();
   }
@@ -138,70 +206,118 @@ export function TimeOffSheet({ visible, onRequestClose, onAddTimeOff }) {
   return (
     <BottomSheetModal
       allowBackdropClose
+      liftFooterWithKeyboard={false}
       sheetHeightPercent={92}
+      stickyFooter
       title="Add time off"
       visible={visible}
       onRequestClose={onRequestClose}
       footer={
-        <View style={styles.actions}>
-          <Button
-            fullWidth
-            labelColor="#ffffff"
-            outlineColor="rgba(255,255,255,0.52)"
-            style={styles.actionBtn}
-            title="Cancel"
-            variant="outline"
-            onPress={onRequestClose}
-          />
-          <Button
-            disabled={!canSave}
-            fullWidth
-            style={styles.actionBtn}
-            title="Add time off"
-            variant="surfaceLight"
-            onPress={handleAddTimeOff}
-          />
+        <View style={styles.footer}>
+          <View style={styles.footerBtn}>
+            <Button fullWidth title="Cancel" variant="secondary" onPress={onRequestClose} />
+          </View>
+          <View style={styles.footerBtn}>
+            <Button
+              disabled={!canSave}
+              fullWidth
+              title="Save"
+              variant="surfaceLight"
+              onPress={handleAddTimeOff}
+            />
+          </View>
         </View>
       }
     >
-      <View style={styles.dateTrigger}>
-        <Pressable style={styles.dateTriggerTextWrap} onPress={() => setShowDatePicker(true)}>
-          <AppText style={styles.dateTriggerText}>{dateLabel}</AppText>
-        </Pressable>
-        <Pressable
-          accessibilityLabel={showDatePicker ? 'Hide calendar' : 'Show calendar'}
-          accessibilityRole="button"
-          hitSlop={10}
-          onPress={() => setShowDatePicker((open) => !open)}
-        >
-          <Ionicons color={colors.textMuted} name="calendar-outline" size={20} />
-        </Pressable>
-      </View>
-      {showDatePicker ? (
-        <View style={styles.pickerInlineWrap}>
-          <DateTimePicker
-            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            mode="date"
-            value={dateValue}
-            onDismiss={handleDateDismiss}
-            onValueChange={handleDateValueChange}
-          />
+      <View style={styles.section}>
+        <AppText style={styles.fieldLabel}>Dates</AppText>
+        <View style={styles.datesHeader}>
+          <View style={styles.datesCopy}>
+            {hasDateSelection ? (
+              <AppText style={styles.summary}>{selectionSummary}</AppText>
+            ) : (
+              <AppText style={styles.fieldHint}>Tap a day, or two days for a range</AppText>
+            )}
+          </View>
+          {hasDateSelection ? (
+            <Pressable
+              accessibilityLabel="Clear dates"
+              accessibilityRole="button"
+              hitSlop={8}
+              style={styles.clearHit}
+              onPress={handleClearDates}
+            >
+              <AppText style={styles.clearLabel}>Clear</AppText>
+            </Pressable>
+          ) : null}
         </View>
-      ) : null}
-      <View style={styles.field} />
-      <TimeSelectField
-        placeholder="Start time"
-        title="Select start time"
-        value={startTime}
-        onValueChange={setStartTime}
-      />
-      <View style={styles.field} />
-      <TimeSelectField
-        placeholder="End time"
-        title="Select end time"
-        value={endTime}
-        onValueChange={setEndTime}
-      />
+        <BookingCalendarCard
+          cardStyle={{ marginBottom: 0 }}
+          rangeEndKey={rangeEndKey}
+          rangeStartKey={rangeStartKey}
+          selectionMode="range"
+          onSelectDateKey={handleSelectDateKey}
+        />
+      </View>
+
+      <View style={styles.sectionTight}>
+        <AppText style={styles.fieldLabel}>Hours</AppText>
+        <SurfaceCard style={styles.optionsCard}>
+          <View style={styles.optionRow}>
+            <View style={styles.optionCopy}>
+              <AppText style={styles.optionLabel}>All day</AppText>
+              <AppText style={styles.optionHint}>Unavailable the entire day</AppText>
+            </View>
+            <View style={styles.switchWrap}>
+              <Switch
+                accessibilityLabel="All day"
+                thumbColor={allDay ? '#f8fafc' : '#f4f4f5'}
+                trackColor={{ false: colors.borderStrong, true: SWITCH_ON_TRACK }}
+                value={allDay}
+                onValueChange={setAllDay}
+              />
+            </View>
+          </View>
+
+          {!allDay ? (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.timesBlock}>
+                <View style={styles.timeField}>
+                  <AppText style={styles.timeLabel}>Start</AppText>
+                  <TimeSelectField
+                    placeholder="Start"
+                    title="Select start time"
+                    value={startTime}
+                    onValueChange={setStartTime}
+                  />
+                </View>
+                <View style={styles.timeField}>
+                  <AppText style={styles.timeLabel}>End</AppText>
+                  <TimeSelectField
+                    placeholder="End"
+                    title="Select end time"
+                    value={endTime}
+                    onValueChange={setEndTime}
+                  />
+                </View>
+              </View>
+            </>
+          ) : null}
+        </SurfaceCard>
+      </View>
+
+      <View>
+        <SurfaceTextField
+          compact
+          containerStyle={{ marginBottom: 0 }}
+          label="Note"
+          maxLength={NOTE_MAX_LEN}
+          placeholder="e.g. Vacation"
+          value={note}
+          onChangeText={setNote}
+        />
+      </View>
     </BottomSheetModal>
   );
 }

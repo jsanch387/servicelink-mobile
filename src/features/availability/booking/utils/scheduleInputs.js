@@ -1,4 +1,7 @@
-import { normalizeTimeOffBlocksForSave } from '../../utils/availabilityModel';
+import {
+  normalizeMinimumNotice,
+  normalizeTimeOffBlocksForSave,
+} from '../../utils/availabilityModel';
 
 /**
  * @param {Record<string, unknown> | null | undefined} availabilityRow `business_availability` row
@@ -11,5 +14,6 @@ export function parseScheduleInputs(availabilityRow) {
     ? availabilityRow.time_off_blocks
     : [];
   const timeOffBlocks = normalizeTimeOffBlocksForSave(rawBlocks);
-  return { acceptBookings, weeklySchedule, timeOffBlocks };
+  const minimumNotice = normalizeMinimumNotice(availabilityRow?.minimum_notice);
+  return { acceptBookings, weeklySchedule, timeOffBlocks, minimumNotice };
 }

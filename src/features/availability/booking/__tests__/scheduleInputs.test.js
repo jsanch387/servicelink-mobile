@@ -6,6 +6,7 @@ describe('parseScheduleInputs', () => {
     expect(out.acceptBookings).toBe(false);
     expect(out.weeklySchedule).toEqual({});
     expect(out.timeOffBlocks).toEqual([]);
+    expect(out.minimumNotice).toBe('none');
   });
 
   it('parses flags and normalizes time off blocks', () => {
@@ -26,5 +27,16 @@ describe('parseScheduleInputs', () => {
     expect(out.timeOffBlocks).toHaveLength(1);
     expect(out.timeOffBlocks[0].start_time).toBe('09:00');
     expect(out.timeOffBlocks[0].end_time).toBe('10:30');
+    expect(out.minimumNotice).toBe('none');
+  });
+
+  it('parses minimum_notice', () => {
+    const out = parseScheduleInputs({
+      accept_bookings: true,
+      minimum_notice: '30m',
+      weekly_schedule: {},
+      time_off_blocks: [],
+    });
+    expect(out.minimumNotice).toBe('30m');
   });
 });

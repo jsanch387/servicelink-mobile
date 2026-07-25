@@ -300,6 +300,7 @@ export function useEditAppointmentController({
     onSelectDateKey: handleSelectDateKey,
     onSelectTime: setSelectedTime,
     scheduleLoading,
+    ownerManualBooking: true,
     relaxScheduleValidation: Boolean(pinnedSchedule),
     pinnedDateKey: pinnedSchedule?.dateKey ?? null,
     pinnedTime: pinnedSchedule?.time ?? null,

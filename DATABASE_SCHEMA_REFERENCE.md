@@ -164,7 +164,8 @@ Single row per business controlling booking availability behavior and time-off b
 - `business_id` (uuid, FK -> `business_profiles.id`, `ON DELETE CASCADE`, UNIQUE)
 - `accept_bookings` (boolean, NOT NULL, default `false`)
 - `minimum_notice` (text, NOT NULL, default `none`)
-  - check constraint: one of `none | 1h | 2h | 4h | 24h`
+  - check constraint: one of
+    - `none | 30m | 1h | 2h | 3h | 4h | 8h | 12h | 24h | 48h | 72h | 1w`
 - `weekly_schedule` (jsonb, NOT NULL)
   - default schedule includes:
     - weekdays enabled with `09:00` -> `17:00`

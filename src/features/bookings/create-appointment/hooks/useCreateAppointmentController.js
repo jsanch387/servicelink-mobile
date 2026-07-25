@@ -304,6 +304,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     onSelectDateKey: setSelectedDateKey,
     onSelectTime: setSelectedTime,
     scheduleLoading,
+    ownerManualBooking: true,
   });
 
   const { acceptBookings, timeSlots, isDateUnavailable, minDate, maxDate } = bookingCalendar;
@@ -633,13 +634,16 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         acceptBookings: freshAcceptBookings,
         weeklySchedule,
         timeOffBlocks,
+        minimumNotice,
       } = parseScheduleInputs(freshSchedule.availabilityRow);
       const freshScheduleCtx = {
         acceptBookings: freshAcceptBookings,
         weeklySchedule,
         timeOffBlocks,
+        minimumNotice,
         blockingBookingRows: freshSchedule.blockingBookingRows,
         totalDurationMinutes,
+        ownerManualBooking: true,
       };
       const { dateValid, timeValid } = isSelectedScheduleStillValid(
         freshScheduleCtx,
