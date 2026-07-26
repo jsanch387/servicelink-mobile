@@ -357,7 +357,11 @@ function OverlayBottomSheetModal({
             paddingHorizontal: 16,
             paddingTop: showGrabber ? 8 : 16,
             ...(fitContent
-              ? { paddingBottom: fitSheetPaddingBottom }
+              ? {
+                  // Lift short sheets above the keyboard so focused fields stay visible.
+                  marginBottom: footerKeyboardPadding,
+                  paddingBottom: fitSheetPaddingBottom,
+                }
               : { height: sheetHeight, maxHeight: sheetHeight }),
           },
         ]}

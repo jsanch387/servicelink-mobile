@@ -553,9 +553,17 @@ export function useEditAppointmentController({
   useEffect(() => {
     if (!addonCatalogKnown) return;
     if (step === EDIT_APPOINTMENT_STEP.ADDONS && addonsSkipped) {
-      setStep(EDIT_APPOINTMENT_STEP.SCHEDULE);
+      setStep(
+        getNextStepOnContinue({
+          step: EDIT_APPOINTMENT_STEP.ADDONS,
+          addonsSkipped: true,
+          pricingSkipped,
+          locationSkipped,
+          addressSkipped,
+        }),
+      );
     }
-  }, [addonCatalogKnown, addonsSkipped, step]);
+  }, [addonCatalogKnown, addonsSkipped, addressSkipped, locationSkipped, pricingSkipped, step]);
 
   useEffect(() => {
     if (step !== EDIT_APPOINTMENT_STEP.PRICING || !pricingSkipped) return;

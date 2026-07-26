@@ -22,7 +22,7 @@ export function ChoiceRow({
     () =>
       StyleSheet.create({
         press: {
-          marginBottom: 10,
+          marginBottom: 8,
         },
         face: {
           alignItems: 'center',
@@ -30,8 +30,8 @@ export function ChoiceRow({
           borderWidth: 1.5,
           flexDirection: 'row',
           gap: 12,
-          paddingHorizontal: 16,
-          paddingVertical: 14,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
         },
         textCol: {
           flex: 1,

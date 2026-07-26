@@ -8,6 +8,7 @@ export function CustomJobStep({
   priceErrorText,
   durationHhMm,
   notes,
+  showNotes = true,
   onServiceNameChange,
   onPriceUsdTextChange,
   onDurationHhMmChange,
@@ -26,7 +27,7 @@ export function CustomJobStep({
           onServiceNameChange={onServiceNameChange}
         />
       </SurfaceCard>
-      <AppointmentNotesCard notes={notes} onChangeNotes={onNotesChange} />
+      {showNotes ? <AppointmentNotesCard notes={notes} onChangeNotes={onNotesChange} /> : null}
     </View>
   );
 }

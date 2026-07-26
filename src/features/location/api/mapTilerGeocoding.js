@@ -127,12 +127,29 @@ export function formatLocationSuggestionKind(placeType) {
 }
 
 /**
+ * Street line for address-type features (house number + street name).
+ * @param {{ address?: string; text?: string; place_type?: string[]; place_name?: string }} feature
+ */
+function streetFromFeature(feature) {
+  const placeType = feature.place_type?.[0] ?? itemType(feature);
+  if (placeType !== 'address') return '';
+  const house = String(feature.address ?? '').trim();
+  const streetName = String(feature.text ?? '').trim();
+  const combined = [house, streetName].filter(Boolean).join(' ').trim();
+  if (combined) return combined.slice(0, 200);
+  const placeName = String(feature.place_name ?? '').trim();
+  if (!placeName) return '';
+  return placeName.split(',')[0]?.trim().slice(0, 200) ?? '';
+}
+
+/**
  * @param {{
  *   id: string;
  *   place_name?: string;
  *   place_type: string[];
  *   center: [number, number];
  *   text?: string;
+ *   address?: string;
  *   short_code?: string;
  *   properties?: object;
  *   context?: object[];
@@ -154,17 +171,20 @@ function mapFeature(feature) {
   const zip = zipMatch?.[0] ?? '';
   const longitude = feature.center?.[0];
   const latitude = feature.center?.[1];
+  const street = streetFromFeature(feature);
 
   if (!city || !state || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
     return null;
   }
 
-  const displayLabel = formatLocationDisplayLabel(city, state, zip);
+  const cityStateZip = formatLocationDisplayLabel(city, state, zip);
+  const displayLabel = street ? `${street}, ${cityStateZip}` : cityStateZip;
 
   return {
     providerId: feature.id,
     label: displayLabel,
     searchValue: displayLabel,
+    street,
     city,
     state,
     zip,
@@ -249,7 +269,18 @@ async function fetchMapTilerLocations(path, params, signal) {
 }
 
 /**
- * Search US city / ZIP locations via MapTiler autocomplete (service-area mode).
+ * @param {import('../types/location').LocationAutocompleteMode | string} mode
+ */
+function mapTilerTypesForMode(mode) {
+  if (mode === 'customer-address' || mode === 'customer-search') {
+    return 'address,place,municipality,locality,postal_code';
+  }
+  // Prefer city / ZIP centers for service areas (not street addresses).
+  return 'place,municipality,locality,postal_code';
+}
+
+/**
+ * Search US locations via MapTiler autocomplete.
  * @param {string} query
  * @param {string} [mode='service-origin']
  * @param {AbortSignal} [signal]
@@ -269,8 +300,7 @@ export async function searchMapTilerLocations(query, mode = 'service-origin', si
     language: 'en',
     autocomplete: 'true',
     limit: '5',
-    // Prefer city / ZIP centers for service areas (not street addresses).
-    types: 'place,municipality,locality,postal_code',
+    types: mapTilerTypesForMode(mode),
   });
 
   const locations = await fetchMapTilerLocations(encodeURIComponent(query.trim()), params, signal);

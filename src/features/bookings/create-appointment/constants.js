@@ -1,6 +1,11 @@
 /** Step copy for the create-appointment wizard (UI only). */
 export const CREATE_APPOINTMENT_CUSTOM_JOB_ID = '__custom_job__';
 
+/**
+ * Optimized visit flow:
+ * service → pricing → add-ons → customer → location → address → vehicle
+ * (optional “add another job” loops) → schedule → review
+ */
 export const CREATE_APPOINTMENT_STEP_META = [
   {
     key: 'service',
@@ -10,22 +15,12 @@ export const CREATE_APPOINTMENT_STEP_META = [
   {
     key: 'pricing',
     title: 'Pricing',
-    subtitle: 'Select a price tier for this service.',
+    subtitle: 'Choose a price tier for this service.',
   },
   {
     key: 'addons',
     title: 'Add-ons',
     subtitle: 'Add extras if the customer wants them — or skip.',
-  },
-  {
-    key: 'schedule',
-    title: 'Date and time',
-    subtitle: 'Choose the date and start time for this job.',
-  },
-  {
-    key: 'customer',
-    title: "Who's it for?",
-    subtitle: 'Enter who this appointment is for.',
   },
   {
     key: 'location',
@@ -35,12 +30,22 @@ export const CREATE_APPOINTMENT_STEP_META = [
   {
     key: 'address',
     title: 'Where is the service?',
-    subtitle: 'Where will you perform the service?',
+    subtitle: 'Search for the address, then confirm the details.',
   },
   {
     key: 'vehicle',
     title: "What's the vehicle?",
-    subtitle: 'Add their vehicle details — or leave blank.',
+    subtitle: 'Add vehicle details — or leave blank.',
+  },
+  {
+    key: 'schedule',
+    title: 'Date and time',
+    subtitle: 'Choose the date and start time for this visit.',
+  },
+  {
+    key: 'customer',
+    title: "Who's it for?",
+    subtitle: 'Enter who this appointment is for.',
   },
   {
     key: 'review',
@@ -54,11 +59,11 @@ export const CREATE_APPOINTMENT_STEP = Object.freeze({
   SERVICE: 0,
   PRICING: 1,
   ADDONS: 2,
-  SCHEDULE: 3,
-  CUSTOMER: 4,
-  LOCATION: 5,
-  ADDRESS: 6,
-  VEHICLE: 7,
+  LOCATION: 3,
+  ADDRESS: 4,
+  VEHICLE: 5,
+  SCHEDULE: 6,
+  CUSTOMER: 7,
   REVIEW: 8,
 });
 
@@ -66,7 +71,10 @@ export const CREATE_APPOINTMENT_STEP_COUNT = CREATE_APPOINTMENT_STEP_META.length
 
 export const CREATE_APPOINTMENT_LAST_STEP = CREATE_APPOINTMENT_STEP_COUNT - 1;
 
-/** Pricing and add-ons steps use their own in-card headings (edit flow). */
+/** Max jobs in one manual visit (UI + sequential booking create). */
+export const CREATE_APPOINTMENT_MAX_JOBS = 4;
+
+/** Pricing and add-ons steps use their own in-card headings. */
 const STEPS_WITHOUT_MAIN_TITLE = new Set([
   CREATE_APPOINTMENT_STEP.PRICING,
   CREATE_APPOINTMENT_STEP.ADDONS,

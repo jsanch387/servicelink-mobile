@@ -4,6 +4,8 @@ import {
   getCreateAppointmentVisibleStepOrder,
   getNextStepOnContinue,
   getPreviousStepOnBack,
+  getStepAfterAddons,
+  getStepAfterCustomer,
   isAddonsStepSkipped,
 } from '../utils/createFlowNavigation';
 import { shouldSkipCreateFlowPricingStep } from '../utils/createFlowPricing';
@@ -20,17 +22,47 @@ describe('createFlowNavigation', () => {
   describe('getCreateAppointmentVisibleStepOrder', () => {
     it('drops pricing, add-ons, location, and address when all skipped', () => {
       const o = getCreateAppointmentVisibleStepOrder(true, true, true, true);
-      expect(o).toEqual([0, 3, 4, 7, 8]);
+      expect(o).toEqual([
+        CREATE_APPOINTMENT_STEP.SERVICE,
+        CREATE_APPOINTMENT_STEP.CUSTOMER,
+        CREATE_APPOINTMENT_STEP.VEHICLE,
+        CREATE_APPOINTMENT_STEP.SCHEDULE,
+        CREATE_APPOINTMENT_STEP.REVIEW,
+      ]);
     });
 
     it('keeps pricing when not skipped', () => {
       const o = getCreateAppointmentVisibleStepOrder(false, true, true, true);
-      expect(o).toEqual([0, 1, 3, 4, 7, 8]);
+      expect(o).toEqual([
+        CREATE_APPOINTMENT_STEP.SERVICE,
+        CREATE_APPOINTMENT_STEP.PRICING,
+        CREATE_APPOINTMENT_STEP.CUSTOMER,
+        CREATE_APPOINTMENT_STEP.VEHICLE,
+        CREATE_APPOINTMENT_STEP.SCHEDULE,
+        CREATE_APPOINTMENT_STEP.REVIEW,
+      ]);
     });
 
-    it('keeps location and address when business offers both and mobile selected', () => {
+    it('places customer before location/address, then vehicle, then schedule', () => {
       const o = getCreateAppointmentVisibleStepOrder(true, true, false, false);
-      expect(o).toEqual([0, 3, 4, 5, 6, 7, 8]);
+      expect(o).toEqual([
+        CREATE_APPOINTMENT_STEP.SERVICE,
+        CREATE_APPOINTMENT_STEP.CUSTOMER,
+        CREATE_APPOINTMENT_STEP.LOCATION,
+        CREATE_APPOINTMENT_STEP.ADDRESS,
+        CREATE_APPOINTMENT_STEP.VEHICLE,
+        CREATE_APPOINTMENT_STEP.SCHEDULE,
+        CREATE_APPOINTMENT_STEP.REVIEW,
+      ]);
+    });
+
+    it('omits customer, location, address, and schedule on job 2+', () => {
+      const o = getCreateAppointmentVisibleStepOrder(true, true, false, false, 1);
+      expect(o).toEqual([
+        CREATE_APPOINTMENT_STEP.SERVICE,
+        CREATE_APPOINTMENT_STEP.VEHICLE,
+        CREATE_APPOINTMENT_STEP.REVIEW,
+      ]);
     });
   });
 
@@ -43,12 +75,40 @@ describe('createFlowNavigation', () => {
         locationSkipped: true,
         addressSkipped: true,
       });
-      expect(f).toBeCloseTo(2 / 5);
+      expect(f).toBeCloseTo(4 / 5);
+    });
+  });
+
+  describe('getStepAfterAddons', () => {
+    it('goes to customer first on job 1', () => {
+      expect(
+        getStepAfterAddons({ locationSkipped: false, addressSkipped: false, jobIndex: 0 }),
+      ).toBe(CREATE_APPOINTMENT_STEP.CUSTOMER);
+    });
+
+    it('skips to vehicle on job 2+', () => {
+      expect(
+        getStepAfterAddons({ locationSkipped: false, addressSkipped: false, jobIndex: 1 }),
+      ).toBe(CREATE_APPOINTMENT_STEP.VEHICLE);
+    });
+  });
+
+  describe('getStepAfterCustomer', () => {
+    it('goes to location when shown', () => {
+      expect(getStepAfterCustomer({ locationSkipped: false, addressSkipped: false })).toBe(
+        CREATE_APPOINTMENT_STEP.LOCATION,
+      );
+    });
+
+    it('goes to address when location skipped', () => {
+      expect(getStepAfterCustomer({ locationSkipped: true, addressSkipped: false })).toBe(
+        CREATE_APPOINTMENT_STEP.ADDRESS,
+      );
     });
   });
 
   describe('getNextStepOnContinue', () => {
-    it('service → schedule when pricing and add-ons skipped', () => {
+    it('service → customer when pricing, add-ons, location, and address skipped', () => {
       expect(
         getNextStepOnContinue({
           step: CREATE_APPOINTMENT_STEP.SERVICE,
@@ -57,7 +117,19 @@ describe('createFlowNavigation', () => {
           locationSkipped: true,
           addressSkipped: true,
         }),
-      ).toBe(CREATE_APPOINTMENT_STEP.SCHEDULE);
+      ).toBe(CREATE_APPOINTMENT_STEP.CUSTOMER);
+    });
+
+    it('addons → customer on job 1', () => {
+      expect(
+        getNextStepOnContinue({
+          step: CREATE_APPOINTMENT_STEP.ADDONS,
+          addonsSkipped: false,
+          pricingSkipped: true,
+          locationSkipped: false,
+          addressSkipped: false,
+        }),
+      ).toBe(CREATE_APPOINTMENT_STEP.CUSTOMER);
     });
 
     it('customer → location when business offers both', () => {
@@ -72,16 +144,58 @@ describe('createFlowNavigation', () => {
       ).toBe(CREATE_APPOINTMENT_STEP.LOCATION);
     });
 
-    it('customer → vehicle when location and address skipped (shop only)', () => {
+    it('vehicle → schedule when visit has no time yet', () => {
       expect(
         getNextStepOnContinue({
-          step: CREATE_APPOINTMENT_STEP.CUSTOMER,
+          step: CREATE_APPOINTMENT_STEP.VEHICLE,
+          addonsSkipped: true,
+          pricingSkipped: true,
+          locationSkipped: true,
+          addressSkipped: true,
+          jobIndex: 0,
+          hasScheduleSlot: false,
+        }),
+      ).toBe(CREATE_APPOINTMENT_STEP.SCHEDULE);
+    });
+
+    it('vehicle → review when schedule already set', () => {
+      expect(
+        getNextStepOnContinue({
+          step: CREATE_APPOINTMENT_STEP.VEHICLE,
+          addonsSkipped: true,
+          pricingSkipped: true,
+          locationSkipped: true,
+          addressSkipped: true,
+          jobIndex: 1,
+          hasScheduleSlot: true,
+        }),
+      ).toBe(CREATE_APPOINTMENT_STEP.REVIEW);
+    });
+
+    it('vehicle → schedule on job 2+ when schedule not set yet', () => {
+      expect(
+        getNextStepOnContinue({
+          step: CREATE_APPOINTMENT_STEP.VEHICLE,
+          addonsSkipped: true,
+          pricingSkipped: true,
+          locationSkipped: true,
+          addressSkipped: true,
+          jobIndex: 1,
+          hasScheduleSlot: false,
+        }),
+      ).toBe(CREATE_APPOINTMENT_STEP.SCHEDULE);
+    });
+
+    it('schedule → review', () => {
+      expect(
+        getNextStepOnContinue({
+          step: CREATE_APPOINTMENT_STEP.SCHEDULE,
           addonsSkipped: true,
           pricingSkipped: true,
           locationSkipped: true,
           addressSkipped: true,
         }),
-      ).toBe(CREATE_APPOINTMENT_STEP.VEHICLE);
+      ).toBe(CREATE_APPOINTMENT_STEP.REVIEW);
     });
 
     it('location → vehicle when address skipped (shop selected)', () => {
@@ -110,16 +224,16 @@ describe('createFlowNavigation', () => {
   });
 
   describe('getPreviousStepOnBack', () => {
-    it('vehicle → location when address skipped but location shown', () => {
+    it('vehicle → address when address shown', () => {
       expect(
         getPreviousStepOnBack({
           step: CREATE_APPOINTMENT_STEP.VEHICLE,
           addonsSkipped: true,
           pricingSkipped: true,
           locationSkipped: false,
-          addressSkipped: true,
+          addressSkipped: false,
         }),
-      ).toBe(CREATE_APPOINTMENT_STEP.LOCATION);
+      ).toBe(CREATE_APPOINTMENT_STEP.ADDRESS);
     });
 
     it('vehicle → customer when location and address skipped', () => {
@@ -134,6 +248,44 @@ describe('createFlowNavigation', () => {
       ).toBe(CREATE_APPOINTMENT_STEP.CUSTOMER);
     });
 
+    it('schedule → vehicle', () => {
+      expect(
+        getPreviousStepOnBack({
+          step: CREATE_APPOINTMENT_STEP.SCHEDULE,
+          addonsSkipped: true,
+          pricingSkipped: true,
+          locationSkipped: true,
+          addressSkipped: true,
+        }),
+      ).toBe(CREATE_APPOINTMENT_STEP.VEHICLE);
+    });
+
+    it('review → vehicle on job 2+', () => {
+      expect(
+        getPreviousStepOnBack({
+          step: CREATE_APPOINTMENT_STEP.REVIEW,
+          addonsSkipped: true,
+          pricingSkipped: true,
+          locationSkipped: true,
+          addressSkipped: true,
+          jobIndex: 1,
+        }),
+      ).toBe(CREATE_APPOINTMENT_STEP.VEHICLE);
+    });
+
+    it('review → schedule on job 1', () => {
+      expect(
+        getPreviousStepOnBack({
+          step: CREATE_APPOINTMENT_STEP.REVIEW,
+          addonsSkipped: true,
+          pricingSkipped: true,
+          locationSkipped: true,
+          addressSkipped: true,
+          jobIndex: 0,
+        }),
+      ).toBe(CREATE_APPOINTMENT_STEP.SCHEDULE);
+    });
+
     it('address → location when location step shown', () => {
       expect(
         getPreviousStepOnBack({
@@ -144,6 +296,18 @@ describe('createFlowNavigation', () => {
           addressSkipped: false,
         }),
       ).toBe(CREATE_APPOINTMENT_STEP.LOCATION);
+    });
+
+    it('customer → addons when addons shown', () => {
+      expect(
+        getPreviousStepOnBack({
+          step: CREATE_APPOINTMENT_STEP.CUSTOMER,
+          addonsSkipped: false,
+          pricingSkipped: true,
+          locationSkipped: false,
+          addressSkipped: false,
+        }),
+      ).toBe(CREATE_APPOINTMENT_STEP.ADDONS);
     });
   });
 });

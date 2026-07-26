@@ -1,8 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, DetailsSectionCard, Divider } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 import { ChoiceRow } from '../components/ChoiceRow';
+import { EditJobPriceSheet } from '../components/EditJobPriceSheet';
+import { EditablePriceTap } from '../components/EditablePriceTap';
+import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
+import { reviewPricingOptionLabel } from '../utils/createFlowPricing';
 
 /**
  * @param {{
@@ -11,6 +15,9 @@ import { ChoiceRow } from '../components/ChoiceRow';
  *   priceOptionsLoading?: boolean;
  *   selectedPricingId: string | null;
  *   onSelectPricingId: (id: string) => void;
+ *   catalogPriceUsdText?: string;
+ *   catalogPriceError?: string;
+ *   onCatalogPriceUsdTextChange?: (value: string) => void;
  * }} props
  */
 export function PricingStep({
@@ -19,8 +26,11 @@ export function PricingStep({
   priceOptionsLoading = false,
   selectedPricingId,
   onSelectPricingId,
+  catalogPriceUsdText = '',
+  onCatalogPriceUsdTextChange,
 }) {
   const { colors } = useTheme();
+  const [priceSheetOpen, setPriceSheetOpen] = useState(false);
 
   const options = useMemo(() => pricingOptions ?? [], [pricingOptions]);
 
@@ -29,7 +39,10 @@ export function PricingStep({
     [options, selectedPricingId],
   );
 
-  const displayPrice = selectedOption?.priceLabel ?? service?.priceLabel ?? '—';
+  const catalogListPrice = selectedOption?.priceLabel ?? service?.priceLabel ?? null;
+  const displayPrice = catalogPriceUsdText.trim()
+    ? formatUsdFromNumber(parsePriceLabelToUsd(catalogPriceUsdText))
+    : (catalogListPrice ?? '—');
 
   const styles = useMemo(
     () =>
@@ -37,20 +50,20 @@ export function PricingStep({
         summarySection: {
           marginTop: 20,
         },
-        summaryRow: {
+        summaryTopRow: {
           alignItems: 'flex-start',
           flexDirection: 'row',
           justifyContent: 'space-between',
-          marginBottom: 6,
+        },
+        summaryMainCol: {
+          flex: 1,
+          marginRight: 12,
+          minWidth: 0,
+        },
+        summaryPriceCol: {
+          alignItems: 'flex-end',
         },
         summaryTitle: {
-          color: colors.text,
-          flex: 1,
-          fontSize: 16,
-          fontWeight: '600',
-          marginRight: 12,
-        },
-        summaryPrice: {
           color: colors.text,
           fontSize: 16,
           fontWeight: '600',
@@ -59,11 +72,11 @@ export function PricingStep({
           color: colors.textMuted,
           fontSize: 12,
           fontWeight: '500',
-          marginBottom: 14,
+          marginTop: 2,
         },
         divider: {
           marginBottom: 12,
-          marginTop: 4,
+          marginTop: 14,
         },
         totalRow: {
           alignItems: 'center',
@@ -77,9 +90,8 @@ export function PricingStep({
         },
         totalValue: {
           color: colors.text,
-          fontSize: 18,
+          fontSize: 16,
           fontWeight: '700',
-          letterSpacing: -0.2,
         },
         empty: {
           color: colors.textMuted,
@@ -89,7 +101,7 @@ export function PricingStep({
           color: colors.textMuted,
           fontSize: 14,
           fontWeight: '500',
-          marginBottom: 12,
+          marginBottom: 8,
         },
       }),
     [colors],
@@ -99,10 +111,16 @@ export function PricingStep({
     return <AppText style={styles.empty}>Select a service first.</AppText>;
   }
 
+  const canEditPrice = Boolean(onCatalogPriceUsdTextChange && selectedOption);
+  const optionLabel = reviewPricingOptionLabel({
+    selectedServiceId: service?.id,
+    selectedPricingOption: selectedOption,
+  });
+
   return (
     <View>
       {priceOptionsLoading && options.length === 0 ? (
-        <AppText style={styles.loading}>Loading pricing options…</AppText>
+        <AppText style={styles.loading}>Loading pricing…</AppText>
       ) : null}
 
       {options.map((opt) => (
@@ -117,18 +135,28 @@ export function PricingStep({
       ))}
 
       <View style={styles.summarySection}>
-        <DetailsSectionCard bodyPadding="roomy" title="Summary">
-          <View style={styles.summaryRow}>
-            <AppText numberOfLines={2} style={styles.summaryTitle}>
-              {service.name}
-            </AppText>
-            <AppText style={styles.summaryPrice}>{displayPrice}</AppText>
+        <DetailsSectionCard
+          bodyPadding="roomy"
+          title="Summary"
+          titleRight={
+            canEditPrice ? <EditablePriceTap onPress={() => setPriceSheetOpen(true)} /> : null
+          }
+        >
+          <View style={styles.summaryTopRow}>
+            <View style={styles.summaryMainCol}>
+              <AppText numberOfLines={2} style={styles.summaryTitle}>
+                {service.name}
+              </AppText>
+              {optionLabel ? (
+                <AppText style={styles.summarySub}>{optionLabel}</AppText>
+              ) : selectedOption ? null : (
+                <AppText style={styles.summarySub}>Select a tier</AppText>
+              )}
+            </View>
+            <View style={styles.summaryPriceCol}>
+              <AppText style={styles.totalValue}>{displayPrice}</AppText>
+            </View>
           </View>
-          {selectedOption ? (
-            <AppText style={styles.summarySub}>{selectedOption.label}</AppText>
-          ) : (
-            <AppText style={styles.summarySub}>No option selected</AppText>
-          )}
           <Divider style={styles.divider} />
           <View style={styles.totalRow}>
             <AppText style={styles.totalLabel}>Total</AppText>
@@ -136,6 +164,15 @@ export function PricingStep({
           </View>
         </DetailsSectionCard>
       </View>
+
+      {onCatalogPriceUsdTextChange ? (
+        <EditJobPriceSheet
+          initialUsdText={catalogPriceUsdText}
+          visible={priceSheetOpen}
+          onClose={() => setPriceSheetOpen(false)}
+          onSave={onCatalogPriceUsdTextChange}
+        />
+      ) : null}
     </View>
   );
 }

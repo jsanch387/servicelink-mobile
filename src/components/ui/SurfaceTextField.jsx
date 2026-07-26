@@ -90,6 +90,10 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
           marginLeft: 2,
           width: 40,
         },
+        inputNoChrome: {
+          borderWidth: 0,
+          backgroundColor: 'transparent',
+        },
         helperLine: {
           fontSize: 12,
           fontWeight: '500',
@@ -138,6 +142,9 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
         ref={ref}
         {...inputRest}
         pointerEvents={onShellPress ? 'none' : inputRest.pointerEvents}
+        clearButtonMode={inputRest.clearButtonMode ?? 'never'}
+        scrollEnabled={inputRest.scrollEnabled ?? false}
+        underlineColorAndroid="transparent"
         onBlur={(e) => {
           setFocused(false);
           inputRest.onBlur?.(e);
@@ -150,7 +157,7 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
         placeholder={placeholder}
         placeholderTextColor={colors.placeholder}
         secureTextEntry={secureTextEntry}
-        style={[inputTextStyle, restInputStyle]}
+        style={[inputTextStyle, restInputStyle, styles.inputNoChrome]}
         value={value}
         maxLength={maxLength}
       />

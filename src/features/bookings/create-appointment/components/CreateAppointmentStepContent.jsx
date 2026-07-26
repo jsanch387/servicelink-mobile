@@ -42,6 +42,9 @@ export function CreateAppointmentStepContent(p) {
     selectedPricingId,
     selectedService,
     onSelectPricingId,
+    catalogPriceUsdText,
+    catalogPriceError,
+    onCatalogPriceUsdTextChange,
     selectedAddonIds,
     selectedPricingOption,
     addonsForSelectedService,
@@ -71,11 +74,20 @@ export function CreateAppointmentStepContent(p) {
     totalDurationMinutes,
     showSubmitPanel,
     appliedSaleDiscount = null,
+    reviewJobs = null,
+    jobNumber = 1,
+    canAddAnotherJob = false,
+    addAnotherJobDisabled = false,
+    onAddAnotherJob,
+    onRemoveJob,
   } = p;
 
   if (appointmentConfirmed) {
     return <AppointmentConfirmedStep replayKey={confirmationReplayKey} />;
   }
+
+  /** Notes are visit-level — only collect on the first vehicle pass (or custom job). */
+  const showVisitNotes = jobNumber <= 1;
 
   switch (step) {
     case CREATE_APPOINTMENT_STEP.SERVICE:
@@ -97,10 +109,11 @@ export function CreateAppointmentStepContent(p) {
         return (
           <CustomJobStep
             durationHhMm={customDurationHhMm}
-            notes={notes}
+            notes={showVisitNotes ? notes : undefined}
             priceErrorText={customPriceError}
             priceUsdText={customPriceUsdText}
             serviceName={customServiceName}
+            showNotes={showVisitNotes}
             onDurationHhMmChange={onCustomDurationHhMmChange}
             onPriceUsdTextChange={onCustomPriceUsdTextChange}
             onServiceNameChange={onCustomServiceNameChange}
@@ -110,21 +123,49 @@ export function CreateAppointmentStepContent(p) {
       }
       return (
         <PricingStep
+          catalogPriceError={catalogPriceError}
+          catalogPriceUsdText={catalogPriceUsdText}
           priceOptionsLoading={priceOptionsLoading}
           pricingOptions={pricingOptions}
           selectedPricingId={selectedPricingId}
           service={selectedService}
+          onCatalogPriceUsdTextChange={onCatalogPriceUsdTextChange}
           onSelectPricingId={onSelectPricingId}
         />
       );
     case CREATE_APPOINTMENT_STEP.ADDONS:
       return (
         <AddonsStep
+          catalogPriceUsdText={catalogPriceUsdText}
           selectedAddonIds={selectedAddonIds}
           selectedPricingOption={selectedPricingOption}
           service={selectedService}
           serviceAddons={addonsForSelectedService}
+          onCatalogPriceUsdTextChange={isCustomJob ? undefined : onCatalogPriceUsdTextChange}
           onToggleAddon={onToggleAddon}
+        />
+      );
+    case CREATE_APPOINTMENT_STEP.LOCATION:
+      return (
+        <LocationStep
+          appointmentLocationType={appointmentLocationType}
+          shopAddressMissing={shopAddressMissing}
+          onSelectLocationType={onSelectLocationType}
+        />
+      );
+    case CREATE_APPOINTMENT_STEP.ADDRESS:
+      return <AddressStep address={address} onChangeAddress={onChangeAddress} />;
+    case CREATE_APPOINTMENT_STEP.VEHICLE:
+      return (
+        <VehicleStep
+          addAnotherJobDisabled={addAnotherJobDisabled}
+          canAddAnotherJob={canAddAnotherJob}
+          notes={notes}
+          showNotes={showVisitNotes && !isCustomJob}
+          vehicle={vehicle}
+          onAddAnotherJob={onAddAnotherJob}
+          onChangeNotes={onChangeNotes}
+          onChangeVehicle={onChangeVehicle}
         />
       );
     case CREATE_APPOINTMENT_STEP.SCHEDULE:
@@ -145,26 +186,6 @@ export function CreateAppointmentStepContent(p) {
       );
     case CREATE_APPOINTMENT_STEP.CUSTOMER:
       return <CustomerStep customer={customer} onChangeCustomer={onChangeCustomer} />;
-    case CREATE_APPOINTMENT_STEP.LOCATION:
-      return (
-        <LocationStep
-          appointmentLocationType={appointmentLocationType}
-          shopAddressMissing={shopAddressMissing}
-          onSelectLocationType={onSelectLocationType}
-        />
-      );
-    case CREATE_APPOINTMENT_STEP.ADDRESS:
-      return <AddressStep address={address} onChangeAddress={onChangeAddress} />;
-    case CREATE_APPOINTMENT_STEP.VEHICLE:
-      return (
-        <VehicleStep
-          notes={notes}
-          showNotes={!isCustomJob}
-          vehicle={vehicle}
-          onChangeNotes={onChangeNotes}
-          onChangeVehicle={onChangeVehicle}
-        />
-      );
     case CREATE_APPOINTMENT_STEP.REVIEW:
       if (showSubmitPanel) {
         return null;
@@ -174,7 +195,9 @@ export function CreateAppointmentStepContent(p) {
           address={address}
           appointmentLocationType={appointmentLocationType}
           appliedSaleDiscount={appliedSaleDiscount}
+          canAddAnotherJob={canAddAnotherJob}
           customer={customer}
+          jobs={reviewJobs}
           notes={notes}
           selectedAddonIds={selectedAddonIds}
           selectedDateKey={selectedDateKey}
@@ -184,6 +207,9 @@ export function CreateAppointmentStepContent(p) {
           serviceAddons={addonsForSelectedService}
           totalDurationMinutes={totalDurationMinutes}
           vehicle={vehicle}
+          onAddAnotherJob={onAddAnotherJob}
+          addAnotherJobDisabled={addAnotherJobDisabled}
+          onRemoveJob={onRemoveJob}
         />
       );
     default:

@@ -11,40 +11,84 @@ export function isAddonsStepSkipped(addonCatalogKnown, addonsCount) {
 }
 
 /**
+ * After add-ons on job 1: customer → location → address → vehicle.
+ * Job 2+: straight to vehicle (visit who/where already set).
+ *
+ * @param {{
+ *   locationSkipped?: boolean;
+ *   addressSkipped?: boolean;
+ *   jobIndex?: number;
+ * }} p
+ */
+export function getStepAfterAddons({
+  locationSkipped = false,
+  addressSkipped = false,
+  jobIndex = 0,
+}) {
+  if (jobIndex > 0) {
+    return CREATE_APPOINTMENT_STEP.VEHICLE;
+  }
+  return CREATE_APPOINTMENT_STEP.CUSTOMER;
+}
+
+/**
+ * After customer on job 1: location → address → vehicle.
+ */
+export function getStepAfterCustomer({ locationSkipped = false, addressSkipped = false }) {
+  if (!locationSkipped) return CREATE_APPOINTMENT_STEP.LOCATION;
+  if (!addressSkipped) return CREATE_APPOINTMENT_STEP.ADDRESS;
+  return CREATE_APPOINTMENT_STEP.VEHICLE;
+}
+
+/**
  * Linear order of wizard step indices with optional steps removed.
+ *
+ * Visit flow: service → pricing → add-ons → customer → location → address → vehicle
+ * → (add another job loops) → schedule → review
+ *
  * @param {boolean} pricingSkipped
  * @param {boolean} addonsSkipped
  * @param {boolean} [locationSkipped]
  * @param {boolean} [addressSkipped]
+ * @param {number} [jobIndex] committed jobs before the current draft (0 = first job)
  */
 export function getCreateAppointmentVisibleStepOrder(
   pricingSkipped,
   addonsSkipped,
   locationSkipped = false,
   addressSkipped = false,
+  jobIndex = 0,
 ) {
   const o = [CREATE_APPOINTMENT_STEP.SERVICE];
   if (!pricingSkipped) o.push(CREATE_APPOINTMENT_STEP.PRICING);
   if (!addonsSkipped) o.push(CREATE_APPOINTMENT_STEP.ADDONS);
-  o.push(CREATE_APPOINTMENT_STEP.SCHEDULE, CREATE_APPOINTMENT_STEP.CUSTOMER);
-  if (!locationSkipped) o.push(CREATE_APPOINTMENT_STEP.LOCATION);
-  if (!addressSkipped) o.push(CREATE_APPOINTMENT_STEP.ADDRESS);
-  o.push(CREATE_APPOINTMENT_STEP.VEHICLE, CREATE_APPOINTMENT_STEP.REVIEW);
+  if (jobIndex === 0) {
+    o.push(CREATE_APPOINTMENT_STEP.CUSTOMER);
+    if (!locationSkipped) o.push(CREATE_APPOINTMENT_STEP.LOCATION);
+    if (!addressSkipped) o.push(CREATE_APPOINTMENT_STEP.ADDRESS);
+  }
+  o.push(CREATE_APPOINTMENT_STEP.VEHICLE);
+  // Schedule once after vehicles are set (first pass only in the linear order).
+  if (jobIndex === 0) {
+    o.push(CREATE_APPOINTMENT_STEP.SCHEDULE);
+  }
+  o.push(CREATE_APPOINTMENT_STEP.REVIEW);
   return o;
 }
 
 /**
- * 0-based index within the visible wizard steps (pricing / add-ons / location / address may be skipped).
+ * 0-based index within the visible wizard steps.
  */
 export function getCreateAppointmentWizardStepIndex(
   step,
-  { pricingSkipped, addonsSkipped, locationSkipped = false, addressSkipped = false },
+  { pricingSkipped, addonsSkipped, locationSkipped = false, addressSkipped = false, jobIndex = 0 },
 ) {
   const order = getCreateAppointmentVisibleStepOrder(
     pricingSkipped,
     addonsSkipped,
     locationSkipped,
     addressSkipped,
+    jobIndex,
   );
   const idx = order.indexOf(step);
   if (idx < 0) {
@@ -59,6 +103,7 @@ export function getCreateAppointmentWizardStepIndex(
  *   addonsSkipped: boolean;
  *   locationSkipped?: boolean;
  *   addressSkipped?: boolean;
+ *   jobIndex?: number;
  * }} p
  */
 export function getCreateAppointmentWizardStepCount({
@@ -66,12 +111,14 @@ export function getCreateAppointmentWizardStepCount({
   addonsSkipped,
   locationSkipped = false,
   addressSkipped = false,
+  jobIndex = 0,
 }) {
   return getCreateAppointmentVisibleStepOrder(
     pricingSkipped,
     addonsSkipped,
     locationSkipped,
     addressSkipped,
+    jobIndex,
   ).length;
 }
 
@@ -86,6 +133,7 @@ export function getCreateAppointmentProgressFraction(
     addonsSkipped,
     locationSkipped = false,
     addressSkipped = false,
+    jobIndex = 0,
   },
 ) {
   if (appointmentConfirmed) return 1;
@@ -94,12 +142,14 @@ export function getCreateAppointmentProgressFraction(
     addonsSkipped,
     locationSkipped,
     addressSkipped,
+    jobIndex,
   });
   const stepIndex = getCreateAppointmentWizardStepIndex(step, {
     pricingSkipped,
     addonsSkipped,
     locationSkipped,
     addressSkipped,
+    jobIndex,
   });
   return (stepIndex + 1) / stepCount;
 }
@@ -113,6 +163,8 @@ export function getCreateAppointmentProgressFraction(
  * @param {boolean} p.pricingSkipped
  * @param {boolean} [p.locationSkipped]
  * @param {boolean} [p.addressSkipped]
+ * @param {number} [p.jobIndex]
+ * @param {boolean} [p.hasScheduleSlot] date + time already chosen for this visit
  */
 export function getNextStepOnContinue({
   step,
@@ -120,34 +172,53 @@ export function getNextStepOnContinue({
   pricingSkipped,
   locationSkipped = false,
   addressSkipped = false,
+  jobIndex = 0,
+  hasScheduleSlot = false,
 }) {
+  const afterAddons = () => getStepAfterAddons({ locationSkipped, addressSkipped, jobIndex });
+  const afterCustomer = () => getStepAfterCustomer({ locationSkipped, addressSkipped });
+
   if (step === CREATE_APPOINTMENT_STEP.SERVICE) {
     if (pricingSkipped) {
-      return addonsSkipped ? CREATE_APPOINTMENT_STEP.SCHEDULE : CREATE_APPOINTMENT_STEP.ADDONS;
+      return addonsSkipped ? afterAddons() : CREATE_APPOINTMENT_STEP.ADDONS;
     }
     return CREATE_APPOINTMENT_STEP.PRICING;
   }
 
   if (step === CREATE_APPOINTMENT_STEP.PRICING) {
-    return addonsSkipped ? CREATE_APPOINTMENT_STEP.SCHEDULE : CREATE_APPOINTMENT_STEP.ADDONS;
+    return addonsSkipped ? afterAddons() : CREATE_APPOINTMENT_STEP.ADDONS;
+  }
+
+  if (step === CREATE_APPOINTMENT_STEP.ADDONS) {
+    return afterAddons();
   }
 
   if (step === CREATE_APPOINTMENT_STEP.CUSTOMER) {
-    if (locationSkipped) {
-      return addressSkipped ? CREATE_APPOINTMENT_STEP.VEHICLE : CREATE_APPOINTMENT_STEP.ADDRESS;
-    }
-    return CREATE_APPOINTMENT_STEP.LOCATION;
+    return afterCustomer();
   }
 
   if (step === CREATE_APPOINTMENT_STEP.LOCATION) {
     return addressSkipped ? CREATE_APPOINTMENT_STEP.VEHICLE : CREATE_APPOINTMENT_STEP.ADDRESS;
   }
 
+  if (step === CREATE_APPOINTMENT_STEP.ADDRESS) {
+    return CREATE_APPOINTMENT_STEP.VEHICLE;
+  }
+
+  if (step === CREATE_APPOINTMENT_STEP.VEHICLE) {
+    // Stack jobs on the vehicle step first; schedule once when the visit has no time yet.
+    return hasScheduleSlot ? CREATE_APPOINTMENT_STEP.REVIEW : CREATE_APPOINTMENT_STEP.SCHEDULE;
+  }
+
+  if (step === CREATE_APPOINTMENT_STEP.SCHEDULE) {
+    return CREATE_APPOINTMENT_STEP.REVIEW;
+  }
+
   return step + 1;
 }
 
 /**
- * Previous step when pressing Back (handles skipped pricing, add-ons, location, and address).
+ * Previous step when pressing Back.
  *
  * @param {object} p
  * @param {number} p.step
@@ -155,6 +226,7 @@ export function getNextStepOnContinue({
  * @param {boolean} p.pricingSkipped
  * @param {boolean} [p.locationSkipped]
  * @param {boolean} [p.addressSkipped]
+ * @param {number} [p.jobIndex]
  */
 export function getPreviousStepOnBack({
   step,
@@ -162,33 +234,46 @@ export function getPreviousStepOnBack({
   pricingSkipped,
   locationSkipped = false,
   addressSkipped = false,
+  jobIndex = 0,
 }) {
   if (step === CREATE_APPOINTMENT_STEP.SCHEDULE) {
-    if (!addonsSkipped) {
-      return CREATE_APPOINTMENT_STEP.ADDONS;
+    return CREATE_APPOINTMENT_STEP.VEHICLE;
+  }
+
+  if (step === CREATE_APPOINTMENT_STEP.REVIEW) {
+    // Prefer schedule when it was part of this visit pass; else vehicle.
+    return jobIndex > 0 ? CREATE_APPOINTMENT_STEP.VEHICLE : CREATE_APPOINTMENT_STEP.SCHEDULE;
+  }
+
+  if (step === CREATE_APPOINTMENT_STEP.VEHICLE) {
+    if (jobIndex > 0) {
+      if (!addonsSkipped) return CREATE_APPOINTMENT_STEP.ADDONS;
+      if (!pricingSkipped) return CREATE_APPOINTMENT_STEP.PRICING;
+      return CREATE_APPOINTMENT_STEP.SERVICE;
     }
-    if (!pricingSkipped) {
-      return CREATE_APPOINTMENT_STEP.PRICING;
-    }
+    if (!addressSkipped) return CREATE_APPOINTMENT_STEP.ADDRESS;
+    if (!locationSkipped) return CREATE_APPOINTMENT_STEP.LOCATION;
+    return CREATE_APPOINTMENT_STEP.CUSTOMER;
+  }
+
+  if (step === CREATE_APPOINTMENT_STEP.ADDRESS) {
+    if (!locationSkipped) return CREATE_APPOINTMENT_STEP.LOCATION;
+    return CREATE_APPOINTMENT_STEP.CUSTOMER;
+  }
+
+  if (step === CREATE_APPOINTMENT_STEP.LOCATION) {
+    return CREATE_APPOINTMENT_STEP.CUSTOMER;
+  }
+
+  if (step === CREATE_APPOINTMENT_STEP.CUSTOMER) {
+    if (!addonsSkipped) return CREATE_APPOINTMENT_STEP.ADDONS;
+    if (!pricingSkipped) return CREATE_APPOINTMENT_STEP.PRICING;
     return CREATE_APPOINTMENT_STEP.SERVICE;
   }
 
   if (step === CREATE_APPOINTMENT_STEP.ADDONS) {
-    if (!pricingSkipped) {
-      return CREATE_APPOINTMENT_STEP.PRICING;
-    }
+    if (!pricingSkipped) return CREATE_APPOINTMENT_STEP.PRICING;
     return CREATE_APPOINTMENT_STEP.SERVICE;
-  }
-
-  if (step === CREATE_APPOINTMENT_STEP.VEHICLE) {
-    if (addressSkipped) {
-      return locationSkipped ? CREATE_APPOINTMENT_STEP.CUSTOMER : CREATE_APPOINTMENT_STEP.LOCATION;
-    }
-    return CREATE_APPOINTMENT_STEP.ADDRESS;
-  }
-
-  if (step === CREATE_APPOINTMENT_STEP.ADDRESS) {
-    return locationSkipped ? CREATE_APPOINTMENT_STEP.CUSTOMER : CREATE_APPOINTMENT_STEP.LOCATION;
   }
 
   return step - 1;

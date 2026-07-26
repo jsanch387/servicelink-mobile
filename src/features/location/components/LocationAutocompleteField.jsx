@@ -21,6 +21,7 @@ const AUTOCOMPLETE_DEBOUNCE_MS = 450;
  *   onChangeText: (value: string) => void;
  *   onSelect: (location: import('../types/location').StructuredLocation) => void;
  *   selectedLocation?: import('../types/location').StructuredLocation | null;
+ *   mode?: import('../types/location').LocationAutocompleteMode;
  *   label?: string;
  *   placeholder?: string;
  *   errorText?: string;
@@ -32,6 +33,7 @@ export function LocationAutocompleteField({
   onChangeText,
   onSelect,
   selectedLocation = null,
+  mode = 'service-origin',
   label = 'Location',
   placeholder = 'Search city or address',
   errorText,
@@ -86,7 +88,7 @@ export function LocationAutocompleteField({
 
       try {
         const locations = await searchLocations(trimmedValue, {
-          mode: 'service-origin',
+          mode,
           signal: controller.signal,
         });
         setSuggestions(locations);
@@ -105,7 +107,7 @@ export function LocationAutocompleteField({
       clearTimeout(timeout);
       controller.abort();
     };
-  }, [isFocused, selectedLocation, trimmedValue]);
+  }, [isFocused, mode, selectedLocation, trimmedValue]);
 
   const pickLocation = (location) => {
     suppressSearchUntilEditRef.current = true;

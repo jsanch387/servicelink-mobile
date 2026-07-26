@@ -1,13 +1,25 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
+import { LocationAutocompleteField } from '../../../location';
+import { formatLocationDisplay } from '../../../location/services/locationAutocomplete';
 import { useTheme } from '../../../../theme';
 import { ChoiceRow } from '../components/ChoiceRow';
 import { CREATE_APPOINTMENT_LOCATION_OPTIONS } from '../utils/createAppointmentServiceLocation';
 
 const FIELD_SHELL = { marginBottom: 0 };
 
+/**
+ * @param {{
+ *   address: { street: string; unit: string; city: string; state: string; zip: string };
+ *   onChangeAddress: (next: { street: string; unit: string; city: string; state: string; zip: string }) => void;
+ * }} props
+ */
 export function AddressStep({ address, onChangeAddress }) {
+  const { colors } = useTheme();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState(null);
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -17,6 +29,15 @@ export function AddressStep({ address, onChangeAddress }) {
         card: {
           paddingHorizontal: 16,
           paddingVertical: 16,
+          overflow: 'visible',
+          zIndex: 1,
+        },
+        hint: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          lineHeight: 18,
+          marginBottom: 4,
         },
         row: {
           flexDirection: 'row',
@@ -26,12 +47,42 @@ export function AddressStep({ address, onChangeAddress }) {
           flex: 1,
         },
       }),
-    [],
+    [colors],
   );
 
   return (
     <SurfaceCard padding="none" style={styles.card}>
       <View style={styles.fieldStack}>
+        <AppText style={styles.hint}>
+          Search to autofill, then tweak anything that looks off.
+        </AppText>
+        <LocationAutocompleteField
+          label="Search address"
+          mode="customer-address"
+          placeholder="Start typing a street address"
+          selectedLocation={selectedLocation}
+          value={searchQuery}
+          onChangeText={(value) => {
+            setSelectedLocation(null);
+            setSearchQuery(value);
+          }}
+          onSelect={(location) => {
+            setSelectedLocation(location);
+            setSearchQuery(formatLocationDisplay(location));
+            onChangeAddress({
+              ...address,
+              street: String(location.street ?? '').trim() || address.street,
+              city: String(location.city ?? '').trim(),
+              state: String(location.state ?? '')
+                .trim()
+                .toUpperCase()
+                .slice(0, 2),
+              zip: String(location.zip ?? '')
+                .replace(/\D/g, '')
+                .slice(0, 5),
+            });
+          }}
+        />
         <SurfaceTextField
           compact
           containerStyle={FIELD_SHELL}

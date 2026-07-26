@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
+import { AddAnotherJobCard } from '../components/AddAnotherJobCard';
 import { AppointmentNotesCard } from '../components/AppointmentNotesCard';
 import { isVehicleStepComplete } from '../utils/createAppointmentValidators';
 
@@ -13,7 +15,28 @@ function sanitizeVehicleYearInput(raw) {
     .slice(0, 4);
 }
 
-export function VehicleStep({ vehicle, notes, showNotes = true, onChangeVehicle, onChangeNotes }) {
+/**
+ * @param {{
+ *   vehicle: { year: string; make: string; model: string };
+ *   notes: string;
+ *   showNotes?: boolean;
+ *   onChangeVehicle: (next: { year: string; make: string; model: string }) => void;
+ *   onChangeNotes: (notes: string) => void;
+ *   canAddAnotherJob?: boolean;
+ *   onAddAnotherJob?: () => void;
+ *   addAnotherJobDisabled?: boolean;
+ * }} props
+ */
+export function VehicleStep({
+  vehicle,
+  notes,
+  showNotes = true,
+  onChangeVehicle,
+  onChangeNotes,
+  canAddAnotherJob = false,
+  onAddAnotherJob,
+  addAnotherJobDisabled = false,
+}) {
   const { colors } = useTheme();
   const hasAnyVehicleField = [vehicle.year, vehicle.make, vehicle.model].some((value) =>
     String(value ?? '').trim(),
@@ -36,7 +59,7 @@ export function VehicleStep({ vehicle, notes, showNotes = true, onChangeVehicle,
             keyboardType="number-pad"
             label="Year"
             maxLength={4}
-            placeholder="2022"
+            placeholder="2020"
             value={vehicle.year}
             onChangeText={(t) => onChangeVehicle({ ...vehicle, year: sanitizeVehicleYearInput(t) })}
           />
@@ -65,6 +88,10 @@ export function VehicleStep({ vehicle, notes, showNotes = true, onChangeVehicle,
       </SurfaceCard>
 
       {showNotes ? <AppointmentNotesCard notes={notes} onChangeNotes={onChangeNotes} /> : null}
+
+      {canAddAnotherJob && onAddAnotherJob ? (
+        <AddAnotherJobCard disabled={addAnotherJobDisabled} onPress={onAddAnotherJob} />
+      ) : null}
     </View>
   );
 }
