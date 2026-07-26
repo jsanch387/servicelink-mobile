@@ -1,5 +1,6 @@
 import {
   connectTapToPayReaderIfNeeded,
+  ensureTapToPayReaderConnected,
   mapTapToPayTerminalErrorMessage,
   prewarmTapToPayReaderSession,
   resetTapToPayReaderConnectInFlightForTests,
@@ -9,8 +10,10 @@ import {
   markTapToPayInitialized,
   isTapToPayReaderWarm,
   resetTapToPayTerminalSession,
+  tapToPayTerminalSession,
 } from '../terminal/tapToPayTerminalSession';
 import { TAP_TO_PAY_PAYMENT_TIMED_OUT } from '../constants/tapToPayCopy';
+import { isTapToPayAlreadyConnectedReaderError } from '../utils/isTapToPayAlreadyConnectedReaderError';
 
 jest.mock('../education/maybePresentTapToPayEducationAfterConnect', () => ({
   maybePresentTapToPayEducationAfterConnect: jest.fn().mockResolvedValue(undefined),
@@ -66,6 +69,19 @@ describe('tapToPayTerminalConnect', () => {
     });
   });
 
+  describe('isTapToPayAlreadyConnectedReaderError', () => {
+    it('detects already-connected codes and messages', () => {
+      expect(isTapToPayAlreadyConnectedReaderError('ALREADY_CONNECTED_TO_READER', null)).toBe(true);
+      expect(
+        isTapToPayAlreadyConnectedReaderError(
+          null,
+          'Already connected to a reader. Disconnect from the reader, or power it off before trying again.',
+        ),
+      ).toBe(true);
+      expect(isTapToPayAlreadyConnectedReaderError('TIMEOUT', 'Reader timed out')).toBe(false);
+    });
+  });
+
   describe('connectTapToPayReaderIfNeeded', () => {
     it('skips easyConnect when the reader is already warm', async () => {
       markTapToPayInitialized('acct_test');
@@ -101,6 +117,57 @@ describe('tapToPayTerminalConnect', () => {
       resolveConnect({});
       await Promise.all([first, second]);
       expect(isTapToPayReaderWarm()).toBe(true);
+    });
+  });
+
+  describe('ensureTapToPayReaderConnected', () => {
+    it('recovers from already-connected by disconnecting then retrying once', async () => {
+      markTapToPayInitialized('acct_test');
+      // Cold JS session, but native SDK still holds a reader (Fitz-style desync).
+      expect(tapToPayTerminalSession.lastConnectKey).toBeNull();
+
+      const terminal = createTerminalMocks({
+        easyConnect: jest
+          .fn()
+          .mockResolvedValueOnce({
+            error: {
+              code: 'ALREADY_CONNECTED_TO_READER',
+              message:
+                'Already connected to a reader. Disconnect from the reader, or power it off before trying again.',
+            },
+          })
+          .mockResolvedValueOnce({}),
+      });
+
+      await ensureTapToPayReaderConnected({
+        ...connectParamsFrom(terminal),
+        reason: 'collect',
+      });
+
+      expect(terminal.disconnectReader).toHaveBeenCalledTimes(1);
+      expect(terminal.easyConnect).toHaveBeenCalledTimes(2);
+      expect(isTapToPayReaderWarm()).toBe(true);
+      expect(tapToPayTerminalSession.lastConnectKey).toBe('tml_test|acct_test');
+    });
+
+    it('does not retry unrelated connect failures', async () => {
+      markTapToPayInitialized('acct_test');
+      const terminal = createTerminalMocks({
+        easyConnect: jest.fn().mockResolvedValue({
+          error: { code: 'UNEXPECTED_ERROR', message: 'Something else failed' },
+        }),
+      });
+
+      await expect(
+        ensureTapToPayReaderConnected({
+          ...connectParamsFrom(terminal),
+          reason: 'collect',
+        }),
+      ).rejects.toThrow(/Something else failed/);
+
+      expect(terminal.disconnectReader).not.toHaveBeenCalled();
+      expect(terminal.easyConnect).toHaveBeenCalledTimes(1);
+      expect(isTapToPayReaderWarm()).toBe(false);
     });
   });
 

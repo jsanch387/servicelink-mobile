@@ -159,8 +159,23 @@ export function useTapToPayWarmup() {
 
   useEffect(() => {
     if (!accessToken) {
+      // Clear JS flags immediately, then best-effort release any native reader so
+      // the next login does not hit "Already connected to a reader".
       resetTapToPayTerminalSession();
       warmupBookingIdRef.current = null;
+      const disconnectReader = terminalRef.current?.disconnectReader;
+      if (typeof disconnectReader === 'function') {
+        void disconnectReader().then((result) => {
+          if (result?.error) {
+            logTapToPayDebug('warmup.logout_disconnect.skip', {
+              message: result.error.message,
+              code: result.error.code,
+            });
+          } else {
+            logTapToPayDebug('warmup.logout_disconnect.ok');
+          }
+        });
+      }
       return;
     }
     if (isLoading) {

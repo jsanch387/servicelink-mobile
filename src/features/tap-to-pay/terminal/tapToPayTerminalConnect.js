@@ -10,6 +10,7 @@ import {
   TAP_TO_PAY_TERMINAL_NOT_CONFIGURED,
 } from '../constants/tapToPayCopy';
 import { mapTapToPayOsVersionTerminalError } from '../utils/tapToPayOsVersionError';
+import { isTapToPayAlreadyConnectedReaderError } from '../utils/isTapToPayAlreadyConnectedReaderError';
 import { isTapToPayReaderNotConnectedError } from '../utils/isTapToPayReaderNotConnectedError';
 import { logTapToPayDebug, logTapToPayFailure, maskId } from '../utils/logTapToPayDebug';
 import { requestTapToPayAndroidPermissions } from '../utils/requestTapToPayAndroidPermissions';
@@ -26,6 +27,27 @@ import {
 /** @typedef {import('../utils/parseTapToPayIntentConnectParams').TapToPayConnectParams} TapToPayConnectParams */
 
 const DEFAULT_MERCHANT_NAME = 'ServiceLink';
+
+/**
+ * Best-effort disconnect so a later easyConnect can proceed.
+ * @param {{
+ *   disconnectReader: () => Promise<{ error?: { message?: string; code?: string } }>;
+ *   reason: string;
+ * }} params
+ */
+async function disconnectTapToPayReaderBestEffort({ disconnectReader, reason }) {
+  logTapToPayDebug('terminal.disconnect.start', { reason });
+  const { error: disconnectError } = await disconnectReader();
+  if (disconnectError) {
+    logTapToPayDebug('terminal.disconnect.skip', {
+      message: disconnectError.message,
+      code: disconnectError.code,
+    });
+  } else {
+    logTapToPayDebug('terminal.disconnect.ok');
+  }
+  clearTapToPayConnected();
+}
 
 /**
  * @param {string | null | undefined} code
@@ -255,19 +277,10 @@ export async function ensureTapToPayReaderConnected({
   }
 
   if (tapToPayTerminalSession.lastConnectKey) {
-    logTapToPayDebug('terminal.disconnect.start', {
+    await disconnectTapToPayReaderBestEffort({
+      disconnectReader,
       reason: `${reason}:connect_params_changed`,
     });
-    const { error: disconnectError } = await disconnectReader();
-    if (disconnectError) {
-      logTapToPayDebug('terminal.disconnect.skip', {
-        message: disconnectError.message,
-        code: disconnectError.code,
-      });
-    } else {
-      logTapToPayDebug('terminal.disconnect.ok');
-    }
-    clearTapToPayConnected();
   }
 
   /** @type {import('@stripe/stripe-terminal-react-native').EasyConnectTapToPayParams} */
@@ -288,7 +301,28 @@ export async function ensureTapToPayReaderConnected({
     reason,
   });
 
-  const { error } = await easyConnect(easyConnectParams);
+  let { error } = await easyConnect(easyConnectParams);
+
+  // JS session can be cold while the native SDK still holds a reader (e.g. after
+  // logout cleared flags, or a prior connect error cleared them). Recover once.
+  if (error && isTapToPayAlreadyConnectedReaderError(error.code, error.message)) {
+    logTapToPayDebug('terminal.connect.already_connected_recover', {
+      locationId: maskId(locationId),
+      reason,
+      message: error.message,
+      code: error.code,
+    });
+    await disconnectTapToPayReaderBestEffort({
+      disconnectReader,
+      reason: `${reason}:already_connected`,
+    });
+    logTapToPayDebug('terminal.connect.retry', {
+      locationId: maskId(locationId),
+      reason,
+    });
+    ({ error } = await easyConnect(easyConnectParams));
+  }
+
   if (error) {
     clearTapToPayConnected();
     logTapToPayFailure('terminal.connect', {
