@@ -52,6 +52,8 @@ export function resolveCompleteVisitDesignMock() {
 
   return {
     ...BOOKING_COMPLETE_INVOICE_DESIGN_MOCK,
+    jobs: null,
+    isMultiJob: false,
     paidOnline,
     remainingAmountCents,
     isPaidInFullOnline: paidOnlineCents > 0 && remainingAmountCents === 0,

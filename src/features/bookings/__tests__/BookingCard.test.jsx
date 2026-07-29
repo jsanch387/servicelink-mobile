@@ -39,6 +39,22 @@ describe('BookingCard', () => {
     expect(screen.queryByText('Signature Shine — SUV')).toBeNull();
   });
 
+  it('shows +N more for multi-job appointments', () => {
+    renderWithProviders(
+      <BookingCard
+        booking={makeBooking({
+          service_name: 'Signature Shine — SUV',
+          visit_job_count: 2,
+          job_details: [
+            { serviceName: 'Signature Shine', servicePriceOptionLabel: 'SUV' },
+            { serviceName: 'Touch-up paint' },
+          ],
+        })}
+      />,
+    );
+    expect(screen.getByText('Signature Shine +1 more')).toBeTruthy();
+  });
+
   it('omits vehicle line when no vehicle fields', () => {
     renderWithProviders(
       <BookingCard

@@ -1,5 +1,5 @@
+import { getBookingServiceLabelParts } from '../../bookings/utils/formatBookingServiceLabel';
 import { getBookingStatusVisualKind } from '../../bookings/utils/bookingStatusVisual';
-import { splitBookingServiceName } from '../../../utils/splitBookingServiceName';
 
 /**
  * @typedef {'scheduled' | 'completed' | 'cancelled'} RestOfTodayStatusKind
@@ -9,7 +9,13 @@ import { splitBookingServiceName } from '../../../utils/splitBookingServiceName'
  * Convert bookings rows into UI timeline items (full day: upcoming, completed, canceled).
  *
  * @param {object[] | null | undefined} rows
- * @returns {{ id: string; time: string; title: string; statusKind: RestOfTodayStatusKind }[]}
+ * @returns {{
+ *   id: string;
+ *   time: string;
+ *   title: string;
+ *   extraCount: number;
+ *   statusKind: RestOfTodayStatusKind;
+ * }[]}
  */
 export function mapBookingsToRestOfTodayItems(rows) {
   return (rows ?? []).map((row) => {
@@ -18,11 +24,12 @@ export function mapBookingsToRestOfTodayItems(rows) {
       minute: '2-digit',
     });
     const statusKind = getBookingStatusVisualKind(row?.status);
-    const serviceName = splitBookingServiceName(row.service_name).primary;
+    const { primary, extraCount } = getBookingServiceLabelParts(row);
     return {
       id: row.id,
       time,
-      title: serviceName,
+      title: primary,
+      extraCount,
       statusKind,
     };
   });

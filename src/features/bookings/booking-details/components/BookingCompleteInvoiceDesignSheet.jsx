@@ -76,6 +76,7 @@ import {
   CompleteVisitMarkPaidSheet,
   getInPersonPaymentRowLabel,
 } from './CompleteVisitMarkPaidSheet';
+import { CompleteVisitJobsBreakdown } from './CompleteVisitJobsBreakdown';
 
 function formatUsd(amount) {
   const safe = Number.isFinite(amount) ? amount : 0;
@@ -84,61 +85,6 @@ function formatUsd(amount) {
     currency: 'USD',
     maximumFractionDigits: 2,
   }).format(safe);
-}
-
-/**
- * @param {{
- *   label: string;
- *   sublabel?: string | null;
- *   value: string;
- *   noTopMargin?: boolean;
- *   colors: import('../../../../theme').ThemeColors;
- * }} props
- */
-function CompleteVisitBreakdownRow({ label, sublabel, value, noTopMargin = false, colors }) {
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        row: {
-          alignItems: 'flex-start',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginTop: noTopMargin ? 0 : 8,
-        },
-        labelCol: {
-          flex: 1,
-          gap: 2,
-          marginRight: 12,
-          minWidth: 0,
-        },
-        label: {
-          color: colors.textMuted,
-          fontSize: 14,
-        },
-        sublabel: {
-          color: colors.textSecondary,
-          fontSize: 12,
-          fontWeight: '500',
-        },
-        value: {
-          color: colors.text,
-          fontSize: 15,
-          fontWeight: '400',
-          textAlign: 'right',
-        },
-      }),
-    [colors, noTopMargin],
-  );
-
-  return (
-    <View style={styles.row}>
-      <View style={styles.labelCol}>
-        <AppText style={styles.label}>{label}</AppText>
-        {sublabel ? <AppText style={styles.sublabel}>{sublabel}</AppText> : null}
-      </View>
-      <AppText style={styles.value}>{value}</AppText>
-    </View>
-  );
 }
 
 /**
@@ -166,6 +112,15 @@ function CompleteVisitBreakdownRow({ label, sublabel, value, noTopMargin = false
  *   followUpInfo: { visible: boolean; message: string; iconName: string };
  *   iosKeyboardScrollPadding: number;
  *   lineItems: Array<{ id: string; label: string; sublabel?: string | null; amount: number }>;
+ *   jobs?: Array<{
+ *     id?: string;
+ *     serviceName?: string;
+ *     pricingOption?: string | null;
+ *     vehicleLine?: string;
+ *     servicePrice?: number;
+ *     addOns?: Array<{ id?: string; name?: string; price?: number }>;
+ *   }> | null;
+ *   isMultiJob?: boolean;
  *   savedReceiptEmail: string;
  *   onPressAddReceiptEmail: () => void;
  *   showReceiptEmailNotice?: boolean;
@@ -195,6 +150,8 @@ function CompleteVisitDesignBody({
   iosKeyboardScrollPadding,
   onMarkPaidInPerson,
   lineItems,
+  jobs = null,
+  isMultiJob = false,
   savedReceiptEmail,
   onPressAddReceiptEmail,
   showReceiptEmailNotice = false,
@@ -215,6 +172,13 @@ function CompleteVisitDesignBody({
         },
         breakdownRows: {
           gap: 2,
+        },
+        multiJobBreakdown: {
+          gap: 0,
+        },
+        multiJobAfterJobs: {
+          gap: 2,
+          marginTop: 8,
         },
         breakdownTotalDivider: {
           marginBottom: 4,
@@ -495,28 +459,36 @@ function CompleteVisitDesignBody({
       ) : null}
 
       <DetailsSectionCard bodyPadding="roomy" title="Breakdown">
-        <View style={styles.breakdownRows}>
-          {lineItems.map((item, index) => {
-            const amountLabel =
-              item.amount < 0 ? `−${formatUsd(Math.abs(item.amount))}` : formatUsd(item.amount);
-            return item.sublabel ? (
-              <CompleteVisitBreakdownRow
-                key={item.id}
-                colors={colors}
-                label={item.label}
-                noTopMargin={index === 0}
-                sublabel={item.sublabel}
-                value={amountLabel}
-              />
-            ) : (
-              <LabelValueRow
-                key={item.id}
-                label={item.label}
-                noTopMargin={index === 0}
-                value={amountLabel}
-              />
-            );
-          })}
+        <View style={isMultiJob ? styles.multiJobBreakdown : styles.breakdownRows}>
+          {isMultiJob && jobs?.length ? (
+            <>
+              <CompleteVisitJobsBreakdown formatUsd={formatUsd} jobs={jobs} />
+              <View style={styles.multiJobAfterJobs}>
+                {lineItems
+                  .filter((item) => item.id === 'discount' || item.kind === 'discount')
+                  .map((item) => (
+                    <LabelValueRow
+                      key={item.id}
+                      label={item.label}
+                      value={`−${formatUsd(Math.abs(item.amount))}`}
+                    />
+                  ))}
+              </View>
+            </>
+          ) : (
+            lineItems.map((item, index) => {
+              const amountLabel =
+                item.amount < 0 ? `−${formatUsd(Math.abs(item.amount))}` : formatUsd(item.amount);
+              return (
+                <LabelValueRow
+                  key={item.id}
+                  label={item.label}
+                  noTopMargin={index === 0}
+                  value={amountLabel}
+                />
+              );
+            })
+          )}
 
           {adjustments.map((item) => (
             <View key={item.id} style={styles.adjustmentRow}>
@@ -1127,6 +1099,8 @@ export function BookingCompleteVisitSheet({
                     followUpInfo={followUpInfo}
                     inPersonPayment={inPersonPayment}
                     iosKeyboardScrollPadding={iosKeyboardScrollPadding}
+                    isMultiJob={Boolean(resolvedModel.isMultiJob)}
+                    jobs={resolvedModel.jobs}
                     lineItems={resolvedModel.lineItems}
                     merchantDisplayName={merchantDisplayName}
                     onlinePaidRowLabel={onlinePaidRowLabel}

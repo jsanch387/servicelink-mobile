@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from './AppText';
 import { SCREEN_GUTTER } from '../../constants/layout';
 import { useTheme } from '../../theme';
 
 /**
  * Shared wizard header: progress bar, title, and subtitle (no step count).
+ * Tapping the header dismisses the keyboard (helps iOS number/phone pads).
  *
  * @param {object} props
  * @param {number} props.stepIndex - 0-based
@@ -14,6 +15,7 @@ import { useTheme } from '../../theme';
  * @param {string} props.subtitle
  * @param {string} [props.progressAccessibilityLabel] - e.g. "Quote wizard progress"
  * @param {boolean} [props.embedded] When true, omits horizontal padding (parent scroll content provides gutter).
+ * @param {boolean} [props.showProgress] When false, title/subtitle only (e.g. edit section screens).
  */
 export function WizardStepHeader({
   stepIndex,
@@ -22,6 +24,7 @@ export function WizardStepHeader({
   subtitle,
   progressAccessibilityLabel = 'Wizard progress',
   embedded = false,
+  showProgress = true,
 }) {
   const { colors } = useTheme();
   const progress =
@@ -33,7 +36,7 @@ export function WizardStepHeader({
         wrap: {
           paddingBottom: 16,
           paddingHorizontal: embedded ? 0 : SCREEN_GUTTER,
-          paddingTop: 8,
+          paddingTop: showProgress ? 8 : 0,
         },
         track: {
           backgroundColor: colors.border,
@@ -63,19 +66,29 @@ export function WizardStepHeader({
           marginTop: 2,
         },
       }),
-    [colors, embedded],
+    [colors, embedded, showProgress],
   );
 
   return (
-    <View style={styles.wrap}>
-      <View
-        accessibilityLabel={`${progressAccessibilityLabel} ${Math.round(progress)} percent`}
-        style={styles.track}
-      >
-        <View style={[styles.fill, { width: `${progress}%` }]} />
-      </View>
-      <AppText style={styles.title}>{title}</AppText>
+    <Pressable
+      // Keep children as separate a11y/text nodes for Maestro (default Pressable merges them).
+      accessible={false}
+      style={styles.wrap}
+      testID="wizard-step-header"
+      onPress={Keyboard.dismiss}
+    >
+      {showProgress ? (
+        <View
+          accessibilityLabel={`${progressAccessibilityLabel} ${Math.round(progress)} percent`}
+          style={styles.track}
+        >
+          <View style={[styles.fill, { width: `${progress}%` }]} />
+        </View>
+      ) : null}
+      <AppText accessibilityRole="header" style={styles.title}>
+        {title}
+      </AppText>
       {subtitle?.trim() ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
-    </View>
+    </Pressable>
   );
 }

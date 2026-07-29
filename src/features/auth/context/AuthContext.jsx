@@ -26,6 +26,7 @@ import { ensureUserProfileRow } from '../api/ensureUserProfile';
 import { NO_EXISTING_SERVICELINK_ACCOUNT_CODE } from '../constants/existingAccountOnlyCopy';
 import { queryClient } from '../../../lib/queryClient';
 import { getAuthErrorMessage, getAuthErrorHint } from '../utils/authErrors';
+import { tryE2eDevLogin } from '../utils/e2eDevLogin';
 
 const AuthContext = createContext(null);
 
@@ -58,6 +59,14 @@ export function AuthProvider({ children }) {
         if (cleared) {
           nextSession = null;
         }
+      }
+      // Dev-only Maestro path: auto password sign-in when no persisted session.
+      if (!nextSession) {
+        const e2e = await tryE2eDevLogin();
+        if (!active) {
+          return;
+        }
+        nextSession = e2e.session;
       }
       if (nextSession) {
         const ensured = await ensureUserProfileRow(nextSession);

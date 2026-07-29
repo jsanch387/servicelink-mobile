@@ -49,7 +49,30 @@ export function isVehicleStepComplete(vehicle, now = new Date()) {
 }
 
 /**
- * Review / confirm: everything required to book is present.
+ * Visit-level Review fields (schedule, customer, place) — independent of the active job draft.
+ *
+ * @param {{
+ *   selectedDateKey: string | null;
+ *   selectedTime: string | null;
+ *   customer: object;
+ *   appointmentLocationType?: 'mobile' | 'shop' | null;
+ *   locationSkipped?: boolean;
+ *   addressSkipped?: boolean;
+ *   address: object;
+ * }} p
+ */
+export function isReviewVisitFieldsComplete(p) {
+  return Boolean(
+    p.selectedDateKey &&
+    p.selectedTime &&
+    isCustomerStepComplete(p.customer) &&
+    (p.locationSkipped || isLocationStepComplete(p.appointmentLocationType)) &&
+    (p.addressSkipped || isAddressStepComplete(p.address)),
+  );
+}
+
+/**
+ * Review / confirm when an active job draft is present.
  * @param {{
  *   selectedServiceId: string | null;
  *   selectedPricingId: string | null;
@@ -75,11 +98,7 @@ export function isReviewStepComplete(p) {
       priceOptionsLoading: p.priceOptionsLoading,
       priceOptionsEnabled: p.priceOptionsEnabled,
     }) &&
-    p.selectedDateKey &&
-    p.selectedTime &&
-    isCustomerStepComplete(p.customer) &&
-    (p.locationSkipped || isLocationStepComplete(p.appointmentLocationType)) &&
-    (p.addressSkipped || isAddressStepComplete(p.address)) &&
+    isReviewVisitFieldsComplete(p) &&
     isVehicleStepComplete(p.vehicle),
   );
 }

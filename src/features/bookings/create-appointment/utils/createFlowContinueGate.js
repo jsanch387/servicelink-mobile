@@ -2,6 +2,7 @@ import {
   isAddressStepComplete,
   isCustomerStepComplete,
   isReviewStepComplete,
+  isReviewVisitFieldsComplete,
   isVehicleStepComplete,
 } from './createAppointmentValidators';
 import { isCreateFlowPricingSelectionValid } from './createFlowPricing';
@@ -36,6 +37,8 @@ import { CREATE_APPOINTMENT_STEP } from '../constants';
  * @param {boolean} [p.shopAddressMissing]
  * @param {object} p.address
  * @param {object} p.vehicle
+ * @param {boolean} [p.catalogPriceComplete] catalog job price override is valid when required
+ * @param {boolean} [p.hasCommittedJobs] when Review has frozen jobs and no active draft
  */
 export function canContinueCreateAppointmentStep({
   appointmentConfirmed,
@@ -62,6 +65,8 @@ export function canContinueCreateAppointmentStep({
   shopAddressMissing = false,
   address,
   vehicle,
+  catalogPriceComplete = true,
+  hasCommittedJobs = false,
 }) {
   if (appointmentConfirmed) return false;
   if (step === CREATE_APPOINTMENT_STEP.SERVICE) {
@@ -70,14 +75,27 @@ export function canContinueCreateAppointmentStep({
   if (step === CREATE_APPOINTMENT_STEP.PRICING) {
     if (isCustomJob) return customJobComplete;
     if (pricingSkipped) return true;
-    return isCreateFlowPricingSelectionValid({
+    const tierOk = isCreateFlowPricingSelectionValid({
       selectedPricingId,
       pricingOptions,
       priceOptionsLoading,
       priceOptionsEnabled,
     });
+    return tierOk && catalogPriceComplete;
   }
   if (step === CREATE_APPOINTMENT_STEP.ADDONS) return true;
+  if (step === CREATE_APPOINTMENT_STEP.LOCATION) {
+    if (locationSkipped) return true;
+    if (!isLocationStepComplete(appointmentLocationType)) return false;
+    if (shopAddressMissing) return false;
+    return true;
+  }
+  if (step === CREATE_APPOINTMENT_STEP.ADDRESS) return isAddressStepComplete(address);
+  if (step === CREATE_APPOINTMENT_STEP.VEHICLE) {
+    if (!isVehicleStepComplete(vehicle)) return false;
+    if (!isCustomJob && pricingSkipped && !catalogPriceComplete) return false;
+    return true;
+  }
   if (step === CREATE_APPOINTMENT_STEP.SCHEDULE) {
     if (!acceptBookings) return false;
     if (scheduleLoading) return false;
@@ -87,16 +105,26 @@ export function canContinueCreateAppointmentStep({
     if (businessServiceLocationLoading) return false;
     return isCustomerStepComplete(customer);
   }
-  if (step === CREATE_APPOINTMENT_STEP.LOCATION) {
-    if (locationSkipped) return true;
-    if (!isLocationStepComplete(appointmentLocationType)) return false;
-    if (shopAddressMissing) return false;
-    return true;
-  }
-  if (step === CREATE_APPOINTMENT_STEP.ADDRESS) return isAddressStepComplete(address);
-  if (step === CREATE_APPOINTMENT_STEP.VEHICLE) return isVehicleStepComplete(vehicle);
   if (step === CREATE_APPOINTMENT_STEP.REVIEW) {
+    const visitReady = isReviewVisitFieldsComplete({
+      selectedDateKey,
+      selectedTime,
+      customer,
+      appointmentLocationType,
+      locationSkipped,
+      addressSkipped,
+      address,
+    });
+    if (!visitReady) return false;
+
+    const hasActiveJobDraft = Boolean(selectedServiceId) || isCustomJob;
+    if (!hasActiveJobDraft) {
+      // Draft was removed on Review — confirm from committed job snapshots only.
+      return hasCommittedJobs;
+    }
+
     if (isCustomJob && !customJobComplete) return false;
+    if (!isCustomJob && !catalogPriceComplete) return false;
     return isReviewStepComplete({
       selectedServiceId,
       selectedPricingId: isCustomJob ? selectedServiceId : selectedPricingId,

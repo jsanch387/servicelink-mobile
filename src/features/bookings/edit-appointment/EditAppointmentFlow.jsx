@@ -2,7 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useMemo } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button, InlineCardError } from '../../../components/ui';
+import { Button, InlineCardError, WizardStepHeader } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useAuth } from '../../auth';
 import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
@@ -11,6 +11,8 @@ import { CreateAppointmentStepContent } from '../create-appointment/components/C
 import { CreateFlowFooter } from '../create-appointment/components/CreateFlowFooter';
 import { EditAppointmentHub } from './components/EditAppointmentHub';
 import { EditAppointmentHubSkeleton } from './components/EditAppointmentHubSkeleton';
+import { EditAppointmentJobsList } from './components/EditAppointmentJobsList';
+import { EditAppointmentNotesStep } from './components/EditAppointmentNotesStep';
 import { useEditAppointmentController } from './hooks/useEditAppointmentController';
 
 /**
@@ -36,8 +38,6 @@ export function EditAppointmentFlow({ bookingId }) {
     navigation,
   });
 
-  const titleStyle = flow.styles.title;
-
   const localStyles = useMemo(
     () =>
       StyleSheet.create({
@@ -52,8 +52,20 @@ export function EditAppointmentFlow({ bookingId }) {
   );
 
   const scrollContentStyle = useMemo(
-    () => [flow.styles.content, flow.isHubView ? localStyles.scrollHub : localStyles.scrollSection],
-    [flow.isHubView, flow.styles.content, localStyles.scrollHub, localStyles.scrollSection],
+    () => [
+      flow.styles.content,
+      flow.isHubView || flow.isJobsListView || flow.isJobHubView
+        ? localStyles.scrollHub
+        : localStyles.scrollSection,
+    ],
+    [
+      flow.isHubView,
+      flow.isJobsListView,
+      flow.isJobHubView,
+      flow.styles.content,
+      localStyles.scrollHub,
+      localStyles.scrollSection,
+    ],
   );
 
   const loadingStyles = useMemo(
@@ -92,6 +104,48 @@ export function EditAppointmentFlow({ bookingId }) {
     );
   }
 
+  const sectionHeader =
+    flow.showMainTitle && flow.mainTitle ? (
+      <WizardStepHeader
+        embedded
+        showProgress={false}
+        stepCount={1}
+        stepIndex={0}
+        subtitle={flow.mainSubtitle}
+        title={flow.mainTitle}
+      />
+    ) : null;
+
+  let body = null;
+  if (flow.isHubView) {
+    body = <EditAppointmentHub sections={flow.hubSections} onOpenSection={flow.openEditSection} />;
+  } else if (flow.isJobsListView) {
+    body = <EditAppointmentJobsList jobs={flow.jobs} onSelectJob={flow.openJobForEdit} />;
+  } else if (flow.isJobHubView) {
+    body = (
+      <EditAppointmentHub
+        heading="Edit job"
+        sections={flow.jobHubSections}
+        subtext="Change this job’s service, price, add-ons, or vehicle."
+        onOpenSection={flow.openEditSection}
+      />
+    );
+  } else if (flow.isNotesView) {
+    body = (
+      <>
+        {sectionHeader}
+        <EditAppointmentNotesStep notes={flow.notes} onChangeNotes={flow.onChangeNotes} />
+      </>
+    );
+  } else {
+    body = (
+      <>
+        {sectionHeader}
+        <CreateAppointmentStepContent {...flow.stepContentProps} />
+      </>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -103,23 +157,7 @@ export function EditAppointmentFlow({ bookingId }) {
         showsVerticalScrollIndicator={false}
         style={flow.styles.scroll}
       >
-        {flow.isHubView ? (
-          <EditAppointmentHub sections={flow.hubSections} onOpenSection={flow.openEditSection} />
-        ) : (
-          <>
-            {flow.showMainTitle ? (
-              <View style={flow.styles.stepHeader}>
-                <View style={flow.styles.stepHeaderCopy}>
-                  <AppText style={titleStyle}>{flow.mainTitle}</AppText>
-                  {flow.mainSubtitle ? (
-                    <AppText style={flow.styles.stepSubtitle}>{flow.mainSubtitle}</AppText>
-                  ) : null}
-                </View>
-              </View>
-            ) : null}
-            <CreateAppointmentStepContent {...flow.stepContentProps} />
-          </>
-        )}
+        {body}
       </ScrollView>
       <CreateFlowFooter {...flow.footer} paddingBottom={12 + insets.bottom} />
     </KeyboardAvoidingView>

@@ -186,8 +186,8 @@ export function BookingRescheduleSheet({
         },
         actions: {
           flexDirection: 'row',
-          gap: 10,
-          marginTop: 22,
+          gap: 12,
+          width: '100%',
         },
         actionBtn: {
           flex: 1,
@@ -282,30 +282,27 @@ export function BookingRescheduleSheet({
     <BottomSheetModal
       allowBackdropClose
       sheetHeightPercent={92}
+      stickyFooter
       title="Reschedule"
       visible={visible}
       onRequestClose={onRequestClose}
       footer={
         <View style={styles.actions}>
           {showSuccessState ? (
-            <>
-              <Button
-                fullWidth
-                style={styles.actionBtn}
-                title="Done"
-                variant="surfaceLight"
-                onPress={closeSheet}
-              />
-            </>
+            <Button
+              fullWidth
+              style={styles.actionBtn}
+              title="Done"
+              variant="surfaceLight"
+              onPress={closeSheet}
+            />
           ) : (
             <>
               <Button
                 fullWidth
-                labelColor="#ffffff"
-                outlineColor="rgba(255,255,255,0.52)"
                 style={styles.actionBtn}
                 title="Cancel"
-                variant="outline"
+                variant="secondary"
                 onPress={closeSheet}
               />
               <Button

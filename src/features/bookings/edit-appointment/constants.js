@@ -12,6 +12,15 @@ export {
 /** Hub index — pick a section before jumping into a single wizard step. */
 export const EDIT_APPOINTMENT_HUB = -1;
 
+/** Multi-job: list of jobs on this appointment. */
+export const EDIT_APPOINTMENT_JOBS_LIST = -2;
+
+/** Multi-job: hub for editing one selected job (service / price / add-ons / vehicle). */
+export const EDIT_APPOINTMENT_JOB_HUB = -3;
+
+/** Multi-job: visit-level notes only (vehicles live on each job). */
+export const EDIT_APPOINTMENT_NOTES = -4;
+
 /** Same wizard steps as create; review copy is edit-specific. */
 export const EDIT_APPOINTMENT_STEP_META = CREATE_APPOINTMENT_STEP_META.map((entry) =>
   entry.key === 'review'

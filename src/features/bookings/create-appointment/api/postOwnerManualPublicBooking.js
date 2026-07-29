@@ -60,13 +60,14 @@ export function mapOwnerManualBookingHttpError(httpStatus, serverMessage) {
 }
 
 /**
- * Owner manual booking: `POST /api/public/bookings` with `ownerManualBooking: true` and Bearer JWT.
- * Runs the same server pipeline as web (`/[slug]/book?for=owner`) — emails, `booking_payments`, caps, time-off.
+ * Owner manual booking: `POST /api/public/bookings` with `ownerManualBooking: true`, Bearer JWT,
+ * and appointment + `jobs[]` (see {@link buildOwnerManualPublicBookingBody}).
+ * Runs the same server pipeline as web — emails, `booking_payments`, caps, time-off override.
  *
  * @param {string | null | undefined} accessToken - Supabase `session.access_token`
  * @param {Record<string, unknown>} body - {@link buildOwnerManualPublicBookingBody}
  * @returns {Promise<
- *   | { ok: true; data: { id: string }; requestId?: string }
+ *   | { ok: true; data: { id: string; visitId?: string; jobCount?: number; smsOutcome?: unknown }; requestId?: string }
  *   | { ok: false; error: Error; httpStatus: number; errorCode?: string; requestId?: string }
  * >}
  */
@@ -125,8 +126,26 @@ export async function postOwnerManualPublicBooking(accessToken, body) {
 
   if (res.status === 201 && parsed?.success === true && id) {
     const smsOutcome = parseBookingSmsOutcome(parsed);
+    const visitId =
+      dataObj && typeof dataObj.visitId === 'string' && dataObj.visitId.trim()
+        ? dataObj.visitId.trim()
+        : id;
+    const jobCountRaw = dataObj?.jobCount;
+    const jobCount =
+      typeof jobCountRaw === 'number' && Number.isFinite(jobCountRaw)
+        ? Math.max(1, Math.round(jobCountRaw))
+        : undefined;
 
-    return { ok: true, data: { id, smsOutcome }, requestId: echoedRequestId };
+    return {
+      ok: true,
+      data: {
+        id,
+        visitId,
+        ...(jobCount != null ? { jobCount } : {}),
+        smsOutcome,
+      },
+      requestId: echoedRequestId,
+    };
   }
 
   const msg = mapOwnerManualBookingHttpError(res.status, serverMessage);

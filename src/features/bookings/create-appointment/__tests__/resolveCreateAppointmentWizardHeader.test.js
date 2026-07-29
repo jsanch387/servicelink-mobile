@@ -6,11 +6,11 @@ describe('resolveCreateAppointmentWizardHeader', () => {
     expect(
       resolveCreateAppointmentWizardHeader(CREATE_APPOINTMENT_STEP.PRICING, {
         title: 'Pricing',
-        subtitle: 'Select a price tier for this service.',
+        subtitle: 'Choose a price tier for this service.',
       }),
     ).toEqual({
       title: 'Pricing',
-      subtitle: 'Select a price tier for this service.',
+      subtitle: 'Choose a price tier for this service.',
     });
   });
 

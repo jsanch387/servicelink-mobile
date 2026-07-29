@@ -1,5 +1,9 @@
 import { CREATE_APPOINTMENT_STEP } from '../../create-appointment/constants';
-import { buildEditHubSections, truncateHubSummary } from '../utils/buildEditHubSections';
+import {
+  buildEditHubSections,
+  formatEditHubScheduleSummary,
+  truncateHubSummary,
+} from '../utils/buildEditHubSections';
 
 describe('buildEditHubSections', () => {
   const base = {
@@ -43,7 +47,8 @@ describe('buildEditHubSections', () => {
     expect(customer?.summary).toBe('Jane Doe');
 
     const schedule = sections.find((s) => s.id === 'schedule');
-    expect(schedule?.summary).toMatch(/2:30 PM/);
+    expect(schedule?.summary).toMatch(/Jul/);
+    expect(schedule?.summary).toBe('Wed, Jul 15 · 2:30 PM');
   });
 
   it('omits pricing section when pricing is skipped', () => {
@@ -110,8 +115,43 @@ describe('buildEditHubSections', () => {
     expect(service?.summaryMaxLines).toBe(3);
   });
 
+  it('shows Jobs + Notes for multi-job and hides single-job service rows', () => {
+    const sections = buildEditHubSections({
+      ...base,
+      isMultiJob: true,
+      jobs: [{ serviceName: 'Full Detail' }, { serviceName: 'Touch-up' }],
+      addressSkipped: false,
+      address: {
+        street: '1234 Very Long Street Name That Should Truncate In The Hub Preview',
+        city: 'Austin',
+        state: 'TX',
+        zip: '78701',
+      },
+    });
+    const ids = sections.map((s) => s.id);
+
+    expect(ids).toContain('jobs');
+    expect(ids).toContain('notes');
+    expect(ids).not.toContain('service');
+    expect(ids).not.toContain('pricing');
+    expect(ids).not.toContain('addons');
+    expect(ids).not.toContain('vehicle');
+    expect(sections.find((s) => s.id === 'jobs')?.summary).toBe('Full Detail +1 more');
+    expect(sections.find((s) => s.id === 'notes')?.summary).toBe('Side gate');
+
+    const address = sections.find((s) => s.id === 'address');
+    expect(address?.summaryMaxLines).toBe(2);
+    expect(address?.summary.endsWith('…')).toBe(true);
+    expect(address?.summary.length).toBeLessThanOrEqual(64);
+  });
+
   it('truncateHubSummary leaves short strings unchanged', () => {
     expect(truncateHubSummary('Short name')).toBe('Short name');
     expect(truncateHubSummary('  padded  ')).toBe('padded');
+  });
+
+  it('formats hub schedule with compact clock times', () => {
+    expect(formatEditHubScheduleSummary('2026-07-27', '9:00 AM')).toBe('Mon, Jul 27 · 9 AM');
+    expect(formatEditHubScheduleSummary('2026-07-27', '9:30 AM')).toBe('Mon, Jul 27 · 9:30 AM');
   });
 });

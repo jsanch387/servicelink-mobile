@@ -1,5 +1,5 @@
 /**
- * @typedef {'customer-search' | 'service-origin'} LocationAutocompleteMode
+ * @typedef {'customer-search' | 'customer-address' | 'service-origin'} LocationAutocompleteMode
  */
 
 /**
@@ -7,6 +7,7 @@
  *   providerId: string;
  *   label: string;
  *   searchValue: string;
+ *   street: string;
  *   city: string;
  *   state: string;
  *   zip: string;

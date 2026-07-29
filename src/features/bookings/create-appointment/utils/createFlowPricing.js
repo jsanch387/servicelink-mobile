@@ -76,6 +76,23 @@ export function isCreateFlowBasePricingId(selectedPricingId, serviceId) {
 }
 
 /**
+ * Label shown under the service on Review — hide synthetic single-tier "Standard".
+ *
+ * @param {{
+ *   selectedServiceId?: string | null;
+ *   selectedPricingOption?: { id?: string; label?: string } | null;
+ * } | null | undefined} job
+ */
+export function reviewPricingOptionLabel(job) {
+  const label = String(job?.selectedPricingOption?.label ?? '').trim();
+  if (!label) return '';
+  if (isCreateFlowBasePricingId(job?.selectedPricingOption?.id, job?.selectedServiceId)) {
+    return '';
+  }
+  return label;
+}
+
+/**
  * @param {Record<string, unknown> | null} serviceRow raw `business_services` row
  * @param {Record<string, unknown>[]} priceOptionRows active `service_price_options` rows
  * @param {boolean} ownerHasPro

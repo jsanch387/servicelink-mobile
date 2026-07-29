@@ -92,14 +92,16 @@ export function TimeSlotGrid({ timeSlots, selectedTime, onSelectTime, horizontal
           key={`slot-row-${rowIndex}`}
           style={[styles.row, rowIndex === rows.length - 1 ? styles.rowLast : null]}
         >
-          {row.map((slot) => {
+          {row.map((slot, slotIndex) => {
             const selected = selectedTime === slot;
+            const flatIndex = rowIndex * COLUMNS + slotIndex;
             return (
               <Pressable
                 key={slot}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 style={[styles.chip, { width: chipWidth }, selected ? styles.chipSelected : null]}
+                testID={flatIndex === 0 ? 'time-slot-first' : `time-slot-${flatIndex}`}
                 onPress={() => onSelectTime(slot)}
               >
                 <AppText style={[styles.label, { color: selected ? '#000000' : colors.text }]}>

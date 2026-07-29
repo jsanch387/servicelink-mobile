@@ -29,7 +29,7 @@ describe('postOwnerManualPublicBooking', () => {
     const out = await postOwnerManualPublicBooking('jwt', { ownerManualBooking: true });
 
     expect(out.ok).toBe(true);
-    expect(out.data).toEqual({ id: 'book-uuid', smsOutcome: null });
+    expect(out.data).toEqual({ id: 'book-uuid', visitId: 'book-uuid', smsOutcome: null });
     expect(global.fetch).toHaveBeenCalledWith(
       'http://localhost:3000/api/public/bookings',
       expect.objectContaining({
@@ -41,6 +41,27 @@ describe('postOwnerManualPublicBooking', () => {
         }),
       }),
     );
+  });
+
+  it('parses visitId and jobCount on 201', async () => {
+    global.fetch.mockResolvedValue({
+      status: 201,
+      headers: { get: () => 'req-abc' },
+      json: async () => ({
+        success: true,
+        data: { id: 'book-uuid', visitId: 'book-uuid', jobCount: 2 },
+      }),
+    });
+
+    const out = await postOwnerManualPublicBooking('jwt', { ownerManualBooking: true });
+
+    expect(out.ok).toBe(true);
+    expect(out.data).toEqual({
+      id: 'book-uuid',
+      visitId: 'book-uuid',
+      jobCount: 2,
+      smsOutcome: null,
+    });
   });
 
   it('parses sms nested under data on 201', async () => {

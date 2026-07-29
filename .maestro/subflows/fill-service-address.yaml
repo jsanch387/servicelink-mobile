@@ -1,0 +1,21 @@
+# Fill address fields one-by-one. Always tap + eraseText before inputText so
+# Maestro does not keep typing into the previously focused street field.
+appId: com.jsanchdev.servicelinkmobile
+---
+- tapOn:
+    id: create-appt-address-street
+- eraseText
+- inputText: '100 E2E Test St'
+- tapOn:
+    id: create-appt-address-city
+- eraseText
+- inputText: 'Austin'
+- tapOn:
+    id: create-appt-address-state
+- eraseText
+- inputText: 'TX'
+- tapOn:
+    id: create-appt-address-zip
+- eraseText
+- inputText: '78701'
+- runFlow: ./blur-and-continue.yaml

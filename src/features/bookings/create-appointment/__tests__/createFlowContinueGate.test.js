@@ -206,11 +206,33 @@ describe('canContinueCreateAppointmentStep', () => {
     ).toBe(false);
   });
 
-  it('step 3 requires slot in timeSlots', () => {
+  it('requires a catalog price override when pricing is shown', () => {
     expect(
       canContinueCreateAppointmentStep({
         appointmentConfirmed: false,
-        step: 3,
+        step: CREATE_APPOINTMENT_STEP.PRICING,
+        selectedServiceId: 's',
+        selectedPricingId: 'p1',
+        pricingSkipped: false,
+        pricingOptions: [{ id: 'p1' }, { id: 'p2' }],
+        catalogPriceComplete: false,
+        acceptBookings: true,
+        scheduleLoading: false,
+        selectedDateKey: null,
+        selectedTime: null,
+        timeSlots: [],
+        customer: {},
+        address: {},
+        vehicle: {},
+      }),
+    ).toBe(false);
+  });
+
+  it('schedule step requires slot in timeSlots', () => {
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: CREATE_APPOINTMENT_STEP.SCHEDULE,
         selectedServiceId: 's',
         selectedPricingId: 'p',
         acceptBookings: true,
@@ -226,7 +248,7 @@ describe('canContinueCreateAppointmentStep', () => {
     expect(
       canContinueCreateAppointmentStep({
         appointmentConfirmed: false,
-        step: 3,
+        step: CREATE_APPOINTMENT_STEP.SCHEDULE,
         selectedServiceId: 's',
         selectedPricingId: 'p',
         acceptBookings: true,
@@ -304,5 +326,39 @@ describe('canContinueCreateAppointmentStep', () => {
         timeSlots: [],
       }),
     ).toBe(true);
+  });
+
+  it('allows review confirmation from committed jobs after the draft was removed', () => {
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: CREATE_APPOINTMENT_STEP.REVIEW,
+        ...reviewReady,
+        selectedServiceId: null,
+        selectedPricingId: null,
+        catalogPriceComplete: false,
+        hasCommittedJobs: true,
+        acceptBookings: true,
+        scheduleLoading: false,
+        timeSlots: [],
+      }),
+    ).toBe(true);
+  });
+
+  it('blocks review confirmation when draft is cleared and nothing is committed', () => {
+    expect(
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step: CREATE_APPOINTMENT_STEP.REVIEW,
+        ...reviewReady,
+        selectedServiceId: null,
+        selectedPricingId: null,
+        catalogPriceComplete: false,
+        hasCommittedJobs: false,
+        acceptBookings: true,
+        scheduleLoading: false,
+        timeSlots: [],
+      }),
+    ).toBe(false);
   });
 });

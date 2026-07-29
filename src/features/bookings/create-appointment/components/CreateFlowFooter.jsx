@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import { Button } from '../../../../components/ui';
 import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { useTheme } from '../../../../theme';
@@ -20,7 +20,7 @@ import { useTheme } from '../../../../theme';
  * @param {() => void} props.onDone
  * @param {string} [props.lastStepPrimaryTitle]
  * @param {string} [props.lastStepAccessibilityLabel]
- * @param {boolean} [props.editHubMode] Cancel + Save changes (edit hub)
+ * @param {boolean} [props.editHubMode] Hub list only — no footer (section screens own Save)
  * @param {boolean} [props.editSectionMode] Back + Done (single-section edit)
  * @param {string} [props.sectionPrimaryTitle]
  * @param {string} [props.backTitle]
@@ -67,6 +67,18 @@ export function CreateFlowFooter({
     [colors],
   );
 
+  const isLast = step === lastStepIndex;
+
+  const handlePrimary = () => {
+    Keyboard.dismiss();
+    onContinue();
+  };
+
+  const handleDone = () => {
+    Keyboard.dismiss();
+    onDone();
+  };
+
   if (hideWhileSubmitPanel) {
     return null;
   }
@@ -74,30 +86,20 @@ export function CreateFlowFooter({
   if (appointmentConfirmed) {
     return (
       <View style={[styles.footer, styles.footerDone, { paddingBottom }]}>
-        <Button fullWidth title="Done" variant="primary" onPress={onDone} />
+        <Button
+          fullWidth
+          testID="create-appt-done"
+          title="Done"
+          variant="primary"
+          onPress={handleDone}
+        />
       </View>
     );
   }
 
   if (editHubMode) {
-    return (
-      <View style={[styles.footer, { paddingBottom }]}>
-        <View style={styles.footerBtn}>
-          <Button fullWidth title="Cancel" variant="secondary" onPress={onBack} />
-        </View>
-        <View style={styles.footerBtn}>
-          <Button
-            accessibilityLabel={lastStepAccessibilityLabel ?? lastStepPrimaryTitle}
-            disabled={!canContinue || confirmLoading}
-            fullWidth
-            loading={confirmLoading}
-            title={lastStepPrimaryTitle}
-            variant="primary"
-            onPress={onContinue}
-          />
-        </View>
-      </View>
-    );
+    // Edit hub is list-only — save lives on each section; header back exits.
+    return null;
   }
 
   if (editSectionMode) {
@@ -108,18 +110,22 @@ export function CreateFlowFooter({
         </View>
         <View style={styles.footerBtn}>
           <Button
-            disabled={!canContinue}
+            accessibilityLabel={
+              sectionPrimaryTitle === lastStepPrimaryTitle || sectionPrimaryTitle === 'Save changes'
+                ? (lastStepAccessibilityLabel ?? sectionPrimaryTitle)
+                : undefined
+            }
+            disabled={!canContinue || confirmLoading}
             fullWidth
+            loading={confirmLoading}
             title={sectionPrimaryTitle}
             variant="primary"
-            onPress={onContinue}
+            onPress={handlePrimary}
           />
         </View>
       </View>
     );
   }
-
-  const isLast = step === lastStepIndex;
 
   return (
     <View style={[styles.footer, { paddingBottom }]}>
@@ -139,9 +145,10 @@ export function CreateFlowFooter({
           disabled={!canContinue || (isLast && confirmLoading)}
           fullWidth
           loading={isLast && confirmLoading}
+          testID="create-appt-continue"
           title={isLast ? lastStepPrimaryTitle : 'Continue'}
           variant="primary"
-          onPress={onContinue}
+          onPress={handlePrimary}
         />
       </View>
     </View>

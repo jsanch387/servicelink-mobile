@@ -7,6 +7,12 @@ import { CREATE_APPOINTMENT_LOCATION_OPTIONS } from '../utils/createAppointmentS
 
 const FIELD_SHELL = { marginBottom: 0 };
 
+/**
+ * @param {{
+ *   address: { street: string; unit: string; city: string; state: string; zip: string };
+ *   onChangeAddress: (next: { street: string; unit: string; city: string; state: string; zip: string }) => void;
+ * }} props
+ */
 export function AddressStep({ address, onChangeAddress }) {
   const styles = useMemo(
     () =>
@@ -17,6 +23,8 @@ export function AddressStep({ address, onChangeAddress }) {
         card: {
           paddingHorizontal: 16,
           paddingVertical: 16,
+          overflow: 'visible',
+          zIndex: 1,
         },
         row: {
           flexDirection: 'row',
@@ -38,6 +46,7 @@ export function AddressStep({ address, onChangeAddress }) {
           label="Street address"
           maxLength={200}
           placeholder="123 Main Street"
+          testID="create-appt-address-street"
           value={address.street}
           onChangeText={(t) => onChangeAddress({ ...address, street: t })}
         />
@@ -47,6 +56,7 @@ export function AddressStep({ address, onChangeAddress }) {
           label="Unit or apartment (optional)"
           maxLength={50}
           placeholder="Apt 4B"
+          testID="create-appt-address-unit"
           value={address.unit}
           onChangeText={(t) => onChangeAddress({ ...address, unit: t })}
         />
@@ -56,6 +66,7 @@ export function AddressStep({ address, onChangeAddress }) {
           label="City"
           maxLength={100}
           placeholder="Austin"
+          testID="create-appt-address-city"
           value={address.city}
           onChangeText={(t) => onChangeAddress({ ...address, city: t })}
         />
@@ -68,6 +79,7 @@ export function AddressStep({ address, onChangeAddress }) {
               label="State"
               maxLength={2}
               placeholder="TX"
+              testID="create-appt-address-state"
               value={address.state}
               onChangeText={(t) =>
                 onChangeAddress({
@@ -88,6 +100,7 @@ export function AddressStep({ address, onChangeAddress }) {
               label="ZIP code"
               maxLength={5}
               placeholder="78701"
+              testID="create-appt-address-zip"
               value={address.zip}
               onChangeText={(t) =>
                 onChangeAddress({

@@ -1,3 +1,4 @@
+import { getBookingServiceLabelParts } from '../../bookings/utils/formatBookingServiceLabel';
 import { splitBookingServiceName } from '../../../utils/splitBookingServiceName';
 
 /**
@@ -13,30 +14,40 @@ export function splitServiceNameForNextUp(serviceName) {
 
 /**
  * @param {Record<string, unknown> | null | undefined} booking
- * @returns {{ customerName: string; servicePrimary: string; serviceDetail: string | null }}
+ * @returns {{
+ *   customerName: string;
+ *   servicePrimary: string;
+ *   serviceDetail: string | null;
+ *   serviceExtraCount: number;
+ * }}
  */
 export function buildNextUpHeadlines(booking) {
   const customerName = String(booking?.customer_name ?? '').trim() || 'Customer';
-  const { primary, detail } = splitServiceNameForNextUp(booking?.service_name);
+  const parts = getBookingServiceLabelParts(booking);
   return {
     customerName,
-    servicePrimary: primary,
-    serviceDetail: detail,
+    servicePrimary: parts.primary,
+    // Pricing tier is not shown on Next Up; multi-job uses +N more on the service line.
+    serviceDetail: null,
+    serviceExtraCount: parts.extraCount,
   };
 }
 
 /**
- * Service title for Next Up: base service name only (pricing tier omitted).
+ * Service title for Next Up: base name, plus `+N more` when the visit has extra jobs.
  *
  * @param {string | null | undefined} primary
  * @param {string | null | undefined} [_detail] ignored; kept for call-site compatibility
+ * @param {number} [extraCount]
  */
-export function formatNextUpServiceLine(primary, _detail) {
+export function formatNextUpServiceLine(primary, _detail, extraCount = 0) {
   const p = String(primary ?? '').trim();
-  if (p) {
-    return p;
+  const label = p || 'Service';
+  const extra = Math.max(0, Math.round(Number(extraCount) || 0));
+  if (extra > 0) {
+    return `${label} +${extra} more`;
   }
-  return 'Service';
+  return label;
 }
 
 /**

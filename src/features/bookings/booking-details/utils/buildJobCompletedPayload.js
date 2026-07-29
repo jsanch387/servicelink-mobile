@@ -1,5 +1,6 @@
 import { BOOKING_ACTION } from '../../constants/jobStatus';
 import { parseAddonLineItemsFromBooking } from './parseAddonLineItemsFromBooking';
+import { parseJobDetailsFromBooking } from './parseJobDetailsFromBooking';
 
 /**
  * @typedef {object} CompleteVisitCheckoutState
@@ -154,7 +155,8 @@ export function buildCompleteVisitCheckoutFromSheetState(sheetState) {
 }
 
 /**
- * Server-side amount-due check (cents). Matches Phase 1 handler math.
+ * Server-side amount-due check (cents). Matches Phase 1 handler math for single-job;
+ * when `jobDetails` is present, sums every job (mobile Complete sheet source of truth).
  *
  * @param {{
  *   servicePriceCents: number;
@@ -163,6 +165,7 @@ export function buildCompleteVisitCheckoutFromSheetState(sheetState) {
  *   paidOnlineCents: number;
  *   sessionPaymentAmountCents: number;
  *   discountCents?: number;
+ *   jobDetails?: unknown;
  * }} params
  * @returns {number}
  */
@@ -173,12 +176,25 @@ export function computeCompleteVisitAmountDueCents({
   paidOnlineCents,
   sessionPaymentAmountCents,
   discountCents = 0,
+  jobDetails,
 }) {
-  const serviceCents = Math.max(0, Number(servicePriceCents) || 0);
-  const addonCents = parseAddonLineItemsFromBooking(addonDetails).reduce(
-    (sum, item) => sum + Math.max(0, dollarsToCents(item.price)),
-    0,
-  );
+  const parsedJobs = parseJobDetailsFromBooking(jobDetails);
+  let serviceCents;
+  let addonCents;
+  if (parsedJobs.length > 0) {
+    serviceCents = parsedJobs.reduce((sum, job) => sum + dollarsToCents(job.servicePrice), 0);
+    addonCents = parsedJobs.reduce(
+      (sum, job) =>
+        sum + job.addOns.reduce((addonSum, addon) => addonSum + dollarsToCents(addon.price), 0),
+      0,
+    );
+  } else {
+    serviceCents = Math.max(0, Number(servicePriceCents) || 0);
+    addonCents = parseAddonLineItemsFromBooking(addonDetails).reduce(
+      (sum, item) => sum + Math.max(0, dollarsToCents(item.price)),
+      0,
+    );
+  }
   const feesCents = (sessionFees ?? []).reduce(
     (sum, fee) => sum + Math.max(0, Number(fee.amountCents) || 0),
     0,

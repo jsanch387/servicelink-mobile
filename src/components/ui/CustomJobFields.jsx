@@ -43,6 +43,7 @@ export function CustomJobFields({
         maxLength={serviceNameMaxLength}
         onChangeText={onServiceNameChange}
         placeholder="e.g. Full interior + exterior"
+        testID="create-appt-custom-service"
         value={serviceName}
       />
       <SurfaceTextField
@@ -57,6 +58,7 @@ export function CustomJobFields({
         placeholder="0.00"
         prefixText="$"
         style={{ paddingLeft: 2 }}
+        testID="create-appt-custom-price"
         value={priceUsdText}
       />
       <DurationSelectField

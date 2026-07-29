@@ -74,7 +74,7 @@ describe('mapBookingToEditAppointmentForm', () => {
       customer: {
         fullName: 'Alex Rivera',
         email: 'alex@example.com',
-        phone: '3054441212',
+        phone: '(305) 444-1212',
       },
       appointmentLocationType: 'mobile',
       address: {

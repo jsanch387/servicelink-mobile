@@ -16,7 +16,11 @@ import { useBookingAction } from '../../bookings/hooks/useBookingAction';
 import { NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS } from '../constants/nextUpDesignFlags';
 import { openMapsForBooking, openSmsOnMyWay } from '../utils/appointmentOutbound';
 import { hasBookingAddressForMaps } from '../utils/bookingAddress';
-import { buildNextUpHeadlines, formatNextUpVehicleLine } from '../utils/nextUpCardDisplay';
+import {
+  buildNextUpHeadlines,
+  formatNextUpServiceLine,
+  formatNextUpVehicleLine,
+} from '../utils/nextUpCardDisplay';
 import {
   resolveNextUpCardActionMode,
   resolveNextUpWorkingPhase,
@@ -157,8 +161,21 @@ export function NextUpCard({
     return parts.join(' ');
   }, [nextBooking]);
 
-  const serviceDisplayLine = useMemo(
+  const servicePrimaryName = useMemo(
     () => String(headlines?.servicePrimary ?? '').trim() || 'Service',
+    [headlines],
+  );
+  const serviceExtraCount = useMemo(
+    () => Math.max(0, Math.round(Number(headlines?.serviceExtraCount) || 0)),
+    [headlines],
+  );
+  const serviceDisplayLine = useMemo(
+    () =>
+      formatNextUpServiceLine(
+        headlines?.servicePrimary,
+        headlines?.serviceDetail,
+        headlines?.serviceExtraCount,
+      ),
     [headlines],
   );
 
@@ -425,13 +442,23 @@ export function NextUpCard({
             </AppText>
           ) : null}
 
-          <AppText
-            ellipsizeMode="tail"
-            numberOfLines={2}
-            style={[styles.servicePrimary, { color: colors.nextUpText }]}
-          >
-            {serviceDisplayLine}
-          </AppText>
+          <View style={styles.serviceRow}>
+            <AppText
+              ellipsizeMode="tail"
+              numberOfLines={1}
+              style={[styles.servicePrimary, { color: colors.nextUpText }]}
+            >
+              {servicePrimaryName}
+            </AppText>
+            {serviceExtraCount > 0 ? (
+              <AppText
+                numberOfLines={1}
+                style={[styles.serviceMore, { color: colors.nextUpTextMuted }]}
+              >
+                {`+${serviceExtraCount} more`}
+              </AppText>
+            ) : null}
+          </View>
 
           {vehicleOnlyLine ? (
             <AppText
@@ -672,15 +699,31 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     width: '100%',
   },
-  servicePrimary: {
+  serviceRow: {
+    alignItems: 'baseline',
     alignSelf: 'stretch',
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    gap: 6,
+    marginTop: 14,
+    minWidth: 0,
+  },
+  servicePrimary: {
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: '600',
     letterSpacing: -0.14,
     lineHeight: 21,
-    marginTop: 14,
     minWidth: 0,
     opacity: 0.96,
+  },
+  serviceMore: {
+    flexShrink: 0,
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: -0.05,
+    lineHeight: 16,
+    opacity: 0.9,
   },
   vehicleAndType: {
     fontSize: 14,

@@ -33,6 +33,7 @@ import { BookingDetailsStatusBanner } from '../booking-details/components/Bookin
 import { BookingRescheduleSheet } from '../booking-details/components/BookingRescheduleSheet';
 import { BookingDetailsSkeleton } from '../booking-details/components/BookingDetailsSkeleton';
 import { PriceBreakdownSection } from '../booking-details/components/PriceBreakdownSection';
+import { BookingJobsSummarySection } from '../booking-details/components/BookingJobsSummarySection';
 import { ScheduleSection } from '../booking-details/components/ScheduleSection';
 import { useBookingActions } from '../booking-details/hooks/useBookingActions';
 import { useMarkBookingCompleteFlow } from '../booking-details/hooks/useMarkBookingCompleteFlow';
@@ -381,6 +382,13 @@ export function BookingDetailsScreen({ route }) {
               isCompleted={isCompletedStatus}
             />
 
+            {details.isMultiJob ? (
+              <BookingJobsSummarySection
+                formattedPrice={details.formattedPrice}
+                jobs={details.formattedPrice.jobs}
+              />
+            ) : null}
+
             <ScheduleSection schedule={details.schedule} />
 
             <InfoSection
@@ -392,7 +400,9 @@ export function BookingDetailsScreen({ route }) {
 
             {details.payment.visible ? <BookingPaymentSection payment={details.payment} /> : null}
 
-            <PriceBreakdownSection formattedPrice={details.formattedPrice} />
+            {!details.isMultiJob ? (
+              <PriceBreakdownSection formattedPrice={details.formattedPrice} />
+            ) : null}
 
             {details.location.hasAddress ? (
               <InfoSection
@@ -416,8 +426,12 @@ export function BookingDetailsScreen({ route }) {
               <InfoSection
                 bodyPadding="roomy"
                 rowGap={14}
-                rows={[{ icon: 'car-sport-outline', value: details.vehicle }]}
-                title="Vehicle"
+                rows={
+                  details.vehicleRows?.length
+                    ? details.vehicleRows
+                    : [{ icon: 'car-sport-outline', value: details.vehicle }]
+                }
+                title={details.vehicleRows?.length > 1 ? 'Vehicles' : 'Vehicle'}
               />
             ) : null}
 

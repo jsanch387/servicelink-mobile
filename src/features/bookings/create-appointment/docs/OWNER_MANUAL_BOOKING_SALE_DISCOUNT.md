@@ -23,7 +23,9 @@ Server must apply (or re-validate) the sale when inserting the booking so amount
 
 ## Mobile preview fields
 
-When a sale is previewed on Review, mobile may add these optional fields to `POST /api/public/bookings`. They are preview metadata only: the current server ignores their values and recomputes the qualifying sale and persisted snapshot from server-side data.
+When a sale is previewed on Review, mobile may add these optional fields to `POST /api/public/bookings` at the **appointment** level (not per job). They are preview metadata only: the current server ignores their values and recomputes the qualifying sale and persisted snapshot from server-side data on the **appointment subtotal** (sum of all job gross amounts).
+
+Per-job sale preview fields are not used; do not send them on `jobs[]` items.
 
 | Field            | Type                               | Notes                                                      |
 | ---------------- | ---------------------------------- | ---------------------------------------------------------- |

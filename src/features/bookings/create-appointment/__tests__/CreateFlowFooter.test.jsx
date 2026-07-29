@@ -82,9 +82,7 @@ describe('CreateFlowFooter', () => {
     expect(confirmBtn.props.accessibilityState?.disabled).toBe(true);
   });
 
-  it('shows Cancel and Save changes in edit hub mode', () => {
-    const onBack = jest.fn();
-    const onContinue = jest.fn();
+  it('renders no footer buttons in edit hub mode', () => {
     renderFooter({
       appointmentConfirmed: false,
       editHubMode: true,
@@ -93,17 +91,14 @@ describe('CreateFlowFooter', () => {
       canContinue: true,
       confirmLoading: false,
       paddingBottom: 20,
-      onBack,
-      onContinue,
+      onBack: jest.fn(),
+      onContinue: jest.fn(),
       onDone: jest.fn(),
       lastStepPrimaryTitle: 'Save changes',
     });
 
-    fireEvent.press(screen.getByText('Cancel'));
-    expect(onBack).toHaveBeenCalled();
-
-    fireEvent.press(screen.getByText('Save changes'));
-    expect(onContinue).toHaveBeenCalled();
+    expect(screen.queryByText('Cancel')).toBeNull();
+    expect(screen.queryByText('Save changes')).toBeNull();
   });
 
   it('shows Back and Done in edit section mode', () => {
@@ -128,5 +123,25 @@ describe('CreateFlowFooter', () => {
 
     fireEvent.press(screen.getByText('Done'));
     expect(onContinue).toHaveBeenCalled();
+  });
+
+  it('shows Back and Save changes with loading in edit section mode', () => {
+    renderFooter({
+      appointmentConfirmed: false,
+      editSectionMode: true,
+      step: 6,
+      lastStepIndex: 7,
+      canContinue: true,
+      confirmLoading: true,
+      paddingBottom: 20,
+      onBack: jest.fn(),
+      onContinue: jest.fn(),
+      onDone: jest.fn(),
+      sectionPrimaryTitle: 'Save changes',
+      lastStepPrimaryTitle: 'Save changes',
+      lastStepAccessibilityLabel: 'Save appointment changes',
+    });
+
+    expect(screen.getByLabelText('Save appointment changes')).toBeTruthy();
   });
 });

@@ -1,10 +1,11 @@
 import { parseBookingStartLocalMs } from '../../../home/utils/bookingStart';
 import { formatPhoneForDisplay } from '../../../../utils/phone';
 import { splitBookingServiceName } from '../../../../utils/splitBookingServiceName';
+import { parseJobDetailsFromBooking } from './parseJobDetailsFromBooking';
 import { resolveBookingDiscount } from './resolveBookingDiscount';
 import { resolveBookingSessionFees } from './resolveBookingSessionFees';
 import { resolveSessionPaymentForDisplay } from './resolveSessionPaymentForDisplay';
-import { getSessionPaymentMethodLabel, getSessionPaymentRowLabel } from './sessionPaymentDisplay';
+import { getSessionPaymentMethodLabel } from './sessionPaymentDisplay';
 
 function formatMoney(amount) {
   const safe = Number.isFinite(amount) ? amount : 0;
@@ -192,6 +193,33 @@ export function reconcilePaymentSummaryWithDiscount(
     ...paymentSummary,
     totalAmountCents: nextTotal,
     remainingAmountCents: nextRem,
+  };
+}
+
+/**
+ * After owner edits job prices, `booking_payments` can lag behind Visit total.
+ * Heal total/remaining from the current visit net (service + add-ons − discount [+ fees]).
+ *
+ * @param {ReturnType<typeof normalizeBookingPaymentSummary>} paymentSummary
+ * @param {{ visitNetCents: number }} args
+ */
+export function reconcilePaymentSummaryWithVisitTotal(paymentSummary, { visitNetCents }) {
+  if (!paymentSummary) return paymentSummary;
+
+  const expectedTotal = Math.max(0, Math.round(Number(visitNetCents) || 0));
+  const paid = Math.max(0, Math.round(Number(paymentSummary.paidOnlineAmountCents) || 0));
+  const expectedRem = Math.max(0, expectedTotal - paid);
+  const total = Math.max(0, Math.round(Number(paymentSummary.totalAmountCents) || 0));
+  const rem = Math.max(0, Math.round(Number(paymentSummary.remainingAmountCents) || 0));
+
+  if (total === expectedTotal && rem === expectedRem) {
+    return paymentSummary;
+  }
+
+  return {
+    ...paymentSummary,
+    totalAmountCents: expectedTotal,
+    remainingAmountCents: expectedRem,
   };
 }
 
@@ -416,26 +444,73 @@ function buildTimeLine(ms) {
 
 export function buildBookingDetailsModel(booking) {
   const ms = parseBookingStartLocalMs(booking?.scheduled_date, booking?.start_time);
+  const parsedJobs = parseJobDetailsFromBooking(booking?.job_details);
+  const isMultiJob = parsedJobs.length > 1;
+  const useJobDetails = parsedJobs.length > 0;
+
   const serviceNameRaw = clean(booking?.service_name, 'Detail package');
-  const { primary: serviceName, pricingOption: servicePricingOption } =
+  const { primary: legacyServiceName, pricingOption: legacyPricingOption } =
     splitBookingServiceName(serviceNameRaw);
-  const addOns = normalizeAddonItems(booking?.addon_details);
+
+  const legacyAddOns = normalizeAddonItems(booking?.addon_details);
+  const jobAddOnsFlat = parsedJobs.flatMap((job, jobIdx) =>
+    job.addOns.map((addon, addonIdx) => ({
+      ...addon,
+      id: `${job.id}-addon-${addon.id}-${addonIdx}`,
+      jobId: job.id,
+      jobIndex: jobIdx,
+    })),
+  );
+
+  const addOns = useJobDetails ? jobAddOnsFlat : legacyAddOns;
   const addOnsTotal = addOns.reduce((sum, item) => sum + item.price, 0);
-  const servicePrice = Number.isFinite(Number(booking?.service_price_cents))
+
+  const jobsServiceTotal = parsedJobs.reduce((sum, job) => sum + job.servicePrice, 0);
+  const legacyServicePrice = Number.isFinite(Number(booking?.service_price_cents))
     ? Number(booking.service_price_cents) / 100
     : null;
+  const servicePrice = useJobDetails ? jobsServiceTotal : legacyServicePrice;
+
+  const scheduleJobs = useJobDetails
+    ? parsedJobs.map((job) => ({
+        id: job.id,
+        serviceName: job.serviceName,
+        pricingOption: job.pricingOption,
+        vehicleLine: job.vehicleLine,
+      }))
+    : [
+        {
+          id: 'legacy',
+          serviceName: legacyServiceName,
+          pricingOption: legacyPricingOption,
+          vehicleLine: '',
+        },
+      ];
+
+  const scheduleServiceName = isMultiJob
+    ? `${parsedJobs.length} jobs`
+    : scheduleJobs[0]?.serviceName || legacyServiceName;
+  const schedulePricingOption = isMultiJob ? null : (scheduleJobs[0]?.pricingOption ?? null);
+
   const discount = resolveBookingDiscount(booking);
   const discountDollars = discount?.discountDollars ?? 0;
-  const paymentSummary = reconcilePaymentSummaryWithDiscount(
+  const servicePriceCents = Number.isFinite(servicePrice) ? Math.round(servicePrice * 100) : 0;
+  const addOnsTotalCents = Math.round(Math.max(0, addOnsTotal) * 100);
+  const discountCents = discount?.discountCents ?? 0;
+  const visitNetCents = Math.max(0, servicePriceCents + addOnsTotalCents - discountCents);
+
+  let paymentSummary = reconcilePaymentSummaryWithDiscount(
     normalizeBookingPaymentSummary(booking?.payment),
     {
-      servicePriceCents: Number.isFinite(servicePrice) ? Math.round(servicePrice * 100) : 0,
-      addOnsTotalCents: Math.round(Math.max(0, addOnsTotal) * 100),
-      discountCents: discount?.discountCents ?? 0,
+      servicePriceCents,
+      addOnsTotalCents,
+      discountCents,
     },
   );
-  const statusLower = clean(booking?.status, 'confirmed').toLowerCase();
-  const isCompleted = statusLower === 'completed' || statusLower === 'complete';
+  // Only heal stale payment totals when we know the visit pricing (jobs or service_price_cents).
+  if (useJobDetails || Number.isFinite(legacyServicePrice)) {
+    paymentSummary = reconcilePaymentSummaryWithVisitTotal(paymentSummary, { visitNetCents });
+  }
   const resolvedSessionPayment = resolveSessionPaymentForDisplay(
     paymentSummary,
     booking?.status,
@@ -468,31 +543,17 @@ export function buildBookingDetailsModel(booking) {
         ? paymentTotal
         : computedTotal;
 
-  const paidOnline = resolvedSessionPayment.paidOnlineCents / 100;
-  const sessionPaid = resolvedSessionPayment.sessionPaidCents / 100;
-  const paidOnlineCents = Math.max(0, Math.round(resolvedSessionPayment.paidOnlineCents));
-  const remainingCents = Math.max(0, Math.round(paymentSummary?.remainingAmountCents ?? 0));
-  const totalCents = Math.max(0, Math.round(paymentSummary?.totalAmountCents ?? 0));
-  const isDepositPayment =
-    paidOnlineCents > 0 && (remainingCents > 0 || (totalCents > 0 && paidOnlineCents < totalCents));
-  const paymentAdjustments = [];
-  if (paidOnline > 0 && (isCompleted || remainingCents > 0)) {
-    paymentAdjustments.push({
-      id: 'paid-online',
-      label: isDepositPayment ? 'Deposit' : 'Paid online',
-      value: `−${formatMoney(paidOnline)}`,
-    });
-  }
-  if (isCompleted && sessionPaid > 0 && resolvedSessionPayment.sessionMethod) {
-    paymentAdjustments.push({
-      id: 'session-payment',
-      label: getSessionPaymentRowLabel(resolvedSessionPayment.sessionMethod),
-      value: `−${formatMoney(sessionPaid)}`,
-    });
-  }
-
-  const vehicleLine = buildVehicleDisplayLine(booking);
+  const legacyVehicleLine = buildVehicleDisplayLine(booking);
+  const jobVehicleLines = parsedJobs
+    .map((job) => job.vehicleLine)
+    .filter((line) => line.length > 0);
+  const hasJobVehicles = jobVehicleLines.length > 0;
+  // Vehicles are shown under Schedule job rows when present on job_details — avoid a duplicate section.
+  const vehicleLine = hasJobVehicles ? '' : legacyVehicleLine;
   const hasVehicle = vehicleLine.length > 0;
+  const vehicleRows = hasVehicle
+    ? [{ key: 'vehicle-legacy', icon: 'car-sport-outline', value: legacyVehicleLine }]
+    : [];
 
   const addressParts = [
     clean(booking?.customer_street_address, ''),
@@ -509,12 +570,32 @@ export function buildBookingDetailsModel(booking) {
   const customerEmailDisplay = typeof customerEmailRaw === 'string' ? customerEmailRaw.trim() : '';
   const notesRaw = typeof booking?.customer_notes === 'string' ? booking.customer_notes.trim() : '';
 
+  const priceJobs = useJobDetails
+    ? parsedJobs.map((job) => ({
+        id: job.id,
+        serviceName: job.serviceName,
+        pricingOption: job.pricingOption,
+        vehicleLine: job.vehicleLine,
+        servicePriceLabel: formatMoney(job.servicePrice),
+        addOns: job.addOns.map((item) => ({
+          ...item,
+          priceLabel: formatMoney(item.price),
+        })),
+      }))
+    : null;
+
   return {
     bookingId: booking?.id || '',
     status: clean(booking?.status, 'confirmed'),
+    jobCount: useJobDetails
+      ? parsedJobs.length
+      : Math.max(1, Math.round(Number(booking?.visit_job_count) || 1)),
+    isMultiJob,
     schedule: {
-      serviceName,
-      pricingOption: servicePricingOption,
+      serviceName: scheduleServiceName,
+      pricingOption: schedulePricingOption,
+      jobs: scheduleJobs,
+      isMultiJob,
       date: buildDateLine(ms),
       time: buildTimeLine(ms),
       duration: formatDuration(booking?.duration_minutes),
@@ -536,9 +617,12 @@ export function buildBookingDetailsModel(booking) {
     },
     vehicle: vehicleLine,
     hasVehicle,
+    vehicleRows,
     notes: notesRaw,
     formattedPrice: {
-      servicePrice: formatMoneyOrFallback(servicePrice),
+      servicePrice: formatMoneyOrFallback(useJobDetails ? jobsServiceTotal : servicePrice),
+      jobs: priceJobs,
+      isMultiJob,
       addOnsTotal: formatMoney(addOnsTotal),
       hasAddOns: addOns.length > 0,
       hasDiscount: discountDollars > 0,
@@ -553,8 +637,6 @@ export function buildBookingDetailsModel(booking) {
       total: formatMoneyOrFallback(total),
       addOns: addOns.map((item) => ({ ...item, priceLabel: formatMoney(item.price) })),
       sessionFees: sessionFees.map((item) => ({ ...item, priceLabel: formatMoney(item.price) })),
-      hasPaymentAdjustments: paymentAdjustments.length > 0,
-      paymentAdjustments,
     },
     payment: buildBookingPaymentSection(paymentSummary, booking?.status, booking?.job_status),
   };

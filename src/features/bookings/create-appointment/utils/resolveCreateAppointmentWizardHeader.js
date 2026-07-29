@@ -6,7 +6,11 @@ import { CREATE_APPOINTMENT_STEP } from '../constants';
  * @param {number} step
  * @param {{ title?: string; subtitle?: string } | undefined} meta
  * @param {{ title?: string; subtitle?: string } | null | undefined} [addressStepCopy]
- * @param {{ servicePickPhase?: 'chooser' | 'catalog'; isCustomJob?: boolean }} [context]
+ * @param {{
+ *   servicePickPhase?: 'chooser' | 'catalog';
+ *   isCustomJob?: boolean;
+ *   jobNumber?: number;
+ * }} [context]
  */
 export function resolveCreateAppointmentWizardHeader(
   step,
@@ -15,9 +19,13 @@ export function resolveCreateAppointmentWizardHeader(
   context = {},
 ) {
   if (step === CREATE_APPOINTMENT_STEP.SERVICE && context.servicePickPhase === 'catalog') {
+    const jobNumber = Math.max(1, Number(context.jobNumber) || 1);
     return {
-      title: 'Choose a service',
-      subtitle: 'Pick one of your services for this appointment.',
+      title: jobNumber > 1 ? `Choose service · Job ${jobNumber}` : 'Choose a service',
+      subtitle:
+        jobNumber > 1
+          ? 'Pick the next service for this visit.'
+          : 'Pick one of your services for this appointment.',
     };
   }
 

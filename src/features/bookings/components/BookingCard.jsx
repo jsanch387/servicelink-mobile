@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
-import { splitBookingServiceName } from '../../../utils/splitBookingServiceName';
+import { formatBookingServiceLabel } from '../utils/formatBookingServiceLabel';
 
 /**
  * Summary row for a booking (details screen later).
@@ -18,7 +18,7 @@ import { splitBookingServiceName } from '../../../utils/splitBookingServiceName'
  */
 export function BookingCard({ booking, variant = 'standalone', showRelativeLine = true, onPress }) {
   const { colors } = useTheme();
-  const serviceTitle = splitBookingServiceName(booking.service_name).primary || 'Detail package';
+  const serviceTitle = formatBookingServiceLabel(booking);
   const customerName = booking.customer_name?.trim() || 'Customer';
   const scheduleMs = useMemo(
     () => parseBookingStartLocalMs(booking.scheduled_date, booking.start_time),
@@ -223,8 +223,9 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
         chevron: {
           alignItems: 'center',
           alignSelf: 'stretch',
-          justifyContent: 'center',
+          justifyContent: 'flex-end',
           marginLeft: 8,
+          paddingBottom: 1,
           paddingHorizontal: 2,
         },
         hiddenMeridiemSpacer: {

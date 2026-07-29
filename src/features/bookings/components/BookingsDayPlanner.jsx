@@ -6,6 +6,7 @@ import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { BOOKINGS_LIST_SCREEN_PADDING } from '../constants';
 import { getBookingStatusLabel, getBookingStatusVisualKind } from '../utils/bookingStatusVisual';
+import { getBookingServiceLabelParts } from '../utils/formatBookingServiceLabel';
 import { layoutPlannerDay } from '../utils/plannerDayLayout';
 import { BookingsDayPlannerSkeleton } from './BookingsDayPlannerSkeleton';
 
@@ -290,10 +291,26 @@ export function BookingsDayPlanner({
           borderWidth: 1,
           opacity: 0.95,
         },
-        blockTitle: {
+        blockTitleRow: {
+          alignItems: 'baseline',
+          flexDirection: 'row',
+          flexWrap: 'nowrap',
+          gap: 4,
+          minWidth: 0,
+        },
+        blockTitleName: {
           color: colors.inputText,
+          flexShrink: 1,
           fontSize: 13,
           fontWeight: '700',
+          minWidth: 0,
+        },
+        blockTitleMore: {
+          color: colors.inputText,
+          flexShrink: 0,
+          fontSize: 12,
+          fontWeight: '600',
+          opacity: 0.88,
         },
         blockTitleCompleted: {
           color: colors.textSecondary,
@@ -513,7 +530,9 @@ export function BookingsDayPlanner({
             {layout.blocks.map((b) => {
               const kind = getBookingStatusVisualKind(b.booking.status);
               const statusLabel = getBookingStatusLabel(b.booking.status);
-              const service = b.booking.service_name?.trim() || 'Service';
+              const serviceParts = getBookingServiceLabelParts(b.booking);
+              const service = serviceParts.primary;
+              const extraJobs = serviceParts.extraCount;
               const customer = b.booking.customer_name?.trim() || '';
               const shellStyle =
                 kind === 'cancelled'
@@ -533,8 +552,13 @@ export function BookingsDayPlanner({
                     : isDark
                       ? '#4ade80'
                       : '#16a34a';
-              const titleStyle = [
-                styles.blockTitle,
+              const titleNameStyle = [
+                styles.blockTitleName,
+                kind === 'cancelled' && styles.blockTitleCancelled,
+                kind === 'completed' && styles.blockTitleCompleted,
+              ];
+              const titleMoreStyle = [
+                styles.blockTitleMore,
                 kind === 'cancelled' && styles.blockTitleCancelled,
                 kind === 'completed' && styles.blockTitleCompleted,
               ];
@@ -565,7 +589,9 @@ export function BookingsDayPlanner({
               const showCustomerLine = Boolean(customer) && b.height >= 52;
               /** Earlier start time stacks above later cards if geometry ever overlaps by a pixel. */
               const stackZ = 25000 - (typeof b.startMin === 'number' ? b.startMin : 0);
-              const a11yLabel = [service, customer || null, statusLabel].filter(Boolean).join(', ');
+              const a11yLabel = [serviceParts.label, customer || null, statusLabel]
+                .filter(Boolean)
+                .join(', ');
               return (
                 <Pressable
                   key={b.booking.id}
@@ -589,9 +615,16 @@ export function BookingsDayPlanner({
                   <View style={[styles.blockRail, { backgroundColor: railColor }]} />
                   <View style={styles.blockBody}>
                     <View style={styles.blockBodyUpper}>
-                      <AppText numberOfLines={2} style={titleStyle}>
-                        {service}
-                      </AppText>
+                      <View style={styles.blockTitleRow}>
+                        <AppText numberOfLines={1} style={titleNameStyle}>
+                          {service}
+                        </AppText>
+                        {extraJobs > 0 ? (
+                          <AppText numberOfLines={1} style={titleMoreStyle}>
+                            {`+${extraJobs} more`}
+                          </AppText>
+                        ) : null}
+                      </View>
                       {showCustomerLine ? (
                         <AppText numberOfLines={1} style={styles.blockSub}>
                           {customer}
