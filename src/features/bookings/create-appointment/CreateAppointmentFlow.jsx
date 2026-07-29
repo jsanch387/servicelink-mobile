@@ -65,7 +65,7 @@ export function CreateAppointmentFlow({ onImmersiveSubmitChange }) {
             flow.styles.content,
             flow.appointmentConfirmed && flow.styles.contentConfirmed,
           ]}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
           style={flow.styles.scroll}
         >

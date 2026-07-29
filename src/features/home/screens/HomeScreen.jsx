@@ -438,7 +438,7 @@ export function HomeScreen() {
   );
 
   return (
-    <SafeAreaView edges={['top']} style={styles.root}>
+    <SafeAreaView edges={['top']} style={styles.root} testID="home-screen">
       {markCompleteFlow.useCompleteVisitScreen ? (
         <BookingCompleteVisitSheet
           bookingId={nextBookingId}

@@ -1,0 +1,15 @@
+appId: com.jsanchdev.servicelinkmobile
+tags:
+  - smoke
+---
+# Smoke: launch → Home (requires dev E2E login env — see .maestro/README.md).
+# Android: maestro test -e APP_ID=com.myservicelink.app .maestro/smoke-home.yaml
+#   (or temporarily set appId above to com.myservicelink.app)
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: home-screen
+    timeout: 90000
+- assertVisible:
+    id: home-screen

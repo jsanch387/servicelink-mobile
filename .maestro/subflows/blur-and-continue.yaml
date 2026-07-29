@@ -1,0 +1,8 @@
+# Dismiss iOS number/phone pads by tapping the wizard header (blur), then Continue.
+# Maestro can "succeed" tapping Continue while the keyboard covers it — always blur first.
+appId: com.jsanchdev.servicelinkmobile
+---
+- tapOn:
+    id: wizard-step-header
+- tapOn:
+    id: create-appt-continue

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import { Button } from '../../../../components/ui';
 import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { useTheme } from '../../../../theme';
@@ -67,6 +67,18 @@ export function CreateFlowFooter({
     [colors],
   );
 
+  const isLast = step === lastStepIndex;
+
+  const handlePrimary = () => {
+    Keyboard.dismiss();
+    onContinue();
+  };
+
+  const handleDone = () => {
+    Keyboard.dismiss();
+    onDone();
+  };
+
   if (hideWhileSubmitPanel) {
     return null;
   }
@@ -74,7 +86,13 @@ export function CreateFlowFooter({
   if (appointmentConfirmed) {
     return (
       <View style={[styles.footer, styles.footerDone, { paddingBottom }]}>
-        <Button fullWidth title="Done" variant="primary" onPress={onDone} />
+        <Button
+          fullWidth
+          testID="create-appt-done"
+          title="Done"
+          variant="primary"
+          onPress={handleDone}
+        />
       </View>
     );
   }
@@ -102,14 +120,12 @@ export function CreateFlowFooter({
             loading={confirmLoading}
             title={sectionPrimaryTitle}
             variant="primary"
-            onPress={onContinue}
+            onPress={handlePrimary}
           />
         </View>
       </View>
     );
   }
-
-  const isLast = step === lastStepIndex;
 
   return (
     <View style={[styles.footer, { paddingBottom }]}>
@@ -129,9 +145,10 @@ export function CreateFlowFooter({
           disabled={!canContinue || (isLast && confirmLoading)}
           fullWidth
           loading={isLast && confirmLoading}
+          testID="create-appt-continue"
           title={isLast ? lastStepPrimaryTitle : 'Continue'}
           variant="primary"
-          onPress={onContinue}
+          onPress={handlePrimary}
         />
       </View>
     </View>

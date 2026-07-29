@@ -112,7 +112,7 @@ export function LoginScreen() {
   };
 
   return (
-    <View style={styles.screen}>
+    <View style={styles.screen} testID="login-screen">
       <AppShellGlow />
       <SafeAreaView style={styles.shellGlowSafe} edges={['top', 'left', 'right', 'bottom']}>
         <KeyboardAvoidingView
@@ -175,6 +175,7 @@ export function LoginScreen() {
                       }}
                       placeholder="you@company.com"
                       returnKeyType={useAppReviewPasswordLogin ? 'next' : 'send'}
+                      testID="login-email"
                       textContentType="username"
                       value={email}
                     />
@@ -202,6 +203,7 @@ export function LoginScreen() {
                         ref={passwordFieldRef}
                         returnKeyType="go"
                         showPasswordToggle
+                        testID="login-password"
                         textContentType="password"
                         value={password}
                       />
@@ -211,6 +213,7 @@ export function LoginScreen() {
                       fullWidth
                       loading={submitting}
                       onPress={handleSendCode}
+                      testID="login-submit"
                       title={useAppReviewPasswordLogin ? 'Sign in' : 'Send login code'}
                     />
                   </View>

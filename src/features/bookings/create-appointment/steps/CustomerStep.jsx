@@ -69,6 +69,7 @@ export function CustomerStep({ customer, onChangeCustomer }) {
           label={<RequiredFieldLabel compact text="Full name" />}
           maxLength={120}
           placeholder="Jordan Lee"
+          testID="create-appt-customer-name"
           value={customer.fullName}
           onChangeText={(t) => onChangeCustomer({ ...customer, fullName: t })}
         />
@@ -78,6 +79,7 @@ export function CustomerStep({ customer, onChangeCustomer }) {
           label={<RequiredFieldLabel compact text="Phone" />}
           leftIcon="call-outline"
           placeholder="(555) 234-5678"
+          testID="create-appt-customer-phone"
           value={customer.phone}
           onChangeText={(t) => onChangeCustomer({ ...customer, phone: t })}
         />

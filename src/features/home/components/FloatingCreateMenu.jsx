@@ -203,6 +203,7 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
                   accessibilityLabel={item.label}
                   accessibilityRole="button"
                   style={styles.labelPill}
+                  testID={item.key === 'appointment' ? 'create-appointment' : 'create-quote'}
                   onPress={() => handleSelect(item.key)}
                 >
                   <Text allowFontScaling={false} numberOfLines={1} style={styles.labelText}>
@@ -210,11 +211,15 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
                   </Text>
                 </Pressable>
                 <Pressable
-                  accessible={false}
+                  accessibilityLabel={item.label}
+                  accessibilityRole="button"
                   style={[
                     styles.actionIconOuter,
                     { backgroundColor: circleBackground(colors, item.colorToken) },
                   ]}
+                  testID={
+                    item.key === 'appointment' ? 'create-appointment-icon' : 'create-quote-icon'
+                  }
                   onPress={() => handleSelect(item.key)}
                 >
                   <Ionicons color={colors.surface} name={item.icon} size={22} />
@@ -230,6 +235,7 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
           accessibilityLabel={open ? 'Close create menu' : 'Open create menu'}
           accessibilityRole="button"
           style={styles.fabPress}
+          testID="create-menu-fab"
           onPress={toggleMenu}
         >
           <Ionicons color={colors.surface} name={open ? 'close' : 'add'} size={28} />

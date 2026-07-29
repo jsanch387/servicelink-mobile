@@ -28,3 +28,15 @@ Apple reviewers cannot read the inbox for your OTP test account. For **one** ded
    - Password: (the Supabase password for that user — do not commit this to the repo)
 
 All other emails keep the normal OTP flow. Leave `EXPO_PUBLIC_APP_REVIEW_LOGIN_EMAIL` unset in builds where the feature is not needed.
+
+## Maestro E2E auto login (dev only)
+
+For UI E2E, the app can skip the login screen in **`__DEV__`** builds when:
+
+```bash
+EXPO_PUBLIC_E2E_LOGIN=true
+EXPO_PUBLIC_E2E_LOGIN_EMAIL=...
+EXPO_PUBLIC_E2E_LOGIN_PASSWORD=...
+```
+
+are set in `.env.local`. Bootstrap calls `signInWithEmailPassword` when there is no persisted session. See `.maestro/README.md`.

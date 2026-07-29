@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from './AppText';
 import { SCREEN_GUTTER } from '../../constants/layout';
 import { useTheme } from '../../theme';
 
 /**
  * Shared wizard header: progress bar, title, and subtitle (no step count).
+ * Tapping the header dismisses the keyboard (helps iOS number/phone pads).
  *
  * @param {object} props
  * @param {number} props.stepIndex - 0-based
@@ -69,7 +70,13 @@ export function WizardStepHeader({
   );
 
   return (
-    <View style={styles.wrap}>
+    <Pressable
+      // Keep children as separate a11y/text nodes for Maestro (default Pressable merges them).
+      accessible={false}
+      style={styles.wrap}
+      testID="wizard-step-header"
+      onPress={Keyboard.dismiss}
+    >
       {showProgress ? (
         <View
           accessibilityLabel={`${progressAccessibilityLabel} ${Math.round(progress)} percent`}
@@ -78,8 +85,10 @@ export function WizardStepHeader({
           <View style={[styles.fill, { width: `${progress}%` }]} />
         </View>
       ) : null}
-      <AppText style={styles.title}>{title}</AppText>
+      <AppText accessibilityRole="header" style={styles.title}>
+        {title}
+      </AppText>
       {subtitle?.trim() ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
-    </View>
+    </Pressable>
   );
 }

@@ -63,7 +63,7 @@ export function CreateAppointmentScreen() {
   }, [navigation, styles.cancelHit, styles.cancelLabel]);
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} testID="create-appt-screen">
       <CreateAppointmentFlow onImmersiveSubmitChange={handleNavigationHeaderVisibility} />
     </View>
   );

@@ -41,7 +41,7 @@ export function AddAnotherJobCard({ onPress, disabled = false, label = 'Add anot
           fontWeight: '600',
         },
       }),
-    [colors, isDark],
+    [colors, disabled, isDark],
   );
 
   return (
@@ -50,6 +50,7 @@ export function AddAnotherJobCard({ onPress, disabled = false, label = 'Add anot
       accessibilityRole="button"
       disabled={disabled}
       style={styles.press}
+      testID="create-appt-add-job"
       onPress={onPress}
     >
       <View style={styles.face}>

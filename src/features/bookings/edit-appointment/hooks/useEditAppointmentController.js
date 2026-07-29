@@ -8,12 +8,14 @@ import { updateBookingById } from '../api/updateBookingById';
 import { syncBookingPaymentTotalsAfterEdit } from '../api/syncBookingPaymentTotalsAfterEdit';
 import { buildEditBookingUpdatePayload } from '../utils/buildEditBookingUpdatePayload';
 import { resolveBookingDiscount } from '../../booking-details/utils/resolveBookingDiscount';
-import { parsePriceLabelToUsd , formatUsdFromNumber } from '../../create-appointment/utils/priceLabelMath';
+import {
+  parsePriceLabelToUsd,
+  formatUsdFromNumber,
+} from '../../create-appointment/utils/priceLabelMath';
 import { splitBookingServiceName } from '../../../../utils/splitBookingServiceName';
 import { catalogAddonsForService } from '../../../services/utils/catalogAddonsForService';
 import { useCreateAppointmentServerData } from '../../create-appointment/hooks/useCreateAppointmentServerData';
 import { createAppointmentFlowStyles } from '../../create-appointment/styles/createAppointmentFlowStyles';
-import { canContinueCreateAppointmentStep } from '../../create-appointment/utils/createFlowContinueGate';
 import {
   baseServiceDurationMinutes,
   totalBookingDurationMinutes,
@@ -807,66 +809,6 @@ export function useEditAppointmentController({
     setSelectedServiceId(id);
   }, []);
 
-  const canContinue = useMemo(() => {
-    if (
-      step === EDIT_APPOINTMENT_HUB ||
-      step === EDIT_APPOINTMENT_JOBS_LIST ||
-      step === EDIT_APPOINTMENT_JOB_HUB ||
-      step === EDIT_APPOINTMENT_NOTES
-    ) {
-      return true;
-    }
-    return canContinueCreateAppointmentStep({
-      appointmentConfirmed: false,
-      step,
-      selectedServiceId,
-      selectedPricingId,
-      servicePickPhase: 'catalog',
-      isCustomJob,
-      customJobComplete,
-      pricingSkipped,
-      locationSkipped,
-      addressSkipped,
-      businessServiceLocationLoading: server.businessServiceLocationLoading,
-      pricingOptions: pricingPayload.options,
-      priceOptionsLoading: server.priceOptionsLoading,
-      priceOptionsEnabled,
-      acceptBookings,
-      scheduleLoading,
-      selectedDateKey,
-      selectedTime,
-      timeSlots,
-      customer,
-      appointmentLocationType,
-      shopAddressMissing,
-      address,
-      vehicle,
-    });
-  }, [
-    step,
-    selectedServiceId,
-    selectedPricingId,
-    isCustomJob,
-    customJobComplete,
-    pricingSkipped,
-    locationSkipped,
-    addressSkipped,
-    server.businessServiceLocationLoading,
-    pricingPayload.options,
-    server.priceOptionsLoading,
-    priceOptionsEnabled,
-    acceptBookings,
-    scheduleLoading,
-    selectedDateKey,
-    selectedTime,
-    timeSlots,
-    customer,
-    appointmentLocationType,
-    shopAddressMissing,
-    address,
-    vehicle,
-  ]);
-
   const jobsForSave = useMemo(() => {
     if (!isMultiJob) return jobs;
     if (activeJobIndex == null) return jobs;
@@ -1122,43 +1064,6 @@ export function useEditAppointmentController({
     setAppointmentLocationType(snap.appointmentLocationType);
     sectionSnapshotRef.current = null;
   }, []);
-
-  const flushActiveJob = useCallback(() => {
-    if (activeJobIndex == null) return;
-    const snapshot = flushEditDraftToJobSnapshot({
-      localId: jobs[activeJobIndex]?.localId,
-      isCustomJob,
-      selectedServiceId,
-      selectedService,
-      selectedPricingOption,
-      selectedAddonRows,
-      totalDurationMinutes: currentJobDurationMinutes,
-      vehicle,
-      selectedPricingId,
-      selectedAddonIds,
-      catalogPriceUsdText,
-      customServiceName,
-      customPriceUsdText,
-      customDurationHhMm,
-    });
-    setJobs((prev) => mergeActiveJobIntoJobs(prev, activeJobIndex, snapshot));
-  }, [
-    activeJobIndex,
-    jobs,
-    isCustomJob,
-    selectedServiceId,
-    selectedService,
-    selectedPricingOption,
-    selectedAddonRows,
-    currentJobDurationMinutes,
-    vehicle,
-    selectedPricingId,
-    selectedAddonIds,
-    catalogPriceUsdText,
-    customServiceName,
-    customPriceUsdText,
-    customDurationHhMm,
-  ]);
 
   const openEditSection = useCallback(
     (targetStep) => {

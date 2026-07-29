@@ -1,8 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
-import { LocationAutocompleteField } from '../../../location';
-import { formatLocationDisplay } from '../../../location/services/locationAutocomplete';
 import { useTheme } from '../../../../theme';
 import { ChoiceRow } from '../components/ChoiceRow';
 import { CREATE_APPOINTMENT_LOCATION_OPTIONS } from '../utils/createAppointmentServiceLocation';
@@ -16,10 +14,6 @@ const FIELD_SHELL = { marginBottom: 0 };
  * }} props
  */
 export function AddressStep({ address, onChangeAddress }) {
-  const { colors } = useTheme();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState(null);
-
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -32,13 +26,6 @@ export function AddressStep({ address, onChangeAddress }) {
           overflow: 'visible',
           zIndex: 1,
         },
-        hint: {
-          color: colors.textMuted,
-          fontSize: 13,
-          fontWeight: '500',
-          lineHeight: 18,
-          marginBottom: 4,
-        },
         row: {
           flexDirection: 'row',
           gap: 12,
@@ -47,48 +34,19 @@ export function AddressStep({ address, onChangeAddress }) {
           flex: 1,
         },
       }),
-    [colors],
+    [],
   );
 
   return (
     <SurfaceCard padding="none" style={styles.card}>
       <View style={styles.fieldStack}>
-        <AppText style={styles.hint}>
-          Search to autofill, then tweak anything that looks off.
-        </AppText>
-        <LocationAutocompleteField
-          label="Search address"
-          mode="customer-address"
-          placeholder="Start typing a street address"
-          selectedLocation={selectedLocation}
-          value={searchQuery}
-          onChangeText={(value) => {
-            setSelectedLocation(null);
-            setSearchQuery(value);
-          }}
-          onSelect={(location) => {
-            setSelectedLocation(location);
-            setSearchQuery(formatLocationDisplay(location));
-            onChangeAddress({
-              ...address,
-              street: String(location.street ?? '').trim() || address.street,
-              city: String(location.city ?? '').trim(),
-              state: String(location.state ?? '')
-                .trim()
-                .toUpperCase()
-                .slice(0, 2),
-              zip: String(location.zip ?? '')
-                .replace(/\D/g, '')
-                .slice(0, 5),
-            });
-          }}
-        />
         <SurfaceTextField
           compact
           containerStyle={FIELD_SHELL}
           label="Street address"
           maxLength={200}
           placeholder="123 Main Street"
+          testID="create-appt-address-street"
           value={address.street}
           onChangeText={(t) => onChangeAddress({ ...address, street: t })}
         />
@@ -98,6 +56,7 @@ export function AddressStep({ address, onChangeAddress }) {
           label="Unit or apartment (optional)"
           maxLength={50}
           placeholder="Apt 4B"
+          testID="create-appt-address-unit"
           value={address.unit}
           onChangeText={(t) => onChangeAddress({ ...address, unit: t })}
         />
@@ -107,6 +66,7 @@ export function AddressStep({ address, onChangeAddress }) {
           label="City"
           maxLength={100}
           placeholder="Austin"
+          testID="create-appt-address-city"
           value={address.city}
           onChangeText={(t) => onChangeAddress({ ...address, city: t })}
         />
@@ -119,6 +79,7 @@ export function AddressStep({ address, onChangeAddress }) {
               label="State"
               maxLength={2}
               placeholder="TX"
+              testID="create-appt-address-state"
               value={address.state}
               onChangeText={(t) =>
                 onChangeAddress({
@@ -139,6 +100,7 @@ export function AddressStep({ address, onChangeAddress }) {
               label="ZIP code"
               maxLength={5}
               placeholder="78701"
+              testID="create-appt-address-zip"
               value={address.zip}
               onChangeText={(t) =>
                 onChangeAddress({

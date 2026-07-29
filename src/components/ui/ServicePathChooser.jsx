@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
 
-function PathCard({ title, subtitle, icon, onPress }) {
+function PathCard({ title, subtitle, icon, onPress, testID }) {
   const { colors } = useTheme();
   const styles = useMemo(
     () =>
@@ -50,7 +50,7 @@ function PathCard({ title, subtitle, icon, onPress }) {
   );
 
   return (
-    <Pressable accessibilityRole="button" style={styles.press} onPress={onPress}>
+    <Pressable accessibilityRole="button" style={styles.press} testID={testID} onPress={onPress}>
       <View style={styles.face}>
         <View style={styles.iconWrap}>
           <Ionicons color={colors.textMuted} name={icon} size={24} />
@@ -71,12 +71,14 @@ export function ServicePathChooser({ onChooseServices, onChooseCustomJob }) {
       <PathCard
         icon="grid-outline"
         subtitle="Choose something you already offer."
+        testID="create-appt-path-services"
         title="Your services"
         onPress={onChooseServices}
       />
       <PathCard
         icon="create-outline"
         subtitle="Name the work and set your own price."
+        testID="create-appt-path-custom"
         title="Custom job"
         onPress={onChooseCustomJob}
       />

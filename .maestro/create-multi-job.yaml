@@ -1,0 +1,153 @@
+appId: com.jsanchdev.servicelinkmobile
+tags:
+  - multi-job
+  - create-appointment
+---
+# Multi-job create: 2 custom jobs → schedule → confirm.
+# Requires: Metro + E2E login, business accepting bookings, open time slots.
+#
+# iOS number/phone pads cover Continue; Maestro may report a tap while the
+# keyboard ate it. Always blur via wizard header before Continue, then wait
+# until the current step title is gone.
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: home-screen
+    timeout: 90000
+
+# Open create flow (menu may already be open from a prior run — don't toggle it closed)
+- runFlow:
+    when:
+      notVisible: 'Create appointment'
+    commands:
+      - tapOn:
+          id: create-menu-fab
+- extendedWaitUntil:
+    visible: 'Create appointment'
+    timeout: 8000
+- tapOn: 'Create appointment'
+- extendedWaitUntil:
+    visible:
+      id: create-appt-screen
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: create-appt-path-custom
+    timeout: 10000
+- assertVisible:
+    id: create-appt-path-custom
+
+# —— Job 1: custom ——
+- tapOn:
+    id: create-appt-path-custom
+- tapOn:
+    id: create-appt-custom-service
+- inputText: 'E2E Exterior Detail'
+- tapOn:
+    id: create-appt-custom-price
+- inputText: '85'
+- runFlow: subflows/blur-and-continue.yaml
+- extendedWaitUntil:
+    visible:
+      id: create-appt-customer-name
+    timeout: 15000
+
+# Customer (job 1 only)
+- tapOn:
+    id: create-appt-customer-name
+- inputText: 'E2E Multi Job Customer'
+- tapOn:
+    id: create-appt-customer-phone
+- inputText: '5123214324'
+- runFlow: subflows/blur-and-continue.yaml
+- extendedWaitUntil:
+    notVisible: "Who's it for?"
+    timeout: 15000
+
+# Location (only when business mode is both) → prefer shop to skip address
+- runFlow:
+    when:
+      visible: 'Mobile or shop'
+    commands:
+      - tapOn: 'At your shop'
+      - runFlow: subflows/blur-and-continue.yaml
+
+# Address (mobile-only / mobile choice)
+- runFlow:
+    when:
+      visible: 'Service address'
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: create-appt-address-street
+          timeout: 10000
+      - runFlow: subflows/fill-service-address.yaml
+
+# Vehicle → add second job (before schedule)
+- extendedWaitUntil:
+    visible: "What's the vehicle?"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: create-appt-add-job
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: create-appt-add-job
+
+# —— Job 2: custom ——
+- extendedWaitUntil:
+    visible:
+      id: create-appt-path-custom
+    timeout: 15000
+- tapOn:
+    id: create-appt-path-custom
+- tapOn:
+    id: create-appt-custom-service
+- inputText: 'E2E Interior Wipe Down'
+- tapOn:
+    id: create-appt-custom-price
+- inputText: '45'
+- runFlow: subflows/blur-and-continue.yaml
+- extendedWaitUntil:
+    visible: "What's the vehicle?"
+    timeout: 15000
+- tapOn:
+    id: create-appt-continue
+
+# Schedule
+- extendedWaitUntil:
+    visible: 'Date and time'
+    timeout: 15000
+- tapOn:
+    id: calendar-day-first-available
+- extendedWaitUntil:
+    visible:
+      id: time-slot-first
+    timeout: 30000
+- tapOn:
+    id: time-slot-first
+- tapOn:
+    id: create-appt-continue
+
+# Review → Confirm
+- extendedWaitUntil:
+    visible: Review
+    timeout: 15000
+- assertVisible: 'E2E Exterior Detail'
+- assertVisible: 'E2E Interior Wipe Down'
+- tapOn:
+    id: create-appt-continue
+
+# Success
+- extendedWaitUntil:
+    visible:
+      id: create-appt-confirmed
+    timeout: 60000
+- assertVisible: Appointment confirmed
+- tapOn:
+    id: create-appt-done
+- extendedWaitUntil:
+    visible:
+      id: home-screen
+    timeout: 15000

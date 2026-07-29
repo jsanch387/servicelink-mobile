@@ -258,6 +258,18 @@ export function CalendarMonthPicker({
     [isDateUnavailable, minDate, maxDate],
   );
 
+  const firstAvailableDayKey = useMemo(() => {
+    for (const week of weeks) {
+      for (const date of week) {
+        if (!date) continue;
+        if (!isDisabled(date)) {
+          return toLocalYyyyMmDd(date);
+        }
+      }
+    }
+    return null;
+  }, [weeks, isDisabled]);
+
   const weekHeaders = ownerCalendar ? WEEK_HEADERS_COMPACT : WEEK_HEADERS;
   const rangeRadius = ownerCalendar ? 12 : 10;
 
@@ -390,6 +402,11 @@ export function CalendarMonthPicker({
                       isToday && !selected && !inRange && !disabled ? styles.dayInnerToday : null,
                       selected && !disabled ? styles.dayInnerSelected : null,
                     ]}
+                    testID={
+                      !disabled && key === firstAvailableDayKey
+                        ? 'calendar-day-first-available'
+                        : `calendar-day-${key}`
+                    }
                     onPress={() => onSelectDateKey(key)}
                   >
                     <AppText

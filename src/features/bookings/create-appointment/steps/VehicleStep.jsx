@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';

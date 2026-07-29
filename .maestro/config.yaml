@@ -1,0 +1,4 @@
+# Default target: iOS Simulator (ServiceLink).
+# Android: `maestro test -e APP_ID=com.myservicelink.app .maestro/`
+# or override appId in the flow / CLI.
+appId: com.jsanchdev.servicelinkmobile
