@@ -1,9 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { forwardRef, useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Keyboard, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { FONT_FAMILIES, useTheme } from '../../theme';
 import { AppText } from './AppText';
 import { AppTextInput } from './AppTextInput';
+import { iosKeyboardDoneAccessoryInputProps } from './KeyboardDoneAccessory';
 import { SurfaceInputRow } from './SurfaceInputRow';
 
 /** One text line — parent row centers this so iOS never pins glyphs to the bottom. */
@@ -52,6 +53,11 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
 ) {
   const { style: restInputStyle, maxLength: maxLengthFromRest, ...inputRest } = rest;
   const maxLength = maxLengthProp ?? maxLengthFromRest;
+  const isMultiline = Boolean(inputRest.multiline);
+  const keyboardDoneAccessoryProps = iosKeyboardDoneAccessoryInputProps({
+    existingAccessoryId: inputRest.inputAccessoryViewID,
+    multiline: isMultiline,
+  });
   const { colors } = useTheme();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -181,8 +187,6 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
     rightAccessory
   );
 
-  const isMultiline = Boolean(inputRest.multiline);
-
   const inputRow = (
     <SurfaceInputRow left={leftNode} right={rightNode} style={styles.rowShell}>
       <View style={styles.inputWrap}>
@@ -196,6 +200,7 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
         <AppTextInput
           ref={ref}
           {...inputRest}
+          {...keyboardDoneAccessoryProps}
           accessibilityLabel={
             inputRest.accessibilityLabel ?? (typeof label === 'string' ? label : undefined)
           }
@@ -211,6 +216,15 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
           onFocus={(e) => {
             setFocused(true);
             inputRest.onFocus?.(e);
+          }}
+          onSubmitEditing={(e) => {
+            if (inputRest.onSubmitEditing) {
+              inputRest.onSubmitEditing(e);
+              return;
+            }
+            if (!isMultiline) {
+              Keyboard.dismiss();
+            }
           }}
           placeholder=""
           placeholderTextColor="transparent"

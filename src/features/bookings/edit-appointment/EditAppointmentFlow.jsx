@@ -1,6 +1,14 @@
 import { useNavigation } from '@react-navigation/native';
 import { useMemo } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, InlineCardError, WizardStepHeader } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
@@ -152,12 +160,16 @@ export function EditAppointmentFlow({ bookingId }) {
       style={flow.styles.flex}
     >
       <ScrollView
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         contentContainerStyle={scrollContentStyle}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={flow.styles.scroll}
       >
-        {body}
+        <Pressable accessible={false} onPress={Keyboard.dismiss}>
+          {body}
+        </Pressable>
       </ScrollView>
       <CreateFlowFooter {...flow.footer} paddingBottom={12 + insets.bottom} />
     </KeyboardAvoidingView>

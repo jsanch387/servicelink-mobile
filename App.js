@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ToastProvider } from './src/components/ui';
+import { ToastProvider, KeyboardDoneAccessory } from './src/components/ui';
 import { AuthProvider } from './src/features/auth';
 import { OnboardingGateProvider } from './src/features/onboarding';
 import { SubscriptionProvider } from './src/features/subscription';
@@ -30,6 +30,7 @@ function AppShell() {
             </SubscriptionProvider>
           </AuthProvider>
         </ToastProvider>
+        <KeyboardDoneAccessory />
         <StatusBar style={isDark ? 'light' : 'dark'} />
       </SafeAreaProvider>
     </View>

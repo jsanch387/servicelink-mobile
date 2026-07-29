@@ -1,6 +1,13 @@
 import { useNavigation } from '@react-navigation/native';
 import { useLayoutEffect } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView } from 'react-native';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WizardStepHeader } from '../../../components/ui';
 import { useTheme } from '../../../theme';
@@ -61,18 +68,22 @@ export function CreateAppointmentFlow({ onImmersiveSubmitChange }) {
           <WizardStepHeader {...wizardHeaderProps} />
         ) : null}
         <ScrollView
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
           contentContainerStyle={[
             flow.styles.content,
             flow.appointmentConfirmed && flow.styles.contentConfirmed,
           ]}
-          keyboardShouldPersistTaps="always"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           style={flow.styles.scroll}
         >
-          {showWizardHeader && flow.wizardHeader.scrollWithContent ? (
-            <WizardStepHeader embedded {...wizardHeaderProps} />
-          ) : null}
-          <CreateAppointmentStepContent {...flow.stepContentProps} />
+          <Pressable accessible={false} onPress={Keyboard.dismiss}>
+            {showWizardHeader && flow.wizardHeader.scrollWithContent ? (
+              <WizardStepHeader embedded {...wizardHeaderProps} />
+            ) : null}
+            <CreateAppointmentStepContent {...flow.stepContentProps} />
+          </Pressable>
         </ScrollView>
         {!flow.showSubmitPanel ? (
           <CreateFlowFooter {...flow.footer} paddingBottom={12 + insets.bottom} />

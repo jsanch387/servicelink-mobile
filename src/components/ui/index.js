@@ -51,6 +51,11 @@ export { SurfaceInputRow, useSurfaceInputTextStyle } from './SurfaceInputRow';
 export { SurfaceEmailField } from './SurfaceEmailField';
 export { SurfacePhoneField } from './SurfacePhoneField';
 export { SurfaceTextField } from './SurfaceTextField';
+export {
+  KeyboardDoneAccessory,
+  KEYBOARD_DONE_ACCESSORY_ID,
+  iosKeyboardDoneAccessoryInputProps,
+} from './KeyboardDoneAccessory';
 export { TimeSelectField } from './TimeSelectField';
 export { ToastProvider, useToast } from './ToastProvider';
 export { ToastModalHost } from './ToastModalHost';
