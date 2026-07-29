@@ -140,7 +140,7 @@ describe('buildJobCompletedPayload', () => {
     expect(
       computeCompleteVisitAmountDueCents({
         servicePriceCents: 22500,
-        addonDetails: [{ priceCents: 5000 }],
+        addonDetails: [],
         sessionFees: [],
         paidOnlineCents: 0,
         sessionPaymentAmountCents: 0,
@@ -150,5 +150,29 @@ describe('buildJobCompletedPayload', () => {
         ],
       }),
     ).toBe(30000);
+
+    // Legacy single-job edit: add-ons only on addon_details, empty on job_details.
+    expect(
+      computeCompleteVisitAmountDueCents({
+        servicePriceCents: 21000,
+        addonDetails: {
+          addons: [
+            { id: 'a1', name: 'Pet hair', priceCents: 2000 },
+            { id: 'a2', name: 'Engine Bay', priceCents: 6500 },
+          ],
+        },
+        sessionFees: [],
+        paidOnlineCents: 0,
+        sessionPaymentAmountCents: 0,
+        discountCents: 2100,
+        jobDetails: [
+          {
+            serviceName: 'Detail',
+            servicePriceCents: 21000,
+            selectedAddOns: [],
+          },
+        ],
+      }),
+    ).toBe(27400);
   });
 });

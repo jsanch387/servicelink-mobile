@@ -15,6 +15,7 @@ The bookings feature includes:
 
 **Server integration (mobile → Next.js):** see **[`docs/README.md`](docs/README.md)** for the full doc index, database tables, and HTTP call map.
 
+- [`docs/MOBILE_APPOINTMENT_LIFECYCLE.md`](docs/MOBILE_APPOINTMENT_LIFECYCLE.md) — **create / edit / details / complete / earnings** (job_details, add-ons, totals)
 - [`docs/BOOKING_JOB_LIFECYCLE_SERVER.md`](docs/BOOKING_JOB_LIFECYCLE_SERVER.md) — **full job lifecycle server contract** (work handoff, Complete screen, SMS templates, `job_completed` payload)
 - [`docs/MOBILE_BOOKING_JOB_COMPLETED.md`](docs/MOBILE_BOOKING_JOB_COMPLETED.md) — **mobile contract** for Complete sheet + `job_completed`
 - [`docs/MOBILE_BOOKING_WORK_FINISHED.md`](docs/MOBILE_BOOKING_WORK_FINISHED.md) — mobile contract for Done/Skip

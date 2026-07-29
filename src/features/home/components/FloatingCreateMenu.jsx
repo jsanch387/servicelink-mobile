@@ -211,8 +211,8 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
                   </Text>
                 </Pressable>
                 <Pressable
-                  accessibilityLabel={item.label}
-                  accessibilityRole="button"
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
                   style={[
                     styles.actionIconOuter,
                     { backgroundColor: circleBackground(colors, item.colorToken) },

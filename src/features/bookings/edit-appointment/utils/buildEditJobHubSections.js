@@ -1,15 +1,6 @@
 import { CREATE_APPOINTMENT_STEP } from '../../create-appointment/constants';
 import { truncateHubSummary } from './buildEditHubSections';
 
-function addonsSummary(selectedAddonRows) {
-  const rows = selectedAddonRows ?? [];
-  if (!rows.length) return 'None selected';
-  if (rows.length === 1) {
-    return String(rows[0]?.name ?? 'Add-on').trim() || '1 add-on';
-  }
-  return `${rows.length} add-ons selected`;
-}
-
 function vehicleSummary(vehicle) {
   const parts = [
     String(vehicle?.year ?? '').trim(),
@@ -20,30 +11,23 @@ function vehicleSummary(vehicle) {
 }
 
 /**
- * Mini-hub for editing one job inside a multi-job appointment.
- * Pricing is part of Service & pricing — when tiers exist and a service is already
- * selected, open Pricing so the owner can change the tier without re-picking service.
+ * Mini-hub for editing one job. Pricing stays with Service; Add-ons live on the
+ * visit hub for quicker access.
  *
  * @param {object} args
  * @param {string} [args.jobTitle]
  * @param {boolean} [args.isCustomJob]
  * @param {boolean} args.pricingSkipped
- * @param {boolean} args.addonsSkipped
  * @param {string | null} [args.selectedServiceId]
  * @param {unknown} args.selectedService
- * @param {unknown} args.selectedPricingOption
- * @param {unknown[]} args.selectedAddonRows
  * @param {object} args.vehicle
  */
 export function buildEditJobHubSections({
   jobTitle,
   isCustomJob = false,
   pricingSkipped,
-  addonsSkipped,
   selectedServiceId = null,
   selectedService,
-  selectedPricingOption: _selectedPricingOption,
-  selectedAddonRows,
   vehicle,
 }) {
   const serviceName =
@@ -75,16 +59,6 @@ export function buildEditJobHubSections({
           ? CREATE_APPOINTMENT_STEP.PRICING
           : CREATE_APPOINTMENT_STEP.SERVICE,
       summaryMaxLines: 2,
-    });
-  }
-
-  if (!isCustomJob && !addonsSkipped) {
-    sections.push({
-      id: 'job-addons',
-      title: 'Add-ons',
-      summary: addonsSummary(selectedAddonRows),
-      icon: 'add-circle-outline',
-      step: CREATE_APPOINTMENT_STEP.ADDONS,
     });
   }
 

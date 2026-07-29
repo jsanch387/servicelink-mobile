@@ -155,6 +155,45 @@ export function buildCompleteVisitCheckoutFromSheetState(sheetState) {
 }
 
 /**
+ * Prefer `job_details` services + add-ons. When jobs exist but every
+ * `selectedAddOns` is empty, fall back to top-level `addon_details`
+ * (legacy single-job edits that only wrote that column).
+ *
+ * @param {{
+ *   servicePriceCents?: number;
+ *   addonDetails?: unknown;
+ *   jobDetails?: unknown;
+ * }} params
+ * @returns {{ serviceCents: number; addonCents: number }}
+ */
+export function resolveVisitServiceAndAddonCents({ servicePriceCents, addonDetails, jobDetails }) {
+  const parsedJobs = parseJobDetailsFromBooking(jobDetails);
+  if (parsedJobs.length > 0) {
+    const serviceCents = parsedJobs.reduce((sum, job) => sum + dollarsToCents(job.servicePrice), 0);
+    let addonCents = parsedJobs.reduce(
+      (sum, job) =>
+        sum + job.addOns.reduce((addonSum, addon) => addonSum + dollarsToCents(addon.price), 0),
+      0,
+    );
+    if (addonCents === 0) {
+      addonCents = parseAddonLineItemsFromBooking(addonDetails).reduce(
+        (sum, item) => sum + Math.max(0, dollarsToCents(item.price)),
+        0,
+      );
+    }
+    return { serviceCents, addonCents };
+  }
+
+  return {
+    serviceCents: Math.max(0, Number(servicePriceCents) || 0),
+    addonCents: parseAddonLineItemsFromBooking(addonDetails).reduce(
+      (sum, item) => sum + Math.max(0, dollarsToCents(item.price)),
+      0,
+    ),
+  };
+}
+
+/**
  * Server-side amount-due check (cents). Matches Phase 1 handler math for single-job;
  * when `jobDetails` is present, sums every job (mobile Complete sheet source of truth).
  *
@@ -178,23 +217,11 @@ export function computeCompleteVisitAmountDueCents({
   discountCents = 0,
   jobDetails,
 }) {
-  const parsedJobs = parseJobDetailsFromBooking(jobDetails);
-  let serviceCents;
-  let addonCents;
-  if (parsedJobs.length > 0) {
-    serviceCents = parsedJobs.reduce((sum, job) => sum + dollarsToCents(job.servicePrice), 0);
-    addonCents = parsedJobs.reduce(
-      (sum, job) =>
-        sum + job.addOns.reduce((addonSum, addon) => addonSum + dollarsToCents(addon.price), 0),
-      0,
-    );
-  } else {
-    serviceCents = Math.max(0, Number(servicePriceCents) || 0);
-    addonCents = parseAddonLineItemsFromBooking(addonDetails).reduce(
-      (sum, item) => sum + Math.max(0, dollarsToCents(item.price)),
-      0,
-    );
-  }
+  const { serviceCents, addonCents } = resolveVisitServiceAndAddonCents({
+    servicePriceCents,
+    addonDetails,
+    jobDetails,
+  });
   const feesCents = (sessionFees ?? []).reduce(
     (sum, fee) => sum + Math.max(0, Number(fee.amountCents) || 0),
     0,

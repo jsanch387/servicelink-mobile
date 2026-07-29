@@ -5,8 +5,13 @@ import {
   CREATE_APPOINTMENT_LOCATION_SHOP,
 } from '../../create-appointment/utils/createAppointmentServiceLocation';
 import { formatAppointmentAddressSingleLine } from '../../create-appointment/utils/formatAppointmentAddress';
-import { EDIT_APPOINTMENT_JOBS_LIST, EDIT_APPOINTMENT_NOTES } from '../constants';
+import {
+  EDIT_APPOINTMENT_ADDONS_ENTRY,
+  EDIT_APPOINTMENT_JOBS_LIST,
+  EDIT_APPOINTMENT_NOTES,
+} from '../constants';
 import { formatEditJobsHubSummary } from './mapBookingJobsForEdit';
+import { isEditJobCustom } from './editJobDraft';
 
 /**
  * @typedef {object} EditHubSection
@@ -81,124 +86,80 @@ export function formatCompactClockLabel(timeLabel) {
   return `${hour}:${mins} ${meridiem}`;
 }
 
-function vehicleSummary(vehicle, notes) {
-  const parts = [
-    String(vehicle?.year ?? '').trim(),
-    String(vehicle?.make ?? '').trim(),
-    String(vehicle?.model ?? '').trim(),
-  ].filter(Boolean);
-  const vehicleLine = parts.join(' ').trim();
-  const notesTrim = String(notes ?? '').trim();
-  if (vehicleLine && notesTrim) {
-    return `${vehicleLine} · ${notesTrim}`;
+/**
+ * Visit-level add-ons summary across jobs (for the hub row).
+ *
+ * @param {import('./mapBookingJobsForEdit').EditJobSnapshot[] | null | undefined} jobs
+ */
+export function formatEditVisitAddonsHubSummary(jobs) {
+  const list = Array.isArray(jobs) ? jobs : [];
+  let count = 0;
+  let firstName = '';
+  for (const job of list) {
+    if (isEditJobCustom(job)) continue;
+    const rows = Array.isArray(job?.selectedAddonRows) ? job.selectedAddonRows : [];
+    for (const row of rows) {
+      count += 1;
+      if (!firstName) {
+        firstName = String(row?.name ?? '').trim();
+      }
+    }
   }
-  return vehicleLine || notesTrim || 'Not set';
-}
-
-function addonsSummary(selectedAddonRows) {
-  const rows = selectedAddonRows ?? [];
-  if (!rows.length) {
-    return 'None selected';
-  }
-  if (rows.length === 1) {
-    return String(rows[0]?.name ?? 'Add-on').trim() || '1 add-on';
-  }
-  return `${rows.length} add-ons selected`;
+  if (count === 0) return 'None selected';
+  if (count === 1) return firstName || '1 add-on';
+  return `${count} add-ons selected`;
 }
 
 /**
- * Cards for the edit hub — each opens one wizard step.
- *
- * Single-job: Service / Pricing / Add-ons / Vehicle & notes (unchanged).
- * Multi-job: Jobs list + visit fields; vehicles live under each job; Notes are visit-level.
+ * Cards for the edit visit hub — Jobs, Add-ons, visit fields, Notes.
+ * Per-job Service & pricing / Vehicle live under Jobs → job hub.
  *
  * @param {object} args
- * @param {boolean} [args.isMultiJob]
  * @param {import('./mapBookingJobsForEdit').EditJobSnapshot[]} [args.jobs]
- * @param {boolean} args.pricingSkipped
- * @param {boolean} args.addonsSkipped
+ * @param {boolean} [args.showAddonsSection]
  * @param {boolean} args.locationSkipped
  * @param {boolean} args.addressSkipped
- * @param {unknown} args.selectedService
- * @param {unknown} args.selectedPricingOption
- * @param {unknown[]} args.selectedAddonRows
  * @param {string | null} args.selectedDateKey
  * @param {string | null} args.selectedTime
  * @param {{ fullName?: string; phone?: string }} args.customer
  * @param {'mobile' | 'shop' | null} args.appointmentLocationType
  * @param {object} args.address
- * @param {object} args.vehicle
  * @param {string} args.notes
  * @returns {EditHubSection[]}
  */
 export function buildEditHubSections({
-  isMultiJob = false,
   jobs = [],
-  pricingSkipped,
-  addonsSkipped,
+  showAddonsSection = true,
   locationSkipped,
   addressSkipped,
-  selectedService,
-  selectedPricingOption,
-  selectedAddonRows,
   selectedDateKey,
   selectedTime,
   customer,
   appointmentLocationType,
   address,
-  vehicle,
   notes,
 }) {
   /** @type {EditHubSection[]} */
   const sections = [];
 
-  if (isMultiJob) {
+  sections.push({
+    id: 'jobs',
+    title: 'Jobs',
+    summary: truncateHubSummary(formatEditJobsHubSummary(jobs)),
+    icon: 'briefcase-outline',
+    step: EDIT_APPOINTMENT_JOBS_LIST,
+    summaryMaxLines: 2,
+  });
+
+  if (showAddonsSection) {
     sections.push({
-      id: 'jobs',
-      title: 'Jobs',
-      summary: truncateHubSummary(formatEditJobsHubSummary(jobs)),
-      icon: 'briefcase-outline',
-      step: EDIT_APPOINTMENT_JOBS_LIST,
+      id: 'addons',
+      title: 'Add-ons',
+      summary: truncateHubSummary(formatEditVisitAddonsHubSummary(jobs)),
+      icon: 'add-circle-outline',
+      step: EDIT_APPOINTMENT_ADDONS_ENTRY,
       summaryMaxLines: 2,
     });
-  } else {
-    const serviceName = String(selectedService?.name ?? '').trim() || 'Not selected';
-    const tierLabel = String(selectedPricingOption?.label ?? '').trim();
-    const serviceSummary = truncateHubSummary(
-      pricingSkipped && tierLabel && tierLabel !== 'Standard'
-        ? `${serviceName} · ${tierLabel}`
-        : serviceName,
-    );
-
-    sections.push({
-      id: 'service',
-      title: pricingSkipped ? 'Service' : 'Service & pricing',
-      summary: serviceSummary,
-      icon: 'briefcase-outline',
-      step: CREATE_APPOINTMENT_STEP.SERVICE,
-      summaryMaxLines: 3,
-    });
-
-    if (!pricingSkipped) {
-      sections.push({
-        id: 'pricing',
-        title: 'Pricing option',
-        summary: truncateHubSummary(tierLabel || 'Not selected'),
-        icon: 'pricetag-outline',
-        step: CREATE_APPOINTMENT_STEP.PRICING,
-        summaryMaxLines: 2,
-      });
-    }
-
-    if (!addonsSkipped) {
-      sections.push({
-        id: 'addons',
-        title: 'Add-ons',
-        summary: addonsSummary(selectedAddonRows),
-        icon: 'add-circle-outline',
-        step: CREATE_APPOINTMENT_STEP.ADDONS,
-      });
-    }
   }
 
   sections.push({
@@ -247,26 +208,15 @@ export function buildEditHubSections({
     });
   }
 
-  if (isMultiJob) {
-    const notesTrim = String(notes ?? '').trim();
-    sections.push({
-      id: 'notes',
-      title: 'Notes',
-      summary: truncateHubSummary(notesTrim || 'No notes'),
-      icon: 'document-text-outline',
-      step: EDIT_APPOINTMENT_NOTES,
-      summaryMaxLines: 2,
-    });
-  } else {
-    sections.push({
-      id: 'vehicle',
-      title: 'Vehicle & notes',
-      summary: truncateHubSummary(vehicleSummary(vehicle, notes)),
-      icon: 'car-sport-outline',
-      step: CREATE_APPOINTMENT_STEP.VEHICLE,
-      summaryMaxLines: 3,
-    });
-  }
+  const notesTrim = String(notes ?? '').trim();
+  sections.push({
+    id: 'notes',
+    title: 'Notes',
+    summary: truncateHubSummary(notesTrim || 'No notes'),
+    icon: 'document-text-outline',
+    step: EDIT_APPOINTMENT_NOTES,
+    summaryMaxLines: 2,
+  });
 
   return sections;
 }

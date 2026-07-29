@@ -1,8 +1,23 @@
 # Bookings — lifecycle & Complete flow docs
 
-Index for owner job lifecycle (Next Up → Complete sheet) and related server contracts.
+Index for owner appointments (create → edit → details → Complete) and related server contracts.
 
-## Mobile contracts (start here)
+## Start here (product + data model)
+
+| Doc                                                                    | When to read                                                                                                      |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| [`MOBILE_APPOINTMENT_LIFECYCLE.md`](./MOBILE_APPOINTMENT_LIFECYCLE.md) | **Create / edit / details / complete / today’s earnings** — `job_details` vs `addon_details`, add-ons hub, totals |
+
+## Create (owner manual booking)
+
+| Doc                                                                                                                                          | When to read                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| [`../create-appointment/docs/OWNER_MANUAL_BOOKING_MULTI_JOB_SERVER.md`](../create-appointment/docs/OWNER_MANUAL_BOOKING_MULTI_JOB_SERVER.md) | `jobs[]` create contract (length 1+) |
+| [`../create-appointment/docs/OWNER_MANUAL_BOOKING_SERVER.md`](../create-appointment/docs/OWNER_MANUAL_BOOKING_SERVER.md)                     | Auth, location, shared create rules  |
+| [`../create-appointment/docs/OWNER_MANUAL_BOOKING_SALE_DISCOUNT.md`](../create-appointment/docs/OWNER_MANUAL_BOOKING_SALE_DISCOUNT.md)       | Sale / discount on create            |
+| [`../create-appointment/docs/WEB_MULTI_JOB_APPOINTMENT_CREATE.md`](../create-appointment/docs/WEB_MULTI_JOB_APPOINTMENT_CREATE.md)           | Web replication of create UX         |
+
+## Mobile contracts (Complete / actions)
 
 | Doc                                                                        | When to read                                                 |
 | -------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -41,7 +56,7 @@ Index for owner job lifecycle (Next Up → Complete sheet) and related server co
 | `bookings.status`, `bookings.job_status`  | `completed`                                       |
 | `booking_invoices`                        | `public_token`, `snapshot_json`, totals           |
 
-**Read for Complete sheet UI:** `bookings.service_price_cents`, `bookings.addon_details`, `booking_payments.paid_online_amount_cents` (via details fetch).
+**Read for Complete sheet UI:** prefer `job_details` (services + add-ons); fall back to `addon_details` when job add-ons are empty. Also `booking_payments.paid_online_amount_cents`.
 
 **Read for Next Up gating:** `bookings.job_status`, `bookings.work_handoff_status`.
 
@@ -66,18 +81,20 @@ Authorization: Bearer <access_token>
 
 ## Mobile code map
 
-| Concern        | Path                                                                                             |
-| -------------- | ------------------------------------------------------------------------------------------------ |
-| Next Up UI     | `home/components/NextUpCard.jsx`, `home/utils/resolveNextUpCardActions.js`                       |
-| Complete sheet | `booking-details/components/BookingCompleteInvoiceDesignSheet.jsx` (`BookingCompleteVisitSheet`) |
-| Payload        | `booking-details/utils/buildJobCompletedPayload.js`                                              |
-| Confirm hook   | `booking-details/hooks/useMarkBookingCompleteFlow.js`                                            |
-| Feature flags  | `booking-details/constants/markCompleteFeatureFlags.js`                                          |
-| Tap to Pay     | `tap-to-pay/` — see [`MOBILE_BOOKING_TAP_TO_PAY.md`](./MOBILE_BOOKING_TAP_TO_PAY.md)             |
-| Toasts         | `utils/bookingActionFeedback.js`                                                                 |
+| Concern            | Path                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| Lifecycle overview | [`MOBILE_APPOINTMENT_LIFECYCLE.md`](./MOBILE_APPOINTMENT_LIFECYCLE.md)                           |
+| Next Up UI         | `home/components/NextUpCard.jsx`, `home/utils/resolveNextUpCardActions.js`                       |
+| Today’s earnings   | `home/utils/todaysEarnings.js`, `home/components/TodaysPotentialCard.jsx`                        |
+| Complete sheet     | `booking-details/components/BookingCompleteInvoiceDesignSheet.jsx` (`BookingCompleteVisitSheet`) |
+| Payload            | `booking-details/utils/buildJobCompletedPayload.js`                                              |
+| Confirm hook       | `booking-details/hooks/useMarkBookingCompleteFlow.js`                                            |
+| Feature flags      | `booking-details/constants/markCompleteFeatureFlags.js`                                          |
+| Tap to Pay         | `tap-to-pay/` — see [`MOBILE_BOOKING_TAP_TO_PAY.md`](./MOBILE_BOOKING_TAP_TO_PAY.md)             |
+| Toasts             | `utils/bookingActionFeedback.js`                                                                 |
 
 ## Tests
 
 ```bash
-npm test -- --testPathPattern="postBookingAction|buildJobCompletedPayload|useMarkBookingCompleteFlow|bookingActionFeedback|completeVisitNotificationCopy|NextUpCard|useBookingAction|markCompletePreview|buildCompleteVisitModel|parseCompleteVisitServiceLine|tap-to-pay"
+npm test -- --testPathPattern="postBookingAction|buildJobCompletedPayload|useMarkBookingCompleteFlow|bookingActionFeedback|completeVisitNotificationCopy|NextUpCard|useBookingAction|markCompletePreview|buildCompleteVisitModel|parseCompleteVisitServiceLine|tap-to-pay|todaysEarnings|buildEditHubSections|buildEditBookingUpdatePayload"
 ```

@@ -14,6 +14,7 @@ import {
   isServicePriceTiersEnabled,
 } from '../../create-appointment/utils/createFlowPricing';
 import { catalogAddonsForService } from '../../../services/utils/catalogAddonsForService';
+import { parseJobDetailsFromBooking } from '../../booking-details/utils/parseJobDetailsFromBooking';
 import {
   createEmptyAddressForm,
   createEmptyCustomerForm,
@@ -55,12 +56,36 @@ function normalizeBookingAddonItems(addonDetails) {
 }
 
 /**
- * @param {Array<{ id: string; name?: string }>} catalogAddonsForService
- * @param {unknown} addonDetails raw booking `addon_details`
+ * Prefer `job_details[].selectedAddOns` (create / new edit source of truth);
+ * fall back to legacy `addon_details` for older bookings.
+ *
+ * @param {Record<string, unknown> | null | undefined} booking
+ * @returns {Array<{ id: string; name: string }>}
+ */
+function resolveBookingAddonItemsForEdit(booking) {
+  const parsedJobs = parseJobDetailsFromBooking(booking?.job_details ?? booking?.jobDetails);
+  if (parsedJobs.length > 0) {
+    const fromJobs = parsedJobs.flatMap((job) =>
+      (job.addOns ?? []).map((a) => ({
+        id: String(a.id ?? '').trim(),
+        name: String(a.name ?? '').trim(),
+      })),
+    );
+    if (fromJobs.length > 0) {
+      return fromJobs.filter((item) => item.id || item.name);
+    }
+  }
+  return normalizeBookingAddonItems(booking?.addon_details);
+}
+
+/**
+ * @param {object} args
+ * @param {Record<string, unknown> | null | undefined} args.booking
+ * @param {Array<{ id: string; name?: string }>} args.catalogAddonsForService
  * @returns {string[]} catalog add-on ids to preselect in the edit wizard
  */
 export function resolveEditAppointmentAddonIds({ booking, catalogAddonsForService }) {
-  const bookingItems = normalizeBookingAddonItems(booking?.addon_details);
+  const bookingItems = resolveBookingAddonItemsForEdit(booking);
   const available = catalogAddonsForService ?? [];
   if (!bookingItems.length || !available.length) {
     return [];
@@ -90,7 +115,12 @@ export function resolveEditAppointmentAddonIds({ booking, catalogAddonsForServic
   return [...new Set(resolved)];
 }
 
-/** @param {unknown} addonDetails */
+/** @param {Record<string, unknown> | null | undefined} booking */
+export function bookingHasStoredAddons(booking) {
+  return resolveBookingAddonItemsForEdit(booking).length > 0;
+}
+
+/** @param {unknown} addonDetails @deprecated prefer {@link bookingHasStoredAddons} */
 export function bookingHasAddonDetails(addonDetails) {
   return normalizeBookingAddonItems(addonDetails).length > 0;
 }

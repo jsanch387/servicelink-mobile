@@ -192,6 +192,35 @@ describe('buildCompleteVisitModelFromBooking', () => {
     expect(model?.remainingAmountCents).toBe(35000);
   });
 
+  it('heals addon lines from addon_details when job_details jobs have none', () => {
+    const model = buildCompleteVisitModelFromBooking({
+      service_name: 'Oil change',
+      service_price_cents: 8500,
+      addon_details: {
+        addons: [{ id: 'a1', name: 'Wax', priceCents: 2500 }],
+      },
+      job_details: [
+        {
+          clientJobId: 'j1',
+          serviceName: 'Oil change',
+          servicePriceCents: 8500,
+        },
+      ],
+      payment: { paidOnlineAmountCents: 0 },
+    });
+
+    expect(model?.lineItems).toEqual([
+      {
+        id: 'job-j1-service',
+        label: 'Oil change',
+        amount: 85,
+        jobId: 'j1',
+        kind: 'service',
+      },
+      { id: 'a1', label: 'Wax', amount: 25, jobId: 'j1', kind: 'addon' },
+    ]);
+  });
+
   it('returns null when booking is missing', () => {
     expect(buildCompleteVisitModelFromBooking(null)).toBeNull();
   });

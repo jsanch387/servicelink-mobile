@@ -1,6 +1,4 @@
-import { dollarsToCents } from './buildJobCompletedPayload';
-import { parseAddonLineItemsFromBooking } from './parseAddonLineItemsFromBooking';
-import { parseJobDetailsFromBooking } from './parseJobDetailsFromBooking';
+import { dollarsToCents, resolveVisitServiceAndAddonCents } from './buildJobCompletedPayload';
 
 /**
  * Merges a Complete visit checkout snapshot into a booking details row (fills gaps only).
@@ -40,23 +38,11 @@ export function applyCheckoutSnapshotToBooking(booking, checkout) {
     ) || 0,
   );
 
-  const parsedJobs = parseJobDetailsFromBooking(booking.job_details);
-  let serviceCents;
-  let addonCents;
-  if (parsedJobs.length > 0) {
-    serviceCents = parsedJobs.reduce((sum, job) => sum + dollarsToCents(job.servicePrice), 0);
-    addonCents = parsedJobs.reduce(
-      (sum, job) =>
-        sum + job.addOns.reduce((addonSum, addon) => addonSum + dollarsToCents(addon.price), 0),
-      0,
-    );
-  } else {
-    serviceCents = Math.max(0, Number(booking.service_price_cents ?? 0) || 0);
-    addonCents = parseAddonLineItemsFromBooking(booking.addon_details).reduce(
-      (sum, item) => sum + Math.max(0, dollarsToCents(item.price)),
-      0,
-    );
-  }
+  const { serviceCents, addonCents } = resolveVisitServiceAndAddonCents({
+    servicePriceCents: booking.service_price_cents,
+    addonDetails: booking.addon_details,
+    jobDetails: booking.job_details,
+  });
 
   const discountCents = Math.max(0, Math.round(Number(booking.discount_cents ?? 0) || 0));
   const snapshotTotalCents =

@@ -50,7 +50,7 @@ export function EditAppointmentFlow({ bookingId }) {
     () =>
       StyleSheet.create({
         scrollHub: {
-          paddingTop: 12,
+          paddingTop: 28,
         },
         scrollSection: {
           paddingTop: 18,
@@ -62,13 +62,14 @@ export function EditAppointmentFlow({ bookingId }) {
   const scrollContentStyle = useMemo(
     () => [
       flow.styles.content,
-      flow.isHubView || flow.isJobsListView || flow.isJobHubView
+      flow.isHubView || flow.isJobsListView || flow.isAddonsJobsListView || flow.isJobHubView
         ? localStyles.scrollHub
         : localStyles.scrollSection,
     ],
     [
       flow.isHubView,
       flow.isJobsListView,
+      flow.isAddonsJobsListView,
       flow.isJobHubView,
       flow.styles.content,
       localStyles.scrollHub,
@@ -129,12 +130,23 @@ export function EditAppointmentFlow({ bookingId }) {
     body = <EditAppointmentHub sections={flow.hubSections} onOpenSection={flow.openEditSection} />;
   } else if (flow.isJobsListView) {
     body = <EditAppointmentJobsList jobs={flow.jobs} onSelectJob={flow.openJobForEdit} />;
+  } else if (flow.isAddonsJobsListView) {
+    body = (
+      <EditAppointmentJobsList
+        heading="Add-ons"
+        jobIndexes={flow.addonsJobsList}
+        jobs={flow.jobs}
+        preferAddonSummary
+        subtext="Tap a job to update its add-ons."
+        onSelectJob={flow.openJobForAddons}
+      />
+    );
   } else if (flow.isJobHubView) {
     body = (
       <EditAppointmentHub
         heading="Edit job"
         sections={flow.jobHubSections}
-        subtext="Change this job’s service, price, add-ons, or vehicle."
+        subtext="Change this job’s service, price, or vehicle."
         onOpenSection={flow.openEditSection}
       />
     );

@@ -38,9 +38,13 @@ function sumMultiJobLegacyPricing(jobs) {
  * Maps edit-wizard form state to a `bookings` row update (snake_case columns).
  * Direct Supabase update only — no emails or server side effects.
  *
- * Multi-job: writes `job_details` + `visit_job_count`, duration = sum of jobs,
- * top-level service name/vehicle from the first job, and visit-total
- * `service_price_cents` / flattened `addon_details` for Complete amount-due.
+ * When `jobs` is provided (length ≥ 1, including single-job visits), writes
+ * `job_details` + `visit_job_count`, duration = sum of jobs, top-level service
+ * name/vehicle from the first job, and visit-total `service_price_cents` /
+ * flattened `addon_details` for Complete amount-due / legacy readers.
+ *
+ * Flat-only path (no `jobs`) remains for older call sites and truly legacy edits
+ * that never hydrated job snapshots.
  *
  * @param {object} args
  * @param {unknown} args.selectedService
@@ -55,8 +59,8 @@ function sumMultiJobLegacyPricing(jobs) {
  * @param {{ year: string; make: string; model: string }} args.vehicle
  * @param {string} [args.notes]
  * @param {'mobile' | 'shop' | null} [args.appointmentLocationType]
- * @param {boolean} [args.isMultiJob]
- * @param {Array<object>} [args.jobs] edit job snapshots when `isMultiJob`
+ * @param {boolean} [args.isMultiJob] unused for payload branching; kept for call-site compat
+ * @param {Array<object>} [args.jobs] edit job snapshots — preferred source of truth when present
  */
 export function buildEditBookingUpdatePayload({
   selectedService,
@@ -71,7 +75,7 @@ export function buildEditBookingUpdatePayload({
   vehicle,
   notes,
   appointmentLocationType,
-  isMultiJob = false,
+  isMultiJob: _isMultiJob = false,
   jobs = null,
 }) {
   const notesTrimmed = typeof notes === 'string' ? notes.trim() : '';
@@ -95,7 +99,7 @@ export function buildEditBookingUpdatePayload({
     service_location_type: appointmentLocationTypeForApi(appointmentLocationType),
   };
 
-  if (isMultiJob && Array.isArray(jobs) && jobs.length > 1) {
+  if (Array.isArray(jobs) && jobs.length > 0) {
     const jobItems = jobs.map((job) => buildOwnerManualJobItem(job));
     const first = jobs[0];
     const firstVehicle = first?.vehicle ?? {};

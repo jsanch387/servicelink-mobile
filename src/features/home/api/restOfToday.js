@@ -36,7 +36,8 @@ export async function fetchBookingsForTodayTimeline(
           total_amount_cents,
           paid_online_amount_cents,
           session_fees_total_cents,
-          session_payment_amount_cents
+          session_payment_amount_cents,
+          remaining_amount_cents
         )
       `,
     )

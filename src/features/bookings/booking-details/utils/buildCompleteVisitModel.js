@@ -120,9 +120,29 @@ export function buildCompleteVisitModelFromBooking(booking, preview) {
   const isMultiJob = parsedJobs.length > 1;
 
   /** @type {CompleteVisitLineItem[]} */
-  const lineItems = useJobDetails
+  let lineItems = useJobDetails
     ? buildLineItemsFromJobs(parsedJobs)
     : buildLineItemsFromLegacyColumns(booking);
+
+  // Same heal as booking details: empty job_details add-ons + legacy addon_details.
+  if (useJobDetails) {
+    const jobHasAddOns = parsedJobs.some((job) => (job.addOns ?? []).length > 0);
+    if (!jobHasAddOns) {
+      const legacyAddonLines = parseAddonLineItemsFromBooking(booking.addon_details);
+      if (legacyAddonLines.length > 0) {
+        const firstJobId = parsedJobs[0]?.id;
+        for (const addon of legacyAddonLines) {
+          lineItems.push({
+            id: addon.id,
+            label: addon.name,
+            amount: addon.price,
+            ...(firstJobId ? { jobId: firstJobId } : {}),
+            kind: 'addon',
+          });
+        }
+      }
+    }
+  }
 
   const discount = resolveBookingDiscount(booking);
   if (discount) {

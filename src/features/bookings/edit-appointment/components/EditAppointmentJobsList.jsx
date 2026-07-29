@@ -11,14 +11,37 @@ import { formatUsdFromNumber } from '../../create-appointment/utils/priceLabelMa
  *     localId?: string;
  *     serviceName?: string;
  *     selectedPricingOption?: { label?: string; priceLabel?: string; priceCents?: number } | null;
+ *     selectedAddonRows?: Array<{ name?: string }>;
  *     vehicle?: { year?: string; make?: string; model?: string };
  *   }>;
  *   onSelectJob: (index: number) => void;
+ *   heading?: string;
+ *   subtext?: string;
+ *   jobIndexes?: Array<number | { index: number; job?: object }> | null;
  * }} props
  */
-export function EditAppointmentJobsList({ jobs, onSelectJob }) {
+export function EditAppointmentJobsList({
+  jobs,
+  onSelectJob,
+  heading = 'Jobs',
+  subtext = 'Tap a job to change its service, price, or vehicle.',
+  jobIndexes = null,
+  preferAddonSummary = false,
+}) {
   const { colors } = useTheme();
-  const list = Array.isArray(jobs) ? jobs : [];
+  const source = Array.isArray(jobs) ? jobs : [];
+  const list =
+    Array.isArray(jobIndexes) && jobIndexes.length > 0
+      ? jobIndexes
+          .map((entry) => {
+            if (entry && typeof entry === 'object' && 'index' in entry) {
+              return { job: entry.job ?? source[entry.index], index: entry.index };
+            }
+            const index = Number(entry);
+            return { job: source[index], index };
+          })
+          .filter((item) => item.job)
+      : source.map((job, index) => ({ job, index }));
 
   const styles = useMemo(
     () =>
@@ -27,8 +50,9 @@ export function EditAppointmentJobsList({ jobs, onSelectJob }) {
           rowGap: 12,
         },
         header: {
-          gap: 3,
-          paddingBottom: 2,
+          gap: 4,
+          paddingBottom: 4,
+          paddingTop: 4,
         },
         heading: {
           color: colors.text,
@@ -123,13 +147,11 @@ export function EditAppointmentJobsList({ jobs, onSelectJob }) {
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <AppText style={styles.heading}>Jobs</AppText>
-        <AppText style={styles.subtext}>
-          Tap a job to change its service, price, add-ons, or vehicle.
-        </AppText>
+        <AppText style={styles.heading}>{heading}</AppText>
+        {subtext ? <AppText style={styles.subtext}>{subtext}</AppText> : null}
       </View>
       <View style={styles.stack}>
-        {list.map((job, index) => {
+        {list.map(({ job, index }) => {
           const name = String(job.serviceName ?? '').trim() || `Job ${index + 1}`;
           const option = String(job.selectedPricingOption?.label ?? '').trim();
           const showOption = Boolean(option && option !== 'Standard');
@@ -142,6 +164,15 @@ export function EditAppointmentJobsList({ jobs, onSelectJob }) {
           const priceLabel =
             job.selectedPricingOption?.priceLabel?.trim() ||
             formatUsdFromNumber((job.selectedPricingOption?.priceCents ?? 0) / 100);
+          const addonCount = Array.isArray(job.selectedAddonRows)
+            ? job.selectedAddonRows.length
+            : 0;
+          const addonLine =
+            addonCount === 0
+              ? 'No add-ons'
+              : addonCount === 1
+                ? String(job.selectedAddonRows[0]?.name ?? '1 add-on').trim() || '1 add-on'
+                : `${addonCount} add-ons`;
 
           return (
             <SurfaceCard
@@ -168,13 +199,9 @@ export function EditAppointmentJobsList({ jobs, onSelectJob }) {
                         <AppText style={styles.price}>{priceLabel}</AppText>
                       </View>
                       <View style={styles.bottomRow}>
-                        {vehicleLine ? (
-                          <AppText numberOfLines={1} style={styles.vehicle}>
-                            {vehicleLine}
-                          </AppText>
-                        ) : (
-                          <View style={styles.vehicle} />
-                        )}
+                        <AppText numberOfLines={1} style={styles.vehicle}>
+                          {preferAddonSummary ? addonLine : vehicleLine || addonLine}
+                        </AppText>
                         <View style={styles.chevronCol}>
                           <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />
                         </View>

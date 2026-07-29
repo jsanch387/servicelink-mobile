@@ -147,4 +147,34 @@ describe('buildEditBookingUpdatePayload', () => {
     expect(payload.customer_vehicle_make).toBe('Honda');
     expect(payload.customer_notes).toBe('Side gate');
   });
+
+  it('writes job_details.selectedAddOns for single-job saves when jobs is provided', () => {
+    const payload = buildEditBookingUpdatePayload({
+      ...baseArgs,
+      isMultiJob: false,
+      jobs: [
+        {
+          localId: 'j1',
+          selectedServiceId: 'svc-1',
+          isCustomJob: false,
+          serviceName: 'Oil change',
+          selectedPricingOption: { label: 'Synthetic', priceCents: 8500, durationMinutes: 60 },
+          selectedAddonRows: [{ id: 'addon-1', name: 'Wax', priceLabel: '$25' }],
+          totalDurationMinutes: 80,
+          vehicle: { year: '2020', make: 'Honda', model: 'Civic' },
+        },
+      ],
+    });
+
+    expect(payload.visit_job_count).toBe(1);
+    expect(payload.job_details).toHaveLength(1);
+    expect(payload.job_details[0]).toMatchObject({
+      serviceId: 'svc-1',
+      serviceName: 'Oil change',
+      servicePriceCents: 8500,
+      selectedAddOns: [{ id: 'addon-1', name: 'Wax', priceCents: 2500 }],
+    });
+    expect(payload.addon_details.addons).toHaveLength(1);
+    expect(payload.duration_minutes).toBe(80);
+  });
 });

@@ -1,148 +1,104 @@
 import { CREATE_APPOINTMENT_STEP } from '../../create-appointment/constants';
 import {
+  EDIT_APPOINTMENT_ADDONS_ENTRY,
+  EDIT_APPOINTMENT_JOBS_LIST,
+  EDIT_APPOINTMENT_NOTES,
+} from '../constants';
+import {
   buildEditHubSections,
   formatEditHubScheduleSummary,
+  formatEditVisitAddonsHubSummary,
   truncateHubSummary,
 } from '../utils/buildEditHubSections';
 
 describe('buildEditHubSections', () => {
   const base = {
-    pricingSkipped: false,
-    addonsSkipped: true,
     locationSkipped: true,
     addressSkipped: true,
-    selectedService: { name: 'Full Detail' },
-    selectedPricingOption: { label: 'Sedan/Coupe' },
-    selectedAddonRows: [],
     selectedDateKey: '2026-07-15',
     selectedTime: '2:30 PM',
     customer: { fullName: 'Jane Doe', phone: '5123214324' },
     appointmentLocationType: 'mobile',
     address: { street: '12 Main', city: 'Austin', state: 'TX', zip: '78701' },
-    vehicle: { year: '2020', make: 'Honda', model: 'Civic' },
     notes: 'Side gate',
+    jobs: [
+      {
+        serviceName: 'Full Detail',
+        isCustomJob: false,
+        selectedServiceId: 'svc-1',
+        selectedAddonRows: [{ name: 'Wax' }],
+      },
+    ],
   };
 
-  it('includes pricing and schedule sections with summaries', () => {
+  it('puts Jobs and Add-ons on the visit hub', () => {
     const sections = buildEditHubSections(base);
     const ids = sections.map((s) => s.id);
 
-    expect(ids).toContain('service');
-    expect(ids).toContain('pricing');
-    expect(ids).not.toContain('addons');
-    expect(ids).toContain('schedule');
-    expect(ids).toContain('customer');
-    expect(ids).not.toContain('location');
-    expect(ids).not.toContain('address');
-
-    const service = sections.find((s) => s.id === 'service');
-    expect(service?.summary).toBe('Full Detail');
-    expect(service?.summary).not.toContain('Sedan/Coupe');
-    expect(service?.step).toBe(CREATE_APPOINTMENT_STEP.SERVICE);
-
-    const pricing = sections.find((s) => s.id === 'pricing');
-    expect(pricing?.summary).toBe('Sedan/Coupe');
-
-    const customer = sections.find((s) => s.id === 'customer');
-    expect(customer?.summary).toBe('Jane Doe');
+    expect(ids).toEqual(['jobs', 'addons', 'schedule', 'customer', 'notes']);
+    expect(sections.find((s) => s.id === 'jobs')?.step).toBe(EDIT_APPOINTMENT_JOBS_LIST);
+    expect(sections.find((s) => s.id === 'addons')?.step).toBe(EDIT_APPOINTMENT_ADDONS_ENTRY);
+    expect(sections.find((s) => s.id === 'addons')?.summary).toBe('Wax');
+    expect(sections.find((s) => s.id === 'notes')?.step).toBe(EDIT_APPOINTMENT_NOTES);
+    expect(ids).not.toContain('pricing');
+    expect(ids).not.toContain('vehicle');
 
     const schedule = sections.find((s) => s.id === 'schedule');
-    expect(schedule?.summary).toMatch(/Jul/);
     expect(schedule?.summary).toBe('Wed, Jul 15 · 2:30 PM');
+    expect(schedule?.step).toBe(CREATE_APPOINTMENT_STEP.SCHEDULE);
   });
 
-  it('omits pricing section when pricing is skipped', () => {
-    const sections = buildEditHubSections({ ...base, pricingSkipped: true });
-    expect(sections.some((s) => s.id === 'pricing')).toBe(false);
-    expect(sections.find((s) => s.id === 'service')?.title).toBe('Service');
-  });
-
-  it('includes addons, location, and address when not skipped', () => {
+  it('hides Add-ons when every job is custom', () => {
     const sections = buildEditHubSections({
       ...base,
-      addonsSkipped: false,
+      showAddonsSection: false,
+      jobs: [{ serviceName: 'Touch-up', isCustomJob: true, selectedServiceId: null }],
+    });
+    expect(sections.map((s) => s.id)).not.toContain('addons');
+  });
+
+  it('summarizes add-ons across multiple jobs', () => {
+    expect(
+      formatEditVisitAddonsHubSummary([
+        {
+          isCustomJob: false,
+          selectedServiceId: 'a',
+          selectedAddonRows: [{ name: 'Wax' }, { name: 'Pet hair' }],
+        },
+        {
+          isCustomJob: false,
+          selectedServiceId: 'b',
+          selectedAddonRows: [{ name: 'Shampoo' }],
+        },
+      ]),
+    ).toBe('3 add-ons selected');
+  });
+
+  it('includes location and address when not skipped', () => {
+    const sections = buildEditHubSections({
+      ...base,
       locationSkipped: false,
       addressSkipped: false,
-      selectedAddonRows: [{ name: 'Wax' }, { name: 'Interior' }],
       appointmentLocationType: 'shop',
       address: { street: '100 Shop Way', city: 'Austin', state: 'TX', zip: '78701' },
     });
 
-    expect(sections.find((s) => s.id === 'addons')?.summary).toBe('2 add-ons selected');
     expect(sections.find((s) => s.id === 'location')?.summary).toBe('At your shop');
     expect(sections.find((s) => s.id === 'address')?.summary).toMatch(/100 Shop Way/);
   });
 
-  it('shows fallbacks for incomplete schedule and customer', () => {
+  it('shows fallbacks for incomplete schedule, customer, and notes', () => {
     const sections = buildEditHubSections({
       ...base,
       selectedDateKey: null,
       selectedTime: null,
       customer: { fullName: '', phone: '' },
-      vehicle: { year: '', make: '', model: '' },
       notes: '',
     });
 
     expect(sections.find((s) => s.id === 'schedule')?.summary).toBe('Not scheduled');
     expect(sections.find((s) => s.id === 'customer')?.summary).toBe('Not set');
-    expect(sections.find((s) => s.id === 'vehicle')?.summary).toBe('Not set');
-  });
-
-  it('combines vehicle and notes in one summary line', () => {
-    const sections = buildEditHubSections({
-      ...base,
-      vehicle: { year: '2019', make: 'Toyota', model: 'Camry' },
-      notes: 'Gate code 1234',
-    });
-
-    expect(sections.find((s) => s.id === 'vehicle')?.summary).toBe(
-      '2019 Toyota Camry · Gate code 1234',
-    );
-  });
-
-  it('truncates very long service names for the hub preview', () => {
-    const longName = `${'Premium ceramic coating '.repeat(6)}package`;
-    const sections = buildEditHubSections({
-      ...base,
-      pricingSkipped: true,
-      selectedService: { name: longName },
-      selectedPricingOption: null,
-    });
-
-    const service = sections.find((s) => s.id === 'service');
-    expect(service?.summary.length).toBeLessThan(longName.length);
-    expect(service?.summary.endsWith('…')).toBe(true);
-    expect(service?.summaryMaxLines).toBe(3);
-  });
-
-  it('shows Jobs + Notes for multi-job and hides single-job service rows', () => {
-    const sections = buildEditHubSections({
-      ...base,
-      isMultiJob: true,
-      jobs: [{ serviceName: 'Full Detail' }, { serviceName: 'Touch-up' }],
-      addressSkipped: false,
-      address: {
-        street: '1234 Very Long Street Name That Should Truncate In The Hub Preview',
-        city: 'Austin',
-        state: 'TX',
-        zip: '78701',
-      },
-    });
-    const ids = sections.map((s) => s.id);
-
-    expect(ids).toContain('jobs');
-    expect(ids).toContain('notes');
-    expect(ids).not.toContain('service');
-    expect(ids).not.toContain('pricing');
-    expect(ids).not.toContain('addons');
-    expect(ids).not.toContain('vehicle');
-    expect(sections.find((s) => s.id === 'jobs')?.summary).toBe('Full Detail +1 more');
-    expect(sections.find((s) => s.id === 'notes')?.summary).toBe('Side gate');
-
-    const address = sections.find((s) => s.id === 'address');
-    expect(address?.summaryMaxLines).toBe(2);
-    expect(address?.summary.endsWith('…')).toBe(true);
-    expect(address?.summary.length).toBeLessThanOrEqual(64);
+    expect(sections.find((s) => s.id === 'notes')?.summary).toBe('No notes');
   });
 
   it('truncateHubSummary leaves short strings unchanged', () => {

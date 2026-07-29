@@ -211,6 +211,27 @@ describe('mapBookingToEditAppointmentForm', () => {
     ).toEqual(['addon-a']);
   });
 
+  it('resolves add-on ids from job_details when addon_details is empty', () => {
+    expect(
+      resolveEditAppointmentAddonIds({
+        booking: {
+          addon_details: null,
+          job_details: [
+            {
+              serviceName: 'Oil change',
+              servicePriceCents: 8500,
+              selectedAddOns: [{ id: 'addon-a', name: 'Pet hair removal', priceCents: 1500 }],
+            },
+          ],
+        },
+        catalogAddonsForService: [
+          { id: 'addon-a', name: 'Pet hair removal', priceLabel: '$15' },
+          { id: 'addon-b', name: 'Seat shampoo', priceLabel: '$25' },
+        ],
+      }),
+    ).toEqual(['addon-a']);
+  });
+
   it('resolves add-on ids by name when booking snapshot id differs', () => {
     expect(
       resolveEditAppointmentAddonIds({

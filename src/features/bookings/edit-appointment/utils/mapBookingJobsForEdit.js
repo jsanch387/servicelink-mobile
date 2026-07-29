@@ -90,6 +90,52 @@ function resolveVehicle(vehicle, vehicleLine) {
 }
 
 /**
+ * @param {unknown} addonDetails
+ * @returns {Array<{
+ *   id: unknown;
+ *   name?: string;
+ *   priceCents?: number;
+ *   priceLabel?: string;
+ *   durationMinutes?: number | null;
+ * }>}
+ */
+function legacyAddonRowsFromBooking(addonDetails) {
+  if (!addonDetails) return [];
+  let parsed = addonDetails;
+  if (typeof addonDetails === 'string') {
+    try {
+      parsed = JSON.parse(addonDetails);
+    } catch {
+      return [];
+    }
+  }
+  const sourceItems = Array.isArray(parsed)
+    ? parsed
+    : Array.isArray(parsed?.items)
+      ? parsed.items
+      : Array.isArray(parsed?.addons)
+        ? parsed.addons
+        : [];
+
+  return sourceItems
+    .map((item, idx) => {
+      const id = item?.id ?? item?.addon_id ?? `legacy-addon-${idx}`;
+      const name =
+        String(item?.name ?? item?.label ?? item?.title ?? '').trim() || `Add-on ${idx + 1}`;
+      const priceCentsRaw = item?.priceCents ?? item?.price_cents;
+      const priceCents = Math.max(0, Math.round(Number(priceCentsRaw) || 0));
+      return {
+        id,
+        name,
+        priceCents,
+        priceLabel: formatUsdFromNumber(priceCents / 100),
+        durationMinutes: 0,
+      };
+    })
+    .filter((row) => row.id != null && String(row.id).trim());
+}
+
+/**
  * Build editable job snapshots from `job_details`, or one synthetic job from flat columns.
  *
  * @param {Record<string, unknown> | null | undefined} booking
@@ -103,6 +149,9 @@ export function mapBookingJobsForEdit(booking) {
   const rawList = rawJobDetailsArray(jobDetails);
 
   if (parsed.length > 0) {
+    const legacyFallbackAddons =
+      parsed.length === 1 ? legacyAddonRowsFromBooking(booking.addon_details) : [];
+
     return parsed.map((job, index) => {
       const raw =
         rawList[index] && typeof rawList[index] === 'object'
@@ -119,13 +168,17 @@ export function mapBookingJobsForEdit(booking) {
           Number(job.durationMinutes) || Number(raw.durationMinutes ?? raw.duration_minutes) || 60,
         ),
       );
-      const addonRows = (job.addOns ?? []).map((a) => ({
+      let addonRows = (job.addOns ?? []).map((a) => ({
         id: a.id,
         name: a.name,
         priceCents: Math.round(Number(a.price) * 100),
         priceLabel: formatUsdFromNumber(a.price),
         durationMinutes: 0,
       }));
+      // Heal single-job rows that only had add-ons mirrored on legacy addon_details.
+      if (addonRows.length === 0 && index === 0 && legacyFallbackAddons.length > 0) {
+        addonRows = legacyFallbackAddons;
+      }
 
       return {
         localId: String(job.id || `edit-job-${index}`),
@@ -158,6 +211,7 @@ export function mapBookingJobsForEdit(booking) {
       ? String(booking.service_id).trim()
       : null;
   const durationMinutes = Math.max(1, Math.round(Number(booking.duration_minutes) || 60));
+  const addonRows = legacyAddonRowsFromBooking(booking.addon_details);
 
   return [
     {
@@ -171,7 +225,7 @@ export function mapBookingJobsForEdit(booking) {
         priceLabel: formatUsdFromNumber(priceCents / 100),
         durationMinutes,
       },
-      selectedAddonRows: [],
+      selectedAddonRows: addonRows,
       totalDurationMinutes: durationMinutes,
       vehicle: {
         year:
@@ -182,7 +236,7 @@ export function mapBookingJobsForEdit(booking) {
         model: String(booking.customer_vehicle_model ?? '').trim(),
       },
       selectedPricingId: null,
-      selectedAddonIds: [],
+      selectedAddonIds: addonRows.map((a) => String(a.id)),
       catalogPriceUsdText: serviceId ? centsToUsdText(priceCents) : '',
       customServiceName: !serviceId ? String(booking.service_name ?? '').trim() : '',
       customPriceUsdText: !serviceId ? centsToUsdText(priceCents) : '',

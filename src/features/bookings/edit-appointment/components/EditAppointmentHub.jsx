@@ -150,8 +150,9 @@ export function EditAppointmentHub({
           rowGap: 12,
         },
         header: {
-          gap: 3,
-          paddingBottom: 0,
+          gap: 4,
+          paddingBottom: 4,
+          paddingTop: 4,
         },
         heading: {
           color: colors.text,

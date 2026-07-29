@@ -1,4 +1,4 @@
-import { parseAddonLineItemsFromBooking } from '../../bookings/booking-details/utils/parseAddonLineItemsFromBooking';
+import { resolveVisitServiceAndAddonCents } from '../../bookings/booking-details/utils/buildJobCompletedPayload';
 
 const EARNINGS_STATUSES = new Set(['confirmed', 'completed']);
 
@@ -18,17 +18,13 @@ function firstPayment(row) {
   return row?.booking_payments ?? null;
 }
 
-function addonTotalCents(addonDetails) {
-  return parseAddonLineItemsFromBooking(addonDetails).reduce(
-    (total, addon) => total + cents(addon.price * 100),
-    0,
-  );
-}
-
 /**
- * Resolve booked, collected, and remaining cents for one scheduled job.
+ * Resolve booked, collected, and remaining cents for one scheduled appointment.
  * Booking snapshots are authoritative for discounts; payment totals remain the fallback
  * for legacy rows without a usable price snapshot.
+ *
+ * Completed visits count as fully settled on this card (remaining $0) so home matches
+ * “mark complete” even when `session_payment_amount_cents` lags the ledger.
  */
 export function computeBookingEarningsCents(row) {
   const status = String(row?.status ?? '')
@@ -39,15 +35,19 @@ export function computeBookingEarningsCents(row) {
   }
 
   const payment = firstPayment(row);
-  const serviceCents = cents(row?.service_price_cents);
-  const addonsCents = addonTotalCents(row?.addon_details);
+  const { serviceCents, addonCents } = resolveVisitServiceAndAddonCents({
+    servicePriceCents: row?.service_price_cents,
+    addonDetails: row?.addon_details,
+    jobDetails: row?.job_details,
+  });
   const hasBookingPrice =
     hasCentsValue(row?.subtotal_cents) ||
     hasCentsValue(row?.service_price_cents) ||
-    addonsCents > 0;
+    serviceCents > 0 ||
+    addonCents > 0;
   const grossCents = hasCentsValue(row?.subtotal_cents)
     ? cents(row.subtotal_cents)
-    : serviceCents + addonsCents;
+    : serviceCents + addonCents;
   const discountCents = Math.min(cents(row?.discount_cents), grossCents);
   const feesCents = cents(payment?.session_fees_total_cents);
   const computedTotalCents = Math.max(grossCents - discountCents + feesCents, 0);
@@ -67,8 +67,29 @@ export function computeBookingEarningsCents(row) {
   const explicitCollectedCents =
     cents(payment?.paid_online_amount_cents) + cents(payment?.session_payment_amount_cents);
   const potentialCents = Math.max(resolvedTotalCents, explicitCollectedCents);
-  const collectedCents = Math.min(explicitCollectedCents, potentialCents);
 
+  if (status === 'completed') {
+    return {
+      potentialCents,
+      collectedCents: potentialCents,
+      remainingCents: 0,
+    };
+  }
+
+  const remainingFromPayment = hasCentsValue(payment?.remaining_amount_cents)
+    ? cents(payment.remaining_amount_cents)
+    : null;
+
+  if (remainingFromPayment != null) {
+    const remainingCents = Math.min(remainingFromPayment, potentialCents);
+    return {
+      potentialCents,
+      collectedCents: Math.max(0, potentialCents - remainingCents),
+      remainingCents,
+    };
+  }
+
+  const collectedCents = Math.min(explicitCollectedCents, potentialCents);
   return {
     potentialCents,
     collectedCents,

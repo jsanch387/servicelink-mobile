@@ -1,13 +1,12 @@
 # Multi-job mobile — follow-ups (pick up next)
 
-**Context (2026-07-28):** Create + edit + details + Complete + calendar/Next Up/Rest of Today `+N more` shipped. Sale line in confirmation email is a **server** fix.
+**Superseded for current behavior:** use [`MOBILE_APPOINTMENT_LIFECYCLE.md`](./MOBILE_APPOINTMENT_LIFECYCLE.md).
+
+**Context (2026-07-28 → 2026-07-29):** Create + edit + details + Complete + calendar/Next Up/Rest of Today `+N more` shipped. Edit now writes `job_details` for single-job (incl. add-ons); details/complete/earnings heal empty job add-ons from `addon_details`. Visit hub has top-level **Add-ons**. Today’s earnings treats completed visits as remaining $0.
 
 ## Do next
 
-1. **Server amount-due for Complete** (if `job_completed` still sums top-level columns only)  
-   Mobile Complete + Mark as paid + Tap to Pay already collect the full visit total from `job_details`.  
-   Edit now denormalizes visit rollup into `service_price_cents` + flattened `addon_details` so that math matches after an edit.  
-   Confirm **create** also stores visit rollup (not first-job-only) on those columns, **or** update server to sum `job_details`.
+1. **Server amount-due for Complete** — confirm production has the same `addon_details` fallback when `job_details` add-ons are empty (mobile already heals).
 
 ## Nice later
 
@@ -17,9 +16,9 @@
 ## Already in good shape (mobile)
 
 - Create submit with `jobs[]`
-- Edit appointment (multi-job hub / per-job service, add-ons, vehicle)
-- Booking details multi-job Summary
-- Complete visit Payment breakdown (all jobs + amount due from `job_details`)
+- Edit appointment (visit hub: Jobs + Add-ons; job hub: service/pricing + vehicle)
+- Booking details Summary job cards (single + multi)
+- Complete visit line items + amount-due heal
+- Today’s earnings multi-job sum + completed = settled
 - Calendar day planner + BookingCard `+N more`
-- Next Up `+N more` (muted, smaller than service name)
-- Rest of Today timeline `+N more` (muted, next to service name)
+- Next Up / Rest of Today `+N more`

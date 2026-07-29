@@ -462,7 +462,20 @@ export function buildBookingDetailsModel(booking) {
     })),
   );
 
-  const addOns = useJobDetails ? jobAddOnsFlat : legacyAddOns;
+  // Prefer job_details add-ons; if every job has none (legacy edit wrote only
+  // addon_details), fall back so Summary matches the edit hub.
+  const healLegacyAddOnsOntoJobs =
+    useJobDetails && jobAddOnsFlat.length === 0 && legacyAddOns.length > 0;
+  const addOns = !useJobDetails
+    ? legacyAddOns
+    : healLegacyAddOnsOntoJobs
+      ? legacyAddOns.map((addon, addonIdx) => ({
+          ...addon,
+          id: `${parsedJobs[0]?.id ?? 'job'}-addon-${addon.id}-${addonIdx}`,
+          jobId: parsedJobs[0]?.id,
+          jobIndex: 0,
+        }))
+      : jobAddOnsFlat;
   const addOnsTotal = addOns.reduce((sum, item) => sum + item.price, 0);
 
   const jobsServiceTotal = parsedJobs.reduce((sum, job) => sum + job.servicePrice, 0);
@@ -544,12 +557,42 @@ export function buildBookingDetailsModel(booking) {
         : computedTotal;
 
   const legacyVehicleLine = buildVehicleDisplayLine(booking);
-  const jobVehicleLines = parsedJobs
-    .map((job) => job.vehicleLine)
-    .filter((line) => line.length > 0);
-  const hasJobVehicles = jobVehicleLines.length > 0;
-  // Vehicles are shown under Schedule job rows when present on job_details — avoid a duplicate section.
-  const vehicleLine = hasJobVehicles ? '' : legacyVehicleLine;
+
+  const priceJobs = useJobDetails
+    ? parsedJobs.map((job, index) => {
+        const jobAddOns =
+          healLegacyAddOnsOntoJobs && index === 0 && job.addOns.length === 0
+            ? legacyAddOns
+            : job.addOns;
+        return {
+          id: job.id,
+          serviceName: job.serviceName,
+          pricingOption: job.pricingOption,
+          vehicleLine: job.vehicleLine,
+          servicePriceLabel: formatMoney(job.servicePrice),
+          addOns: jobAddOns.map((item) => ({
+            ...item,
+            priceLabel: formatMoney(item.price),
+          })),
+        };
+      })
+    : [
+        {
+          id: 'legacy',
+          serviceName: legacyServiceName,
+          pricingOption: legacyPricingOption,
+          vehicleLine: legacyVehicleLine,
+          servicePriceLabel: formatMoneyOrFallback(legacyServicePrice),
+          addOns: legacyAddOns.map((item) => ({
+            ...item,
+            priceLabel: formatMoney(item.price),
+          })),
+        },
+      ];
+
+  // Vehicles show on Summary job cards — avoid a duplicate Vehicle section.
+  const jobsHaveVehicleLines = priceJobs.some((job) => String(job.vehicleLine ?? '').trim());
+  const vehicleLine = jobsHaveVehicleLines ? '' : legacyVehicleLine;
   const hasVehicle = vehicleLine.length > 0;
   const vehicleRows = hasVehicle
     ? [{ key: 'vehicle-legacy', icon: 'car-sport-outline', value: legacyVehicleLine }]
@@ -570,20 +613,6 @@ export function buildBookingDetailsModel(booking) {
   const customerEmailDisplay = typeof customerEmailRaw === 'string' ? customerEmailRaw.trim() : '';
   const notesRaw = typeof booking?.customer_notes === 'string' ? booking.customer_notes.trim() : '';
 
-  const priceJobs = useJobDetails
-    ? parsedJobs.map((job) => ({
-        id: job.id,
-        serviceName: job.serviceName,
-        pricingOption: job.pricingOption,
-        vehicleLine: job.vehicleLine,
-        servicePriceLabel: formatMoney(job.servicePrice),
-        addOns: job.addOns.map((item) => ({
-          ...item,
-          priceLabel: formatMoney(item.price),
-        })),
-      }))
-    : null;
-
   return {
     bookingId: booking?.id || '',
     status: clean(booking?.status, 'confirmed'),
@@ -591,11 +620,15 @@ export function buildBookingDetailsModel(booking) {
       ? parsedJobs.length
       : Math.max(1, Math.round(Number(booking?.visit_job_count) || 1)),
     isMultiJob,
+    /** True when booking has `job_details` (length ≥ 1); source of truth for service/add-ons. */
+    hasJobDetails: useJobDetails,
     schedule: {
       serviceName: scheduleServiceName,
       pricingOption: schedulePricingOption,
       jobs: scheduleJobs,
       isMultiJob,
+      /** Service/add-ons live in Summary job cards — Schedule is date/time/duration only. */
+      omitServiceBlock: true,
       date: buildDateLine(ms),
       time: buildTimeLine(ms),
       duration: formatDuration(booking?.duration_minutes),

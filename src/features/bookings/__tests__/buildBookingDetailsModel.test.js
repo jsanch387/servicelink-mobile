@@ -123,20 +123,105 @@ describe('buildBookingDetailsModel', () => {
     expect(model.vehicle).toBe('');
   });
 
-  it('sets hasVehicle from customer vehicle fields', () => {
+  it('puts legacy vehicle on the Summary job card (no duplicate Vehicle section)', () => {
     const model = buildBookingDetailsModel({
       customer_vehicle_year: 2022,
       customer_vehicle_make: 'Honda',
       customer_vehicle_model: 'Civic',
     });
-    expect(model.hasVehicle).toBe(true);
-    expect(model.vehicle).toContain('Honda');
+    expect(model.hasVehicle).toBe(false);
+    expect(model.formattedPrice.jobs[0].vehicleLine).toContain('Honda');
   });
 
-  it('sets hasVehicle from legacy vehicle string', () => {
+  it('puts legacy vehicle string on the Summary job card', () => {
     const model = buildBookingDetailsModel({ vehicle: ' 2019 Ford F-150 ' });
-    expect(model.hasVehicle).toBe(true);
-    expect(model.vehicle).toBe('2019 Ford F-150');
+    expect(model.hasVehicle).toBe(false);
+    expect(model.formattedPrice.jobs[0].vehicleLine).toBe('2019 Ford F-150');
+  });
+
+  it('builds Summary job cards from legacy addon_details', () => {
+    const model = buildBookingDetailsModel({
+      service_price_cents: 10000,
+      service_name: 'Full detail',
+      addon_details: {
+        addons: [
+          { id: 'a1', name: 'Pet hair removal', price_cents: 1500 },
+          { id: 'a2', label: 'Seat shampoo', priceCents: 2500 },
+        ],
+      },
+    });
+
+    expect(model.hasJobDetails).toBe(false);
+    expect(model.formattedPrice.jobs).toHaveLength(1);
+    expect(model.formattedPrice.jobs[0]).toMatchObject({
+      serviceName: 'Full detail',
+      servicePriceLabel: '$100.00',
+    });
+    expect(model.formattedPrice.jobs[0].addOns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'a1', name: 'Pet hair removal', priceLabel: '$15.00' }),
+        expect.objectContaining({ id: 'a2', name: 'Seat shampoo', priceLabel: '$25.00' }),
+      ]),
+    );
+    expect(model.formattedPrice.hasAddOns).toBe(true);
+    expect(model.formattedPrice.total).toBe('$140.00');
+  });
+
+  it('reads add-ons from single-job job_details (not legacy addon_details)', () => {
+    const model = buildBookingDetailsModel({
+      service_name: 'Oil change',
+      service_price_cents: 0,
+      addon_details: null,
+      job_details: [
+        {
+          clientJobId: 'j1',
+          serviceName: 'Oil change',
+          servicePriceOptionLabel: 'Synthetic',
+          servicePriceCents: 8500,
+          selectedAddOns: [{ id: 'addon-1', name: 'Wax', priceCents: 2500 }],
+          durationMinutes: 80,
+          vehicle: { year: '2020', make: 'Honda', model: 'Civic' },
+        },
+      ],
+    });
+
+    expect(model.hasJobDetails).toBe(true);
+    expect(model.isMultiJob).toBe(false);
+    expect(model.formattedPrice.jobs).toHaveLength(1);
+    expect(model.formattedPrice.jobs[0].addOns[0]).toMatchObject({
+      name: 'Wax',
+      priceLabel: '$25.00',
+    });
+    expect(model.formattedPrice.total).toBe('$110.00');
+    expect(model.hasVehicle).toBe(false);
+    expect(model.formattedPrice.jobs[0].vehicleLine).toBe('2020 Honda Civic');
+  });
+
+  it('heals Summary add-ons from addon_details when job_details has none', () => {
+    const model = buildBookingDetailsModel({
+      service_name: 'Oil change',
+      service_price_cents: 8500,
+      addon_details: {
+        addons: [{ id: 'addon-1', name: 'Wax', priceCents: 2500 }],
+      },
+      job_details: [
+        {
+          clientJobId: 'j1',
+          serviceName: 'Oil change',
+          servicePriceOptionLabel: 'Synthetic',
+          servicePriceCents: 8500,
+          durationMinutes: 80,
+          vehicle: { year: '2020', make: 'Honda', model: 'Civic' },
+        },
+      ],
+    });
+
+    expect(model.hasJobDetails).toBe(true);
+    expect(model.formattedPrice.hasAddOns).toBe(true);
+    expect(model.formattedPrice.jobs[0].addOns).toEqual([
+      expect.objectContaining({ name: 'Wax', priceLabel: '$25.00' }),
+    ]);
+    expect(model.formattedPrice.total).toBe('$110.00');
   });
 
   it('parses addon_details for price breakdown rows', () => {

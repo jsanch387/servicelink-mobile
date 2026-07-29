@@ -32,7 +32,6 @@ import { BookingPaymentSection } from '../booking-details/components/BookingPaym
 import { BookingDetailsStatusBanner } from '../booking-details/components/BookingDetailsStatusBanner';
 import { BookingRescheduleSheet } from '../booking-details/components/BookingRescheduleSheet';
 import { BookingDetailsSkeleton } from '../booking-details/components/BookingDetailsSkeleton';
-import { PriceBreakdownSection } from '../booking-details/components/PriceBreakdownSection';
 import { BookingJobsSummarySection } from '../booking-details/components/BookingJobsSummarySection';
 import { ScheduleSection } from '../booking-details/components/ScheduleSection';
 import { useBookingActions } from '../booking-details/hooks/useBookingActions';
@@ -382,12 +381,10 @@ export function BookingDetailsScreen({ route }) {
               isCompleted={isCompletedStatus}
             />
 
-            {details.isMultiJob ? (
-              <BookingJobsSummarySection
-                formattedPrice={details.formattedPrice}
-                jobs={details.formattedPrice.jobs}
-              />
-            ) : null}
+            <BookingJobsSummarySection
+              formattedPrice={details.formattedPrice}
+              jobs={details.formattedPrice.jobs}
+            />
 
             <ScheduleSection schedule={details.schedule} />
 
@@ -399,10 +396,6 @@ export function BookingDetailsScreen({ route }) {
             />
 
             {details.payment.visible ? <BookingPaymentSection payment={details.payment} /> : null}
-
-            {!details.isMultiJob ? (
-              <PriceBreakdownSection formattedPrice={details.formattedPrice} />
-            ) : null}
 
             {details.location.hasAddress ? (
               <InfoSection

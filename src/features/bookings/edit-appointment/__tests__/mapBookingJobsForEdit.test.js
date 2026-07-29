@@ -65,12 +65,21 @@ describe('mapBookingJobsForEdit', () => {
       customer_vehicle_year: 2020,
       customer_vehicle_make: 'Honda',
       customer_vehicle_model: 'Civic',
+      addon_details: {
+        addons: [{ id: 'addon-a', name: 'Wax', priceCents: 2500 }],
+      },
     });
 
     expect(jobs).toHaveLength(1);
     expect(isMultiJobEdit(jobs)).toBe(false);
     expect(jobs[0].selectedServiceId).toBe('svc-1');
     expect(jobs[0].vehicle.make).toBe('Honda');
+    expect(jobs[0].selectedAddonIds).toEqual(['addon-a']);
+    expect(jobs[0].selectedAddonRows[0]).toMatchObject({
+      id: 'addon-a',
+      name: 'Wax',
+      priceCents: 2500,
+    });
   });
 });
 
