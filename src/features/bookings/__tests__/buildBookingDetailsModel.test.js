@@ -18,6 +18,60 @@ describe('buildBookingDetailsModel', () => {
     expect(model.schedule.pricingOption).toBe('SUV');
   });
 
+  it('builds multi-job schedule and price lines from job_details', () => {
+    const model = buildBookingDetailsModel({
+      service_name: 'Signature Shine',
+      service_price_cents: 22500,
+      duration_minutes: 180,
+      scheduled_date: '2026-08-12',
+      start_time: '09:00:00',
+      visit_job_count: 2,
+      job_details: [
+        {
+          clientJobId: 'j1',
+          serviceName: 'Signature Shine',
+          servicePriceOptionLabel: 'SUV',
+          servicePriceCents: 22500,
+          selectedAddOns: [{ id: 'a1', name: 'Pet hair', priceCents: 2500 }],
+          durationMinutes: 135,
+          vehicle: { year: '2022', make: 'Toyota', model: 'Highlander' },
+        },
+        {
+          clientJobId: 'j2',
+          serviceName: 'Touch-up paint',
+          servicePriceCents: 7500,
+          durationMinutes: 45,
+          vehicle: { year: '2018', make: 'Honda', model: 'Civic' },
+        },
+      ],
+    });
+
+    expect(model.isMultiJob).toBe(true);
+    expect(model.jobCount).toBe(2);
+    expect(model.schedule.isMultiJob).toBe(true);
+    expect(model.schedule.jobs).toHaveLength(2);
+    expect(model.schedule.jobs[0]).toMatchObject({
+      serviceName: 'Signature Shine',
+      pricingOption: 'SUV',
+      vehicleLine: '2022 Toyota Highlander',
+    });
+    expect(model.formattedPrice.jobs).toHaveLength(2);
+    expect(model.formattedPrice.jobs[0]).toMatchObject({
+      serviceName: 'Signature Shine',
+      pricingOption: 'SUV',
+      vehicleLine: '2022 Toyota Highlander',
+      servicePriceLabel: '$225.00',
+    });
+    expect(model.formattedPrice.jobs[0].addOns[0]).toMatchObject({
+      name: 'Pet hair',
+      priceLabel: '$25.00',
+    });
+    expect(model.formattedPrice.jobs[1].servicePriceLabel).toBe('$75.00');
+    expect(model.formattedPrice.total).toBe('$325.00');
+    // Vehicles live under schedule job rows for multi-job visits
+    expect(model.hasVehicle).toBe(false);
+  });
+
   it('leaves pricing option null when service name has no tier', () => {
     const model = buildBookingDetailsModel({
       service_name: 'Full detail',
@@ -233,9 +287,8 @@ describe('buildBookingDetailsModel', () => {
       expect.objectContaining({ name: 'Extra soil', priceLabel: '$15.00' }),
     ]);
     expect(model.formattedPrice.total).toBe('$115.00');
-    expect(model.formattedPrice.paymentAdjustments).toEqual([
-      expect.objectContaining({ label: 'Paid with card', value: '−$115.00' }),
-    ]);
+    expect(model.payment.status).toBe('Tap to Pay');
+    expect(model.payment.detail).toMatch(/115\.00/);
   });
 
   it('infers session fees on completed booking when only total was updated server-side', () => {
@@ -304,14 +357,12 @@ describe('buildBookingDetailsModel', () => {
 
     expect(model.payment.status).toBe('Tap to Pay');
     expect(model.payment.variant).toBe('session_paid');
+    expect(model.payment.detail).toMatch(/115\.00/);
     expect(model.formattedPrice.hasSessionFees).toBe(true);
     expect(model.formattedPrice.sessionFees[0].priceLabel).toBe('$15.00');
-    expect(model.formattedPrice.paymentAdjustments).toEqual([
-      expect.objectContaining({ label: 'Paid with card', value: '−$115.00' }),
-    ]);
   });
 
-  it('shows Deposit in price breakdown when a partial online payment remains due', () => {
+  it('shows deposit status on Payment card when a partial online payment remains due', () => {
     const model = buildBookingDetailsModel({
       service_price_cents: 24225,
       payment: {
@@ -325,9 +376,6 @@ describe('buildBookingDetailsModel', () => {
 
     expect(model.payment.status).toBe('Deposit paid');
     expect(model.payment.detail).toBe('$240.25 due');
-    expect(model.formattedPrice.paymentAdjustments).toEqual([
-      expect.objectContaining({ label: 'Deposit', value: '−$2.00' }),
-    ]);
   });
 
   it('hides payment section when booking has no merged payment summary', () => {
@@ -340,6 +388,7 @@ describe('buildBookingDetailsModel', () => {
 
   it('pay in person: status + amount due', () => {
     const model = buildBookingDetailsModel({
+      service_price_cents: 10000,
       payment: {
         paymentMethodSelected: 'pay_in_person',
         paidOnlineAmountCents: 0,
@@ -354,6 +403,39 @@ describe('buildBookingDetailsModel', () => {
     expect(model.payment.detail).toMatch(/100\.00/);
     expect(model.payment.detail).toMatch(/due/i);
     expect(model.payment.accessibilityLabel).toMatch(/Pay in person/);
+  });
+
+  it('heals stale payment due after job prices change', () => {
+    const model = buildBookingDetailsModel({
+      service_price_cents: 21000,
+      discount_cents: 0,
+      visit_job_count: 2,
+      job_details: [
+        {
+          serviceName: 'A',
+          servicePriceCents: 21000,
+          selectedAddOns: [{ id: 'a1', name: 'Pet', priceCents: 2000 }],
+          durationMinutes: 60,
+        },
+        {
+          serviceName: 'B',
+          servicePriceCents: 27500,
+          selectedAddOns: [],
+          durationMinutes: 60,
+        },
+      ],
+      payment: {
+        paymentMethodSelected: 'none',
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 39900,
+        totalAmountCents: 39900,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.total).toMatch(/505\.00/);
+    expect(model.payment.detail).toMatch(/505\.00/);
+    expect(model.payment.detail).toMatch(/due/i);
   });
 
   it('pay in person with zero total shows no charge', () => {
@@ -385,9 +467,6 @@ describe('buildBookingDetailsModel', () => {
     expect(model.payment.status).toBe('Deposit paid');
     expect(model.payment.detail).toBe('$50.00 due');
     expect(model.payment.detail).not.toMatch(/paid/i);
-    expect(model.formattedPrice.paymentAdjustments).toEqual([
-      expect.objectContaining({ label: 'Deposit', value: '−$50.00' }),
-    ]);
   });
 
   it('paid in full: Paid online + amount', () => {
@@ -419,9 +498,6 @@ describe('buildBookingDetailsModel', () => {
     expect(model.payment.variant).toBe('deposit');
     expect(model.payment.status).toBe('Deposit paid');
     expect(model.payment.detail).toBe('Pay in person · $70.00 due');
-    expect(model.formattedPrice.paymentAdjustments).toEqual([
-      expect.objectContaining({ label: 'Deposit', value: '−$30.00' }),
-    ]);
   });
 
   it('hides payment for pay_now with no online payment (ambiguous state)', () => {

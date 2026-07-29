@@ -92,4 +92,59 @@ describe('buildEditBookingUpdatePayload', () => {
     expect(midnight.start_time).toBe('00:00:00');
     expect(noon.start_time).toBe('12:00:00');
   });
+
+  it('writes job_details and visit_job_count for multi-job saves', () => {
+    const payload = buildEditBookingUpdatePayload({
+      ...baseArgs,
+      isMultiJob: true,
+      jobs: [
+        {
+          localId: 'j1',
+          selectedServiceId: 'svc-1',
+          isCustomJob: false,
+          serviceName: 'Oil change',
+          selectedPricingOption: { label: 'Synthetic', priceCents: 8500, durationMinutes: 60 },
+          selectedAddonRows: [{ id: 'addon-1', name: 'Wax', priceLabel: '$25' }],
+          totalDurationMinutes: 80,
+          vehicle: { year: '2020', make: 'Honda', model: 'Civic' },
+        },
+        {
+          localId: 'j2',
+          selectedServiceId: null,
+          isCustomJob: true,
+          serviceName: 'Touch-up paint',
+          selectedPricingOption: { label: 'Standard', priceCents: 7500, durationMinutes: 45 },
+          selectedAddonRows: [],
+          totalDurationMinutes: 45,
+          vehicle: { year: '2018', make: 'Toyota', model: 'Camry' },
+        },
+      ],
+    });
+
+    expect(payload.visit_job_count).toBe(2);
+    expect(payload.duration_minutes).toBe(125);
+    expect(payload.job_details).toHaveLength(2);
+    expect(payload.job_details[0]).toMatchObject({
+      serviceId: 'svc-1',
+      serviceName: 'Oil change',
+      servicePriceOptionLabel: 'Synthetic',
+      servicePriceCents: 8500,
+    });
+    expect(payload.job_details[1]).toMatchObject({
+      serviceName: 'Touch-up paint',
+      servicePriceCents: 7500,
+    });
+    expect(payload.job_details[1].serviceId).toBeUndefined();
+    expect(payload.service_id).toBe('svc-1');
+    // Visit rollup for Complete / legacy amount-due (not first job only).
+    expect(payload.service_price_cents).toBe(16000);
+    expect(payload.addon_details.addons).toHaveLength(1);
+    expect(payload.addon_details.addons[0]).toMatchObject({
+      id: 'addon-1',
+      name: 'Wax',
+      priceCents: 2500,
+    });
+    expect(payload.customer_vehicle_make).toBe('Honda');
+    expect(payload.customer_notes).toBe('Side gate');
+  });
 });

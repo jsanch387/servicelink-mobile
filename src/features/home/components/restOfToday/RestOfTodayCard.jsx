@@ -83,16 +83,18 @@ export function RestOfTodayCard({ items, isLoading, error }) {
         const cancelled = item.statusKind === 'cancelled';
         const completed = item.statusKind === 'completed';
         const dotColor = timelineDotColor(item.statusKind, colors);
+        const extraCount = Math.max(0, Math.round(Number(item.extraCount) || 0));
         const a11yStatus =
           item.statusKind === 'completed'
             ? 'Completed'
             : item.statusKind === 'cancelled'
               ? 'Canceled'
               : 'Upcoming';
+        const a11yTitle = extraCount > 0 ? `${item.title} +${extraCount} more` : item.title;
         return (
           <View
             key={item.id}
-            accessibilityLabel={`${item.time}. ${item.title}. ${a11yStatus}`}
+            accessibilityLabel={`${item.time}. ${a11yTitle}. ${a11yStatus}`}
             accessibilityRole="text"
             style={styles.row}
           >
@@ -118,16 +120,31 @@ export function RestOfTodayCard({ items, isLoading, error }) {
             </View>
             <View style={styles.content}>
               <AppText style={[styles.time, { color: colors.textSecondary }]}>{item.time}</AppText>
-              <AppText
-                numberOfLines={2}
-                style={[
-                  styles.title,
-                  { color: colors.text },
-                  cancelled && { color: colors.textMuted, textDecorationLine: 'line-through' },
-                ]}
-              >
-                {item.title}
-              </AppText>
+              <View style={styles.titleRow}>
+                <AppText
+                  ellipsizeMode="tail"
+                  numberOfLines={1}
+                  style={[
+                    styles.title,
+                    { color: colors.text },
+                    cancelled && { color: colors.textMuted, textDecorationLine: 'line-through' },
+                  ]}
+                >
+                  {item.title}
+                </AppText>
+                {extraCount > 0 ? (
+                  <AppText
+                    numberOfLines={1}
+                    style={[
+                      styles.titleMore,
+                      { color: colors.textMuted },
+                      cancelled && { textDecorationLine: 'line-through' },
+                    ]}
+                  >
+                    {`+${extraCount} more`}
+                  </AppText>
+                ) : null}
+              </View>
             </View>
           </View>
         );
@@ -165,16 +182,32 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    minWidth: 0,
     paddingBottom: 14,
   },
   time: {
     fontSize: 13,
     fontWeight: '600',
   },
+  titleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 4,
+    minWidth: 0,
+  },
   title: {
+    flexGrow: 0,
+    flexShrink: 1,
     fontSize: 16,
     fontWeight: '600',
-    marginTop: 4,
+    minWidth: 0,
+  },
+  titleMore: {
+    flexGrow: 0,
+    flexShrink: 0,
+    fontSize: 13,
+    fontWeight: '500',
   },
   emptyWrap: {
     alignItems: 'center',

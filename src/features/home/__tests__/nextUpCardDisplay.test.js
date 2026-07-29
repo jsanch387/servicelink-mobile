@@ -41,6 +41,11 @@ describe('formatNextUpServiceLine', () => {
   it('falls back to Service when primary is empty', () => {
     expect(formatNextUpServiceLine('', 'Premium')).toBe('Service');
   });
+
+  it('appends +N more for multi-job visits', () => {
+    expect(formatNextUpServiceLine('Signature Shine', null, 1)).toBe('Signature Shine +1 more');
+    expect(formatNextUpServiceLine('Wash', null, 2)).toBe('Wash +2 more');
+  });
 });
 
 describe('formatNextUpVehicleLine', () => {
@@ -60,15 +65,31 @@ describe('buildNextUpHeadlines', () => {
     expect(out.customerName).toBe('Customer');
     expect(out.servicePrimary).toBe('Service');
     expect(out.serviceDetail).toBeNull();
+    expect(out.serviceExtraCount).toBe(0);
   });
 
-  it('keeps customer and splits service', () => {
+  it('keeps customer and strips pricing tier', () => {
     const out = buildNextUpHeadlines({
       customer_name: 'Jordan Lee',
       service_name: 'Signature Shine — SUV',
     });
     expect(out.customerName).toBe('Jordan Lee');
     expect(out.servicePrimary).toBe('Signature Shine');
-    expect(out.serviceDetail).toBe('SUV');
+    expect(out.serviceDetail).toBeNull();
+    expect(out.serviceExtraCount).toBe(0);
+  });
+
+  it('sets serviceExtraCount from job_details', () => {
+    const out = buildNextUpHeadlines({
+      customer_name: 'Jordan Lee',
+      service_name: 'Signature Shine — SUV',
+      visit_job_count: 2,
+      job_details: [
+        { serviceName: 'Signature Shine', servicePriceOptionLabel: 'SUV' },
+        { serviceName: 'Touch-up paint' },
+      ],
+    });
+    expect(out.servicePrimary).toBe('Signature Shine');
+    expect(out.serviceExtraCount).toBe(1);
   });
 });

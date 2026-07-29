@@ -448,7 +448,7 @@ export function ReviewStep({
               const addonRows = job.addonRows ?? [];
               const optionLabel = String(job.optionLabel ?? '').trim();
               const vehicleLine = String(job.vehicleLine ?? '').trim();
-              const jobKey = job.localId ?? `job-${index}`;
+              const jobKey = `${job.localId ?? 'job'}-${index}`;
               return (
                 <SwipeToDeleteRow
                   key={jobKey}

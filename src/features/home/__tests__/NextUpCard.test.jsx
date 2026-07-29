@@ -374,6 +374,32 @@ describe('NextUpCard', () => {
     expect(screen.getByText('2017 Toyota Tacoma')).toBeTruthy();
   });
 
+  it('shows +N more on the service line for multi-job visits', () => {
+    const nextBooking = {
+      id: '2',
+      customer_name: 'Jordan Lee',
+      service_name: 'Signature Shine — SUV',
+      visit_job_count: 2,
+      job_details: [
+        { serviceName: 'Signature Shine', servicePriceOptionLabel: 'SUV' },
+        { serviceName: 'Touch-up paint' },
+      ],
+      customer_phone: '5552345678',
+      job_status: 'not_started',
+    };
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={nextBooking}
+        subtitle="Tomorrow at 9:00 AM"
+      />,
+    );
+    expect(screen.getByText('Signature Shine')).toBeTruthy();
+    expect(screen.getByText('+1 more')).toBeTruthy();
+  });
+
   it('upcoming: On my way disabled without a customer phone', () => {
     renderWithProviders(
       <NextUpCard

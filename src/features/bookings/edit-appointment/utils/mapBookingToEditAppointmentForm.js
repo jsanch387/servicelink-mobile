@@ -1,6 +1,7 @@
 import { format24HourTo12Hour } from '../../../availability/utils/availabilityModel';
 import { calendarYyyyMmDdFromScheduledDate } from '../../../home/utils/bookingStart';
 import { splitBookingServiceName } from '../../../../utils/splitBookingServiceName';
+import { formatPhoneForDisplay } from '../../../../utils/phone';
 import { bookingCustomerPhoneDigits } from '../../create-appointment/utils/ownerBookingFieldFormats';
 import {
   CREATE_APPOINTMENT_LOCATION_MOBILE,
@@ -337,7 +338,9 @@ export function mapBookingToEditAppointmentForm({
     customer: {
       fullName: String(booking.customer_name ?? '').trim(),
       email: String(booking.customer_email ?? '').trim(),
-      phone: bookingCustomerPhoneDigits(booking.customer_phone),
+      phone:
+        formatPhoneForDisplay(booking.customer_phone) ||
+        bookingCustomerPhoneDigits(booking.customer_phone),
     },
     appointmentLocationType,
     address,

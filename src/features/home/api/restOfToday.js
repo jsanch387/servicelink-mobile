@@ -26,6 +26,8 @@ export async function fetchBookingsForTodayTimeline(
         start_time,
         status,
         service_name,
+        job_details,
+        visit_job_count,
         service_price_cents,
         addon_details,
         subtotal_cents,

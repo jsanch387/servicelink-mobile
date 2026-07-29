@@ -8,9 +8,16 @@ import {
 } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 
+/**
+ * Single-job: service title + option above date/time/duration (legacy layout).
+ * Multi-job: date/time/duration only — jobs live in {@link BookingJobsSummarySection}.
+ */
 export function ScheduleSection({ schedule }) {
   const { colors } = useTheme();
+  const isMultiJob = Boolean(schedule?.isMultiJob);
   const serviceName = String(schedule.serviceName ?? '').trim();
+  const jobs = Array.isArray(schedule?.jobs) ? schedule.jobs : [];
+  const single = !isMultiJob ? jobs[0] : null;
 
   const styles = useMemo(
     () =>
@@ -46,37 +53,49 @@ export function ScheduleSection({ schedule }) {
     [colors],
   );
 
+  const fields = (
+    <View style={styles.fieldsStack}>
+      <DetailIconFieldRow
+        icon="calendar-outline"
+        label="Date"
+        labelUppercase={false}
+        value={schedule.date}
+      />
+      <DetailIconFieldRow
+        icon="time-outline"
+        label="Time"
+        labelUppercase={false}
+        value={schedule.time}
+      />
+      <DetailIconFieldRow
+        icon="hourglass-outline"
+        label="Duration"
+        labelUppercase={false}
+        value={schedule.duration}
+      />
+    </View>
+  );
+
   return (
     <DetailsSectionCard bodyPadding="roomy" title="Schedule">
-      <View style={styles.stack}>
-        <View style={styles.serviceBlock}>
-          <AppText style={styles.serviceText}>{serviceName}</AppText>
-          {schedule.pricingOption ? (
-            <AppText style={styles.pricingOptionText}>{schedule.pricingOption}</AppText>
-          ) : null}
+      {isMultiJob ? (
+        fields
+      ) : (
+        <View style={styles.stack}>
+          <View style={styles.serviceBlock}>
+            <AppText style={styles.serviceText}>
+              {String(single?.serviceName ?? serviceName).trim() || serviceName}
+            </AppText>
+            {single?.pricingOption || schedule.pricingOption ? (
+              <AppText style={styles.pricingOptionText}>
+                {single?.pricingOption || schedule.pricingOption}
+              </AppText>
+            ) : null}
+          </View>
+          <Divider />
+          {fields}
         </View>
-        <Divider />
-        <View style={styles.fieldsStack}>
-          <DetailIconFieldRow
-            icon="calendar-outline"
-            label="Date"
-            labelUppercase={false}
-            value={schedule.date}
-          />
-          <DetailIconFieldRow
-            icon="time-outline"
-            label="Time"
-            labelUppercase={false}
-            value={schedule.time}
-          />
-          <DetailIconFieldRow
-            icon="hourglass-outline"
-            label="Duration"
-            labelUppercase={false}
-            value={schedule.duration}
-          />
-        </View>
-      </View>
+      )}
     </DetailsSectionCard>
   );
 }

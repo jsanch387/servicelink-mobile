@@ -136,5 +136,19 @@ describe('buildJobCompletedPayload', () => {
         discountCents: 2300,
       }),
     ).toBe(9700);
+
+    expect(
+      computeCompleteVisitAmountDueCents({
+        servicePriceCents: 22500,
+        addonDetails: [{ priceCents: 5000 }],
+        sessionFees: [],
+        paidOnlineCents: 0,
+        sessionPaymentAmountCents: 0,
+        jobDetails: [
+          { serviceName: 'Full Detail', servicePriceCents: 22500 },
+          { serviceName: 'Touch-up', servicePriceCents: 7500 },
+        ],
+      }),
+    ).toBe(30000);
   });
 });

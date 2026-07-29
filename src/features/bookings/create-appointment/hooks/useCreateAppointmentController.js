@@ -58,11 +58,9 @@ import {
 } from '../utils/createFlowPricing';
 import {
   createEmptyJobDraft,
-  mergeVisitJobNotes,
   snapshotCommittedJob,
   sumJobDurationsMinutes,
 } from '../utils/createAppointmentJobs';
-import { addMinutesToTime12h } from '../utils/scheduleTimeMath';
 import { useBookingCalendar } from '../../../availability/booking';
 import { isSelectedScheduleStillValid } from '../../../availability/booking/utils/bookingCalendar';
 import { parseScheduleInputs } from '../../../availability/booking/utils/scheduleInputs';
@@ -372,7 +370,14 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
 
   const visitJobs = useMemo(() => {
     if (!selectedServiceId && !isCustomJob) return committedJobs;
-    return [...committedJobs, buildCurrentJobSnapshot()];
+    const draft = buildCurrentJobSnapshot();
+    const draftId = String(draft.localId ?? '');
+    if (draftId && committedJobs.some((job) => String(job.localId) === draftId)) {
+      const nextId = createDraftLocalId();
+      draftLocalIdRef.current = nextId;
+      return [...committedJobs, { ...draft, localId: nextId }];
+    }
+    return [...committedJobs, draft];
   }, [buildCurrentJobSnapshot, committedJobs, isCustomJob, selectedServiceId]);
 
   const visitDurationMinutes = useMemo(() => {
@@ -540,54 +545,22 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         throw new Error('Add at least one job before confirming.');
       }
 
-      let nextStartTime = selectedTime;
-      /** @type {{ id: string; smsOutcome?: unknown } | null} */
-      let firstResult = null;
-
-      for (let i = 0; i < allJobs.length; i += 1) {
-        const job = allJobs[i];
-        const sale = pickActiveSaleForAppointmentDate(server.sales, selectedDateKey);
-        const baseCents = Math.round(Number(job.selectedPricingOption?.priceCents) || 0);
-        const addonsCents = (job.selectedAddonRows ?? []).reduce(
-          (sum, a) =>
-            sum +
-            (a.priceCents != null && Number.isFinite(Number(a.priceCents))
-              ? Math.round(Number(a.priceCents))
-              : Math.round(parsePriceLabelToUsd(a.priceLabel ?? a.price) * 100)),
-          0,
-        );
-        const jobSaleDiscount = sale
-          ? buildAppliedSaleDiscount({ subtotalCents: baseCents + addonsCents, sale })
-          : null;
-
-        const body = buildOwnerManualPublicBookingBody({
-          catalog,
-          selectedService: { name: job.serviceName },
-          selectedServiceId: job.selectedServiceId,
-          selectedPricingOption: job.selectedPricingOption,
-          selectedAddonRows: job.selectedAddonRows,
-          totalDurationMinutes: job.totalDurationMinutes,
-          selectedDateKey,
-          selectedTime: nextStartTime,
-          customer,
-          address,
-          vehicle: job.vehicle,
-          notes: mergeVisitJobNotes(notes, i, allJobs.length),
-          appointmentLocationType,
-          appliedSaleDiscount: jobSaleDiscount,
-        });
-        const res = await postOwnerManualPublicBooking(token, body);
-        if (!res.ok) {
-          throw res.error;
-        }
-        if (!firstResult) {
-          firstResult = res.data;
-        }
-        const advanced = addMinutesToTime12h(nextStartTime, job.totalDurationMinutes);
-        if (advanced) nextStartTime = advanced;
+      const body = buildOwnerManualPublicBookingBody({
+        catalog,
+        selectedDateKey,
+        selectedTime,
+        customer,
+        address,
+        notes,
+        appointmentLocationType,
+        jobs: allJobs,
+        appliedSaleDiscount,
+      });
+      const res = await postOwnerManualPublicBooking(token, body);
+      if (!res.ok) {
+        throw res.error;
       }
-
-      return firstResult;
+      return res.data;
     },
     onSuccess: async (data) => {
       await Promise.all([
@@ -807,7 +780,16 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       return;
     }
 
-    setCommittedJobs((prev) => [...prev, buildCurrentJobSnapshot()]);
+    // Snapshot eagerly — do not call buildCurrentJobSnapshot inside setState.
+    // resetJobDraftFields() rotates draftLocalIdRef synchronously; a lazy updater
+    // would commit the *new* draft id and collide when the next job is appended.
+    const snapshot = buildCurrentJobSnapshot();
+    setCommittedJobs((prev) => {
+      if (prev.some((job) => String(job.localId) === String(snapshot.localId))) {
+        return prev;
+      }
+      return [...prev, snapshot];
+    });
     resetJobDraftFields();
     setStep(CREATE_APPOINTMENT_STEP.SERVICE);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});

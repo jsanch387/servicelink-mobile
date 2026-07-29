@@ -20,7 +20,7 @@ import { useTheme } from '../../../../theme';
  * @param {() => void} props.onDone
  * @param {string} [props.lastStepPrimaryTitle]
  * @param {string} [props.lastStepAccessibilityLabel]
- * @param {boolean} [props.editHubMode] Cancel + Save changes (edit hub)
+ * @param {boolean} [props.editHubMode] Hub list only — no footer (section screens own Save)
  * @param {boolean} [props.editSectionMode] Back + Done (single-section edit)
  * @param {string} [props.sectionPrimaryTitle]
  * @param {string} [props.backTitle]
@@ -80,24 +80,8 @@ export function CreateFlowFooter({
   }
 
   if (editHubMode) {
-    return (
-      <View style={[styles.footer, { paddingBottom }]}>
-        <View style={styles.footerBtn}>
-          <Button fullWidth title="Cancel" variant="secondary" onPress={onBack} />
-        </View>
-        <View style={styles.footerBtn}>
-          <Button
-            accessibilityLabel={lastStepAccessibilityLabel ?? lastStepPrimaryTitle}
-            disabled={!canContinue || confirmLoading}
-            fullWidth
-            loading={confirmLoading}
-            title={lastStepPrimaryTitle}
-            variant="primary"
-            onPress={onContinue}
-          />
-        </View>
-      </View>
-    );
+    // Edit hub is list-only — save lives on each section; header back exits.
+    return null;
   }
 
   if (editSectionMode) {
@@ -108,8 +92,14 @@ export function CreateFlowFooter({
         </View>
         <View style={styles.footerBtn}>
           <Button
-            disabled={!canContinue}
+            accessibilityLabel={
+              sectionPrimaryTitle === lastStepPrimaryTitle || sectionPrimaryTitle === 'Save changes'
+                ? (lastStepAccessibilityLabel ?? sectionPrimaryTitle)
+                : undefined
+            }
+            disabled={!canContinue || confirmLoading}
             fullWidth
+            loading={confirmLoading}
             title={sectionPrimaryTitle}
             variant="primary"
             onPress={onContinue}

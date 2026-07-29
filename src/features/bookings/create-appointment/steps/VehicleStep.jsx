@@ -55,7 +55,6 @@ export function VehicleStep({
             autoCorrect={false}
             compact
             containerStyle={FIELD_SHELL}
-            inputMode="numeric"
             keyboardType="number-pad"
             label="Year"
             maxLength={4}

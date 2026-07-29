@@ -1,5 +1,7 @@
 import {
   buildAddonDetailsPayload,
+  buildJobVehicleForPublicApi,
+  buildOwnerManualJobItem,
   buildOwnerManualPublicBookingBody,
   buildSelectedAddOnsForPublicApi,
   buildServiceDisplayName,
@@ -58,35 +60,94 @@ describe('buildOwnerBookingPayload', () => {
     });
   });
 
+  describe('buildOwnerManualJobItem', () => {
+    it('maps a catalog job with tier and add-ons', () => {
+      const item = buildOwnerManualJobItem({
+        localId: 'job-1',
+        selectedServiceId: 'svc-1',
+        isCustomJob: false,
+        serviceName: 'Full detail',
+        selectedPricingOption: { id: 'opt-suv', label: 'SUV', priceCents: 22500 },
+        selectedAddonRows: [{ id: 'a1', name: 'Pet hair', priceCents: 2500, durationMinutes: 15 }],
+        totalDurationMinutes: 135,
+        vehicle: { year: '2022', make: 'Toyota', model: 'Highlander' },
+      });
+      expect(item).toEqual({
+        serviceId: 'svc-1',
+        serviceName: 'Full detail',
+        servicePriceOptionLabel: 'SUV',
+        servicePriceCents: 22500,
+        selectedAddOns: [{ id: 'a1', name: 'Pet hair', priceCents: 2500, durationMinutes: 15 }],
+        durationMinutes: 135,
+        vehicle: { year: '2022', make: 'Toyota', model: 'Highlander' },
+        clientJobId: 'job-1',
+      });
+    });
+
+    it('omits serviceId, option label, and add-ons for custom jobs', () => {
+      const item = buildOwnerManualJobItem({
+        localId: 'job-custom',
+        selectedServiceId: null,
+        isCustomJob: true,
+        serviceName: 'Touch-up paint',
+        selectedPricingOption: { label: 'Standard', priceCents: 7500 },
+        selectedAddonRows: [{ id: 'a1', name: 'Nope', priceCents: 100 }],
+        totalDurationMinutes: 45,
+        vehicle: { year: '2018', make: 'Honda', model: 'Civic' },
+      });
+      expect(item.serviceId).toBeUndefined();
+      expect(item.servicePriceOptionLabel).toBeUndefined();
+      expect(item.selectedAddOns).toBeUndefined();
+      expect(item.serviceName).toBe('Touch-up paint');
+      expect(item.servicePriceCents).toBe(7500);
+      expect(item.clientJobId).toBe('job-custom');
+    });
+  });
+
   describe('buildOwnerManualPublicBookingBody', () => {
-    const base = {
-      catalog: { businessId: 'biz-1', businessSlug: 'acme' },
-      selectedService: { name: 'Detail' },
+    const catalogJob = {
+      localId: 'job-1',
       selectedServiceId: 'svc-1',
+      isCustomJob: false,
+      serviceName: 'Detail',
       selectedPricingOption: { label: 'Standard', priceCents: 12000 },
       selectedAddonRows: [],
       totalDurationMinutes: 90,
+      vehicle: { year: '2020', make: 'Honda', model: 'Civic' },
+    };
+
+    const base = {
+      catalog: { businessId: 'biz-1', businessSlug: 'acme' },
       selectedDateKey: '2026-05-01',
       selectedTime: '2:00 PM',
       customer: { fullName: 'Jane D', email: 'j@ex.co', phone: '(555) 234-5678' },
       address: { street: '1 Main', unit: '', city: 'Austin', state: 'tx', zip: '78701' },
-      vehicle: { year: '2020', make: 'Honda', model: 'Civic' },
       notes: '',
+      jobs: [catalogJob],
     };
 
-    it('builds POST body for owner manual booking with API time and flags', () => {
+    it('builds appointment + jobs[] without top-level service fields', () => {
       const b = buildOwnerManualPublicBookingBody(base);
       expect(b.businessId).toBe('biz-1');
       expect(b.businessSlug).toBe('acme');
-      expect(b.serviceId).toBe('svc-1');
-      expect(b.serviceName).toBe('Detail');
       expect(b.ownerManualBooking).toBe(true);
       expect(b.paymentMethodSelected).toBe('none');
       expect(b.serviceLocationType).toBe('mobile');
       expect(b.startTime).toBe('14:00');
       expect(b.scheduledDate).toBe('2026-05-01');
-      expect(b.durationMinutes).toBe(90);
-      expect(b.selectedAddOns).toEqual([]);
+      expect(b.serviceName).toBeUndefined();
+      expect(b.serviceId).toBeUndefined();
+      expect(b.servicePriceCents).toBeUndefined();
+      expect(b.durationMinutes).toBeUndefined();
+      expect(b.selectedAddOns).toBeUndefined();
+      expect(b.jobs).toHaveLength(1);
+      expect(b.jobs[0]).toMatchObject({
+        serviceId: 'svc-1',
+        serviceName: 'Detail',
+        servicePriceCents: 12000,
+        durationMinutes: 90,
+        vehicle: { year: '2020', make: 'Honda', model: 'Civic' },
+      });
       expect(b.customer).toMatchObject({
         fullName: 'Jane D',
         email: 'j@ex.co',
@@ -95,25 +156,35 @@ describe('buildOwnerBookingPayload', () => {
         state: 'TX',
         notes: '',
       });
+      expect(b.customer.vehicleYear).toBeUndefined();
+      expect(b.customer.vehicleMake).toBeUndefined();
+      expect(b.customer.vehicleModel).toBeUndefined();
     });
 
-    it('builds a custom job without a catalog service id', () => {
+    it('supports multiple catalog + custom jobs in one body', () => {
       const b = buildOwnerManualPublicBookingBody({
         ...base,
-        selectedService: { name: 'Custom correction' },
-        selectedServiceId: null,
-        selectedPricingOption: { label: 'Standard', priceCents: 18500 },
-        totalDurationMinutes: 120,
+        jobs: [
+          catalogJob,
+          {
+            localId: 'job-2',
+            selectedServiceId: null,
+            isCustomJob: true,
+            serviceName: 'Touch-up paint',
+            selectedPricingOption: { priceCents: 7500 },
+            selectedAddonRows: [],
+            totalDurationMinutes: 45,
+            vehicle: { year: '2018', make: 'Honda', model: 'Civic' },
+          },
+        ],
       });
-      expect(b.serviceId).toBeUndefined();
-      expect(b.servicePriceOptionLabel).toBeUndefined();
-      expect(b.selectedAddOns).toBeUndefined();
-      expect(b.serviceName).toBe('Custom correction');
-      expect(b.servicePriceCents).toBe(18500);
-      expect(b.durationMinutes).toBe(120);
+      expect(b.jobs).toHaveLength(2);
+      expect(b.jobs[0].serviceId).toBe('svc-1');
+      expect(b.jobs[1].serviceId).toBeUndefined();
+      expect(b.jobs[1].serviceName).toBe('Touch-up paint');
     });
 
-    it('trims customer notes', () => {
+    it('trims customer notes and does not invent job prefixes', () => {
       const b = buildOwnerManualPublicBookingBody({
         ...base,
         notes: '  Pull into bay 2  ',
@@ -148,25 +219,35 @@ describe('buildOwnerBookingPayload', () => {
       expect(b.serviceLocationType).toBe('shop');
     });
 
-    it('sends servicePriceOptionLabel instead of combined service name when tier is not Standard', () => {
+    it('puts servicePriceOptionLabel on the job when tier is not base', () => {
       const b = buildOwnerManualPublicBookingBody({
         ...base,
-        selectedPricingOption: { label: 'Premium', priceCents: 15000 },
+        jobs: [
+          {
+            ...catalogJob,
+            selectedPricingOption: { label: 'Premium', priceCents: 15000 },
+          },
+        ],
       });
-      expect(b.serviceName).toBe('Detail');
-      expect(b.servicePriceOptionLabel).toBe('Premium');
-      expect(b.servicePriceCents).toBe(15000);
+      expect(b.jobs[0].serviceName).toBe('Detail');
+      expect(b.jobs[0].servicePriceOptionLabel).toBe('Premium');
+      expect(b.jobs[0].servicePriceCents).toBe(15000);
     });
 
-    it('keeps a real pricing option labeled Standard', () => {
+    it('keeps a real pricing option labeled Standard on the job', () => {
       const b = buildOwnerManualPublicBookingBody({
         ...base,
-        selectedPricingOption: { id: 'option-1', label: 'Standard', priceCents: 12000 },
+        jobs: [
+          {
+            ...catalogJob,
+            selectedPricingOption: { id: 'option-1', label: 'Standard', priceCents: 12000 },
+          },
+        ],
       });
-      expect(b.servicePriceOptionLabel).toBe('Standard');
+      expect(b.jobs[0].servicePriceOptionLabel).toBe('Standard');
     });
 
-    it('includes sale discount snapshot fields when a sale applies', () => {
+    it('includes appointment-level sale preview fields when a sale applies', () => {
       const b = buildOwnerManualPublicBookingBody({
         ...base,
         appliedSaleDiscount: {
@@ -185,7 +266,7 @@ describe('buildOwnerBookingPayload', () => {
       expect(b.subtotalCents).toBe(12000);
       expect(b.discountCents).toBe(2400);
       expect(b.discountLabel).toBe('20% OFF');
-      expect(b.servicePriceCents).toBe(12000);
+      expect(b.jobs[0].servicePriceCents).toBe(12000);
     });
 
     it('omits discount fields when no sale applies', () => {
@@ -193,6 +274,10 @@ describe('buildOwnerBookingPayload', () => {
       expect(b.discountSource).toBeUndefined();
       expect(b.discountSaleId).toBeUndefined();
       expect(b.discountCents).toBeUndefined();
+    });
+
+    it('builds empty vehicle strings via helper', () => {
+      expect(buildJobVehicleForPublicApi(null)).toEqual({ year: '', make: '', model: '' });
     });
   });
 });

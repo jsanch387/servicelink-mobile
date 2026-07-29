@@ -54,6 +54,7 @@ export function bookingNeedsCompleteVisitDetailsFetch(booking) {
   const hasPricing =
     booking.service_price_cents != null ||
     booking.addon_details != null ||
-    booking.service_price != null;
+    booking.service_price != null ||
+    booking.job_details != null;
   return !hasPricing || !bookingHasCompleteVisitPaymentSummary(booking);
 }

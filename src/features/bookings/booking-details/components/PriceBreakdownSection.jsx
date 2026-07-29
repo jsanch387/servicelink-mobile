@@ -2,6 +2,9 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { DetailsSectionCard, Divider, LabelValueRow } from '../../../../components/ui';
 
+/**
+ * Single-job price breakdown. Multi-job visits use {@link BookingJobsSummarySection} instead.
+ */
 export function PriceBreakdownSection({ formattedPrice }) {
   const styles = useMemo(
     () =>
@@ -13,6 +16,10 @@ export function PriceBreakdownSection({ formattedPrice }) {
       }),
     [],
   );
+
+  if (formattedPrice?.isMultiJob) {
+    return null;
+  }
 
   return (
     <DetailsSectionCard bodyPadding="roomy" title="Price breakdown">
@@ -41,11 +48,6 @@ export function PriceBreakdownSection({ formattedPrice }) {
               labelPrefixIcon="receipt-outline"
               value={item.priceLabel}
             />
-          ))
-        : null}
-      {formattedPrice.hasPaymentAdjustments
-        ? formattedPrice.paymentAdjustments.map((item) => (
-            <LabelValueRow key={item.id} label={item.label} value={item.value} />
           ))
         : null}
       <View style={styles.dividerWrap}>

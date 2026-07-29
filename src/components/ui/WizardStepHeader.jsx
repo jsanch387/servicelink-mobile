@@ -14,6 +14,7 @@ import { useTheme } from '../../theme';
  * @param {string} props.subtitle
  * @param {string} [props.progressAccessibilityLabel] - e.g. "Quote wizard progress"
  * @param {boolean} [props.embedded] When true, omits horizontal padding (parent scroll content provides gutter).
+ * @param {boolean} [props.showProgress] When false, title/subtitle only (e.g. edit section screens).
  */
 export function WizardStepHeader({
   stepIndex,
@@ -22,6 +23,7 @@ export function WizardStepHeader({
   subtitle,
   progressAccessibilityLabel = 'Wizard progress',
   embedded = false,
+  showProgress = true,
 }) {
   const { colors } = useTheme();
   const progress =
@@ -33,7 +35,7 @@ export function WizardStepHeader({
         wrap: {
           paddingBottom: 16,
           paddingHorizontal: embedded ? 0 : SCREEN_GUTTER,
-          paddingTop: 8,
+          paddingTop: showProgress ? 8 : 0,
         },
         track: {
           backgroundColor: colors.border,
@@ -63,17 +65,19 @@ export function WizardStepHeader({
           marginTop: 2,
         },
       }),
-    [colors, embedded],
+    [colors, embedded, showProgress],
   );
 
   return (
     <View style={styles.wrap}>
-      <View
-        accessibilityLabel={`${progressAccessibilityLabel} ${Math.round(progress)} percent`}
-        style={styles.track}
-      >
-        <View style={[styles.fill, { width: `${progress}%` }]} />
-      </View>
+      {showProgress ? (
+        <View
+          accessibilityLabel={`${progressAccessibilityLabel} ${Math.round(progress)} percent`}
+          style={styles.track}
+        >
+          <View style={[styles.fill, { width: `${progress}%` }]} />
+        </View>
+      ) : null}
       <AppText style={styles.title}>{title}</AppText>
       {subtitle?.trim() ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
     </View>

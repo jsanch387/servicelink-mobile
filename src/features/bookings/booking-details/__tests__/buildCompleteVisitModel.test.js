@@ -18,7 +18,10 @@ describe('buildCompleteVisitModelFromBooking', () => {
       label: 'Full Detail',
       sublabel: 'Premium',
       amount: 120,
+      kind: 'service',
     });
+    expect(model?.isMultiJob).toBe(false);
+    expect(model?.jobs).toBeNull();
   });
 
   it('builds line items from service and addons with paid online', () => {
@@ -42,9 +45,11 @@ describe('buildCompleteVisitModelFromBooking', () => {
 
     expect(model).toEqual({
       lineItems: [
-        { id: 'service', label: 'Full Detail', amount: 120 },
-        { id: 'a1', label: 'Engine bay', amount: 25 },
+        { id: 'service', label: 'Full Detail', amount: 120, kind: 'service' },
+        { id: 'a1', label: 'Engine bay', amount: 25, kind: 'addon' },
       ],
+      jobs: null,
+      isMultiJob: false,
       paidOnline: 50,
       remainingAmountCents: 9500,
       isPaidInFullOnline: false,
@@ -70,9 +75,9 @@ describe('buildCompleteVisitModelFromBooking', () => {
     });
 
     expect(model?.lineItems).toEqual([
-      { id: 'service', label: 'Full Detail', amount: 120 },
-      { id: 'a1', label: 'Engine bay', amount: 25 },
-      { id: 'discount', label: 'SUMMER20', amount: -29 },
+      { id: 'service', label: 'Full Detail', amount: 120, kind: 'service' },
+      { id: 'a1', label: 'Engine bay', amount: 25, kind: 'addon' },
+      { id: 'discount', label: 'SUMMER20', amount: -29, kind: 'discount' },
     ]);
     expect(model?.remainingAmountCents).toBe(6600);
     expect(model?.isPaidInFullOnline).toBe(false);
@@ -115,6 +120,76 @@ describe('buildCompleteVisitModelFromBooking', () => {
     expect(model?.paidOnline).toBe(145);
     expect(model?.remainingAmountCents).toBe(0);
     expect(model?.isPaidInFullOnline).toBe(true);
+  });
+
+  it('builds multi-job line items and jobs from job_details (ignores first-job-only columns)', () => {
+    const model = buildCompleteVisitModelFromBooking({
+      service_name: 'Full Detail',
+      service_price_cents: 22500,
+      addon_details: {
+        addons: [{ id: 'a1', name: 'Ceramic', price_cents: 5000 }],
+      },
+      job_details: [
+        {
+          id: 'j1',
+          serviceName: 'Full Detail',
+          servicePriceOptionLabel: 'Large SUV',
+          servicePriceCents: 22500,
+          selectedAddOns: [{ id: 'a1', name: 'Ceramic', priceCents: 5000 }],
+          vehicle: { year: '2020', make: 'Tesla', model: 'Model 3' },
+        },
+        {
+          id: 'j2',
+          serviceName: 'Touch-up paint',
+          servicePriceCents: 7500,
+          vehicle: { year: '2018', make: 'Honda', model: 'Civic' },
+        },
+      ],
+      payment: {
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 35000,
+        totalAmountCents: 35000,
+      },
+    });
+
+    expect(model?.isMultiJob).toBe(true);
+    expect(model?.jobs).toHaveLength(2);
+    expect(model?.jobs?.[0]).toMatchObject({
+      serviceName: 'Full Detail',
+      pricingOption: 'Large SUV',
+      servicePrice: 225,
+      vehicleLine: '2020 Tesla Model 3',
+    });
+    expect(model?.jobs?.[1]).toMatchObject({
+      serviceName: 'Touch-up paint',
+      servicePrice: 75,
+      vehicleLine: '2018 Honda Civic',
+    });
+    expect(model?.lineItems).toEqual([
+      {
+        id: 'job-j1-service',
+        label: 'Full Detail',
+        sublabel: 'Large SUV',
+        amount: 225,
+        jobId: 'j1',
+        kind: 'service',
+      },
+      {
+        id: 'job-j1-addon-a1',
+        label: 'Ceramic',
+        amount: 50,
+        jobId: 'j1',
+        kind: 'addon',
+      },
+      {
+        id: 'job-j2-service',
+        label: 'Touch-up paint',
+        amount: 75,
+        jobId: 'j2',
+        kind: 'service',
+      },
+    ]);
+    expect(model?.remainingAmountCents).toBe(35000);
   });
 
   it('returns null when booking is missing', () => {

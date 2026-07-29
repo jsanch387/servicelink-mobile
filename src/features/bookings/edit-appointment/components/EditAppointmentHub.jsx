@@ -132,19 +132,26 @@ function EditHubRow({
  * @param {object} props
  * @param {import('../utils/buildEditHubSections').EditHubSection[]} props.sections
  * @param {(step: number) => void} props.onOpenSection
+ * @param {string} [props.heading]
+ * @param {string} [props.subtext]
  */
-export function EditAppointmentHub({ sections, onOpenSection }) {
+export function EditAppointmentHub({
+  sections,
+  onOpenSection,
+  heading = 'What do you want to change?',
+  subtext = 'Tap a section to make a change.',
+}) {
   const { colors } = useTheme();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         section: {
-          rowGap: 16,
+          rowGap: 12,
         },
         header: {
-          gap: 6,
-          paddingBottom: 2,
+          gap: 3,
+          paddingBottom: 0,
         },
         heading: {
           color: colors.text,
@@ -152,7 +159,7 @@ export function EditAppointmentHub({ sections, onOpenSection }) {
           fontSize: 20,
           fontWeight: '600',
           letterSpacing: -0.35,
-          lineHeight: 26,
+          lineHeight: 24,
         },
         subtext: {
           color: colors.textMuted,
@@ -171,8 +178,8 @@ export function EditAppointmentHub({ sections, onOpenSection }) {
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <AppText style={styles.heading}>What do you want to change?</AppText>
-        <AppText style={styles.subtext}>Tap a section to make a change.</AppText>
+        <AppText style={styles.heading}>{heading}</AppText>
+        {subtext ? <AppText style={styles.subtext}>{subtext}</AppText> : null}
       </View>
       <SurfaceCard outlined padding="none" style={styles.card}>
         {sections.map((section, index) => (

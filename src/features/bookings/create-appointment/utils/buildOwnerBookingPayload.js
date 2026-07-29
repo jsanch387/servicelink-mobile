@@ -35,7 +35,7 @@ export function buildAddonDetailsPayload(selectedAddonRows) {
 }
 
 /**
- * Maps selected add-ons to `selectedAddOns` on `POST /api/public/bookings`.
+ * Maps selected add-ons to `selectedAddOns` on a job in `POST /api/public/bookings`.
  * @param {Array<{ id: unknown; name?: string; priceCents?: number; priceLabel?: string; durationMinutes?: number | null }>} selectedAddonRows
  * @returns {Array<{ id: string; name: string; priceCents: number; durationMinutes: number }>}
  */
@@ -53,23 +53,86 @@ export function buildSelectedAddOnsForPublicApi(selectedAddonRows) {
 }
 
 /**
- * JSON body for {@link postOwnerManualPublicBooking} — mirrors web owner confirm (`ownerManualBooking: true`).
- * Do not insert `bookings` from the client for this flow; the server enforces email, payments row, caps, and time-off.
+ * @param {{ year?: string; make?: string; model?: string } | null | undefined} vehicle
+ * @returns {{ year: string; make: string; model: string }}
+ */
+export function buildJobVehicleForPublicApi(vehicle) {
+  return {
+    year: String(vehicle?.year ?? '').trim(),
+    make: String(vehicle?.make ?? '').trim(),
+    model: String(vehicle?.model ?? '').trim(),
+  };
+}
+
+/**
+ * One `jobs[]` item for owner multi-job create.
+ *
+ * @param {object} job
+ * @param {string | null | undefined} job.selectedServiceId
+ * @param {boolean} [job.isCustomJob]
+ * @param {string} [job.serviceName]
+ * @param {{
+ *   id?: string;
+ *   label?: string | null;
+ *   priceCents?: number | null;
+ * } | null} [job.selectedPricingOption]
+ * @param {unknown[]} [job.selectedAddonRows]
+ * @param {number} [job.totalDurationMinutes]
+ * @param {{ year?: string; make?: string; model?: string } | null} [job.vehicle]
+ * @param {string} [job.localId]
+ * @returns {Record<string, unknown>}
+ */
+export function buildOwnerManualJobItem(job) {
+  const isCustom = Boolean(job.isCustomJob) || !String(job.selectedServiceId ?? '').trim();
+  const sid = !isCustom ? String(job.selectedServiceId ?? '').trim() : '';
+  const pricing = job.selectedPricingOption ?? null;
+  const tierRaw = pricing?.label != null ? String(pricing.label).trim() : '';
+  const isBasePrice =
+    isCreateFlowBasePricingId(pricing?.id, sid || null) || (!pricing?.id && tierRaw === 'Standard');
+  const optionLabel = !isCustom && tierRaw && !isBasePrice ? tierRaw : null;
+  const selectedAddOns = isCustom ? [] : buildSelectedAddOnsForPublicApi(job.selectedAddonRows);
+
+  /** @type {Record<string, unknown>} */
+  const item = {
+    serviceName: String(job.serviceName ?? '').trim() || 'Service',
+    servicePriceCents: Math.max(0, Math.round(Number(pricing?.priceCents) || 0)),
+    durationMinutes: Math.max(1, Math.round(Number(job.totalDurationMinutes) || 0)),
+    vehicle: buildJobVehicleForPublicApi(job.vehicle),
+  };
+
+  if (sid) {
+    item.serviceId = sid;
+  }
+  if (optionLabel) {
+    item.servicePriceOptionLabel = optionLabel;
+  }
+  if (!isCustom && selectedAddOns.length > 0) {
+    item.selectedAddOns = selectedAddOns;
+  }
+
+  const clientJobId = String(job.localId ?? '').trim();
+  if (clientJobId) {
+    item.clientJobId = clientJobId;
+  }
+
+  return item;
+}
+
+/**
+ * JSON body for {@link postOwnerManualPublicBooking} — appointment + `jobs[]`
+ * (`ownerManualBooking: true`). One booking row on the server; jobs live in `job_details`.
+ *
+ * Do not insert `bookings` from the client for this flow.
  *
  * @param {object} args
  * @param {{ businessId: string | null; businessSlug?: string | null }} args.catalog
- * @param {unknown} args.selectedService
- * @param {string | null} args.selectedServiceId
- * @param {unknown} args.selectedPricingOption
- * @param {unknown[]} args.selectedAddonRows
- * @param {number} args.totalDurationMinutes
  * @param {string | null} args.selectedDateKey
  * @param {string | null} args.selectedTime
  * @param {{ fullName: string; email?: string; phone: string }} args.customer
  * @param {{ street: string; unit?: string; city: string; state: string; zip: string }} args.address
- * @param {{ year: string; make: string; model: string }} args.vehicle
  * @param {string} [args.notes]
  * @param {'mobile' | 'shop' | null} [args.appointmentLocationType]
+ * @param {Array<object>} args.jobs - committed + active job snapshots ({@link buildOwnerManualJobItem})
  * @param {{
  *   sale: { id: string };
  *   subtotalCents: number;
@@ -77,42 +140,26 @@ export function buildSelectedAddOnsForPublicApi(selectedAddonRows) {
  *   discountLabel: string;
  *   discountType: string | null;
  *   discountValue: number | null;
- * } | null} [args.appliedSaleDiscount]
+ * } | null} [args.appliedSaleDiscount] - preview only; server recomputes sale on appointment subtotal
  */
 export function buildOwnerManualPublicBookingBody({
   catalog,
-  selectedService,
-  selectedServiceId,
-  selectedPricingOption,
-  selectedAddonRows,
-  totalDurationMinutes,
   selectedDateKey,
   selectedTime,
   customer,
   address,
-  vehicle,
   notes,
   appointmentLocationType,
+  jobs,
   appliedSaleDiscount = null,
 }) {
   const notesTrimmed = typeof notes === 'string' ? notes.trim() : '';
-  const tierRaw =
-    selectedPricingOption?.label != null ? String(selectedPricingOption.label).trim() : '';
-  const isBasePrice =
-    isCreateFlowBasePricingId(selectedPricingOption?.id, selectedServiceId) ||
-    (!selectedPricingOption?.id && tierRaw === 'Standard');
-  const optionLabel = tierRaw && !isBasePrice ? tierRaw : null;
-  const baseServiceName = selectedService?.name?.trim() || 'Service';
-  const selectedAddOns = buildSelectedAddOnsForPublicApi(selectedAddonRows);
-  const servicePriceCents = Math.max(0, Math.round(Number(selectedPricingOption?.priceCents) || 0));
+  const jobItems = (jobs ?? []).map((job) => buildOwnerManualJobItem(job));
 
   /** @type {Record<string, unknown>} */
   const body = {
     businessSlug: String(catalog.businessSlug ?? '').trim(),
     businessId: String(catalog.businessId ?? '').trim(),
-    serviceName: baseServiceName,
-    servicePriceCents,
-    durationMinutes: Math.max(1, Math.round(Number(totalDurationMinutes) || 0)),
     scheduledDate: selectedDateKey,
     startTime: startTime12hToApiStartTime(selectedTime),
     paymentMethodSelected: 'none',
@@ -134,23 +181,10 @@ export function buildOwnerManualPublicBookingBody({
         .toUpperCase()
         .slice(0, 2),
       zip: address.zip.trim().slice(0, 5),
-      vehicleYear: String(vehicle.year ?? '').trim(),
-      vehicleMake: String(vehicle.make ?? '').trim(),
-      vehicleModel: String(vehicle.model ?? '').trim(),
       notes: notesTrimmed.slice(0, 280),
     },
+    jobs: jobItems,
   };
-
-  const sid = selectedServiceId != null ? String(selectedServiceId).trim() : '';
-  if (sid) {
-    body.serviceId = sid;
-  }
-  if (selectedAddOns.length > 0 || sid) {
-    body.selectedAddOns = selectedAddOns;
-  }
-  if (optionLabel) {
-    body.servicePriceOptionLabel = optionLabel;
-  }
 
   if (
     appliedSaleDiscount &&

@@ -14,7 +14,7 @@ import { useCreateAppointmentController } from './hooks/useCreateAppointmentCont
 /**
  * Owner manual booking wizard: catalog service or custom job → optional pricing/add-ons →
  * location → address → vehicle (optional add-another job) → schedule → customer → review.
- * Confirming calls `POST /api/public/bookings` (one request per job on multi-job visits).
+ * Confirming calls `POST /api/public/bookings` once with appointment fields + `jobs[]`.
  * State and side effects live in {@link useCreateAppointmentController}.
  *
  * @param {{ onImmersiveSubmitChange?: (hideNavigationHeader: boolean) => void }} props

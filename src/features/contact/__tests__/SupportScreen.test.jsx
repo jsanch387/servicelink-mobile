@@ -32,10 +32,7 @@ describe('SupportScreen', () => {
 
   it('shows validation error for a short message', () => {
     renderWithProviders(<SupportScreen />);
-    fireEvent.changeText(
-      screen.getByPlaceholderText('Describe your request (at least 10 characters)'),
-      'short',
-    );
+    fireEvent.changeText(screen.getByLabelText('Message'), 'short');
     fireEvent.press(screen.getByText('Send message'));
     expect(screen.getByText('Message must be at least 10 characters.')).toBeTruthy();
     expect(mockPostContactForm).not.toHaveBeenCalled();
@@ -45,7 +42,7 @@ describe('SupportScreen', () => {
     mockPostContactForm.mockResolvedValue({ ok: true });
     renderWithProviders(<SupportScreen />);
     fireEvent.changeText(
-      screen.getByPlaceholderText('Describe your request (at least 10 characters)'),
+      screen.getByLabelText('Message'),
       'The bookings list does not refresh after approving a quote.',
     );
     fireEvent.press(screen.getByText('Send message'));
@@ -72,7 +69,7 @@ describe('SupportScreen', () => {
     });
     renderWithProviders(<SupportScreen />);
     fireEvent.changeText(
-      screen.getByPlaceholderText('Describe your request (at least 10 characters)'),
+      screen.getByLabelText('Message'),
       'The bookings list does not refresh after approving a quote.',
     );
     fireEvent.press(screen.getByText('Send message'));

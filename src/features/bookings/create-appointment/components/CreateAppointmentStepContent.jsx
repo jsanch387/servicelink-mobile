@@ -76,6 +76,7 @@ export function CreateAppointmentStepContent(p) {
     appliedSaleDiscount = null,
     reviewJobs = null,
     jobNumber = 1,
+    showVisitNotes: showVisitNotesProp,
     canAddAnotherJob = false,
     addAnotherJobDisabled = false,
     onAddAnotherJob,
@@ -87,7 +88,8 @@ export function CreateAppointmentStepContent(p) {
   }
 
   /** Notes are visit-level — only collect on the first vehicle pass (or custom job). */
-  const showVisitNotes = jobNumber <= 1;
+  const showVisitNotes =
+    typeof showVisitNotesProp === 'boolean' ? showVisitNotesProp : jobNumber <= 1;
 
   switch (step) {
     case CREATE_APPOINTMENT_STEP.SERVICE:

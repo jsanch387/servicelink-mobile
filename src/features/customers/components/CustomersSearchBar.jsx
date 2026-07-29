@@ -11,7 +11,15 @@ export function CustomersSearchBar({ value, onChangeText }) {
   return (
     <SurfaceInputRow
       left={
-        <View style={{ alignItems: 'center', justifyContent: 'center', marginRight: 2, width: 22 }}>
+        <View
+          style={{
+            alignItems: 'center',
+            height: 52,
+            justifyContent: 'center',
+            marginRight: 4,
+            width: 22,
+          }}
+        >
           <Ionicons color={colors.textMuted} name="search-outline" size={18} />
         </View>
       }

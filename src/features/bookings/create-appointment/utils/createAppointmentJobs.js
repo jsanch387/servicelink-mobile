@@ -27,7 +27,7 @@ export function createEmptyJobDraft() {
 }
 
 /**
- * Snapshot of a finished job unit for review + multi-booking submit.
+ * Snapshot of a finished job unit for review + appointment submit (`jobs[]`).
  *
  * @param {object} p
  * @param {string | null} p.selectedServiceId
@@ -95,19 +95,4 @@ export function sumJobDurationsMinutes(jobs) {
     (sum, job) => sum + Math.max(0, Math.round(Number(job?.totalDurationMinutes) || 0)),
     0,
   );
-}
-
-/**
- * Visit-level note prefix so linked bookings stay recognizable.
- *
- * @param {string} notes
- * @param {number} jobIndex 0-based
- * @param {number} jobCount
- */
-export function mergeVisitJobNotes(notes, jobIndex, jobCount) {
-  const base = String(notes ?? '').trim();
-  if (jobCount <= 1) return base.slice(0, 280);
-  const prefix = `Visit job ${jobIndex + 1} of ${jobCount}`;
-  if (!base) return prefix.slice(0, 280);
-  return `${prefix}. ${base}`.slice(0, 280);
 }

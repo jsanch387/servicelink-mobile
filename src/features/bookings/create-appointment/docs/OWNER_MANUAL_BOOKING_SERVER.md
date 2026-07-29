@@ -8,6 +8,8 @@ Use this when the **signed-in business owner** books an appointment **on behalf 
 **Request type (reference):** `CreateBookingRequest` in `src/features/availability/booking/types.ts`  
 **Customer validation:** `bookingCustomerPayloadErrorMessage` / `normalizeBookingCustomerInput` in `src/features/availability/booking/utils/bookingCustomerFieldLimits.ts`
 
+**Multi-job visits (one appointment, 1…N jobs in `job_details`):** see [`OWNER_MANUAL_BOOKING_MULTI_JOB_SERVER.md`](./OWNER_MANUAL_BOOKING_MULTI_JOB_SERVER.md) + [`sql/owner_manual_booking_multi_job_migration.sql`](./sql/owner_manual_booking_multi_job_migration.sql). Mobile always sends `jobs[]` for owner creates. This file remains useful for shared auth, location, customer field rules, and legacy single-job body notes.
+
 ## Mobile implementation map
 
 | Concern                                 | Location (this repo)                                                                                      |
@@ -18,6 +20,7 @@ Use this when the **signed-in business owner** books an appointment **on behalf 
 | 12h slot → API `startTime`              | `create-appointment/utils/ownerBookingFieldFormats.js`                                                    |
 | Bearer JWT                              | `CreateAppointmentFlow.jsx` → `session.access_token`                                                      |
 | Auto-apply **sale** on Review + payload | See [`OWNER_MANUAL_BOOKING_SALE_DISCOUNT.md`](./OWNER_MANUAL_BOOKING_SALE_DISCOUNT.md)                    |
+| Multi-job visit contract + SQL          | [`OWNER_MANUAL_BOOKING_MULTI_JOB_SERVER.md`](./OWNER_MANUAL_BOOKING_MULTI_JOB_SERVER.md)                  |
 
 **Mobile sends:** top-level `serviceLocationType` (`"mobile"` \| `"shop"`). Does **not** send `customerServiceLocation` (web alias).
 

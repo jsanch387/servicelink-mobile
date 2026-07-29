@@ -1,8 +1,4 @@
-import {
-  mergeVisitJobNotes,
-  snapshotCommittedJob,
-  sumJobDurationsMinutes,
-} from '../utils/createAppointmentJobs';
+import { snapshotCommittedJob, sumJobDurationsMinutes } from '../utils/createAppointmentJobs';
 import { addMinutesToTime12h, parseTime12hToMinutes } from '../utils/scheduleTimeMath';
 
 describe('scheduleTimeMath', () => {
@@ -12,7 +8,7 @@ describe('scheduleTimeMath', () => {
     expect(parseTime12hToMinutes('12:00 AM')).toBe(0);
   });
 
-  it('advances start time by job duration', () => {
+  it('advances start time by minutes', () => {
     expect(addMinutesToTime12h('10:00 AM', 90)).toBe('11:30 AM');
     expect(addMinutesToTime12h('11:00 AM', 60)).toBe('12:00 PM');
   });
@@ -23,12 +19,6 @@ describe('createAppointmentJobs', () => {
     expect(
       sumJobDurationsMinutes([{ totalDurationMinutes: 60 }, { totalDurationMinutes: 45 }]),
     ).toBe(105);
-  });
-
-  it('prefixes multi-job visit notes', () => {
-    expect(mergeVisitJobNotes('Park in driveway', 0, 2)).toBe('Visit job 1 of 2. Park in driveway');
-    expect(mergeVisitJobNotes('', 1, 2)).toBe('Visit job 2 of 2');
-    expect(mergeVisitJobNotes('Only one', 0, 1)).toBe('Only one');
   });
 
   it('snapshots a committed job with price override', () => {

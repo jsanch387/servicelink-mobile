@@ -1,10 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { forwardRef, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { useTheme } from '../../theme';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { FONT_FAMILIES, useTheme } from '../../theme';
 import { AppText } from './AppText';
 import { AppTextInput } from './AppTextInput';
-import { SurfaceInputRow, useSurfaceInputTextStyle } from './SurfaceInputRow';
+import { SurfaceInputRow } from './SurfaceInputRow';
+
+/** One text line — parent row centers this so iOS never pins glyphs to the bottom. */
+const INPUT_LINE_HEIGHT = 22;
 
 /**
  * Labeled input inside the same `cardSurface` shell as the customers search bar.
@@ -17,6 +20,10 @@ import { SurfaceInputRow, useSurfaceInputTextStyle } from './SurfaceInputRow';
  * Optional `prefixText` — static text inside the row that cannot be edited (e.g. `$`).
  * `label` may be a string or a React node (e.g. custom label styling).
  * Ref is forwarded to the inner `TextInput` (e.g. focus chaining).
+ *
+ * Placeholder is drawn with `AppText` (not the native TextInput placeholder). Native placeholders
+ * mis-align on iOS inside tall rows / number pads; typed text stays on a single-line control
+ * centered by the row.
  */
 export const SurfaceTextField = forwardRef(function SurfaceTextField(
   {
@@ -46,12 +53,13 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
   const { style: restInputStyle, maxLength: maxLengthFromRest, ...inputRest } = rest;
   const maxLength = maxLengthProp ?? maxLengthFromRest;
   const { colors } = useTheme();
-  const inputTextStyle = useSurfaceInputTextStyle();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [focused, setFocused] = useState(false);
 
   const secureTextEntry = showPasswordToggle ? !passwordVisible : (secureTextEntryProp ?? false);
   const hasError = Boolean(errorText?.trim());
+  const hasValue = String(value ?? '').length > 0;
+  const showOverlayPlaceholder = Boolean(placeholder) && !hasValue && !secureTextEntry;
 
   const styles = useMemo(
     () =>
@@ -75,24 +83,61 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
           borderWidth: focused || hasError ? 1.5 : 1,
         },
         iconPad: {
-          marginRight: 2,
+          alignItems: 'center',
+          height: 52,
+          justifyContent: 'center',
+          marginRight: 4,
+          width: 22,
         },
         prefixText: {
           color: colors.text,
-          fontSize: 15,
+          fontSize: 16,
           fontWeight: '500',
-          marginLeft: 6,
+          marginLeft: 2,
         },
         toggleHit: {
           alignItems: 'center',
-          height: 40,
+          height: 52,
           justifyContent: 'center',
           marginLeft: 2,
           width: 40,
         },
-        inputNoChrome: {
-          borderWidth: 0,
+        inputWrap: {
+          flex: 1,
+          justifyContent: 'center',
+          minHeight: 52,
+        },
+        overlayPlaceholderWrap: {
+          ...StyleSheet.absoluteFillObject,
+          justifyContent: 'center',
+          paddingLeft: 6,
+          paddingRight: 4,
+        },
+        overlayPlaceholder: {
+          color: colors.placeholder,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 16,
+        },
+        input: {
           backgroundColor: 'transparent',
+          borderWidth: 0,
+          color: colors.inputText ?? colors.text,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 16,
+          height: INPUT_LINE_HEIGHT,
+          margin: 0,
+          paddingBottom: 0,
+          paddingLeft: 6,
+          paddingRight: 4,
+          paddingTop: 0,
+          width: '100%',
+          ...Platform.select({
+            android: {
+              includeFontPadding: false,
+              textAlignVertical: 'center',
+            },
+            default: {},
+          }),
         },
         helperLine: {
           fontSize: 12,
@@ -136,31 +181,45 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
     rightAccessory
   );
 
+  const isMultiline = Boolean(inputRest.multiline);
+
   const inputRow = (
     <SurfaceInputRow left={leftNode} right={rightNode} style={styles.rowShell}>
-      <AppTextInput
-        ref={ref}
-        {...inputRest}
-        pointerEvents={onShellPress ? 'none' : inputRest.pointerEvents}
-        clearButtonMode={inputRest.clearButtonMode ?? 'never'}
-        scrollEnabled={inputRest.scrollEnabled ?? false}
-        underlineColorAndroid="transparent"
-        onBlur={(e) => {
-          setFocused(false);
-          inputRest.onBlur?.(e);
-        }}
-        onChangeText={onChangeText}
-        onFocus={(e) => {
-          setFocused(true);
-          inputRest.onFocus?.(e);
-        }}
-        placeholder={placeholder}
-        placeholderTextColor={colors.placeholder}
-        secureTextEntry={secureTextEntry}
-        style={[inputTextStyle, restInputStyle, styles.inputNoChrome]}
-        value={value}
-        maxLength={maxLength}
-      />
+      <View style={styles.inputWrap}>
+        {showOverlayPlaceholder ? (
+          <View pointerEvents="none" style={styles.overlayPlaceholderWrap}>
+            <AppText numberOfLines={1} style={styles.overlayPlaceholder}>
+              {placeholder}
+            </AppText>
+          </View>
+        ) : null}
+        <AppTextInput
+          ref={ref}
+          {...inputRest}
+          accessibilityLabel={
+            inputRest.accessibilityLabel ?? (typeof label === 'string' ? label : undefined)
+          }
+          pointerEvents={onShellPress ? 'none' : inputRest.pointerEvents}
+          clearButtonMode={inputRest.clearButtonMode ?? 'never'}
+          scrollEnabled={inputRest.scrollEnabled ?? isMultiline}
+          underlineColorAndroid="transparent"
+          onBlur={(e) => {
+            setFocused(false);
+            inputRest.onBlur?.(e);
+          }}
+          onChangeText={onChangeText}
+          onFocus={(e) => {
+            setFocused(true);
+            inputRest.onFocus?.(e);
+          }}
+          placeholder=""
+          placeholderTextColor="transparent"
+          secureTextEntry={secureTextEntry}
+          style={[styles.input, restInputStyle]}
+          value={value}
+          maxLength={maxLength}
+        />
+      </View>
     </SurfaceInputRow>
   );
 
