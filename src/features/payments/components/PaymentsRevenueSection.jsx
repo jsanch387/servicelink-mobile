@@ -22,7 +22,8 @@ function formatUsd(cents, { compact = false } = {}) {
       style: 'currency',
       currency: 'USD',
       notation: 'compact',
-      maximumFractionDigits: 1,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(dollars);
   }
   return new Intl.NumberFormat('en-US', {
