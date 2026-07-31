@@ -1,13 +1,19 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Picker } from '@react-native-picker/picker';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { AppText, BottomSheetModal, Button } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { REVENUE_RANGE_OPTIONS } from '../constants/paymentsRevenueRanges';
 
+function resolveRangeId(id) {
+  if (REVENUE_RANGE_OPTIONS.some((opt) => opt.id === id)) return id;
+  return REVENUE_RANGE_OPTIONS[0]?.id ?? '';
+}
+
 /**
  * Compact time-range trigger + fitContent wheel sheet (same pattern as SelectField `wheel`).
+ * Wheel changes stay local until View is pressed.
  *
  * @param {{
  *   value: string;
@@ -17,15 +23,25 @@ import { REVENUE_RANGE_OPTIONS } from '../constants/paymentsRevenueRanges';
 export function PaymentsRevenueRangePicker({ value, onChange }) {
   const { colors, isDark } = useTheme();
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(() => resolveRangeId(value));
 
   const selectedLabel = REVENUE_RANGE_OPTIONS.find((opt) => opt.id === value)?.label ?? 'Month';
 
-  const pickerValue = useMemo(() => {
-    if (REVENUE_RANGE_OPTIONS.some((opt) => opt.id === value)) return value;
-    return REVENUE_RANGE_OPTIONS[0]?.id ?? '';
-  }, [value]);
+  useEffect(() => {
+    if (open) {
+      setDraft(resolveRangeId(value));
+    }
+  }, [open, value]);
 
   const close = useCallback(() => setOpen(false), []);
+
+  const confirm = useCallback(() => {
+    const next = resolveRangeId(draft);
+    if (next && next !== value) {
+      onChange(next);
+    }
+    setOpen(false);
+  }, [draft, onChange, value]);
 
   const styles = useMemo(
     () =>
@@ -88,7 +104,7 @@ export function PaymentsRevenueRangePicker({ value, onChange }) {
         fitContent
         footer={
           <View style={styles.footer}>
-            <Button fullWidth title="Done" variant="primary" onPress={close} />
+            <Button fullWidth title="View" variant="primary" onPress={confirm} />
           </View>
         }
         showCloseButton={false}
@@ -110,12 +126,12 @@ export function PaymentsRevenueRangePicker({ value, onChange }) {
                 : undefined
             }
             mode={Platform.OS === 'ios' ? 'spinner' : 'dropdown'}
-            selectedValue={pickerValue}
+            selectedValue={draft}
             style={Platform.OS === 'ios' ? styles.pickerIOS : { width: '100%' }}
             themeVariant={isDark ? 'dark' : 'light'}
             onValueChange={(itemValue) => {
               if (itemValue === '') return;
-              onChange(String(itemValue));
+              setDraft(String(itemValue));
             }}
           >
             {REVENUE_RANGE_OPTIONS.map((opt) => (
