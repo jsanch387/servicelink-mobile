@@ -2,14 +2,16 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
 import { useSubscription } from '../../subscription';
 import { PaymentAcceptServicelinkCard } from '../components/PaymentAcceptServicelinkCard';
+import { PaymentsRevenueSection } from '../components/PaymentsRevenueSection';
 import { PaymentsScreenSkeleton } from '../components/PaymentsScreenSkeleton';
+import { PaymentsScreenTabs } from '../components/PaymentsScreenTabs';
 import { PaymentsNonProUpsell } from '../components/PaymentsNonProUpsell';
 import { PaymentsStripeConnectSetupCard } from '../components/PaymentsStripeConnectSetupCard';
 import { StripeConnectLaunchOverlay } from '../components/StripeConnectLaunchOverlay';
@@ -18,6 +20,7 @@ import { PaymentHowCustomersPayCard } from '../components/PaymentHowCustomersPay
 import { PaymentsTapToPaySection } from '../components/PaymentsTapToPaySection';
 import { PaymentStripeDashboardCard } from '../components/PaymentStripeDashboardCard';
 import { DEPOSIT_AMOUNT_MODE } from '../constants/depositAmount';
+import { PAYMENTS_SCREEN_TAB } from '../constants/paymentsScreenTabs';
 import {
   CUSTOMER_PAYMENT_METHOD,
   CUSTOMER_PAYMENT_METHOD_OPTIONS,
@@ -55,7 +58,8 @@ export function PaymentsScreen() {
   const { savePaymentSettings, isSaving, saveError } = useSavePaymentSettings({ businessId });
 
   const stickyBarHeight = 56;
-  const scrollBottomPad = Math.max(insets.bottom, 16) + stickyBarHeight + 20;
+  const settingsScrollBottomPad = Math.max(insets.bottom, 16) + stickyBarHeight + 20;
+  const revenueScrollBottomPad = Math.max(insets.bottom, 24) + 16;
 
   const [acceptServicelinkPayments, setAcceptServicelinkPayments] = useState(true);
   const [savedAcceptServicelinkPayments, setSavedAcceptServicelinkPayments] = useState(true);
@@ -79,6 +83,7 @@ export function PaymentsScreen() {
   const [connectSubmitting, setConnectSubmitting] = useState(false);
   const [enableSubmitting, setEnableSubmitting] = useState(false);
   const [tapToPayEnablePromptSignal, setTapToPayEnablePromptSignal] = useState(0);
+  const [screenTab, setScreenTab] = useState(PAYMENTS_SCREEN_TAB.REVENUE);
 
   const onStripeConnectPress = useCallback(async () => {
     const token = session?.access_token ?? null;
@@ -265,9 +270,14 @@ export function PaymentsScreen() {
         },
         content: {
           gap: 16,
-          paddingBottom: scrollBottomPad,
           paddingHorizontal: 16,
-          paddingTop: 16,
+          paddingTop: 12,
+        },
+        contentSettings: {
+          paddingBottom: settingsScrollBottomPad,
+        },
+        contentRevenue: {
+          paddingBottom: revenueScrollBottomPad,
         },
         saveBar: {
           bottom: Math.max(insets.bottom - 12, 0),
@@ -322,8 +332,18 @@ export function PaymentsScreen() {
           opacity: 0.4,
         },
       }),
-    [colors.shell, colors.text, colors.textMuted, insets.bottom, scrollBottomPad],
+    [
+      colors.shell,
+      colors.text,
+      colors.textMuted,
+      insets.bottom,
+      revenueScrollBottomPad,
+      settingsScrollBottomPad,
+    ],
   );
+
+  const showSettingsTab = screenTab === PAYMENTS_SCREEN_TAB.SETTINGS;
+  const showRevenueTab = screenTab === PAYMENTS_SCREEN_TAB.REVENUE;
 
   if (payment.isPendingBusiness) {
     return <PaymentsScreenSkeleton accessibilityLabel="Loading" />;
@@ -373,160 +393,176 @@ export function PaymentsScreen() {
     );
   }
 
-  if (!hasProAccess) {
-    const upsellBottomPad = Math.max(insets.bottom, 24) + 48;
-    return (
-      <View style={styles.root}>
-        <ScrollView
-          contentContainerStyle={[styles.content, { paddingBottom: upsellBottomPad }]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          style={styles.scroll}
-        >
-          <PaymentsNonProUpsell />
-        </ScrollView>
-      </View>
-    );
-  }
+  const settingsNeedsPro = !hasProAccess;
+  const settingsLoading = hasProAccess && payment.isPendingPayments;
+  const settingsLoadFailed = hasProAccess && Boolean(payment.paymentLoadError);
+  const settingsNeedsConnect =
+    hasProAccess &&
+    !payment.isPendingPayments &&
+    !payment.paymentLoadError &&
+    !payment.stripeConnectReady;
+  const settingsReady =
+    hasProAccess &&
+    !payment.isPendingPayments &&
+    !payment.paymentLoadError &&
+    payment.stripeConnectReady;
 
-  if (payment.isPendingPayments) {
-    return <PaymentsScreenSkeleton accessibilityLabel="Loading payment settings" />;
-  }
+  const connectCopy = settingsNeedsConnect
+    ? getStripeConnectSetupCopy(payment.paymentAccount)
+    : null;
+  const connectPres = connectCopy
+    ? resolveStripeConnectSetupPresentation(payment.paymentAccount, connectCopy)
+    : null;
 
-  if (payment.paymentLoadError) {
-    return (
-      <View style={[styles.root, { gap: 16, paddingHorizontal: 16, paddingTop: 16 }]}>
-        <SurfaceCard>
-          <InlineCardError message={payment.paymentLoadError} />
-        </SurfaceCard>
-        <Button
-          title="Try again"
-          variant="secondary"
-          onPress={() => {
-            void payment.refetchPayments();
-          }}
-        />
-      </View>
-    );
-  }
-
-  if (!payment.stripeConnectReady) {
-    const copy = getStripeConnectSetupCopy(payment.paymentAccount);
-    const pres = resolveStripeConnectSetupPresentation(payment.paymentAccount, copy);
-    const connectBottomPad = Math.max(insets.bottom, 24) + 32;
-    return (
-      <View style={styles.root}>
-        <ScrollView
-          contentContainerStyle={[styles.content, { paddingBottom: connectBottomPad }]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          style={styles.scroll}
-        >
-          <PaymentsStripeConnectSetupCard
-            buttonTitle={pres.buttonTitle}
-            description={pres.description}
-            loading={connectSubmitting}
-            title={pres.title}
-            onConnectPress={() => {
-              void onStripeConnectPress();
-            }}
-          />
-        </ScrollView>
-        <StripeConnectLaunchOverlay visible={connectSubmitting} />
-      </View>
-    );
-  }
+  const scrollBottomStyle = showSettingsTab
+    ? settingsReady
+      ? styles.contentSettings
+      : { paddingBottom: Math.max(insets.bottom, 24) + 32 }
+    : styles.contentRevenue;
 
   return (
     <View style={styles.root}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, scrollBottomStyle]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
-        {saveError ? (
-          <SurfaceCard>
-            <InlineCardError message={getPaymentSaveUserMessage(saveError)} />
-          </SurfaceCard>
+        <PaymentsScreenTabs value={screenTab} onChange={setScreenTab} />
+
+        {showRevenueTab ? <PaymentsRevenueSection businessId={businessId} /> : null}
+
+        {showSettingsTab && settingsNeedsPro ? <PaymentsNonProUpsell /> : null}
+
+        {showSettingsTab && settingsLoading ? (
+          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+            <ActivityIndicator
+              accessibilityLabel="Loading payment settings"
+              color={colors.accent}
+            />
+          </View>
         ) : null}
 
-        <View style={styles.loadedStack}>
-          {payment.gateServicelinkCheckout ? (
-            <View style={styles.connectedRow}>
-              <Ionicons color="#22c55e" name="checkmark-circle" size={22} />
-              <AppText style={styles.connectedTitle}>You are connected to Stripe.</AppText>
-            </View>
-          ) : null}
-
-          {payment.gateServicelinkCheckout ? (
-            <SurfaceCard outlined padding="sm" style={styles.gateCard}>
-              <AppText style={styles.gateTitle}>Turn on ServiceLink payments</AppText>
-              <AppText style={styles.gateBody}>
-                Turn on payments to start accepting checkout payments in ServiceLink.
-              </AppText>
-              <Button
-                fullWidth
-                loading={enableSubmitting}
-                title={enableSubmitting ? 'Enabling…' : 'Turn on payments'}
-                variant="surfaceLight"
-                onPress={() => {
-                  void onServicelinkEnablePress();
-                }}
-              />
+        {showSettingsTab && settingsLoadFailed ? (
+          <View style={{ gap: 16 }}>
+            <SurfaceCard>
+              <InlineCardError message={payment.paymentLoadError} />
             </SurfaceCard>
-          ) : null}
-
-          <View style={styles.cardsColumn}>
-            {!payment.gateServicelinkCheckout ? (
-              <PaymentAcceptServicelinkCard
-                value={acceptServicelinkPayments}
-                onValueChange={setAcceptServicelinkPayments}
-              />
-            ) : null}
-            {!payment.gateServicelinkCheckout ? (
-              <PaymentStripeDashboardCard
-                stripeAccountId={payment.paymentAccount?.stripe_account_id ?? null}
-              />
-            ) : null}
-            <PaymentsTapToPaySection enablePromptSignal={tapToPayEnablePromptSignal} />
-            <View
-              pointerEvents={settingsLocked || !acceptServicelinkPayments ? 'none' : 'auto'}
-              style={[
-                styles.checkoutDepositsStack,
-                (settingsLocked || !acceptServicelinkPayments) && styles.checkoutDepositsMuted,
-              ]}
-              testID="payments-checkout-deposits-stack"
-            >
-              <PaymentHowCustomersPayCard
-                options={CUSTOMER_PAYMENT_METHOD_OPTIONS}
-                selectedId={selectedMethodId}
-                onSelectId={setSelectedMethodId}
-              />
-              <PaymentDepositsSection
-                depositAmount={depositAmount}
-                depositMode={depositMode}
-                requireDeposits={requireDeposits}
-                onDepositAmountChange={setDepositAmount}
-                onDepositModeChange={setDepositMode}
-                onRequireDepositsChange={handleRequireDepositsChange}
-              />
-            </View>
+            <Button
+              title="Try again"
+              variant="secondary"
+              onPress={() => {
+                void payment.refetchPayments();
+              }}
+            />
           </View>
-        </View>
+        ) : null}
+
+        {showSettingsTab && settingsNeedsConnect && connectPres ? (
+          <PaymentsStripeConnectSetupCard
+            buttonTitle={connectPres.buttonTitle}
+            description={connectPres.description}
+            loading={connectSubmitting}
+            title={connectPres.title}
+            onConnectPress={() => {
+              void onStripeConnectPress();
+            }}
+          />
+        ) : null}
+
+        {showSettingsTab && settingsReady ? (
+          <>
+            {saveError ? (
+              <SurfaceCard>
+                <InlineCardError message={getPaymentSaveUserMessage(saveError)} />
+              </SurfaceCard>
+            ) : null}
+
+            <View style={styles.loadedStack}>
+              {payment.gateServicelinkCheckout ? (
+                <View style={styles.connectedRow}>
+                  <Ionicons color="#22c55e" name="checkmark-circle" size={22} />
+                  <AppText style={styles.connectedTitle}>You are connected to Stripe.</AppText>
+                </View>
+              ) : null}
+
+              {payment.gateServicelinkCheckout ? (
+                <SurfaceCard outlined padding="sm" style={styles.gateCard}>
+                  <AppText style={styles.gateTitle}>Turn on ServiceLink payments</AppText>
+                  <AppText style={styles.gateBody}>
+                    Turn on payments to start accepting checkout payments in ServiceLink.
+                  </AppText>
+                  <Button
+                    fullWidth
+                    loading={enableSubmitting}
+                    title={enableSubmitting ? 'Enabling…' : 'Turn on payments'}
+                    variant="surfaceLight"
+                    onPress={() => {
+                      void onServicelinkEnablePress();
+                    }}
+                  />
+                </SurfaceCard>
+              ) : null}
+
+              <View style={styles.cardsColumn}>
+                {!payment.gateServicelinkCheckout ? (
+                  <PaymentAcceptServicelinkCard
+                    value={acceptServicelinkPayments}
+                    onValueChange={setAcceptServicelinkPayments}
+                  />
+                ) : null}
+                {!payment.gateServicelinkCheckout ? (
+                  <PaymentStripeDashboardCard
+                    stripeAccountId={payment.paymentAccount?.stripe_account_id ?? null}
+                  />
+                ) : null}
+                <PaymentsTapToPaySection enablePromptSignal={tapToPayEnablePromptSignal} />
+                <View
+                  pointerEvents={settingsLocked || !acceptServicelinkPayments ? 'none' : 'auto'}
+                  style={[
+                    styles.checkoutDepositsStack,
+                    (settingsLocked || !acceptServicelinkPayments) && styles.checkoutDepositsMuted,
+                  ]}
+                  testID="payments-checkout-deposits-stack"
+                >
+                  <PaymentHowCustomersPayCard
+                    options={CUSTOMER_PAYMENT_METHOD_OPTIONS}
+                    selectedId={selectedMethodId}
+                    onSelectId={setSelectedMethodId}
+                  />
+                  <PaymentDepositsSection
+                    depositAmount={depositAmount}
+                    depositMode={depositMode}
+                    requireDeposits={requireDeposits}
+                    onDepositAmountChange={setDepositAmount}
+                    onDepositModeChange={setDepositMode}
+                    onRequireDepositsChange={handleRequireDepositsChange}
+                  />
+                </View>
+              </View>
+            </View>
+          </>
+        ) : null}
       </ScrollView>
-      <View style={styles.saveBar}>
-        <Button
-          disabled={saveDisabled || settingsLocked}
-          fullWidth
-          loading={isSaving}
-          title={isSaving ? 'Saving…' : 'Save changes'}
-          variant="surfaceLight"
-          onPress={() => {
-            void handleSaveAll();
-          }}
-        />
-      </View>
+
+      {showSettingsTab && settingsReady ? (
+        <View style={styles.saveBar}>
+          <Button
+            disabled={saveDisabled || settingsLocked}
+            fullWidth
+            loading={isSaving}
+            title={isSaving ? 'Saving…' : 'Save changes'}
+            variant="surfaceLight"
+            onPress={() => {
+              void handleSaveAll();
+            }}
+          />
+        </View>
+      ) : null}
+
+      {showSettingsTab && settingsNeedsConnect ? (
+        <StripeConnectLaunchOverlay visible={connectSubmitting} />
+      ) : null}
     </View>
   );
 }

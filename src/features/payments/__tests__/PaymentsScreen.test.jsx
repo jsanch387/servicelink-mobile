@@ -21,6 +21,27 @@ jest.mock('../hooks/useSavePaymentSettings', () => ({
   useSavePaymentSettings: (...args) => mockUseSavePaymentSettings(...args),
 }));
 
+jest.mock('../hooks/usePaymentsRevenue', () => ({
+  usePaymentsRevenue: () => ({
+    range: 'month',
+    setRange: jest.fn(),
+    summary: {
+      collectedCents: 0,
+      jobsPaid: 0,
+      changePct: null,
+      compareLabel: null,
+      bars: [
+        { key: 'w1', label: 'Wk 1', fullLabel: 'Week 1', cents: 0 },
+        { key: 'w2', label: 'Wk 2', fullLabel: 'Week 2', cents: 0 },
+      ],
+    },
+    isPending: false,
+    isError: false,
+    errorMessage: null,
+    refetch: jest.fn(),
+  }),
+}));
+
 jest.mock('../../subscription', () => ({
   useSubscription: (...args) => mockUseSubscription(...args),
 }));
@@ -95,6 +116,10 @@ function loadedRead(overrides = {}) {
   };
 }
 
+function openSettingsTab() {
+  fireEvent.press(screen.getByLabelText('Settings'));
+}
+
 describe('PaymentsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -155,6 +180,7 @@ describe('PaymentsScreen', () => {
 
   it('renders checkout section and disables save until dirty', async () => {
     renderWithProviders(<PaymentsScreen />);
+    openSettingsTab();
     await waitFor(() => {
       expect(screen.getByText('How customers pay')).toBeTruthy();
     });
@@ -164,6 +190,7 @@ describe('PaymentsScreen', () => {
 
   it('mutes checkout stack when accept payments is off', async () => {
     renderWithProviders(<PaymentsScreen />);
+    openSettingsTab();
     await waitFor(() => expect(screen.getByText('How customers pay')).toBeTruthy());
 
     const switches = screen.UNSAFE_getAllByType(require('react-native').Switch);
@@ -177,6 +204,7 @@ describe('PaymentsScreen', () => {
 
   it('calls save with current form state', async () => {
     renderWithProviders(<PaymentsScreen />);
+    openSettingsTab();
     await waitFor(() => expect(screen.getByText('How customers pay')).toBeTruthy());
 
     fireEvent.press(screen.getByRole('radio', { name: 'In the app only' }));
@@ -218,6 +246,7 @@ describe('PaymentsScreen', () => {
       }),
     );
     renderWithProviders(<PaymentsScreen />);
+    openSettingsTab();
     await waitFor(() => {
       expect(screen.getByText('Turn on ServiceLink payments')).toBeTruthy();
     });
@@ -231,7 +260,7 @@ describe('PaymentsScreen', () => {
     ).toBe(true);
   });
 
-  it('shows web sign-in upsell when user does not have expanded payments access', () => {
+  it('shows web sign-in upsell on Settings when user does not have expanded payments access', async () => {
     mockUseSubscription.mockReturnValue({
       hasProAccess: false,
       isOwnerProfileLoaded: true,
@@ -241,7 +270,13 @@ describe('PaymentsScreen', () => {
     });
     mockUsePaymentDashboardRead.mockReturnValue(loadedRead());
     renderWithProviders(<PaymentsScreen />);
-    expect(screen.getByTestId('payments-non-pro-upsell')).toBeTruthy();
+    expect(screen.getByLabelText('Revenue')).toBeTruthy();
+    expect(screen.getAllByText('$0').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Finish a job and it shows up here.')).toBeTruthy();
+    openSettingsTab();
+    await waitFor(() => {
+      expect(screen.getByTestId('payments-non-pro-upsell')).toBeTruthy();
+    });
     expect(screen.getByText('Accept payments online')).toBeTruthy();
     expect(screen.getByText(/Sign in with the same email/i)).toBeTruthy();
     expect(screen.getByText(/Get paid to your bank/i)).toBeTruthy();
@@ -250,7 +285,22 @@ describe('PaymentsScreen', () => {
     expect(screen.queryByText('Set up payments')).toBeNull();
   });
 
-  it('shows Stripe Connect setup card when Pro but Connect is not ready', async () => {
+  it('keeps Revenue visible for Pro without Stripe Connect', async () => {
+    mockUsePaymentDashboardRead.mockReturnValue(
+      loadedRead({
+        stripeConnectReady: false,
+        paymentAccount: null,
+        hasPaymentSettingsRow: false,
+        paymentSettings: null,
+      }),
+    );
+    renderWithProviders(<PaymentsScreen />);
+    expect(screen.getByLabelText('Revenue')).toBeTruthy();
+    expect(screen.getAllByText('$0').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Jobs paid')).toBeTruthy();
+  });
+
+  it('shows Stripe Connect setup on Settings when Pro but Connect is not ready', async () => {
     mockUsePaymentDashboardRead.mockReturnValue(
       loadedRead({
         stripeConnectReady: false,
@@ -261,6 +311,7 @@ describe('PaymentsScreen', () => {
       }),
     );
     renderWithProviders(<PaymentsScreen />);
+    openSettingsTab();
     await waitFor(() => {
       expect(screen.getByText('Set up payments')).toBeTruthy();
     });
@@ -294,6 +345,7 @@ describe('PaymentsScreen', () => {
     WebBrowser.openAuthSessionAsync.mockResolvedValue({ type: 'cancel' });
 
     renderWithProviders(<PaymentsScreen />);
+    openSettingsTab();
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Connect with Stripe' })).toBeTruthy(),
     );
@@ -308,6 +360,7 @@ describe('PaymentsScreen', () => {
 
   it('shows Tap to Pay card when payments are configured', async () => {
     renderWithProviders(<PaymentsScreen />);
+    openSettingsTab();
     await waitFor(() => {
       expect(screen.getByTestId('payments-tap-to-pay-card')).toBeTruthy();
     });
@@ -331,6 +384,7 @@ describe('PaymentsScreen', () => {
       }),
     );
     renderWithProviders(<PaymentsScreen />);
+    openSettingsTab();
     await waitFor(() => expect(screen.getByText('Turn on ServiceLink payments')).toBeTruthy());
     expect(
       screen.getByRole('button', { name: 'Save changes' }).props.accessibilityState?.disabled,

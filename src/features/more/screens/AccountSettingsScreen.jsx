@@ -160,19 +160,12 @@ export function AccountSettingsScreen() {
           fontWeight: '500',
           marginTop: 12,
         },
-        dangerTitle: {
-          color: colors.text,
-          fontSize: 16,
-          fontWeight: '700',
-          letterSpacing: -0.25,
-        },
         dangerBody: {
           color: colors.textMuted,
           fontSize: 14,
           fontWeight: '500',
           letterSpacing: -0.05,
           lineHeight: 20,
-          marginTop: 8,
         },
         dangerButton: {
           marginTop: 18,
@@ -401,7 +394,6 @@ export function AccountSettingsScreen() {
             <AppText style={styles.sectionTitle}>Danger zone</AppText>
           </View>
           <SurfaceCard>
-            <AppText style={styles.dangerTitle}>Delete your account</AppText>
             <AppText style={styles.dangerBody}>
               This permanently removes your ServiceLink data. You can confirm details in the next
               step.
