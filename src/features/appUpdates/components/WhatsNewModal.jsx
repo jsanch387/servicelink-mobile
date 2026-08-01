@@ -1,10 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Modal, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button } from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import { WhatsNewRevenueChartMock } from './WhatsNewRevenueChartMock';
 
 /**
  * Centered feature update modal — one feature, bullet-first copy.
@@ -134,7 +135,7 @@ export function WhatsNewModal({
           fontWeight: '800',
           letterSpacing: -0.7,
           lineHeight: 32,
-          marginBottom: 18,
+          marginBottom: 14,
         },
         bulletList: {
           gap: 12,
@@ -174,6 +175,7 @@ export function WhatsNewModal({
   const heroIcon = announcement.icon ?? 'sparkles-outline';
   const iconColor = announcement.iconColor ?? colors.text;
   const iconLibrary = announcement.iconLibrary ?? 'ionicons';
+  const showRevenueChart = announcement.illustration === 'revenue-chart';
 
   const heroIconNode =
     iconLibrary === 'material-community' ? (
@@ -188,42 +190,41 @@ export function WhatsNewModal({
       statusBarTranslucent
       transparent
       visible={visible}
-      onRequestClose={onDismiss}
+      onRequestClose={() => {
+        /* Require an explicit button — backdrop / hardware back do not dismiss. */
+      }}
     >
       <View style={styles.fill}>
-        <Animated.View style={[styles.fill, { opacity }]}>
-          <Pressable
-            accessibilityLabel="Dismiss what's new"
-            accessibilityRole="button"
-            style={styles.fill}
-            onPress={onDismiss}
-          >
-            <View style={styles.backdrop} />
-          </Pressable>
+        <Animated.View pointerEvents="none" style={[styles.fill, { opacity }]}>
+          <View style={styles.backdrop} />
         </Animated.View>
 
         <View pointerEvents="box-none" style={styles.centerLayer}>
           <Animated.View style={{ opacity, transform: [{ scale }] }}>
             <View style={styles.card}>
               <View style={styles.accentBar} />
-              <View
-                style={[
-                  styles.iconBadge,
-                  announcement.iconBadgeVariant === 'dark'
-                    ? styles.iconBadgeDark
-                    : announcement.iconBadgeVariant === 'light'
-                      ? styles.iconBadgeLight
-                      : null,
-                ]}
-              >
-                {heroIconNode}
-              </View>
+              {!showRevenueChart ? (
+                <View
+                  style={[
+                    styles.iconBadge,
+                    announcement.iconBadgeVariant === 'dark'
+                      ? styles.iconBadgeDark
+                      : announcement.iconBadgeVariant === 'light'
+                        ? styles.iconBadgeLight
+                        : null,
+                  ]}
+                >
+                  {heroIconNode}
+                </View>
+              ) : null}
               {announcement.badge ? (
                 <View style={styles.badge}>
                   <AppText style={styles.badgeText}>{announcement.badge}</AppText>
                 </View>
               ) : null}
               <AppText style={styles.title}>{announcement.title}</AppText>
+
+              {showRevenueChart ? <WhatsNewRevenueChartMock /> : null}
 
               <View style={styles.bulletList}>
                 {announcement.bullets.map((line) => (

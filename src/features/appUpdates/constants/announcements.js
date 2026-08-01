@@ -14,6 +14,7 @@ import { ROUTES } from '../../../routes/routes';
  *   iconLibrary?: 'ionicons' | 'material-community';
  *   iconColor?: string;
  *   iconBadgeVariant?: 'default' | 'dark' | 'light';
+ *   illustration?: 'revenue-chart';
  *   title: string;
  *   bullets: string[];
  *   primaryLabel?: string;
@@ -26,21 +27,22 @@ import { ROUTES } from '../../../routes/routes';
 /** @type {WhatsNewAnnouncement[]} */
 export const APP_UPDATE_ANNOUNCEMENTS = [
   {
-    id: 'marketing-v1',
+    id: 'revenue-v1',
     badge: "What's new",
-    icon: 'megaphone-outline',
+    icon: 'cash-outline',
     iconLibrary: 'ionicons',
-    title: 'Marketing',
+    illustration: 'revenue-chart',
+    title: 'See how much you make',
     bullets: [
-      'Create promo codes customers can enter when they book',
-      'Run sales that automatically discount qualifying appointments',
-      'Turn offers on or off anytime from More → Marketing',
+      'See totals from jobs you’ve finished and closed out',
+      'Spot your best days, weeks, and months at a glance',
+      'Compare this period to the last one so you know if you’re up',
     ],
-    primaryLabel: 'Try it out',
+    primaryLabel: 'View Revenue',
     secondaryLabel: 'Got it',
     cta: {
       tab: ROUTES.MORE,
-      screen: ROUTES.MARKETING,
+      screen: ROUTES.MORE_PAYMENTS,
     },
   },
 ];

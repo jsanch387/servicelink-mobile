@@ -1,7 +1,7 @@
 import { calendarYyyyMmDdFromScheduledDate, localYyyyMmDd } from '../../home/utils/bookingStart';
 import { computeBookingEarningsCents } from '../../home/utils/todaysEarnings';
 import { REVENUE_RANGE } from '../constants/paymentsRevenueRanges';
-import { addDays, parseLocalYmd, revenueDateWindow, startOfWeekMonday } from './revenueDateWindows';
+import { addDays, parseLocalYmd, revenueDateWindow } from './revenueDateWindows';
 
 /**
  * @typedef {{ label: string; fullLabel: string; cents: number; key: string }} RevenueBar
@@ -70,7 +70,7 @@ function sumDaysInRange(byDay, fromYmd, toYmd) {
 }
 
 const WEEKDAY_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const WEEKDAY_MED = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_SHORT = [
   'Jan',
   'Feb',
@@ -114,10 +114,12 @@ function barsForWeek(byDay, fromYmd, toYmd) {
   while (cursor.getTime() <= end.getTime()) {
     const ymd = localYyyyMmDd(cursor);
     const weekday = cursor.getDay();
+    const monthShort = MONTH_SHORT[cursor.getMonth()];
+    const dayNum = cursor.getDate();
     bars.push({
       key: ymd,
       label: WEEKDAY_SHORT[weekday],
-      fullLabel: WEEKDAY_LONG[weekday],
+      fullLabel: `${WEEKDAY_MED[weekday]}, ${monthShort} ${dayNum}`,
       cents: byDay.get(ymd) ?? 0,
     });
     cursor = addDays(cursor, 1);
@@ -126,7 +128,9 @@ function barsForWeek(byDay, fromYmd, toYmd) {
 }
 
 /**
- * Calendar weeks that intersect the month window.
+ * Exactly four weeks inside the calendar month:
+ * Wk 1 = days 1–7, Wk 2 = 8–14, Wk 3 = 15–21, Wk 4 = 22–end.
+ *
  * @param {Map<string, number>} byDay
  * @param {string} fromYmd
  * @param {string} toYmd
@@ -135,28 +139,28 @@ function barsForWeek(byDay, fromYmd, toYmd) {
 function barsForMonth(byDay, fromYmd, toYmd) {
   const monthStart = parseLocalYmd(fromYmd);
   const monthEnd = parseLocalYmd(toYmd);
-  let weekStart = startOfWeekMonday(monthStart);
-  /** @type {RevenueBar[]} */
-  const bars = [];
-  let weekIndex = 1;
+  const year = monthStart.getFullYear();
+  const month = monthStart.getMonth();
+  const lastDay = monthEnd.getDate();
 
-  while (weekStart.getTime() <= monthEnd.getTime()) {
-    const weekEnd = addDays(weekStart, 6);
-    const clipFrom = weekStart.getTime() < monthStart.getTime() ? monthStart : weekStart;
-    const clipTo = weekEnd.getTime() > monthEnd.getTime() ? monthEnd : weekEnd;
-    const clipFromYmd = localYyyyMmDd(clipFrom);
-    const clipToYmd = localYyyyMmDd(clipTo);
-    bars.push({
-      key: `w${weekIndex}-${clipFromYmd}`,
+  const segments = [
+    { startDay: 1, endDay: Math.min(7, lastDay) },
+    { startDay: 8, endDay: Math.min(14, lastDay) },
+    { startDay: 15, endDay: Math.min(21, lastDay) },
+    { startDay: 22, endDay: lastDay },
+  ].filter((seg) => seg.startDay <= lastDay);
+
+  return segments.map(({ startDay, endDay }, index) => {
+    const weekIndex = index + 1;
+    const from = new Date(year, month, startDay);
+    const to = new Date(year, month, endDay);
+    return {
+      key: `${year}-${month + 1}-w${weekIndex}`,
       label: `Wk ${weekIndex}`,
       fullLabel: `Week ${weekIndex}`,
-      cents: sumDaysInRange(byDay, clipFromYmd, clipToYmd),
-    });
-    weekIndex += 1;
-    weekStart = addDays(weekStart, 7);
-  }
-
-  return bars;
+      cents: sumDaysInRange(byDay, localYyyyMmDd(from), localYyyyMmDd(to)),
+    };
+  });
 }
 
 /**

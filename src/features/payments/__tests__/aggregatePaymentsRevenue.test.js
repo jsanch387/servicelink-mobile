@@ -22,10 +22,11 @@ function completedRow({ id, scheduled_date, totalCents, status = 'completed' }) 
 describe('aggregatePaymentsRevenue', () => {
   const now = new Date(2026, 6, 15); // Wed Jul 15, 2026
 
-  it('sums completed jobs for the current month and builds week bars', () => {
+  it('sums completed jobs for the current month into four week buckets', () => {
     const currentRows = [
-      completedRow({ id: '1', scheduled_date: '2026-07-02', totalCents: 10000 }),
-      completedRow({ id: '2', scheduled_date: '2026-07-10', totalCents: 20000 }),
+      completedRow({ id: '1', scheduled_date: '2026-07-02', totalCents: 10000 }), // Wk 1
+      completedRow({ id: '2', scheduled_date: '2026-07-10', totalCents: 20000 }), // Wk 2
+      completedRow({ id: '3', scheduled_date: '2026-07-30', totalCents: 5000 }), // Wk 4
     ];
 
     const summary = aggregatePaymentsRevenue({
@@ -35,11 +36,44 @@ describe('aggregatePaymentsRevenue', () => {
       now,
     });
 
-    expect(summary.collectedCents).toBe(30000);
-    expect(summary.jobsPaid).toBe(2);
-    expect(summary.bars.length).toBeGreaterThanOrEqual(4);
-    expect(summary.changePct).toBe(Math.round(((30000 - 15000) / 15000) * 100));
+    expect(summary.collectedCents).toBe(35000);
+    expect(summary.jobsPaid).toBe(3);
+    expect(summary.bars).toHaveLength(4);
+    expect(summary.bars.map((b) => b.label)).toEqual(['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4']);
+    expect(summary.bars[0].cents).toBe(10000);
+    expect(summary.bars[1].cents).toBe(20000);
+    expect(summary.bars[2].cents).toBe(0);
+    expect(summary.bars[3].cents).toBe(5000);
+    expect(summary.changePct).toBe(Math.round(((35000 - 15000) / 15000) * 100));
     expect(summary.compareLabel).toBe('vs last month');
+  });
+
+  it('keeps exactly four weeks even when calendar weeks would spill to six', () => {
+    const augustNow = new Date(2026, 7, 15);
+    const summary = aggregatePaymentsRevenue({
+      range: REVENUE_RANGE.MONTH,
+      currentRows: [],
+      now: augustNow,
+    });
+
+    expect(summary.bars).toHaveLength(4);
+    expect(summary.bars.map((b) => b.label)).toEqual(['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4']);
+  });
+
+  it('folds the end of short months into week 4', () => {
+    const febNow = new Date(2026, 1, 10);
+    const summary = aggregatePaymentsRevenue({
+      range: REVENUE_RANGE.MONTH,
+      currentRows: [
+        completedRow({ id: '1', scheduled_date: '2026-02-20', totalCents: 4000 }),
+        completedRow({ id: '2', scheduled_date: '2026-02-28', totalCents: 1000 }),
+      ],
+      now: febNow,
+    });
+
+    expect(summary.bars).toHaveLength(4);
+    expect(summary.bars[2].cents).toBe(4000);
+    expect(summary.bars[3].cents).toBe(1000);
   });
 
   it('builds weekday bars for the week window', () => {
@@ -55,8 +89,10 @@ describe('aggregatePaymentsRevenue', () => {
 
     expect(summary.bars).toHaveLength(7);
     expect(summary.bars[0].label).toBe('Mo');
+    expect(summary.bars[0].fullLabel).toBe('Mon, Jul 13');
     expect(summary.bars[0].cents).toBe(5000);
     expect(summary.bars[2].cents).toBe(7000);
+    expect(summary.bars[2].fullLabel).toBe('Wed, Jul 15');
     expect(summary.collectedCents).toBe(12000);
   });
 

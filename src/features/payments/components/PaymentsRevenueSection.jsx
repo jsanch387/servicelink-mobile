@@ -273,6 +273,7 @@ export function PaymentsRevenueSection({ businessId }) {
           flex: 1,
           gap: 6,
           minHeight: 148,
+          paddingBottom: 12,
         },
         twinHeader: {
           alignItems: 'center',
@@ -304,6 +305,7 @@ export function PaymentsRevenueSection({ businessId }) {
           color: colors.textMuted,
           fontSize: 12,
           fontWeight: '500',
+          marginBottom: 10,
         },
         twinTrend: {
           color: colors.moneyPositive,

@@ -61,12 +61,14 @@ Previous-period fetch runs for Week / Month / Year so the UI can show % change. 
 
 ### Chart buckets
 
-| Range    | Bars                                                             |
-| -------- | ---------------------------------------------------------------- |
-| Week     | 7 weekdays (Mon → Sun)                                           |
-| Month    | Calendar weeks intersecting the month (`Wk 1` …)                 |
-| Year     | 12 months                                                        |
-| All time | One bar per year with activity (or current year at `$0` if none) |
+| Range    | Bars                                                               |
+| -------- | ------------------------------------------------------------------ |
+| Week     | 7 weekdays (Mon → Sun)                                             |
+| Month    | Exactly **4** weeks: days 1–7, 8–14, 15–21, 22–end (`Wk 1`–`Wk 4`) |
+| Year     | 12 months                                                          |
+| All time | One bar per year with activity (or current year at `$0` if none)   |
+
+Month does **not** use Mon–Sun calendar weeks (those can spill across months and show 5–6 bars). Week 4 absorbs the remainder of the month (up to day 28–31).
 
 ## Earnings alignment
 
