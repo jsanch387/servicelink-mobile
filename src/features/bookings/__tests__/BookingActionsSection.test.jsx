@@ -17,37 +17,23 @@ function renderSection(props = {}) {
   );
 }
 
-describe('BookingActionsSection on my way', () => {
-  it('shows On my way above lifecycle tiles when enabled', () => {
-    renderSection({ showOnMyWayAction: true, hasCustomerSmsPhone: true });
-    expect(screen.getByLabelText('On my way')).toBeTruthy();
+describe('BookingActionsSection job status', () => {
+  it('shows Job status when enabled and calls onJobStatusPress', () => {
+    const onJobStatusPress = jest.fn();
+    renderSection({ showJobStatusAction: true, onJobStatusPress });
+    expect(screen.getByLabelText('Job status')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Job status'));
+    expect(onJobStatusPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides Job status when showJobStatusAction is false', () => {
+    renderSection({ showJobStatusAction: false });
+    expect(screen.queryByLabelText('Job status')).toBeNull();
+  });
+
+  it('still shows lifecycle tiles', () => {
+    renderSection({ showJobStatusAction: true });
     expect(screen.getByLabelText('Reschedule booking')).toBeTruthy();
-  });
-
-  it('shows Customer notified when already sent', () => {
-    renderSection({
-      showOnMyWayAction: true,
-      hasCustomerSmsPhone: true,
-      onMyWayAlreadySent: true,
-    });
-    expect(screen.getByLabelText('Customer notified')).toBeDisabled();
-    expect(screen.queryByLabelText('On my way')).toBeNull();
-  });
-
-  it('hides on my way row when showOnMyWayAction is false', () => {
-    renderSection({ showOnMyWayAction: false });
-    expect(screen.queryByLabelText('On my way')).toBeNull();
-    expect(screen.queryByLabelText('Customer notified')).toBeNull();
-  });
-
-  it('calls onOnMyWayPress when On my way is pressed', () => {
-    const onOnMyWayPress = jest.fn();
-    renderSection({
-      showOnMyWayAction: true,
-      hasCustomerSmsPhone: true,
-      onOnMyWayPress,
-    });
-    fireEvent.press(screen.getByLabelText('On my way'));
-    expect(onOnMyWayPress).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('Edit booking')).toBeTruthy();
   });
 });

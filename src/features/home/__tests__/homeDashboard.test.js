@@ -14,6 +14,7 @@ function booking(partial) {
     scheduled_date: partial.scheduled_date,
     start_time: partial.start_time,
     status: partial.status ?? 'confirmed',
+    job_status: partial.job_status ?? 'not_started',
     service_name: partial.service_name ?? null,
     customer_name: partial.customer_name ?? null,
     customer_phone: null,
@@ -130,6 +131,50 @@ describe('pickHomeSpotlight', () => {
     const out = pickHomeSpotlight(rows, nowMs);
     expect(out.spotlightMode).toBe('upcoming');
     expect(out.spotlight?.id).toBe('later');
+  });
+
+  it('keeps an overdue in_progress job in spotlight instead of jumping to the next appointment', () => {
+    const nowMs = new Date('2026-06-15T16:30:00').getTime();
+    const rows = [
+      booking({
+        id: 'late',
+        scheduled_date: '2026-06-15',
+        start_time: '14:00:00',
+        duration_minutes: 60,
+        job_status: 'in_progress',
+      }),
+      booking({
+        id: 'later',
+        scheduled_date: '2026-06-15',
+        start_time: '18:00:00',
+        duration_minutes: 60,
+      }),
+    ];
+    const out = pickHomeSpotlight(rows, nowMs);
+    expect(out.spotlightMode).toBe('in_progress');
+    expect(out.spotlight?.id).toBe('late');
+  });
+
+  it('keeps an overdue on_the_way job in spotlight until the lifecycle advances', () => {
+    const nowMs = new Date('2026-06-15T16:30:00').getTime();
+    const rows = [
+      booking({
+        id: 'enroute',
+        scheduled_date: '2026-06-15',
+        start_time: '14:00:00',
+        duration_minutes: 60,
+        job_status: 'on_the_way',
+      }),
+      booking({
+        id: 'later',
+        scheduled_date: '2026-06-15',
+        start_time: '18:00:00',
+        duration_minutes: 60,
+      }),
+    ];
+    const out = pickHomeSpotlight(rows, nowMs);
+    expect(out.spotlight?.id).toBe('enroute');
+    expect(out.spotlightMode).toBe('upcoming');
   });
 
   it('uses default duration when duration_minutes is missing so a recent start can still be live', () => {

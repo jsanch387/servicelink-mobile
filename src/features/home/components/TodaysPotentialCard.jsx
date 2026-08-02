@@ -24,6 +24,7 @@ export function TodaysPotentialCard({ potentialCents = 0, collectedCents = 0, is
       <SurfaceCard
         accessibilityLabel="Loading today's earnings"
         accessibilityRole="progressbar"
+        outlined={false}
         style={styles.card}
       >
         <View style={styles.contentRow}>
@@ -60,6 +61,7 @@ export function TodaysPotentialCard({ potentialCents = 0, collectedCents = 0, is
         remainingCents,
       )} remaining.`}
       accessibilityRole="summary"
+      outlined={false}
       style={styles.card}
     >
       <View style={styles.contentRow}>

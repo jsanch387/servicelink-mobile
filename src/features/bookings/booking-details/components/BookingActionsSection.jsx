@@ -2,9 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useMemo, useRef } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Vibration, View } from 'react-native';
-import { AppText } from '../../../../components/ui';
+import { AppText, Button } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
-import { BookingOnMyWayActionRow } from './BookingOnMyWayActionRow';
 
 /** @typedef {'edit' | 'schedule' | 'success' | 'danger'} ActionIconTone */
 
@@ -200,10 +199,8 @@ export function BookingActionsSection({
   onMarkCompleted,
   onReschedule,
   isReschedulingBooking = false,
-  showOnMyWayAction = false,
-  onMyWayAlreadySent = false,
-  hasCustomerSmsPhone = false,
-  onOnMyWayPress,
+  showJobStatusAction = false,
+  onJobStatusPress,
 }) {
   const { colors } = useTheme();
   const styles = useMemo(
@@ -216,7 +213,7 @@ export function BookingActionsSection({
           letterSpacing: -0.2,
           marginBottom: 8,
         },
-        onMyWayWrap: {
+        jobStatusWrap: {
           marginBottom: 10,
         },
         rows: {
@@ -238,13 +235,17 @@ export function BookingActionsSection({
   return (
     <View>
       <AppText style={styles.sectionTitle}>Actions</AppText>
-      {showOnMyWayAction ? (
-        <View style={styles.onMyWayWrap}>
-          <BookingOnMyWayActionRow
-            alreadySent={onMyWayAlreadySent}
+      {showJobStatusAction ? (
+        <View style={styles.jobStatusWrap}>
+          <Button
+            accessibilityHint="Opens on my way, start job, and finish job"
+            accessibilityLabel="Job status"
             disabled={actionsBusy}
-            hasCustomerSmsPhone={hasCustomerSmsPhone}
-            onPress={onOnMyWayPress}
+            fullWidth
+            iconName="pulse-outline"
+            title="Job status"
+            variant="secondary"
+            onPress={onJobStatusPress}
           />
         </View>
       ) : null}

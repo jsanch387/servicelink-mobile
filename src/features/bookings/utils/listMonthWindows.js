@@ -7,6 +7,9 @@ import { BOOKINGS_FILTER_PAST, BOOKINGS_FILTER_UPCOMING } from '../constants';
 const MAX_FUTURE_MONTHS = 36;
 const MAX_PAST_MONTHS = 60;
 
+/** Auto-fetch older months while Past is empty (includes the initial page). */
+export const PAST_AUTO_BACKFILL_MAX_MONTHS = 12;
+
 /**
  * @param {number} year
  * @param {number} month 0-indexed
@@ -44,6 +47,23 @@ export function getInitialListMonthWindow(filter, now = new Date()) {
     start: monthStartKey(y, m),
     end: todayKey,
   };
+}
+
+/**
+ * Past list first page: current month through today, plus the previous full month
+ * so early-month opens are not blank when recent history lives in the prior month.
+ *
+ * @param {Date} [now]
+ * @returns {ListMonthWindow | { windows: ListMonthWindow[] }}
+ */
+export function getInitialPastListPageParam(now = new Date()) {
+  const current = getInitialListMonthWindow(BOOKINGS_FILTER_PAST, now);
+  const previous = getNextListMonthWindow(BOOKINGS_FILTER_PAST, current);
+  if (!previous) {
+    return current;
+  }
+  // Oldest last so getNextPageParam continues from the prior month.
+  return { windows: [current, previous] };
 }
 
 /**

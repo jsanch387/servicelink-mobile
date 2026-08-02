@@ -1,3 +1,4 @@
+import { normalizePhoneForDatabase } from '../../../../utils/phone';
 import { isCompleteVisitPaidInFullOnline } from './completeVisitPaymentState';
 import { getMarkCompletePreviewFromBooking } from './markCompletePreview';
 import { parseAddonLineItemsFromBooking } from './parseAddonLineItemsFromBooking';
@@ -34,6 +35,7 @@ import { resolveBookingDiscount } from './resolveBookingDiscount';
  * @property {number} remainingAmountCents — from booking_payments; 0 when nothing left to collect
  * @property {boolean} isPaidInFullOnline — customer prepaid the full total online
  * @property {string | null} customerEmail
+ * @property {string | null} customerPhone
  * @property {boolean} showReviewSms
  * @property {boolean} showReviewEmail
  * @property {boolean} showReviewInvite
@@ -217,6 +219,7 @@ export function buildCompleteVisitModelFromBooking(booking, preview) {
   });
 
   const customerEmail = String(booking.customer_email ?? '').trim() || null;
+  const customerPhone = normalizePhoneForDatabase(String(booking.customer_phone ?? '')) || null;
   const resolvedPreview = preview ?? getMarkCompletePreviewFromBooking(booking);
 
   return {
@@ -227,6 +230,7 @@ export function buildCompleteVisitModelFromBooking(booking, preview) {
     remainingAmountCents,
     isPaidInFullOnline,
     customerEmail,
+    customerPhone,
     showReviewSms: Boolean(resolvedPreview.showReviewSmsMessage),
     showReviewEmail: Boolean(resolvedPreview.showReviewInviteMessage),
     showReviewInvite: resolvedPreview.showReviewInvite !== false,

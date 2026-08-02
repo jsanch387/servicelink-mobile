@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { localYyyyMmDd, parseBookingStartLocalMs } from '../../home/utils/bookingStart';
+import { JOB_STATUS, normalizeJobStatus } from '../constants/jobStatus';
 
 /**
  * @typedef {object} BookingRow
@@ -313,8 +314,9 @@ export function bookingExpectedEndMs(row) {
 }
 
 /**
- * Home hero: show a confirmed visit that has started and is still within its expected window,
- * otherwise the earliest future confirmed visit (same as {@link partitionUpcomingConfirmed} `next`).
+ * Home hero: prefer an open lifecycle job (`on_the_way` / `in_progress`) so a detailer
+ * running behind does not jump to the next appointment early; otherwise a confirmed visit
+ * still inside its expected time window; otherwise the earliest future confirmed visit.
  *
  * @param {BookingRow[]} rows
  * @param {number} nowMs
@@ -332,6 +334,33 @@ export function pickHomeSpotlight(rows, nowMs) {
   const confirmed = (rows ?? []).filter(
     (r) => String(r.status ?? '').toLowerCase() === 'confirmed',
   );
+
+  /** @type {{ row: BookingRow; start: number; jobStatus: string }[]} */
+  const lifecycleActive = [];
+  for (const row of confirmed) {
+    const jobStatus = normalizeJobStatus(row.job_status);
+    if (jobStatus !== JOB_STATUS.ON_THE_WAY && jobStatus !== JOB_STATUS.IN_PROGRESS) {
+      continue;
+    }
+    const start = parseBookingStartLocalMs(row.scheduled_date, row.start_time);
+    lifecycleActive.push({
+      row,
+      start: Number.isFinite(start) ? start : Number.POSITIVE_INFINITY,
+      jobStatus,
+    });
+  }
+  lifecycleActive.sort((a, b) => a.start - b.start);
+  const lifecycleCurrent = lifecycleActive[0] ?? null;
+  if (lifecycleCurrent) {
+    return {
+      spotlight: lifecycleCurrent.row,
+      spotlightMode:
+        lifecycleCurrent.jobStatus === JOB_STATUS.IN_PROGRESS ? 'in_progress' : 'upcoming',
+      upcoming,
+      upcomingCount,
+    };
+  }
+
   const inProgress = [];
   for (const row of confirmed) {
     const start = parseBookingStartLocalMs(row.scheduled_date, row.start_time);

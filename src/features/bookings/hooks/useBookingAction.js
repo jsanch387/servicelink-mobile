@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '../../../components/ui';
+import { fireErrorHaptic, fireSuccessHaptic } from '../../../utils/feedbackHaptics';
 import { useAuth } from '../../auth';
 import { postBookingAction } from '../api/postBookingAction';
 import {
@@ -141,12 +141,18 @@ export function useBookingAction(businessId) {
   const mutation = useMutation({
     mutationFn: ({ bookingId, action, notify }) =>
       postBookingAction(token, bookingId, action, { notify }),
-    onSuccess: async (res, { bookingId, action, notify }) => {
+    onSuccess: async (res, { bookingId, action, notify, suppressUiFeedback }) => {
       if (res.ok) {
         patchJobStatusInCache(bookingId, res.jobStatus, res.bookingStatus, res.workHandoffStatus);
         void invalidateBookingCachesAfterAction(queryClient, bookingId);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        if (action === BOOKING_ACTION.WORK_FINISHED && notify !== true) {
+        if (suppressUiFeedback) {
+          return;
+        }
+        fireSuccessHaptic();
+        if (
+          (action === BOOKING_ACTION.WORK_FINISHED || action === BOOKING_ACTION.ON_THE_WAY) &&
+          notify !== true
+        ) {
           return;
         }
         showBookingActionToasts(toast, action, res);
@@ -161,35 +167,56 @@ export function useBookingAction(businessId) {
       if (res.httpStatus === 429 && res.retryAfterSec) {
         setCooldownUntil(Date.now() + res.retryAfterSec * 1000);
       }
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      toast.error(res.error?.message ?? FALLBACK_ERROR);
+      if (!suppressUiFeedback) {
+        fireErrorHaptic();
+        toast.error(res.error?.message ?? FALLBACK_ERROR);
+      }
     },
-    onError: (err) => {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      toast.error(err?.message ?? FALLBACK_ERROR);
+    onError: (err, { suppressUiFeedback } = {}) => {
+      if (!suppressUiFeedback) {
+        fireErrorHaptic();
+        toast.error(err?.message ?? FALLBACK_ERROR);
+      }
     },
   });
 
   const isCoolingDown = cooldownUntil > Date.now();
 
   const runAction = useCallback(
-    (bookingId, action, notify) => {
+    (bookingId, action, notify, options = {}) => {
       if (!bookingId || !action || mutation.isPending || isCoolingDown) {
         return;
       }
-      mutation.mutate({ bookingId, action, notify });
+      mutation.mutate({
+        bookingId,
+        action,
+        notify,
+        suppressUiFeedback: Boolean(options.suppressUiFeedback),
+      });
     },
     [mutation, isCoolingDown],
   );
 
   const notifyOnTheWay = useCallback(
-    (bookingId) => {
+    async (bookingId, notify = true, options = {}) => {
       if (!bookingId || mutation.isPending || isCoolingDown || isOnTheWayDone(bookingId)) {
-        return;
+        return { ok: false, skipped: true };
       }
-      runAction(bookingId, BOOKING_ACTION.ON_THE_WAY);
+      try {
+        return await mutation.mutateAsync({
+          bookingId,
+          action: BOOKING_ACTION.ON_THE_WAY,
+          notify: notify === true,
+          suppressUiFeedback: Boolean(options.suppressUiFeedback),
+        });
+      } catch (err) {
+        return {
+          ok: false,
+          error: { message: err?.message ?? FALLBACK_ERROR },
+        };
+      }
     },
-    [mutation.isPending, isCoolingDown, isOnTheWayDone, runAction],
+    [mutation, isCoolingDown, isOnTheWayDone],
   );
 
   const startJob = useCallback(
@@ -202,13 +229,25 @@ export function useBookingAction(businessId) {
     [isCoolingDown, isJobStartedDone, mutation.isPending, runAction],
   );
   const workFinished = useCallback(
-    (bookingId, notify) => {
+    async (bookingId, notify = true, options = {}) => {
       if (!bookingId || mutation.isPending || isCoolingDown) {
-        return;
+        return { ok: false, skipped: true };
       }
-      runAction(bookingId, BOOKING_ACTION.WORK_FINISHED, notify === true);
+      try {
+        return await mutation.mutateAsync({
+          bookingId,
+          action: BOOKING_ACTION.WORK_FINISHED,
+          notify: notify === true,
+          suppressUiFeedback: Boolean(options.suppressUiFeedback),
+        });
+      } catch (err) {
+        return {
+          ok: false,
+          error: { message: err?.message ?? FALLBACK_ERROR },
+        };
+      }
     },
-    [isCoolingDown, mutation.isPending, runAction],
+    [isCoolingDown, mutation],
   );
 
   return {

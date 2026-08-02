@@ -7,14 +7,35 @@ function slideDistance() {
 
 const useInstantSheetAnim = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
 
+/** Experimental glass sheet settle (On my way confirm only for now). */
+const GLASS_OPEN_SPRING = {
+  damping: 20,
+  mass: 1,
+  stiffness: 150,
+  useNativeDriver: true,
+};
+
+const GLASS_CLOSE_SPRING = {
+  damping: 24,
+  mass: 1,
+  stiffness: 180,
+  overshootClamping: true,
+  useNativeDriver: true,
+};
+
 /**
  * Drives a bottom sheet: backdrop fades in/out while the sheet translates on Y.
  * Use with `Modal` `animationType="none"` so RN does not slide the whole layer.
+ *
+ * @param {{ motion?: 'default' | 'glass' }} [options]
+ *   - `default` — legacy friction spring open + timing close (shared sheets)
+ *   - `glass` — experimental snappy spring (On my way confirm only)
  */
-export function useModalFadeBackdropSlideSheet() {
+export function useModalFadeBackdropSlideSheet({ motion = 'default' } = {}) {
   const slideDist = useMemo(() => slideDistance(), []);
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const sheetTranslateY = useRef(new Animated.Value(slideDist)).current;
+  const isGlassMotion = motion === 'glass';
 
   const prepareOpen = useCallback(() => {
     sheetTranslateY.setValue(slideDist);
@@ -33,14 +54,19 @@ export function useModalFadeBackdropSlideSheet() {
         duration: 220,
         useNativeDriver: true,
       }),
-      Animated.spring(sheetTranslateY, {
-        toValue: 0,
-        friction: 9,
-        tension: 68,
-        useNativeDriver: true,
-      }),
+      isGlassMotion
+        ? Animated.spring(sheetTranslateY, {
+            toValue: 0,
+            ...GLASS_OPEN_SPRING,
+          })
+        : Animated.spring(sheetTranslateY, {
+            toValue: 0,
+            friction: 9,
+            tension: 68,
+            useNativeDriver: true,
+          }),
     ]).start();
-  }, [backdropOpacity, sheetTranslateY]);
+  }, [backdropOpacity, sheetTranslateY, isGlassMotion]);
 
   const runClose = useCallback(
     (onFinished) => {
@@ -53,19 +79,24 @@ export function useModalFadeBackdropSlideSheet() {
       Animated.parallel([
         Animated.timing(backdropOpacity, {
           toValue: 0,
-          duration: 200,
+          duration: isGlassMotion ? 180 : 200,
           useNativeDriver: true,
         }),
-        Animated.timing(sheetTranslateY, {
-          toValue: slideDist,
-          duration: 280,
-          useNativeDriver: true,
-        }),
+        isGlassMotion
+          ? Animated.spring(sheetTranslateY, {
+              toValue: slideDist,
+              ...GLASS_CLOSE_SPRING,
+            })
+          : Animated.timing(sheetTranslateY, {
+              toValue: slideDist,
+              duration: 280,
+              useNativeDriver: true,
+            }),
       ]).start(({ finished }) => {
         if (finished && onFinished) onFinished();
       });
     },
-    [backdropOpacity, sheetTranslateY, slideDist],
+    [backdropOpacity, sheetTranslateY, slideDist, isGlassMotion],
   );
 
   const backdropStyle = useMemo(() => ({ opacity: backdropOpacity }), [backdropOpacity]);

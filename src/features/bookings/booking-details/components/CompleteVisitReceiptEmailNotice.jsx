@@ -4,17 +4,18 @@ import { StyleSheet, View } from 'react-native';
 import { AppText, Button } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 import {
-  COMPLETE_VISIT_RECEIPT_EMAIL_ADD_LINK,
-  COMPLETE_VISIT_RECEIPT_EMAIL_CTA_DETAIL,
-  COMPLETE_VISIT_RECEIPT_EMAIL_NEEDED,
+  COMPLETE_VISIT_RECEIPT_CONTACT_ADD_LINK,
+  COMPLETE_VISIT_RECEIPT_CONTACT_CTA_DETAIL,
+  COMPLETE_VISIT_RECEIPT_CONTACT_NEEDED,
 } from '../constants/completeVisitReceiptEmailCopy';
 
 /**
- * Tap to Pay receipt email prompt — sits below the Payment card.
+ * Tap to Pay receipt contact prompt — sits below the Payment card when neither
+ * email nor phone is on the booking.
  *
- * @param {{ onPressAddEmail: () => void }} props
+ * @param {{ onPressAddContact: () => void }} props
  */
-export function CompleteVisitReceiptEmailNotice({ onPressAddEmail }) {
+export function CompleteVisitReceiptEmailNotice({ onPressAddContact }) {
   const { colors, isDark } = useTheme();
 
   const styles = useMemo(
@@ -69,18 +70,18 @@ export function CompleteVisitReceiptEmailNotice({ onPressAddEmail }) {
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <View style={styles.iconWrap}>
-          <Ionicons color={colors.textMuted} name="mail-outline" size={16} />
+          <Ionicons color={colors.textMuted} name="person-outline" size={16} />
         </View>
         <View style={styles.textWrap}>
-          <AppText style={styles.title}>{COMPLETE_VISIT_RECEIPT_EMAIL_NEEDED}</AppText>
-          <AppText style={styles.detail}>{COMPLETE_VISIT_RECEIPT_EMAIL_CTA_DETAIL}</AppText>
+          <AppText style={styles.title}>{COMPLETE_VISIT_RECEIPT_CONTACT_NEEDED}</AppText>
+          <AppText style={styles.detail}>{COMPLETE_VISIT_RECEIPT_CONTACT_CTA_DETAIL}</AppText>
         </View>
       </View>
       <Button
         fullWidth
-        title={COMPLETE_VISIT_RECEIPT_EMAIL_ADD_LINK}
+        title={COMPLETE_VISIT_RECEIPT_CONTACT_ADD_LINK}
         variant="secondary"
-        onPress={onPressAddEmail}
+        onPress={onPressAddContact}
       />
     </View>
   );

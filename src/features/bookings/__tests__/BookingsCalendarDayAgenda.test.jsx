@@ -7,12 +7,12 @@ describe('BookingsCalendarDayAgenda', () => {
     renderWithProviders(<BookingsCalendarDayAgenda dateKey="2026-05-21" isLoading />);
 
     expect(screen.getByText(/May 21/)).toBeTruthy();
-    expect(screen.queryByText('Nothing scheduled this day.')).toBeNull();
+    expect(screen.queryByText('Nothing scheduled')).toBeNull();
   });
 
   it('shows empty copy when loaded with no bookings', () => {
     renderWithProviders(<BookingsCalendarDayAgenda bookings={[]} dateKey="2026-05-21" />);
 
-    expect(screen.getByText('Nothing scheduled this day.')).toBeTruthy();
+    expect(screen.getByText('Nothing scheduled')).toBeTruthy();
   });
 });

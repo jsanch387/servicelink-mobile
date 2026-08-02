@@ -75,7 +75,7 @@ List queries are **disabled** when `viewMode === calendar` (`listEnabled: false`
 | Tab      | Strategy                                                                      |
 | -------- | ----------------------------------------------------------------------------- |
 | Upcoming | Single `fetchConfirmedBookingsFromToday`, client `partitionUpcomingConfirmed` |
-| Past     | Month windows, infinite query, “Load April 2026” link                         |
+| Past     | Month windows + auto-backfill empty months; centered “Load April 2026” CTA    |
 | Canceled | Single `fetchCancelledBookingsForBusiness` (no cap)                           |
 
 ## UI components
@@ -107,7 +107,7 @@ Pull-to-refresh in calendar mode refetches both `calendarCounts` and `plannerDay
 2. **Past list “today” rows** — Past tab uses `filterPastConfirmedRows` (instant before now). Calendar does not use that filter on the planner day fetch.
 3. **Month navigation** — Changing month updates `visibleMonthStart` → new count range fetch. Returning to a prior month hits cache if still fresh.
 4. **Week spanning months** — One week query covers Sun–Sat even when the week crosses month boundaries.
-5. **Empty days** — No dots; agenda shows “Nothing scheduled this day.”
+5. **Empty days** — No dots; agenda / day planner show shared `BookingsEmptyState` with **Nothing scheduled**.
 6. **No business** — Planner shows setup copy; list/calendar errors surface via `businessError`.
 7. **Vehicle line on cards** — Omitted when empty (no “Vehicle not provided” placeholder).
 8. **Free tier strip** — Shown in both list and calendar when not Pro (same as list).

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { AppText, BottomSheetModal, SurfaceCard } from '../../../components/ui';
+import { AppText, BottomSheetModal } from '../../../components/ui';
 import { showWebAccountFeatureAlert } from '../../subscription';
 import { useTheme } from '../../../theme';
 import { linkViewsPeriodAccessCopy } from '../constants/linkViewsAccessCopy';
@@ -13,8 +13,6 @@ import {
 import { isProOnlyLinkViewsPeriod } from '../utils/linkViewsPeriod';
 import { LinkViewsPeriodSheetFooter } from './LinkViewsPeriodSheetFooter';
 
-const PERIOD_SHEET_HEIGHT_PERCENT = 48;
-
 function showLinkViewsPeriodWebAlert() {
   showWebAccountFeatureAlert({
     title: linkViewsPeriodAccessCopy.alertTitle,
@@ -23,51 +21,54 @@ function showLinkViewsPeriodWebAlert() {
 }
 
 function LinkViewsPeriodOption({ label, selected, locked, onPress }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        optionCard: {
-          minHeight: 52,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+        root: {
+          alignSelf: 'stretch',
+          borderRadius: 14,
+          overflow: 'hidden',
           width: '100%',
-        },
-        optionCardSelected: {
-          borderColor: colors.accent,
-          borderWidth: 1.5,
-        },
-        optionCardLocked: {
-          opacity: 0.88,
         },
         row: {
           alignItems: 'center',
+          backgroundColor: isDark ? '#0e0e0e' : colors.shellElevated,
+          borderColor: isDark ? 'rgba(255,255,255,0.08)' : colors.border,
+          borderRadius: 14,
+          borderWidth: 1,
           flexDirection: 'row',
           gap: 12,
+          minHeight: 56,
+          paddingHorizontal: 14,
+          paddingVertical: 14,
           width: '100%',
         },
-        labelCol: {
-          flex: 1,
-          justifyContent: 'center',
-          minWidth: 0,
+        rowPressed: {
+          opacity: 0.88,
+        },
+        rowLocked: {
+          opacity: 0.72,
         },
         label: {
           color: colors.text,
+          flex: 1,
           fontSize: 16,
           fontWeight: '600',
           letterSpacing: -0.2,
-        },
-        labelLocked: {
-          color: colors.textMuted,
-          fontWeight: '500',
+          minWidth: 0,
         },
         labelIdle: {
           color: colors.textMuted,
           fontWeight: '500',
         },
+        labelLocked: {
+          color: colors.textMuted,
+          fontWeight: '500',
+        },
       }),
-    [colors],
+    [colors, isDark],
   );
 
   const leadingIcon = locked
@@ -85,41 +86,29 @@ function LinkViewsPeriodOption({ label, selected, locked, onPress }) {
       accessibilityRole="button"
       accessibilityState={{ selected: locked ? false : selected }}
       onPress={onPress}
+      style={styles.root}
     >
       {({ pressed }) => (
-        <SurfaceCard
-          outlined
-          padding="none"
-          style={[
-            styles.optionCard,
-            selected && !locked && styles.optionCardSelected,
-            locked && styles.optionCardLocked,
-            pressed && { opacity: 0.88 },
-          ]}
-        >
-          <View style={styles.row}>
-            <Ionicons color={leadingIcon.color} name={leadingIcon.name} size={22} />
-            <View style={styles.labelCol}>
-              <AppText
-                numberOfLines={1}
-                style={[
-                  styles.label,
-                  locked && styles.labelLocked,
-                  !selected && !locked && styles.labelIdle,
-                ]}
-              >
-                {label}
-              </AppText>
-            </View>
-          </View>
-        </SurfaceCard>
+        <View style={[styles.row, locked && styles.rowLocked, pressed && styles.rowPressed]}>
+          <Ionicons color={leadingIcon.color} name={leadingIcon.name} size={22} />
+          <AppText
+            numberOfLines={1}
+            style={[
+              styles.label,
+              locked && styles.labelLocked,
+              !selected && !locked && styles.labelIdle,
+            ]}
+          >
+            {label}
+          </AppText>
+        </View>
       )}
     </Pressable>
   );
 }
 
 /**
- * Period chip trigger + shared {@link BottomSheetModal} for link-views time range.
+ * Period chip trigger + glass bottom sheet for link-views time range.
  */
 export function LinkViewsPeriodPicker({
   period,
@@ -159,24 +148,24 @@ export function LinkViewsPeriodPicker({
       StyleSheet.create({
         triggerPill: {
           alignItems: 'center',
-          backgroundColor: isDark ? colors.surface : colors.shell,
-          borderColor: colors.border,
+          backgroundColor: isDark ? '#0e0e0e' : colors.shellElevated,
           borderRadius: 10,
-          borderWidth: 1,
           flexDirection: 'row',
           flexShrink: 0,
-          gap: 4,
-          paddingHorizontal: 11,
-          paddingVertical: 7,
+          gap: 5,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
         },
         triggerLabel: {
-          color: colors.text,
-          fontSize: 12,
+          color: colors.textSecondary,
+          fontSize: 13,
           fontWeight: '600',
           letterSpacing: -0.05,
         },
         optionList: {
           gap: 10,
+          paddingBottom: 8,
+          paddingTop: 4,
           width: '100%',
         },
       }),
@@ -204,8 +193,11 @@ export function LinkViewsPeriodPicker({
       </Pressable>
 
       <BottomSheetModal
+        appearance="glass"
+        fitContent
         footer={sheetFooter}
-        sheetHeightPercent={PERIOD_SHEET_HEIGHT_PERCENT}
+        showCloseButton
+        showHeaderDivider
         title="Time range"
         visible={open}
         onRequestClose={close}

@@ -25,6 +25,8 @@ export { AppFontLoadingShell } from './AppFontLoadingShell';
 export { AppShellGlow } from './AppShellGlow';
 export { Divider } from './Divider';
 export { EchoBarsLoader } from './EchoBarsLoader';
+export { AnimatedCheckmark } from './AnimatedCheckmark';
+export { SuccessConfirmation } from './SuccessConfirmation';
 export { FilterPills } from './FilterPills';
 export { SegmentedToggle } from './SegmentedToggle';
 export { FloatingActionButton } from './FloatingActionButton';

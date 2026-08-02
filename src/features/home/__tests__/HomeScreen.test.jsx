@@ -158,7 +158,7 @@ describe('HomeScreen', () => {
     expect(screen.getByText('Link visits')).toBeTruthy();
     expect(screen.getByText('Next Up')).toBeTruthy();
     expect(screen.getByText("Today's timeline")).toBeTruthy();
-    expect(screen.getByText('Nothing on the calendar')).toBeTruthy();
+    expect(screen.getByText('Nothing scheduled today')).toBeTruthy();
     expect(screen.getByText('Last 24 hours')).toBeTruthy();
     expect(screen.getByText('24 hours')).toBeTruthy();
     expect(screen.getByText('12')).toBeTruthy();
@@ -203,7 +203,7 @@ describe('HomeScreen', () => {
     expect(screen.getByText("Today's earnings")).toBeTruthy();
     expect(screen.getByLabelText("Loading today's earnings")).toBeTruthy();
     expect(screen.getByText("Today's timeline")).toBeTruthy();
-    expect(screen.queryByText('Nothing on the calendar')).toBeNull();
+    expect(screen.queryByText('Nothing scheduled today')).toBeNull();
   });
 
   it('keeps long business names inside the header space', () => {

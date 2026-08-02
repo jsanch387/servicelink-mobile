@@ -8,6 +8,7 @@ import {
 import { resolveNextUpWorkingPhase } from '../utils/resolveNextUpCardActions';
 
 const DESIGN_SEND_MS = 700;
+const DESIGN_ON_MY_WAY_MS = 2600;
 
 function firstNameFromCustomerName(name) {
   const trimmed = String(name ?? '').trim();
@@ -55,10 +56,10 @@ export function useNextUpLifecycleDesignPreview() {
   const runDesignAction = useCallback(
     async (action) => {
       if (isSending) {
-        return;
+        return { ok: false, skipped: true };
       }
       setIsSending(true);
-      await delay(DESIGN_SEND_MS);
+      await delay(action === 'on_the_way' ? DESIGN_ON_MY_WAY_MS : DESIGN_SEND_MS);
       setIsSending(false);
 
       if (action === 'on_the_way') {
@@ -69,21 +70,25 @@ export function useNextUpLifecycleDesignPreview() {
       } else if (action === 'work_finished_notify') {
         setWorkHandoffStatus(WORK_HANDOFF_STATUS.NOTIFIED);
       }
+      return { ok: true };
     },
     [isSending],
   );
 
-  const requestOnMyWay = useCallback(() => {
-    void runDesignAction('on_the_way');
-  }, [runDesignAction]);
+  const requestOnMyWay = useCallback(() => runDesignAction('on_the_way'), [runDesignAction]);
 
   const requestStartJob = useCallback(() => {
     void runDesignAction('job_started');
   }, [runDesignAction]);
 
-  const requestWorkFinishedNotify = useCallback(() => {
-    void runDesignAction('work_finished_notify');
-  }, [runDesignAction]);
+  const requestWorkFinishedNotify = useCallback(
+    () => runDesignAction('work_finished_notify'),
+    [runDesignAction],
+  );
+
+  const skipOnMyWay = useCallback(() => {
+    setJobStatus(JOB_STATUS.ON_THE_WAY);
+  }, []);
 
   const skipWorkNotify = useCallback(() => {
     setWorkHandoffStatus(WORK_HANDOFF_STATUS.SKIPPED);
@@ -118,11 +123,12 @@ export function useNextUpLifecycleDesignPreview() {
   const actionHandlers = useMemo(
     () => ({
       onOnMyWay: requestOnMyWay,
+      onSkipOnMyWay: skipOnMyWay,
       onStartJob: requestStartJob,
       isSending,
       disabled: isSending,
     }),
-    [isSending, requestOnMyWay, requestStartJob],
+    [isSending, requestOnMyWay, requestStartJob, skipOnMyWay],
   );
 
   return {

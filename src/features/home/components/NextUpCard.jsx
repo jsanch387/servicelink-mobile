@@ -1,10 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Animated, StyleSheet, View } from 'react-native';
 import {
   AppText,
   Button,
-  EchoBarsLoader,
   InlineCardError,
   SkeletonBox,
   SlideToStartJob,
@@ -13,7 +12,10 @@ import {
 import { useTheme } from '../../../theme';
 import { phoneForSmsUri } from '../../../utils/phone';
 import { useBookingAction } from '../../bookings/hooks/useBookingAction';
-import { NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS } from '../constants/nextUpDesignFlags';
+import {
+  NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS,
+  ON_MY_WAY_CONFIRM_DESIGN_PREVIEW,
+} from '../constants/nextUpDesignFlags';
 import { openMapsForBooking, openSmsOnMyWay } from '../utils/appointmentOutbound';
 import { hasBookingAddressForMaps } from '../utils/bookingAddress';
 import {
@@ -27,6 +29,8 @@ import {
   shouldShowNextUpLivePulse,
 } from '../utils/resolveNextUpCardActions';
 import { NextUpNavigateIconButton } from './NextUpNavigateIconButton';
+import { OnMyWayConfirmModal } from './OnMyWayConfirmModal';
+import { SkipWorkNotifyConfirmModal } from './SkipWorkNotifyConfirmModal';
 
 /**
  * Minimum inner content height for the empty Next Up state, aligned with `NextUpSkeleton`:
@@ -279,27 +283,78 @@ export function NextUpCard({
     return parts.join('. ');
   }, [actionMode, headlines, serviceDisplayLine, spotlightMode, subtitle, vehicleOnlyLine]);
 
+  const [onMyWayConfirmVisible, setOnMyWayConfirmVisible] = useState(false);
+  const [workFinishedConfirmVisible, setWorkFinishedConfirmVisible] = useState(false);
+  const [skipWorkNotifyConfirmVisible, setSkipWorkNotifyConfirmVisible] = useState(false);
+
   const hasCustomerSmsNumber = useMemo(
     () => Boolean(nextBooking && phoneForSmsUri(nextBooking.customer_phone)),
     [nextBooking],
   );
   const canMaps = useMemo(() => hasBookingAddressForMaps(nextBooking), [nextBooking]);
 
-  const onMyWay = useCallback(() => {
+  const openOnMyWayConfirm = useCallback(() => {
+    setOnMyWayConfirmVisible(true);
+  }, []);
+
+  const closeOnMyWayConfirm = useCallback(() => {
+    setOnMyWayConfirmVisible(false);
+  }, []);
+
+  const openWorkFinishedConfirm = useCallback(() => {
+    setWorkFinishedConfirmVisible(true);
+  }, []);
+
+  const closeWorkFinishedConfirm = useCallback(() => {
+    setWorkFinishedConfirmVisible(false);
+  }, []);
+
+  const openSkipWorkNotifyConfirm = useCallback(() => {
+    setSkipWorkNotifyConfirmVisible(true);
+  }, []);
+
+  const closeSkipWorkNotifyConfirm = useCallback(() => {
+    setSkipWorkNotifyConfirmVisible(false);
+  }, []);
+
+  const confirmOnMyWay = useCallback(async () => {
     if (actionHandlers?.onOnMyWay) {
-      actionHandlers.onOnMyWay();
-      return;
+      await Promise.resolve(actionHandlers.onOnMyWay());
+      return { ok: true };
     }
     if (!useLifecycleActions) {
       if (nextBooking) {
         void openSmsOnMyWay(nextBooking, { businessName });
       }
+      return { ok: true };
+    }
+    if (nextBooking?.id) {
+      return bookingAction.notifyOnTheWay(nextBooking.id, true, { suppressUiFeedback: true });
+    }
+    return { ok: false, error: { message: 'No appointment to update.' } };
+  }, [actionHandlers, bookingAction, businessName, nextBooking, useLifecycleActions]);
+
+  const skipOnMyWay = useCallback(() => {
+    setOnMyWayConfirmVisible(false);
+    if (actionHandlers?.onSkipOnMyWay) {
+      actionHandlers.onSkipOnMyWay();
+      return;
+    }
+    if (!useLifecycleActions) {
+      // Device Messages mode: Skip means don't open Messages.
       return;
     }
     if (nextBooking?.id) {
-      bookingAction.notifyOnTheWay(nextBooking.id);
+      void bookingAction.notifyOnTheWay(nextBooking.id, false);
     }
-  }, [actionHandlers, bookingAction, businessName, nextBooking, useLifecycleActions]);
+  }, [actionHandlers, bookingAction, nextBooking?.id, useLifecycleActions]);
+
+  const requestSkipOnMyWay = useCallback(() => {
+    Alert.alert('Skip texting?', "The customer won't be notified that you're on the way.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Confirm', onPress: () => skipOnMyWay() },
+    ]);
+  }, [skipOnMyWay]);
 
   const startJob = useCallback(() => {
     if (actionHandlers?.onStartJob) {
@@ -313,7 +368,7 @@ export function NextUpCard({
 
   const navigate = useCallback(() => {
     if (nextBooking) {
-      openMapsForBooking(nextBooking);
+      void openMapsForBooking(nextBooking);
     }
   }, [nextBooking]);
 
@@ -324,25 +379,32 @@ export function NextUpCard({
     void onMarkComplete();
   }, [onMarkComplete]);
 
-  const notifyWorkFinished = useCallback(() => {
+  const confirmWorkFinished = useCallback(async () => {
     if (onNotifyWorkFinished) {
-      onNotifyWorkFinished();
-      return;
+      await Promise.resolve(onNotifyWorkFinished());
+      return { ok: true };
     }
     if (nextBooking?.id) {
-      bookingAction.workFinished(nextBooking.id, true);
+      return bookingAction.workFinished(nextBooking.id, true, { suppressUiFeedback: true });
     }
+    return { ok: false, error: { message: 'No appointment to update.' } };
   }, [bookingAction, nextBooking?.id, onNotifyWorkFinished]);
 
   const skipWorkNotify = useCallback(() => {
+    setWorkFinishedConfirmVisible(false);
+    setSkipWorkNotifyConfirmVisible(false);
     if (onSkipWorkNotify) {
       onSkipWorkNotify();
       return;
     }
     if (nextBooking?.id) {
-      bookingAction.workFinished(nextBooking.id, false);
+      void bookingAction.workFinished(nextBooking.id, false);
     }
   }, [bookingAction, nextBooking?.id, onSkipWorkNotify]);
+
+  const skipWorkFinishedFromModal = useCallback(() => {
+    skipWorkNotify();
+  }, [skipWorkNotify]);
 
   const resolvedWorkingPhase = useMemo(() => {
     if (workingPhase !== undefined) {
@@ -371,207 +433,230 @@ export function NextUpCard({
   const isHandoff = isWorking && resolvedWorkingPhase === 'handoff';
 
   return (
-    <SpotlightCard
-      accessibilityLabel={!empty && !scheduleError ? a11ySummary : undefined}
-      collapsable={false}
-      style={styles.card}
-    >
-      {scheduleError ? (
-        <InlineCardError message={scheduleError} />
-      ) : empty ? (
-        <View style={styles.emptyWrap}>
-          <View style={[styles.emptyIconWrap, { backgroundColor: emptyCalendarBadge.wrapBg }]}>
-            <Ionicons color={emptyCalendarBadge.iconColor} name="calendar-outline" size={20} />
-          </View>
-          <View style={styles.emptyTextColumn}>
-            <AppText style={[styles.emptyTitle, { color: colors.nextUpText }]}>
-              Nothing scheduled yet
-            </AppText>
-            <AppText style={[styles.emptyBody, { color: colors.nextUpTextMuted }]}>
-              Your next booking will show up here.
-            </AppText>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.contentColumn}>
-          {isEnRoute ? (
-            <View pointerEvents="box-none" style={styles.navigateIconOverlay}>
-              <NextUpNavigateIconButton
-                canMaps={canMaps}
-                testID="next-up-navigate-icon"
-                onPress={navigate}
-              />
+    <>
+      <SpotlightCard
+        accessibilityLabel={!empty && !scheduleError ? a11ySummary : undefined}
+        collapsable={false}
+        style={styles.card}
+      >
+        {scheduleError ? (
+          <InlineCardError message={scheduleError} />
+        ) : empty ? (
+          <View style={styles.emptyWrap}>
+            <View style={[styles.emptyIconWrap, { backgroundColor: emptyCalendarBadge.wrapBg }]}>
+              <Ionicons color={emptyCalendarBadge.iconColor} name="calendar-outline" size={20} />
             </View>
-          ) : null}
-          {actionMode === 'working' ? (
-            <View style={styles.nameRow}>
+            <View style={styles.emptyTextColumn}>
+              <AppText style={[styles.emptyTitle, { color: colors.nextUpText }]}>
+                Nothing scheduled yet
+              </AppText>
+              <AppText style={[styles.emptyBody, { color: colors.nextUpTextMuted }]}>
+                Your next booking will show up here.
+              </AppText>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.contentColumn}>
+            {isEnRoute ? (
+              <View pointerEvents="box-none" style={styles.navigateIconOverlay}>
+                <NextUpNavigateIconButton testID="next-up-navigate-icon" onPress={navigate} />
+              </View>
+            ) : null}
+            {actionMode === 'working' ? (
+              <View style={styles.nameRow}>
+                <AppText
+                  ellipsizeMode="tail"
+                  numberOfLines={2}
+                  style={[styles.customerNameInRow, { color: colors.nextUpText }]}
+                >
+                  {headlines?.customerName}
+                </AppText>
+                <LivePulseIndicator
+                  color={livePulseDotColor}
+                  opacityAnim={livePulseOpacity}
+                  ringOpacityAnim={livePulseRingOpacity}
+                  ringScaleAnim={livePulseRingScale}
+                />
+              </View>
+            ) : (
               <AppText
                 ellipsizeMode="tail"
                 numberOfLines={2}
-                style={[styles.customerNameInRow, { color: colors.nextUpText }]}
+                style={[
+                  styles.customerName,
+                  isEnRoute && styles.customerNameWithNavigateOverlay,
+                  { color: colors.nextUpText },
+                ]}
               >
                 {headlines?.customerName}
               </AppText>
-              <LivePulseIndicator
-                color={livePulseDotColor}
-                opacityAnim={livePulseOpacity}
-                ringOpacityAnim={livePulseRingOpacity}
-                ringScaleAnim={livePulseRingScale}
-              />
-            </View>
-          ) : (
-            <AppText
-              ellipsizeMode="tail"
-              numberOfLines={2}
-              style={[
-                styles.customerName,
-                isEnRoute && styles.customerNameWithNavigateOverlay,
-                { color: colors.nextUpText },
-              ]}
-            >
-              {headlines?.customerName}
-            </AppText>
-          )}
-          {subtitle ? (
-            <AppText
-              ellipsizeMode="tail"
-              numberOfLines={2}
-              style={[styles.whenBelowName, { color: colors.nextUpTextMuted }]}
-            >
-              {subtitle}
-            </AppText>
-          ) : null}
-
-          <View style={styles.serviceRow}>
-            <AppText
-              ellipsizeMode="tail"
-              numberOfLines={1}
-              style={[styles.servicePrimary, { color: colors.nextUpText }]}
-            >
-              {servicePrimaryName}
-            </AppText>
-            {serviceExtraCount > 0 ? (
+            )}
+            {subtitle ? (
               <AppText
-                numberOfLines={1}
-                style={[styles.serviceMore, { color: colors.nextUpTextMuted }]}
+                ellipsizeMode="tail"
+                numberOfLines={2}
+                style={[styles.whenBelowName, { color: colors.nextUpTextMuted }]}
               >
-                {`+${serviceExtraCount} more`}
+                {subtitle}
+              </AppText>
+            ) : null}
+
+            <View style={styles.serviceRow}>
+              <AppText
+                ellipsizeMode="tail"
+                numberOfLines={1}
+                style={[styles.servicePrimary, { color: colors.nextUpText }]}
+              >
+                {servicePrimaryName}
+              </AppText>
+              {serviceExtraCount > 0 ? (
+                <AppText
+                  numberOfLines={1}
+                  style={[styles.serviceMore, { color: colors.nextUpTextMuted }]}
+                >
+                  {`+${serviceExtraCount} more`}
+                </AppText>
+              ) : null}
+            </View>
+
+            {vehicleOnlyLine ? (
+              <AppText
+                ellipsizeMode="tail"
+                numberOfLines={3}
+                style={[styles.vehicleAndType, { color: colors.nextUpTextMuted }]}
+              >
+                {vehicleOnlyLine}
               </AppText>
             ) : null}
           </View>
+        )}
 
-          {vehicleOnlyLine ? (
-            <AppText
-              ellipsizeMode="tail"
-              numberOfLines={3}
-              style={[styles.vehicleAndType, { color: colors.nextUpTextMuted }]}
-            >
-              {vehicleOnlyLine}
-            </AppText>
-          ) : null}
-        </View>
-      )}
-
-      {showActions ? (
-        <View
-          collapsable={false}
-          style={isHandoff || isUpcoming ? styles.actions : styles.actionsSingle}
-        >
-          {isHandoff ? (
-            <>
-              <View collapsable={false} style={styles.actionCell}>
-                <Button
-                  accessibilityHint={
-                    hasCustomerSmsNumber
-                      ? 'Texts the customer that your service is finished'
-                      : 'Add a phone on this booking to notify the customer'
-                  }
-                  accessibilityLabel="Done"
-                  disabled={actionDisabled || !hasCustomerSmsNumber}
-                  fullWidth
-                  iconName="chatbubble-ellipses-outline"
-                  loading={actionSending}
-                  loadingNode={<EchoBarsLoader accessibilityLabel="Sending" color="#ffffff" />}
-                  title="Done"
-                  variant="surfaceDark"
-                  onPress={notifyWorkFinished}
-                />
-              </View>
-              <View collapsable={false} style={styles.actionCell}>
-                <Button
-                  accessibilityHint="Skips texting and moves to mark complete"
-                  accessibilityLabel="Skip"
-                  disabled={actionDisabled}
-                  fullWidth
-                  outlineColor={colors.nextUpText}
-                  title="Skip"
-                  variant="outline"
-                  onPress={skipWorkNotify}
-                />
-              </View>
-            </>
-          ) : isWorking ? (
-            <Button
-              accessibilityHint={
-                onMarkComplete ? undefined : 'Mark complete is not available right now'
-              }
-              accessibilityLabel="Mark complete"
-              disabled={!onMarkComplete || markCompleteLoading}
-              fullWidth
-              iconName="checkmark-done-outline"
-              loading={markCompleteLoading}
-              title="Mark complete"
-              variant={inProgressPrimaryVariant}
-              onPress={handleMarkCompletePress}
-            />
-          ) : isEnRoute ? (
-            <SlideToStartJob
-              disabled={actionDisabled || !hasCustomerSmsNumber}
-              loading={actionSending}
-              surfaceTone={nextUpSurfaceTone}
-              onComplete={startJob}
-            />
-          ) : isUpcoming ? (
-            <>
-              <View collapsable={false} style={styles.actionCell}>
-                <Button
-                  accessibilityHint={
-                    hasCustomerSmsNumber
-                      ? useLifecycleActions
-                        ? 'Texts the customer that you are on the way'
-                        : 'Opens Messages with a prefilled on-my-way text'
-                      : 'Add a phone on this booking to notify the customer'
-                  }
-                  accessibilityLabel="On my way"
-                  disabled={actionDisabled || !hasCustomerSmsNumber}
-                  fullWidth
-                  iconName="chatbubble-ellipses-outline"
-                  loading={actionSending}
-                  loadingNode={<EchoBarsLoader accessibilityLabel="Sending" color="#ffffff" />}
-                  title="On my way"
-                  variant="surfaceDark"
-                  onPress={onMyWay}
-                />
-              </View>
-              <View collapsable={false} style={styles.actionCell}>
-                <Button
-                  accessibilityHint={canMaps ? undefined : 'Address required on this booking'}
-                  accessibilityLabel="Navigate"
-                  disabled={!canMaps}
-                  fullWidth
-                  iconColor={navigateIconColor}
-                  iconName="navigate"
-                  outlineColor={colors.nextUpText}
-                  title="Navigate"
-                  variant="outline"
-                  onPress={navigate}
-                />
-              </View>
-            </>
-          ) : null}
-        </View>
-      ) : null}
-    </SpotlightCard>
+        {showActions ? (
+          <View
+            collapsable={false}
+            style={isHandoff || isUpcoming ? styles.actions : styles.actionsSingle}
+          >
+            {isHandoff ? (
+              <>
+                <View collapsable={false} style={styles.actionCell}>
+                  <Button
+                    accessibilityHint="Asks to confirm before skipping the done text"
+                    accessibilityLabel="Skip"
+                    disabled={actionDisabled}
+                    fullWidth
+                    outlineColor={colors.nextUpText}
+                    title="Skip"
+                    variant="outline"
+                    onPress={openSkipWorkNotifyConfirm}
+                  />
+                </View>
+                <View collapsable={false} style={styles.actionCell}>
+                  <Button
+                    accessibilityHint={
+                      hasCustomerSmsNumber
+                        ? 'Asks to confirm before texting the customer that you are done'
+                        : 'Add a phone on this booking to notify the customer'
+                    }
+                    accessibilityLabel="Done"
+                    disabled={actionDisabled || !hasCustomerSmsNumber}
+                    fullWidth
+                    iconName="chatbubble-ellipses-outline"
+                    title="Done"
+                    variant="surfaceDark"
+                    onPress={openWorkFinishedConfirm}
+                  />
+                </View>
+              </>
+            ) : isWorking ? (
+              <Button
+                accessibilityHint={
+                  onMarkComplete ? undefined : 'Mark complete is not available right now'
+                }
+                accessibilityLabel="Mark complete"
+                disabled={!onMarkComplete || markCompleteLoading}
+                fullWidth
+                iconName="checkmark-done-outline"
+                loading={markCompleteLoading}
+                title="Mark complete"
+                variant={inProgressPrimaryVariant}
+                onPress={handleMarkCompletePress}
+              />
+            ) : isEnRoute ? (
+              <SlideToStartJob
+                disabled={actionDisabled || !hasCustomerSmsNumber}
+                loading={actionSending}
+                surfaceTone={nextUpSurfaceTone}
+                onComplete={startJob}
+              />
+            ) : isUpcoming ? (
+              <>
+                <View collapsable={false} style={styles.actionCell}>
+                  <Button
+                    accessibilityHint={
+                      hasCustomerSmsNumber
+                        ? useLifecycleActions
+                          ? 'Asks to confirm before texting the customer that you are on the way'
+                          : 'Asks to confirm before opening Messages with a prefilled on-my-way text'
+                        : 'Add a phone on this booking to notify the customer'
+                    }
+                    accessibilityLabel="On my way"
+                    disabled={actionDisabled || !hasCustomerSmsNumber}
+                    fullWidth
+                    iconName="chatbubble-ellipses-outline"
+                    title="On my way"
+                    variant="surfaceDark"
+                    onPress={openOnMyWayConfirm}
+                  />
+                </View>
+                <View collapsable={false} style={styles.actionCell}>
+                  <Button
+                    accessibilityHint={
+                      canMaps
+                        ? 'Opens directions in maps'
+                        : 'Shows a message when this booking has no address'
+                    }
+                    accessibilityLabel="Navigate"
+                    fullWidth
+                    iconColor={navigateIconColor}
+                    iconName="navigate"
+                    outlineColor={colors.nextUpText}
+                    title="Navigate"
+                    variant="outline"
+                    onPress={navigate}
+                  />
+                </View>
+              </>
+            ) : null}
+          </View>
+        ) : null}
+      </SpotlightCard>
+      <OnMyWayConfirmModal
+        designPreview={ON_MY_WAY_CONFIRM_DESIGN_PREVIEW}
+        sendAccessibilityHint="Texts the customer that you are on the way"
+        skipAccessibilityHint="Marks on the way without texting the customer"
+        visible={onMyWayConfirmVisible}
+        onConfirm={confirmOnMyWay}
+        onRequestClose={closeOnMyWayConfirm}
+        onSkip={requestSkipOnMyWay}
+      />
+      <OnMyWayConfirmModal
+        designPreview={ON_MY_WAY_CONFIRM_DESIGN_PREVIEW}
+        idleBody="Let your customer know you are done."
+        sendAccessibilityHint="Texts the customer that your service is finished"
+        skipAccessibilityHint="Skips texting and moves to mark complete"
+        successBody="Your customer knows you’re done."
+        successTitle="Text sent"
+        visible={workFinishedConfirmVisible}
+        onConfirm={confirmWorkFinished}
+        onRequestClose={closeWorkFinishedConfirm}
+        onSkip={skipWorkFinishedFromModal}
+      />
+      <SkipWorkNotifyConfirmModal
+        visible={skipWorkNotifyConfirmVisible}
+        onConfirmSkip={skipWorkNotify}
+        onRequestClose={closeSkipWorkNotifyConfirm}
+      />
+    </>
   );
 }
 

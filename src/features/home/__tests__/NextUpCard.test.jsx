@@ -1,4 +1,5 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
+import { Alert } from 'react-native';
 import { NextUpCard } from '../components/NextUpCard';
 import * as outbound from '../utils/appointmentOutbound';
 import { renderWithProviders } from './testUtils';
@@ -20,6 +21,7 @@ let mockBookingActionState = {
 jest.mock('../constants/nextUpDesignFlags', () => ({
   NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS: true,
   NEXT_UP_LIFECYCLE_DESIGN_PREVIEW: false,
+  ON_MY_WAY_CONFIRM_DESIGN_PREVIEW: false,
 }));
 
 jest.mock('../../bookings/hooks/useBookingAction', () => ({
@@ -42,6 +44,7 @@ const baseBooking = {
 describe('NextUpCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockNotifyOnTheWay.mockResolvedValue({ ok: true });
     mockBookingActionState = {
       notifyOnTheWay: mockNotifyOnTheWay,
       startJob: mockStartJob,
@@ -224,8 +227,8 @@ describe('NextUpCard', () => {
     expect(screen.queryByLabelText('Mark complete')).toBeNull();
   });
 
-  it('working handoff: Done calls workFinished with notify true', () => {
-    const mockWorkFinished = jest.fn();
+  it('working handoff: Done opens confirm then Send calls workFinished with notify true', async () => {
+    const mockWorkFinished = jest.fn().mockResolvedValue({ ok: true });
     mockBookingActionState = {
       ...mockBookingActionState,
       workFinished: mockWorkFinished,
@@ -240,7 +243,53 @@ describe('NextUpCard', () => {
       />,
     );
     fireEvent.press(screen.getByLabelText('Done'));
-    expect(mockWorkFinished).toHaveBeenCalledWith('1', true);
+    expect(mockWorkFinished).not.toHaveBeenCalled();
+    expect(screen.getByText('Let your customer know you are done.')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Send'));
+    expect(mockWorkFinished).toHaveBeenCalledWith('1', true, { suppressUiFeedback: true });
+  });
+
+  it('working handoff: Skip opens confirm then Continue calls workFinished with notify false', () => {
+    const mockWorkFinished = jest.fn().mockResolvedValue({ ok: true });
+    mockBookingActionState = {
+      ...mockBookingActionState,
+      workFinished: mockWorkFinished,
+    };
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'in_progress', work_handoff_status: null }}
+        subtitle="Started at 2:00 PM"
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('Skip'));
+    expect(mockWorkFinished).not.toHaveBeenCalled();
+    expect(screen.getByText('Skip texting?')).toBeTruthy();
+    expect(screen.getByText('Continue without telling your customer you’re done.')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Continue'));
+    expect(mockWorkFinished).toHaveBeenCalledWith('1', false);
+  });
+
+  it('working handoff: Skip confirm Cancel does not call workFinished', () => {
+    const mockWorkFinished = jest.fn().mockResolvedValue({ ok: true });
+    mockBookingActionState = {
+      ...mockBookingActionState,
+      workFinished: mockWorkFinished,
+    };
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'in_progress', work_handoff_status: null }}
+        subtitle="Started at 2:00 PM"
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('Skip'));
+    fireEvent.press(screen.getByLabelText('Cancel'));
+    expect(mockWorkFinished).not.toHaveBeenCalled();
   });
 
   it('uses actionHandlers instead of booking action hook', () => {
@@ -256,6 +305,8 @@ describe('NextUpCard', () => {
       />,
     );
     fireEvent.press(screen.getByLabelText('On my way'));
+    expect(onOnMyWay).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByLabelText('Send'));
     expect(onOnMyWay).toHaveBeenCalledTimes(1);
     expect(mockNotifyOnTheWay).not.toHaveBeenCalled();
   });
@@ -416,7 +467,7 @@ describe('NextUpCard', () => {
     expect(mockNotifyOnTheWay).not.toHaveBeenCalled();
   });
 
-  it('notifies on-my-way with the booking id and invokes maps helper on press', () => {
+  it('notifies on-my-way with the booking id after confirm and invokes maps helper on press', () => {
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
@@ -427,12 +478,95 @@ describe('NextUpCard', () => {
       />,
     );
     fireEvent.press(screen.getByLabelText('On my way'));
-    expect(mockNotifyOnTheWay).toHaveBeenCalledWith('1');
+    expect(mockNotifyOnTheWay).not.toHaveBeenCalled();
+    expect(screen.getByText('Let your customer know you are on the way.')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Send'));
+    expect(mockNotifyOnTheWay).toHaveBeenCalledWith('1', true, { suppressUiFeedback: true });
     fireEvent.press(screen.getByLabelText('Navigate'));
     expect(outbound.openMapsForBooking).toHaveBeenCalledWith({
       ...baseBooking,
       job_status: 'not_started',
     });
+  });
+
+  it('closes on-my-way confirm without sending', () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        subtitle=""
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('On my way'));
+    fireEvent.press(screen.getByLabelText('Close'));
+    expect(mockNotifyOnTheWay).not.toHaveBeenCalled();
+  });
+
+  it('skips on-my-way text after confirming the native skip alert', () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
+      buttons?.find((b) => b.text === 'Confirm')?.onPress?.();
+    });
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        subtitle=""
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('On my way'));
+    fireEvent.press(screen.getByLabelText('Skip'));
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Skip texting?',
+      "The customer won't be notified that you're on the way.",
+      expect.any(Array),
+    );
+    expect(mockNotifyOnTheWay).toHaveBeenCalledWith('1', false);
+    alertSpy.mockRestore();
+  });
+
+  it('does not skip on-my-way when the native skip alert is canceled', () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        subtitle=""
+      />,
+    );
+    fireEvent.press(screen.getByLabelText('On my way'));
+    fireEvent.press(screen.getByLabelText('Skip'));
+    expect(alertSpy).toHaveBeenCalled();
+    expect(mockNotifyOnTheWay).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
+  });
+
+  it('keeps Navigate enabled without an address so missing-address feedback can show', () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{
+          ...baseBooking,
+          job_status: 'not_started',
+          customer_street_address: null,
+          customer_city: null,
+          customer_state: null,
+          customer_zip: null,
+        }}
+        spotlightMode="upcoming"
+        subtitle=""
+      />,
+    );
+    expect(screen.getByLabelText('Navigate')).not.toBeDisabled();
+    fireEvent.press(screen.getByLabelText('Navigate'));
+    expect(outbound.openMapsForBooking).toHaveBeenCalled();
   });
 
   it('disables On my way while a send is in flight', () => {

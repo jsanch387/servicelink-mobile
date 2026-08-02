@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth';
 import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
@@ -19,10 +19,11 @@ import {
 } from '../constants';
 import { BOOKINGS_QUERY_ROOT, bookingsListQueryKey } from '../queryKeys';
 import {
-  getInitialListMonthWindow,
+  getInitialPastListPageParam,
   getLoadMoreLabel,
   getNextListMonthWindow,
   listMonthWindowsFromPageParam,
+  PAST_AUTO_BACKFILL_MAX_MONTHS,
 } from '../utils/listMonthWindows';
 import { shouldRetryBookingsQuery } from '../utils/queryRetryPolicy';
 
@@ -113,7 +114,7 @@ export function useBookingsList(options = {}) {
 
   const pastListQ = useInfiniteQuery({
     queryKey: bookingsListQueryKey(businessId, BOOKINGS_FILTER_PAST),
-    initialPageParam: getInitialListMonthWindow(BOOKINGS_FILTER_PAST),
+    initialPageParam: getInitialPastListPageParam(),
     queryFn: async ({ pageParam }) => {
       const windows = listMonthWindowsFromPageParam(pageParam);
       const allRows = [];
@@ -133,6 +134,7 @@ export function useBookingsList(options = {}) {
 
       return {
         window: windows[windows.length - 1],
+        monthCount: windows.length,
         bookings: allRows,
       };
     },
@@ -155,16 +157,52 @@ export function useBookingsList(options = {}) {
     return fullListQ.data ?? [];
   }, [isPastFilter, pastListQ.data?.pages, fullListQ.data]);
 
+  const pastCoveredMonthCount = useMemo(() => {
+    if (!isPastFilter) {
+      return 0;
+    }
+    const pages = pastListQ.data?.pages ?? [];
+    return pages.reduce((sum, page) => sum + (page.monthCount ?? 1), 0);
+  }, [isPastFilter, pastListQ.data?.pages]);
+
+  const pastPageCount = pastListQ.data?.pages?.length ?? 0;
+
   const nextPastWindow = useMemo(() => {
     const pages = pastListQ.data?.pages ?? [];
     if (pages.length === 0) {
-      return getNextListMonthWindow(
-        BOOKINGS_FILTER_PAST,
-        getInitialListMonthWindow(BOOKINGS_FILTER_PAST),
-      );
+      const initialWindows = listMonthWindowsFromPageParam(getInitialPastListPageParam());
+      const lastInitial = initialWindows[initialWindows.length - 1];
+      return getNextListMonthWindow(BOOKINGS_FILTER_PAST, lastInitial);
     }
     return getNextListMonthWindow(BOOKINGS_FILTER_PAST, pages[pages.length - 1].window);
   }, [pastListQ.data?.pages]);
+
+  const hasNextPage = isPastFilter && Boolean(pastListQ.hasNextPage && nextPastWindow);
+
+  const shouldAutoBackfillPast =
+    isPastFilter &&
+    Boolean(pastListQ.isSuccess) &&
+    bookings.length === 0 &&
+    hasNextPage &&
+    pastCoveredMonthCount > 0 &&
+    pastCoveredMonthCount < PAST_AUTO_BACKFILL_MAX_MONTHS &&
+    !pastListQ.isFetchingNextPage &&
+    !pastListQ.isError;
+
+  useEffect(() => {
+    if (!shouldAutoBackfillPast) {
+      return;
+    }
+    void pastListQ.fetchNextPage();
+  }, [shouldAutoBackfillPast, pastListQ.fetchNextPage, pastPageCount]);
+
+  const isBackfillingPast =
+    isPastFilter &&
+    bookings.length === 0 &&
+    hasNextPage &&
+    pastCoveredMonthCount > 0 &&
+    pastCoveredMonthCount < PAST_AUTO_BACKFILL_MAX_MONTHS &&
+    (pastListQ.isFetchingNextPage || shouldAutoBackfillPast);
 
   const loadMoreLabel = useMemo(
     () => getLoadMoreLabel(BOOKINGS_FILTER_PAST, nextPastWindow),
@@ -186,7 +224,7 @@ export function useBookingsList(options = {}) {
   const isPendingBusiness = Boolean(userId) && businessQ.isPending;
   const isPendingList =
     hasBusinessRow && listEnabled && (isPastFilter ? pastListQ.isPending : fullListQ.isPending);
-  const isLoading = isPendingBusiness || isPendingList;
+  const isLoading = isPendingBusiness || isPendingList || isBackfillingPast;
 
   const refetch = useCallback(async () => {
     await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_ROOT });
@@ -212,11 +250,12 @@ export function useBookingsList(options = {}) {
     isPendingBusiness,
     isPendingList,
     isLoading,
+    isBackfillingPast,
     isFetching:
       businessQ.isFetching ||
       (listEnabled && (isPastFilter ? pastListQ.isFetching : fullListQ.isFetching)),
-    isFetchingNextPage: isPastFilter ? pastListQ.isFetchingNextPage : false,
-    hasNextPage: isPastFilter && Boolean(pastListQ.hasNextPage && nextPastWindow),
+    isFetchingNextPage: isPastFilter ? pastListQ.isFetchingNextPage && !isBackfillingPast : false,
+    hasNextPage,
     loadMoreLabel,
     loadMorePresentation: 'link',
     loadMore,

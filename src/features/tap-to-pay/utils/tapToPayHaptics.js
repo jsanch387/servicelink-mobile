@@ -1,20 +1,18 @@
 import * as Haptics from 'expo-haptics';
-import { Platform, Vibration } from 'react-native';
+import {
+  fireErrorHaptic,
+  fireSelectionHaptic,
+  fireSuccessHaptic,
+} from '../../../utils/feedbackHaptics';
 
+/** @deprecated Prefer {@link fireSuccessHaptic} from `utils/feedbackHaptics`. */
 export function fireTapToPaySuccessHaptic() {
-  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {
-    if (Platform.OS === 'android') {
-      Vibration.vibrate(40);
-    }
-  });
+  fireSuccessHaptic();
 }
 
+/** @deprecated Prefer {@link fireErrorHaptic} from `utils/feedbackHaptics`. */
 export function fireTapToPayErrorHaptic() {
-  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {
-    if (Platform.OS === 'android') {
-      Vibration.vibrate([0, 35, 60, 35]);
-    }
-  });
+  fireErrorHaptic();
 }
 
 export function fireTapToPayCollectStartHaptic() {
@@ -22,5 +20,5 @@ export function fireTapToPayCollectStartHaptic() {
 }
 
 export function fireTapToPayRetryHaptic() {
-  void Haptics.selectionAsync().catch(() => {});
+  fireSelectionHaptic();
 }

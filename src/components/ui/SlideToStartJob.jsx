@@ -112,6 +112,11 @@ export function SlideToStartJob({
     }
     onComplete?.();
     if (enableMotion) {
+      Animated.timing(labelOpacity, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: true,
+      }).start();
       Animated.timing(dragX, {
         toValue: maxDragRef.current,
         duration: 160,
@@ -119,9 +124,10 @@ export function SlideToStartJob({
         useNativeDriver: false,
       }).start();
     } else {
+      labelOpacity.setValue(0);
       dragX.setValue(maxDragRef.current);
     }
-  }, [dragX, onComplete]);
+  }, [dragX, labelOpacity, onComplete]);
 
   const maybeHapticTick = useCallback((progress) => {
     const step = Math.floor(progress * 8);
@@ -180,6 +186,12 @@ export function SlideToStartJob({
       },
     }),
   ).current;
+
+  useEffect(() => {
+    if (loading) {
+      labelOpacity.setValue(0);
+    }
+  }, [labelOpacity, loading]);
 
   useEffect(() => {
     if (!enableMotion || busy) {
@@ -245,62 +257,66 @@ export function SlideToStartJob({
         ]}
         testID="slide-to-start-job-track"
       >
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.fill,
-            {
-              backgroundColor: palette.fill,
-              width: fillWidth,
-            },
-          ]}
-        />
+        {loading ? null : (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.fill,
+              {
+                backgroundColor: palette.fill,
+                width: fillWidth,
+              },
+            ]}
+          />
+        )}
 
-        <Animated.View pointerEvents="none" style={[styles.labelWrap, { opacity: labelOpacity }]}>
-          <AppText style={[styles.label, { color: palette.label }]}>{label}</AppText>
-        </Animated.View>
+        {loading ? null : (
+          <Animated.View pointerEvents="none" style={[styles.labelWrap, { opacity: labelOpacity }]}>
+            <AppText style={[styles.label, { color: palette.label }]}>{label}</AppText>
+          </Animated.View>
+        )}
 
         {loading ? (
           <View pointerEvents="none" style={styles.loadingOverlay}>
             <EchoBarsLoader accessibilityLabel="Starting job" color={palette.loader} size="large" />
           </View>
-        ) : null}
-
-        <Animated.View
-          collapsable={false}
-          style={[
-            styles.thumbHitArea,
-            {
-              left: TRACK_INSET - THUMB_HIT_SLOP,
-              top: TRACK_INSET - THUMB_HIT_SLOP,
-              transform: [{ translateX: dragX }],
-            },
-          ]}
-          testID="slide-to-start-job-thumb"
-          {...(!busy ? panResponder.panHandlers : {})}
-        >
-          <View
+        ) : (
+          <Animated.View
+            collapsable={false}
             style={[
-              styles.thumb,
+              styles.thumbHitArea,
               {
-                backgroundColor: palette.thumbBg,
-                shadowOpacity: dragging ? 0.28 : 0.16,
+                left: TRACK_INSET - THUMB_HIT_SLOP,
+                top: TRACK_INSET - THUMB_HIT_SLOP,
+                transform: [{ translateX: dragX }],
               },
             ]}
+            testID="slide-to-start-job-thumb"
+            {...(!busy ? panResponder.panHandlers : {})}
           >
-            <Animated.View
-              style={[styles.thumbChevrons, { transform: [{ translateX: chevronTranslate }] }]}
+            <View
+              style={[
+                styles.thumb,
+                {
+                  backgroundColor: palette.thumbBg,
+                  shadowOpacity: dragging ? 0.28 : 0.16,
+                },
+              ]}
             >
-              <Ionicons color={palette.thumbIcon} name="chevron-forward" size={16} />
-              <Ionicons
-                color={palette.thumbIcon}
-                name="chevron-forward"
-                size={16}
-                style={styles.chevronTight}
-              />
-            </Animated.View>
-          </View>
-        </Animated.View>
+              <Animated.View
+                style={[styles.thumbChevrons, { transform: [{ translateX: chevronTranslate }] }]}
+              >
+                <Ionicons color={palette.thumbIcon} name="chevron-forward" size={16} />
+                <Ionicons
+                  color={palette.thumbIcon}
+                  name="chevron-forward"
+                  size={16}
+                  style={styles.chevronTight}
+                />
+              </Animated.View>
+            </View>
+          </Animated.View>
+        )}
       </View>
     </View>
   );
@@ -348,7 +364,7 @@ const styles = StyleSheet.create({
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
   },
   thumbHitArea: {

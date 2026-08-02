@@ -8,6 +8,7 @@ const mockNotifyOnTheWay = jest.fn();
 jest.mock('../constants/nextUpDesignFlags', () => ({
   NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS: false,
   NEXT_UP_LIFECYCLE_DESIGN_PREVIEW: false,
+  ON_MY_WAY_CONFIRM_DESIGN_PREVIEW: false,
 }));
 
 jest.mock('../../bookings/hooks/useBookingAction', () => ({
@@ -76,6 +77,8 @@ describe('NextUpCard device outbound mode (SMS not ready)', () => {
     );
 
     fireEvent.press(screen.getByLabelText('On my way'));
+    expect(outbound.openSmsOnMyWay).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByLabelText('Send'));
 
     expect(outbound.openSmsOnMyWay).toHaveBeenCalledWith(baseBooking, {
       businessName: 'Sunrise Auto Spa',

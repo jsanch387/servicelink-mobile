@@ -70,12 +70,12 @@ not_started  ->  on_the_way  ->  in_progress  ->  completed
 
 ### Which button to show (mobile)
 
-| Current `job_status` | Mobile UI                             | Action          |
-| -------------------- | ------------------------------------- | --------------- |
-| `not_started`        | Next Up → **On my way**               | `on_the_way`    |
-| `on_the_way`         | Next Up → **Slide to start job**      | `job_started`   |
-| `in_progress`        | Next Up / Details → **Mark complete** | `job_completed` |
-| `completed`          | No job actions                        | —               |
+| Current `job_status` | Mobile UI                               | Action          |
+| -------------------- | --------------------------------------- | --------------- |
+| `not_started`        | Next Up → **On my way** (confirm sheet) | `on_the_way`    |
+| `on_the_way`         | Next Up → **Slide to start job**        | `job_started`   |
+| `in_progress`        | Next Up / Details → **Mark complete**   | `job_completed` |
+| `completed`          | No job actions                          | —               |
 
 Server may allow skip-ahead transitions (e.g. `job_started` from `not_started`).
 

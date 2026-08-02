@@ -1,6 +1,6 @@
 # Home screen
 
-The home tab is the owner’s dashboard after sign-in. It surfaces **booking link analytics**, **public share URL**, **the next spotlight booking** (upcoming or in progress), and **today’s timeline** (“Rest of Today”). All server reads go through **Supabase** with the authenticated user’s JWT (anon key + RLS).
+The home tab is the owner’s dashboard after sign-in. It surfaces **the next spotlight booking** (lifecycle or upcoming), **today’s earnings**, **today’s timeline**, and **link visits** (views + public share URL). All server reads go through **Supabase** with the authenticated user’s JWT (anon key + RLS).
 
 ---
 
@@ -11,10 +11,11 @@ Order matches the scroll layout; useful when tracing UX or adding a section.
 1. **Header** — Business display name (`business_profiles.business_name`, fallback “there”) + notifications affordance → `ROUTES.NOTIFICATIONS_INBOX`.
 2. **`Updating…`** — Shown when any home query is refetching and the screen is not on the initial blank load (`isFetching && !isLoading`).
 3. **`HomeErrorBanner`** — Top-level message when `computeHomeErrorPresentation` sets `bannerError` (e.g. business profile failed, or deduped same error across queries).
-4. **Next Up block** — Section title (**`In progress`** vs **`Next Up`**) from `dashboard.spotlightMode`, then **`NextUpCard`** (see [Next Up card](#next-up-card-nextupcardjsx) below). **Temporary SMS hold:** until server SMS is approved, Home only shows device Messages **On my way** + **Navigate** (`NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS = false`). Full notes / restore checklist: [`docs/NEXT_UP_SMS_HOLD.md`](./docs/NEXT_UP_SMS_HOLD.md) (delete that doc when the hold is over).
-5. **Booking link** — `LinkStatsSection` (views + slug URL).
-6. **Rest of Today** — `RestOfTodayCard` (separate query for today’s bookings).
-7. **`FloatingCreateMenu`** — Create appointment / quote entry points (overlay).
+4. **Next Up block** — Section title (**`In progress`** vs **`Next Up`**) from lifecycle / spotlight, then **`NextUpCard`** (see [Next Up card](#next-up-card-nextupcardjsx) below). Full job lifecycle is **on** (`NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS = true`). Historical hold notes: [`docs/NEXT_UP_SMS_HOLD.md`](./docs/NEXT_UP_SMS_HOLD.md).
+5. **Today’s earnings** — `TodaysPotentialCard` (when priced jobs exist today).
+6. **Today’s timeline** — `RestOfTodayCard`.
+7. **Link visits** — `LinkStatsSection` (views + copyable booking URL).
+8. **`FloatingCreateMenu`** — Create appointment / quote entry points (overlay).
 
 `useHomeDashboard()` is called once; **`useMarkBookingCompleteFlow()`** handles mark-complete from the Next Up card (`POST …/actions` `job_completed` when feature flag is on).
 
@@ -24,20 +25,22 @@ Order matches the scroll layout; useful when tracing UX or adding a section.
 
 ## Architecture (code map)
 
-| Area                                | Role                                                                                                                                                                             |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `screens/HomeScreen.jsx`            | Composes sections; calls `useHomeDashboard()` once and passes props to children (avoids duplicate fetches).                                                                      |
-| `hooks/useHomeDashboard.js`         | **TanStack Query** for business + upcoming spotlight bookings + “today” list; **stale-only refetch** on tab focus; exposes `refetch()` for pull-to-refresh; errors per query.    |
-| `api/homeDashboard.js`              | `fetchBusinessProfileForUser` only; booking list helpers live in **`bookings/api/bookings.js`** (re-exported here for compatibility).                                            |
-| `utils/bookingStart.js`             | Combines `scheduled_date` + `start_time` in **device local** time; relative “Starts in …” and in-progress subtitle copy.                                                         |
-| `utils/bookingLink.js`              | Host + display/HTTPS URL helpers; slug comes **only** from `business_profiles.business_slug` (see Link row empty state if missing).                                              |
-| `utils/bookingAddress.js`           | Joins granular address columns into one string for maps (`formatBookingAddressForMaps`).                                                                                         |
-| `utils/appointmentOutbound.js`      | **On my way** → `sms:` with preset body; **Navigate** → Apple Maps / `geo:` / Google Maps from formatted address.                                                                |
-| `utils/homeErrorPresentation.js`    | **`computeHomeErrorPresentation`** — dedupes errors so the same failure is not repeated in banner + every card (`bannerError`, `nextUpBookingsError`, `restOfTodayError`, etc.). |
-| `components/LinkStatsSection.jsx`   | Link views + copyable URL.                                                                                                                                                       |
-| `components/NextUpCard.jsx`         | Spotlight booking: empty / error / skeleton / **upcoming** actions vs **in progress** + mark complete.                                                                           |
-| `components/RestOfTodayCard.jsx`    | Today timeline (separate from “next spotlight” logic).                                                                                                                           |
-| `components/TotalScheduledCard.jsx` | Optional: upcoming count; tap → Bookings tab (**not** on current `HomeScreen`).                                                                                                  |
+| Area                                        | Role                                                                                                                                                                             |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `screens/HomeScreen.jsx`                    | Composes sections; calls `useHomeDashboard()` once and passes props to children (avoids duplicate fetches).                                                                      |
+| `hooks/useHomeDashboard.js`                 | **TanStack Query** for business + upcoming spotlight bookings + “today” list; **stale-only refetch** on tab focus; exposes `refetch()` for pull-to-refresh; errors per query.    |
+| `api/homeDashboard.js`                      | `fetchBusinessProfileForUser` only; booking list helpers live in **`bookings/api/bookings.js`** (re-exported here for compatibility).                                            |
+| `utils/bookingStart.js`                     | Combines `scheduled_date` + `start_time` in **device local** time; relative “Starts in …” and in-progress subtitle copy.                                                         |
+| `utils/bookingLink.js`                      | Host + display/HTTPS URL helpers; slug comes **only** from `business_profiles.business_slug` (see Link row empty state if missing).                                              |
+| `utils/bookingAddress.js`                   | Joins granular address columns into one string for maps (`formatBookingAddressForMaps`).                                                                                         |
+| `utils/appointmentOutbound.js`              | Device Messages helpers (hold mode) + **Navigate** → Maps; empty address → native **No address provided** alert.                                                                 |
+| `utils/homeErrorPresentation.js`            | **`computeHomeErrorPresentation`** — dedupes errors so the same failure is not repeated in banner + every card (`bannerError`, `nextUpBookingsError`, `restOfTodayError`, etc.). |
+| `components/LinkStatsSection.jsx`           | Link visits count + period picker + copyable URL.                                                                                                                                |
+| `components/NextUpCard.jsx`                 | Spotlight booking: empty / error / skeleton / lifecycle CTAs + confirm sheets.                                                                                                   |
+| `components/OnMyWayConfirmModal.jsx`        | Glass sheet for **On my way** / **Done** (Send + Skip; pending / success / error).                                                                                               |
+| `components/SkipWorkNotifyConfirmModal.jsx` | Glass sheet confirming **Skip** on Done handoff (no customer text).                                                                                                              |
+| `components/RestOfTodayCard.jsx`            | Today timeline (separate from “next spotlight” logic).                                                                                                                           |
+| `components/TotalScheduledCard.jsx`         | Optional: upcoming count; tap → Bookings tab (**not** on current `HomeScreen`).                                                                                                  |
 
 Shared UI: `SurfaceCard` / `SpotlightCard` (`src/components/ui/Card.jsx`), `Button`, `SkeletonBox`, `InlineCardError` (`src/components/ui/`).
 
@@ -53,30 +56,52 @@ The card is the **hero** for the owner’s next actionable visit. CTAs are drive
 | ------------- | ---------------------- | ------------- | -------------------------------------------------- |
 | `not_started` | —                      | Next Up       | **On my way** + **Navigate**                       |
 | `on_the_way`  | —                      | Next Up       | **Slide to start job** + navigate icon (top-right) |
-| `in_progress` | `NULL`                 | In progress   | **Done** + **Skip** + live pulse                   |
+| `in_progress` | `NULL`                 | In progress   | **Skip** + **Done** + live pulse                   |
 | `in_progress` | `notified` / `skipped` | In progress   | **Mark complete** + live pulse                     |
 | `completed`   | —                      | —             | No actions (card hidden from action row)           |
 
-- **On my way** → `useBookingAction.notifyOnTheWay` → `POST` `on_the_way` (SMS toast on success).
+### Confirmations (accidental-tap guards)
+
+| Tap                       | Confirm UI                                                                                                          | Continues with                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **On my way**             | Glass sheet `OnMyWayConfirmModal` — **Send** / **Skip**                                                             | Send → `notify: true`; Skip → native alert then `notify: false` |
+| **On my way → Skip**      | Native alert: **Skip texting?** / “The customer won't be notified that you're on the way.” **Cancel** / **Confirm** | Confirm → `on_the_way` with `notify: false`                     |
+| **Done**                  | Same glass sheet (copy: “Let your customer know you are done.”) — modal owns success/error UI                       | `work_finished` `notify: true` (`suppressUiFeedback`)           |
+| **Skip** (handoff)        | Glass `SkipWorkNotifyConfirmModal` — **Cancel** / **Continue**                                                      | `work_finished` `notify: false`                                 |
+| **Slide to start job**    | Slide control is the confirm                                                                                        | `job_started` (auto-notifies)                                   |
+| **Navigate** (no address) | Native alert: **No address provided**                                                                               | Button stays enabled; Maps only if address exists               |
+
+### Actions → API
+
+- **On my way → Send** → `useBookingAction.notifyOnTheWay(id, true, { suppressUiFeedback: true })` → `POST` `on_the_way` (modal success UI).
+- **On my way → Skip → Confirm** → `notifyOnTheWay(id, false)`.
 - **Slide to start job** → `useBookingAction.startJob` → `POST` `job_started`.
-- **Done** → `useBookingAction.workFinished(id, true)` → `POST` `work_finished` with `notify: true` (SMS toast; UI advances even if SMS fails).
-- **Skip** → `useBookingAction.workFinished(id, false)` → `POST` `work_finished` with `notify: false` (silent; moves to Mark complete).
+- **Done** → `workFinished(id, true, { suppressUiFeedback: true })` → `POST` `work_finished` `notify: true`.
+- **Skip** (handoff) → `workFinished(id, false)` → `POST` `work_finished` `notify: false`.
 - **Navigate** → `openMapsForBooking` (header icon when en route; outline button when upcoming).
 - **Mark complete** → `useMarkBookingCompleteFlow` on `HomeScreen` → Complete sheet → `job_completed` (see [`MOBILE_BOOKING_JOB_COMPLETED.md`](../bookings/docs/MOBILE_BOOKING_JOB_COMPLETED.md)).
 
 Handoff phase resolution: `resolveNextUpWorkingPhase` in `utils/resolveNextUpCardActions.js`.
 
-Shared UI: `SlideToStartJob`, `NextUpNavigateIconButton` (en-route maps chip).
+Shared UI: `SlideToStartJob`, `NextUpNavigateIconButton`, `OnMyWayConfirmModal`, `SkipWorkNotifyConfirmModal`.
 
-### Where `spotlightMode` still matters
+### Spotlight selection (`pickHomeSpotlight`)
 
-`useHomeDashboard` runs `pickHomeSpotlight(rows, nowMs)` for **which booking** to show and the **subtitle** (in-progress vs upcoming timing). Section title prefers `job_status` (`resolveNextUpSectionTitle`) when the row is in progress.
+`useHomeDashboard` runs `pickHomeSpotlight(rows, nowMs)` in `bookings/api/bookings.js` to choose **which booking** to show.
 
-| `spotlightMode`   | Meaning                                                |
-| ----------------- | ------------------------------------------------------ |
-| **`in_progress`** | Started booking still within expected duration window. |
-| **`upcoming`**    | Earliest future confirmed start.                       |
-| **`none`**        | No row to spotlight.                                   |
+**Priority (important for “running behind”):**
+
+1. **Open lifecycle job** — any confirmed row with `job_status` of `on_the_way` or `in_progress` (earliest start wins). Keeps the active job in Next Up even when its scheduled duration window has ended.
+2. Else **time-window in progress** — started and still within expected end (`start + duration`).
+3. Else **next upcoming** — earliest future confirmed start.
+
+| `spotlightMode`   | Meaning                                                     |
+| ----------------- | ----------------------------------------------------------- |
+| **`in_progress`** | Lifecycle `in_progress`, or time-window live visit.         |
+| **`upcoming`**    | Lifecycle `on_the_way`, or earliest future confirmed start. |
+| **`none`**        | No row to spotlight.                                        |
+
+Section title prefers `job_status` (`resolveNextUpSectionTitle`) when the spotlight row is in progress.
 
 ### Props (contract)
 
@@ -113,15 +138,16 @@ Shared UI: `SlideToStartJob`, `NextUpNavigateIconButton` (en-route maps chip).
 
 Run from repo root: `npm test` (Jest + `jest-expo` + React Native Testing Library).
 
-| File                                                                    | What it covers                                                                                     |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `homeDashboard.test.js`                                                 | `partitionUpcomingConfirmed`, `pickHomeSpotlight`, `bookingTitleLine` (ordering, filters, titles). |
-| `bookingAddress.test.js`, `bookingStart.test.js`, `bookingLink.test.js` | Pure helpers used by Home and outbound flows.                                                      |
-| `LinkStatsSection.test.jsx`                                             | Loading / loaded / error UI; copy uses `expo-clipboard`.                                           |
-| `NextUpCard.test.jsx`                                                   | Skeleton, empty, filled state; SMS/maps handlers (mocked).                                         |
-| `TotalScheduledCard.test.jsx`                                           | Labels, navigation to `ROUTES.BOOKINGS`, disabled while loading.                                   |
-| `HomeScreen.test.jsx`                                                   | Section labels, sync hint vs initial load (mocked dashboard).                                      |
-| `useHomeDashboard.test.jsx`                                             | React Query + mocked Supabase fetch fns; errors; `refetch`.                                        |
+| File                                                                    | What it covers                                                         |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `NextUpCard.test.jsx`                                                   | Lifecycle CTAs, confirm sheets, skip alerts, navigate without address. |
+| `NextUpCard.deviceOutbound.test.jsx`                                    | Ship-mode (lifecycle flag off): device Messages On my way + Navigate.  |
+| `homeDashboard.test.js`                                                 | `partitionUpcomingConfirmed`, `pickHomeSpotlight` (lifecycle lock).    |
+| `bookingAddress.test.js`, `bookingStart.test.js`, `bookingLink.test.js` | Pure helpers used by Home and outbound flows.                          |
+| `LinkStatsSection.test.jsx`                                             | Loading / loaded / error UI; copy uses `expo-clipboard`.               |
+| `TotalScheduledCard.test.jsx`                                           | Labels, navigation to `ROUTES.BOOKINGS`, disabled while loading.       |
+| `HomeScreen.test.jsx`                                                   | Section labels, sync hint vs initial load (mocked dashboard).          |
+| `useHomeDashboard.test.jsx`                                             | React Query + mocked Supabase fetch fns; errors; `refetch`.            |
 
 Shared helpers: `testUtils.jsx` (`renderWithProviders`, test `QueryClient`). Global Jest setup: `jest.setup.js` (AsyncStorage mock, Reanimated mock, placeholder env for Supabase URL/key, `@expo/vector-icons` stub, TanStack **`notifyManager` synchronous batching** to reduce `act()` noise). `npm test` uses **`--runInBand --forceExit`** so the process exits cleanly despite stray native/Jest timers.
 
@@ -156,7 +182,7 @@ Shared helpers: `testUtils.jsx` (`renderWithProviders`, test `QueryClient`). Glo
   | `work_handoff_status`                                                                             | In-progress handoff: `NULL` = **Done** / **Skip**; `notified` / `skipped` = **Mark complete**. |
   | `service_name`                                                                                    | Second line of “Next up” title: `{customer} — {service}`.                                      |
   | `customer_name`                                                                                   | First part of “Next up” title.                                                                 |
-  | `customer_phone`                                                                                  | **On my way** — native SMS (`sms:`) with a preset message.                                     |
+  | `customer_phone`                                                                                  | Server SMS for **On my way** / handoff (lifecycle on). Hold mode uses device Messages instead. |
   | `customer_street_address`, `customer_unit_apt`, `customer_city`, `customer_state`, `customer_zip` | **Navigate** — concatenated in app (see below); no single `customer_address` column today.     |
 
 **Ignored on Home (by design):** `booking_requests` and non-`confirmed` statuses (`cancelled`, `complete`, etc.) for upcoming/next counts.
@@ -184,10 +210,9 @@ Shared helpers: `testUtils.jsx` (`renderWithProviders`, test `QueryClient`). Glo
    - `today` = **device-local** `YYYY-MM-DD` (`localYyyyMmDd()`).
    - Ordered by `scheduled_date`, then `start_time`, ascending.
 
-3. **Client-side filtering** (`partitionUpcomingConfirmed`)
-   - Keeps rows where `scheduled_date` + `start_time` parses to **`>= now`** (device local).
-   - **Next up** = earliest such row.
-   - **Scheduled count** = number of such rows (confirmed + strictly future).
+3. **Spotlight** (`pickHomeSpotlight`)
+   - Prefers open lifecycle jobs (`on_the_way` / `in_progress`), then time-window in progress, then next upcoming — see [Spotlight selection](#spotlight-selection-pickhomespotlight).
+   - `partitionUpcomingConfirmed` still powers scheduled counts / upcoming partitions where used.
 
 4. **Slug**
    - Display and copy use **`business_profiles.business_slug` only**. If null/empty after load, the UI shows a short hint and **Copy** is disabled (no hardcoded or metadata slug).
@@ -199,10 +224,9 @@ Shared helpers: `testUtils.jsx` (`renderWithProviders`, test `QueryClient`). Glo
 
 ## UI behavior (functional)
 
-- **Booking link · Link views:** Number from `profile_views`; caption explains it’s the only tracked stat.
-- **Booking link · URL row:** Displays `myservicelink.app/{slug}`; copy writes `https://myservicelink.app/{slug}`.
-- **Next Up / In progress:** Spotlight booking from **`pickHomeSpotlight`** — can be **in progress** (started, within duration window) or **next upcoming**; section title switches on Home. Full state matrix: [Next Up card](#next-up-card-nextupcardjsx).
-- **Rest of Today:** Separate query and card; errors deduped via `computeHomeErrorPresentation` (`restOfTodayError`).
+- **Link visits:** Period picker + visit count + last-visit line + full-width copyable URL strip (`LinkStatsSection`).
+- **Next Up / In progress:** Spotlight from **`pickHomeSpotlight`** (lifecycle lock first). Full state matrix: [Next Up card](#next-up-card-nextupcardjsx).
+- **Today’s timeline:** Separate query; empty copy **Nothing scheduled today**; errors deduped via `computeHomeErrorPresentation` (`restOfTodayError`).
 - **Loading:** Per-section skeletons where implemented; TanStack Query keeps **last good data** visible during background refetch.
 - **Sync:** **“Updating…”** while `isFetching` and initial load is done; **pull-to-refresh** refetches all `HOME_QUERY_KEY` queries.
 - **Errors:** Deduped in **`homeErrorPresentation.js`** — e.g. one **banner** for profile failure; **Next Up** / **Rest of Today** / link section each get distinct messages only when they differ (see `computeHomeErrorPresentation`).
@@ -240,7 +264,9 @@ Use this as a working backlog; check items off as you ship.
 
 ### Product / UX
 
-- [x] Wire **On my way** / **Navigate** (SMS + maps from booking phone and granular address).
+- [x] Wire **On my way** / **Navigate** (server SMS + maps; confirms; navigate alert when no address).
+- [x] Full Next Up lifecycle CTAs + confirm sheets (`NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS = true`).
+- [x] Spotlight prefers open `on_the_way` / `in_progress` jobs (running-behind lock).
 - [ ] Optional: add **generated full-address** column or Places-backed `formatted_address` if product needs search/reporting on one string.
 - [ ] **Empty / error states:** richer copy, retry button, link to support when `business_profiles` is missing.
 - [ ] **Notifications (future):** nudge when `confirmed` appointments are in the past but not marked `complete`.

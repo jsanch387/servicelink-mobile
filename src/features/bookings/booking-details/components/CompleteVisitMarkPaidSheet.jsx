@@ -157,6 +157,7 @@ export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
 
   return (
     <BottomSheetModal
+      appearance="glass"
       fitContent
       footer={
         <View style={styles.footerWrap}>
@@ -170,6 +171,8 @@ export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
           </View>
         </View>
       }
+      showCloseButton
+      showHeaderDivider
       title="Mark as paid"
       visible={visible}
       onRequestClose={close}

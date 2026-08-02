@@ -15,6 +15,7 @@ import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { BookingCard } from '../components/BookingCard';
 import { BookingCardSkeleton } from '../components/BookingCardSkeleton';
 import { BookingsCalendarView } from '../components/BookingsCalendarView';
+import { BookingsEmptyState } from '../components/BookingsEmptyState';
 import { BookingsFreeTierUsageStrip } from '../components/BookingsFreeTierUsageStrip';
 import { BookingsListTabs } from '../components/BookingsListTabs';
 import { BookingsViewModeToggle } from '../components/BookingsViewModeToggle';
@@ -201,6 +202,13 @@ export function BookingsScreen() {
           paddingHorizontal: BOOKINGS_LIST_SCREEN_PADDING,
           paddingTop: 18,
         },
+        pastLoadMoreEmpty: {
+          alignItems: 'center',
+          flexGrow: 1,
+          justifyContent: 'center',
+          paddingBottom: 40,
+          paddingTop: 24,
+        },
         plannerContent: {
           flex: 1,
           /** Safe area only — day planner uses full width (times + grid). */
@@ -226,26 +234,6 @@ export function BookingsScreen() {
           fontSize: 16,
           fontWeight: '500',
           letterSpacing: -0.2,
-        },
-        emptyWrap: {
-          alignItems: 'center',
-          alignSelf: 'stretch',
-          marginTop: 32,
-          paddingHorizontal: 0,
-        },
-        emptyTitle: {
-          color: colors.textSecondary,
-          fontSize: 17,
-          fontWeight: '700',
-          textAlign: 'center',
-        },
-        emptyBody: {
-          color: colors.textMuted,
-          fontSize: 15,
-          fontWeight: '500',
-          lineHeight: 21,
-          marginTop: 8,
-          textAlign: 'center',
         },
         errorBlock: {
           marginBottom: 12,
@@ -296,6 +284,10 @@ export function BookingsScreen() {
       return null;
     }
     if (!list.hasNextPage) {
+      return null;
+    }
+    // When the list is empty, the empty state owns the "show earlier" CTA.
+    if (list.bookings.length === 0) {
       return null;
     }
     return (
@@ -358,52 +350,38 @@ export function BookingsScreen() {
       return null;
     }
     if (!list.business?.id) {
-      return (
-        <View style={styles.emptyWrap}>
-          <AppText style={styles.emptyTitle}>No business profile</AppText>
-          <AppText style={styles.emptyBody}>
-            Once your business is set up in ServiceLink, appointments will show here.
-          </AppText>
-        </View>
-      );
+      return <BookingsEmptyState iconName="business-outline" title="No business profile" />;
     }
     if (list.listFilter === BOOKINGS_FILTER_UPCOMING) {
-      return (
-        <View style={styles.emptyWrap}>
-          <AppText style={styles.emptyTitle}>No upcoming appointments</AppText>
-          <AppText style={styles.emptyBody}>
-            Confirmed visits from today onward that have not started yet show here, soonest first.
-          </AppText>
-        </View>
-      );
+      return <BookingsEmptyState title="Nothing upcoming" />;
     }
     if (list.listFilter === BOOKINGS_FILTER_PAST) {
-      return (
-        <View style={styles.emptyWrap}>
-          <AppText style={styles.emptyTitle}>No past appointments</AppText>
-          <AppText style={styles.emptyBody}>
-            Confirmed or completed appointments that ended before the current date and time show
-            here.
-          </AppText>
-        </View>
-      );
+      // Still have older months to check — don't claim the user has no history.
+      if (list.hasNextPage) {
+        return (
+          <View style={styles.pastLoadMoreEmpty}>
+            <LoadMoreLink
+              accessibilityHint="Loads appointments from an earlier month"
+              label={list.loadMoreLabel}
+              loading={list.isFetchingNextPage}
+              onPress={list.loadMore}
+            />
+          </View>
+        );
+      }
+      return <BookingsEmptyState iconName="time-outline" title="No past appointments" />;
     }
-    return (
-      <View style={styles.emptyWrap}>
-        <AppText style={styles.emptyTitle}>No canceled appointments</AppText>
-        <AppText style={styles.emptyBody}>
-          Canceled appointments appear here, most recent first.
-        </AppText>
-      </View>
-    );
+    return <BookingsEmptyState iconName="close-circle-outline" title="No canceled appointments" />;
   }, [
     list.business?.id,
+    list.hasNextPage,
+    list.isFetchingNextPage,
     list.isLoading,
     list.listFilter,
+    list.loadMore,
+    list.loadMoreLabel,
     scheduleError,
-    styles.emptyBody,
-    styles.emptyTitle,
-    styles.emptyWrap,
+    styles.pastLoadMoreEmpty,
   ]);
 
   const freeTierUsageStrip = useMemo(() => {
