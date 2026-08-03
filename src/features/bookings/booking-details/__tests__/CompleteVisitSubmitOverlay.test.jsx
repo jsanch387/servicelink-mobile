@@ -37,6 +37,16 @@ describe('CompleteVisitSubmitOverlay', () => {
     expect(screen.getByText('Saving visit details')).toBeTruthy();
 
     act(() => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(screen.getByText('Sending receipt')).toBeTruthy();
+
+    act(() => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(screen.getByText('Sending review link')).toBeTruthy();
+
+    act(() => {
       jest.advanceTimersByTime(9000);
     });
     expect(screen.getByText('Finishing up')).toBeTruthy();

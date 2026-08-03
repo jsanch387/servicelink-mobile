@@ -64,7 +64,7 @@ describe('NextUpCard device outbound mode (SMS not ready)', () => {
     expect(screen.queryByLabelText('Done')).toBeNull();
   });
 
-  it('opens Messages with a prefilled on-my-way text and does not call the server action', () => {
+  it('hands off straight to Messages without a confirm sheet or server action', () => {
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
@@ -77,13 +77,13 @@ describe('NextUpCard device outbound mode (SMS not ready)', () => {
     );
 
     fireEvent.press(screen.getByLabelText('On my way'));
-    expect(outbound.openSmsOnMyWay).not.toHaveBeenCalled();
-    fireEvent.press(screen.getByLabelText('Send'));
 
     expect(outbound.openSmsOnMyWay).toHaveBeenCalledWith(baseBooking, {
       businessName: 'Sunrise Auto Spa',
     });
     expect(mockNotifyOnTheWay).not.toHaveBeenCalled();
+    // No "Text sent" success state — the owner still has to send it themselves.
+    expect(screen.queryByLabelText('Send')).toBeNull();
   });
 
   it('opens maps when Navigate is pressed', () => {

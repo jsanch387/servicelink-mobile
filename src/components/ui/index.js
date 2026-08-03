@@ -1,5 +1,6 @@
 export { AppText } from './AppText';
 export { BetaLabel } from './BetaLabel';
+export { NewLabel } from './NewLabel';
 export { AppTextInput } from './AppTextInput';
 export { BottomSheetModal } from './BottomSheetModal';
 export { SheetCloseButton } from './SheetCloseButton';

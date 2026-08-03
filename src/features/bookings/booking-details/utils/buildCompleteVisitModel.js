@@ -110,9 +110,10 @@ function buildLineItemsFromLegacyColumns(booking) {
  *
  * @param {Record<string, unknown> | null | undefined} booking
  * @param {import('./markCompletePreview').MarkCompletePreview | null | undefined} [preview]
+ * @param {{ canUseSms?: boolean }} [options] Only used when `preview` is omitted.
  * @returns {CompleteVisitModel | null}
  */
-export function buildCompleteVisitModelFromBooking(booking, preview) {
+export function buildCompleteVisitModelFromBooking(booking, preview, options) {
   if (!booking || typeof booking !== 'object') {
     return null;
   }
@@ -220,7 +221,7 @@ export function buildCompleteVisitModelFromBooking(booking, preview) {
 
   const customerEmail = String(booking.customer_email ?? '').trim() || null;
   const customerPhone = normalizePhoneForDatabase(String(booking.customer_phone ?? '')) || null;
-  const resolvedPreview = preview ?? getMarkCompletePreviewFromBooking(booking);
+  const resolvedPreview = preview ?? getMarkCompletePreviewFromBooking(booking, options);
 
   return {
     lineItems,

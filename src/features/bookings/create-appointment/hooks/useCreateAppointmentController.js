@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { InteractionManager } from 'react-native';
 import { useToast } from '../../../../components/ui';
 import { customersListQueryKey } from '../../../customers/queryKeys';
+import { useCustomerSmsAccess } from '../../../sms/hooks/useCustomerSmsAccess';
 import { catalogAddonsForService } from '../../../services/utils/catalogAddonsForService';
 import { postOwnerManualPublicBooking } from '../api/postOwnerManualPublicBooking';
 import {
@@ -98,6 +99,7 @@ function createDraftLocalId() {
 export function useCreateAppointmentController({ catalog, userId, accessToken, navigation }) {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const { canUseSms } = useCustomerSmsAccess();
 
   const [step, setStep] = useState(CREATE_APPOINTMENT_STEP.SERVICE);
   const [servicePickPhase, setServicePickPhase] = useState('chooser');
@@ -577,6 +579,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
           customer.phone,
           customer.email,
           data?.smsOutcome,
+          { smsEnabled: canUseSms },
         );
       });
     },

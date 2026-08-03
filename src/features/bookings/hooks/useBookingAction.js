@@ -228,6 +228,29 @@ export function useBookingAction(businessId) {
     },
     [isCoolingDown, isJobStartedDone, mutation.isPending, runAction],
   );
+
+  /** Async start-job for confirm sheets that own pending/success/error UI. */
+  const startJobAsync = useCallback(
+    async (bookingId, options = {}) => {
+      if (!bookingId || mutation.isPending || isCoolingDown || isJobStartedDone(bookingId)) {
+        return { ok: false, skipped: true };
+      }
+      try {
+        return await mutation.mutateAsync({
+          bookingId,
+          action: BOOKING_ACTION.JOB_STARTED,
+          suppressUiFeedback: Boolean(options.suppressUiFeedback),
+        });
+      } catch (err) {
+        return {
+          ok: false,
+          error: { message: err?.message ?? FALLBACK_ERROR },
+        };
+      }
+    },
+    [isCoolingDown, isJobStartedDone, mutation],
+  );
+
   const workFinished = useCallback(
     async (bookingId, notify = true, options = {}) => {
       if (!bookingId || mutation.isPending || isCoolingDown) {
@@ -254,6 +277,7 @@ export function useBookingAction(businessId) {
     runAction,
     notifyOnTheWay,
     startJob,
+    startJobAsync,
     workFinished,
     isSending: mutation.isPending,
     disabled: mutation.isPending || isCoolingDown,

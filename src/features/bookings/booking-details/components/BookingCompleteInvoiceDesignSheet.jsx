@@ -68,6 +68,7 @@ import {
   TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT,
   TAP_TO_PAY_CHECKOUT_BUTTON_LABEL,
 } from '../../../tap-to-pay';
+import { useCustomerSmsAccess } from '../../../sms/hooks/useCustomerSmsAccess';
 import { useTapToPayReaderPrewarm } from '../../../tap-to-pay/hooks/useTapToPayReaderPrewarm';
 import { TapToPayCheckoutIcon } from '../../../tap-to-pay/components/TapToPayCheckoutIcon';
 import { TapToPaySetupRequiredSheet } from '../../../tap-to-pay/components/TapToPaySetupRequiredSheet';
@@ -591,6 +592,7 @@ export function BookingCompleteVisitSheet({
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const accessToken = session?.access_token ?? null;
+  const { canUseSms } = useCustomerSmsAccess();
   const {
     isConnectReady: tapToPayConnectReady,
     isLoading: tapToPayConnectLoading,
@@ -750,6 +752,8 @@ export function BookingCompleteVisitSheet({
   const showCollectActions = amountDue > 0;
   const hasSavedReceiptEmail = isValidEmailFormat(savedReceiptEmail);
   const hasSavedReceiptPhone = Boolean(phoneForSmsUri(savedReceiptPhone));
+  // A phone typed into the receipt form only means a text when this owner can text.
+  const canTextSavedReceiptPhone = canUseSms && hasSavedReceiptPhone;
   const showReceiptContactNotice =
     showTapToPay && showCollectActions && !hasSavedReceiptEmail && !hasSavedReceiptPhone;
 
@@ -761,24 +765,13 @@ export function BookingCompleteVisitSheet({
     const showReviewInvite = resolvedModel.showReviewInvite !== false;
     return getCompleteVisitFollowUpInfo({
       showInvoiceEmail: hasSavedReceiptEmail,
-      showReviewSms: showReviewSms || hasSavedReceiptPhone,
-      showReviewEmail: hasSavedReceiptEmail && !showReviewSms && !hasSavedReceiptPhone,
+      showReviewSms: showReviewSms || canTextSavedReceiptPhone,
+      showReviewEmail: hasSavedReceiptEmail && !showReviewSms && !canTextSavedReceiptPhone,
       showReviewInvite,
     });
-  }, [hasSavedReceiptEmail, hasSavedReceiptPhone, resolvedModel]);
+  }, [canTextSavedReceiptPhone, hasSavedReceiptEmail, resolvedModel]);
 
-  const successCopy = useMemo(() => {
-    if (!resolvedModel) {
-      return getCompleteVisitSuccessCopy({});
-    }
-    const showReviewSms = resolvedModel.showReviewSms ?? false;
-    const showReviewInvite = resolvedModel.showReviewInvite !== false;
-    return getCompleteVisitSuccessCopy({
-      showReviewSms: showReviewSms || hasSavedReceiptPhone,
-      showReviewEmail: hasSavedReceiptEmail && !showReviewSms && !hasSavedReceiptPhone,
-      showReviewInvite,
-    });
-  }, [hasSavedReceiptEmail, hasSavedReceiptPhone, resolvedModel]);
+  const successCopy = useMemo(() => getCompleteVisitSuccessCopy(), []);
 
   const handleSaveReceiptContact = useCallback(
     async (contactInput) => {

@@ -78,6 +78,7 @@ describe('reviewInviteEligibility', () => {
       getCompleteVisitNotificationPreview(
         { ...eligibleBooking, customer_phone: '5552345678' },
         emptyCtx(),
+        { canUseSms: true },
       ),
     ).toEqual({
       showReviewSmsMessage: true,
@@ -94,6 +95,7 @@ describe('reviewInviteEligibility', () => {
       getCompleteVisitNotificationPreview(
         { ...eligibleBooking, customer_phone: '5552345678' },
         ctx,
+        { canUseSms: true },
       ),
     ).toEqual({
       showReviewSmsMessage: true,
@@ -106,11 +108,25 @@ describe('reviewInviteEligibility', () => {
   it('getCompleteVisitNotificationPreview is receipt-only email when customer already reviewed', () => {
     const ctx = emptyCtx();
     ctx.reviewedCustomerIds.add('cust-1');
-    expect(getCompleteVisitNotificationPreview(eligibleBooking, ctx)).toEqual({
+    expect(getCompleteVisitNotificationPreview(eligibleBooking, ctx, { canUseSms: true })).toEqual({
       showReviewSmsMessage: false,
       showReviewInviteMessage: true,
       showNoReviewInviteMessage: false,
       showReviewInvite: false,
+    });
+  });
+
+  it('getCompleteVisitNotificationPreview ignores the phone when the owner cannot text', () => {
+    expect(
+      getCompleteVisitNotificationPreview(
+        { ...eligibleBooking, customer_phone: '5552345678' },
+        emptyCtx(),
+      ),
+    ).toEqual({
+      showReviewSmsMessage: false,
+      showReviewInviteMessage: true,
+      showNoReviewInviteMessage: false,
+      showReviewInvite: true,
     });
   });
 });

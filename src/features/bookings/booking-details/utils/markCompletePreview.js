@@ -12,14 +12,18 @@ import { phoneForSmsUri } from '../../../../utils/phone';
 /**
  * Preview for the mark-complete confirm sheet (client-side; mirrors server SMS → email fallback).
  *
+ * `canUseSms` must reflect this owner's runtime SMS access; see
+ * {@link import('../../../reviews/utils/reviewInviteEligibility').getCompleteVisitNotificationPreview}.
+ *
  * @param {{
  *   customer_phone?: string | null;
  *   customer_email?: string | null;
  * } | null | undefined} booking
+ * @param {{ canUseSms?: boolean }} [options]
  * @returns {MarkCompletePreview}
  */
-export function getMarkCompletePreviewFromBooking(booking) {
-  const hasPhone = Boolean(phoneForSmsUri(booking?.customer_phone));
+export function getMarkCompletePreviewFromBooking(booking, { canUseSms = false } = {}) {
+  const hasPhone = canUseSms && Boolean(phoneForSmsUri(booking?.customer_phone));
   if (hasPhone) {
     return {
       showReviewSmsMessage: true,

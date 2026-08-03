@@ -25,7 +25,7 @@ Owner-created bookings and customer self-serve bookings both flow through `POST 
 
 ## 2. SMS data model — `sms_messages`
 
-Every outbound SMS attempt is a row in **`public.sms_messages`**. This is the source of truth for a future "messages sent" screen.
+Every outbound SMS attempt is a row in **`public.sms_messages`**. This is the source of truth for the **Messages sent** timeline (More → Notifications → Messages sent).
 
 | Column                   | Type          | Notes                                                                                                                      |
 | ------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -48,14 +48,25 @@ Every outbound SMS attempt is a row in **`public.sms_messages`**. This is the so
 
 **RLS:** the owner can **read** rows for their own business. The app may `SELECT` directly from Supabase. The app may **not** insert/update — all writes are server-side.
 
-### Reading message history (future UI)
+### Reading message history (mobile)
 
 ```sql
-select id, type, body, status, to_phone, sent_at, created_at, booking_id
+select id, type, body, status, to_phone, sent_at, created_at, booking_id, error
 from sms_messages
 where business_id = '<businessId>'
-order by created_at desc;
+  and direction = 'outbound'
+order by created_at desc
+offset <n> limit 25;
 ```
+
+Mobile loads **25 at a time** (newest first) via `useInfiniteQuery`, with a **Load older** footer for the next page. Preview sample rows only appear when the first page is empty and design preview is on.
+
+| Piece  | Path                                                           |
+| ------ | -------------------------------------------------------------- |
+| Fetch  | `src/features/sms/api/fetchBusinessSmsMessages.js`             |
+| Hook   | `src/features/sms/hooks/useBusinessSmsMessages.js`             |
+| Screen | `src/features/sms/screens/SentTextsScreen.jsx`                 |
+| Entry  | More → Notifications → **Messages sent** (`ROUTES.SENT_TEXTS`) |
 
 ---
 

@@ -13,6 +13,7 @@ import { MARK_COMPLETE_SHOW_COMPLETE_VISIT_DESIGN_PREVIEW } from '../../bookings
 import { BookingMarkCompleteSheet } from '../../bookings/booking-details/components/BookingMarkCompleteSheet';
 import { useMarkBookingCompleteFlow } from '../../bookings/booking-details/hooks/useMarkBookingCompleteFlow';
 import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
+import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
 import { FloatingCreateMenu } from '../components/FloatingCreateMenu';
 import { HomeFreeBookingsUsageCard } from '../components/HomeFreeBookingsUsageCard';
 import { HomeErrorBanner } from '../components/HomeErrorBanner';
@@ -20,10 +21,7 @@ import { LinkStatsSection } from '../components/LinkStatsSection';
 import { NextUpCard } from '../components/NextUpCard';
 import { RestOfTodayCard } from '../components/restOfToday';
 import { TodaysPotentialCard } from '../components/TodaysPotentialCard';
-import {
-  NEXT_UP_LIFECYCLE_DESIGN_PREVIEW,
-  NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS,
-} from '../constants/nextUpDesignFlags';
+import { NEXT_UP_LIFECYCLE_DESIGN_PREVIEW } from '../constants/nextUpDesignFlags';
 import { useNextUpLifecycleDesignPreview } from '../hooks/useNextUpLifecycleDesignPreview';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
 import { useLinkViewsAnalytics } from '../hooks/useLinkViewsAnalytics';
@@ -54,6 +52,8 @@ export function HomeScreen() {
   const queryClient = useQueryClient();
   const { unreadCount } = useNotificationUnreadCount();
   const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
+  const smsAccess = useCustomerSmsAccess();
+  const useNextUpLifecycle = smsAccess.canUseSms;
   const dashboard = useHomeDashboard();
   const nextBookingId = dashboard.nextBooking?.id ?? null;
   const markCompleteFlow = useMarkBookingCompleteFlow(nextBookingId, {
@@ -147,11 +147,11 @@ export function HomeScreen() {
   ]);
 
   const nextUpSectionTitle = useMemo(() => {
-    if (!NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS) {
+    if (!useNextUpLifecycle) {
       return 'Next Up';
     }
     return resolveNextUpSectionTitle(nextUpActionMode);
-  }, [nextUpActionMode]);
+  }, [nextUpActionMode, useNextUpLifecycle]);
 
   /** Show while business exists, or during first business fetch so the timeline skeleton paints with the rest of home. */
   const showTodayTimelineSection =
@@ -418,7 +418,7 @@ export function HomeScreen() {
   }, [dashboard.nextBooking, lifecycleDesignPreview.isActive, lifecycleDesignPreview.workingPhase]);
 
   const nextUpMarkCompleteEnabled =
-    NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS &&
+    useNextUpLifecycle &&
     (lifecycleDesignPreview.isActive
       ? lifecycleDesignPreview.workingPhase === 'ready'
       : nextUpActionMode === 'working' && Boolean(nextBookingId) && nextUpWorkingPhase === 'ready');
@@ -619,17 +619,18 @@ export function HomeScreen() {
           nextBooking={effectiveNextBooking}
           onMarkComplete={nextUpMarkCompleteEnabled ? handleNextUpMarkComplete : undefined}
           onNotifyWorkFinished={
-            NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS && lifecycleDesignPreview.isActive
+            useNextUpLifecycle && lifecycleDesignPreview.isActive
               ? lifecycleDesignPreview.requestWorkFinishedNotify
               : undefined
           }
           onSkipWorkNotify={
-            NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS && lifecycleDesignPreview.isActive
+            useNextUpLifecycle && lifecycleDesignPreview.isActive
               ? lifecycleDesignPreview.skipWorkNotify
               : undefined
           }
           spotlightMode={effectiveSpotlightMode}
           subtitle={effectiveNextSubtitle}
+          useLifecycleActions={useNextUpLifecycle}
           workingPhase={nextUpWorkingPhase}
         />
 

@@ -36,6 +36,7 @@ import { useBookingActions } from '../booking-details/hooks/useBookingActions';
 import { useMarkBookingCompleteFlow } from '../booking-details/hooks/useMarkBookingCompleteFlow';
 import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
 import { buildBookingDetailsModel } from '../booking-details/utils/buildBookingDetailsModel';
+import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
 
 export function BookingDetailsScreen({ route }) {
   const { colors } = useTheme();
@@ -47,6 +48,7 @@ export function BookingDetailsScreen({ route }) {
   const scrollRef = useRef(/** @type {ScrollView | null} */ (null));
   const detailsQuery = useBookingDetails(bookingId);
   const bookingActions = useBookingActions(bookingId);
+  const smsAccess = useCustomerSmsAccess();
   const details = useMemo(
     () => buildBookingDetailsModel(detailsQuery.booking),
     [detailsQuery.booking],
@@ -65,7 +67,7 @@ export function BookingDetailsScreen({ route }) {
   const statusLower = details.status.toLowerCase();
   const isCompletedStatus = statusLower === 'completed' || statusLower === 'complete';
   const isCancelledStatus = statusLower === 'cancelled' || statusLower === 'canceled';
-  const showJobStatusAction = !isCompletedStatus && !isCancelledStatus;
+  const showJobStatusAction = smsAccess.canUseSms && !isCompletedStatus && !isCancelledStatus;
 
   useEffect(() => {
     setCompleteScrollRequestId(0);
@@ -330,7 +332,11 @@ export function BookingDetailsScreen({ route }) {
         onRequestClose={() => setRescheduleSheetOpen(false)}
       />
       <BookingJobStatusSheet
+        bookingId={bookingId}
+        businessId={detailsQuery.booking?.business_id ?? null}
+        jobStatus={detailsQuery.booking?.job_status}
         visible={jobStatusSheetOpen}
+        workHandoffStatus={detailsQuery.booking?.work_handoff_status}
         onRequestClose={() => setJobStatusSheetOpen(false)}
       />
       <ScrollView

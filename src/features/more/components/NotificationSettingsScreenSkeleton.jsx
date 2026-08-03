@@ -20,22 +20,63 @@ export function NotificationSettingsScreenSkeleton() {
     <View style={styles.root}>
       <View style={styles.sectionFirst}>
         <SkeletonBox borderRadius={6} height={15} pulse style={styles.sectionLabel} width="36%" />
-        <SurfaceCard accessibilityLabel="Loading notification settings" style={styles.card}>
+        <SurfaceCard
+          accessibilityLabel="Loading notification settings"
+          padding="none"
+          style={styles.card}
+        >
           <View style={styles.notifyRow}>
-            <SkeletonBox borderRadius={6} height={16} pulse width="56%" />
-            <SkeletonBox borderRadius={6} height={12} pulse style={{ marginTop: 6 }} width="88%" />
+            <SkeletonBox borderRadius={16} height={32} pulse width={32} />
+            <View style={styles.copy}>
+              <SkeletonBox borderRadius={6} height={14} pulse width="40%" />
+              <SkeletonBox
+                borderRadius={6}
+                height={12}
+                pulse
+                style={{ marginTop: 6 }}
+                width="78%"
+              />
+            </View>
           </View>
           <View style={dividerStyle} />
           <View style={styles.notifyRow}>
-            <SkeletonBox borderRadius={6} height={16} pulse width="44%" />
-            <SkeletonBox borderRadius={6} height={12} pulse style={{ marginTop: 6 }} width="72%" />
+            <SkeletonBox borderRadius={16} height={32} pulse width={32} />
+            <View style={styles.copy}>
+              <SkeletonBox borderRadius={6} height={14} pulse width="32%" />
+              <SkeletonBox
+                borderRadius={6}
+                height={12}
+                pulse
+                style={{ marginTop: 6 }}
+                width="70%"
+              />
+            </View>
+          </View>
+        </SurfaceCard>
+      </View>
+
+      <View style={styles.section}>
+        <SkeletonBox borderRadius={6} height={15} pulse style={styles.sectionLabel} width="40%" />
+        <SurfaceCard padding="none" style={styles.card}>
+          <View style={styles.notifyRow}>
+            <SkeletonBox borderRadius={16} height={32} pulse width={32} />
+            <View style={styles.copy}>
+              <SkeletonBox borderRadius={6} height={14} pulse width="34%" />
+              <SkeletonBox
+                borderRadius={6}
+                height={12}
+                pulse
+                style={{ marginTop: 6 }}
+                width="84%"
+              />
+            </View>
           </View>
         </SurfaceCard>
       </View>
 
       <View style={styles.section}>
         <SkeletonBox borderRadius={6} height={15} pulse style={styles.sectionLabel} width="32%" />
-        <SurfaceCard style={styles.card}>
+        <SurfaceCard padding="none" style={styles.card}>
           <View style={styles.statusRow}>
             <SkeletonBox borderRadius={6} height={15} pulse width="36%" />
             <SkeletonBox borderRadius={6} height={15} pulse width="22%" />
@@ -62,12 +103,22 @@ const styles = StyleSheet.create({
   },
   card: {
     gap: 0,
+    overflow: 'hidden',
   },
   notifyRow: {
-    paddingVertical: 14,
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  copy: {
+    flex: 1,
+    minWidth: 0,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
+    marginLeft: 58,
     opacity: 0.55,
     width: '100%',
   },
@@ -75,6 +126,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
   },
 });

@@ -2,7 +2,7 @@ import { supabase } from '../../../lib/supabase';
 
 /**
  * @param {string} userId - auth user id (`profiles.user_id`)
- * @returns {Promise<{ ownerProfile: Record<string, unknown> | null; business: { id: string; business_slug: string | null } | null; error: Error | null }>}
+ * @returns {Promise<{ ownerProfile: Record<string, unknown> | null; business: { id: string; business_slug: string | null; business_name: string | null } | null; error: Error | null }>}
  */
 export async function fetchAccountSettingsBundle(userId) {
   if (!userId) {
@@ -26,7 +26,7 @@ export async function fetchAccountSettingsBundle(userId) {
       .maybeSingle(),
     supabase
       .from('business_profiles')
-      .select('id, business_slug')
+      .select('id, business_slug, business_name')
       .eq('profile_id', userId)
       .maybeSingle(),
   ]);
@@ -47,7 +47,14 @@ export async function fetchAccountSettingsBundle(userId) {
   }
 
   const business = businessRes.data?.id
-    ? { id: String(businessRes.data.id), business_slug: businessRes.data.business_slug ?? null }
+    ? {
+        id: String(businessRes.data.id),
+        business_slug: businessRes.data.business_slug ?? null,
+        business_name:
+          typeof businessRes.data.business_name === 'string'
+            ? businessRes.data.business_name
+            : null,
+      }
     : null;
 
   return {

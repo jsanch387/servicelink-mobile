@@ -189,12 +189,14 @@ export function useBookingsList(options = {}) {
     !pastListQ.isFetchingNextPage &&
     !pastListQ.isError;
 
+  const fetchNextPastPage = pastListQ.fetchNextPage;
+
   useEffect(() => {
     if (!shouldAutoBackfillPast) {
       return;
     }
-    void pastListQ.fetchNextPage();
-  }, [shouldAutoBackfillPast, pastListQ.fetchNextPage, pastPageCount]);
+    void fetchNextPastPage();
+  }, [shouldAutoBackfillPast, fetchNextPastPage, pastPageCount]);
 
   const isBackfillingPast =
     isPastFilter &&

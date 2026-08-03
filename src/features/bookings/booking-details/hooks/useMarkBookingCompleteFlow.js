@@ -7,6 +7,7 @@ import { useAuth } from '../../../auth';
 import { fetchBusinessProfileForUser } from '../../../home/api/homeDashboard';
 import { loadReviewEligibilityContext } from '../../../reviews/api/loadReviewEligibilityContext';
 import { getCompleteVisitNotificationPreview } from '../../../reviews/utils/reviewInviteEligibility';
+import { useCustomerSmsAccess } from '../../../sms/hooks/useCustomerSmsAccess';
 import { postBookingAction } from '../../api/postBookingAction';
 import { BOOKING_ACTION } from '../../constants/jobStatus';
 import { bookingsDetailsQueryKey } from '../../queryKeys';
@@ -114,6 +115,7 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const { maybeRequestAppReview } = useAppReviewPrompt();
+  const { canUseSms } = useCustomerSmsAccess();
 
   const [sheetVisible, setSheetVisible] = useState(false);
   const [preview, setPreview] = useState(
@@ -230,7 +232,7 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
 
       setEligibilityCtx(ctx);
 
-      const nextPreview = getCompleteVisitNotificationPreview(booking, ctx);
+      const nextPreview = getCompleteVisitNotificationPreview(booking, ctx, { canUseSms });
       notificationPreviewRef.current = nextPreview;
       setPreview(nextPreview);
 
@@ -263,6 +265,7 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
     };
   }, [
     bookingId,
+    canUseSms,
     normalizedBusinessId,
     queryClient,
     resolveCurrentBooking,

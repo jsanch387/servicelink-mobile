@@ -54,9 +54,10 @@ const DESIGN_PHASES = [
  *   pendingMessages?: string[];
  *   skipAccessibilityHint?: string;
  *   sendAccessibilityHint?: string;
+ *   showSkip?: boolean;
  *   onRequestClose: () => void;
  *   onConfirm: () => void | Promise<{ ok?: boolean; skipped?: boolean; error?: { message?: string } }>;
- *   onSkip: () => void;
+ *   onSkip?: () => void;
  * }} props
  */
 export function OnMyWayConfirmModal({
@@ -68,6 +69,7 @@ export function OnMyWayConfirmModal({
   pendingMessages = DEFAULT_PENDING_MESSAGES,
   skipAccessibilityHint = 'Continues without texting the customer',
   sendAccessibilityHint = 'Texts the customer',
+  showSkip = true,
   onRequestClose,
   onConfirm,
   onSkip,
@@ -156,7 +158,7 @@ export function OnMyWayConfirmModal({
   }, [enterError, enterSuccess, onConfirm, onRequestClose, phase]);
 
   const handleSkip = useCallback(() => {
-    if (phase !== 'idle') {
+    if (phase !== 'idle' || typeof onSkip !== 'function') {
       return;
     }
     onSkip();
@@ -397,16 +399,18 @@ export function OnMyWayConfirmModal({
           ) : null}
           {showIdleActions ? (
             <View style={styles.row}>
-              <View style={styles.rowGrow}>
-                <Button
-                  accessibilityHint={skipAccessibilityHint}
-                  accessibilityLabel="Skip"
-                  fullWidth
-                  title="Skip"
-                  variant="secondary"
-                  onPress={handleSkip}
-                />
-              </View>
+              {showSkip ? (
+                <View style={styles.rowGrow}>
+                  <Button
+                    accessibilityHint={skipAccessibilityHint}
+                    accessibilityLabel="Skip"
+                    fullWidth
+                    title="Skip"
+                    variant="secondary"
+                    onPress={handleSkip}
+                  />
+                </View>
+              ) : null}
               <View style={styles.rowGrow}>
                 <Button
                   accessibilityHint={sendAccessibilityHint}

@@ -19,6 +19,8 @@ import { HelpScreen } from '../../help';
 import { CONTACT_US_SCREEN_TITLE, HELP_SCREEN_TITLE } from '../../help/constants/helpCopy';
 import { LegalScreen } from '../screens/LegalScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
+import { SentTextsScreen } from '../../sms/screens/SentTextsScreen';
+import { CustomerSmsUpsellScreen } from '../../sms/screens/CustomerSmsUpsellScreen';
 import {
   MarketingCampaignsProvider,
   MarketingScreen,
@@ -62,6 +64,24 @@ export function MoreNavigator() {
           name={ROUTES.NOTIFICATIONS}
           options={{
             title: 'Notification settings',
+            headerBackButtonDisplayMode: 'minimal',
+            headerBackTitleVisible: false,
+          }}
+        />
+        <Stack.Screen
+          component={SentTextsScreen}
+          name={ROUTES.SENT_TEXTS}
+          options={{
+            title: 'Texts sent',
+            headerBackButtonDisplayMode: 'minimal',
+            headerBackTitleVisible: false,
+          }}
+        />
+        <Stack.Screen
+          component={CustomerSmsUpsellScreen}
+          name={ROUTES.CUSTOMER_SMS_UPSELL}
+          options={{
+            title: 'Customer notifications',
             headerBackButtonDisplayMode: 'minimal',
             headerBackTitleVisible: false,
           }}

@@ -1,3 +1,5 @@
+import { CUSTOMER_SMS_ENABLED } from '../../../sms/constants/customerSmsFlags';
+
 /**
  * Mark complete rollout flags (compile-time — change in source to roll back).
  *
@@ -21,11 +23,6 @@ export const FORCE_SHOW_RECEIPT_CONTACT_DIALOG = false;
 
 /**
  * When true, complete-visit UI promises customer SMS/email (receipt + review link).
- *
- * When false, hide pre-complete follow-up copy, success detail, and pending
- * "Sending receipt" steps — completion still persists via `job_completed`.
- *
- * Enabled with `NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS` now that SMS sending is approved.
- * See `src/features/home/docs/NEXT_UP_SMS_HOLD.md` (Complete visit section).
+ * Tied to {@link CUSTOMER_SMS_ENABLED}.
  */
-export const COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY = true;
+export const COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY = CUSTOMER_SMS_ENABLED;

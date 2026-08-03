@@ -58,6 +58,10 @@ export const ROUTES = {
   ACCOUNT_SETTINGS: 'Account',
   /** More stack — push notification preferences. */
   NOTIFICATIONS: 'Notifications',
+  /** More stack — outbound customer SMS timeline (`sms_messages`). */
+  SENT_TEXTS: 'SentTexts',
+  /** More stack — non-Pro customer SMS explainer + Subscribe (web). */
+  CUSTOMER_SMS_UPSELL: 'CustomerSmsUpsell',
   /** Root stack — inbox from Home bell (back returns to tabs). */
   NOTIFICATIONS_INBOX: 'NotificationsInbox',
   /** Root stack — new appointment from home FAB (back returns to tabs). */
@@ -105,6 +109,8 @@ export const PATHS = {
   MORE_HOME: '/more/home',
   ACCOUNT_SETTINGS: '/more/account',
   NOTIFICATIONS: '/more/notifications',
+  SENT_TEXTS: '/more/notifications/sent-texts',
+  CUSTOMER_SMS_UPSELL: '/more/notifications/customer-texts',
   NOTIFICATIONS_INBOX: '/notifications',
   CREATE_APPOINTMENT: '/create-appointment',
   SUPPORT: '/more/support',

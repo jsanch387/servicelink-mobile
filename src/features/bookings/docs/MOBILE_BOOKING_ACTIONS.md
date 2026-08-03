@@ -18,12 +18,17 @@ Authorization: Bearer <access_token>
 
 ## Wired in the app
 
-| Action          | UI entry                                          | Code                                               |
-| --------------- | ------------------------------------------------- | -------------------------------------------------- |
-| `on_the_way`    | Next Up → **On my way** (glass confirm)           | `useBookingAction.notifyOnTheWay`                  |
-| `job_started`   | Next Up → **Slide to start job**                  | `useBookingAction.startJob`                        |
-| `work_finished` | Next Up → **Done** / **Skip** (confirms)          | `useBookingAction.workFinished(bookingId, notify)` |
-| `job_completed` | Next Up → **Mark complete** → **Complete** screen | `useMarkBookingCompleteFlow` → `postBookingAction` |
+| Action          | UI entry                                         | Code                                               |
+| --------------- | ------------------------------------------------ | -------------------------------------------------- |
+| `on_the_way`    | Next Up → **On my way** (glass confirm)          | `useBookingAction.notifyOnTheWay`                  |
+| `on_the_way`    | Booking details → **Job status**                 | same hook (`BookingJobStatusSheet`)                |
+| `job_started`   | Next Up → **Slide to start job**                 | `useBookingAction.startJob`                        |
+| `job_started`   | Booking details → **Job status** → Start job     | `useBookingAction.startJobAsync`                   |
+| `work_finished` | Next Up → **Done** / **Skip** (confirms)         | `useBookingAction.workFinished(bookingId, notify)` |
+| `work_finished` | Booking details → **Job status** → Work finished | same hook                                          |
+| `job_completed` | Next Up / details → **Complete**                 | `useMarkBookingCompleteFlow` → `postBookingAction` |
+
+Job status rows are gated by server `job_status` + `work_handoff_status` (`resolveJobStatusSheetActions`). If Next Up already advanced a step, that row is locked on booking details.
 
 ### Next Up confirms (before the POST)
 

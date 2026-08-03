@@ -438,22 +438,24 @@ function OverlayBottomSheetModal({
     },
   ];
 
+  // Dim layer is visual-only (pointerEvents none). The dismiss Pressable only
+  // fills the flex space *above* the sheet so BlurView / transparent sheet
+  // areas cannot pass taps through to a full-screen backdrop and swallow them.
   const content = (
-    <>
+    <View style={styles.overlayColumn}>
       <Animated.View
-        pointerEvents="box-none"
+        pointerEvents="none"
         style={[
           styles.sheetBackdrop,
           backdropStyle,
           isGlass ? { backgroundColor: GLASS_BACKDROP } : null,
         ]}
-      >
-        <Pressable
-          accessibilityRole="button"
-          onPress={closeFromBackdrop}
-          style={StyleSheet.absoluteFillObject}
-        />
-      </Animated.View>
+      />
+      <Pressable
+        accessibilityRole="button"
+        style={styles.backdropDismissHit}
+        onPress={closeFromBackdrop}
+      />
       <Animated.View
         style={[
           styles.sheetWrap,
@@ -484,13 +486,15 @@ function OverlayBottomSheetModal({
               start={{ x: 0.5, y: 0 }}
               style={styles.glassTopGlow}
             />
-            {sheetInner}
+            <View collapsable={false} style={styles.glassTouchLayer}>
+              {sheetInner}
+            </View>
           </BlurView>
         ) : (
           <View style={sheetClipStyle}>{sheetInner}</View>
         )}
       </Animated.View>
-    </>
+    </View>
   );
 
   return (
@@ -564,6 +568,16 @@ function createSharedSheetStyles(colors, insets, { nativePageSheet }) {
       justifyContent: 'flex-end',
       position: 'relative',
     },
+    overlayColumn: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      position: 'relative',
+    },
+    backdropDismissHit: {
+      flex: 1,
+      width: '100%',
+      zIndex: 0,
+    },
     nativeRoot: {
       backgroundColor: colors.shellElevated,
       flex: 1,
@@ -576,12 +590,14 @@ function createSharedSheetStyles(colors, insets, { nativePageSheet }) {
       position: 'absolute',
       right: 0,
       top: 0,
+      zIndex: 0,
     },
     sheetWrap: {
       borderTopLeftRadius: Platform.OS === 'android' ? 28 : 18,
       borderTopRightRadius: Platform.OS === 'android' ? 28 : 18,
       flexDirection: 'column',
       width: '100%',
+      zIndex: 2,
     },
     sheetWrapGlass: {
       borderTopLeftRadius: GLASS_TOP_RADIUS,
@@ -603,6 +619,11 @@ function createSharedSheetStyles(colors, insets, { nativePageSheet }) {
       borderTopLeftRadius: GLASS_TOP_RADIUS,
       borderTopRightRadius: GLASS_TOP_RADIUS,
       overflow: 'hidden',
+    },
+    glassTouchLayer: {
+      alignSelf: 'stretch',
+      width: '100%',
+      zIndex: 3,
     },
     glassTopGlow: {
       height: 44,

@@ -131,13 +131,14 @@ export function NextUpCard({
   onNotifyWorkFinished,
   onSkipWorkNotify,
   actionHandlers = null,
+  /** When false, legacy device Messages On my way + Navigate only. */
+  useLifecycleActions = NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS,
 }) {
   const { colors } = useTheme();
   const bookingAction = useBookingAction(businessId);
   const scheduleError = businessError || bookingsError || null;
   const empty = !isLoading && !scheduleError && !nextBooking;
   const bone = colors.nextUpTextMuted;
-  const useLifecycleActions = NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS;
 
   const actionMode = useMemo(() => {
     if (!useLifecycleActions) {
@@ -297,6 +298,14 @@ export function NextUpCard({
     setOnMyWayConfirmVisible(true);
   }, []);
 
+  // Legacy mode: the owner texts from their own phone, so hand off to Messages
+  // directly. No confirm sheet — we can't know whether they actually sent it.
+  const openDeviceOnMyWaySms = useCallback(() => {
+    if (nextBooking) {
+      void openSmsOnMyWay(nextBooking, { businessName });
+    }
+  }, [businessName, nextBooking]);
+
   const closeOnMyWayConfirm = useCallback(() => {
     setOnMyWayConfirmVisible(false);
   }, []);
@@ -322,17 +331,11 @@ export function NextUpCard({
       await Promise.resolve(actionHandlers.onOnMyWay());
       return { ok: true };
     }
-    if (!useLifecycleActions) {
-      if (nextBooking) {
-        void openSmsOnMyWay(nextBooking, { businessName });
-      }
-      return { ok: true };
-    }
     if (nextBooking?.id) {
       return bookingAction.notifyOnTheWay(nextBooking.id, true, { suppressUiFeedback: true });
     }
     return { ok: false, error: { message: 'No appointment to update.' } };
-  }, [actionHandlers, bookingAction, businessName, nextBooking, useLifecycleActions]);
+  }, [actionHandlers, bookingAction, nextBooking?.id]);
 
   const skipOnMyWay = useCallback(() => {
     setOnMyWayConfirmVisible(false);
@@ -340,14 +343,10 @@ export function NextUpCard({
       actionHandlers.onSkipOnMyWay();
       return;
     }
-    if (!useLifecycleActions) {
-      // Device Messages mode: Skip means don't open Messages.
-      return;
-    }
     if (nextBooking?.id) {
       void bookingAction.notifyOnTheWay(nextBooking.id, false);
     }
-  }, [actionHandlers, bookingAction, nextBooking?.id, useLifecycleActions]);
+  }, [actionHandlers, bookingAction, nextBooking?.id]);
 
   const requestSkipOnMyWay = useCallback(() => {
     Alert.alert('Skip texting?', "The customer won't be notified that you're on the way.", [
@@ -596,7 +595,7 @@ export function NextUpCard({
                       hasCustomerSmsNumber
                         ? useLifecycleActions
                           ? 'Asks to confirm before texting the customer that you are on the way'
-                          : 'Asks to confirm before opening Messages with a prefilled on-my-way text'
+                          : 'Opens Messages with a prefilled on-my-way text'
                         : 'Add a phone on this booking to notify the customer'
                     }
                     accessibilityLabel="On my way"
@@ -605,7 +604,7 @@ export function NextUpCard({
                     iconName="chatbubble-ellipses-outline"
                     title="On my way"
                     variant="surfaceDark"
-                    onPress={openOnMyWayConfirm}
+                    onPress={useLifecycleActions ? openOnMyWayConfirm : openDeviceOnMyWaySms}
                   />
                 </View>
                 <View collapsable={false} style={styles.actionCell}>

@@ -31,9 +31,12 @@ describe('BookingActionsSection job status', () => {
     expect(screen.queryByLabelText('Job status')).toBeNull();
   });
 
-  it('still shows lifecycle tiles', () => {
-    renderSection({ showJobStatusAction: true });
-    expect(screen.getByLabelText('Reschedule booking')).toBeTruthy();
-    expect(screen.getByLabelText('Edit booking')).toBeTruthy();
+  it('still shows Complete enabled alongside Job status', () => {
+    const onMarkCompleted = jest.fn();
+    renderSection({ showJobStatusAction: true, onMarkCompleted });
+    const complete = screen.getByLabelText('Mark booking complete');
+    expect(complete).toBeTruthy();
+    fireEvent.press(complete);
+    expect(onMarkCompleted).toHaveBeenCalledTimes(1);
   });
 });
