@@ -8,6 +8,7 @@ import {
   EchoBarsLoader,
   SuccessConfirmation,
 } from '../../../components/ui';
+import { BOTTOM_SHEET_GLASS_ENABLED } from '../../../components/ui/bottomSheetAppearance';
 import { SUBMIT_OUTCOME_ERROR } from '../../../components/ui/submitOutcomeTokens';
 import { useCyclingStatusMessage } from '../../../hooks/useCyclingStatusMessage';
 import { useTheme } from '../../../theme';
@@ -43,7 +44,7 @@ const DESIGN_PHASES = [
  * Phases: idle → pending (EchoBars + rotating copy) → success / error.
  * Sheet height stays fixed; only the middle stage content swaps.
  *
- * Uses experimental `appearance="glass"` on BottomSheetModal.
+ * Glass sheet when {@link BOTTOM_SHEET_GLASS_ENABLED} (needs expo-blur in the binary).
  *
  * @param {{
  *   visible: boolean;
@@ -372,7 +373,7 @@ export function OnMyWayConfirmModal({
   return (
     <BottomSheetModal
       allowBackdropClose={phase !== 'pending'}
-      appearance="glass"
+      appearance={BOTTOM_SHEET_GLASS_ENABLED ? 'glass' : 'default'}
       fitContent
       footer={
         <View style={styles.footer}>

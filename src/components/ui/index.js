@@ -3,6 +3,7 @@ export { BetaLabel } from './BetaLabel';
 export { NewLabel } from './NewLabel';
 export { AppTextInput } from './AppTextInput';
 export { BottomSheetModal } from './BottomSheetModal';
+export { BOTTOM_SHEET_GLASS_ENABLED } from './bottomSheetAppearance';
 export { SheetCloseButton } from './SheetCloseButton';
 export { FormBottomSheetModal } from './FormBottomSheetModal';
 export { useBottomSheetOverlay, BottomSheetOverlayProvider } from './bottomSheetOverlay';
