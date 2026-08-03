@@ -142,6 +142,7 @@ export function buildServicesCatalogModel(servicesRows, addonsRows, assignmentRo
       return {
         id: id || `addon-${name}`,
         name,
+        description: String(pick(row, ['description', 'details']) ?? '').trim(),
         /** Raw minutes for booking duration math (0 = price-only add-on). */
         durationMinutes: numberOrNull(durationMinutes) ?? 0,
         durationLabel: formatAddonDurationMinutes(durationMinutes),

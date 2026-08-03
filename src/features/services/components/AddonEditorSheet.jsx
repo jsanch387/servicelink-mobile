@@ -8,6 +8,7 @@ import {
   SurfaceTextField,
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import { ADDON_DESCRIPTION_MAX_LENGTH } from '../constants/addonDescriptionLimits';
 
 function normalizePriceInput(rawText) {
   const input = String(rawText ?? '').replace(/\$/g, '');
@@ -46,6 +47,7 @@ function OptionalFieldLabel({ colors, text }) {
 /**
  * Create / edit add-on or pricing option — tall bottom sheet shell (`FormBottomSheetModal`).
  * Use `durationMode="service"` for full service durations (pricing options); default `addon` for extra time.
+ * Short description is add-on only (hidden for pricing options).
  */
 export function AddonEditorSheet({
   visible,
@@ -54,6 +56,7 @@ export function AddonEditorSheet({
   initialName = '',
   initialPrice = '',
   initialDurationHHmm = '',
+  initialDescription = '',
   /** Passed to `DurationSelectField`: `'addon'` = optional extra time; `'service'` = full service duration. */
   durationMode = 'addon',
   durationPlaceholder = 'No extra time',
@@ -67,13 +70,17 @@ export function AddonEditorSheet({
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [durationHHmm, setDurationHHmm] = useState('');
+  const [description, setDescription] = useState('');
+
+  const showDescription = durationMode === 'addon';
 
   useEffect(() => {
     if (!visible) return;
     setName(String(initialName ?? ''));
     setPrice(String(initialPrice ?? '').replace(/\$/g, ''));
     setDurationHHmm(String(initialDurationHHmm ?? ''));
-  }, [visible, initialName, initialPrice, initialDurationHHmm]);
+    setDescription(String(initialDescription ?? '').slice(0, ADDON_DESCRIPTION_MAX_LENGTH));
+  }, [visible, initialName, initialPrice, initialDurationHHmm, initialDescription]);
 
   const durationRequired = durationMode === 'service';
 
@@ -88,6 +95,7 @@ export function AddonEditorSheet({
       name: name.trim(),
       price,
       durationHHmm,
+      description: showDescription ? description.trim() : '',
     });
   }
 
@@ -137,6 +145,27 @@ export function AddonEditorSheet({
           value={durationHHmm}
         />
       </View>
+      {showDescription ? (
+        <View style={styles.fieldWrap}>
+          <OptionalFieldLabel colors={colors} text="Description" />
+          <SurfaceTextField
+            containerStyle={styles.fieldBody}
+            label={null}
+            maxLength={ADDON_DESCRIPTION_MAX_LENGTH}
+            multiline
+            onChangeText={setDescription}
+            placeholder="Optional short description"
+            style={styles.descriptionInput}
+            textAlignVertical="top"
+            value={description}
+          />
+          {description.length > 0 ? (
+            <AppText style={[styles.charCount, { color: colors.textMuted }]}>
+              {description.length}/{ADDON_DESCRIPTION_MAX_LENGTH}
+            </AppText>
+          ) : null}
+        </View>
+      ) : null}
 
       {submitError ? (
         <View style={styles.submitErrorWrap}>
@@ -166,6 +195,15 @@ const styles = StyleSheet.create({
   durationField: {
     marginBottom: 0,
     marginTop: 0,
+  },
+  descriptionInput: {
+    minHeight: 88,
+  },
+  charCount: {
+    alignSelf: 'flex-end',
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 6,
   },
   submitErrorWrap: {
     marginTop: 8,

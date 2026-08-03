@@ -494,7 +494,7 @@ export function ServiceEditScreen({ route }) {
     setAddonSheetOpen(true);
   }
 
-  async function handleAddonSheetSave({ name, price, durationHHmm }) {
+  async function handleAddonSheetSave({ name, price, durationHHmm, description }) {
     if (!businessId) {
       setAddonSheetError('Missing business context.');
       return;
@@ -510,6 +510,7 @@ export function ServiceEditScreen({ route }) {
           name,
           price,
           durationHHmm: normalizedDuration,
+          description,
         });
         setAddonOptions((prev) => {
           const nextOptions = prev.map((a) => (a.id === editingAddonId ? addon : a));
@@ -525,6 +526,7 @@ export function ServiceEditScreen({ route }) {
           name,
           price,
           durationHHmm: normalizedDuration,
+          description,
         });
         setAddonOptions((prev) => {
           const nextOptions = prev.filter((a) => a.id !== addon.id).concat(addon);
@@ -1078,11 +1080,12 @@ export function ServiceEditScreen({ route }) {
 
       <AddonEditorSheet
         allowBackdropClose={false}
+        initialDescription={editingAddon?.description ?? ''}
         initialDurationHHmm={editingAddon?.durationHHmm ?? ''}
         initialName={editingAddon?.name ?? ''}
         initialPrice={editingAddon?.price ?? ''}
         isSaving={isSavingAddon}
-        primaryButtonTitle={editingAddonId ? 'Save' : 'Save add-on'}
+        primaryButtonTitle="Save"
         submitError={addonSheetError}
         title={editingAddonId ? 'Edit add-on' : 'Add new add-on'}
         visible={addonSheetOpen}

@@ -80,11 +80,11 @@ No new table; owners already update rows via existing policies. `category_id` up
 
 ## Compare to add-ons
 
-|                           | Categories                                  | Add-ons                           |
-| ------------------------- | ------------------------------------------- | --------------------------------- |
-| Catalog table             | `service_categories`                        | `service_addons`                  |
-| Link to service           | `business_services.category_id` (1:0..1)    | `service_addon_assignments` (M:N) |
-| `business_id` on link row | On service (must match category’s business) | Only on addon + service rows      |
+|                           | Categories                                  | Add-ons                                                          |
+| ------------------------- | ------------------------------------------- | ---------------------------------------------------------------- |
+| Catalog table             | `service_categories`                        | `service_addons` (incl. optional `description` for self-booking) |
+| Link to service           | `business_services.category_id` (1:0..1)    | `service_addon_assignments` (M:N)                                |
+| `business_id` on link row | On service (must match category’s business) | Only on addon + service rows                                     |
 
 ## Mobile module
 

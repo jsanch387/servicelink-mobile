@@ -41,6 +41,7 @@ export function mapServiceAddonRowToEditorOption(row) {
   return {
     id,
     name,
+    description: String(pick(row, ['description', 'details']) ?? '').trim(),
     durationLabel: formatAddonDurationMinutes(durationM),
     priceLabel: centsToDisplay(priceCents),
     price: centsToInput(priceCents),

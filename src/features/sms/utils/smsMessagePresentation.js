@@ -75,6 +75,29 @@ export function smsMessageStatusPresentation(status) {
 }
 
 /**
+ * Hides the compliance footer on the Texts sent timeline only.
+ * The real SMS still includes it — this is display cleanup.
+ *
+ * @param {string | null | undefined} body
+ * @returns {string}
+ */
+export function stripSmsOptOutFooterForDisplay(body) {
+  const raw = typeof body === 'string' ? body.trim() : '';
+  if (!raw) {
+    return '';
+  }
+
+  // Trailing "Reply STOP to …" / "Text STOP to …" lines (and close variants).
+  return raw
+    .replace(
+      /(?:\r?\n)+\s*(?:reply|text)\s+stop\s+to\s+(?:opt[\s-]?out|unsubscribe|cancel)[.\s]*$/i,
+      '',
+    )
+    .replace(/\s*(?:reply|text)\s+stop\s+to\s+(?:opt[\s-]?out|unsubscribe|cancel)[.\s]*$/i, '')
+    .trim();
+}
+
+/**
  * @param {object | null | undefined} row
  * @returns {{
  *   id: string;
@@ -88,7 +111,6 @@ export function smsMessageStatusPresentation(status) {
  *   phoneDisplay: string;
  *   timeLabel: string;
  *   createdAt: string;
- *   error: string;
  * }}
  */
 export function mapSmsMessageRowToTimelineItem(row) {
@@ -99,8 +121,7 @@ export function mapSmsMessageRowToTimelineItem(row) {
   const status = typeof row?.status === 'string' ? row.status : '';
   const statusPresentation = smsMessageStatusPresentation(status);
   const phoneDisplay = formatPhoneForDisplay(row?.to_phone) || 'Phone unavailable';
-  const body = typeof row?.body === 'string' ? row.body.trim() : '';
-  const error = typeof row?.error === 'string' ? row.error.trim() : '';
+  const body = stripSmsOptOutFooterForDisplay(row?.body);
   const type = typeof row?.type === 'string' ? row.type : '';
 
   return {
@@ -115,7 +136,6 @@ export function mapSmsMessageRowToTimelineItem(row) {
     phoneDisplay,
     timeLabel: createdAt ? formatNotificationRelativeTime(createdAt) : '',
     createdAt,
-    error,
   };
 }
 
@@ -164,7 +184,7 @@ export function buildSentTextsDesignPreviewItems() {
       to_phone: '+15550001111',
       sent_at: new Date(now - 50 * 60 * 60 * 1000).toISOString(),
       created_at: new Date(now - 50 * 60 * 60 * 1000).toISOString(),
-      error: 'Invalid number',
+      error: null,
     },
   ];
   return rows.map(mapSmsMessageRowToTimelineItem);

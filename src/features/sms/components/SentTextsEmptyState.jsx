@@ -11,8 +11,8 @@ import { useTheme } from '../../../theme';
  * }} props
  */
 export function SentTextsEmptyState({
-  title = 'No texts sent yet',
-  detail = 'Customer text notifications will show up here.',
+  title = 'No messages sent yet',
+  detail = 'Customer message notifications will show up here.',
 }) {
   const { colors } = useTheme();
 

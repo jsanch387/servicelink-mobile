@@ -81,12 +81,14 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
           fontWeight: '500',
         },
         rowShell: {
+          alignItems: isMultiline ? 'flex-start' : 'center',
           borderColor: hasError
             ? colors.danger
             : focused
               ? colors.borderStrong
               : colors.inputBorder,
           borderWidth: focused || hasError ? 1.5 : 1,
+          paddingVertical: isMultiline ? 12 : 0,
         },
         iconPad: {
           alignItems: 'center',
@@ -110,19 +112,21 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
         },
         inputWrap: {
           flex: 1,
-          justifyContent: 'center',
-          minHeight: 52,
+          justifyContent: isMultiline ? 'flex-start' : 'center',
+          minHeight: isMultiline ? 72 : 52,
         },
         overlayPlaceholderWrap: {
           ...StyleSheet.absoluteFillObject,
-          justifyContent: 'center',
+          justifyContent: isMultiline ? 'flex-start' : 'center',
           paddingLeft: 6,
           paddingRight: 4,
+          paddingTop: isMultiline ? 0 : undefined,
         },
         overlayPlaceholder: {
           color: colors.placeholder,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 16,
+          ...(isMultiline ? { lineHeight: 22 } : null),
         },
         input: {
           backgroundColor: 'transparent',
@@ -130,17 +134,25 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
           color: colors.inputText ?? colors.text,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 16,
-          height: INPUT_LINE_HEIGHT,
+          ...(isMultiline
+            ? {
+                minHeight: 72,
+                paddingBottom: 4,
+                paddingTop: 0,
+              }
+            : {
+                height: INPUT_LINE_HEIGHT,
+                paddingBottom: 0,
+                paddingTop: 0,
+              }),
           margin: 0,
-          paddingBottom: 0,
           paddingLeft: 6,
           paddingRight: 4,
-          paddingTop: 0,
           width: '100%',
           ...Platform.select({
             android: {
               includeFontPadding: false,
-              textAlignVertical: 'center',
+              textAlignVertical: isMultiline ? 'top' : 'center',
             },
             default: {},
           }),
@@ -157,7 +169,7 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
           marginTop: 4,
         },
       }),
-    [colors, compact, focused, hasError],
+    [colors, compact, focused, hasError, isMultiline],
   );
 
   const leftNode =

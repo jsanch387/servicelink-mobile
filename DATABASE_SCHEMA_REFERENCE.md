@@ -114,9 +114,14 @@ Business-wide add-on catalog (not tied to a single service until assigned).
 - `id` (uuid, PK)
 - `business_id` (uuid, FK → `business_profiles.id`, on delete CASCADE)
 - `name` (text, NOT NULL)
+- `description` (text, **nullable** — optional short blurb for self-booking / web customers; empty saves as `NULL`)
+  - Check: `service_addons_description_length_check` — `NULL` or `char_length(description) <= 160`
+  - Mobile constant: `ADDON_DESCRIPTION_MAX_LENGTH` in `src/features/services/constants/addonDescriptionLimits.js`
 - `price_cents` (integer, NOT NULL, default 0)
 - `duration_minutes` (integer, **nullable** — extra time optional)
 - `created_at`, `updated_at` (timestamptz)
+
+Mobile stores and edits `description` in the add-on create/edit sheet only. It is **not** shown on the add-ons catalog list, service assignment cards, or create/edit appointment flows, and is **not** included in booking payloads (`selectedAddOns` / `addon_details`). Web self-booking reads it from this column.
 
 ### `service_addon_assignments`
 

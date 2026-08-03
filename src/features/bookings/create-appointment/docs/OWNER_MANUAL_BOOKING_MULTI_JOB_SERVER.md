@@ -71,16 +71,16 @@ Same path as the parent owner-create contract.
 
 ### Each `jobs[]` item
 
-| Field                     | Type   | Required | Notes                                                               |
-| ------------------------- | ------ | -------- | ------------------------------------------------------------------- |
-| `serviceName`             | string | Yes      | Catalog or custom display name                                      |
-| `serviceId`               | string | Catalog  | Omit / null for custom                                              |
-| `servicePriceOptionLabel` | string | No       | Real tier label only; omit for base / custom                        |
-| `servicePriceCents`       | number | Yes      | Integer ≥ 0. **Owner-edited price wins**                            |
-| `selectedAddOns`          | array  | No       | `{ id, name, priceCents, durationMinutes? }`; empty/omit for custom |
-| `durationMinutes`         | number | Yes      | This job only. Integer ≥ 1. Appointment duration = sum              |
-| `vehicle`                 | object | No       | `{ year, make, model }` strings; all empty or all set               |
-| `clientJobId`             | string | No       | Mobile local id — **not persisted** in v1                           |
+| Field                     | Type   | Required | Notes                                                                                                                        |
+| ------------------------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `serviceName`             | string | Yes      | Catalog or custom display name                                                                                               |
+| `serviceId`               | string | Catalog  | Omit / null for custom                                                                                                       |
+| `servicePriceOptionLabel` | string | No       | Real tier label only; omit for base / custom                                                                                 |
+| `servicePriceCents`       | number | Yes      | Integer ≥ 0. **Owner-edited price wins**                                                                                     |
+| `selectedAddOns`          | array  | No       | `{ id, name, priceCents, durationMinutes? }`; empty/omit for custom. No `description` (self-booking reads `service_addons`). |
+| `durationMinutes`         | number | Yes      | This job only. Integer ≥ 1. Appointment duration = sum                                                                       |
+| `vehicle`                 | object | No       | `{ year, make, model }` strings; all empty or all set                                                                        |
+| `clientJobId`             | string | No       | Mobile local id — **not persisted** in v1                                                                                    |
 
 Optional sale **preview** fields on each job are **ignored**. Server applies sale once to the **appointment** subtotal (sum of all job gross amounts). Mobile may still send appointment-level sale preview fields (see sale addendum); server recomputes.
 

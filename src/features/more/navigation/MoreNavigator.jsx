@@ -72,7 +72,7 @@ export function MoreNavigator() {
           component={SentTextsScreen}
           name={ROUTES.SENT_TEXTS}
           options={{
-            title: 'Texts sent',
+            title: 'Messages sent',
             headerBackButtonDisplayMode: 'minimal',
             headerBackTitleVisible: false,
           }}

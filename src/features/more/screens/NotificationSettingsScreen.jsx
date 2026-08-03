@@ -27,8 +27,8 @@ import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
 import { NotificationSettingsScreenSkeleton } from '../components/NotificationSettingsScreenSkeleton';
 
 const WHAT_YOU_GET_SECTION_TITLE = "What you'll get";
-const TEXTS_SENT_TITLE = 'Texts sent';
-const TEXTS_SENT_SUBTITLE = 'See texts sent to your customers.';
+const TEXTS_SENT_TITLE = 'Messages sent';
+const TEXTS_SENT_SUBTITLE = 'See messages sent to your customers.';
 const CUSTOMER_NOTIFICATIONS_TITLE = 'Text updates';
 const CUSTOMER_NOTIFICATIONS_SUBTITLE = 'Text customer updates';
 const CUSTOMER_TEXTS_SECTION_TITLE = 'Customer notifications';
@@ -344,7 +344,7 @@ export function NotificationSettingsScreen() {
   const customerTextsRoute = smsAccess.canUseSms ? ROUTES.SENT_TEXTS : ROUTES.CUSTOMER_SMS_UPSELL;
   const customerTextsHint = smsAccess.canUseSms
     ? 'Opens texts you’ve sent to customers'
-    : 'Learn about customer text updates';
+    : 'Learn about customer message updates';
 
   return (
     <View style={styles.root}>

@@ -112,11 +112,19 @@ export async function deleteServicePriceOption({ businessId, serviceId, optionId
   return { error };
 }
 
-export async function insertServiceAddon({ businessId, name, priceInput, durationMinutes }) {
+export async function insertServiceAddon({
+  businessId,
+  name,
+  priceInput,
+  durationMinutes,
+  description,
+}) {
+  const descriptionTrimmed = String(description ?? '').trim();
   const row = {
     business_id: businessId,
     name: String(name ?? '').trim(),
     price_cents: centsFromInput(priceInput),
+    description: descriptionTrimmed || null,
   };
   if (Number.isFinite(durationMinutes) && durationMinutes > 0) {
     row.duration_minutes = durationMinutes;
@@ -131,10 +139,13 @@ export async function updateServiceAddon({
   name,
   priceInput,
   durationMinutes,
+  description,
 }) {
+  const descriptionTrimmed = String(description ?? '').trim();
   const patch = {
     name: String(name ?? '').trim(),
     price_cents: centsFromInput(priceInput),
+    description: descriptionTrimmed || null,
     updated_at: new Date().toISOString(),
   };
   if (Number.isFinite(durationMinutes) && durationMinutes > 0) {

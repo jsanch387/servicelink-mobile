@@ -33,7 +33,7 @@ export async function fetchBusinessSmsMessages(businessId, options = {}) {
     .range(from, to);
 
   if (error) {
-    return { data: null, error: new Error(error.message ?? 'Could not load sent texts') };
+    return { data: null, error: new Error(error.message ?? 'Could not load sent messages') };
   }
 
   return { data: data ?? [], error: null };

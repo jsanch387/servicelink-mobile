@@ -473,7 +473,7 @@ export function ServicesScreen() {
     }
   }
 
-  async function handleAddonSheetSave({ name, price, durationHHmm }) {
+  async function handleAddonSheetSave({ name, price, durationHHmm, description }) {
     if (!catalog.businessId) {
       setAddonSheetError('Missing business context.');
       return;
@@ -488,6 +488,7 @@ export function ServicesScreen() {
           name,
           price,
           durationHHmm: normalizedDuration,
+          description,
         });
       } else {
         await mutateAddon({
@@ -495,6 +496,7 @@ export function ServicesScreen() {
           name,
           price,
           durationHHmm: normalizedDuration,
+          description,
         });
       }
       setAddonSheetOpen(false);
@@ -734,11 +736,13 @@ export function ServicesScreen() {
         {isAddonsView && !isSortMode ? (
           <>
             <ServiceCatalogMetaRow countLabel={titleLabel} />
-            <CatalogHowItWorksLink
-              accessibilityHint="Opens an explanation of service add-ons"
-              label={SERVICE_ADDONS_HOW_IT_WORKS_LINK_LABEL}
-              onPress={() => setAddonsHowItWorksOpen(true)}
-            />
+            {activeItems.length === 0 ? (
+              <CatalogHowItWorksLink
+                accessibilityHint="Opens an explanation of service add-ons"
+                label={SERVICE_ADDONS_HOW_IT_WORKS_LINK_LABEL}
+                onPress={() => setAddonsHowItWorksOpen(true)}
+              />
+            ) : null}
           </>
         ) : null}
 
@@ -855,7 +859,9 @@ export function ServicesScreen() {
         <CatalogEntityCard
           key={item.id}
           deleteDisabled={isDeletingAddon}
-          metaLines={[normalizeAddonDurationLabelForCard(item.durationLabel)].filter(Boolean)}
+          metaLines={[normalizeAddonDurationLabelForCard(item.durationLabel) || null].filter(
+            Boolean,
+          )}
           name={item.name}
           priceLabel={item.priceLabel}
           onDelete={() => {
@@ -1069,11 +1075,12 @@ export function ServicesScreen() {
       />
       <AddonEditorSheet
         allowBackdropClose={false}
+        initialDescription={editingAddon?.description ?? ''}
         initialDurationHHmm={editingAddon?.durationHHmm ?? ''}
         initialName={editingAddon?.name ?? ''}
         initialPrice={editingAddon?.price ?? ''}
         isSaving={isSavingAddon}
-        primaryButtonTitle={editingAddonId ? 'Save' : 'Save add-on'}
+        primaryButtonTitle="Save"
         submitError={addonSheetError}
         title={editingAddonId ? 'Edit add-on' : 'Add new add-on'}
         visible={isAddonsView && addonSheetOpen}

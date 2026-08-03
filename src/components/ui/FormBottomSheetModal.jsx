@@ -5,6 +5,8 @@ import { Button } from './Button';
 /**
  * Shared tall bottom sheet for simple forms: `BottomSheetModal` + standard Cancel / primary actions.
  * Use for add-on, add-service style flows; feature screens pass fields as `children`.
+ * Footer pins to the bottom of the sheet (`stickyFooter`) and stays under the
+ * keyboard while typing (`liftFooterWithKeyboard={false}`).
  */
 export function FormBottomSheetModal({
   visible,
@@ -27,11 +29,9 @@ export function FormBottomSheetModal({
           <Button
             disabled={primaryLoading}
             fullWidth
-            labelColor="#ffffff"
-            outlineColor="rgba(255,255,255,0.52)"
             style={styles.actionBtn}
             title={cancelTitle}
-            variant="outline"
+            variant="secondary"
             onPress={onRequestClose}
           />
           <Button
@@ -47,7 +47,9 @@ export function FormBottomSheetModal({
           />
         </View>
       }
+      liftFooterWithKeyboard={false}
       sheetHeightPercent={sheetHeightPercent}
+      stickyFooter
       title={title}
       visible={visible}
       onRequestClose={onRequestClose}
@@ -61,7 +63,6 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 22,
   },
   actionBtn: {
     flex: 1,

@@ -23,7 +23,7 @@ export function useMutateServiceAddon({ businessId, userId, serviceId: _serviceI
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: async ({ mode, addonId, name, price, durationHHmm }) => {
+    mutationFn: async ({ mode, addonId, name, price, durationHHmm, description }) => {
       const durationMinutes = durationHHmm ? serviceDurationHHmmToMinutes(durationHHmm) : 0;
       if (mode === 'create') {
         const { data, error } = await insertServiceAddon({
@@ -31,6 +31,7 @@ export function useMutateServiceAddon({ businessId, userId, serviceId: _serviceI
           name,
           priceInput: price,
           durationMinutes,
+          description,
         });
         if (error) throw new Error(error.message ?? 'Could not create add-on');
         if (!data) throw new Error('Could not create add-on');
@@ -43,6 +44,7 @@ export function useMutateServiceAddon({ businessId, userId, serviceId: _serviceI
         name,
         priceInput: price,
         durationMinutes,
+        description,
       });
       if (error) throw new Error(error.message ?? 'Could not update add-on');
       if (!data) throw new Error('Could not update add-on');

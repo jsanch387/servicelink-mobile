@@ -7,7 +7,7 @@ This document captures the Services feature behavior, data contract, and mutatio
 The feature supports:
 
 - Services catalog list (view/sort/reorder/delete/toggle active)
-- Add-ons catalog list (create/edit/delete)
+- Add-ons catalog list (create/edit/delete; optional short description stored for self-booking)
 - Service edit flow (details, pricing options, add-on assignments)
 - Service create flow (name, description, price, duration)
 
@@ -21,9 +21,10 @@ The feature supports:
     - Toggle active/inactive (instant DB update)
     - Sort mode + drag reorder + save order
   - Add-on card actions:
-    - Edit add-on (sheet)
+    - Edit add-on (sheet) — optional description editable here only
     - Delete add-on (confirmation)
     - Assign/unassign in service editor context
+  - Add-ons tab list shows name / price / duration only (no description preview)
   - Create service sheet (full-screen slide-up panel)
 
 - `src/features/services/screens/ServiceEditScreen.jsx`
@@ -44,7 +45,9 @@ From Supabase:
   - used for: fetch, save edits, delete option
 - `service_addons`
   - business-wide add-on catalog
+  - columns used: `name`, optional `description` (nullable, max 160), `price_cents`, optional `duration_minutes`
   - used for: list, create, update, delete
+  - `description` is for self-booking / web customers; mobile does not surface it outside the editor
 - `service_addon_assignments`
   - join table (`service_id`, `addon_id`) with no `business_id`
   - used for: service add-on assignment save/fetch
@@ -88,9 +91,11 @@ Mutations invalidate these keys plus `homeBusinessProfileQueryKey(userId)` where
 
 ### Add-on APIs
 
-- `fetchServiceAddons(businessId)`
-- `insertServiceAddon(...)`
-- `updateServiceAddon(...)`
+- `fetchServiceAddons(businessId)` — `select('*')` (includes `description`)
+- `insertServiceAddon({ businessId, name, priceInput, durationMinutes, description })`
+  - empty/whitespace `description` stored as `NULL`
+- `updateServiceAddon({ businessId, addonId, name, priceInput, durationMinutes, description })`
+  - same null-empty rule for `description`
 - `deleteServiceAddon(...)`
 - `fetchAddonAssignmentsByService(businessId)`
 - `fetchAddonAssignmentsForService(serviceId)`
@@ -160,8 +165,14 @@ Default behavior:
 
 ### Add-ons
 
+- Required: name, price. Duration and description are optional.
 - Add-on duration is optional (`''` means no extra time).
 - Duration display is human-readable (e.g. `30 min`, `1 hr`, `1 hr 30 min`) without `+`.
+- Optional `description` (max 160 chars via `ADDON_DESCRIPTION_MAX_LENGTH`):
+  - Editable only in `AddonEditorSheet` (create/edit add-on; not on pricing-option sheets)
+  - Loaded into catalog/editor models so edit can prefill
+  - **Not** shown on add-ons tab cards, service assignment cards (`SelectableAddonCard`), create/edit appointment, or quotes
+  - **Not** included in booking payloads (`selectedAddOns` / `addon_details`); web self-booking reads `service_addons.description` directly
 - Add-on delete confirmation explains cross-service removal behavior.
 
 ## UI/Interaction Notes
@@ -169,9 +180,10 @@ Default behavior:
 - Sort mode drag is long-press on the full service card.
 - Haptics (`expo-haptics`) trigger a subtle tactile tick on drag start.
 - Service create uses full-screen slide-up panel (no new route required).
-- Description fields in editor/create include:
+- **Service** description fields in editor/create include:
   - bullet insert action
   - live char counter
+- **Add-on** description field is a short optional multiline input with a 160-char counter (no bullet toolbar)
 
 ## Testing
 
@@ -180,7 +192,7 @@ Current service tests live in `src/features/services/__tests__/`:
 - `buildServicesCatalogModel.test.js`
   - service/add-on mapping, sort behavior, helper normalization
 - `serviceAddonModel.test.js`
-  - add-on model mapping and duration normalization
+  - add-on model mapping (including `description`) and duration normalization
 - `servicesApiSortOrder.test.js`
   - verifies reorder write path uses per-row update + business scoping
 

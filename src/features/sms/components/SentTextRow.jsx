@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Divider } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
@@ -8,6 +8,7 @@ const ICON_SIZE = 32;
 
 /**
  * Compact timeline row for an outbound customer text.
+ * Title + status + phone stay visible; tap to show/hide the message body.
  *
  * @param {{
  *   item: {
@@ -18,13 +19,14 @@ const ICON_SIZE = 32;
  *     statusTone: 'success' | 'muted' | 'danger' | 'info';
  *     phoneDisplay: string;
  *     timeLabel: string;
- *     error: string;
  *   };
  *   showDividerBelow?: boolean;
  * }} props
  */
 export function SentTextRow({ item, showDividerBelow = false }) {
   const { colors } = useTheme();
+  const [expanded, setExpanded] = useState(false);
+  const hasBody = Boolean(item.body?.trim());
 
   const statusColor = useMemo(() => {
     if (item.statusTone === 'success') {
@@ -49,7 +51,6 @@ export function SentTextRow({ item, showDividerBelow = false }) {
           alignItems: 'flex-start',
           flexDirection: 'row',
           gap: 12,
-          paddingHorizontal: 14,
           paddingVertical: 12,
         },
         iconWrap: {
@@ -104,52 +105,54 @@ export function SentTextRow({ item, showDividerBelow = false }) {
           fontWeight: '500',
           letterSpacing: -0.05,
           lineHeight: 18,
-          marginTop: 1,
-        },
-        error: {
-          color: statusColor,
-          fontSize: 12,
-          fontWeight: '500',
-          letterSpacing: -0.05,
-          lineHeight: 16,
-          marginTop: 1,
+          marginTop: 4,
         },
         divider: {
-          marginLeft: 14 + ICON_SIZE + 12,
+          marginLeft: ICON_SIZE + 12,
           marginVertical: 0,
         },
       }),
-    [colors, statusColor],
+    [colors],
+  );
+
+  const a11yLabel = `${item.title}. ${item.statusLabel}. ${item.phoneDisplay}. ${item.timeLabel}`;
+
+  const content = (
+    <View style={styles.row}>
+      <View style={styles.iconWrap}>
+        <Ionicons color={colors.textSecondary} name={item.iconName} size={16} />
+      </View>
+      <View style={styles.copy}>
+        <View style={styles.titleRow}>
+          <AppText style={styles.title}>{item.title}</AppText>
+          {item.timeLabel ? <AppText style={styles.time}>{item.timeLabel}</AppText> : null}
+        </View>
+        <AppText style={styles.meta}>
+          <AppText style={[styles.meta, styles.status, { color: statusColor }]}>
+            {item.statusLabel}
+          </AppText>
+          {item.phoneDisplay ? ` · ${item.phoneDisplay}` : ''}
+        </AppText>
+        {hasBody && expanded ? <AppText style={styles.body}>{item.body}</AppText> : null}
+      </View>
+    </View>
   );
 
   return (
-    <View
-      accessibilityLabel={`${item.title}. ${item.statusLabel}. ${item.phoneDisplay}. ${item.timeLabel}`}
-      style={styles.root}
-    >
-      <View style={styles.row}>
-        <View style={styles.iconWrap}>
-          <Ionicons color={colors.textSecondary} name={item.iconName} size={16} />
-        </View>
-        <View style={styles.copy}>
-          <View style={styles.titleRow}>
-            <AppText style={styles.title}>{item.title}</AppText>
-            {item.timeLabel ? <AppText style={styles.time}>{item.timeLabel}</AppText> : null}
-          </View>
-          <AppText style={styles.meta}>
-            <AppText style={[styles.meta, styles.status, { color: statusColor }]}>
-              {item.statusLabel}
-            </AppText>
-            {item.phoneDisplay ? ` · ${item.phoneDisplay}` : ''}
-          </AppText>
-          {item.body ? (
-            <AppText numberOfLines={2} style={styles.body}>
-              {item.body}
-            </AppText>
-          ) : null}
-          {item.error ? <AppText style={styles.error}>{item.error}</AppText> : null}
-        </View>
-      </View>
+    <View style={styles.root}>
+      {hasBody ? (
+        <Pressable
+          accessibilityHint={expanded ? 'Hides the text message' : 'Shows the text message'}
+          accessibilityLabel={a11yLabel}
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+          onPress={() => setExpanded((prev) => !prev)}
+        >
+          {content}
+        </Pressable>
+      ) : (
+        <View accessibilityLabel={a11yLabel}>{content}</View>
+      )}
       {showDividerBelow ? <Divider style={styles.divider} /> : null}
     </View>
   );

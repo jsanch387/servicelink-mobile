@@ -8,6 +8,7 @@ describe('serviceAddonModel', () => {
     const mapped = mapServiceAddonRowToEditorOption({
       id: 'addon-1',
       name: 'Pet hair',
+      description: 'Removes embedded fur',
       duration_minutes: 120,
       price_cents: 2500,
     });
@@ -15,6 +16,7 @@ describe('serviceAddonModel', () => {
     expect(mapped).toEqual({
       id: 'addon-1',
       name: 'Pet hair',
+      description: 'Removes embedded fur',
       durationLabel: '2 hrs',
       priceLabel: '$25',
       price: '25.00',

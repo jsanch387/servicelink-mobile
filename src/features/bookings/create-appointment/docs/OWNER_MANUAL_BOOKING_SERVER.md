@@ -62,23 +62,23 @@ Set **`ownerManualBooking`** to **`true`**.
 
 ### Top-level fields
 
-| Field                     | Type    | Required | Notes                                                                                                  |
-| ------------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------ |
-| `businessSlug`            | string  | Yes      | Must match business public slug.                                                                       |
-| `businessId`              | string  | Yes      | UUID `business_profiles.id`; must match slug + owner.                                                  |
-| `serviceName`             | string  | Yes      | Base service name.                                                                                     |
-| `serviceId`               | string  | Catalog  | Required for catalog; omit for custom.                                                                 |
-| `servicePriceOptionLabel` | string  | No       | Selected real catalog option label; omit for base pricing and custom jobs.                             |
-| `servicePriceCents`       | number  | Yes      | Gross base/option/custom price in integer cents. Server accepts `0`; mobile custom jobs require `> 0`. |
-| `selectedAddOns`          | array   | No       | `{ id, name, priceCents, durationMinutes? }`.                                                          |
-| `durationMinutes`         | number  | Yes      | Total length (service + add-ons). Integer ≥ 1.                                                         |
-| `scheduledDate`           | string  | Yes      | `YYYY-MM-DD`.                                                                                          |
-| `startTime`               | string  | Yes      | 24h `H:mm` or `HH:mm`.                                                                                 |
-| `customer`                | object  | Yes      | See below.                                                                                             |
-| `paymentMethodSelected`   | string  | No       | Send **`"none"`** for owner manual booking.                                                            |
-| `ownerManualBooking`      | boolean | Yes      | Must be **`true`**.                                                                                    |
-| `serviceLocationType`     | string  | Yes\*    | **`"mobile"`** or **`"shop"`**. New mobile always sends this.                                          |
-| `customerServiceLocation` | string  | No       | Web alias — **mobile does not send**; `serviceLocationType` wins if both present.                      |
+| Field                     | Type    | Required | Notes                                                                                                                          |
+| ------------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `businessSlug`            | string  | Yes      | Must match business public slug.                                                                                               |
+| `businessId`              | string  | Yes      | UUID `business_profiles.id`; must match slug + owner.                                                                          |
+| `serviceName`             | string  | Yes      | Base service name.                                                                                                             |
+| `serviceId`               | string  | Catalog  | Required for catalog; omit for custom.                                                                                         |
+| `servicePriceOptionLabel` | string  | No       | Selected real catalog option label; omit for base pricing and custom jobs.                                                     |
+| `servicePriceCents`       | number  | Yes      | Gross base/option/custom price in integer cents. Server accepts `0`; mobile custom jobs require `> 0`.                         |
+| `selectedAddOns`          | array   | No       | `{ id, name, priceCents, durationMinutes? }`. No `description` — catalog copy lives on `service_addons` for self-booking only. |
+| `durationMinutes`         | number  | Yes      | Total length (service + add-ons). Integer ≥ 1.                                                                                 |
+| `scheduledDate`           | string  | Yes      | `YYYY-MM-DD`.                                                                                                                  |
+| `startTime`               | string  | Yes      | 24h `H:mm` or `HH:mm`.                                                                                                         |
+| `customer`                | object  | Yes      | See below.                                                                                                                     |
+| `paymentMethodSelected`   | string  | No       | Send **`"none"`** for owner manual booking.                                                                                    |
+| `ownerManualBooking`      | boolean | Yes      | Must be **`true`**.                                                                                                            |
+| `serviceLocationType`     | string  | Yes\*    | **`"mobile"`** or **`"shop"`**. New mobile always sends this.                                                                  |
+| `customerServiceLocation` | string  | No       | Web alias — **mobile does not send**; `serviceLocationType` wins if both present.                                              |
 
 \*Mobile always sends this. The server may infer single-mode businesses, but a `both` business receives `400` when omitted.
 

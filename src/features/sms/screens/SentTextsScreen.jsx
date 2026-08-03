@@ -1,13 +1,7 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import {
-  AppText,
-  Button,
-  InlineCardError,
-  LoadMoreLink,
-  SurfaceCard,
-} from '../../../components/ui';
+import { AppText, Button, InlineCardError, LoadMoreLink } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
@@ -96,10 +90,7 @@ export function SentTextsScreen() {
           fontSize: 14,
           fontWeight: '600',
           letterSpacing: -0.15,
-          marginBottom: 8,
-        },
-        sectionCard: {
-          overflow: 'hidden',
+          marginBottom: 4,
         },
         errorWrap: {
           gap: 10,
@@ -149,7 +140,7 @@ export function SentTextsScreen() {
     return (
       <View style={styles.root}>
         <SentTextsEmptyState
-          detail="Finish setting up your business profile to track customer texts."
+          detail="Finish setting up your business profile to track customer messages."
           title="No business profile"
         />
       </View>
@@ -180,7 +171,7 @@ export function SentTextsScreen() {
           showingDesignPreview ? (
             <View style={styles.previewBanner}>
               <AppText style={styles.previewTitle}>
-                Preview sample texts — real sends will replace these.
+                Preview sample messages — real sends will replace these.
               </AppText>
             </View>
           ) : null
@@ -188,7 +179,7 @@ export function SentTextsScreen() {
         ListFooterComponent={
           hasNextPage ? (
             <LoadMoreLink
-              accessibilityHint="Loads older texts sent to customers"
+              accessibilityHint="Loads older messages sent to customers"
               label="Load older"
               loading={isFetchingNextPage}
               onPress={loadMore}
@@ -201,15 +192,13 @@ export function SentTextsScreen() {
         renderItem={({ item: block }) => (
           <View style={styles.dayBlock}>
             <AppText style={styles.sectionHeader}>{block.title}</AppText>
-            <SurfaceCard padding="none" style={styles.sectionCard}>
-              {block.data.map((row, index) => (
-                <SentTextRow
-                  key={row.id}
-                  item={row}
-                  showDividerBelow={index < block.data.length - 1}
-                />
-              ))}
-            </SurfaceCard>
+            {block.data.map((row, index) => (
+              <SentTextRow
+                key={row.id}
+                item={row}
+                showDividerBelow={index < block.data.length - 1}
+              />
+            ))}
           </View>
         )}
       />

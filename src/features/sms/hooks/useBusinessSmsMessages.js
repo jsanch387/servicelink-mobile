@@ -84,7 +84,7 @@ export function useBusinessSmsMessages() {
   const businessError = businessQ.isError
     ? (businessQ.error?.message ?? 'Could not load business')
     : null;
-  const listError = listQ.isError ? (listQ.error?.message ?? 'Could not load sent texts') : null;
+  const listError = listQ.isError ? (listQ.error?.message ?? 'Could not load sent messages') : null;
 
   const isPendingBusiness = Boolean(userId) && businessQ.isPending;
   const isPendingList = hasBusinessRow && listQ.isPending;
