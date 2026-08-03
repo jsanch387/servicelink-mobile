@@ -61,16 +61,20 @@ Owner marks field work finished on **Home → Next Up** before **Mark complete**
 
 ## Mobile integration (shipped)
 
-| Concern        | Location                                                                                 |
-| -------------- | ---------------------------------------------------------------------------------------- |
-| Done / Skip UI | `home/components/NextUpCard.jsx`                                                         |
-| Action hook    | `bookings/hooks/useBookingAction.js` → `workFinished(bookingId, notify)`                 |
-| HTTP client    | `bookings/api/postBookingAction.js`                                                      |
-| Next Up gating | `home/utils/resolveNextUpCardActions.js`, `constants/jobStatus.js` (`isWorkHandoffDone`) |
-| Cache patch    | `patchBookingJobStatusInHomeCache.js`, `patchBookingJobStatusInDetailsCache.js`          |
-| Toasts         | `bookings/utils/bookingActionFeedback.js` — **Skip is silent**                           |
+| Concern        | Location                                                                                           |
+| -------------- | -------------------------------------------------------------------------------------------------- |
+| Done / Skip UI | `home/components/NextUpCard.jsx` — **Skip** left, **Done** right                                   |
+| Done confirm   | `home/components/OnMyWayConfirmModal.jsx` → `workFinished(id, true, { suppressUiFeedback: true })` |
+| Skip confirm   | `home/components/SkipWorkNotifyConfirmModal.jsx` → `workFinished(id, false)`                       |
+| Action hook    | `bookings/hooks/useBookingAction.js` → `workFinished(bookingId, notify, options?)`                 |
+| HTTP client    | `bookings/api/postBookingAction.js`                                                                |
+| Next Up gating | `home/utils/resolveNextUpCardActions.js`, `constants/jobStatus.js` (`isWorkHandoffDone`)           |
+| Cache patch    | `patchBookingJobStatusInHomeCache.js`, `patchBookingJobStatusInDetailsCache.js`                    |
+| Toasts         | `bookings/utils/bookingActionFeedback.js` — **Skip is silent**; Done may suppress for modal UI     |
 
 Include `work_handoff_status` in booking SELECTs (`api/bookings.js`, `booking-details/api/bookingDetails.js`).
+
+See also Home Next Up docs: [`../../home/README.md`](../../home/README.md).
 
 ---
 

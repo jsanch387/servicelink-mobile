@@ -9,6 +9,7 @@ import { getBookingStatusLabel, getBookingStatusVisualKind } from '../utils/book
 import { getBookingServiceLabelParts } from '../utils/formatBookingServiceLabel';
 import { layoutPlannerDay } from '../utils/plannerDayLayout';
 import { BookingsDayPlannerSkeleton } from './BookingsDayPlannerSkeleton';
+import { BookingsEmptyState } from './BookingsEmptyState';
 
 /** Wide enough for "12:00" at 10pt; clock is right-aligned inside so colons line up. */
 const HOUR_LABEL_CLOCK_WIDTH = 40;
@@ -348,39 +349,6 @@ export function BookingsDayPlanner({
         blockStatusCancelled: {
           color: isDark ? '#fecaca' : '#991b1b',
         },
-        emptyScreen: {
-          alignItems: 'center',
-          flexGrow: 1,
-          justifyContent: 'center',
-          paddingBottom: 40,
-          paddingHorizontal: BOOKINGS_LIST_SCREEN_PADDING + 8,
-          paddingTop: 8,
-        },
-        emptyIconRing: {
-          alignItems: 'center',
-          backgroundColor: colors.shellElevated,
-          borderRadius: 999,
-          height: 72,
-          justifyContent: 'center',
-          marginBottom: 18,
-          width: 72,
-        },
-        emptyTitle: {
-          color: colors.text,
-          fontSize: 18,
-          fontWeight: '700',
-          letterSpacing: -0.25,
-          textAlign: 'center',
-        },
-        emptyBody: {
-          color: colors.textMuted,
-          fontSize: 15,
-          fontWeight: '500',
-          lineHeight: 22,
-          marginTop: 8,
-          maxWidth: 280,
-          textAlign: 'center',
-        },
         loadingSkeleton: {
           marginTop: 8,
         },
@@ -391,19 +359,10 @@ export function BookingsDayPlanner({
   if (!hasBusiness && !isLoading) {
     return (
       <View style={[styles.root, styles.scrollContentEmpty]}>
-        <View style={styles.emptyScreen}>
-          <View style={styles.emptyIconRing}>
-            <Ionicons color={colors.textMuted} name="business-outline" size={30} />
-          </View>
-          <AppText style={styles.emptyTitle}>No business profile</AppText>
-          <AppText style={styles.emptyBody}>
-            Once your business is set up in ServiceLink, the planner will load appointments here.
-          </AppText>
-        </View>
+        <BookingsEmptyState iconName="business-outline" title="No business profile" />
       </View>
     );
   }
-
   return (
     <ScrollView
       contentContainerStyle={[
@@ -482,15 +441,7 @@ export function BookingsDayPlanner({
           <BookingsDayPlannerSkeleton />
         </View>
       ) : showEmptyDay ? (
-        <View style={styles.emptyScreen}>
-          <View style={styles.emptyIconRing}>
-            <Ionicons color={colors.textMuted} name="calendar-outline" size={30} />
-          </View>
-          <AppText style={styles.emptyTitle}>Nothing scheduled</AppText>
-          <AppText style={styles.emptyBody}>
-            This day is clear. Use the arrows above to browse other dates.
-          </AppText>
-        </View>
+        <BookingsEmptyState title="Nothing scheduled" />
       ) : showTimeline ? (
         <View style={styles.timelineRow}>
           <View style={styles.timeGutter}>

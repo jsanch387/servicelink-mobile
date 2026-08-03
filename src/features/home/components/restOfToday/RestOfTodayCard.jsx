@@ -12,7 +12,7 @@ function timelineDotColor(statusKind, colors) {
 
 function RestOfTodaySkeleton() {
   return (
-    <SurfaceCard style={styles.card}>
+    <SurfaceCard outlined={false} style={styles.card}>
       {[0, 1, 2].map((k) => (
         <View key={k} style={styles.row}>
           <View style={styles.railCol}>
@@ -52,7 +52,7 @@ export function RestOfTodayCard({ items, isLoading, error }) {
 
   if (error) {
     return (
-      <SurfaceCard style={styles.card}>
+      <SurfaceCard outlined={false} style={styles.card}>
         <InlineCardError message={error} />
       </SurfaceCard>
     );
@@ -60,16 +60,13 @@ export function RestOfTodayCard({ items, isLoading, error }) {
 
   if (!items.length) {
     return (
-      <SurfaceCard style={styles.card}>
+      <SurfaceCard outlined={false} style={styles.card}>
         <View style={styles.emptyWrap}>
-          <View style={[styles.emptyIconWrap, { backgroundColor: colors.cardSurface }]}>
-            <Ionicons color={colors.textMuted} name="calendar-outline" size={18} />
+          <View style={[styles.emptyIconWrap, { backgroundColor: colors.shellElevated }]}>
+            <Ionicons color={colors.textMuted} name="time-outline" size={18} />
           </View>
-          <AppText style={[styles.emptyTitle, { color: colors.text }]}>
-            Nothing on the calendar
-          </AppText>
-          <AppText style={[styles.emptyBody, { color: colors.textMuted }]}>
-            You do not have any appointments scheduled for today.
+          <AppText style={[styles.emptyTitle, { color: colors.textMuted }]}>
+            Nothing scheduled today
           </AppText>
         </View>
       </SurfaceCard>
@@ -77,7 +74,7 @@ export function RestOfTodayCard({ items, isLoading, error }) {
   }
 
   return (
-    <SurfaceCard style={styles.card}>
+    <SurfaceCard outlined={false} style={styles.card}>
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
         const cancelled = item.statusKind === 'cancelled';
@@ -211,8 +208,9 @@ const styles = StyleSheet.create({
   },
   emptyWrap: {
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 4,
-    paddingVertical: 4,
+    paddingVertical: 22,
   },
   emptyIconWrap: {
     alignItems: 'center',
@@ -223,13 +221,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 15,
-    fontWeight: '700',
-    marginTop: 10,
-  },
-  emptyBody: {
-    fontSize: 14,
     fontWeight: '500',
-    lineHeight: 20,
     marginTop: 4,
     textAlign: 'center',
   },

@@ -15,6 +15,15 @@ jest.mock('../../../appReview', () => ({
   useAppReviewPrompt: jest.fn(),
 }));
 
+jest.mock('../../../sms/hooks/useCustomerSmsAccess', () => ({
+  useCustomerSmsAccess: jest.fn(() => ({
+    featureEnabled: true,
+    canUseSms: true,
+    showUpsell: false,
+    isReady: true,
+  })),
+}));
+
 jest.mock('../../api/postBookingAction', () => ({
   postBookingAction: jest.fn(),
 }));

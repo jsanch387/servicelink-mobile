@@ -25,21 +25,9 @@ describe('completeVisitNotificationCopy', () => {
     ).toBe("We'll email your customer a receipt and a link to leave a review.");
   });
 
-  it('getCompleteVisitSuccessDetail never includes contact info', () => {
-    expect(getCompleteVisitSuccessDetail({ showReviewEmail: true })).toBe(
-      'We emailed your customer their receipt and a review link.',
-    );
-    expect(getCompleteVisitSuccessDetail({ showReviewSms: true })).toBe(
-      'We texted your customer their receipt and a review link.',
-    );
-  });
-
-  it('getCompleteVisitSuccessDetail uses receipt-only copy when review invite is skipped', () => {
-    expect(getCompleteVisitSuccessDetail({ showReviewSms: true, showReviewInvite: false })).toBe(
-      'We texted your customer their receipt.',
-    );
-    expect(getCompleteVisitSuccessDetail({ showReviewEmail: true, showReviewInvite: false })).toBe(
-      'We emailed your customer their receipt.',
+  it('getCompleteVisitSuccessDetail confirms the appointment without naming a channel', () => {
+    expect(getCompleteVisitSuccessDetail()).toBe(
+      'This appointment is complete and saved to your calendar.',
     );
   });
 
@@ -60,12 +48,6 @@ describe('completeVisitNotificationCopy', () => {
       message: "No phone or email on this booking — your customer won't be notified automatically.",
       iconName: 'information-circle-outline',
     });
-  });
-
-  it('getCompleteVisitSuccessDetail falls back when no contact', () => {
-    expect(getCompleteVisitSuccessDetail({ showReviewSms: false, showReviewEmail: false })).toBe(
-      'This service is marked complete on your calendar.',
-    );
   });
 
   it('getCompleteVisitPaymentSettledBanner covers deposit + in-person', () => {
@@ -105,7 +87,7 @@ describe('completeVisitNotificationCopy (ship mode — notification copy hidden)
     }));
   });
 
-  it('hides follow-up row and uses neutral success detail', () => {
+  it('hides follow-up row and keeps the appointment-only success detail', () => {
     const {
       getCompleteVisitFollowUpMessage: followUp,
       getCompleteVisitSuccessDetail: successDetail,
@@ -116,8 +98,6 @@ describe('completeVisitNotificationCopy (ship mode — notification copy hidden)
       message: '',
       iconName: 'information-circle-outline',
     });
-    expect(successDetail({ showReviewSms: true })).toBe(
-      'This service is marked complete on your calendar.',
-    );
+    expect(successDetail()).toBe('This appointment is complete and saved to your calendar.');
   });
 });

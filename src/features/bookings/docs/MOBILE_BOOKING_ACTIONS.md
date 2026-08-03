@@ -18,12 +18,29 @@ Authorization: Bearer <access_token>
 
 ## Wired in the app
 
-| Action          | UI entry                                          | Code                                               |
-| --------------- | ------------------------------------------------- | -------------------------------------------------- |
-| `on_the_way`    | Next Up → **On my way**                           | `useBookingAction.notifyOnTheWay`                  |
-| `job_started`   | Next Up → **Slide to start job**                  | `useBookingAction.startJob`                        |
-| `work_finished` | Next Up → **Done** / **Skip**                     | `useBookingAction.workFinished(bookingId, notify)` |
-| `job_completed` | Next Up → **Mark complete** → **Complete** screen | `useMarkBookingCompleteFlow` → `postBookingAction` |
+| Action          | UI entry                                         | Code                                               |
+| --------------- | ------------------------------------------------ | -------------------------------------------------- |
+| `on_the_way`    | Next Up → **On my way** (glass confirm)          | `useBookingAction.notifyOnTheWay`                  |
+| `on_the_way`    | Booking details → **Job status**                 | same hook (`BookingJobStatusSheet`)                |
+| `job_started`   | Next Up → **Slide to start job**                 | `useBookingAction.startJob`                        |
+| `job_started`   | Booking details → **Job status** → Start job     | `useBookingAction.startJobAsync`                   |
+| `work_finished` | Next Up → **Done** / **Skip** (confirms)         | `useBookingAction.workFinished(bookingId, notify)` |
+| `work_finished` | Booking details → **Job status** → Work finished | same hook                                          |
+| `job_completed` | Next Up / details → **Complete**                 | `useMarkBookingCompleteFlow` → `postBookingAction` |
+
+Job status rows are gated by server `job_status` + `work_handoff_status` (`resolveJobStatusSheetActions`). If Next Up already advanced a step, that row is locked on booking details.
+
+### Next Up confirms (before the POST)
+
+| Tap                    | Confirm                                                     | Then                                                     |
+| ---------------------- | ----------------------------------------------------------- | -------------------------------------------------------- |
+| **On my way → Send**   | `OnMyWayConfirmModal`                                       | `notifyOnTheWay(id, true, { suppressUiFeedback: true })` |
+| **On my way → Skip**   | Same sheet → native **Skip texting?** alert                 | `notifyOnTheWay(id, false)`                              |
+| **Done**               | `OnMyWayConfirmModal` (done copy; modal owns success/error) | `workFinished(id, true, { suppressUiFeedback: true })`   |
+| **Skip** (handoff)     | `SkipWorkNotifyConfirmModal` → **Continue**                 | `workFinished(id, false)`                                |
+| **Slide to start job** | Slide control is the confirm                                | `startJob`                                               |
+
+Full CTA / spotlight matrix: [`src/features/home/README.md`](../../home/README.md).
 
 ## Module map (`work_finished`)
 
@@ -41,9 +58,9 @@ Authorization: Bearer <access_token>
 - Patch cache with returned **`jobStatus`** and **`workHandoffStatus`** (when present).
 - On `job_completed`, also patch **`bookingStatus`**.
 - Invalidate home + booking details queries.
-- Show channel-appropriate toast (`sms` / `email` / soft skip) — except **Skip** on `work_finished` (silent).
+- Show channel-appropriate toast (`sms` / `email` / soft skip) — except **Skip** on `work_finished` (silent), and except paths that pass **`suppressUiFeedback: true`** (On my way Send / Done — confirm modal owns success/error UI).
 
-**Important:** UI advances on HTTP success even when SMS fails. Failed SMS alone is never a non-2xx response from the server.
+**Important:** UI advances on HTTP success even when SMS fails. Failed SMS alone is never a non-2xx response from the server. Trust API success for Send/Done modal success states.
 
 ## `work_finished` behavior
 
@@ -52,9 +69,10 @@ Authorization: Bearer <access_token>
 | **Done** | `{ action: "work_finished", notify: true }`  | `notified`                  | Attempt send | **Mark complete** (handoff buttons hidden) |
 | **Skip** | `{ action: "work_finished", notify: false }` | `skipped`                   | None         | Same                                       |
 
-- **Done** disabled when booking has no sendable phone; **Skip** always available.
+- Button order on Next Up: **Skip** left, **Done** right.
+- **Done** disabled when booking has no sendable phone; **Skip** always available (after glass confirm).
 - **Skip** shows **no toast** (owner keeps moving).
-- **Done** toasts:
+- **Done** from Next Up uses the confirm modal success/error UI (`suppressUiFeedback`); toast table below applies when feedback is not suppressed (e.g. other entry points).
 
 | Server                           | Owner sees                                                       |
 | -------------------------------- | ---------------------------------------------------------------- |

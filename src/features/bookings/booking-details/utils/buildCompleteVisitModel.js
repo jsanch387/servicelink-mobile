@@ -1,3 +1,4 @@
+import { normalizePhoneForDatabase } from '../../../../utils/phone';
 import { isCompleteVisitPaidInFullOnline } from './completeVisitPaymentState';
 import { getMarkCompletePreviewFromBooking } from './markCompletePreview';
 import { parseAddonLineItemsFromBooking } from './parseAddonLineItemsFromBooking';
@@ -34,6 +35,7 @@ import { resolveBookingDiscount } from './resolveBookingDiscount';
  * @property {number} remainingAmountCents — from booking_payments; 0 when nothing left to collect
  * @property {boolean} isPaidInFullOnline — customer prepaid the full total online
  * @property {string | null} customerEmail
+ * @property {string | null} customerPhone
  * @property {boolean} showReviewSms
  * @property {boolean} showReviewEmail
  * @property {boolean} showReviewInvite
@@ -108,9 +110,10 @@ function buildLineItemsFromLegacyColumns(booking) {
  *
  * @param {Record<string, unknown> | null | undefined} booking
  * @param {import('./markCompletePreview').MarkCompletePreview | null | undefined} [preview]
+ * @param {{ canUseSms?: boolean }} [options] Only used when `preview` is omitted.
  * @returns {CompleteVisitModel | null}
  */
-export function buildCompleteVisitModelFromBooking(booking, preview) {
+export function buildCompleteVisitModelFromBooking(booking, preview, options) {
   if (!booking || typeof booking !== 'object') {
     return null;
   }
@@ -217,7 +220,8 @@ export function buildCompleteVisitModelFromBooking(booking, preview) {
   });
 
   const customerEmail = String(booking.customer_email ?? '').trim() || null;
-  const resolvedPreview = preview ?? getMarkCompletePreviewFromBooking(booking);
+  const customerPhone = normalizePhoneForDatabase(String(booking.customer_phone ?? '')) || null;
+  const resolvedPreview = preview ?? getMarkCompletePreviewFromBooking(booking, options);
 
   return {
     lineItems,
@@ -227,6 +231,7 @@ export function buildCompleteVisitModelFromBooking(booking, preview) {
     remainingAmountCents,
     isPaidInFullOnline,
     customerEmail,
+    customerPhone,
     showReviewSms: Boolean(resolvedPreview.showReviewSmsMessage),
     showReviewEmail: Boolean(resolvedPreview.showReviewInviteMessage),
     showReviewInvite: resolvedPreview.showReviewInvite !== false,

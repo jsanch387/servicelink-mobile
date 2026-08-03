@@ -3,9 +3,9 @@ import { BOOKING_ACTION } from '../constants/jobStatus';
 
 export const ON_THE_WAY_SUCCESS_SMS = 'Customer notified you’re on the way';
 export const ON_THE_WAY_SUCCESS_STATE_ONLY = 'Marked on the way';
-export const JOB_STARTED_SUCCESS_SMS = 'Customer notified the service is starting';
-export const JOB_STARTED_SUCCESS_STATE_ONLY = 'Marked started';
-export const JOB_STARTED_SMS_SOFT_NOTE = 'Marked started — couldn’t text customer';
+export const JOB_STARTED_SUCCESS_SMS = 'Customer notified job started';
+export const JOB_STARTED_SUCCESS_STATE_ONLY = 'Job started';
+export const JOB_STARTED_SMS_SOFT_NOTE = 'Job started — couldn’t text customer';
 export const WORK_FINISHED_SUCCESS_SMS = 'Customer notified your service is finished';
 export const WORK_FINISHED_SUCCESS_STATE_ONLY = 'Marked done';
 export const WORK_FINISHED_SMS_SOFT_NOTE = 'Marked done — couldn’t text customer';

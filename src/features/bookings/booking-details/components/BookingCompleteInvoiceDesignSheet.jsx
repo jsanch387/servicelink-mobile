@@ -46,15 +46,16 @@ import { CompleteVisitSubmitOverlay } from './CompleteVisitSubmitOverlay';
 import { CompleteVisitAddFeeSheet } from './CompleteVisitAddFeeSheet';
 import { CompleteVisitReceiptEmailDialog } from './CompleteVisitReceiptEmailDialog';
 import { CompleteVisitReceiptEmailNotice } from './CompleteVisitReceiptEmailNotice';
-import { updateBookingCustomerEmail } from '../api/updateBookingCustomerEmail';
+import { updateBookingCustomerContact } from '../api/updateBookingCustomerEmail';
 import {
-  COMPLETE_VISIT_RECEIPT_EMAIL_INVALID_TOAST,
-  COMPLETE_VISIT_RECEIPT_EMAIL_SAVE_ERROR_TOAST,
+  COMPLETE_VISIT_RECEIPT_CONTACT_INVALID_TOAST,
+  COMPLETE_VISIT_RECEIPT_CONTACT_SAVE_ERROR_TOAST,
 } from '../constants/completeVisitReceiptEmailCopy';
 import { bookingsDetailsQueryKey } from '../../queryKeys';
 import { useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { isValidEmailFormat } from '../../../../utils/email';
+import { formatPhoneForDisplay, phoneForSmsUri } from '../../../../utils/phone';
 import {
   TapToPaySheet,
   TAP_TO_PAY_RECEIPT_ROW_LABEL,
@@ -67,6 +68,7 @@ import {
   TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT,
   TAP_TO_PAY_CHECKOUT_BUTTON_LABEL,
 } from '../../../tap-to-pay';
+import { useCustomerSmsAccess } from '../../../sms/hooks/useCustomerSmsAccess';
 import { useTapToPayReaderPrewarm } from '../../../tap-to-pay/hooks/useTapToPayReaderPrewarm';
 import { TapToPayCheckoutIcon } from '../../../tap-to-pay/components/TapToPayCheckoutIcon';
 import { TapToPaySetupRequiredSheet } from '../../../tap-to-pay/components/TapToPaySetupRequiredSheet';
@@ -77,6 +79,7 @@ import {
   getInPersonPaymentRowLabel,
 } from './CompleteVisitMarkPaidSheet';
 import { CompleteVisitJobsBreakdown } from './CompleteVisitJobsBreakdown';
+import { FORCE_SHOW_RECEIPT_CONTACT_DIALOG } from '../constants/markCompleteFeatureFlags';
 
 function formatUsd(amount) {
   const safe = Number.isFinite(amount) ? amount : 0;
@@ -122,8 +125,9 @@ function formatUsd(amount) {
  *   }> | null;
  *   isMultiJob?: boolean;
  *   savedReceiptEmail: string;
- *   onPressAddReceiptEmail: () => void;
- *   showReceiptEmailNotice?: boolean;
+ *   savedReceiptPhone: string;
+ *   onPressAddReceiptContact: () => void;
+ *   showReceiptContactNotice?: boolean;
  * }} props
  */
 function CompleteVisitDesignBody({
@@ -153,8 +157,9 @@ function CompleteVisitDesignBody({
   jobs = null,
   isMultiJob = false,
   savedReceiptEmail,
-  onPressAddReceiptEmail,
-  showReceiptEmailNotice = false,
+  savedReceiptPhone,
+  onPressAddReceiptContact,
+  showReceiptContactNotice = false,
 }) {
   const { colors } = useTheme();
   const overlay = useBottomSheetOverlay();
@@ -320,10 +325,12 @@ function CompleteVisitDesignBody({
 
   const canUseTapToPay = tapToPayConnectReady && !tapToPayConnectLoading;
   const hasReceiptEmailForTapToPay = isValidEmailFormat(savedReceiptEmail);
-  const tapToPayNeedsReceiptEmail = showReceiptEmailNotice && !hasReceiptEmailForTapToPay;
+  const hasReceiptPhoneForTapToPay = Boolean(phoneForSmsUri(savedReceiptPhone));
+  const hasReceiptContactForTapToPay = hasReceiptEmailForTapToPay || hasReceiptPhoneForTapToPay;
+  const tapToPayNeedsReceiptContact = showReceiptContactNotice && !hasReceiptContactForTapToPay;
 
   const handleTapToPayPress = useCallback(() => {
-    if (tapToPayConnectLoading || tapToPayNeedsReceiptEmail) {
+    if (tapToPayConnectLoading || tapToPayNeedsReceiptContact) {
       return;
     }
     if (!isTapToPayNativeRuntimeAvailable()) {
@@ -338,7 +345,7 @@ function CompleteVisitDesignBody({
       return;
     }
     setSetupSheetVisible(true);
-  }, [canUseTapToPay, openTapToPaySheet, tapToPayConnectLoading, tapToPayNeedsReceiptEmail]);
+  }, [canUseTapToPay, openTapToPaySheet, tapToPayConnectLoading, tapToPayNeedsReceiptContact]);
 
   const handleSetupPaymentsPress = useCallback(() => {
     setSetupSheetVisible(false);
@@ -427,13 +434,13 @@ function CompleteVisitDesignBody({
             {showTapToPay ? (
               <Button
                 accessibilityHint={
-                  tapToPayNeedsReceiptEmail
-                    ? 'Add a customer email below to use Tap to Pay'
+                  tapToPayNeedsReceiptContact
+                    ? 'Add a customer email or phone below to use Tap to Pay'
                     : canUseTapToPay
                       ? TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT
                       : TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT
                 }
-                disabled={tapToPayConnectLoading || tapToPayNeedsReceiptEmail}
+                disabled={tapToPayConnectLoading || tapToPayNeedsReceiptContact}
                 fullWidth
                 iconNode={<TapToPayCheckoutIcon size={22} />}
                 loading={tapToPayConnectLoading}
@@ -454,8 +461,8 @@ function CompleteVisitDesignBody({
         ) : null}
       </DetailsSectionCard>
 
-      {showReceiptEmailNotice ? (
-        <CompleteVisitReceiptEmailNotice onPressAddEmail={onPressAddReceiptEmail} />
+      {showReceiptContactNotice ? (
+        <CompleteVisitReceiptEmailNotice onPressAddContact={onPressAddReceiptContact} />
       ) : null}
 
       <DetailsSectionCard bodyPadding="roomy" title="Breakdown">
@@ -585,6 +592,7 @@ export function BookingCompleteVisitSheet({
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const accessToken = session?.access_token ?? null;
+  const { canUseSms } = useCustomerSmsAccess();
   const {
     isConnectReady: tapToPayConnectReady,
     isLoading: tapToPayConnectLoading,
@@ -617,7 +625,9 @@ export function BookingCompleteVisitSheet({
   );
   const [receiptEmailDraft, setReceiptEmailDraft] = useState('');
   const [savedReceiptEmail, setSavedReceiptEmail] = useState('');
-  const [receiptEmailDialogVisible, setReceiptEmailDialogVisible] = useState(false);
+  const [receiptPhoneDraft, setReceiptPhoneDraft] = useState('');
+  const [savedReceiptPhone, setSavedReceiptPhone] = useState('');
+  const [receiptContactDialogVisible, setReceiptContactDialogVisible] = useState(false);
   const completeTimeoutRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
 
   const MOCK_COMPLETE_MS = 2400;
@@ -627,6 +637,12 @@ export function BookingCompleteVisitSheet({
       void refetchTapToPayConnectReadiness();
     }
   }, [refetchTapToPayConnectReadiness, visible]);
+
+  useEffect(() => {
+    if (visible && FORCE_SHOW_RECEIPT_CONTACT_DIALOG) {
+      setReceiptContactDialogVisible(true);
+    }
+  }, [visible]);
 
   useEffect(() => {
     if (visible) {
@@ -657,7 +673,9 @@ export function BookingCompleteVisitSheet({
       setSubmitPhase('idle');
       setReceiptEmailDraft('');
       setSavedReceiptEmail('');
-      setReceiptEmailDialogVisible(false);
+      setReceiptPhoneDraft('');
+      setSavedReceiptPhone('');
+      setReceiptContactDialogVisible(false);
       if (completeTimeoutRef.current) {
         clearTimeout(completeTimeoutRef.current);
         completeTimeoutRef.current = null;
@@ -695,8 +713,11 @@ export function BookingCompleteVisitSheet({
       return;
     }
     const email = String(resolvedModel.customerEmail ?? '').trim();
+    const phone = phoneForSmsUri(resolvedModel.customerPhone) || '';
     setSavedReceiptEmail(email);
     setReceiptEmailDraft(email);
+    setSavedReceiptPhone(phone);
+    setReceiptPhoneDraft(formatPhoneForDisplay(phone) || phone);
   }, [resolvedModel, visible]);
 
   const subtotal = useMemo(() => {
@@ -729,9 +750,12 @@ export function BookingCompleteVisitSheet({
   }, [amountDue, isPaidInFullOnline, paidOnline]);
 
   const showCollectActions = amountDue > 0;
-  const showReceiptEmailNotice =
-    showTapToPay && showCollectActions && !isValidEmailFormat(savedReceiptEmail);
   const hasSavedReceiptEmail = isValidEmailFormat(savedReceiptEmail);
+  const hasSavedReceiptPhone = Boolean(phoneForSmsUri(savedReceiptPhone));
+  // A phone typed into the receipt form only means a text when this owner can text.
+  const canTextSavedReceiptPhone = canUseSms && hasSavedReceiptPhone;
+  const showReceiptContactNotice =
+    showTapToPay && showCollectActions && !hasSavedReceiptEmail && !hasSavedReceiptPhone;
 
   const followUpInfo = useMemo(() => {
     if (!resolvedModel) {
@@ -741,37 +765,35 @@ export function BookingCompleteVisitSheet({
     const showReviewInvite = resolvedModel.showReviewInvite !== false;
     return getCompleteVisitFollowUpInfo({
       showInvoiceEmail: hasSavedReceiptEmail,
-      showReviewSms,
-      showReviewEmail: hasSavedReceiptEmail && !showReviewSms,
+      showReviewSms: showReviewSms || canTextSavedReceiptPhone,
+      showReviewEmail: hasSavedReceiptEmail && !showReviewSms && !canTextSavedReceiptPhone,
       showReviewInvite,
     });
-  }, [hasSavedReceiptEmail, resolvedModel]);
+  }, [canTextSavedReceiptPhone, hasSavedReceiptEmail, resolvedModel]);
 
-  const successCopy = useMemo(() => {
-    if (!resolvedModel) {
-      return getCompleteVisitSuccessCopy({});
-    }
-    const showReviewSms = resolvedModel.showReviewSms ?? false;
-    const showReviewInvite = resolvedModel.showReviewInvite !== false;
-    return getCompleteVisitSuccessCopy({
-      showReviewSms,
-      showReviewEmail: hasSavedReceiptEmail && !showReviewSms,
-      showReviewInvite,
-    });
-  }, [hasSavedReceiptEmail, resolvedModel]);
+  const successCopy = useMemo(() => getCompleteVisitSuccessCopy(), []);
 
-  const handleSaveReceiptEmail = useCallback(
-    async (emailInput) => {
-      const email = String(emailInput ?? receiptEmailDraft).trim();
-      if (!isValidEmailFormat(email)) {
-        toast.error(COMPLETE_VISIT_RECEIPT_EMAIL_INVALID_TOAST);
-        throw new Error('invalid_email');
+  const handleSaveReceiptContact = useCallback(
+    async (contactInput) => {
+      const email = String(contactInput?.email ?? '').trim();
+      const phone = String(contactInput?.phone ?? '').trim();
+      const emailOk = isValidEmailFormat(email);
+      const phoneDigits = phoneForSmsUri(phone) || '';
+      if (!emailOk && !phoneDigits) {
+        toast.error(COMPLETE_VISIT_RECEIPT_CONTACT_INVALID_TOAST);
+        throw new Error('invalid_contact');
       }
 
       if (isDesignPreview) {
-        setSavedReceiptEmail(email);
-        setReceiptEmailDraft(email);
-        setReceiptEmailDialogVisible(false);
+        if (emailOk) {
+          setSavedReceiptEmail(email);
+          setReceiptEmailDraft(email);
+        }
+        if (phoneDigits) {
+          setSavedReceiptPhone(phoneDigits);
+          setReceiptPhoneDraft(formatPhoneForDisplay(phoneDigits) || phoneDigits);
+        }
+        setReceiptContactDialogVisible(false);
         Keyboard.dismiss();
         return;
       }
@@ -791,23 +813,47 @@ export function BookingCompleteVisitSheet({
           ? String(cached.business_id).trim()
           : null;
 
-      const { error } = await updateBookingCustomerEmail(id, email, {
-        businessId,
-        customerId,
-      });
+      const {
+        error,
+        email: savedEmail,
+        phone: savedPhone,
+      } = await updateBookingCustomerContact(
+        id,
+        {
+          email: emailOk ? email : null,
+          phone: phoneDigits || null,
+        },
+        {
+          businessId,
+          customerId,
+        },
+      );
       if (error) {
-        toast.error(error.message ?? COMPLETE_VISIT_RECEIPT_EMAIL_SAVE_ERROR_TOAST);
+        toast.error(error.message ?? COMPLETE_VISIT_RECEIPT_CONTACT_SAVE_ERROR_TOAST);
         throw error;
       }
-      setSavedReceiptEmail(email);
-      setReceiptEmailDraft(email);
+
+      if (savedEmail) {
+        setSavedReceiptEmail(savedEmail);
+        setReceiptEmailDraft(savedEmail);
+      }
+      if (savedPhone) {
+        setSavedReceiptPhone(savedPhone);
+        setReceiptPhoneDraft(formatPhoneForDisplay(savedPhone) || savedPhone);
+      }
       queryClient.setQueryData(bookingsDetailsQueryKey(id), (old) =>
-        old && typeof old === 'object' ? { ...old, customer_email: email } : old,
+        old && typeof old === 'object'
+          ? {
+              ...old,
+              ...(savedEmail ? { customer_email: savedEmail } : null),
+              ...(savedPhone ? { customer_phone: savedPhone } : null),
+            }
+          : old,
       );
-      setReceiptEmailDialogVisible(false);
+      setReceiptContactDialogVisible(false);
       Keyboard.dismiss();
     },
-    [bookingId, isDesignPreview, queryClient, receiptEmailDraft, toast],
+    [bookingId, isDesignPreview, queryClient, toast],
   );
 
   const tapToPayBlocksComplete =
@@ -1106,7 +1152,7 @@ export function BookingCompleteVisitSheet({
                     onlinePaidRowLabel={onlinePaidRowLabel}
                     paidOnline={paidOnline}
                     showCollectActions={showCollectActions}
-                    showReceiptEmailNotice={showReceiptEmailNotice}
+                    showReceiptContactNotice={showReceiptContactNotice}
                     showTapToPay={showTapToPay}
                     tapToPayConnectLoading={resolvedTapToPayConnectLoading}
                     tapToPayConnectReady={resolvedTapToPayConnectReady}
@@ -1114,7 +1160,8 @@ export function BookingCompleteVisitSheet({
                     subtotal={subtotal}
                     tapToPayAmount={tapToPayAmount}
                     savedReceiptEmail={savedReceiptEmail}
-                    onPressAddReceiptEmail={() => setReceiptEmailDialogVisible(true)}
+                    savedReceiptPhone={savedReceiptPhone}
+                    onPressAddReceiptContact={() => setReceiptContactDialogVisible(true)}
                     onAddFee={handleAddFee}
                     onMarkPaidInPerson={handleMarkPaidInPerson}
                     onRemoveFee={handleRemoveFee}
@@ -1174,12 +1221,13 @@ export function BookingCompleteVisitSheet({
             </View>
           </Animated.View>
           <ToastModalHost />
-          {receiptEmailDialogVisible ? (
+          {receiptContactDialogVisible ? (
             <CompleteVisitReceiptEmailDialog
               initialEmail={savedReceiptEmail || receiptEmailDraft}
-              visible={receiptEmailDialogVisible}
-              onClose={() => setReceiptEmailDialogVisible(false)}
-              onSave={handleSaveReceiptEmail}
+              initialPhone={receiptPhoneDraft || savedReceiptPhone}
+              visible={receiptContactDialogVisible}
+              onClose={() => setReceiptContactDialogVisible(false)}
+              onSave={handleSaveReceiptContact}
             />
           ) : null}
         </View>

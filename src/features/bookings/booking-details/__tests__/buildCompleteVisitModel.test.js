@@ -54,6 +54,7 @@ describe('buildCompleteVisitModelFromBooking', () => {
       remainingAmountCents: 9500,
       isPaidInFullOnline: false,
       customerEmail: 'jane@example.com',
+      customerPhone: '5552345678',
       showReviewSms: true,
       showReviewEmail: false,
       showReviewInvite: true,

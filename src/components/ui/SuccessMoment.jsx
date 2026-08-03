@@ -1,14 +1,12 @@
-import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
+import { fireSuccessHaptic } from '../../utils/feedbackHaptics';
+import { AnimatedCheckmark } from './AnimatedCheckmark';
 import { AppText } from './AppText';
 import { SurfaceCard } from './Card';
-import { SUBMIT_OUTCOME_SUCCESS } from './submitOutcomeTokens';
 
-const ICON_SIZE = 64;
-const RING_SIZE = 104;
+const ICON_SIZE = 72;
 
 /**
  * Shared success “moment” — haptic + staged entrance for icon, copy, and optional note.
@@ -39,7 +37,6 @@ export function SuccessMoment({
   const { colors } = useTheme();
   const isCard = variant === 'card';
 
-  const iconScale = useRef(new Animated.Value(0.55)).current;
   const iconOpacity = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const contentTranslateY = useRef(new Animated.Value(16)).current;
@@ -47,7 +44,6 @@ export function SuccessMoment({
   const noteTranslateY = useRef(new Animated.Value(12)).current;
 
   useEffect(() => {
-    iconScale.setValue(0.55);
     iconOpacity.setValue(0);
     contentOpacity.setValue(0);
     contentTranslateY.setValue(16);
@@ -55,7 +51,7 @@ export function SuccessMoment({
     noteTranslateY.setValue(12);
 
     if (playHaptic) {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      fireSuccessHaptic();
     }
 
     const contentAnim = Animated.parallel([
@@ -92,20 +88,12 @@ export function SuccessMoment({
         : null;
 
     const entrance = Animated.sequence([
-      Animated.parallel([
-        Animated.spring(iconScale, {
-          toValue: 1,
-          friction: 7,
-          tension: 110,
-          useNativeDriver: true,
-        }),
-        Animated.timing(iconOpacity, {
-          toValue: 1,
-          duration: 240,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
+      Animated.timing(iconOpacity, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
       contentAnim,
       ...(noteAnim ? [noteAnim] : []),
     ]);
@@ -115,7 +103,6 @@ export function SuccessMoment({
     replayKey,
     playHaptic,
     note,
-    iconScale,
     iconOpacity,
     contentOpacity,
     contentTranslateY,
@@ -152,16 +139,7 @@ export function SuccessMoment({
           paddingHorizontal: 8,
           width: '100%',
         },
-        iconRing: {
-          alignItems: 'center',
-          backgroundColor: SUBMIT_OUTCOME_SUCCESS.ring,
-          borderRadius: 999,
-          height: RING_SIZE,
-          justifyContent: 'center',
-          marginBottom: 4,
-          width: RING_SIZE,
-        },
-        inlineIconWrap: {
+        iconWrap: {
           marginBottom: 8,
         },
         title: {
@@ -175,7 +153,7 @@ export function SuccessMoment({
           color: colors.textMuted,
           fontSize: 15,
           fontWeight: '500',
-          lineHeight: 22,
+          lineHeight: 20,
           maxWidth: 320,
           textAlign: 'center',
         },
@@ -193,18 +171,12 @@ export function SuccessMoment({
   );
 
   const iconNode = (
-    <Animated.View
-      style={[
-        isCard ? styles.iconRing : styles.inlineIconWrap,
-        {
-          opacity: iconOpacity,
-          transform: [{ scale: iconScale }],
-        },
-      ]}
-    >
-      <View accessibilityLabel={iconAccessibilityLabel} accessibilityRole="image">
-        <Ionicons color={SUBMIT_OUTCOME_SUCCESS.color} name="checkmark-circle" size={ICON_SIZE} />
-      </View>
+    <Animated.View style={[styles.iconWrap, { opacity: iconOpacity }]}>
+      <AnimatedCheckmark
+        accessibilityLabel={iconAccessibilityLabel}
+        replayKey={replayKey}
+        size={ICON_SIZE}
+      />
     </Animated.View>
   );
 
@@ -213,7 +185,7 @@ export function SuccessMoment({
       style={{
         alignItems: 'center',
         alignSelf: 'stretch',
-        gap: 10,
+        gap: 4,
         opacity: contentOpacity,
         transform: [{ translateY: contentTranslateY }],
       }}

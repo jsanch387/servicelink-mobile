@@ -4,27 +4,25 @@ import { useTheme } from '../../../theme';
 
 /**
  * Compact maps affordance for the Next Up card en-route state.
+ * Always tappable — caller shows an alert when the booking has no address.
  *
- * @param {{ canMaps: boolean; onPress: () => void; testID?: string }} props
+ * @param {{ onPress: () => void; testID?: string }} props
  */
-export function NextUpNavigateIconButton({ canMaps, onPress, testID }) {
+export function NextUpNavigateIconButton({ onPress, testID }) {
   const { colors } = useTheme();
   const lightFace = String(colors.nextUpSurface ?? '').toLowerCase() === '#ffffff';
   const iconColor = lightFace ? '#0a0a0a' : '#fafafa';
 
   return (
     <Pressable
-      accessibilityHint={canMaps ? 'Opens directions in maps' : 'Address required on this booking'}
+      accessibilityHint="Opens directions in maps"
       accessibilityLabel="Navigate"
       accessibilityRole="button"
-      accessibilityState={{ disabled: !canMaps }}
-      disabled={!canMaps}
       hitSlop={8}
       style={({ pressed }) => [
         styles.pressable,
         {
-          opacity: canMaps ? 1 : 0.45,
-          transform: [{ scale: pressed && canMaps ? 0.94 : 1 }],
+          transform: [{ scale: pressed ? 0.94 : 1 }],
         },
       ]}
       testID={testID}
@@ -35,11 +33,7 @@ export function NextUpNavigateIconButton({ canMaps, onPress, testID }) {
           style={[
             styles.face,
             lightFace ? styles.faceLight : styles.faceDark,
-            pressed && canMaps
-              ? lightFace
-                ? styles.faceLightPressed
-                : styles.faceDarkPressed
-              : null,
+            pressed ? (lightFace ? styles.faceLightPressed : styles.faceDarkPressed) : null,
           ]}
         >
           <Ionicons color={iconColor} name="navigate" size={21} />

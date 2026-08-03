@@ -92,12 +92,19 @@ export function getMarkCompleteModalCopy(booking, ctx) {
  * Client preview for complete-visit customer notifications (SMS → email fallback).
  * Receipt is sent when a channel exists; review link only when the customer is eligible.
  *
+ * `canUseSms` must reflect this owner's runtime SMS access
+ * (`useCustomerSmsAccess().canUseSms`). Without it the customer's phone is
+ * ignored, matching the server: owners who can't text fall through to the
+ * invoice email, so promising a text would be wrong. It defaults to off so a
+ * caller that forgets to pass it understates rather than over-promises.
+ *
  * @param {BookingForReviewEligibility & { customer_phone?: string | null }} booking
  * @param {ReviewEligibilityContext | null | undefined} ctx
+ * @param {{ canUseSms?: boolean }} [options]
  * @returns {import('../../bookings/booking-details/utils/markCompletePreview').MarkCompletePreview}
  */
-export function getCompleteVisitNotificationPreview(booking, ctx) {
-  const hasPhone = Boolean(phoneForSmsUri(booking?.customer_phone));
+export function getCompleteVisitNotificationPreview(booking, ctx, { canUseSms = false } = {}) {
+  const hasPhone = canUseSms && Boolean(phoneForSmsUri(booking?.customer_phone));
   const hasEmail = Boolean(normalizedCustomerEmail(booking?.customer_email));
   const alreadyReviewed = ctx ? customerAlreadyReviewed(booking, ctx) : false;
 

@@ -104,6 +104,59 @@ describe('useBookingsList', () => {
     expect(result.current.loadMoreLabel).toMatch(/^Load /);
   });
 
+  it('loads the previous month on the first past page', async () => {
+    const { result } = renderHook(() => useBookingsList(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      result.current.setListFilter(BOOKINGS_FILTER_PAST);
+    });
+
+    await waitFor(() => {
+      expect(bookingsApi.fetchBookingsForListWindow.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  it('auto-backfills older past months when the first pages are empty', async () => {
+    let call = 0;
+    bookingsApi.fetchBookingsForListWindow.mockImplementation(async () => {
+      call += 1;
+      if (call <= 2) {
+        return { data: [], error: null };
+      }
+      return {
+        data: [
+          {
+            id: 'past-1',
+            status: 'completed',
+            scheduled_date: '2026-06-15',
+            start_time: '09:00:00',
+          },
+        ],
+        error: null,
+      };
+    });
+
+    const { result } = renderHook(() => useBookingsList(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      result.current.setListFilter(BOOKINGS_FILTER_PAST);
+    });
+
+    await waitFor(() => {
+      expect(result.current.bookings.some((b) => b.id === 'past-1')).toBe(true);
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(bookingsApi.fetchBookingsForListWindow.mock.calls.length).toBeGreaterThan(2);
+  });
+
   it('loads all canceled appointments in one request', async () => {
     const { result, rerender } = renderHook(() => useBookingsList(), { wrapper });
 

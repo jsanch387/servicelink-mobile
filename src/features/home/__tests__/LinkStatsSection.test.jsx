@@ -72,6 +72,7 @@ describe('LinkStatsSection', () => {
     );
     expect(screen.getByText('0')).toBeTruthy();
     expect(screen.getByText('Last 24 hours')).toBeTruthy();
+    expect(screen.queryByText(/Last seen/)).toBeNull();
     expect(screen.queryByText('Never')).toBeNull();
     expect(screen.queryByText(/ago/)).toBeNull();
   });

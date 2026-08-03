@@ -1,3 +1,5 @@
+import { CUSTOMER_SMS_ENABLED } from '../../../sms/constants/customerSmsFlags';
+
 /**
  * Mark complete rollout flags (compile-time — change in source to roll back).
  *
@@ -14,12 +16,13 @@ export const MARK_COMPLETE_USE_COMPLETE_VISIT_SCREEN = true;
 export const MARK_COMPLETE_SHOW_COMPLETE_VISIT_DESIGN_PREVIEW = false;
 
 /**
- * When true, complete-visit UI promises customer SMS/email (receipt + review link).
- *
- * When false (ship mode until server SMS is approved), hide pre-complete follow-up copy,
- * success detail, and pending "Sending receipt" steps — completion still persists via
- * `job_completed`. Flip to `true` with `NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS` when SMS ships.
- *
- * See `src/features/home/docs/NEXT_UP_SMS_HOLD.md` (Complete visit section).
+ * TEMP preview — force-open the receipt contact dialog (email + phone fields) on complete sheet.
+ * Set false after design check.
  */
-export const COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY = false;
+export const FORCE_SHOW_RECEIPT_CONTACT_DIALOG = false;
+
+/**
+ * When true, complete-visit UI promises customer SMS/email (receipt + review link).
+ * Tied to {@link CUSTOMER_SMS_ENABLED}.
+ */
+export const COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY = CUSTOMER_SMS_ENABLED;

@@ -17,37 +17,26 @@ function renderSection(props = {}) {
   );
 }
 
-describe('BookingActionsSection on my way', () => {
-  it('shows On my way above lifecycle tiles when enabled', () => {
-    renderSection({ showOnMyWayAction: true, hasCustomerSmsPhone: true });
-    expect(screen.getByLabelText('On my way')).toBeTruthy();
-    expect(screen.getByLabelText('Reschedule booking')).toBeTruthy();
+describe('BookingActionsSection job status', () => {
+  it('shows Job status when enabled and calls onJobStatusPress', () => {
+    const onJobStatusPress = jest.fn();
+    renderSection({ showJobStatusAction: true, onJobStatusPress });
+    expect(screen.getByLabelText('Job status')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Job status'));
+    expect(onJobStatusPress).toHaveBeenCalledTimes(1);
   });
 
-  it('shows Customer notified when already sent', () => {
-    renderSection({
-      showOnMyWayAction: true,
-      hasCustomerSmsPhone: true,
-      onMyWayAlreadySent: true,
-    });
-    expect(screen.getByLabelText('Customer notified')).toBeDisabled();
-    expect(screen.queryByLabelText('On my way')).toBeNull();
+  it('hides Job status when showJobStatusAction is false', () => {
+    renderSection({ showJobStatusAction: false });
+    expect(screen.queryByLabelText('Job status')).toBeNull();
   });
 
-  it('hides on my way row when showOnMyWayAction is false', () => {
-    renderSection({ showOnMyWayAction: false });
-    expect(screen.queryByLabelText('On my way')).toBeNull();
-    expect(screen.queryByLabelText('Customer notified')).toBeNull();
-  });
-
-  it('calls onOnMyWayPress when On my way is pressed', () => {
-    const onOnMyWayPress = jest.fn();
-    renderSection({
-      showOnMyWayAction: true,
-      hasCustomerSmsPhone: true,
-      onOnMyWayPress,
-    });
-    fireEvent.press(screen.getByLabelText('On my way'));
-    expect(onOnMyWayPress).toHaveBeenCalledTimes(1);
+  it('still shows Complete enabled alongside Job status', () => {
+    const onMarkCompleted = jest.fn();
+    renderSection({ showJobStatusAction: true, onMarkCompleted });
+    const complete = screen.getByLabelText('Mark booking complete');
+    expect(complete).toBeTruthy();
+    fireEvent.press(complete);
+    expect(onMarkCompleted).toHaveBeenCalledTimes(1);
   });
 });

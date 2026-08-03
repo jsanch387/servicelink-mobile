@@ -154,6 +154,31 @@ describe('postBookingAction', () => {
     }
   });
 
+  it('posts on_the_way skip without SMS when notify is false', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({
+        success: true,
+        action: 'on_the_way',
+        jobStatus: 'on_the_way',
+        sms: { sent: false, messageId: null, reason: null },
+      }),
+    });
+
+    await postBookingAction('token', 'booking-1', BOOKING_ACTION.ON_THE_WAY, {
+      notify: false,
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        body: JSON.stringify({ action: 'on_the_way', notify: false }),
+      }),
+    );
+  });
+
   it('posts job_completed with session fees and payment', async () => {
     global.fetch.mockResolvedValue({
       ok: true,

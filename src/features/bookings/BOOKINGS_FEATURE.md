@@ -48,9 +48,9 @@ The bookings feature includes:
 1. `useBookingsList({ listEnabled: true })` loads business context first.
 2. Fetch strategy by tab:
    - **Upcoming** — single `fetchConfirmedBookingsFromToday`, then `partitionUpcomingConfirmed` (instant-based).
-   - **Past** — month windows via `fetchBookingsForListWindow`; user extends with “Load [month]” link.
+   - **Past** — initial page = current month + previous month; auto-backfills empty months (up to 12) before showing empty; user extends with centered **Load [month]** CTA when more history remains.
    - **Canceled** — single `fetchCancelledBookingsForBusiness` (all rows).
-3. `BookingsScreen` groups rows by date and renders `BookingCard`.
+3. `BookingsScreen` groups rows by date and renders `BookingCard`. Empty list copy via shared `BookingsEmptyState` (icon ring + short muted title): **Nothing upcoming**, **No past appointments**, **No canceled appointments**, **No business profile**.
 4. On card tap, app navigates to details using `bookingId`.
 
 List queries are disabled when the user is in **Calendar** mode (`listEnabled: false`).

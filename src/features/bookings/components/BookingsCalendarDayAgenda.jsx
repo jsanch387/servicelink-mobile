@@ -5,6 +5,7 @@ import { parseLocalYyyyMmDd } from '../../../components/ui/calendarDateKey';
 import { useTheme } from '../../../theme';
 import { BookingCard } from './BookingCard';
 import { BookingCardSkeleton } from './BookingCardSkeleton';
+import { BookingsEmptyState } from './BookingsEmptyState';
 
 /**
  * @param {string} dateKey `YYYY-MM-DD`
@@ -71,16 +72,7 @@ export function BookingsCalendarDayAgenda({
           gap: 12,
         },
         emptySlot: {
-          alignItems: 'center',
-          paddingBottom: 16,
-          paddingTop: 40,
-        },
-        emptyBody: {
-          color: colors.textMuted,
-          fontSize: 14,
-          fontWeight: '500',
-          lineHeight: 20,
-          textAlign: 'center',
+          minHeight: 160,
         },
         errorCard: {
           marginTop: 4,
@@ -124,7 +116,10 @@ export function BookingsCalendarDayAgenda({
       </View>
       {isEmpty ? (
         <View style={styles.emptySlot}>
-          <AppText style={styles.emptyBody}>Nothing scheduled this day.</AppText>
+          <BookingsEmptyState
+            style={{ paddingTop: 12, paddingBottom: 16 }}
+            title="Nothing scheduled"
+          />
         </View>
       ) : (
         <View style={styles.list}>

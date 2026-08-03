@@ -20,13 +20,11 @@ import {
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
-import { isOnTheWayActionDone } from '../constants/jobStatus';
 import { useTheme } from '../../../theme';
-import { openNativeSms } from '../../../utils/openNativeSms';
-import { phoneForSmsUri } from '../../../utils/phone';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BookingActionsSection } from '../booking-details/components/BookingActionsSection';
 import { BookingCompleteVisitSheet } from '../booking-details/components/BookingCompleteInvoiceDesignSheet';
+import { BookingJobStatusSheet } from '../booking-details/components/BookingJobStatusSheet';
 import { BookingMarkCompleteSheet } from '../booking-details/components/BookingMarkCompleteSheet';
 import { BookingPaymentSection } from '../booking-details/components/BookingPaymentSection';
 import { BookingDetailsStatusBanner } from '../booking-details/components/BookingDetailsStatusBanner';
@@ -38,16 +36,19 @@ import { useBookingActions } from '../booking-details/hooks/useBookingActions';
 import { useMarkBookingCompleteFlow } from '../booking-details/hooks/useMarkBookingCompleteFlow';
 import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
 import { buildBookingDetailsModel } from '../booking-details/utils/buildBookingDetailsModel';
+import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
 
 export function BookingDetailsScreen({ route }) {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const bookingId = route?.params?.bookingId;
   const [rescheduleSheetOpen, setRescheduleSheetOpen] = useState(false);
+  const [jobStatusSheetOpen, setJobStatusSheetOpen] = useState(false);
   const [completeScrollRequestId, setCompleteScrollRequestId] = useState(0);
   const scrollRef = useRef(/** @type {ScrollView | null} */ (null));
   const detailsQuery = useBookingDetails(bookingId);
   const bookingActions = useBookingActions(bookingId);
+  const smsAccess = useCustomerSmsAccess();
   const details = useMemo(
     () => buildBookingDetailsModel(detailsQuery.booking),
     [detailsQuery.booking],
@@ -66,10 +67,7 @@ export function BookingDetailsScreen({ route }) {
   const statusLower = details.status.toLowerCase();
   const isCompletedStatus = statusLower === 'completed' || statusLower === 'complete';
   const isCancelledStatus = statusLower === 'cancelled' || statusLower === 'canceled';
-  const isConfirmedStatus = statusLower === 'confirmed';
-  const showOnMyWayAction = isConfirmedStatus && !isCompletedStatus && !isCancelledStatus;
-  const hasCustomerSmsPhone = Boolean(phoneForSmsUri(detailsQuery.booking?.customer_phone));
-  const onMyWayAlreadySent = isOnTheWayActionDone(detailsQuery.booking);
+  const showJobStatusAction = smsAccess.canUseSms && !isCompletedStatus && !isCancelledStatus;
 
   useEffect(() => {
     setCompleteScrollRequestId(0);
@@ -199,21 +197,6 @@ export function BookingDetailsScreen({ route }) {
     }
     setRescheduleSheetOpen(true);
   }, [bookingId, isCancelledStatus, isCompletedStatus]);
-
-  const handleOnMyWay = useCallback(() => {
-    if (!bookingId || onMyWayAlreadySent) {
-      return;
-    }
-    const booking = detailsQuery.booking;
-    if (!booking) {
-      return;
-    }
-    void openNativeSms({
-      address: phoneForSmsUri(booking.customer_phone),
-      body: 'On my way',
-      unsupportedMessage: 'Open your SMS app manually to contact the customer.',
-    });
-  }, [bookingId, detailsQuery.booking, onMyWayAlreadySent]);
 
   const bookingStartMs = useMemo(() => {
     const raw = detailsQuery.booking;
@@ -348,6 +331,14 @@ export function BookingDetailsScreen({ route }) {
         visible={rescheduleSheetOpen}
         onRequestClose={() => setRescheduleSheetOpen(false)}
       />
+      <BookingJobStatusSheet
+        bookingId={bookingId}
+        businessId={detailsQuery.booking?.business_id ?? null}
+        jobStatus={detailsQuery.booking?.job_status}
+        visible={jobStatusSheetOpen}
+        workHandoffStatus={detailsQuery.booking?.work_handoff_status}
+        onRequestClose={() => setJobStatusSheetOpen(false)}
+      />
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={styles.content}
@@ -438,7 +429,6 @@ export function BookingDetailsScreen({ route }) {
 
             <View style={styles.actionsWrap}>
               <BookingActionsSection
-                hasCustomerSmsPhone={hasCustomerSmsPhone}
                 isCancelDisabled={isCancelledStatus || isCompletedStatus}
                 isCancellingBooking={bookingActions.isCancellingBooking}
                 isDeletingBooking={bookingActions.isDeletingBooking}
@@ -447,13 +437,12 @@ export function BookingDetailsScreen({ route }) {
                 isMarkingCompleted={markCompleteFlow.isConfirming}
                 isRescheduleDisabled={isCancelledStatus || isCompletedStatus}
                 isReschedulingBooking={bookingActions.isReschedulingBooking}
-                onMyWayAlreadySent={onMyWayAlreadySent}
                 onCancelBooking={handleCancelBooking}
                 onEdit={handleEditBooking}
+                onJobStatusPress={() => setJobStatusSheetOpen(true)}
                 onMarkCompleted={handleMarkCompleted}
-                onOnMyWayPress={handleOnMyWay}
                 onReschedule={handleReschedule}
-                showOnMyWayAction={showOnMyWayAction}
+                showJobStatusAction={showJobStatusAction}
               />
             </View>
             <View style={styles.deleteSection}>

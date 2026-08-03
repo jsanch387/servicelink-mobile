@@ -45,29 +45,14 @@ export function getCompleteVisitFollowUpMessage(p) {
 }
 
 /**
- * @param {{ showReviewSms?: boolean; showReviewEmail?: boolean; showReviewInvite?: boolean }} p
+ * Confirms the appointment itself. Deliberately says nothing about texting or
+ * emailing: the server decides what actually goes out, so claiming a channel
+ * here can be wrong (and means nothing to owners who can't text).
+ *
  * @returns {string}
  */
-export function getCompleteVisitSuccessDetail(p) {
-  if (!COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY) {
-    return 'This service is marked complete on your calendar.';
-  }
-
-  const includesReviewLink = p.showReviewInvite !== false;
-
-  if (p.showReviewSms) {
-    return includesReviewLink
-      ? 'We texted your customer their receipt and a review link.'
-      : 'We texted your customer their receipt.';
-  }
-
-  if (p.showReviewEmail) {
-    return includesReviewLink
-      ? 'We emailed your customer their receipt and a review link.'
-      : 'We emailed your customer their receipt.';
-  }
-
-  return 'This service is marked complete on your calendar.';
+export function getCompleteVisitSuccessDetail() {
+  return 'This appointment is complete and saved to your calendar.';
 }
 
 /**

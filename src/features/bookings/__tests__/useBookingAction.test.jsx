@@ -64,6 +64,11 @@ describe('useBookingAction work_finished', () => {
       mutationConfig = config;
       return {
         mutate: jest.fn(),
+        mutateAsync: jest.fn(async (vars) => {
+          const res = await config.mutationFn(vars);
+          await config.onSuccess?.(res, vars);
+          return res;
+        }),
         isPending: false,
       };
     });

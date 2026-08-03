@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { CompleteVisitReceiptEmailNotice } from '../components/CompleteVisitReceiptEmailNotice';
 import {
-  COMPLETE_VISIT_RECEIPT_EMAIL_ADD_LINK,
-  COMPLETE_VISIT_RECEIPT_EMAIL_CTA_DETAIL,
-  COMPLETE_VISIT_RECEIPT_EMAIL_NEEDED,
+  COMPLETE_VISIT_RECEIPT_CONTACT_ADD_LINK,
+  COMPLETE_VISIT_RECEIPT_CONTACT_CTA_DETAIL,
+  COMPLETE_VISIT_RECEIPT_CONTACT_NEEDED,
 } from '../constants/completeVisitReceiptEmailCopy';
 
 jest.mock('../../../../theme', () => ({
@@ -21,19 +21,19 @@ jest.mock('../../../../theme', () => ({
 }));
 
 describe('CompleteVisitReceiptEmailNotice', () => {
-  it('renders notice copy and add email button', () => {
-    render(<CompleteVisitReceiptEmailNotice onPressAddEmail={jest.fn()} />);
+  it('renders notice copy and add contact button', () => {
+    render(<CompleteVisitReceiptEmailNotice onPressAddContact={jest.fn()} />);
 
-    expect(screen.getByText(COMPLETE_VISIT_RECEIPT_EMAIL_NEEDED)).toBeTruthy();
-    expect(screen.getByText(COMPLETE_VISIT_RECEIPT_EMAIL_CTA_DETAIL)).toBeTruthy();
-    expect(screen.getByText(COMPLETE_VISIT_RECEIPT_EMAIL_ADD_LINK)).toBeTruthy();
+    expect(screen.getByText(COMPLETE_VISIT_RECEIPT_CONTACT_NEEDED)).toBeTruthy();
+    expect(screen.getByText(COMPLETE_VISIT_RECEIPT_CONTACT_CTA_DETAIL)).toBeTruthy();
+    expect(screen.getByText(COMPLETE_VISIT_RECEIPT_CONTACT_ADD_LINK)).toBeTruthy();
   });
 
-  it('calls onPressAddEmail when button is pressed', () => {
-    const onPressAddEmail = jest.fn();
-    render(<CompleteVisitReceiptEmailNotice onPressAddEmail={onPressAddEmail} />);
+  it('calls onPressAddContact when button is pressed', () => {
+    const onPressAddContact = jest.fn();
+    render(<CompleteVisitReceiptEmailNotice onPressAddContact={onPressAddContact} />);
 
-    fireEvent.press(screen.getByText(COMPLETE_VISIT_RECEIPT_EMAIL_ADD_LINK));
-    expect(onPressAddEmail).toHaveBeenCalledTimes(1);
+    fireEvent.press(screen.getByText(COMPLETE_VISIT_RECEIPT_CONTACT_ADD_LINK));
+    expect(onPressAddContact).toHaveBeenCalledTimes(1);
   });
 });

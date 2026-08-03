@@ -1,36 +1,47 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Keyboard, Pressable, StyleSheet, View } from 'react-native';
-import { AppText, Button, SurfaceEmailField } from '../../../../components/ui';
+import { AppText, Button, SurfaceEmailField, SurfacePhoneField } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 import { isValidEmailFormat } from '../../../../utils/email';
+import { normalizePhoneForDatabase } from '../../../../utils/phone';
 import {
-  COMPLETE_VISIT_RECEIPT_EMAIL_DIALOG_SUBTITLE,
-  COMPLETE_VISIT_RECEIPT_EMAIL_DIALOG_TITLE,
+  COMPLETE_VISIT_RECEIPT_CONTACT_DIALOG_SUBTITLE,
+  COMPLETE_VISIT_RECEIPT_CONTACT_DIALOG_TITLE,
+  COMPLETE_VISIT_RECEIPT_CONTACT_SAVE_LABEL,
   COMPLETE_VISIT_RECEIPT_EMAIL_PLACEHOLDER,
-  COMPLETE_VISIT_RECEIPT_EMAIL_SAVE_LABEL,
+  COMPLETE_VISIT_RECEIPT_PHONE_PLACEHOLDER,
 } from '../constants/completeVisitReceiptEmailCopy';
 
 /**
- * In-sheet email overlay for Tap to Pay receipt capture (no nested Modal).
+ * In-sheet contact overlay for Tap to Pay receipt capture (email and/or phone).
  *
  * @param {{
  *   visible: boolean;
  *   onClose: () => void;
  *   initialEmail?: string;
- *   onSave: (email: string) => void | Promise<void>;
+ *   initialPhone?: string;
+ *   onSave: (contact: { email: string; phone: string }) => void | Promise<void>;
  * }} props
  */
-export function CompleteVisitReceiptEmailDialog({ visible, onClose, initialEmail = '', onSave }) {
+export function CompleteVisitReceiptEmailDialog({
+  visible,
+  onClose,
+  initialEmail = '',
+  initialPhone = '',
+  onSave,
+}) {
   const { colors } = useTheme();
   const [email, setEmail] = useState(String(initialEmail ?? '').trim());
+  const [phone, setPhone] = useState(String(initialPhone ?? '').trim());
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setEmail(String(initialEmail ?? '').trim());
+      setPhone(String(initialPhone ?? '').trim());
       setIsSaving(false);
     }
-  }, [initialEmail, visible]);
+  }, [initialEmail, initialPhone, visible]);
 
   const styles = useMemo(
     () =>
@@ -68,6 +79,9 @@ export function CompleteVisitReceiptEmailDialog({ visible, onClose, initialEmail
           fontWeight: '500',
           lineHeight: 20,
         },
+        fields: {
+          gap: 10,
+        },
         fieldFlush: {
           marginBottom: 0,
         },
@@ -87,7 +101,10 @@ export function CompleteVisitReceiptEmailDialog({ visible, onClose, initialEmail
     return null;
   }
 
-  const canSave = isValidEmailFormat(email) && !isSaving;
+  const emailOk = isValidEmailFormat(email);
+  const phoneDigits = normalizePhoneForDatabase(phone);
+  const phoneOk = Boolean(phoneDigits);
+  const canSave = (emailOk || phoneOk) && !isSaving;
 
   const handleSave = async () => {
     if (!canSave) {
@@ -95,7 +112,10 @@ export function CompleteVisitReceiptEmailDialog({ visible, onClose, initialEmail
     }
     setIsSaving(true);
     try {
-      await onSave(email.trim());
+      await onSave({
+        email: emailOk ? email.trim() : '',
+        phone: phoneOk ? phoneDigits : '',
+      });
       Keyboard.dismiss();
     } catch {
       // Parent toast; keep overlay open so the user can retry.
@@ -114,20 +134,32 @@ export function CompleteVisitReceiptEmailDialog({ visible, onClose, initialEmail
       />
       <View style={styles.card}>
         <View style={styles.header}>
-          <AppText style={styles.title}>{COMPLETE_VISIT_RECEIPT_EMAIL_DIALOG_TITLE}</AppText>
-          <AppText style={styles.subtitle}>{COMPLETE_VISIT_RECEIPT_EMAIL_DIALOG_SUBTITLE}</AppText>
+          <AppText style={styles.title}>{COMPLETE_VISIT_RECEIPT_CONTACT_DIALOG_TITLE}</AppText>
+          <AppText style={styles.subtitle}>
+            {COMPLETE_VISIT_RECEIPT_CONTACT_DIALOG_SUBTITLE}
+          </AppText>
         </View>
-        <SurfaceEmailField
-          autoCapitalize="none"
-          autoFocus
-          containerStyle={styles.fieldFlush}
-          editable={!isSaving}
-          keyboardType="email-address"
-          label={null}
-          placeholder={COMPLETE_VISIT_RECEIPT_EMAIL_PLACEHOLDER}
-          value={email}
-          onChangeText={setEmail}
-        />
+        <View style={styles.fields}>
+          <SurfaceEmailField
+            autoCapitalize="none"
+            autoFocus
+            containerStyle={styles.fieldFlush}
+            editable={!isSaving}
+            keyboardType="email-address"
+            label="Email"
+            placeholder={COMPLETE_VISIT_RECEIPT_EMAIL_PLACEHOLDER}
+            value={email}
+            onChangeText={setEmail}
+          />
+          <SurfacePhoneField
+            containerStyle={styles.fieldFlush}
+            editable={!isSaving}
+            label="Phone"
+            placeholder={COMPLETE_VISIT_RECEIPT_PHONE_PLACEHOLDER}
+            value={phone}
+            onChangeText={setPhone}
+          />
+        </View>
         <View style={styles.actions}>
           <View style={styles.actionGrow}>
             <Button
@@ -149,7 +181,7 @@ export function CompleteVisitReceiptEmailDialog({ visible, onClose, initialEmail
               disabled={!canSave}
               fullWidth
               loading={isSaving}
-              title={COMPLETE_VISIT_RECEIPT_EMAIL_SAVE_LABEL}
+              title={COMPLETE_VISIT_RECEIPT_CONTACT_SAVE_LABEL}
               variant="primary"
               onPress={() => {
                 void handleSave();

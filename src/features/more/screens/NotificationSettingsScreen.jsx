@@ -1,19 +1,60 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useMemo, useState } from 'react';
-import { Linking, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { AppText, Button, Divider, InlineCardError, SurfaceCard } from '../../../components/ui';
+import {
+  Linking,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import {
+  AppText,
+  Button,
+  Divider,
+  InlineCardError,
+  NewLabel,
+  SurfaceCard,
+} from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
-import { usePushNotificationPermission } from '../../notifications/hooks/usePushNotificationPermission';
+import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
+import { usePushNotificationPermission } from '../../notifications/hooks/usePushNotificationPermission';
+import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
 import { NotificationSettingsScreenSkeleton } from '../components/NotificationSettingsScreenSkeleton';
 
-/** More tab — device push permission and what ServiceLink uses it for. */
+const WHAT_YOU_GET_SECTION_TITLE = "What you'll get";
+const TEXTS_SENT_TITLE = 'Texts sent';
+const TEXTS_SENT_SUBTITLE = 'See texts sent to your customers.';
+const CUSTOMER_NOTIFICATIONS_TITLE = 'Text updates';
+const CUSTOMER_NOTIFICATIONS_SUBTITLE = 'Text customer updates';
+const CUSTOMER_TEXTS_SECTION_TITLE = 'Customer notifications';
+
+const WHAT_YOU_GET = [
+  {
+    title: 'Bookings',
+    subtitle: 'New appointments, updates, and cancellations.',
+    icon: 'calendar-outline',
+  },
+  {
+    title: 'Quotes',
+    subtitle: 'New requests and quote decisions.',
+    icon: 'document-text-outline',
+  },
+];
+
+/** More tab — device push status, what alerts cover, and customer text history. */
 export function NotificationSettingsScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
   const { status, loadError, isLoading, refresh, requestPermission } =
     usePushNotificationPermission();
+  const smsAccess = useCustomerSmsAccess();
   const [isRequesting, setIsRequesting] = useState(false);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
@@ -125,6 +166,10 @@ export function NotificationSettingsScreen() {
           marginBottom: 8,
           minHeight: 24,
         },
+        sectionTitleWithBadge: {
+          alignItems: 'center',
+          flexDirection: 'row',
+        },
         sectionTitle: {
           color: colors.textSecondary,
           fontSize: 15,
@@ -133,17 +178,37 @@ export function NotificationSettingsScreen() {
         },
         card: {
           gap: 0,
+          overflow: 'hidden',
         },
         notifyRow: {
-          gap: 4,
-          paddingVertical: 14,
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          gap: 12,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+        },
+        notifyIcon: {
+          alignItems: 'center',
+          backgroundColor: colors.inputBg,
+          borderColor: colors.border,
+          borderRadius: 16,
+          borderWidth: StyleSheet.hairlineWidth,
+          height: 32,
+          justifyContent: 'center',
+          marginTop: 1,
+          width: 32,
+        },
+        notifyCopy: {
+          flex: 1,
+          gap: 3,
+          minWidth: 0,
         },
         notifyTitle: {
           color: colors.text,
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: '600',
           letterSpacing: -0.2,
-          lineHeight: 21,
+          lineHeight: 20,
         },
         notifySub: {
           color: colors.textMuted,
@@ -153,14 +218,34 @@ export function NotificationSettingsScreen() {
           lineHeight: 16,
         },
         listDivider: {
+          marginLeft: 58,
           marginVertical: 0,
+        },
+        linkRowPress: {
+          alignSelf: 'stretch',
+        },
+        linkRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 12,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+        },
+        linkRowPressed: {
+          opacity: 0.72,
+        },
+        linkCopy: {
+          flex: 1,
+          gap: 3,
+          minWidth: 0,
         },
         statusRow: {
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'space-between',
           gap: 12,
-          paddingVertical: 4,
+          paddingHorizontal: 14,
+          paddingVertical: 14,
         },
         statusKey: {
           color: colors.textSecondary,
@@ -179,8 +264,8 @@ export function NotificationSettingsScreen() {
           color: colors.textMuted,
         },
         footnoteDivider: {
-          marginTop: 12,
-          marginBottom: 12,
+          marginHorizontal: 14,
+          marginVertical: 0,
         },
         footnote: {
           color: colors.textMuted,
@@ -188,6 +273,9 @@ export function NotificationSettingsScreen() {
           fontWeight: '500',
           letterSpacing: -0.05,
           lineHeight: 19,
+          paddingBottom: 12,
+          paddingHorizontal: 14,
+          paddingTop: 10,
         },
         actions: {
           alignSelf: 'stretch',
@@ -248,6 +336,15 @@ export function NotificationSettingsScreen() {
   }
 
   const showNativeDevice = Platform.OS !== 'web' && status !== 'unavailable';
+  const showCustomerTextsSection = smsAccess.featureEnabled && smsAccess.isReady;
+  const customerTextsTitle = smsAccess.canUseSms ? TEXTS_SENT_TITLE : CUSTOMER_NOTIFICATIONS_TITLE;
+  const customerTextsSubtitle = smsAccess.canUseSms
+    ? TEXTS_SENT_SUBTITLE
+    : CUSTOMER_NOTIFICATIONS_SUBTITLE;
+  const customerTextsRoute = smsAccess.canUseSms ? ROUTES.SENT_TEXTS : ROUTES.CUSTOMER_SMS_UPSELL;
+  const customerTextsHint = smsAccess.canUseSms
+    ? 'Opens texts you’ve sent to customers'
+    : 'Learn about customer text updates';
 
   return (
     <View style={styles.root}>
@@ -260,26 +357,69 @@ export function NotificationSettingsScreen() {
       >
         <View style={styles.sectionFirst}>
           <View style={styles.sectionTitleRow}>
-            <AppText style={styles.sectionTitle}>What we send</AppText>
+            <AppText style={styles.sectionTitle}>{WHAT_YOU_GET_SECTION_TITLE}</AppText>
           </View>
-          <SurfaceCard style={styles.card}>
-            <View style={styles.notifyRow}>
-              <AppText style={styles.notifyTitle}>New appointments</AppText>
-              <AppText style={styles.notifySub}>When a customer books with you.</AppText>
-            </View>
-            <Divider style={styles.listDivider} />
-            <View style={styles.notifyRow}>
-              <AppText style={styles.notifyTitle}>Quote requests</AppText>
-              <AppText style={styles.notifySub}>When someone asks for a quote.</AppText>
-            </View>
+          <SurfaceCard padding="none" style={styles.card}>
+            {WHAT_YOU_GET.map((item, index) => (
+              <View key={item.title}>
+                {index > 0 ? <Divider style={styles.listDivider} /> : null}
+                <View style={styles.notifyRow}>
+                  <View style={styles.notifyIcon}>
+                    <Ionicons color={colors.textSecondary} name={item.icon} size={16} />
+                  </View>
+                  <View style={styles.notifyCopy}>
+                    <AppText style={styles.notifyTitle}>{item.title}</AppText>
+                    <AppText style={styles.notifySub}>{item.subtitle}</AppText>
+                  </View>
+                </View>
+              </View>
+            ))}
           </SurfaceCard>
         </View>
+
+        {showCustomerTextsSection ? (
+          <View style={styles.section}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.sectionTitleWithBadge}>
+                <AppText style={styles.sectionTitle}>{CUSTOMER_TEXTS_SECTION_TITLE}</AppText>
+                <NewLabel />
+              </View>
+            </View>
+            <SurfaceCard padding="none" style={styles.card}>
+              <Pressable
+                accessibilityHint={customerTextsHint}
+                accessibilityLabel={customerTextsTitle}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.linkRowPress,
+                  pressed ? styles.linkRowPressed : null,
+                ]}
+                onPress={() => navigation.navigate(customerTextsRoute)}
+              >
+                <View style={styles.linkRow}>
+                  <View style={styles.notifyIcon}>
+                    <Ionicons
+                      color={colors.textSecondary}
+                      name="chatbubble-ellipses-outline"
+                      size={16}
+                    />
+                  </View>
+                  <View style={styles.linkCopy}>
+                    <AppText style={styles.notifyTitle}>{customerTextsTitle}</AppText>
+                    <AppText style={styles.notifySub}>{customerTextsSubtitle}</AppText>
+                  </View>
+                  <Ionicons color={colors.textMuted} name="chevron-forward" size={16} />
+                </View>
+              </Pressable>
+            </SurfaceCard>
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <AppText style={styles.sectionTitle}>This device</AppText>
           </View>
-          <SurfaceCard style={styles.card}>
+          <SurfaceCard padding="none" style={styles.card}>
             <View style={styles.statusRow}>
               <AppText style={styles.statusKey}>Push alerts</AppText>
               <AppText style={statusValueStyle}>{statusLabel}</AppText>

@@ -1,3 +1,5 @@
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Animated,
@@ -15,6 +17,28 @@ import { AppText } from './AppText';
 import { BottomSheetOverlayProvider } from './bottomSheetOverlay';
 import { SheetCloseButton } from './SheetCloseButton';
 import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
+
+const GLASS_TOP_RADIUS = 24;
+const GLASS_BLUR_INTENSITY = Platform.select({ ios: 95, android: 100, default: 95 });
+/**
+ * Dark wash under the blur. iOS gets real UIBlurEffect so a light wash is enough;
+ * Android BlurView falls back to translucent (no frost), so keep the sheet denser.
+ */
+const GLASS_SHEET_FILL = Platform.select({
+  ios: 'rgba(0, 0, 0, 0.48)',
+  android: 'rgba(8, 8, 10, 0.97)',
+  default: 'rgba(0, 0, 0, 0.48)',
+});
+const GLASS_CLIP_FILL = Platform.select({
+  ios: 'rgba(0, 0, 0, 0.18)',
+  android: 'rgba(12, 12, 14, 0.88)',
+  default: 'rgba(0, 0, 0, 0.18)',
+});
+const GLASS_BACKDROP = Platform.select({
+  ios: 'rgba(0,0,0,0.38)',
+  android: 'rgba(0,0,0,0.58)',
+  default: 'rgba(0,0,0,0.38)',
+});
 
 /**
  * Cross-platform sheet.
@@ -35,9 +59,12 @@ import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet
  * @param {boolean} [props.fitContent]
  * @param {boolean} [props.stickyFooter]
  * @param {boolean} [props.liftFooterWithKeyboard] — when false, sticky footer stays put while typing; scroll content still pads so focused fields stay visible
-
  * @param {boolean} [props.showCloseButton] — default true for native page sheets / tall overlay sheets
  * @param {boolean} [props.centerContent] — vertically center children in the scroll area
+ * @param {boolean} [props.showHeaderDivider] — title underline rule; default true
+ * @param {'default' | 'glass'} [props.appearance]
+ *   - `default` — legacy solid elevated sheet (all existing call sites)
+ *   - `glass` — **experimental** frosted BlurView sheet (On my way confirm + Job status for now)
  */
 export function BottomSheetModal({
   visible,
@@ -53,8 +80,11 @@ export function BottomSheetModal({
   liftFooterWithKeyboard = true,
   showCloseButton,
   centerContent = false,
+  showHeaderDivider = true,
+  appearance = 'default',
 }) {
-  const useNativePageSheet = Platform.OS === 'ios' && !fitContent;
+  // Glass sheets need the transparent overlay path so BlurView can frost the screen behind.
+  const useNativePageSheet = Platform.OS === 'ios' && !fitContent && appearance !== 'glass';
   const showClose =
     showCloseButton ?? (useNativePageSheet || (!fitContent && sheetHeightPercent >= 70));
 
@@ -66,6 +96,7 @@ export function BottomSheetModal({
         footer={footer}
         liftFooterWithKeyboard={liftFooterWithKeyboard}
         showCloseButton={showClose}
+        showHeaderDivider={showHeaderDivider}
         stickyFooter={stickyFooter}
         subtitle={subtitle}
         title={title}
@@ -80,12 +111,14 @@ export function BottomSheetModal({
   return (
     <OverlayBottomSheetModal
       allowBackdropClose={allowBackdropClose}
+      appearance={appearance}
       centerContent={centerContent}
       fitContent={fitContent}
       footer={footer}
       liftFooterWithKeyboard={liftFooterWithKeyboard}
       sheetHeightPercent={sheetHeightPercent}
       showCloseButton={showClose}
+      showHeaderDivider={showHeaderDivider}
       stickyFooter={stickyFooter}
       subtitle={subtitle}
       title={title}
@@ -110,6 +143,7 @@ function NativePageSheetModal({
   stickyFooter,
   liftFooterWithKeyboard = true,
   showCloseButton,
+  showHeaderDivider = true,
   centerContent,
   allowBackdropClose,
 }) {
@@ -168,6 +202,7 @@ function NativePageSheetModal({
       <View style={styles.nativeRoot}>
         <SheetHeader
           showCloseButton={showCloseButton}
+          showHeaderDivider={showHeaderDivider}
           styles={styles}
           subtitle={subtitle}
           title={title}
@@ -231,19 +266,22 @@ function OverlayBottomSheetModal({
   stickyFooter,
   liftFooterWithKeyboard = true,
   showCloseButton,
+  showHeaderDivider = true,
   centerContent,
+  appearance = 'default',
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [iosKeyboardScrollPadding, setIosKeyboardScrollPadding] = useState(0);
+  const isGlass = appearance === 'glass';
 
   const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
-    useModalFadeBackdropSlideSheet();
+    useModalFadeBackdropSlideSheet({ motion: isGlass ? 'glass' : 'default' });
   const [mounted, setMounted] = useState(visible);
 
   const sheetHeight = `${Math.min(100, Math.max(30, sheetHeightPercent))}%`;
   const useStickyFooter = Boolean(stickyFooter && footer && !fitContent);
-  const showGrabber = Platform.OS === 'android' && !fitContent;
+  const showGrabber = Platform.OS === 'android' && !fitContent && !isGlass;
   const footerKeyboardPadding = liftFooterWithKeyboard ? iosKeyboardScrollPadding : 0;
   const scrollKeyboardPadding = iosKeyboardScrollPadding;
 
@@ -299,7 +337,10 @@ function OverlayBottomSheetModal({
   const stickyFooterPaddingBottom = useMemo(() => Math.max(insets.bottom, 16), [insets.bottom]);
 
   const styles = useMemo(
-    () => createSharedSheetStyles(colors, insets, { nativePageSheet: false }),
+    () =>
+      createSharedSheetStyles(colors, insets, {
+        nativePageSheet: false,
+      }),
     [colors, insets],
   );
 
@@ -324,6 +365,7 @@ function OverlayBottomSheetModal({
   const headerBlock = (
     <SheetHeader
       showCloseButton={showCloseButton}
+      showHeaderDivider={showHeaderDivider}
       styles={styles}
       subtitle={subtitle}
       title={title}
@@ -339,62 +381,13 @@ function OverlayBottomSheetModal({
     </>
   );
 
-  const content = (
+  const sheetInner = (
     <>
-      <Animated.View pointerEvents="box-none" style={[styles.sheetBackdrop, backdropStyle]}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={closeFromBackdrop}
-          style={StyleSheet.absoluteFillObject}
-        />
-      </Animated.View>
-      <Animated.View
-        style={[
-          styles.sheetWrap,
-          sheetStyle,
-          {
-            backgroundColor: colors.shellElevated,
-            paddingHorizontal: 16,
-            paddingTop: showGrabber ? 8 : 16,
-            ...(fitContent
-              ? {
-                  // Lift short sheets above the keyboard so focused fields stay visible.
-                  marginBottom: footerKeyboardPadding,
-                  paddingBottom: fitSheetPaddingBottom,
-                }
-              : { height: sheetHeight, maxHeight: sheetHeight }),
-          },
-        ]}
-      >
-        {showGrabber ? <View style={styles.grabber} /> : null}
-        {fitContent ? (
-          <View style={[scrollContentStyle, styles.sheetFitInner]}>{sheetBody}</View>
-        ) : useStickyFooter ? (
-          <>
-            <ScrollView
-              automaticallyAdjustKeyboardInsets
-              contentContainerStyle={scrollContentStyle}
-              keyboardDismissMode="interactive"
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              style={styles.sheetScroll}
-            >
-              {headerBlock}
-              {children}
-            </ScrollView>
-            <View
-              style={[
-                styles.stickyFooter,
-                {
-                  marginBottom: footerKeyboardPadding,
-                  paddingBottom: stickyFooterPaddingBottom,
-                },
-              ]}
-            >
-              {footer}
-            </View>
-          </>
-        ) : (
+      {showGrabber ? <View style={styles.grabber} /> : null}
+      {fitContent ? (
+        <View style={[scrollContentStyle, styles.sheetFitInner]}>{sheetBody}</View>
+      ) : useStickyFooter ? (
+        <>
           <ScrollView
             automaticallyAdjustKeyboardInsets
             contentContainerStyle={scrollContentStyle}
@@ -403,11 +396,105 @@ function OverlayBottomSheetModal({
             showsVerticalScrollIndicator={false}
             style={styles.sheetScroll}
           >
-            {sheetBody}
+            {headerBlock}
+            {children}
           </ScrollView>
+          <View
+            style={[
+              styles.stickyFooter,
+              {
+                marginBottom: footerKeyboardPadding,
+                paddingBottom: stickyFooterPaddingBottom,
+              },
+            ]}
+          >
+            {footer}
+          </View>
+        </>
+      ) : (
+        <ScrollView
+          automaticallyAdjustKeyboardInsets
+          contentContainerStyle={scrollContentStyle}
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={styles.sheetScroll}
+        >
+          {sheetBody}
+        </ScrollView>
+      )}
+    </>
+  );
+
+  const sheetClipStyle = [
+    styles.sheetClip,
+    isGlass ? styles.sheetClipGlass : null,
+    {
+      backgroundColor: isGlass ? GLASS_CLIP_FILL : colors.shellElevated,
+      paddingHorizontal: isGlass ? 20 : 16,
+      paddingTop: isGlass ? 16 : showGrabber ? 8 : 16,
+      paddingBottom: fitContent ? fitSheetPaddingBottom : undefined,
+      ...(fitContent ? null : { flex: 1 }),
+    },
+  ];
+
+  // Dim layer is visual-only (pointerEvents none). The dismiss Pressable only
+  // fills the flex space *above* the sheet so BlurView / transparent sheet
+  // areas cannot pass taps through to a full-screen backdrop and swallow them.
+  const content = (
+    <View style={styles.overlayColumn}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.sheetBackdrop,
+          backdropStyle,
+          isGlass ? { backgroundColor: GLASS_BACKDROP } : null,
+        ]}
+      />
+      <Pressable
+        accessibilityRole="button"
+        style={styles.backdropDismissHit}
+        onPress={closeFromBackdrop}
+      />
+      <Animated.View
+        style={[
+          styles.sheetWrap,
+          sheetStyle,
+          isGlass ? styles.sheetWrapGlass : null,
+          {
+            backgroundColor: isGlass ? GLASS_SHEET_FILL : 'transparent',
+            ...(fitContent
+              ? {
+                  marginBottom: footerKeyboardPadding,
+                }
+              : { height: sheetHeight, maxHeight: sheetHeight }),
+          },
+        ]}
+      >
+        {isGlass ? (
+          <BlurView intensity={GLASS_BLUR_INTENSITY} style={sheetClipStyle} tint="dark">
+            <LinearGradient
+              colors={[
+                'rgba(255,255,255,0.045)',
+                'rgba(255,255,255,0.02)',
+                'rgba(255,255,255,0.006)',
+                'transparent',
+              ]}
+              end={{ x: 0.5, y: 1 }}
+              locations={[0, 0.22, 0.55, 1]}
+              pointerEvents="none"
+              start={{ x: 0.5, y: 0 }}
+              style={styles.glassTopGlow}
+            />
+            <View collapsable={false} style={styles.glassTouchLayer}>
+              {sheetInner}
+            </View>
+          </BlurView>
+        ) : (
+          <View style={sheetClipStyle}>{sheetInner}</View>
         )}
       </Animated.View>
-    </>
+    </View>
   );
 
   return (
@@ -425,7 +512,14 @@ function OverlayBottomSheetModal({
   );
 }
 
-function SheetHeader({ title, subtitle, showCloseButton, onRequestClose, styles }) {
+function SheetHeader({
+  title,
+  subtitle,
+  showCloseButton,
+  showHeaderDivider = true,
+  onRequestClose,
+  styles,
+}) {
   const { colors } = useTheme();
   if (!title && !subtitle && !showCloseButton) return null;
 
@@ -460,7 +554,9 @@ function SheetHeader({ title, subtitle, showCloseButton, onRequestClose, styles 
           {subtitle}
         </AppText>
       ) : null}
-      {title ? <View style={[styles.headerDivider, { backgroundColor: colors.border }]} /> : null}
+      {title && showHeaderDivider ? (
+        <View style={[styles.headerDivider, { backgroundColor: colors.border }]} />
+      ) : null}
     </View>
   );
 }
@@ -471,6 +567,16 @@ function createSharedSheetStyles(colors, insets, { nativePageSheet }) {
       flex: 1,
       justifyContent: 'flex-end',
       position: 'relative',
+    },
+    overlayColumn: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      position: 'relative',
+    },
+    backdropDismissHit: {
+      flex: 1,
+      width: '100%',
+      zIndex: 0,
     },
     nativeRoot: {
       backgroundColor: colors.shellElevated,
@@ -484,13 +590,48 @@ function createSharedSheetStyles(colors, insets, { nativePageSheet }) {
       position: 'absolute',
       right: 0,
       top: 0,
+      zIndex: 0,
     },
     sheetWrap: {
       borderTopLeftRadius: Platform.OS === 'android' ? 28 : 18,
       borderTopRightRadius: Platform.OS === 'android' ? 28 : 18,
       flexDirection: 'column',
+      width: '100%',
+      zIndex: 2,
+    },
+    sheetWrapGlass: {
+      borderTopLeftRadius: GLASS_TOP_RADIUS,
+      borderTopRightRadius: GLASS_TOP_RADIUS,
+      elevation: 28,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -10 },
+      shadowOpacity: 0.4,
+      shadowRadius: 28,
+    },
+    sheetClip: {
+      borderTopLeftRadius: Platform.OS === 'android' ? 28 : 18,
+      borderTopRightRadius: Platform.OS === 'android' ? 28 : 18,
+      flexDirection: 'column',
       overflow: 'hidden',
       width: '100%',
+    },
+    sheetClipGlass: {
+      borderTopLeftRadius: GLASS_TOP_RADIUS,
+      borderTopRightRadius: GLASS_TOP_RADIUS,
+      overflow: 'hidden',
+    },
+    glassTouchLayer: {
+      alignSelf: 'stretch',
+      width: '100%',
+      zIndex: 3,
+    },
+    glassTopGlow: {
+      height: 44,
+      left: 0,
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      zIndex: 1,
     },
     grabber: {
       alignSelf: 'center',
@@ -531,6 +672,7 @@ function createSharedSheetStyles(colors, insets, { nativePageSheet }) {
     sheetFitInner: {
       alignSelf: 'stretch',
       width: '100%',
+      zIndex: 3,
     },
     centerContent: {
       alignItems: 'center',

@@ -124,22 +124,31 @@ describe('BookingsScreen list empty states', () => {
   it('shows upcoming empty copy when there are no upcoming bookings', () => {
     renderWithProviders(<BookingsScreen />);
     openListView();
-    expect(screen.getByText('No upcoming appointments')).toBeTruthy();
-    expect(
-      screen.getByText(/Confirmed visits from today onward that have not started yet show here/i),
-    ).toBeTruthy();
+    expect(screen.getByText('Nothing upcoming')).toBeTruthy();
   });
 
-  it('shows past empty copy on the Past tab', () => {
-    mockUseBookingsList.mockReturnValue(baseList({ listFilter: BOOKINGS_FILTER_PAST }));
+  it('shows past empty copy on the Past tab when history is exhausted', () => {
+    mockUseBookingsList.mockReturnValue(
+      baseList({ listFilter: BOOKINGS_FILTER_PAST, hasNextPage: false }),
+    );
     renderWithProviders(<BookingsScreen />);
     openListView();
     expect(screen.getByText('No past appointments')).toBeTruthy();
-    expect(
-      screen.getByText(
-        /Confirmed or completed appointments that ended before the current date and time show here/i,
-      ),
-    ).toBeTruthy();
+  });
+
+  it('shows load earlier CTA on Past when more months remain and list is empty', () => {
+    mockUseBookingsList.mockReturnValue(
+      baseList({
+        listFilter: BOOKINGS_FILTER_PAST,
+        hasNextPage: true,
+        loadMoreLabel: 'Load July 2026',
+        loadMorePresentation: 'link',
+      }),
+    );
+    renderWithProviders(<BookingsScreen />);
+    openListView();
+    expect(screen.queryByText('No past appointments')).toBeNull();
+    expect(screen.getByText('Load July 2026')).toBeTruthy();
   });
 
   it('shows canceled empty copy on the Canceled tab', () => {
@@ -147,7 +156,6 @@ describe('BookingsScreen list empty states', () => {
     renderWithProviders(<BookingsScreen />);
     openListView();
     expect(screen.getByText('No canceled appointments')).toBeTruthy();
-    expect(screen.getByText(/Canceled appointments appear here, most recent first/i)).toBeTruthy();
   });
 
   it('shows no-business empty copy when there is no business profile', () => {
@@ -161,9 +169,6 @@ describe('BookingsScreen list empty states', () => {
     renderWithProviders(<BookingsScreen />);
     openListView();
     expect(screen.getByText('No business profile')).toBeTruthy();
-    expect(
-      screen.getByText(/Once your business is set up in ServiceLink, appointments will show here/i),
-    ).toBeTruthy();
   });
 
   it('shows free plan booking usage when the owner is not on Pro', () => {

@@ -8,6 +8,7 @@ const mockNotifyOnTheWay = jest.fn();
 jest.mock('../constants/nextUpDesignFlags', () => ({
   NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS: false,
   NEXT_UP_LIFECYCLE_DESIGN_PREVIEW: false,
+  ON_MY_WAY_CONFIRM_DESIGN_PREVIEW: false,
 }));
 
 jest.mock('../../bookings/hooks/useBookingAction', () => ({
@@ -63,7 +64,7 @@ describe('NextUpCard device outbound mode (SMS not ready)', () => {
     expect(screen.queryByLabelText('Done')).toBeNull();
   });
 
-  it('opens Messages with a prefilled on-my-way text and does not call the server action', () => {
+  it('hands off straight to Messages without a confirm sheet or server action', () => {
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
@@ -81,6 +82,8 @@ describe('NextUpCard device outbound mode (SMS not ready)', () => {
       businessName: 'Sunrise Auto Spa',
     });
     expect(mockNotifyOnTheWay).not.toHaveBeenCalled();
+    // No "Text sent" success state — the owner still has to send it themselves.
+    expect(screen.queryByLabelText('Send')).toBeNull();
   });
 
   it('opens maps when Navigate is pressed', () => {

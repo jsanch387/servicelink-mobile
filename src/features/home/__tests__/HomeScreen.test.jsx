@@ -55,6 +55,15 @@ jest.mock('../../subscription', () => ({
   showWebAccountFeatureAlert: (...args) => mockShowWebAccountFeatureAlert(...args),
 }));
 
+jest.mock('../../sms/hooks/useCustomerSmsAccess', () => ({
+  useCustomerSmsAccess: () => ({
+    featureEnabled: true,
+    canUseSms: Boolean(mockUseSubscription().hasProAccess),
+    showUpsell: !mockUseSubscription().hasProAccess,
+    isReady: Boolean(mockUseSubscription().isOwnerProfileLoaded),
+  }),
+}));
+
 const mockUseBookingsFreeTierUsage = jest.fn(() => ({
   used: 0,
   limit: 5,
@@ -158,7 +167,7 @@ describe('HomeScreen', () => {
     expect(screen.getByText('Link visits')).toBeTruthy();
     expect(screen.getByText('Next Up')).toBeTruthy();
     expect(screen.getByText("Today's timeline")).toBeTruthy();
-    expect(screen.getByText('Nothing on the calendar')).toBeTruthy();
+    expect(screen.getByText('Nothing scheduled today')).toBeTruthy();
     expect(screen.getByText('Last 24 hours')).toBeTruthy();
     expect(screen.getByText('24 hours')).toBeTruthy();
     expect(screen.getByText('12')).toBeTruthy();
@@ -203,7 +212,7 @@ describe('HomeScreen', () => {
     expect(screen.getByText("Today's earnings")).toBeTruthy();
     expect(screen.getByLabelText("Loading today's earnings")).toBeTruthy();
     expect(screen.getByText("Today's timeline")).toBeTruthy();
-    expect(screen.queryByText('Nothing on the calendar')).toBeNull();
+    expect(screen.queryByText('Nothing scheduled today')).toBeNull();
   });
 
   it('keeps long business names inside the header space', () => {
@@ -264,7 +273,7 @@ describe('HomeScreen', () => {
     expect(screen.getByText('9:00 AM')).toBeTruthy();
   });
 
-  it('keeps Next Up as the section title while lifecycle actions are on hold', () => {
+  it('shows In progress section title when the spotlight job is in progress', () => {
     mockUseHomeDashboard.mockReturnValue(
       baseDashboard({
         spotlightMode: 'in_progress',
@@ -272,6 +281,7 @@ describe('HomeScreen', () => {
           id: 'b1',
           customer_name: 'Alex',
           service_name: 'Detail',
+          job_status: 'in_progress',
           customer_phone: '5552345678',
           customer_street_address: '1 Main',
           customer_city: 'Austin',
@@ -282,7 +292,7 @@ describe('HomeScreen', () => {
       }),
     );
     renderWithProviders(<HomeScreen />);
-    expect(screen.getByText('Next Up')).toBeTruthy();
+    expect(screen.getByText('In progress')).toBeTruthy();
     expect(screen.getByLabelText(/In progress.*Alex/i)).toBeTruthy();
   });
 

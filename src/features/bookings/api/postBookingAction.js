@@ -100,7 +100,8 @@ function readEmailOutcome(payload) {
  *     stripePaymentIntentId?: string;
  *   };
  * }} [options]
- *   `notify` — required semantics for `work_finished` (`true` = Done, `false` = Skip).
+ *   `notify` — for `work_finished`: `true` = Done, `false` = Skip.
+ *              for `on_the_way`: omit for text (default); `false` = Skip without SMS.
  *   `sessionFees` / `sessionPayment` — optional Phase 1 complete-visit payload for `job_completed`.
  * @returns {Promise<
  *   | {
@@ -142,6 +143,8 @@ export async function postBookingAction(accessToken, bookingId, action, options 
   let requestBody = { action };
   if (action === BOOKING_ACTION.WORK_FINISHED) {
     requestBody = { action, notify: options.notify === true };
+  } else if (action === BOOKING_ACTION.ON_THE_WAY && options.notify === false) {
+    requestBody = { action, notify: false };
   } else if (action === BOOKING_ACTION.JOB_COMPLETED) {
     if (Array.isArray(options.sessionFees) && options.sessionFees.length > 0) {
       requestBody.sessionFees = options.sessionFees;

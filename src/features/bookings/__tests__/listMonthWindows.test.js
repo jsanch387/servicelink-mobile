@@ -1,8 +1,10 @@
 import { BOOKINGS_FILTER_PAST, BOOKINGS_FILTER_UPCOMING } from '../constants';
 import {
   getInitialListMonthWindow,
+  getInitialPastListPageParam,
   getLoadMoreLabel,
   getNextListMonthWindow,
+  listMonthWindowsFromPageParam,
 } from '../utils/listMonthWindows';
 
 describe('listMonthWindows', () => {
@@ -20,6 +22,23 @@ describe('listMonthWindows', () => {
       start: '2026-05-01',
       end: '2026-05-21',
     });
+  });
+
+  it('past first page includes the previous full month', () => {
+    expect(getInitialPastListPageParam(now)).toEqual({
+      windows: [
+        { start: '2026-05-01', end: '2026-05-21' },
+        { start: '2026-04-01', end: '2026-04-30' },
+      ],
+    });
+  });
+
+  it('past load more continues from the oldest month in the first page', () => {
+    const initial = getInitialPastListPageParam(now);
+    const windows = listMonthWindowsFromPageParam(initial);
+    const next = getNextListMonthWindow(BOOKINGS_FILTER_PAST, windows[windows.length - 1]);
+    expect(next).toEqual({ start: '2026-03-01', end: '2026-03-31' });
+    expect(getLoadMoreLabel(BOOKINGS_FILTER_PAST, next)).toBe('Load March 2026');
   });
 
   it('past load more goes to the previous month', () => {

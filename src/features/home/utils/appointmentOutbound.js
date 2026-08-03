@@ -65,7 +65,7 @@ export async function openSmsServiceStarting(booking) {
 export async function openMapsToAddress(address) {
   const a = typeof address === 'string' ? address.trim() : '';
   if (!a) {
-    Alert.alert('Missing address', 'Add an address on this booking to open maps.');
+    Alert.alert('No address provided', 'Add an address on this booking to get directions.');
     return;
   }
 

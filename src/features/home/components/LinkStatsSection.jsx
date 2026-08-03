@@ -13,73 +13,35 @@ function LinkStatsSkeleton() {
   const { colors, isDark } = useTheme();
   const wellBg = useMemo(
     () => ({
-      backgroundColor: isDark ? colors.surface : colors.shellElevated,
-      borderColor: colors.border,
+      backgroundColor: isDark ? '#0e0e0e' : colors.shellElevated,
     }),
     [colors, isDark],
   );
 
   return (
-    <SurfaceCard style={styles.card}>
-      <View style={styles.statsBlock}>
-        <View style={styles.topRow}>
-          <SkeletonBox borderRadius={8} height={34} pulse style={styles.viewsSkeleton} />
-          <SkeletonBox borderRadius={10} height={30} pulse width={88} />
+    <SurfaceCard outlined={false} padding="none" style={styles.card}>
+      <View style={styles.inner}>
+        <View style={styles.statsBlock}>
+          <View style={styles.topRow}>
+            <SkeletonBox borderRadius={8} height={34} pulse style={styles.viewsSkeleton} />
+            <SkeletonBox borderRadius={10} height={30} pulse width={88} />
+          </View>
+          <View style={styles.metaRow}>
+            <SkeletonBox
+              borderRadius={5}
+              height={12}
+              pulse
+              style={styles.periodSkeleton}
+              width={88}
+            />
+          </View>
         </View>
-        <View style={styles.metaRow}>
-          <SkeletonBox borderRadius={6} height={17} pulse style={styles.periodCaptionSkeleton} />
-        </View>
-      </View>
-      <View style={styles.linkRow}>
-        <View style={[styles.linkWell, wellBg]}>
+        <View style={[styles.linkRow, wellBg]}>
           <SkeletonBox borderRadius={6} height={13} pulse style={styles.linkTextSkeleton} />
+          <SkeletonBox borderRadius={8} height={18} pulse width={18} />
         </View>
-        <SkeletonBox borderRadius={12} height={40} pulse width={44} />
       </View>
     </SurfaceCard>
-  );
-}
-
-function LinkStatsMetrics({
-  viewsDisplay,
-  periodLabel,
-  lastVisitRelative,
-  showLastVisit,
-  period,
-  onPeriodChange,
-  hasProAccess,
-  pickerDisabled,
-}) {
-  const { colors } = useTheme();
-
-  return (
-    <View style={styles.statsBlock}>
-      <View style={styles.topRow}>
-        {viewsDisplay === null ? (
-          <SkeletonBox borderRadius={8} height={34} pulse style={styles.viewsSkeleton} />
-        ) : (
-          <AppText style={[styles.viewsValue, { color: colors.text }]}>{viewsDisplay}</AppText>
-        )}
-        {onPeriodChange ? (
-          <LinkViewsPeriodPicker
-            disabled={pickerDisabled}
-            hasProAccess={hasProAccess}
-            onPeriodChange={onPeriodChange}
-            period={period}
-          />
-        ) : null}
-      </View>
-      <View style={styles.metaRow}>
-        <AppText numberOfLines={1} style={[styles.periodCaption, { color: colors.textMuted }]}>
-          {periodLabel}
-        </AppText>
-        {showLastVisit ? (
-          <AppText numberOfLines={1} style={[styles.lastVisitCaption, { color: colors.textMuted }]}>
-            {lastVisitRelative}
-          </AppText>
-        ) : null}
-      </View>
-    </View>
   );
 }
 
@@ -139,102 +101,120 @@ export function LinkStatsSection({
 
   const linkWellStyle = useMemo(
     () => ({
-      backgroundColor: isDark ? colors.surface : colors.shellElevated,
-      borderColor: colors.border,
+      backgroundColor: isDark ? '#0e0e0e' : colors.shellElevated,
     }),
     [colors, isDark],
   );
-
-  const metricsProps = {
-    viewsDisplay,
-    periodLabel,
-    lastVisitRelative,
-    showLastVisit,
-    period,
-    onPeriodChange,
-    hasProAccess,
-    pickerDisabled: false,
-  };
 
   if (isLoading) {
     return <LinkStatsSkeleton />;
   }
 
+  const header = (
+    <View style={styles.statsBlock}>
+      <View style={styles.topRow}>
+        <AppText style={[styles.viewsValue, { color: colors.text }]}>
+          {businessError || linkSectionDegraded ? '0' : (viewsDisplay ?? '0')}
+        </AppText>
+        {onPeriodChange ? (
+          <LinkViewsPeriodPicker
+            disabled={Boolean(businessError || linkSectionDegraded)}
+            hasProAccess={hasProAccess}
+            onPeriodChange={onPeriodChange}
+            period={period}
+          />
+        ) : null}
+      </View>
+      <View style={styles.metaRow}>
+        <AppText numberOfLines={1} style={[styles.periodCaption, { color: colors.textMuted }]}>
+          {periodLabel}
+        </AppText>
+        {showLastVisit ? (
+          <AppText numberOfLines={1} style={[styles.lastVisitCaption, { color: colors.textMuted }]}>
+            {lastVisitRelative}
+          </AppText>
+        ) : null}
+      </View>
+    </View>
+  );
+
   if (businessError || linkSectionDegraded) {
     return (
-      <SurfaceCard style={styles.card}>
-        <LinkStatsMetrics {...metricsProps} pickerDisabled viewsDisplay="0" />
-        {businessError ? (
-          <View style={styles.errorWrap}>
-            <InlineCardError message={businessError} />
+      <SurfaceCard outlined={false} padding="none" style={styles.card}>
+        <View style={styles.inner}>
+          {header}
+          {businessError ? (
+            <View style={styles.errorWrap}>
+              <InlineCardError message={businessError} />
+            </View>
+          ) : null}
+          <View style={[styles.linkRow, linkWellStyle, styles.linkRowMuted]}>
+            <AppText style={[styles.linkUnavailable, { color: colors.textMuted }]}>
+              Link unavailable until your business profile loads.
+            </AppText>
           </View>
-        ) : null}
-        <View
-          style={[styles.linkWell, linkWellStyle, styles.linkWellMuted, styles.linkWellSpacing]}
-        >
-          <AppText style={[styles.linkUnavailable, { color: colors.textMuted }]}>
-            Link unavailable until your business profile loads.
-          </AppText>
         </View>
       </SurfaceCard>
     );
   }
 
   return (
-    <SurfaceCard style={styles.card}>
-      <LinkStatsMetrics {...metricsProps} />
-      {viewsError ? (
-        <View style={styles.errorWrap}>
-          <InlineCardError message={viewsError} />
-        </View>
-      ) : null}
-      <View style={styles.linkRow}>
-        <View style={[styles.linkWell, linkWellStyle]}>
-          <AppText
-            accessibilityLabel={
-              hasSlug
-                ? `Booking link ${displayLink}`
-                : 'No booking link. Set business slug in your dashboard.'
-            }
-            ellipsizeMode="tail"
-            numberOfLines={1}
-            selectable={hasSlug}
-            style={[
-              hasSlug ? styles.linkText : styles.linkPlaceholder,
-              hasSlug
-                ? {
-                    color: colors.text,
-                    fontFamily: Platform.select({
-                      ios: 'Menlo',
-                      android: 'monospace',
-                      default: 'monospace',
-                    }),
-                  }
-                : { color: colors.textMuted },
-            ]}
-          >
-            {hasSlug ? displayLink : 'Set your business slug to get a shareable link.'}
-          </AppText>
-        </View>
+    <SurfaceCard outlined={false} padding="none" style={styles.card}>
+      <View style={styles.inner}>
+        {header}
+        {viewsError ? (
+          <View style={styles.errorWrap}>
+            <InlineCardError message={viewsError} />
+          </View>
+        ) : null}
         <Pressable
-          accessibilityLabel={copied ? 'Link copied' : 'Copy booking link'}
+          accessibilityHint={hasSlug ? 'Copies your booking link' : undefined}
+          accessibilityLabel={
+            hasSlug
+              ? copied
+                ? 'Link copied'
+                : 'Copy booking link'
+              : 'No booking link. Set business slug in your dashboard.'
+          }
           accessibilityRole="button"
           accessibilityState={{ disabled: !hasSlug }}
           disabled={!hasSlug}
           onPress={handleCopy}
           style={({ pressed }) => [
-            styles.copyButton,
-            {
-              backgroundColor: pressed ? colors.buttonSecondaryBgPressed : colors.buttonSecondaryBg,
-            },
-            !hasSlug && styles.copyButtonDisabled,
+            !hasSlug && styles.copyDisabled,
+            pressed && hasSlug ? { opacity: 0.85 } : null,
           ]}
         >
-          <Ionicons
-            color={colors.buttonSecondaryText}
-            name={copied ? 'checkmark' : 'clipboard-outline'}
-            size={20}
-          />
+          <View style={[styles.linkRow, linkWellStyle]}>
+            <View style={styles.linkTextWrap}>
+              <AppText
+                ellipsizeMode="tail"
+                numberOfLines={1}
+                style={[
+                  hasSlug ? styles.linkText : styles.linkPlaceholder,
+                  hasSlug
+                    ? {
+                        color: colors.textSecondary,
+                        fontFamily: Platform.select({
+                          ios: 'Menlo',
+                          android: 'monospace',
+                          default: 'monospace',
+                        }),
+                      }
+                    : { color: colors.textMuted },
+                ]}
+              >
+                {hasSlug ? displayLink : 'Set your business slug to get a shareable link.'}
+              </AppText>
+            </View>
+            <View pointerEvents="none" style={styles.copyHit}>
+              <Ionicons
+                color={copied ? colors.text : colors.textMuted}
+                name={copied ? 'checkmark' : 'copy-outline'}
+                size={14}
+              />
+            </View>
+          </View>
         </Pressable>
       </View>
     </SurfaceCard>
@@ -244,10 +224,14 @@ export function LinkStatsSection({
 const styles = StyleSheet.create({
   card: {
     marginTop: 10,
+  },
+  inner: {
     paddingHorizontal: 16,
     paddingVertical: 14,
+    width: '100%',
   },
   statsBlock: {
+    marginBottom: 12,
     width: '100%',
   },
   topRow: {
@@ -267,8 +251,8 @@ const styles = StyleSheet.create({
   viewsValue: {
     flex: 1,
     fontSize: 30,
-    fontWeight: '700',
-    letterSpacing: -0.7,
+    fontWeight: '600',
+    letterSpacing: -0.9,
     lineHeight: 34,
     minWidth: 0,
   },
@@ -277,84 +261,87 @@ const styles = StyleSheet.create({
     maxWidth: 80,
     minWidth: 0,
   },
-  periodCaptionSkeleton: {
-    flex: 1,
-    maxWidth: 140,
-    minWidth: 0,
-  },
-  linkTextSkeleton: {
-    alignSelf: 'stretch',
-    maxWidth: '85%',
-    width: '85%',
-  },
   periodCaption: {
     flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '500',
     letterSpacing: -0.1,
-    lineHeight: 17,
+    lineHeight: 16,
     minWidth: 0,
   },
   lastVisitCaption: {
     flexShrink: 0,
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-    lineHeight: 13,
-    opacity: 0.85,
+    fontSize: 12,
+    fontStyle: 'italic',
+    fontWeight: '500',
+    letterSpacing: -0.1,
+    lineHeight: 16,
+    marginTop: 2,
     textAlign: 'right',
   },
+  periodSkeleton: {
+    marginTop: 2,
+  },
   errorWrap: {
-    marginTop: 10,
+    marginBottom: 10,
   },
   linkRow: {
     alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-  },
-  linkWellSpacing: {
-    marginTop: 14,
-  },
-  linkWell: {
-    alignItems: 'center',
+    alignSelf: 'stretch',
     borderRadius: 12,
-    borderWidth: 1,
-    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    gap: 8,
     minHeight: 40,
-    minWidth: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingLeft: 12,
+    paddingRight: 6,
+    paddingVertical: 8,
+    width: '100%',
   },
-  linkWellMuted: {
+  linkRowMuted: {
     justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  linkTextWrap: {
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    overflow: 'hidden',
+  },
+  linkTextSkeleton: {
+    flex: 1,
+    minWidth: 0,
   },
   linkUnavailable: {
     fontSize: 12,
     fontWeight: '500',
     lineHeight: 16,
     textAlign: 'center',
+    width: '100%',
   },
   linkText: {
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: -0.2,
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: -0.15,
     width: '100%',
   },
   linkPlaceholder: {
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: '500',
     lineHeight: 16,
     width: '100%',
   },
-  copyButton: {
+  copyHit: {
     alignItems: 'center',
-    borderRadius: 12,
-    height: 40,
+    flexGrow: 0,
+    flexShrink: 0,
+    height: 24,
     justifyContent: 'center',
-    width: 44,
+    width: 24,
   },
-  copyButtonDisabled: {
+  copyDisabled: {
     opacity: 0.35,
   },
 });
