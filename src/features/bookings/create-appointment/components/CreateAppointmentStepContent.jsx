@@ -73,6 +73,9 @@ export function CreateAppointmentStepContent(p) {
     onChangeNotes,
     totalDurationMinutes,
     showSubmitPanel,
+    availableSaleDiscount = null,
+    applySaleDiscount = false,
+    onToggleApplySaleDiscount,
     appliedSaleDiscount = null,
     reviewJobs = null,
     jobNumber = 1,
@@ -197,6 +200,8 @@ export function CreateAppointmentStepContent(p) {
           address={address}
           appointmentLocationType={appointmentLocationType}
           appliedSaleDiscount={appliedSaleDiscount}
+          applySaleDiscount={applySaleDiscount}
+          availableSaleDiscount={availableSaleDiscount}
           canAddAnotherJob={canAddAnotherJob}
           customer={customer}
           jobs={reviewJobs}
@@ -212,6 +217,7 @@ export function CreateAppointmentStepContent(p) {
           onAddAnotherJob={onAddAnotherJob}
           addAnotherJobDisabled={addAnotherJobDisabled}
           onRemoveJob={onRemoveJob}
+          onToggleApplySaleDiscount={onToggleApplySaleDiscount}
         />
       );
     default:

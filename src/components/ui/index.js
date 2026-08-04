@@ -1,6 +1,7 @@
 export { AppText } from './AppText';
 export { BetaLabel } from './BetaLabel';
 export { NewLabel } from './NewLabel';
+export { TryItLabel } from './TryItLabel';
 export { AppTextInput } from './AppTextInput';
 export { BottomSheetModal } from './BottomSheetModal';
 export { BOTTOM_SHEET_GLASS_ENABLED } from './bottomSheetAppearance';

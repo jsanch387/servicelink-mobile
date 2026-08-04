@@ -14,6 +14,7 @@ Derived compile-time aliases (follow the master flag):
 | Flag                                             | File                                                    |
 | ------------------------------------------------ | ------------------------------------------------------- |
 | `NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS`              | `home/constants/nextUpDesignFlags.js`                   |
+| `NEXT_UP_ON_MY_WAY_TRY_IT_BADGE`                 | Launch “Try it” pill on Next Up **On my way**           |
 | `COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY` | `booking-details/constants/markCompleteFeatureFlags.js` |
 | `CUSTOMER_SMS_TOASTS_ENABLED`                    | `sms/constants/customerSmsHold.js`                      |
 
@@ -44,13 +45,13 @@ That alone restores legacy Next Up (device Messages On my way + Navigate), hides
 
 ## What owners see when `canUseSms`
 
-| Control                          | Behavior                               |
-| -------------------------------- | -------------------------------------- |
-| **On my way**                    | Glass confirm → Send / Skip            |
-| **Navigate**                     | Always tappable; empty address → alert |
-| **Slide to start**               | `job_started`                          |
-| **Skip** / **Done**              | `work_finished`                        |
-| **Mark complete**                | Complete sheet → `job_completed`       |
-| **Job status** (booking details) | Same lifecycle actions                 |
+| Control                          | Behavior                                                                                  |
+| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| **On my way**                    | Glass confirm → Send / Skip; launch **Try it** pill when `NEXT_UP_ON_MY_WAY_TRY_IT_BADGE` |
+| **Navigate**                     | Always tappable; empty address → alert                                                    |
+| **Slide to start**               | `job_started`                                                                             |
+| **Skip** / **Done**              | `work_finished`                                                                           |
+| **Mark complete**                | Complete sheet → `job_completed`                                                          |
+| **Job status** (booking details) | Same lifecycle actions                                                                    |
 
 When `canUseSms` is false (and feature enabled): legacy Next Up + Customer notifications upsell.

@@ -140,7 +140,8 @@ export function buildOwnerManualJobItem(job) {
  *   discountLabel: string;
  *   discountType: string | null;
  *   discountValue: number | null;
- * } | null} [args.appliedSaleDiscount] - preview only; server recomputes sale on appointment subtotal
+ * } | null} [args.availableSaleDiscount] - qualifying sale preview for the appointment date
+ * @param {boolean} [args.applySaleDiscount] - owner opt-in on Review; server applies sale only when true
  */
 export function buildOwnerManualPublicBookingBody({
   catalog,
@@ -151,7 +152,8 @@ export function buildOwnerManualPublicBookingBody({
   notes,
   appointmentLocationType,
   jobs,
-  appliedSaleDiscount = null,
+  availableSaleDiscount = null,
+  applySaleDiscount = false,
 }) {
   const notesTrimmed = typeof notes === 'string' ? notes.trim() : '';
   const jobItems = (jobs ?? []).map((job) => buildOwnerManualJobItem(job));
@@ -186,18 +188,19 @@ export function buildOwnerManualPublicBookingBody({
     jobs: jobItems,
   };
 
-  if (
-    appliedSaleDiscount &&
-    appliedSaleDiscount.sale?.id &&
-    appliedSaleDiscount.discountCents > 0
-  ) {
-    body.discountSource = 'sale';
-    body.discountSaleId = String(appliedSaleDiscount.sale.id);
-    body.discountType = appliedSaleDiscount.discountType;
-    body.discountValue = appliedSaleDiscount.discountValue;
-    body.subtotalCents = appliedSaleDiscount.subtotalCents;
-    body.discountCents = appliedSaleDiscount.discountCents;
-    body.discountLabel = appliedSaleDiscount.discountLabel;
+  const saleAvailable =
+    Boolean(availableSaleDiscount?.sale?.id) && (availableSaleDiscount?.discountCents ?? 0) > 0;
+  if (saleAvailable) {
+    body.applySaleDiscount = Boolean(applySaleDiscount);
+    if (applySaleDiscount) {
+      body.discountSource = 'sale';
+      body.discountSaleId = String(availableSaleDiscount.sale.id);
+      body.discountType = availableSaleDiscount.discountType;
+      body.discountValue = availableSaleDiscount.discountValue;
+      body.subtotalCents = availableSaleDiscount.subtotalCents;
+      body.discountCents = availableSaleDiscount.discountCents;
+      body.discountLabel = availableSaleDiscount.discountLabel;
+    }
   }
 
   return body;

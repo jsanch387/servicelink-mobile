@@ -19,6 +19,7 @@ import {
   isValidUsNanpTenDigits,
 } from '../../../../utils/phone';
 import { AddAnotherJobCard } from '../components/AddAnotherJobCard';
+import { ChoiceRow } from '../components/ChoiceRow';
 import { SwipeToDeleteRow } from '../components/SwipeToDeleteRow';
 import { SwipeToRemoveJobTip } from '../components/SwipeToRemoveJobTip';
 import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
@@ -61,6 +62,15 @@ function formatFullServiceAddress(address) {
  *   vehicle: { year: string; make: string; model: string };
  *   notes: string;
  *   totalDurationMinutes: number;
+ *   availableSaleDiscount?: {
+ *     lineLabel: string;
+ *     discountLabel?: string;
+ *     discountCents: number;
+ *     totalCents: number;
+ *     subtotalCents: number;
+ *   } | null;
+ *   applySaleDiscount?: boolean;
+ *   onToggleApplySaleDiscount?: () => void;
  *   appliedSaleDiscount?: {
  *     lineLabel: string;
  *     discountCents: number;
@@ -87,6 +97,9 @@ export function ReviewStep({
   vehicle,
   notes,
   totalDurationMinutes,
+  availableSaleDiscount = null,
+  applySaleDiscount = false,
+  onToggleApplySaleDiscount,
   appliedSaleDiscount = null,
   canAddAnotherJob = false,
   onAddAnotherJob,
@@ -144,6 +157,10 @@ export function ReviewStep({
     [jobs],
   );
 
+  const availableDiscountUsd = availableSaleDiscount
+    ? Math.max(0, (availableSaleDiscount.discountCents ?? 0) / 100)
+    : 0;
+  const showSaleOptIn = Boolean(availableSaleDiscount && availableDiscountUsd > 0);
   const discountUsd = appliedSaleDiscount
     ? Math.max(0, (appliedSaleDiscount.discountCents ?? 0) / 100)
     : 0;
@@ -348,6 +365,9 @@ export function ReviewStep({
           fontSize: 13,
           fontWeight: '600',
         },
+        saleOptInWrap: {
+          marginBottom: 12,
+        },
         totalCard: {
           backgroundColor: colors.cardSurface,
           borderColor: colors.border,
@@ -502,6 +522,17 @@ export function ReviewStep({
             })}
 
             <View style={styles.totalCard}>
+              {showSaleOptIn && onToggleApplySaleDiscount ? (
+                <View style={styles.saleOptInWrap}>
+                  <ChoiceRow
+                    accessibilityRole="checkbox"
+                    rightLabel={`−${formatUsdFromNumber(availableDiscountUsd)}`}
+                    selected={Boolean(applySaleDiscount)}
+                    title={`Apply ${availableSaleDiscount.discountLabel || availableSaleDiscount.lineLabel}`}
+                    onPress={onToggleApplySaleDiscount}
+                  />
+                </View>
+              ) : null}
               {appliedSaleDiscount && discountUsd > 0 ? (
                 <View style={styles.discountRow}>
                   <AppText numberOfLines={2} style={styles.discountLabel}>

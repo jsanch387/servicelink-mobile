@@ -247,10 +247,10 @@ describe('buildOwnerBookingPayload', () => {
       expect(b.jobs[0].servicePriceOptionLabel).toBe('Standard');
     });
 
-    it('includes appointment-level sale preview fields when a sale applies', () => {
+    it('includes appointment-level sale fields when owner opts in', () => {
       const b = buildOwnerManualPublicBookingBody({
         ...base,
-        appliedSaleDiscount: {
+        availableSaleDiscount: {
           sale: { id: 'sale-1' },
           subtotalCents: 12000,
           discountCents: 2400,
@@ -258,7 +258,9 @@ describe('buildOwnerBookingPayload', () => {
           discountType: 'percentage',
           discountValue: 20,
         },
+        applySaleDiscount: true,
       });
+      expect(b.applySaleDiscount).toBe(true);
       expect(b.discountSource).toBe('sale');
       expect(b.discountSaleId).toBe('sale-1');
       expect(b.discountType).toBe('percentage');
@@ -269,8 +271,28 @@ describe('buildOwnerBookingPayload', () => {
       expect(b.jobs[0].servicePriceCents).toBe(12000);
     });
 
-    it('omits discount fields when no sale applies', () => {
+    it('sends applySaleDiscount false and omits snapshot when owner opts out', () => {
+      const b = buildOwnerManualPublicBookingBody({
+        ...base,
+        availableSaleDiscount: {
+          sale: { id: 'sale-1' },
+          subtotalCents: 12000,
+          discountCents: 2400,
+          discountLabel: '20% OFF',
+          discountType: 'percentage',
+          discountValue: 20,
+        },
+        applySaleDiscount: false,
+      });
+      expect(b.applySaleDiscount).toBe(false);
+      expect(b.discountSource).toBeUndefined();
+      expect(b.discountSaleId).toBeUndefined();
+      expect(b.discountCents).toBeUndefined();
+    });
+
+    it('omits discount fields when no sale is available', () => {
       const b = buildOwnerManualPublicBookingBody(base);
+      expect(b.applySaleDiscount).toBeUndefined();
       expect(b.discountSource).toBeUndefined();
       expect(b.discountSaleId).toBeUndefined();
       expect(b.discountCents).toBeUndefined();

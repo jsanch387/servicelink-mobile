@@ -8,11 +8,13 @@ import {
   SkeletonBox,
   SlideToStartJob,
   SpotlightCard,
+  TryItLabel,
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { phoneForSmsUri } from '../../../utils/phone';
 import { useBookingAction } from '../../bookings/hooks/useBookingAction';
 import {
+  NEXT_UP_ON_MY_WAY_TRY_IT_BADGE,
   NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS,
   ON_MY_WAY_CONFIRM_DESIGN_PREVIEW,
 } from '../constants/nextUpDesignFlags';
@@ -133,6 +135,8 @@ export function NextUpCard({
   actionHandlers = null,
   /** When false, legacy device Messages On my way + Navigate only. */
   useLifecycleActions = NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS,
+  /** Launch pill on On my way (SMS lifecycle). Flip flag off after rollout. */
+  showOnMyWayTryItBadge = NEXT_UP_ON_MY_WAY_TRY_IT_BADGE,
 }) {
   const { colors } = useTheme();
   const bookingAction = useBookingAction(businessId);
@@ -606,6 +610,9 @@ export function NextUpCard({
                     variant="surfaceDark"
                     onPress={useLifecycleActions ? openOnMyWayConfirm : openDeviceOnMyWaySms}
                   />
+                  {useLifecycleActions && showOnMyWayTryItBadge ? (
+                    <TryItLabel style={styles.onMyWayTryItBadge} testID="on-my-way-try-it-badge" />
+                  ) : null}
                 </View>
                 <View collapsable={false} style={styles.actionCell}>
                   <Button
@@ -835,5 +842,12 @@ const styles = StyleSheet.create({
     flex: 1,
     flexBasis: 0,
     minWidth: 0,
+    position: 'relative',
+  },
+  onMyWayTryItBadge: {
+    position: 'absolute',
+    right: 10,
+    top: -9,
+    zIndex: 3,
   },
 });

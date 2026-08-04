@@ -82,7 +82,7 @@ Same path as the parent owner-create contract.
 | `vehicle`                 | object | No       | `{ year, make, model }` strings; all empty or all set                                                                        |
 | `clientJobId`             | string | No       | Mobile local id — **not persisted** in v1                                                                                    |
 
-Optional sale **preview** fields on each job are **ignored**. Server applies sale once to the **appointment** subtotal (sum of all job gross amounts). Mobile may still send appointment-level sale preview fields (see sale addendum); server recomputes.
+Optional sale fields on each job are **ignored**. Sale is appointment-level only and applies **only when** `applySaleDiscount === true` (see sale addendum). Server recomputes discount amounts from DB when opted in.
 
 **Custom job:** omit `serviceId`; no option label; no add-ons (server **rejects** if present).
 
@@ -160,7 +160,7 @@ Server stores **one** `bookings` row:
 2. Free-tier **+1** once (one appointment).
 3. Inserts **one** `bookings` row with `job_details`, `duration_minutes` = sum of jobs, one `start_time`.
 4. Inserts **one** `booking_payments` row for the appointment gross total.
-5. Applies sale once to the appointment subtotal (Pro).
+5. Applies sale once to the appointment subtotal (Pro) **only if** `applySaleDiscount === true`.
 6. Sends **one** customer email (if email present) and **one** owner notification listing jobs + appointment total.
 7. Rejects if start + total duration would spill past midnight (same calendar day).
 

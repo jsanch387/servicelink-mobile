@@ -20,6 +20,7 @@ let mockBookingActionState = {
 
 jest.mock('../constants/nextUpDesignFlags', () => ({
   NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS: true,
+  NEXT_UP_ON_MY_WAY_TRY_IT_BADGE: false,
   NEXT_UP_LIFECYCLE_DESIGN_PREVIEW: false,
   ON_MY_WAY_CONFIRM_DESIGN_PREVIEW: false,
 }));
@@ -128,6 +129,36 @@ describe('NextUpCard', () => {
     expect(screen.getByLabelText('On my way')).toBeTruthy();
     expect(screen.getByLabelText('Navigate')).toBeTruthy();
     expect(screen.queryByLabelText('Mark complete')).toBeNull();
+  });
+
+  it('upcoming: shows Try it badge on On my way when SMS lifecycle launch badge is on', () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        showOnMyWayTryItBadge
+        useLifecycleActions
+        subtitle="Today at 2:00 PM"
+      />,
+    );
+    expect(screen.getByTestId('on-my-way-try-it-badge')).toBeTruthy();
+  });
+
+  it('upcoming: hides Try it badge when lifecycle SMS is off', () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        showOnMyWayTryItBadge
+        useLifecycleActions={false}
+        subtitle="Today at 2:00 PM"
+      />,
+    );
+    expect(screen.queryByTestId('on-my-way-try-it-badge')).toBeNull();
   });
 
   it('en route: shows Navigate in header and slide to start job below', () => {

@@ -7,6 +7,7 @@ const mockNotifyOnTheWay = jest.fn();
 
 jest.mock('../constants/nextUpDesignFlags', () => ({
   NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS: false,
+  NEXT_UP_ON_MY_WAY_TRY_IT_BADGE: false,
   NEXT_UP_LIFECYCLE_DESIGN_PREVIEW: false,
   ON_MY_WAY_CONFIRM_DESIGN_PREVIEW: false,
 }));

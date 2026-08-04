@@ -18,3 +18,9 @@ export const ON_MY_WAY_CONFIRM_DESIGN_PREVIEW = false;
  * When false: legacy Next Up (device Messages On my way + Navigate only).
  */
 export const NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS = CUSTOMER_SMS_ENABLED;
+
+/**
+ * Launch badge on Next Up **On my way** when lifecycle SMS actions are on.
+ * Set false after the feature is familiar to owners.
+ */
+export const NEXT_UP_ON_MY_WAY_TRY_IT_BADGE = true;

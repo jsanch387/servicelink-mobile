@@ -401,7 +401,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     [visitJobs],
   );
 
-  const appliedSaleDiscount = useMemo(() => {
+  const availableSaleDiscount = useMemo(() => {
     const sale = pickActiveSaleForAppointmentDate(server.sales, selectedDateKey);
     if (!sale) return null;
     const subtotalCents = visitJobs.reduce((sum, job) => {
@@ -421,6 +421,19 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       sale,
     });
   }, [selectedDateKey, server.sales, visitJobs]);
+
+  const availableSaleId = availableSaleDiscount?.sale?.id ?? null;
+  const [applySaleDiscount, setApplySaleDiscount] = useState(false);
+
+  useEffect(() => {
+    setApplySaleDiscount(false);
+  }, [availableSaleId]);
+
+  const appliedSaleDiscount = applySaleDiscount ? availableSaleDiscount : null;
+
+  const toggleApplySaleDiscount = useCallback(() => {
+    setApplySaleDiscount((prev) => !prev);
+  }, []);
 
   const scheduleLoading =
     server.availabilityLoading || server.blockingLoading || server.priceOptionsLoading;
@@ -556,7 +569,8 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         notes,
         appointmentLocationType,
         jobs: allJobs,
-        appliedSaleDiscount,
+        availableSaleDiscount,
+        applySaleDiscount,
       });
       const res = await postOwnerManualPublicBooking(token, body);
       if (!res.ok) {
@@ -1018,6 +1032,9 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       onChangeVehicle: setVehicle,
       onChangeNotes: setNotes,
       showSubmitPanel,
+      availableSaleDiscount,
+      applySaleDiscount,
+      onToggleApplySaleDiscount: toggleApplySaleDiscount,
       appliedSaleDiscount,
       reviewJobs,
       jobNumber: jobIndex + 1,
@@ -1084,6 +1101,9 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       vehicle,
       notes,
       visitDurationMinutes,
+      availableSaleDiscount,
+      applySaleDiscount,
+      toggleApplySaleDiscount,
       appliedSaleDiscount,
       reviewJobs,
       jobIndex,
