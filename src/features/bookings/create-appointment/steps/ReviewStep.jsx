@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Linking, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 import {
   AppText,
   DetailIconFieldRow,
@@ -19,7 +19,6 @@ import {
   isValidUsNanpTenDigits,
 } from '../../../../utils/phone';
 import { AddAnotherJobCard } from '../components/AddAnotherJobCard';
-import { ChoiceRow } from '../components/ChoiceRow';
 import { SwipeToDeleteRow } from '../components/SwipeToDeleteRow';
 import { SwipeToRemoveJobTip } from '../components/SwipeToRemoveJobTip';
 import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
@@ -365,9 +364,6 @@ export function ReviewStep({
           fontSize: 13,
           fontWeight: '600',
         },
-        saleOptInWrap: {
-          marginBottom: 12,
-        },
         totalCard: {
           backgroundColor: colors.cardSurface,
           borderColor: colors.border,
@@ -375,6 +371,9 @@ export function ReviewStep({
           borderWidth: 1,
           paddingHorizontal: 12,
           paddingVertical: 14,
+        },
+        totalBlock: {
+          gap: 4,
         },
         totalRow: {
           alignItems: 'baseline',
@@ -391,6 +390,28 @@ export function ReviewStep({
           fontSize: 18,
           fontWeight: '700',
           letterSpacing: -0.2,
+        },
+        saleOptInPress: {
+          alignItems: 'center',
+          alignSelf: 'flex-start',
+          flexDirection: 'row',
+          gap: 8,
+          paddingHorizontal: 2,
+          paddingVertical: 2,
+        },
+        saleOptInBox: {
+          alignItems: 'center',
+          borderRadius: 5,
+          borderWidth: 1.5,
+          height: 18,
+          justifyContent: 'center',
+          width: 18,
+        },
+        saleOptInLabel: {
+          color: colors.textMuted,
+          flexShrink: 1,
+          fontSize: 13,
+          fontWeight: '500',
         },
         scheduleFieldsStack: {
           gap: 18,
@@ -521,32 +542,57 @@ export function ReviewStep({
               );
             })}
 
-            <View style={styles.totalCard}>
-              {showSaleOptIn && onToggleApplySaleDiscount ? (
-                <View style={styles.saleOptInWrap}>
-                  <ChoiceRow
-                    accessibilityRole="checkbox"
-                    rightLabel={`−${formatUsdFromNumber(availableDiscountUsd)}`}
-                    selected={Boolean(applySaleDiscount)}
-                    title={`Apply ${availableSaleDiscount.discountLabel || availableSaleDiscount.lineLabel}`}
-                    onPress={onToggleApplySaleDiscount}
-                  />
+            <View style={styles.totalBlock}>
+              <View style={styles.totalCard}>
+                {appliedSaleDiscount && discountUsd > 0 ? (
+                  <View style={styles.discountRow}>
+                    <AppText numberOfLines={2} style={styles.discountLabel}>
+                      {appliedSaleDiscount.lineLabel}
+                    </AppText>
+                    <AppText style={styles.discountValue}>
+                      −{formatUsdFromNumber(discountUsd)}
+                    </AppText>
+                  </View>
+                ) : null}
+                <View style={styles.totalRow}>
+                  <AppText style={styles.totalLabel}>{multiJob ? 'Visit total' : 'Total'}</AppText>
+                  <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>
                 </View>
-              ) : null}
-              {appliedSaleDiscount && discountUsd > 0 ? (
-                <View style={styles.discountRow}>
-                  <AppText numberOfLines={2} style={styles.discountLabel}>
-                    {appliedSaleDiscount.lineLabel}
-                  </AppText>
-                  <AppText style={styles.discountValue}>
-                    −{formatUsdFromNumber(discountUsd)}
-                  </AppText>
-                </View>
-              ) : null}
-              <View style={styles.totalRow}>
-                <AppText style={styles.totalLabel}>{multiJob ? 'Visit total' : 'Total'}</AppText>
-                <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>
               </View>
+              {showSaleOptIn && onToggleApplySaleDiscount ? (
+                <Pressable
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: Boolean(applySaleDiscount) }}
+                  hitSlop={8}
+                  style={styles.saleOptInPress}
+                  onPress={onToggleApplySaleDiscount}
+                >
+                  <View
+                    style={[
+                      styles.saleOptInBox,
+                      {
+                        backgroundColor: applySaleDiscount
+                          ? (colors.buttonPrimaryBg ?? '#ffffff')
+                          : 'transparent',
+                        borderColor: applySaleDiscount
+                          ? (colors.buttonPrimaryBg ?? '#ffffff')
+                          : colors.borderStrong,
+                      },
+                    ]}
+                  >
+                    {applySaleDiscount ? (
+                      <Ionicons
+                        color={colors.buttonPrimaryText ?? '#000000'}
+                        name="checkmark"
+                        size={12}
+                      />
+                    ) : null}
+                  </View>
+                  <AppText numberOfLines={1} style={styles.saleOptInLabel}>
+                    {`Apply ${availableSaleDiscount.discountLabel || availableSaleDiscount.lineLabel}`}
+                  </AppText>
+                </Pressable>
+              ) : null}
             </View>
           </View>
         </View>
