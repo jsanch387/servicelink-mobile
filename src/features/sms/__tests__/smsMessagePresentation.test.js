@@ -3,6 +3,7 @@ import {
   mapSmsMessageRowToTimelineItem,
   smsMessageStatusPresentation,
   smsMessageTypeIcon,
+  smsMessageTypeIconColor,
   smsMessageTypeLabel,
   stripSmsOptOutFooterForDisplay,
 } from '../utils/smsMessagePresentation';
@@ -18,6 +19,12 @@ describe('smsMessagePresentation', () => {
     expect(smsMessageTypeIcon('on_the_way')).toBe('navigate-outline');
     expect(smsMessageTypeIcon('reminder')).toBe('alarm-outline');
     expect(smsMessageTypeIcon('unknown_thing')).toBe('chatbubble-ellipses-outline');
+  });
+
+  it('maps SMS types to accent colors', () => {
+    expect(smsMessageTypeIconColor('job_started')).toBe('#10b981');
+    expect(smsMessageTypeIconColor('on_the_way')).toBe('#0a84ff');
+    expect(smsMessageTypeIconColor('unknown_thing')).toBe('#94a3b8');
   });
 
   it('maps status tones for timeline chips', () => {

@@ -18,6 +18,14 @@ import {
   NEXT_UP_USE_JOB_LIFECYCLE_ACTIONS,
   ON_MY_WAY_CONFIRM_DESIGN_PREVIEW,
 } from '../constants/nextUpDesignFlags';
+import {
+  NEXT_UP_COACH_TIP_DONE,
+  NEXT_UP_COACH_TIP_MARK_COMPLETE,
+  NEXT_UP_COACH_TIP_ON_MY_WAY,
+  NEXT_UP_COACH_TIP_SLIDE_TO_START,
+} from '../constants/nextUpCoachTips';
+import { useNextUpCoachTip } from '../hooks/useNextUpCoachTip';
+import { useOnMyWayTryItBadge } from '../hooks/useOnMyWayTryItBadge';
 import { openMapsForBooking, openSmsOnMyWay } from '../utils/appointmentOutbound';
 import { hasBookingAddressForMaps } from '../utils/bookingAddress';
 import {
@@ -30,6 +38,9 @@ import {
   resolveNextUpWorkingPhase,
   shouldShowNextUpLivePulse,
 } from '../utils/resolveNextUpCardActions';
+import { NextUpCoachTargetGlow } from './NextUpCoachTargetGlow';
+import { NextUpCoachTip } from './NextUpCoachTip';
+import { NextUpCoachWinFlash } from './NextUpCoachWinFlash';
 import { NextUpNavigateIconButton } from './NextUpNavigateIconButton';
 import { OnMyWayConfirmModal } from './OnMyWayConfirmModal';
 import { SkipWorkNotifyConfirmModal } from './SkipWorkNotifyConfirmModal';
@@ -291,6 +302,9 @@ export function NextUpCard({
   const [onMyWayConfirmVisible, setOnMyWayConfirmVisible] = useState(false);
   const [workFinishedConfirmVisible, setWorkFinishedConfirmVisible] = useState(false);
   const [skipWorkNotifyConfirmVisible, setSkipWorkNotifyConfirmVisible] = useState(false);
+  const [coachWin, setCoachWin] = useState(
+    /** @type {{ label: string; color: string } | null} */ (null),
+  );
 
   const hasCustomerSmsNumber = useMemo(
     () => Boolean(nextBooking && phoneForSmsUri(nextBooking.customer_phone)),
@@ -375,13 +389,6 @@ export function NextUpCard({
     }
   }, [nextBooking]);
 
-  const handleMarkCompletePress = useCallback(() => {
-    if (!onMarkComplete) {
-      return;
-    }
-    void onMarkComplete();
-  }, [onMarkComplete]);
-
   const confirmWorkFinished = useCallback(async () => {
     if (onNotifyWorkFinished) {
       await Promise.resolve(onNotifyWorkFinished());
@@ -418,6 +425,65 @@ export function NextUpCard({
       'ready'
     );
   }, [nextBooking?.job_status, nextBooking?.work_handoff_status, workingPhase]);
+
+  const { tip: coachTip, dismissTip: dismissCoachTip } = useNextUpCoachTip({
+    enabled: useLifecycleActions && !empty && !scheduleError,
+    actionMode,
+    workingPhase: resolvedWorkingPhase,
+  });
+
+  const {
+    showBadge: showTryItBadgeOnce,
+    markSeen: markTryItSeen,
+    markSeenForNextTime: markTryItSeenForNextTime,
+  } = useOnMyWayTryItBadge({
+    enabled: useLifecycleActions && showOnMyWayTryItBadge && !empty && !scheduleError,
+  });
+
+  const showOnMyWayTryIt =
+    showTryItBadgeOnce && coachTip?.id !== NEXT_UP_COACH_TIP_ON_MY_WAY && !coachWin;
+
+  useEffect(() => {
+    if (!showOnMyWayTryIt) {
+      return;
+    }
+    void markTryItSeenForNextTime();
+  }, [markTryItSeenForNextTime, showOnMyWayTryIt]);
+
+  const completeCoachTipWithWin = useCallback(() => {
+    if (!coachTip) {
+      return;
+    }
+    if (coachTip.id === NEXT_UP_COACH_TIP_ON_MY_WAY) {
+      void markTryItSeen();
+    }
+    setCoachWin({ label: coachTip.winLabel, color: coachTip.iconColor });
+    void dismissCoachTip();
+  }, [coachTip, dismissCoachTip, markTryItSeen]);
+
+  const handleOpenOnMyWayConfirm = useCallback(() => {
+    completeCoachTipWithWin();
+    openOnMyWayConfirm();
+  }, [completeCoachTipWithWin, openOnMyWayConfirm]);
+
+  const handleStartJob = useCallback(() => {
+    completeCoachTipWithWin();
+    startJob();
+  }, [completeCoachTipWithWin, startJob]);
+
+  const handleOpenWorkFinishedConfirm = useCallback(() => {
+    completeCoachTipWithWin();
+    openWorkFinishedConfirm();
+  }, [completeCoachTipWithWin, openWorkFinishedConfirm]);
+
+  const handleMarkCompletePress = useCallback(() => {
+    if (!onMarkComplete) {
+      return;
+    }
+    completeCoachTipWithWin();
+    void onMarkComplete();
+  }, [completeCoachTipWithWin, onMarkComplete]);
+
   const actionSending = useLifecycleActions
     ? (actionHandlers?.isSending ?? bookingAction.isSending)
     : false;
@@ -535,104 +601,140 @@ export function NextUpCard({
         )}
 
         {showActions ? (
-          <View
-            collapsable={false}
-            style={isHandoff || isUpcoming ? styles.actions : styles.actionsSingle}
-          >
-            {isHandoff ? (
-              <>
-                <View collapsable={false} style={styles.actionCell}>
-                  <Button
-                    accessibilityHint="Asks to confirm before skipping the done text"
-                    accessibilityLabel="Skip"
-                    disabled={actionDisabled}
-                    fullWidth
-                    outlineColor={colors.nextUpText}
-                    title="Skip"
-                    variant="outline"
-                    onPress={openSkipWorkNotifyConfirm}
-                  />
-                </View>
-                <View collapsable={false} style={styles.actionCell}>
-                  <Button
-                    accessibilityHint={
-                      hasCustomerSmsNumber
-                        ? 'Asks to confirm before texting the customer that you are done'
-                        : 'Add a phone on this booking to notify the customer'
-                    }
-                    accessibilityLabel="Done"
-                    disabled={actionDisabled || !hasCustomerSmsNumber}
-                    fullWidth
-                    iconName="chatbubble-ellipses-outline"
-                    title="Done"
-                    variant="surfaceDark"
-                    onPress={openWorkFinishedConfirm}
-                  />
-                </View>
-              </>
-            ) : isWorking ? (
-              <Button
-                accessibilityHint={
-                  onMarkComplete ? undefined : 'Mark complete is not available right now'
-                }
-                accessibilityLabel="Mark complete"
-                disabled={!onMarkComplete || markCompleteLoading}
-                fullWidth
-                iconName="checkmark-done-outline"
-                loading={markCompleteLoading}
-                title="Mark complete"
-                variant={inProgressPrimaryVariant}
-                onPress={handleMarkCompletePress}
+          <View collapsable={false} style={styles.actionsBlock}>
+            {coachWin ? (
+              <NextUpCoachWinFlash
+                color={coachWin.color}
+                label={coachWin.label}
+                onDone={() => setCoachWin(null)}
               />
-            ) : isEnRoute ? (
-              <SlideToStartJob
-                disabled={actionDisabled || !hasCustomerSmsNumber}
-                loading={actionSending}
-                surfaceTone={nextUpSurfaceTone}
-                onComplete={startJob}
-              />
-            ) : isUpcoming ? (
-              <>
-                <View collapsable={false} style={styles.actionCell}>
-                  <Button
-                    accessibilityHint={
-                      hasCustomerSmsNumber
-                        ? useLifecycleActions
-                          ? 'Asks to confirm before texting the customer that you are on the way'
-                          : 'Opens Messages with a prefilled on-my-way text'
-                        : 'Add a phone on this booking to notify the customer'
-                    }
-                    accessibilityLabel="On my way"
-                    disabled={actionDisabled || !hasCustomerSmsNumber}
-                    fullWidth
-                    iconName="chatbubble-ellipses-outline"
-                    title="On my way"
-                    variant="surfaceDark"
-                    onPress={useLifecycleActions ? openOnMyWayConfirm : openDeviceOnMyWaySms}
-                  />
-                  {useLifecycleActions && showOnMyWayTryItBadge ? (
-                    <TryItLabel style={styles.onMyWayTryItBadge} testID="on-my-way-try-it-badge" />
-                  ) : null}
-                </View>
-                <View collapsable={false} style={styles.actionCell}>
-                  <Button
-                    accessibilityHint={
-                      canMaps
-                        ? 'Opens directions in maps'
-                        : 'Shows a message when this booking has no address'
-                    }
-                    accessibilityLabel="Navigate"
-                    fullWidth
-                    iconColor={navigateIconColor}
-                    iconName="navigate"
-                    outlineColor={colors.nextUpText}
-                    title="Navigate"
-                    variant="outline"
-                    onPress={navigate}
-                  />
-                </View>
-              </>
+            ) : coachTip ? (
+              <NextUpCoachTip tip={coachTip} onDismiss={() => void dismissCoachTip()} />
             ) : null}
+            <View
+              collapsable={false}
+              style={isHandoff || isUpcoming ? styles.actions : styles.actionsSingle}
+            >
+              {isHandoff ? (
+                <>
+                  <View collapsable={false} style={styles.actionCell}>
+                    <Button
+                      accessibilityHint="Asks to confirm before skipping the done text"
+                      accessibilityLabel="Skip"
+                      disabled={actionDisabled}
+                      fullWidth
+                      outlineColor={colors.nextUpText}
+                      title="Skip"
+                      variant="outline"
+                      onPress={openSkipWorkNotifyConfirm}
+                    />
+                  </View>
+                  <View collapsable={false} style={styles.actionCell}>
+                    <NextUpCoachTargetGlow
+                      active={coachTip?.id === NEXT_UP_COACH_TIP_DONE}
+                      color={coachTip?.iconColor ?? '#f59e0b'}
+                    >
+                      <Button
+                        accessibilityHint={
+                          hasCustomerSmsNumber
+                            ? 'Asks to confirm before texting the customer that you are done'
+                            : 'Add a phone on this booking to notify the customer'
+                        }
+                        accessibilityLabel="Done"
+                        disabled={actionDisabled || !hasCustomerSmsNumber}
+                        fullWidth
+                        iconName="chatbubble-ellipses-outline"
+                        title="Done"
+                        variant="surfaceDark"
+                        onPress={handleOpenWorkFinishedConfirm}
+                      />
+                    </NextUpCoachTargetGlow>
+                  </View>
+                </>
+              ) : isWorking ? (
+                <NextUpCoachTargetGlow
+                  active={coachTip?.id === NEXT_UP_COACH_TIP_MARK_COMPLETE}
+                  color={coachTip?.iconColor ?? '#0891b2'}
+                >
+                  <Button
+                    accessibilityHint={
+                      onMarkComplete ? undefined : 'Mark complete is not available right now'
+                    }
+                    accessibilityLabel="Mark complete"
+                    disabled={!onMarkComplete || markCompleteLoading}
+                    fullWidth
+                    iconName="checkmark-done-outline"
+                    loading={markCompleteLoading}
+                    title="Mark complete"
+                    variant={inProgressPrimaryVariant}
+                    onPress={handleMarkCompletePress}
+                  />
+                </NextUpCoachTargetGlow>
+              ) : isEnRoute ? (
+                <NextUpCoachTargetGlow
+                  active={coachTip?.id === NEXT_UP_COACH_TIP_SLIDE_TO_START}
+                  color={coachTip?.iconColor ?? '#10b981'}
+                >
+                  <SlideToStartJob
+                    disabled={actionDisabled || !hasCustomerSmsNumber}
+                    loading={actionSending}
+                    surfaceTone={nextUpSurfaceTone}
+                    onComplete={handleStartJob}
+                  />
+                </NextUpCoachTargetGlow>
+              ) : isUpcoming ? (
+                <>
+                  <View collapsable={false} style={styles.actionCell}>
+                    <NextUpCoachTargetGlow
+                      active={coachTip?.id === NEXT_UP_COACH_TIP_ON_MY_WAY}
+                      color={coachTip?.iconColor ?? '#0a84ff'}
+                    >
+                      <Button
+                        accessibilityHint={
+                          hasCustomerSmsNumber
+                            ? useLifecycleActions
+                              ? 'Asks to confirm before texting the customer that you are on the way'
+                              : 'Opens Messages with a prefilled on-my-way text'
+                            : 'Add a phone on this booking to notify the customer'
+                        }
+                        accessibilityLabel="On my way"
+                        disabled={actionDisabled || !hasCustomerSmsNumber}
+                        fullWidth
+                        iconName="chatbubble-ellipses-outline"
+                        title="On my way"
+                        variant="surfaceDark"
+                        onPress={
+                          useLifecycleActions ? handleOpenOnMyWayConfirm : openDeviceOnMyWaySms
+                        }
+                      />
+                    </NextUpCoachTargetGlow>
+                    {showOnMyWayTryIt ? (
+                      <TryItLabel
+                        style={styles.onMyWayTryItBadge}
+                        testID="on-my-way-try-it-badge"
+                      />
+                    ) : null}
+                  </View>
+                  <View collapsable={false} style={styles.actionCell}>
+                    <Button
+                      accessibilityHint={
+                        canMaps
+                          ? 'Opens directions in maps'
+                          : 'Shows a message when this booking has no address'
+                      }
+                      accessibilityLabel="Navigate"
+                      fullWidth
+                      iconColor={navigateIconColor}
+                      iconName="navigate"
+                      outlineColor={colors.nextUpText}
+                      title="Navigate"
+                      variant="outline"
+                      onPress={navigate}
+                    />
+                  </View>
+                </>
+              ) : null}
+            </View>
           </View>
         ) : null}
       </SpotlightCard>
@@ -830,10 +932,13 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     flexDirection: 'row',
     gap: 12,
-    marginTop: 26,
     width: '100%',
   },
   actionsSingle: {
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  actionsBlock: {
     alignSelf: 'stretch',
     marginTop: 26,
     width: '100%',

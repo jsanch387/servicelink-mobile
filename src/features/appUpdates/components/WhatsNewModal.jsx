@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { WhatsNewRevenueChartMock } from './WhatsNewRevenueChartMock';
+import { WhatsNewSmsBubblesMock } from './WhatsNewSmsBubblesMock';
 
 /**
  * Centered feature update modal — one feature, bullet-first copy.
@@ -176,6 +177,8 @@ export function WhatsNewModal({
   const iconColor = announcement.iconColor ?? colors.text;
   const iconLibrary = announcement.iconLibrary ?? 'ionicons';
   const showRevenueChart = announcement.illustration === 'revenue-chart';
+  const showSmsBubbles = announcement.illustration === 'sms-bubbles';
+  const showIllustration = showRevenueChart || showSmsBubbles;
 
   const heroIconNode =
     iconLibrary === 'material-community' ? (
@@ -203,7 +206,7 @@ export function WhatsNewModal({
           <Animated.View style={{ opacity, transform: [{ scale }] }}>
             <View style={styles.card}>
               <View style={styles.accentBar} />
-              {!showRevenueChart ? (
+              {!showIllustration ? (
                 <View
                   style={[
                     styles.iconBadge,
@@ -225,6 +228,7 @@ export function WhatsNewModal({
               <AppText style={styles.title}>{announcement.title}</AppText>
 
               {showRevenueChart ? <WhatsNewRevenueChartMock /> : null}
+              {showSmsBubbles ? <WhatsNewSmsBubblesMock /> : null}
 
               <View style={styles.bulletList}>
                 {announcement.bullets.map((line) => (

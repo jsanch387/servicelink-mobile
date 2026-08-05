@@ -48,6 +48,40 @@ export function smsMessageTypeIcon(type) {
 }
 
 /**
+ * Accent color for a message-type icon (presentation / timeline badges).
+ * @param {string | null | undefined} type
+ * @returns {string}
+ */
+export function smsMessageTypeIconColor(type) {
+  const key = typeof type === 'string' ? type.trim() : '';
+  if (key === SMS_MESSAGE_TYPE_BOOKING_CONFIRMATION) return '#34c759';
+  if (key === SMS_MESSAGE_TYPE_ON_THE_WAY) return '#0a84ff';
+  if (key === SMS_MESSAGE_TYPE_JOB_STARTED) return '#10b981';
+  if (key === SMS_MESSAGE_TYPE_WORK_FINISHED) return '#f59e0b';
+  if (key === SMS_MESSAGE_TYPE_JOB_COMPLETED) return '#a78bfa';
+  if (key === SMS_MESSAGE_TYPE_REMINDER) return '#fb923c';
+  if (key === SMS_MESSAGE_TYPE_INVOICE) return '#38bdf8';
+  return '#94a3b8';
+}
+
+/**
+ * Soft fill behind a colored type icon.
+ * @param {string | null | undefined} type
+ * @returns {string}
+ */
+export function smsMessageTypeIconBackground(type) {
+  const key = typeof type === 'string' ? type.trim() : '';
+  if (key === SMS_MESSAGE_TYPE_BOOKING_CONFIRMATION) return 'rgba(52, 199, 89, 0.16)';
+  if (key === SMS_MESSAGE_TYPE_ON_THE_WAY) return 'rgba(10, 132, 255, 0.16)';
+  if (key === SMS_MESSAGE_TYPE_JOB_STARTED) return 'rgba(16, 185, 129, 0.16)';
+  if (key === SMS_MESSAGE_TYPE_WORK_FINISHED) return 'rgba(245, 158, 11, 0.16)';
+  if (key === SMS_MESSAGE_TYPE_JOB_COMPLETED) return 'rgba(167, 139, 250, 0.18)';
+  if (key === SMS_MESSAGE_TYPE_REMINDER) return 'rgba(251, 146, 60, 0.16)';
+  if (key === SMS_MESSAGE_TYPE_INVOICE) return 'rgba(56, 189, 248, 0.16)';
+  return 'rgba(148, 163, 184, 0.14)';
+}
+
+/**
  * @param {string | null | undefined} status
  * @returns {{ label: string; tone: 'success' | 'muted' | 'danger' | 'info' }}
  */

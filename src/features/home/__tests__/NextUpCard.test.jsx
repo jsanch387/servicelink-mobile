@@ -1,6 +1,8 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { NextUpCard } from '../components/NextUpCard';
+import { clearSeenNextUpCoachTips } from '../storage/nextUpCoachTipStorage';
+import { clearOnMyWayTryItSeen, markOnMyWayTryItSeen } from '../storage/nextUpOnMyWayTryItStorage';
 import * as outbound from '../utils/appointmentOutbound';
 import { renderWithProviders } from './testUtils';
 
@@ -43,8 +45,9 @@ const baseBooking = {
 };
 
 describe('NextUpCard', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    await Promise.all([clearSeenNextUpCoachTips(), clearOnMyWayTryItSeen()]);
     mockNotifyOnTheWay.mockResolvedValue({ ok: true });
     mockBookingActionState = {
       notifyOnTheWay: mockNotifyOnTheWay,
@@ -131,7 +134,7 @@ describe('NextUpCard', () => {
     expect(screen.queryByLabelText('Mark complete')).toBeNull();
   });
 
-  it('upcoming: shows Try it badge on On my way when SMS lifecycle launch badge is on', () => {
+  it('upcoming: shows On my way coach tip when SMS lifecycle is on', async () => {
     renderWithProviders(
       <NextUpCard
         bookingsError={null}
@@ -143,7 +146,92 @@ describe('NextUpCard', () => {
         subtitle="Today at 2:00 PM"
       />,
     );
-    expect(screen.getByTestId('on-my-way-try-it-badge')).toBeTruthy();
+    expect(await screen.findByTestId('next-up-coach-tip')).toBeTruthy();
+    expect(screen.getByText('On my way texts them')).toBeTruthy();
+    expect(screen.getByTestId('next-up-coach-target-glow')).toBeTruthy();
+    expect(screen.queryByTestId('on-my-way-try-it-badge')).toBeNull();
+  });
+
+  it('upcoming: shows Try it badge on On my way when coach tip is dismissed', async () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        showOnMyWayTryItBadge
+        useLifecycleActions
+        subtitle="Today at 2:00 PM"
+      />,
+    );
+    fireEvent.press(await screen.findByLabelText('Skip tip'));
+    expect(await screen.findByTestId('on-my-way-try-it-badge')).toBeTruthy();
+  });
+
+  it('upcoming: does not show Try it again after it was already seen', async () => {
+    await markOnMyWayTryItSeen();
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        showOnMyWayTryItBadge
+        useLifecycleActions
+        subtitle="Today at 2:00 PM"
+      />,
+    );
+    fireEvent.press(await screen.findByLabelText('Skip tip'));
+    expect(screen.queryByTestId('on-my-way-try-it-badge')).toBeNull();
+  });
+
+  it('upcoming: skips Try it after On my way completes the coach tip', async () => {
+    const first = renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        showOnMyWayTryItBadge
+        useLifecycleActions
+        subtitle="Today at 2:00 PM"
+      />,
+    );
+    expect(await screen.findByTestId('next-up-coach-tip')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('On my way'));
+    expect(await screen.findByTestId('next-up-coach-win')).toBeTruthy();
+    first.unmount();
+
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        showOnMyWayTryItBadge
+        useLifecycleActions
+        subtitle="Today at 2:00 PM"
+      />,
+    );
+    expect(screen.queryByTestId('next-up-coach-tip')).toBeNull();
+    expect(screen.queryByTestId('on-my-way-try-it-badge')).toBeNull();
+  });
+
+  it('upcoming: flashes Nice when On my way completes the coach tip', async () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{ ...baseBooking, job_status: 'not_started' }}
+        useLifecycleActions
+        subtitle="Today at 2:00 PM"
+      />,
+    );
+    expect(await screen.findByTestId('next-up-coach-tip')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('On my way'));
+    expect(await screen.findByTestId('next-up-coach-win')).toBeTruthy();
+    expect(screen.getByText('Nice')).toBeTruthy();
   });
 
   it('upcoming: hides Try it badge when lifecycle SMS is off', () => {
@@ -224,6 +312,26 @@ describe('NextUpCard', () => {
     expect(screen.getByText('Alex')).toBeTruthy();
     expect(screen.queryByLabelText('Mark complete')).toBeNull();
     expect(screen.queryByLabelText('On my way')).toBeNull();
+  });
+
+  it('working ready: shows Mark complete coach tip when SMS lifecycle is on', async () => {
+    renderWithProviders(
+      <NextUpCard
+        bookingsError={null}
+        businessError={null}
+        isLoading={false}
+        nextBooking={{
+          ...baseBooking,
+          job_status: 'in_progress',
+          work_handoff_status: 'notified',
+        }}
+        useLifecycleActions
+        subtitle="In progress"
+      />,
+    );
+    expect(await screen.findByTestId('next-up-coach-tip')).toBeTruthy();
+    expect(screen.getByText('Mark complete texts their receipt')).toBeTruthy();
+    expect(screen.getByTestId('next-up-coach-target-glow')).toBeTruthy();
   });
 
   it('working ready: shows Mark complete when handoff is done', () => {

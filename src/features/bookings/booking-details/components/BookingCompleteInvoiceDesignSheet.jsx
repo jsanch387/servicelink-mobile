@@ -55,7 +55,7 @@ import { bookingsDetailsQueryKey } from '../../queryKeys';
 import { useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { isValidEmailFormat } from '../../../../utils/email';
-import { formatPhoneForDisplay, phoneForSmsUri } from '../../../../utils/phone';
+import { formatPhoneForDisplay, normalizePhoneForDatabase } from '../../../../utils/phone';
 import {
   TapToPaySheet,
   TAP_TO_PAY_RECEIPT_ROW_LABEL,
@@ -325,7 +325,7 @@ function CompleteVisitDesignBody({
 
   const canUseTapToPay = tapToPayConnectReady && !tapToPayConnectLoading;
   const hasReceiptEmailForTapToPay = isValidEmailFormat(savedReceiptEmail);
-  const hasReceiptPhoneForTapToPay = Boolean(phoneForSmsUri(savedReceiptPhone));
+  const hasReceiptPhoneForTapToPay = Boolean(normalizePhoneForDatabase(savedReceiptPhone));
   const hasReceiptContactForTapToPay = hasReceiptEmailForTapToPay || hasReceiptPhoneForTapToPay;
   const tapToPayNeedsReceiptContact = showReceiptContactNotice && !hasReceiptContactForTapToPay;
 
@@ -603,7 +603,11 @@ export function BookingCompleteVisitSheet({
   } = useTapToPayConnectReadiness();
   const showTapToPay = isTapToPayUiEnabled();
   const isDesignPreview = !visitModel && !isLoading && !loadError;
-  const resolvedModel = visitModel ?? (isDesignPreview ? resolveCompleteVisitDesignMock() : null);
+  const designPreviewModel = useMemo(
+    () => (isDesignPreview ? resolveCompleteVisitDesignMock() : null),
+    [isDesignPreview],
+  );
+  const resolvedModel = visitModel ?? designPreviewModel;
 
   const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
     useModalFadeBackdropSlideSheet();
@@ -708,17 +712,21 @@ export function BookingCompleteVisitSheet({
     };
   }, []);
 
+  const hasResolvedVisitModel = Boolean(resolvedModel);
+  const modelCustomerEmail = String(resolvedModel?.customerEmail ?? '').trim();
+  const modelCustomerPhone = normalizePhoneForDatabase(resolvedModel?.customerPhone) || '';
+
   useEffect(() => {
-    if (!visible || !resolvedModel) {
+    if (!visible || !hasResolvedVisitModel) {
       return;
     }
-    const email = String(resolvedModel.customerEmail ?? '').trim();
-    const phone = phoneForSmsUri(resolvedModel.customerPhone) || '';
-    setSavedReceiptEmail(email);
-    setReceiptEmailDraft(email);
-    setSavedReceiptPhone(phone);
-    setReceiptPhoneDraft(formatPhoneForDisplay(phone) || phone);
-  }, [resolvedModel, visible]);
+    setSavedReceiptEmail(modelCustomerEmail);
+    setReceiptEmailDraft(modelCustomerEmail);
+    setSavedReceiptPhone(modelCustomerPhone);
+    setReceiptPhoneDraft(formatPhoneForDisplay(modelCustomerPhone) || modelCustomerPhone);
+    // Contact field values only — avoid depending on the whole model object so a
+    // phone-only save is not wiped when the model identity changes with the same empty phone.
+  }, [hasResolvedVisitModel, modelCustomerEmail, modelCustomerPhone, visible]);
 
   const subtotal = useMemo(() => {
     if (!resolvedModel) {
@@ -751,7 +759,7 @@ export function BookingCompleteVisitSheet({
 
   const showCollectActions = amountDue > 0;
   const hasSavedReceiptEmail = isValidEmailFormat(savedReceiptEmail);
-  const hasSavedReceiptPhone = Boolean(phoneForSmsUri(savedReceiptPhone));
+  const hasSavedReceiptPhone = Boolean(normalizePhoneForDatabase(savedReceiptPhone));
   // A phone typed into the receipt form only means a text when this owner can text.
   const canTextSavedReceiptPhone = canUseSms && hasSavedReceiptPhone;
   const showReceiptContactNotice =
@@ -778,7 +786,7 @@ export function BookingCompleteVisitSheet({
       const email = String(contactInput?.email ?? '').trim();
       const phone = String(contactInput?.phone ?? '').trim();
       const emailOk = isValidEmailFormat(email);
-      const phoneDigits = phoneForSmsUri(phone) || '';
+      const phoneDigits = normalizePhoneForDatabase(phone) || '';
       if (!emailOk && !phoneDigits) {
         toast.error(COMPLETE_VISIT_RECEIPT_CONTACT_INVALID_TOAST);
         throw new Error('invalid_contact');

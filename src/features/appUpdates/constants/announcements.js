@@ -14,7 +14,7 @@ import { ROUTES } from '../../../routes/routes';
  *   iconLibrary?: 'ionicons' | 'material-community';
  *   iconColor?: string;
  *   iconBadgeVariant?: 'default' | 'dark' | 'light';
- *   illustration?: 'revenue-chart';
+ *   illustration?: 'revenue-chart' | 'sms-bubbles';
  *   title: string;
  *   bullets: string[];
  *   primaryLabel?: string;
@@ -27,22 +27,19 @@ import { ROUTES } from '../../../routes/routes';
 /** @type {WhatsNewAnnouncement[]} */
 export const APP_UPDATE_ANNOUNCEMENTS = [
   {
-    id: 'revenue-v1',
+    id: 'sms-v1',
     badge: "What's new",
-    icon: 'cash-outline',
-    iconLibrary: 'ionicons',
-    illustration: 'revenue-chart',
-    title: 'See how much you make',
+    illustration: 'sms-bubbles',
+    title: 'We text your customers for you',
     bullets: [
-      'See totals from jobs you’ve finished and closed out',
-      'Spot your best days, weeks, and months at a glance',
-      'Compare this period to the last one so you know if you’re up',
+      'On my way, start, and finish — sent automatically',
+      'Review every message under Notifications → Messages sent',
     ],
-    primaryLabel: 'View Revenue',
+    primaryLabel: 'View messages',
     secondaryLabel: 'Got it',
     cta: {
       tab: ROUTES.MORE,
-      screen: ROUTES.MORE_PAYMENTS,
+      screen: ROUTES.SENT_TEXTS,
     },
   },
 ];

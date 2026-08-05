@@ -1,14 +1,23 @@
 import { useNavigation } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { navigateNestedTabScreen } from '../../../navigation/navigateNestedTabScreen';
+import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
 import { useAppUpdateAnnouncement } from '../hooks/useAppUpdateAnnouncement';
 import { WhatsNewModal } from './WhatsNewModal';
 
-/** Shows the next unseen feature announcement when main tabs are active. */
+/**
+ * Shows the next unseen feature announcement when main tabs are active.
+ * SMS launch (`sms-v1`) only appears for owners with customer SMS access (Pro).
+ */
 export function AppUpdateAnnouncementsBootstrap() {
   const navigation = useNavigation();
+  const smsAccess = useCustomerSmsAccess();
   const { announcement, hasAnnouncement, isReady, dismissCurrent } = useAppUpdateAnnouncement();
   const [actionBusy, setActionBusy] = useState(false);
+
+  const isSmsAnnouncement = announcement?.id === 'sms-v1';
+  const canShowAnnouncement =
+    hasAnnouncement && (!isSmsAnnouncement || (smsAccess.isReady && smsAccess.canUseSms));
 
   const handleDismiss = useCallback(async () => {
     await dismissCurrent();
@@ -42,7 +51,7 @@ export function AppUpdateAnnouncementsBootstrap() {
     <WhatsNewModal
       announcement={announcement}
       primaryBusy={actionBusy}
-      visible={hasAnnouncement}
+      visible={canShowAnnouncement}
       onDismiss={handleDismiss}
       onPrimaryAction={announcement?.cta ? handlePrimaryAction : undefined}
     />
