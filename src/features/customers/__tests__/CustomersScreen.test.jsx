@@ -96,7 +96,7 @@ describe('CustomersScreen', () => {
     );
 
     renderWithProviders(<CustomersScreen />);
-    fireEvent.changeText(screen.getByPlaceholderText('Search by customer name...'), 'zzz');
+    fireEvent.changeText(screen.getByPlaceholderText('Search by name, email, or phone...'), 'zzz');
     expect(screen.getByText('No matching customers')).toBeTruthy();
     expect(screen.getByText(/Try adjusting your search or filter/i)).toBeTruthy();
   });
@@ -171,5 +171,28 @@ describe('CustomersScreen', () => {
       customerName: 'Jane Fuller',
       customerSegment: 'new',
     });
+  });
+
+  it('pages the list and reveals more with Show more', () => {
+    const customers = Array.from({ length: 45 }, (_, i) => ({
+      id: `c${i}`,
+      fullName: `Customer ${i}`,
+      segment: 'new',
+      status: 'new',
+      pastVisitsSummary: 'No past visits yet',
+      scheduleLabel: 'No schedule yet',
+      nextAppointmentDateLabel: '',
+      nextAppointmentRelativeLabel: '',
+    }));
+    mockUseCustomersList.mockReturnValue(baseHook({ customers }));
+
+    renderWithProviders(<CustomersScreen />);
+    expect(screen.getByText('Showing 40 of 45 customers')).toBeTruthy();
+    expect(screen.getByText('Customer 0')).toBeTruthy();
+    expect(screen.getByLabelText('Show more')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Show more'));
+    expect(screen.getByText('Showing 45 of 45 customers')).toBeTruthy();
+    expect(screen.queryByLabelText('Show more')).toBeNull();
   });
 });

@@ -4,6 +4,7 @@ import {
 } from '../../api/customers';
 import { formatCustomerLastVisitDate } from './formatCustomerLastVisitDate';
 import { formatDaysSinceLastVisitCompact } from './formatDaysSinceLastVisit';
+import { pickLastKnownCustomerAddress } from './pickLastKnownCustomerAddress';
 
 /**
  * Detail-screen model from `customers` row + that customer's bookings (non-cancelled).
@@ -13,8 +14,16 @@ import { formatDaysSinceLastVisitCompact } from './formatDaysSinceLastVisit';
  * @param {{ id: string; full_name?: string | null; phone?: string | null; email?: string | null; notes?: string | null }} customerRow
  * @param {Array<Record<string, unknown>>} bookings
  * @param {number} [nowMs]
+ * @param {{
+ *   shopAddress?: { street: string; unit: string; city: string; state: string; zip: string } | null;
+ * }} [options]
  */
-export function buildCustomerDetailsFromApi(customerRow, bookings, nowMs = Date.now()) {
+export function buildCustomerDetailsFromApi(
+  customerRow,
+  bookings,
+  nowMs = Date.now(),
+  options = {},
+) {
   const metrics = aggregateCustomerBookingMetrics(bookings, nowMs);
   const { segment } = deriveCustomerStatusAndLastDays(metrics, nowMs);
   const fullName = customerRow.full_name?.trim() || 'Customer';
@@ -32,6 +41,10 @@ export function buildCustomerDetailsFromApi(customerRow, bookings, nowMs = Date.
     lastVisitAtIso: lastVisitAt ? lastVisitAt.toISOString() : '',
     lastVisitLabel: lastVisitAt ? formatCustomerLastVisitDate(lastVisitAt) : '—',
     lastVisitRelativeLabel: lastVisitAt ? formatDaysSinceLastVisitCompact(lastVisitAt, nowMs) : '',
+    /** Most recent mobile booking address — used to seed rebook create-appointment. */
+    lastKnownAddress: pickLastKnownCustomerAddress(bookings, {
+      shopAddress: options.shopAddress ?? null,
+    }),
     /** CRM notes on the customer row (not per-booking). */
     ownerNotes: typeof customerRow.notes === 'string' ? customerRow.notes : '',
     /** Reserved for future SMS / booking-link wiring. */

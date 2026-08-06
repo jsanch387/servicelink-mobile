@@ -20,6 +20,12 @@ describe('buildCustomerDetailsFromApi', () => {
         scheduled_date: '2026-03-01',
         start_time: '09:00:00',
         status: 'completed',
+        service_location_type: 'mobile',
+        customer_street_address: '123 Main St',
+        customer_unit_apt: 'Apt 2',
+        customer_city: 'Austin',
+        customer_state: 'TX',
+        customer_zip: '78701',
       },
     ];
 
@@ -31,6 +37,34 @@ describe('buildCustomerDetailsFromApi', () => {
     expect(m.segment).toBe('new');
     expect(m.lastVisitLabel).not.toBe('—');
     expect(m.lastVisitRelativeLabel.length).toBeGreaterThan(0);
+    expect(m.lastKnownAddress).toEqual({
+      street: '123 Main St',
+      unit: 'Apt 2',
+      city: 'Austin',
+      state: 'TX',
+      zip: '78701',
+    });
+  });
+
+  it('does not seed lastKnownAddress from a shop booking', () => {
+    const bookings = [
+      {
+        customer_id: 'c1',
+        service_price_cents: 12000,
+        addon_details: null,
+        scheduled_date: '2026-03-01',
+        start_time: '09:00:00',
+        status: 'completed',
+        service_location_type: 'shop',
+        customer_street_address: '1 Shop Way',
+        customer_city: 'Austin',
+        customer_state: 'TX',
+        customer_zip: '78701',
+      },
+    ];
+
+    const m = buildCustomerDetailsFromApi(baseRow, bookings, nowMs);
+    expect(m.lastKnownAddress).toBeNull();
   });
 
   it('marks returning when more than one completed visit', () => {

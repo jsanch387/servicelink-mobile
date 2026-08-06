@@ -7,6 +7,7 @@ export const CUSTOMER_DETAIL_SEND_MAINTENANCE_LABEL = 'Maintenance detail';
  * Grouped quick actions for a customer profile.
  *
  * @param {object} props
+ * @param {() => void} props.onCreateAppointment
  * @param {() => void} props.onSendMaintenanceDetail
  * @param {() => void} props.onSendText
  * @param {boolean} [props.first]
@@ -14,12 +15,19 @@ export const CUSTOMER_DETAIL_SEND_MAINTENANCE_LABEL = 'Maintenance detail';
  */
 export function CustomerDetailActionsSection({
   first = false,
+  onCreateAppointment,
   onSendMaintenanceDetail,
   onSendText,
   removeLoading = false,
 }) {
   return (
     <SettingsSection first={first} title="Actions">
+      <SettingsNavRow
+        disabled={removeLoading}
+        icon="calendar-outline"
+        label="Create appointment"
+        onPress={onCreateAppointment}
+      />
       <SettingsNavRow
         disabled={removeLoading}
         icon="chatbubble-ellipses-outline"

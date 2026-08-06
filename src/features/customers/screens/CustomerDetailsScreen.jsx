@@ -265,6 +265,22 @@ export function CustomerDetailsScreen() {
     }
   }, [businessId, detailCustomerId, notesDraft, notesSaving, queryClient]);
 
+  const handleCreateAppointment = useCallback(() => {
+    if (!detailCustomerId || !model) {
+      Alert.alert('Unable to create appointment', 'Missing customer context. Please try again.');
+      return;
+    }
+    navigation.navigate(ROUTES.CREATE_APPOINTMENT, {
+      prefilledCustomer: {
+        customerId: detailCustomerId,
+        fullName: model.fullName,
+        email: model.email ?? '',
+        phone: model.phone ?? '',
+        address: model.lastKnownAddress ?? null,
+      },
+    });
+  }, [detailCustomerId, model, navigation]);
+
   const handleSendMaintenanceDetail = useCallback(() => {
     if (!detailCustomerId || !model) {
       Alert.alert('Unable to send offer', 'Missing customer context. Please try again.');
@@ -443,6 +459,7 @@ export function CustomerDetailsScreen() {
         <View style={styles.footer}>
           <CustomerDetailActionsSection
             first
+            onCreateAppointment={handleCreateAppointment}
             onSendMaintenanceDetail={handleSendMaintenanceDetail}
             onSendText={handleSendText}
             removeLoading={removeLoading}

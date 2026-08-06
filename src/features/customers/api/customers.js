@@ -34,7 +34,7 @@ export function mapCustomerInsertError(error) {
 }
 
 const BOOKING_CUSTOMER_METRICS_SELECT =
-  'customer_id, service_price_cents, addon_details, scheduled_date, start_time, status, created_at';
+  'customer_id, service_price_cents, addon_details, scheduled_date, start_time, status, created_at, service_location_type, customer_street_address, customer_unit_apt, customer_city, customer_state, customer_zip';
 
 /**
  * @typedef {object} CustomerRow
@@ -59,6 +59,8 @@ const BOOKING_CUSTOMER_METRICS_SELECT =
  * @property {number | null} lastVisitDaysAgo
  * @property {string} segment
  * @property {string} fullName
+ * @property {string | null} phone
+ * @property {string | null} email
  * @property {string} pastVisitsSummary
  * @property {string} scheduleLabel
  * @property {string} nextAppointmentDateLabel
@@ -417,6 +419,8 @@ export function buildCustomerCards(customers, bookings, nowMs = Date.now()) {
       lastVisitDaysAgo: lastDays,
       segment: status,
       fullName: displayName,
+      phone: row.phone ?? null,
+      email: row.email ?? null,
       pastVisitsSummary,
       scheduleLabel,
       nextAppointmentDateLabel: dateLabel,

@@ -4,6 +4,9 @@ export const CUSTOMER_FILTER_RETURNING = 'returning';
 export const CUSTOMER_FILTER_DUE = 'due';
 export const NEEDS_ATTENTION_DAYS = 90;
 
+/** Initial / incremental page size for the customers list UI (client-side window). */
+export const CUSTOMERS_LIST_PAGE_SIZE = 40;
+
 export const CUSTOMER_FILTER_OPTIONS = [
   { key: CUSTOMER_FILTER_ALL, label: 'All' },
   { key: CUSTOMER_FILTER_NEW, label: 'New' },

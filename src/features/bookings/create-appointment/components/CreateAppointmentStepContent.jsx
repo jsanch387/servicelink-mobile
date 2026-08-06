@@ -61,10 +61,12 @@ export function CreateAppointmentStepContent(p) {
     onSelectDateKey,
     onSelectTime,
     customer,
+    isReturningCustomer = false,
     onChangeCustomer,
     appointmentLocationType,
     onSelectLocationType,
     address,
+    isReturningCustomerAddress = false,
     onChangeAddress,
     shopAddressMissing,
     vehicle,
@@ -159,7 +161,13 @@ export function CreateAppointmentStepContent(p) {
         />
       );
     case CREATE_APPOINTMENT_STEP.ADDRESS:
-      return <AddressStep address={address} onChangeAddress={onChangeAddress} />;
+      return (
+        <AddressStep
+          address={address}
+          isReturningCustomerAddress={isReturningCustomerAddress}
+          onChangeAddress={onChangeAddress}
+        />
+      );
     case CREATE_APPOINTMENT_STEP.VEHICLE:
       return (
         <VehicleStep
@@ -190,7 +198,13 @@ export function CreateAppointmentStepContent(p) {
         />
       );
     case CREATE_APPOINTMENT_STEP.CUSTOMER:
-      return <CustomerStep customer={customer} onChangeCustomer={onChangeCustomer} />;
+      return (
+        <CustomerStep
+          customer={customer}
+          isReturningCustomer={isReturningCustomer}
+          onChangeCustomer={onChangeCustomer}
+        />
+      );
     case CREATE_APPOINTMENT_STEP.REVIEW:
       if (showSubmitPanel) {
         return null;
