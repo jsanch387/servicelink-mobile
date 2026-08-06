@@ -1,3 +1,5 @@
+import { formatPhoneForDisplay } from '../../../utils/phone';
+
 /** Step copy for the create-appointment wizard (UI only). */
 export const CREATE_APPOINTMENT_CUSTOM_JOB_ID = '__custom_job__';
 
@@ -94,8 +96,66 @@ export function createEmptyCustomerForm() {
   return { fullName: '', email: '', phone: '' };
 }
 
+/**
+ * Seeds the Customer step when "Create appointment" is launched from an existing customer's
+ * profile ({@link ../../customers/screens/CustomerDetailsScreen}) so it opens already filled in.
+ *
+ * @param {{ fullName?: string | null; email?: string | null; phone?: string | null } | null | undefined} prefilledCustomer
+ */
+export function customerFormFromPrefilledCustomer(prefilledCustomer) {
+  if (!prefilledCustomer) {
+    return createEmptyCustomerForm();
+  }
+  return {
+    fullName: String(prefilledCustomer.fullName ?? '').trim(),
+    email: String(prefilledCustomer.email ?? '').trim(),
+    phone: formatPhoneForDisplay(prefilledCustomer.phone ?? ''),
+  };
+}
+
 export function createEmptyAddressForm() {
   return { street: '', unit: '', city: '', state: '', zip: '' };
+}
+
+/**
+ * Seeds the Address step from a returning customer's last known booking address.
+ *
+ * @param {{
+ *   street?: string | null;
+ *   unit?: string | null;
+ *   city?: string | null;
+ *   state?: string | null;
+ *   zip?: string | null;
+ * } | null | undefined} prefilledAddress
+ */
+export function addressFormFromPrefilledAddress(prefilledAddress) {
+  if (!prefilledAddress) {
+    return createEmptyAddressForm();
+  }
+  const street = String(prefilledAddress.street ?? '').trim();
+  if (!street) {
+    return createEmptyAddressForm();
+  }
+  return {
+    street,
+    unit: String(prefilledAddress.unit ?? '').trim(),
+    city: String(prefilledAddress.city ?? '').trim(),
+    state: String(prefilledAddress.state ?? '')
+      .trim()
+      .toUpperCase()
+      .slice(0, 2),
+    zip: String(prefilledAddress.zip ?? '')
+      .trim()
+      .replace(/\D/g, '')
+      .slice(0, 5),
+  };
+}
+
+/**
+ * @param {{ street?: string; unit?: string; city?: string; state?: string; zip?: string } | null | undefined} address
+ */
+export function addressFormHasStreet(address) {
+  return Boolean(String(address?.street ?? '').trim());
 }
 
 export function createEmptyVehicleForm() {

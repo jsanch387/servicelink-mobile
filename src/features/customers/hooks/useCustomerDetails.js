@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { useAuth } from '../../auth';
+import { fetchBusinessServiceLocation } from '../../bookings/create-appointment/api/fetchBusinessServiceLocation';
+import { addressFormFromBusinessShopLocation } from '../../bookings/create-appointment/utils/createAppointmentServiceLocation';
 import { buildCustomerDetailsFromApi } from '../customer-details/utils/buildCustomerDetailsFromApi';
 import { fetchBookingsForCustomerMetrics, fetchCustomerForBusiness } from '../api/customers';
 import { customerDetailsQueryKey } from '../queryKeys';
@@ -48,11 +50,16 @@ export function useCustomerDetails(customerId) {
   const detailQ = useQuery({
     queryKey: customerDetailsQueryKey(businessId, sanitizedId),
     queryFn: async () => {
-      const [{ data: customer, error: customerError }, { data: bookings, error: bookingsError }] =
-        await Promise.all([
-          fetchCustomerForBusiness(businessId, sanitizedId),
-          fetchBookingsForCustomerMetrics(businessId, sanitizedId),
-        ]);
+      const [
+        { data: customer, error: customerError },
+        { data: bookings, error: bookingsError },
+        { data: serviceLocation, error: locationError },
+      ] = await Promise.all([
+        fetchCustomerForBusiness(businessId, sanitizedId),
+        fetchBookingsForCustomerMetrics(businessId, sanitizedId),
+        fetchBusinessServiceLocation(businessId),
+      ]);
+      // Shop location is only used to filter rebook address seeds — don't fail the screen if it 404s.
       const err = customerError ?? bookingsError;
       if (err) {
         throw new Error(err.message ?? 'Could not load customer');
@@ -60,7 +67,13 @@ export function useCustomerDetails(customerId) {
       if (!customer) {
         return { model: null, notFound: true };
       }
-      const model = buildCustomerDetailsFromApi(customer, bookings ?? [], Date.now());
+      const shopAddress =
+        !locationError && serviceLocation
+          ? addressFormFromBusinessShopLocation(serviceLocation)
+          : null;
+      const model = buildCustomerDetailsFromApi(customer, bookings ?? [], Date.now(), {
+        shopAddress,
+      });
       return { model, notFound: false };
     },
     enabled: Boolean(userId) && hasBusinessRow && Boolean(sanitizedId),
