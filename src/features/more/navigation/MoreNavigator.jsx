@@ -10,6 +10,11 @@ import { QuotesScreen } from '../../quotes/screens/QuotesScreen';
 import { CustomerDetailsScreen } from '../../customers/screens/CustomerDetailsScreen';
 import { MaintenanceDetailScreen } from '../../maintenance/screens/MaintenanceDetailScreen';
 import { MaintenanceScreen } from '../../maintenance/screens/MaintenanceScreen';
+import {
+  SubscriptionDetailScreen,
+  SubscriptionPlanDetailScreen,
+  SubscriptionsScreen,
+} from '../../subscriptions';
 import { ServicesScreen } from '../../services';
 import { ServiceEditScreen } from '../../services/screens/ServiceEditScreen';
 import { AccountSettingsScreen } from '../screens/AccountSettingsScreen';
@@ -170,6 +175,31 @@ export function MoreNavigator() {
         <Stack.Screen
           component={MaintenanceDetailScreen}
           name={ROUTES.MAINTENANCE_DETAIL}
+          options={{
+            headerBackButtonDisplayMode: 'minimal',
+            headerBackTitleVisible: false,
+          }}
+        />
+        <Stack.Screen
+          component={SubscriptionsScreen}
+          name={ROUTES.SUBSCRIPTIONS}
+          options={{
+            title: 'Subscriptions',
+            headerBackButtonDisplayMode: 'minimal',
+            headerBackTitleVisible: false,
+          }}
+        />
+        <Stack.Screen
+          component={SubscriptionDetailScreen}
+          name={ROUTES.SUBSCRIPTION_DETAIL}
+          options={{
+            headerBackButtonDisplayMode: 'minimal',
+            headerBackTitleVisible: false,
+          }}
+        />
+        <Stack.Screen
+          component={SubscriptionPlanDetailScreen}
+          name={ROUTES.SUBSCRIPTION_PLAN_DETAIL}
           options={{
             headerBackButtonDisplayMode: 'minimal',
             headerBackTitleVisible: false,

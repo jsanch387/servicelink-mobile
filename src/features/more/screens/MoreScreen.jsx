@@ -100,6 +100,12 @@ export function MoreScreen() {
             onPress={() => navigation.navigate(ROUTES.MAINTENANCE)}
           />
           <SettingsNavRow
+            icon="layers-outline"
+            label="Subscriptions"
+            labelAccessory={<BetaLabel />}
+            onPress={() => navigation.navigate(ROUTES.SUBSCRIPTIONS)}
+          />
+          <SettingsNavRow
             icon="link-outline"
             label="Booking link"
             onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
