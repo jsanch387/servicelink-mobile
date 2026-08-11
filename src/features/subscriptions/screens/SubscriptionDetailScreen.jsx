@@ -7,6 +7,7 @@ import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { SubscriptionDetailActions } from '../components/SubscriptionDetailActions';
 import { SubscriptionDetailBody } from '../components/SubscriptionDetailBody';
@@ -42,6 +43,7 @@ export function SubscriptionDetailScreen() {
           cancelAtPeriodEnd: false,
           nextVisitDate: null,
           nextVisitTime: null,
+          nextBillingDate: null,
         }
       : sourceRow;
     return mapSubscriptionDetailModel(row);
@@ -55,12 +57,13 @@ export function SubscriptionDetailScreen() {
 
   const handleViewCustomer = useCallback(() => {
     if (!model?.customerId) return;
-    // Mock customer ids won't resolve — keep the affordance for UX review.
-    Alert.alert(
-      'Customer profile',
-      'In production this opens the customer. Mock IDs are not wired to CRM yet.',
-    );
-  }, [model?.customerId]);
+    navigation.navigate(ROUTES.CUSTOMER_DETAILS, {
+      customerId: model.customerId,
+      customerName: model.customerName,
+      customerEmail: model.customerEmail || undefined,
+      customerPhone: model.customerPhone || undefined,
+    });
+  }, [model, navigation]);
 
   const handleCopyManageLink = useCallback(async () => {
     const link = String(model?.manageLink ?? '').trim();

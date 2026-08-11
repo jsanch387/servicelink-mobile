@@ -1,53 +1,81 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
+import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, Button, FilterPills } from '../../../components/ui';
+import { AppText, Button, FilterPills, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
+import { useAuth } from '../../auth';
+import { enableServicelinkPaymentsViaSupabase } from '../../payments/api/enableServicelinkPaymentsViaSupabase';
+import { postStripeConnectOnboard } from '../../payments/api/postStripeConnectOnboard';
+import { postStripeConnectSync } from '../../payments/api/postStripeConnectSync';
+import { PaymentsStripeConnectSetupCard } from '../../payments/components/PaymentsStripeConnectSetupCard';
+import { StripeConnectLaunchOverlay } from '../../payments/components/StripeConnectLaunchOverlay';
+import { STRIPE_CONNECT_ONBOARDING_AUTH_RETURN_URL } from '../../payments/constants/stripeConnectReturnUrl';
+import { usePaymentDashboardRead } from '../../payments/hooks/usePaymentDashboardRead';
+import {
+  getStripeConnectSetupCopy,
+  resolveStripeConnectSetupPresentation,
+} from '../../payments/utils/stripeConnectSetupCopy';
+import { useSubscription } from '../../subscription';
 import { SubscriptionMemberCard } from '../components/SubscriptionMemberCard';
 import { SubscriptionPlanCard } from '../components/SubscriptionPlanCard';
 import { SubscriptionsCreateFirstGuide } from '../components/SubscriptionsCreateFirstGuide';
 import { SubscriptionsCreatePlanSheet } from '../components/SubscriptionsCreatePlanSheet';
+import { SubscriptionsEnablePaymentsGate } from '../components/SubscriptionsEnablePaymentsGate';
 import { SubscriptionsHubTabs } from '../components/SubscriptionsHubTabs';
-import { SubscriptionsSetupCard } from '../components/SubscriptionsSetupCard';
+import { SubscriptionsNonProGate } from '../components/SubscriptionsNonProGate';
 import { SubscriptionsSetupCompleteCard } from '../components/SubscriptionsSetupCompleteCard';
-import { SubscriptionsSetupProgress } from '../components/SubscriptionsSetupProgress';
 import {
   SUBSCRIPTIONS_HUB_PLANS,
-  SUBSCRIPTIONS_HUB_SUBSCRIBERS,
   SUBSCRIPTIONS_LIST_EMPTY,
   SUBSCRIPTIONS_PLANS_EMPTY,
   SUBSCRIPTIONS_TAB_ACTIVE,
   SUBSCRIPTIONS_TAB_OPTIONS,
 } from '../constants';
+import { SUBSCRIPTIONS_MEMBERS_EMPTY_AFTER_SETUP } from '../constants/setupCopy';
+import { lowestSchedulePriceCents, sortSchedules } from '../constants/planCadence';
 import {
-  SUBSCRIPTIONS_MEMBERS_EMPTY_AFTER_SETUP,
-  SUBSCRIPTIONS_NEEDS_PAYMENTS_BODY,
-  SUBSCRIPTIONS_NEEDS_PAYMENTS_CTA,
-  SUBSCRIPTIONS_NEEDS_PAYMENTS_TITLE,
-} from '../constants/setupCopy';
-import { MOCK_SUBSCRIPTIONS } from '../mock/mockSubscriptions';
+  getMockHubPlans,
+  MOCK_SUBSCRIPTIONS,
+  SEED_SUBSCRIPTIONS_HUB_FOR_DESIGN,
+} from '../mock/mockSubscriptions';
 import { mapSubscriptionListCard } from '../utils/subscriptionPresentation';
 
-/** @typedef {'intro' | 'needs_payments' | 'create_first' | 'complete' | 'live'} SetupPhase */
+/** @typedef {'setup' | 'complete' | 'live'} SetupPhase */
+
+const USE_DESIGN_HUB_SEED = __DEV__ && SEED_SUBSCRIPTIONS_HUB_FOR_DESIGN;
 
 /**
- * Design preview: walk More → Subscriptions first-open → create plan → celebrate → hub.
- * Long-press the preview caption to reset or toggle the payments gate.
+ * Gates on live Pro / Stripe Connect / payments data, then create-first → hub.
+ * Plans & members stay local until the memberships API is wired.
  */
 export function SubscriptionsScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
+  const { session } = useAuth();
+  const {
+    hasProAccess,
+    isOwnerProfileLoaded,
+    isLoading: subscriptionLoading,
+    loadError: subscriptionLoadError,
+    refetchSubscription,
+  } = useSubscription();
+  const payment = usePaymentDashboardRead();
 
-  const [phase, setPhase] = useState(/** @type {SetupPhase} */ ('intro'));
-  const [paymentsReady, setPaymentsReady] = useState(true);
+  const [phase, setPhase] = useState(
+    /** @type {SetupPhase} */ (USE_DESIGN_HUB_SEED ? 'live' : 'setup'),
+  );
   const [plans, setPlans] = useState(
-    /** @type {Array<import('../mock/mockSubscriptions').MockSubscriptionPlan & { offeredCadenceKeys?: string[]; cadenceKey?: string }>} */ ([]),
+    /** @type {Array<import('../mock/mockSubscriptions').MockSubscriptionPlan & { offeredCadenceKeys?: string[]; cadenceKey?: string }>} */ (
+      USE_DESIGN_HUB_SEED ? getMockHubPlans() : []
+    ),
   );
   const [latestPlan, setLatestPlan] = useState(
     /** @type {(import('../mock/mockSubscriptions').MockSubscriptionPlan & { offeredCadenceKeys?: string[]; cadenceKey?: string }) | null} */ (
@@ -55,47 +83,44 @@ export function SubscriptionsScreen() {
     ),
   );
   const [hubTab, setHubTab] = useState(SUBSCRIPTIONS_HUB_PLANS);
-  const [showDemoMembers, setShowDemoMembers] = useState(false);
   const [listTab, setListTab] = useState(SUBSCRIPTIONS_TAB_ACTIVE);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
+  const [connectSubmitting, setConnectSubmitting] = useState(false);
+  const [enablePaymentsLoading, setEnablePaymentsLoading] = useState(false);
 
-  const openDetail = useCallback(
-    (subscriptionId) => {
-      navigation.navigate(ROUTES.SUBSCRIPTION_DETAIL, { subscriptionId });
-    },
-    [navigation],
-  );
+  const connectPresentation = useMemo(() => {
+    const account = payment.paymentAccount;
+    return resolveStripeConnectSetupPresentation(account, getStripeConnectSetupCopy(account));
+  }, [payment.paymentAccount]);
 
-  const handleTurnOn = useCallback(() => {
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    if (!paymentsReady) {
-      setPhase('needs_payments');
-      return;
-    }
-    setPhase('create_first');
-  }, [paymentsReady]);
+  const requirementsMet =
+    hasProAccess && payment.stripeConnectReady && payment.hasPaymentSettingsRow;
 
   const handleSavePlan = useCallback(
     async (draft) => {
       setSavingPlan(true);
       try {
         await new Promise((r) => setTimeout(r, 350));
+        const offeredSchedules = sortSchedules(draft.offeredSchedules);
         const plan = {
           id: `plan_${Date.now()}`,
           name: draft.name,
+          description: String(draft.description ?? '').trim(),
           serviceName: draft.serviceName,
-          priceCents: draft.priceCents,
+          offeredSchedules,
+          priceCents: lowestSchedulePriceCents(offeredSchedules) ?? 0,
           interval: /** @type {'month'} */ ('month'),
-          offeredCadenceKeys: draft.offeredCadenceKeys,
+          offeredCadenceKeys: offeredSchedules.map((row) => row.cadenceKey),
           visitsPerPeriod: 1,
           isPublic: true,
         };
+        const isFirstPlan = plans.length === 0;
         setPlans((prev) => [...prev, plan]);
         setLatestPlan(plan);
         setCreateSheetOpen(false);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        if (phase === 'create_first' || plans.length === 0) {
+        if (isFirstPlan) {
           setPhase('complete');
         } else {
           setPhase('live');
@@ -105,75 +130,82 @@ export function SubscriptionsScreen() {
         setSavingPlan(false);
       }
     },
-    [phase, plans.length],
+    [plans.length],
   );
 
-  const handlePreviewMenu = useCallback(() => {
-    Alert.alert('Subscriptions preview', 'Reset or tweak this design walkthrough.', [
-      {
-        text: 'Reset to first open',
-        onPress: () => {
-          setPhase('intro');
-          setPlans([]);
-          setLatestPlan(null);
-          setShowDemoMembers(false);
-          setHubTab(SUBSCRIPTIONS_HUB_PLANS);
-          setListTab(SUBSCRIPTIONS_TAB_ACTIVE);
-        },
-      },
-      {
-        text: paymentsReady ? 'Simulate: payments not ready' : 'Simulate: payments ready',
-        onPress: () => {
-          const next = !paymentsReady;
-          setPaymentsReady(next);
-          setPhase(next ? 'intro' : 'needs_payments');
-          setPlans([]);
-          setLatestPlan(null);
-          setShowDemoMembers(false);
-        },
-      },
-      {
-        text: showDemoMembers ? 'Hide demo subscribers' : 'Show demo subscribers',
-        onPress: () => {
-          setShowDemoMembers((v) => !v);
-          if (plans.length === 0) {
-            const demoPlan = {
-              id: 'plan_monthly_wash',
-              name: 'Monthly Wash',
-              serviceName: 'Exterior Wash',
-              priceCents: 10000,
-              interval: /** @type {'month'} */ ('month'),
-              offeredCadenceKeys: ['monthly', 'every_2_months', 'every_3_months'],
-              visitsPerPeriod: 1,
-              isPublic: true,
-            };
-            setPlans([demoPlan]);
-            setLatestPlan(demoPlan);
-            setPhase('live');
-            setHubTab(SUBSCRIPTIONS_HUB_SUBSCRIBERS);
-          } else {
-            setHubTab(SUBSCRIPTIONS_HUB_SUBSCRIBERS);
-          }
-        },
-      },
-      { text: 'Close', style: 'cancel' },
-    ]);
-  }, [paymentsReady, plans.length, showDemoMembers]);
-
-  const cardsByTab = useMemo(() => {
-    const grouped = {
-      active: [],
-      past_due: [],
-      canceled: [],
-    };
-    if (!showDemoMembers) return grouped;
-    for (const row of MOCK_SUBSCRIPTIONS) {
-      const bucket = grouped[row.status];
-      if (!bucket) continue;
-      bucket.push(mapSubscriptionListCard(row));
+  const onStripeConnectPress = useCallback(async () => {
+    const token = session?.access_token ?? null;
+    if (!token) {
+      Alert.alert('Sign in required', 'Please sign in again to continue.');
+      return;
     }
-    return grouped;
-  }, [showDemoMembers]);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setConnectSubmitting(true);
+    try {
+      const created = await postStripeConnectOnboard(token);
+      if ('error' in created) {
+        Alert.alert(
+          'Could not open Stripe',
+          safeUserFacingMessage(created.error, { fallback: 'Something went wrong. Try again.' }),
+        );
+        return;
+      }
+      const authResult = await WebBrowser.openAuthSessionAsync(
+        created.url,
+        STRIPE_CONNECT_ONBOARDING_AUTH_RETURN_URL,
+      );
+      if (authResult?.type === 'success') {
+        await postStripeConnectSync(token).catch(() => {});
+        await payment.refetchPayments();
+        await refetchSubscription();
+      }
+    } catch (e) {
+      Alert.alert(
+        'Stripe',
+        safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
+      );
+    } finally {
+      setConnectSubmitting(false);
+    }
+  }, [payment, refetchSubscription, session?.access_token]);
+
+  const onServicelinkEnablePress = useCallback(async () => {
+    const bid = payment.business?.id ?? null;
+    const paymentAccountId = payment.paymentAccount?.id ?? null;
+    if (!bid || !paymentAccountId) {
+      Alert.alert(
+        'Turn on payments',
+        'Your business or Stripe account is not ready yet. Try again in a moment.',
+      );
+      return;
+    }
+    setEnablePaymentsLoading(true);
+    try {
+      const out = await enableServicelinkPaymentsViaSupabase({
+        businessId: bid,
+        paymentAccountId,
+      });
+      if ('error' in out) {
+        Alert.alert(
+          'Turn on payments',
+          safeUserFacingMessage(out.error, {
+            fallback: 'Could not turn on payments. Try again.',
+          }),
+        );
+        return;
+      }
+      await payment.refetchPayments();
+      await refetchSubscription();
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } catch (e) {
+      Alert.alert(
+        'Turn on payments',
+        safeUserFacingMessage(e, { fallback: 'Something went wrong. Try again.' }),
+      );
+    } finally {
+      setEnablePaymentsLoading(false);
+    }
+  }, [payment, refetchSubscription]);
 
   const styles = useMemo(
     () =>
@@ -191,15 +223,25 @@ export function SubscriptionsScreen() {
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
         },
-        mockBanner: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontWeight: '500',
-          marginBottom: 14,
-          textAlign: 'center',
+        contentComplete: {
+          justifyContent: 'center',
         },
         setupBlock: {
           gap: 14,
+        },
+        completeBlock: {
+          flexGrow: 1,
+          justifyContent: 'center',
+          width: '100%',
+        },
+        loadingWrap: {
+          alignItems: 'center',
+          flexGrow: 1,
+          justifyContent: 'center',
+          paddingVertical: 48,
+        },
+        retryWrap: {
+          marginTop: 12,
         },
         statusPills: {
           marginBottom: 12,
@@ -256,67 +298,123 @@ export function SubscriptionsScreen() {
           marginTop: 8,
           textAlign: 'center',
         },
-        demoToggle: {
-          marginTop: 20,
-          width: '100%',
-        },
-        shareNudge: {
-          marginTop: 16,
-          width: '100%',
-        },
       }),
     [colors, tabBarHeight],
   );
 
-  const cards = cardsByTab[listTab] ?? [];
-  const emptyCopy = showDemoMembers
-    ? (SUBSCRIPTIONS_LIST_EMPTY[listTab] ?? SUBSCRIPTIONS_LIST_EMPTY.active)
-    : SUBSCRIPTIONS_MEMBERS_EMPTY_AFTER_SETUP;
+  const showLoading =
+    !USE_DESIGN_HUB_SEED &&
+    (Boolean(subscriptionLoading) ||
+      !isOwnerProfileLoaded ||
+      (hasProAccess && (payment.isPendingBusiness || payment.isPendingPayments)));
+
+  const loadError =
+    subscriptionLoadError ||
+    (hasProAccess ? payment.businessError || payment.paymentLoadError : null);
+
+  const showNonPro =
+    !USE_DESIGN_HUB_SEED && !showLoading && !loadError && isOwnerProfileLoaded && !hasProAccess;
+  const showNeedsConnect =
+    !USE_DESIGN_HUB_SEED &&
+    !showLoading &&
+    !loadError &&
+    hasProAccess &&
+    !payment.stripeConnectReady;
+  const showPaymentsOff =
+    !USE_DESIGN_HUB_SEED &&
+    !showLoading &&
+    !loadError &&
+    hasProAccess &&
+    payment.stripeConnectReady &&
+    payment.gateServicelinkCheckout;
+  const showReady = USE_DESIGN_HUB_SEED || (!showLoading && !loadError && requirementsMet);
+  const showComplete = !USE_DESIGN_HUB_SEED && showReady && phase === 'complete' && latestPlan;
+  const showCreateFirst =
+    !USE_DESIGN_HUB_SEED && showReady && !showComplete && plans.length === 0 && phase !== 'live';
+  const showLiveHub =
+    USE_DESIGN_HUB_SEED || (showReady && !showComplete && (phase === 'live' || plans.length > 0));
+
+  const hubMembers = useMemo(() => {
+    return MOCK_SUBSCRIPTIONS.map(mapSubscriptionListCard).filter((card) => {
+      if (listTab === SUBSCRIPTIONS_TAB_ACTIVE) {
+        return card.statusRaw === 'active';
+      }
+      return card.statusRaw === listTab;
+    });
+  }, [listTab]);
+
+  const membersEmpty = SUBSCRIPTIONS_LIST_EMPTY[listTab] ?? SUBSCRIPTIONS_MEMBERS_EMPTY_AFTER_SETUP;
 
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, showComplete ? styles.contentComplete : null]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
-        <Pressable accessibilityRole="button" onLongPress={handlePreviewMenu}>
-          <AppText style={styles.mockBanner}>Design preview - long-press to reset</AppText>
-        </Pressable>
-
-        {phase === 'intro' ? (
-          <View style={styles.setupBlock}>
-            <SubscriptionsSetupProgress activeKey="turn_on" completedKeys={[]} />
-            <SubscriptionsSetupCard onTurnOn={handleTurnOn} />
+        {showLoading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color={colors.accent} size="large" />
           </View>
         ) : null}
 
-        {phase === 'needs_payments' ? (
+        {!showLoading && loadError ? (
+          <SurfaceCard padding="md">
+            <InlineCardError message={loadError} />
+            <View style={styles.retryWrap}>
+              <Button
+                fullWidth
+                title="Try again"
+                variant="secondary"
+                onPress={() => {
+                  void refetchSubscription();
+                  void payment.refetchPayments();
+                }}
+              />
+            </View>
+          </SurfaceCard>
+        ) : null}
+
+        {showNonPro ? (
           <View style={styles.setupBlock}>
-            <SubscriptionsSetupCard
-              body={SUBSCRIPTIONS_NEEDS_PAYMENTS_BODY}
-              bullets={[
-                'Same Stripe account as booking checkout',
-                'No second onboarding for most shops',
-                'Come back here when charges are enabled',
-              ]}
-              cta={SUBSCRIPTIONS_NEEDS_PAYMENTS_CTA}
-              title={SUBSCRIPTIONS_NEEDS_PAYMENTS_TITLE}
-              onTurnOn={() => navigation.navigate(ROUTES.MORE_PAYMENTS)}
+            <SubscriptionsNonProGate />
+          </View>
+        ) : null}
+
+        {showNeedsConnect ? (
+          <View style={styles.setupBlock}>
+            <PaymentsStripeConnectSetupCard
+              buttonTitle={connectPresentation.buttonTitle}
+              description={connectPresentation.description}
+              loading={connectSubmitting}
+              title={connectPresentation.title}
+              onConnectPress={() => {
+                void onStripeConnectPress();
+              }}
             />
-            <Button fullWidth title="Back" variant="secondary" onPress={() => setPhase('intro')} />
           </View>
         ) : null}
 
-        {phase === 'create_first' ? (
+        {showPaymentsOff ? (
+          <View style={styles.setupBlock}>
+            <SubscriptionsEnablePaymentsGate
+              loading={enablePaymentsLoading}
+              onEnablePress={() => {
+                void onServicelinkEnablePress();
+              }}
+            />
+          </View>
+        ) : null}
+
+        {showCreateFirst ? (
           <View style={styles.setupBlock}>
             <SubscriptionsCreateFirstGuide onCreatePress={() => setCreateSheetOpen(true)} />
           </View>
         ) : null}
 
-        {phase === 'complete' && latestPlan ? (
-          <View style={styles.setupBlock}>
+        {showComplete ? (
+          <View style={styles.completeBlock}>
             <SubscriptionsSetupCompleteCard
               plan={latestPlan}
               onContinue={() => {
@@ -328,7 +426,7 @@ export function SubscriptionsScreen() {
           </View>
         ) : null}
 
-        {phase === 'live' ? (
+        {showLiveHub ? (
           <>
             <SubscriptionsHubTabs value={hubTab} onChange={setHubTab} />
 
@@ -374,33 +472,27 @@ export function SubscriptionsScreen() {
                   />
                 </View>
 
-                {cards.length === 0 ? (
+                {hubMembers.length === 0 ? (
                   <View style={styles.emptyCentered}>
-                    <AppText style={styles.emptyTitle}>{emptyCopy.title}</AppText>
-                    <AppText style={styles.emptyBody}>{emptyCopy.body}</AppText>
-                    {!showDemoMembers ? (
-                      <View style={styles.demoToggle}>
-                        <Button
-                          fullWidth
-                          title="Preview with demo subscribers"
-                          variant="secondary"
-                          onPress={() => setShowDemoMembers(true)}
-                        />
-                      </View>
-                    ) : null}
+                    <AppText style={styles.emptyTitle}>{membersEmpty.title}</AppText>
+                    <AppText style={styles.emptyBody}>{membersEmpty.body}</AppText>
                   </View>
                 ) : (
                   <View style={styles.list}>
-                    {cards.map((row) => (
+                    {hubMembers.map((card) => (
                       <SubscriptionMemberCard
-                        customerName={row.customerName}
-                        footerLabel={row.footerLabel}
-                        key={row.id}
-                        nextVisitLabel={row.nextVisitLabel}
-                        planName={row.planName}
-                        statusLabel={row.statusLabel}
-                        statusRaw={row.statusRaw}
-                        onPress={() => openDetail(row.id)}
+                        key={card.id}
+                        customerName={card.customerName}
+                        footerLabel={card.footerLabel}
+                        nextVisitLabel={card.nextVisitLabel}
+                        planName={card.planName}
+                        statusLabel={card.statusLabel}
+                        statusRaw={card.statusRaw}
+                        onPress={() =>
+                          navigation.navigate(ROUTES.SUBSCRIPTION_DETAIL, {
+                            subscriptionId: card.id,
+                          })
+                        }
                       />
                     ))}
                   </View>
@@ -419,6 +511,8 @@ export function SubscriptionsScreen() {
         }}
         onSubmit={handleSavePlan}
       />
+
+      <StripeConnectLaunchOverlay visible={connectSubmitting} />
     </SafeAreaView>
   );
 }

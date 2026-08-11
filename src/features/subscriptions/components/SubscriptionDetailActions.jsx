@@ -5,6 +5,7 @@ import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { SUBSCRIPTION_CANCEL_BUTTON } from '../constants';
 
 /**
+ * Support actions for a subscriber: billing portal + cancel.
  * @param {object} props
  * @param {boolean} props.canCopyManageLink
  * @param {boolean} [props.linkCopied]
@@ -29,7 +30,15 @@ export function SubscriptionDetailActions({
     () =>
       StyleSheet.create({
         column: {
-          gap: 14,
+          gap: 12,
+        },
+        hint: {
+          color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 12,
+          fontWeight: '500',
+          lineHeight: 16,
+          marginTop: -4,
         },
         note: {
           color: colors.textMuted,
@@ -37,7 +46,7 @@ export function SubscriptionDetailActions({
           fontSize: 13,
           fontWeight: '500',
           lineHeight: 18,
-          marginTop: -4,
+          marginTop: -2,
         },
       }),
     [colors],
@@ -46,12 +55,18 @@ export function SubscriptionDetailActions({
   return (
     <View style={styles.column}>
       {canCopyManageLink ? (
-        <Button
-          fullWidth
-          title={linkCopied ? 'Manage link copied' : 'Copy customer manage link'}
-          variant="secondary"
-          onPress={onCopyManageLink}
-        />
+        <>
+          <Button
+            fullWidth
+            title={linkCopied ? 'Billing portal link copied' : 'Copy billing portal link'}
+            variant="surfaceLight"
+            labelColor="#0b0c0f"
+            onPress={onCopyManageLink}
+          />
+          <AppText style={styles.hint}>
+            Customer uses this to update their card or manage billing.
+          </AppText>
+        </>
       ) : null}
 
       {canCancel ? (

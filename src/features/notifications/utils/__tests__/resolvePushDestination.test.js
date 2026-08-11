@@ -89,6 +89,29 @@ describe('resolvePushDestination', () => {
     });
   });
 
+  it('opens notification settings for notification_settings slug and path aliases', () => {
+    const expected = {
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.NOTIFICATIONS,
+    };
+    expect(
+      resolvePushDestination({ referenceType: 'screen', referenceId: 'notification_settings' }),
+    ).toEqual(expected);
+    expect(
+      resolvePushDestination({ referenceType: 'screen', referenceId: 'notifications' }),
+    ).toEqual(expected);
+    expect(
+      resolvePushDestination({ referenceType: 'screen', referenceId: '/more/notifications' }),
+    ).toEqual(expected);
+    expect(
+      resolvePushDestination({
+        referenceType: 'announcement',
+        referenceId: 'notification_settings',
+      }),
+    ).toEqual(expected);
+  });
+
   it('opens business profile edit on booking link details tab', () => {
     expect(resolvePushDestination({ referenceType: 'screen', referenceId: 'profile' })).toEqual({
       kind: 'main_app_tab',

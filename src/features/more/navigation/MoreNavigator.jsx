@@ -13,6 +13,7 @@ import { MaintenanceScreen } from '../../maintenance/screens/MaintenanceScreen';
 import {
   SubscriptionDetailScreen,
   SubscriptionPlanDetailScreen,
+  SubscriptionPlanSubscribersScreen,
   SubscriptionsScreen,
 } from '../../subscriptions';
 import { ServicesScreen } from '../../services';
@@ -201,6 +202,15 @@ export function MoreNavigator() {
           component={SubscriptionPlanDetailScreen}
           name={ROUTES.SUBSCRIPTION_PLAN_DETAIL}
           options={{
+            headerBackButtonDisplayMode: 'minimal',
+            headerBackTitleVisible: false,
+          }}
+        />
+        <Stack.Screen
+          component={SubscriptionPlanSubscribersScreen}
+          name={ROUTES.SUBSCRIPTION_PLAN_SUBSCRIBERS}
+          options={{
+            title: 'Subscribers',
             headerBackButtonDisplayMode: 'minimal',
             headerBackTitleVisible: false,
           }}

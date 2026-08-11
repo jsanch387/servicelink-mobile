@@ -1,6 +1,8 @@
+import { formatPlanPriceCents } from '../constants/planCadence';
+
 /**
  * @param {number} cents
- * @param {'month' | 'year'} interval
+ * @param {'month' | 'year' | 'week'} interval
  */
 export function formatPlanPrice(cents, interval) {
   const amount = Number(cents);
@@ -10,7 +12,9 @@ export function formatPlanPrice(cents, interval) {
     currency: 'USD',
     maximumFractionDigits: amount % 100 === 0 ? 0 : 2,
   });
-  return interval === 'year' ? `${dollars}/yr` : `${dollars}/mo`;
+  if (interval === 'year') return `${dollars}/yr`;
+  if (interval === 'week') return `${dollars}/wk`;
+  return `${dollars}/mo`;
 }
 
 /**
@@ -93,6 +97,33 @@ export function mapSubscriptionListCard(row) {
   };
 }
 
+function mapNextBillDisplay(row) {
+  if (row.status === 'canceled') return 'No upcoming bill';
+  if (row.cancelAtPeriodEnd) {
+    return `No more charges · ends ${formatDisplayDate(row.currentPeriodEnd)}`;
+  }
+  if (row.status === 'past_due') {
+    const due = row.nextBillingDate || row.currentPeriodEnd;
+    return `Payment failed · was due ${formatDisplayDate(due)}`;
+  }
+  const next = row.nextBillingDate || row.currentPeriodEnd;
+  return formatDisplayDate(next);
+}
+
+function mapLastPaymentDisplay(row) {
+  if (row.status === 'past_due' && row.lastPaymentFailedAt) {
+    const failedDay = String(row.lastPaymentFailedAt).slice(0, 10);
+    return `Failed · ${formatDisplayDate(failedDay)}`;
+  }
+  const paidAt = row.lastPaymentAt;
+  const amount = Number(row.lastPaymentAmountCents);
+  if (!paidAt) return 'None yet';
+  if (Number.isFinite(amount) && amount > 0) {
+    return `${formatPlanPriceCents(amount)} · ${formatDisplayDate(paidAt)}`;
+  }
+  return formatDisplayDate(paidAt);
+}
+
 /**
  * @param {import('../mock/mockSubscriptions').MockSubscription} row
  */
@@ -116,8 +147,10 @@ export function mapSubscriptionDetailModel(row) {
     nextVisitDateDisplay: row.nextVisitDate ? formatDisplayDate(row.nextVisitDate) : null,
     nextVisitTimeDisplay: row.nextVisitTime ? formatDisplayTime(row.nextVisitTime) : null,
     lastVisitDateDisplay: row.lastVisitDate ? formatDisplayDate(row.lastVisitDate) : null,
-    currentPeriodEndDisplay: formatDisplayDate(row.currentPeriodEnd),
     startedAtDisplay: formatDisplayDate(row.startedAt),
+    nextBillDisplay: mapNextBillDisplay(row),
+    lastPaymentDisplay: mapLastPaymentDisplay(row),
+    currentPeriodEndDisplay: formatDisplayDate(row.currentPeriodEnd),
     cancelAtPeriodEnd: row.cancelAtPeriodEnd,
     showEndingSoon,
     endingSoonCopy: showEndingSoon
@@ -128,7 +161,7 @@ export function mapSubscriptionDetailModel(row) {
         ? {
             visible: true,
             title: 'Payment failed',
-            body: 'Ask them to update their card from their membership link. New visits stay paused until this is fixed.',
+            body: 'Send them the billing portal link so they can update their card. Visits stay paused until this is fixed.',
           }
         : { visible: false },
     manageLink: row.manageLink,

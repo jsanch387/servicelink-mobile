@@ -6,13 +6,13 @@ import { FONT_FAMILIES, useTheme } from '../../../theme';
 import {
   SUBSCRIPTIONS_CREATE_FIRST_BODY,
   SUBSCRIPTIONS_CREATE_FIRST_CTA,
+  SUBSCRIPTIONS_CREATE_FIRST_HOW_LABEL,
   SUBSCRIPTIONS_CREATE_FIRST_POINTS,
   SUBSCRIPTIONS_CREATE_FIRST_TITLE,
 } from '../constants/setupCopy';
-import { SubscriptionsSetupProgress } from './SubscriptionsSetupProgress';
 
 /**
- * Create-first: hero + CTA, then non-clickable explainer rows.
+ * Ready-to-create: hero CTA, then how subscriptions work.
  * @param {object} props
  * @param {() => void} props.onCreatePress
  */
@@ -23,15 +23,15 @@ export function SubscriptionsCreateFirstGuide({ onCreatePress }) {
     () =>
       StyleSheet.create({
         root: {
+          gap: 16,
           width: '100%',
         },
         hero: {
           gap: 16,
-          marginBottom: 16,
           width: '100%',
         },
         headBlock: {
-          gap: 8,
+          gap: 6,
         },
         title: {
           color: colors.text,
@@ -46,6 +46,14 @@ export function SubscriptionsCreateFirstGuide({ onCreatePress }) {
           fontSize: 14,
           fontWeight: '500',
           lineHeight: 20,
+        },
+        howLabel: {
+          color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 14,
+          fontWeight: '600',
+          letterSpacing: -0.1,
+          marginBottom: 8,
         },
         pointsCard: {
           marginBottom: 0,
@@ -102,8 +110,6 @@ export function SubscriptionsCreateFirstGuide({ onCreatePress }) {
 
   return (
     <View style={styles.root}>
-      <SubscriptionsSetupProgress activeKey="plan" completedKeys={['turn_on']} />
-
       <SurfaceCard outlined padding="md" style={styles.hero}>
         <View style={styles.headBlock}>
           <AppText style={styles.title}>{SUBSCRIPTIONS_CREATE_FIRST_TITLE}</AppText>
@@ -118,22 +124,25 @@ export function SubscriptionsCreateFirstGuide({ onCreatePress }) {
         />
       </SurfaceCard>
 
-      <SurfaceCard outlined padding="none" style={styles.pointsCard}>
-        {SUBSCRIPTIONS_CREATE_FIRST_POINTS.map((point, index) => (
-          <View key={point.key}>
-            {index > 0 ? <View style={styles.rowDivider} /> : null}
-            <View style={styles.row}>
-              <View style={styles.iconWrap}>
-                <Ionicons color={colors.text} name={point.icon} size={18} />
-              </View>
-              <View style={styles.rowText}>
-                <AppText style={styles.rowTitle}>{point.title}</AppText>
-                <AppText style={styles.rowBody}>{point.body}</AppText>
+      <View>
+        <AppText style={styles.howLabel}>{SUBSCRIPTIONS_CREATE_FIRST_HOW_LABEL}</AppText>
+        <SurfaceCard outlined padding="none" style={styles.pointsCard}>
+          {SUBSCRIPTIONS_CREATE_FIRST_POINTS.map((point, index) => (
+            <View key={point.key}>
+              {index > 0 ? <View style={styles.rowDivider} /> : null}
+              <View style={styles.row}>
+                <View style={styles.iconWrap}>
+                  <Ionicons color={colors.text} name={point.icon} size={18} />
+                </View>
+                <View style={styles.rowText}>
+                  <AppText style={styles.rowTitle}>{point.title}</AppText>
+                  <AppText style={styles.rowBody}>{point.body}</AppText>
+                </View>
               </View>
             </View>
-          </View>
-        ))}
-      </SurfaceCard>
+          ))}
+        </SurfaceCard>
+      </View>
     </View>
   );
 }

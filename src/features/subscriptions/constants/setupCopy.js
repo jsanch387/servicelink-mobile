@@ -1,41 +1,54 @@
-export const SUBSCRIPTIONS_SETUP_TITLE = 'Offer memberships';
-export const SUBSCRIPTIONS_SETUP_BODY =
-  'Let customers pay on a schedule for ongoing service. Simple to set up, easy to manage.';
-export const SUBSCRIPTIONS_SETUP_CTA = 'Turn on subscriptions';
-export const SUBSCRIPTIONS_SETUP_BULLETS = [
-  'Set a price and how often you visit',
-  'Customers subscribe from your link',
-  'Failed payments and cancels stay clear',
+/** App Store–safe: memberships require Pro; setup continues on web (same pattern as payments). */
+export const SUBSCRIPTIONS_NON_PRO_TITLE = 'Offer memberships';
+export const SUBSCRIPTIONS_NON_PRO_SUBTITLE =
+  'Let customers pay on a schedule for ongoing service.';
+export const SUBSCRIPTIONS_NON_PRO_CTA = 'Subscribe';
+export const SUBSCRIPTIONS_NON_PRO_SECTION_LABEL = 'What you get';
+export const SUBSCRIPTIONS_NON_PRO_BENEFITS = [
+  {
+    lead: 'Recurring plans',
+    rest: 'Weekly, monthly, or custom.',
+  },
+  {
+    lead: 'Share a link',
+    rest: 'Customers subscribe themselves.',
+  },
+  {
+    lead: 'Track members',
+    rest: 'Active, past due, or canceled.',
+  },
 ];
 
-export const SUBSCRIPTIONS_NEEDS_PAYMENTS_TITLE = 'Set up payments first';
-export const SUBSCRIPTIONS_NEEDS_PAYMENTS_BODY =
-  'Memberships use the same Stripe account as booking payments. Connect Stripe, then come back here.';
-export const SUBSCRIPTIONS_NEEDS_PAYMENTS_CTA = 'Go to Payments';
+export const SUBSCRIPTIONS_PAYMENTS_OFF_TITLE = 'Turn on ServiceLink payments';
+export const SUBSCRIPTIONS_PAYMENTS_OFF_BODY =
+  'Memberships use the same checkout as bookings. Turn on payments to create your first plan.';
+export const SUBSCRIPTIONS_PAYMENTS_OFF_CTA = 'Turn on payments';
+export const SUBSCRIPTIONS_PAYMENTS_OFF_CONNECTED = 'You are connected to Stripe.';
 
-export const SUBSCRIPTIONS_CREATE_FIRST_TITLE = 'Create your first plan';
+export const SUBSCRIPTIONS_CREATE_FIRST_TITLE = 'Create a subscription';
 export const SUBSCRIPTIONS_CREATE_FIRST_BODY =
-  'A plan is what customers subscribe to. Keep it simple.';
-export const SUBSCRIPTIONS_CREATE_FIRST_CTA = 'Create a plan';
+  'Set a plan, share your link, and get paid on a schedule.';
+export const SUBSCRIPTIONS_CREATE_FIRST_CTA = 'Create a subscription';
+export const SUBSCRIPTIONS_CREATE_FIRST_HOW_LABEL = 'How it works';
 
 export const SUBSCRIPTIONS_CREATE_FIRST_POINTS = [
   {
-    key: 'name_price',
-    icon: 'cash-outline',
-    title: 'Name & price',
-    body: 'What they see and what they pay',
+    key: 'create',
+    icon: 'pricetag-outline',
+    title: 'Create a plan',
+    body: 'Name it, set the price, and how often you visit.',
   },
   {
-    key: 'how_often',
-    icon: 'calendar-outline',
-    title: 'How often',
-    body: 'They pick a schedule when they subscribe',
+    key: 'share',
+    icon: 'link-outline',
+    title: 'Share your link',
+    body: 'Customers pick a plan and subscribe themselves.',
   },
   {
     key: 'manage',
     icon: 'people-outline',
-    title: 'Subscribers',
-    body: 'See who’s active, past due, or canceled',
+    title: 'Manage members',
+    body: 'See who’s active, past due, or canceled.',
   },
 ];
 

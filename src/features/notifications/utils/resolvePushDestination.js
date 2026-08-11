@@ -1,4 +1,4 @@
-import { ROUTES } from '../../../routes/routes';
+import { PATHS, ROUTES } from '../../../routes/routes';
 import {
   BOOKING_LINK_ANNOUNCEMENT_CONTACT_PARAMS,
   BOOKING_LINK_ANNOUNCEMENT_EDIT_PARAMS,
@@ -65,8 +65,25 @@ const SCREEN_SLUG_DESTINATIONS = {
   },
   marketing: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.MARKETING },
   qr_code: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.QR_CODE },
+  /** Notification settings (More → Notifications). Path: `/more/notifications`. */
+  notification_settings: {
+    kind: 'main_app_tab',
+    tab: ROUTES.MORE,
+    stackScreen: ROUTES.NOTIFICATIONS,
+  },
+  notifications: {
+    kind: 'main_app_tab',
+    tab: ROUTES.MORE,
+    stackScreen: ROUTES.NOTIFICATIONS,
+  },
   upgrade: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.ACCOUNT_SETTINGS },
   settings: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.ACCOUNT_SETTINGS },
+};
+
+/** Path-style `reference_id` values (deep links) → same destinations as screen slugs. */
+const PATH_DESTINATIONS = {
+  [PATHS.NOTIFICATIONS]: SCREEN_SLUG_DESTINATIONS.notification_settings,
+  'more/notifications': SCREEN_SLUG_DESTINATIONS.notification_settings,
 };
 
 /**
@@ -84,7 +101,10 @@ export function resolvePushDestination({ referenceType, referenceId }) {
 
   if (refType === 'announcement' || refType === 'screen') {
     const slug = id.toLowerCase();
-    const destination = SCREEN_SLUG_DESTINATIONS[slug];
+    const destination =
+      SCREEN_SLUG_DESTINATIONS[slug] ??
+      PATH_DESTINATIONS[slug] ??
+      PATH_DESTINATIONS[slug.startsWith('/') ? slug : `/${slug}`];
     if (destination) {
       return destination;
     }

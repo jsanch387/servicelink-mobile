@@ -17,6 +17,7 @@ import { openCustomerCheckInSms } from '../customer-details/utils/openCustomerCh
 import { useCustomerDetails } from '../hooks/useCustomerDetails';
 import { CUSTOMERS_QUERY_ROOT, customerDetailsQueryKey } from '../queryKeys';
 import { MAINTENANCE_QUERY_ROOT } from '../../maintenance/queryKeys';
+import { findMockSubscriptionForCustomer } from '../../subscriptions/utils/findMockSubscriptionForCustomer';
 
 function CustomerDetailsSkeleton() {
   return (
@@ -265,17 +266,17 @@ export function CustomerDetailsScreen() {
     }
   }, [businessId, detailCustomerId, notesDraft, notesSaving, queryClient]);
 
-  const handleSendMaintenanceDetail = useCallback(() => {
-    if (!detailCustomerId || !model) {
-      Alert.alert('Unable to send offer', 'Missing customer context. Please try again.');
-      return;
-    }
-    navigation.navigate(ROUTES.MAINTENANCE_INVITE, {
-      customerId: detailCustomerId,
-      customerName: model.fullName,
-      customerEmail: model.email ?? '',
+  const linkedSubscription = useMemo(
+    () => findMockSubscriptionForCustomer(detailCustomerId),
+    [detailCustomerId],
+  );
+
+  const handleViewSubscription = useCallback(() => {
+    if (!linkedSubscription?.id) return;
+    navigation.navigate(ROUTES.SUBSCRIPTION_DETAIL, {
+      subscriptionId: linkedSubscription.id,
     });
-  }, [detailCustomerId, model, navigation]);
+  }, [linkedSubscription?.id, navigation]);
 
   const refreshControl = useMemo(
     () => (
@@ -426,6 +427,7 @@ export function CustomerDetailsScreen() {
           email={model.email}
           fullName={model.fullName}
           hasCallablePhone={hasCallablePhone}
+          hasSubscription={Boolean(linkedSubscription)}
           onCall={handleCallCustomer}
           onEmail={handleEmailCustomer}
           phone={model.phone}
@@ -443,8 +445,8 @@ export function CustomerDetailsScreen() {
         <View style={styles.footer}>
           <CustomerDetailActionsSection
             first
-            onSendMaintenanceDetail={handleSendMaintenanceDetail}
             onSendText={handleSendText}
+            onViewSubscription={linkedSubscription ? handleViewSubscription : null}
             removeLoading={removeLoading}
           />
 

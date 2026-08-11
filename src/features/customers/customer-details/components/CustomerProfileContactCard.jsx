@@ -12,6 +12,48 @@ const CONTACT_LINE_HEIGHT = 20;
 /** Optical nudge so the glyph centers with the first text line (14 / 20). */
 const CONTACT_ICON_PAD_TOP = Math.max(0, Math.round((CONTACT_LINE_HEIGHT - CONTACT_ICON_SIZE) / 2));
 
+/** Stacked-card mark — recurring membership, not a notification dot. */
+function MembershipMark({ color }) {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+      style={membershipMarkStyles.wrap}
+    >
+      <View style={[membershipMarkStyles.back, { borderColor: color }]} />
+      <View style={[membershipMarkStyles.front, { backgroundColor: color, borderColor: color }]} />
+    </View>
+  );
+}
+
+const membershipMarkStyles = StyleSheet.create({
+  wrap: {
+    height: 14,
+    marginLeft: 8,
+    marginTop: 1,
+    width: 14,
+  },
+  back: {
+    borderRadius: 3,
+    borderWidth: 1.5,
+    height: 9,
+    left: 3,
+    opacity: 0.4,
+    position: 'absolute',
+    top: 0,
+    width: 11,
+  },
+  front: {
+    borderRadius: 3,
+    borderWidth: 1.5,
+    height: 9,
+    left: 0,
+    position: 'absolute',
+    top: 4,
+    width: 11,
+  },
+});
+
 function ContactLine({ accessibilityLabel, disabled, icon, onPress, value }) {
   const { colors } = useTheme();
   const interactive = Boolean(onPress) && !disabled;
@@ -84,6 +126,7 @@ export function CustomerProfileContactCard({
   email,
   fullName,
   hasCallablePhone,
+  hasSubscription = false,
   onCall,
   onEmail,
   phone,
@@ -125,14 +168,20 @@ export function CustomerProfileContactCard({
           fontWeight: '700',
           letterSpacing: -0.35,
         },
+        nameCluster: {
+          alignItems: 'center',
+          flex: 1,
+          flexDirection: 'row',
+          marginLeft: 12,
+          minWidth: 0,
+        },
         name: {
           color: colors.text,
-          flex: 1,
+          flexShrink: 1,
           fontSize: 20,
           fontWeight: '700',
           letterSpacing: -0.4,
           lineHeight: 26,
-          marginLeft: 12,
           minWidth: 0,
         },
         pill: {
@@ -162,13 +211,19 @@ export function CustomerProfileContactCard({
 
   return (
     <SurfaceCard padding="md" style={styles.card}>
-      <View style={styles.topRow}>
+      <View
+        accessibilityLabel={hasSubscription ? `${fullName}, subscription member` : undefined}
+        style={styles.topRow}
+      >
         <View style={styles.avatar}>
           <AppText style={styles.initials}>{initials}</AppText>
         </View>
-        <AppText numberOfLines={2} style={styles.name}>
-          {fullName}
-        </AppText>
+        <View style={styles.nameCluster}>
+          <AppText numberOfLines={2} style={styles.name}>
+            {fullName}
+          </AppText>
+          {hasSubscription ? <MembershipMark color={colors.text} /> : null}
+        </View>
         <View style={styles.pill}>
           <AppText style={styles.pillText}>{tag}</AppText>
         </View>

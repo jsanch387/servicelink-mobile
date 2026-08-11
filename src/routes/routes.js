@@ -45,6 +45,8 @@ export const ROUTES = {
   SUBSCRIPTION_DETAIL: 'SubscriptionDetail',
   /** More stack — membership plan detail (share link, options). */
   SUBSCRIPTION_PLAN_DETAIL: 'SubscriptionPlanDetail',
+  /** More stack — people subscribed to a single plan. */
+  SUBSCRIPTION_PLAN_SUBSCRIBERS: 'SubscriptionPlanSubscribers',
   /** Root stack — build & send quote (hides tab bar; same pattern as CREATE_APPOINTMENT). */
   CREATE_QUOTE: 'CreateQuote',
   BOOKING_LINK: 'BookingLink',
@@ -106,6 +108,7 @@ export const PATHS = {
   SUBSCRIPTIONS: '/subscriptions',
   SUBSCRIPTION_DETAIL: '/subscriptions/detail',
   SUBSCRIPTION_PLAN_DETAIL: '/subscriptions/plans/detail',
+  SUBSCRIPTION_PLAN_SUBSCRIBERS: '/subscriptions/plans/subscribers',
   CREATE_QUOTE: '/quotes/create',
   BOOKING_LINK: '/booking-link',
   QR_CODE: '/more/qr-code',
