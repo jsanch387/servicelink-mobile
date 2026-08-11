@@ -1,3 +1,4 @@
+import { normalizeBookingVehicle } from '../../../../utils/vehicle';
 import { bookingCustomerPhoneDigits, startTime12hToApiStartTime } from './ownerBookingFieldFormats';
 import { appointmentLocationTypeForApi } from './createAppointmentServiceLocation';
 import { isCreateFlowBasePricingId } from './createFlowPricing';
@@ -57,11 +58,7 @@ export function buildSelectedAddOnsForPublicApi(selectedAddonRows) {
  * @returns {{ year: string; make: string; model: string }}
  */
 export function buildJobVehicleForPublicApi(vehicle) {
-  return {
-    year: String(vehicle?.year ?? '').trim(),
-    make: String(vehicle?.make ?? '').trim(),
-    model: String(vehicle?.model ?? '').trim(),
-  };
+  return normalizeBookingVehicle(vehicle);
 }
 
 /**

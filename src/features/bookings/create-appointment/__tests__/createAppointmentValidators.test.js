@@ -71,6 +71,7 @@ describe('createAppointmentValidators', () => {
     expect(isVehicleStepComplete({ year: '2028', make: 'Toyota', model: 'Camry' }, now)).toBe(
       false,
     );
+    expect(isVehicleStepComplete({ year: '2015', make: 'Ram', model: '2500' }, now)).toBe(true);
   });
 
   it('isReviewStepComplete aggregates gates', () => {

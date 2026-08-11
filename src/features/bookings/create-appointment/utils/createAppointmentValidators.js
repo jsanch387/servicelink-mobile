@@ -1,6 +1,6 @@
 import { isValidEmailFormat } from '../../../../utils/email';
 import { normalizePhoneForDatabase } from '../../../../utils/phone';
-import { isOptionalVehicleComplete } from '../../../../utils/vehicle';
+import { isOptionalBookingVehicleComplete } from '../../../../utils/vehicle';
 import { isCreateFlowPricingSelectionValid } from './createFlowPricing';
 import { isLocationStepComplete } from './createAppointmentServiceLocation';
 
@@ -45,7 +45,7 @@ export function isAddressStepComplete(address) {
 
 /** Vehicle is optional, but partial vehicle snapshots are rejected by the owner-booking API. */
 export function isVehicleStepComplete(vehicle, now = new Date()) {
-  return isOptionalVehicleComplete(vehicle, now);
+  return isOptionalBookingVehicleComplete(vehicle, now);
 }
 
 /**
