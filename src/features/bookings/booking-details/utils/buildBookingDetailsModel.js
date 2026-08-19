@@ -1,5 +1,5 @@
 import { parseBookingStartLocalMs } from '../../../home/utils/bookingStart';
-import { formatPhoneForDisplay } from '../../../../utils/phone';
+import { formatPhoneWithCountryCode } from '../../../../utils/phone';
 import { splitBookingServiceName } from '../../../../utils/splitBookingServiceName';
 import { parseJobDetailsFromBooking } from './parseJobDetailsFromBooking';
 import { resolveBookingDiscount } from './resolveBookingDiscount';
@@ -288,6 +288,17 @@ export function buildBookingPaymentSection(paymentRaw, bookingStatus, jobStatus)
    * (`POST /api/public/bookings` with `paymentMethodSelected: "none"` → `booking_payments.payment_method_selected`).
    * Do not fold `pay_now` in here — zero online paid on pay_now has no clear UI state; hide the block.
    */
+  if (method === 'membership') {
+    return {
+      visible: true,
+      variant: 'membership',
+      status: 'Subscription appointment',
+      detail: null,
+      showMembershipMark: true,
+      accessibilityLabel: 'Subscription appointment. No payment due for this visit.',
+    };
+  }
+
   const isCollectAtServiceNoOnlinePaid =
     paid <= 0 && (method === 'pay_in_person' || method === 'none' || method === '');
 
@@ -608,7 +619,9 @@ export function buildBookingDetailsModel(booking) {
   const addressLine = addressParts.join(', ');
   const hasAddress = Boolean(addressLine);
 
-  const customerPhoneDisplay = String(formatPhoneForDisplay(booking?.customer_phone) ?? '').trim();
+  const customerPhoneDisplay = String(
+    formatPhoneWithCountryCode(booking?.customer_phone) ?? '',
+  ).trim();
   const customerEmailRaw = booking?.customer_email;
   const customerEmailDisplay = typeof customerEmailRaw === 'string' ? customerEmailRaw.trim() : '';
   const notesRaw = typeof booking?.customer_notes === 'string' ? booking.customer_notes.trim() : '';

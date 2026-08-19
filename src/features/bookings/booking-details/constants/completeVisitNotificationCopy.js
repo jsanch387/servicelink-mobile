@@ -3,7 +3,12 @@ import { COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY } from './markCompleteFe
 /**
  * Customer notification copy for complete visit — no phone numbers or emails in UI.
  *
- * @param {{ showReviewSms?: boolean; showReviewEmail?: boolean; showReviewInvite?: boolean }} p
+ * @param {{
+ *   showReviewSms?: boolean;
+ *   showReviewEmail?: boolean;
+ *   showReviewInvite?: boolean;
+ *   smsOptedOut?: boolean;
+ * }} p
  * @returns {{ visible: boolean; message: string; iconName: 'chatbubble-ellipses-outline' | 'mail-outline' | 'information-circle-outline' }}
  */
 export function getCompleteVisitFollowUpMessage(p) {
@@ -37,6 +42,14 @@ export function getCompleteVisitFollowUpMessage(p) {
     };
   }
 
+  if (p.smsOptedOut) {
+    return {
+      visible: true,
+      message: 'This customer opted out of texts — they won’t be notified automatically.',
+      iconName: 'information-circle-outline',
+    };
+  }
+
   return {
     visible: true,
     message: "No phone or email on this booking — your customer won't be notified automatically.",
@@ -61,12 +74,20 @@ export function getCompleteVisitSuccessDetail() {
  *   subtotal: number;
  *   tapToPayAmount: number;
  *   inPersonPayment: { method: string; amount: number } | null;
+ *   isMembershipVisit?: boolean;
  * }} p
  * @returns {{ title: string; detail: string }}
  */
 export function getCompleteVisitPaymentSettledBanner(p) {
   const sessionCollected = p.tapToPayAmount > 0 || Boolean(p.inPersonPayment);
   const paidOnline = Math.max(0, p.paidOnline);
+
+  if (p.isMembershipVisit && !sessionCollected && paidOnline <= 0) {
+    return {
+      title: 'Paid in full',
+      detail: 'No payment due for this service.',
+    };
+  }
 
   if (sessionCollected && paidOnline > 0) {
     return {

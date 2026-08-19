@@ -4,7 +4,8 @@ import { isOptionalBookingVehicleComplete } from '../../../../utils/vehicle';
 import { isCreateFlowPricingSelectionValid } from './createFlowPricing';
 import { isLocationStepComplete } from './createAppointmentServiceLocation';
 
-export function parseRequiredCustomJobPriceCents(value) {
+export function parseRequiredCustomJobPriceCents(value, options = {}) {
+  const allowZero = Boolean(options?.allowZero);
   const raw = String(value ?? '')
     .replace(/\$/g, '')
     .trim();
@@ -12,6 +13,7 @@ export function parseRequiredCustomJobPriceCents(value) {
   const dollars = Number.parseFloat(raw);
   if (!Number.isFinite(dollars)) return null;
   const cents = Math.round(dollars * 100);
+  if (allowZero) return cents >= 0 ? cents : null;
   return cents > 0 ? cents : null;
 }
 

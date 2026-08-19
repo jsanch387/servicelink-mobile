@@ -93,7 +93,7 @@ describe('buildBookingDetailsModel', () => {
     const model = buildBookingDetailsModel({
       customer_phone: '3054441212',
     });
-    expect(model.customer.phone).toBe('(305) 444-1212');
+    expect(model.customer.phone).toBe('+1 (305) 444-1212');
   });
 
   it('leaves customer phone and email empty when not on the booking', () => {
@@ -535,6 +535,22 @@ describe('buildBookingDetailsModel', () => {
     });
     expect(model.payment.status).toBe('Pay in person');
     expect(model.payment.detail).toBe('No charge');
+  });
+
+  it('membership payment shows subscription appointment copy', () => {
+    const model = buildBookingDetailsModel({
+      payment: {
+        paymentMethodSelected: 'membership',
+        paymentStatus: 'not_required',
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 0,
+        totalAmountCents: 0,
+        currency: 'usd',
+      },
+    });
+    expect(model.payment.status).toBe('Subscription appointment');
+    expect(model.payment.detail).toBeNull();
+    expect(model.payment.showMembershipMark).toBe(true);
   });
 
   it('deposit variant: status + amount due without deposit amount', () => {

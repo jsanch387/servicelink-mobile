@@ -16,9 +16,9 @@ import { ToastView } from './Toast';
  * @typedef {'default' | 'sms' | 'email'} ToastVariant
  *
  * @typedef {object} ToastOptions
- * @property {string} [id] Reuse an existing toast id to update it in place (e.g. loading → success).
+ * @property {string} [id] Reuse an existing toast id to update it in place.
  * @property {string | null} [title] Optional bold first line.
- * @property {ToastVariant} [variant] `sms` / `email` = white confirmation card with extended auto-dismiss; swipe up to dismiss sooner.
+ * @property {ToastVariant} [variant] `sms` / `email` = confirmation card with extended auto-dismiss; swipe up to dismiss sooner.
  * @property {number | null} [duration] Auto-dismiss ms. `null` keeps it until dismissed/updated. Omit to use the default for the toast type.
  * @property {() => void} [onPress] Tap handler. When omitted, tapping dismisses the toast.
  */
@@ -194,7 +194,6 @@ export function ToastProvider({ children }) {
       dismiss,
       success: (message, opts) => notify('success', message, opts),
       error: (message, opts) => notify('error', message, opts),
-      loading: (message, opts) => notify('loading', message, opts),
       info: (message, opts) => notify('info', message, opts),
       sms: (message, opts = {}) =>
         notify(opts.type ?? 'success', message, { ...opts, variant: 'sms' }),
@@ -209,12 +208,12 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {toast && modalHostCount === 0 ? (
+      {toastPresentation && modalHostCount === 0 ? (
         <ToastLayer
-          dismiss={dismiss}
-          dismissing={dismissing}
-          finalizeHide={finalizeHide}
-          toast={toast}
+          dismiss={toastPresentation.dismiss}
+          dismissing={toastPresentation.dismissing}
+          finalizeHide={toastPresentation.finalizeHide}
+          toast={toastPresentation.toast}
         />
       ) : null}
     </ToastContext.Provider>

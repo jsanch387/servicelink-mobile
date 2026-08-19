@@ -37,7 +37,7 @@ describe('smsMessagePresentation', () => {
       tone: 'danger',
     });
     expect(smsMessageStatusPresentation('skipped_opt_out')).toEqual({
-      label: 'Skipped',
+      label: 'Opted out',
       tone: 'muted',
     });
   });
@@ -72,6 +72,22 @@ describe('smsMessagePresentation', () => {
     expect(item.statusTone).toBe('danger');
     expect(item.body).toBe('Your appointment is confirmed.');
     expect(item.error).toBeUndefined();
+  });
+
+  it('uses an opted-out explanation when the skipped row has no body', () => {
+    const item = mapSmsMessageRowToTimelineItem({
+      id: 'm-opt-out',
+      type: 'on_the_way',
+      body: '',
+      status: 'skipped_opt_out',
+      to_phone: '+15551234567',
+      sent_at: '2026-08-02T18:00:00.000Z',
+      created_at: '2026-08-02T18:00:00.000Z',
+    });
+
+    expect(item.statusLabel).toBe('Opted out');
+    expect(item.statusTone).toBe('muted');
+    expect(item.body).toBe('Not sent — this customer opted out of texts.');
   });
 
   it('builds design preview rows for empty history', () => {

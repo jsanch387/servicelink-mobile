@@ -98,13 +98,23 @@ export function getMarkCompleteModalCopy(booking, ctx) {
  * invoice email, so promising a text would be wrong. It defaults to off so a
  * caller that forgets to pass it understates rather than over-promises.
  *
+ * `smsOptIn` is `customers.sms_opt_in`. Explicit `false` means opted out — do not
+ * promise SMS (fall through to email). `true` / `null` / omitted allow SMS when
+ * phone + owner SMS access are present.
+ *
  * @param {BookingForReviewEligibility & { customer_phone?: string | null }} booking
  * @param {ReviewEligibilityContext | null | undefined} ctx
- * @param {{ canUseSms?: boolean }} [options]
+ * @param {{ canUseSms?: boolean; smsOptIn?: boolean | null }} [options]
  * @returns {import('../../bookings/booking-details/utils/markCompletePreview').MarkCompletePreview}
  */
-export function getCompleteVisitNotificationPreview(booking, ctx, { canUseSms = false } = {}) {
-  const hasPhone = canUseSms && Boolean(phoneForSmsUri(booking?.customer_phone));
+export function getCompleteVisitNotificationPreview(
+  booking,
+  ctx,
+  { canUseSms = false, smsOptIn = null } = {},
+) {
+  const customerAllowsSms = smsOptIn !== false;
+  const hasPhone =
+    canUseSms && customerAllowsSms && Boolean(phoneForSmsUri(booking?.customer_phone));
   const hasEmail = Boolean(normalizedCustomerEmail(booking?.customer_email));
   const alreadyReviewed = ctx ? customerAlreadyReviewed(booking, ctx) : false;
 
@@ -113,6 +123,7 @@ export function getCompleteVisitNotificationPreview(booking, ctx, { canUseSms = 
       showReviewSmsMessage: true,
       showReviewInviteMessage: false,
       showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
       showReviewInvite: !alreadyReviewed,
     };
   }
@@ -124,14 +135,19 @@ export function getCompleteVisitNotificationPreview(booking, ctx, { canUseSms = 
       showReviewSmsMessage: false,
       showReviewInviteMessage: true,
       showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
       showReviewInvite,
     };
   }
 
+  const optedOutWithPhone =
+    canUseSms && smsOptIn === false && Boolean(phoneForSmsUri(booking?.customer_phone));
+
   return {
     showReviewSmsMessage: false,
     showReviewInviteMessage: false,
-    showNoReviewInviteMessage: true,
+    showNoReviewInviteMessage: !optedOutWithPhone,
+    showSmsOptOutMessage: optedOutWithPhone,
     showReviewInvite: false,
   };
 }

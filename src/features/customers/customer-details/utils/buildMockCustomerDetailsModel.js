@@ -22,7 +22,13 @@ function buildDemoEmailLocal(name) {
 
 /**
  * Preview model for the customer details UI. Replace with API-backed data later.
- * @param {{ customerId?: string; customerName?: string; customerSegment?: string } | undefined} routeParams
+ * @param {{
+ *   customerId?: string;
+ *   customerName?: string;
+ *   customerSegment?: string;
+ *   customerEmail?: string;
+ *   customerPhone?: string;
+ * } | undefined} routeParams
  */
 export function buildMockCustomerDetailsModel(routeParams) {
   const customerId = routeParams?.customerId ?? 'demo';
@@ -44,13 +50,17 @@ export function buildMockCustomerDetailsModel(routeParams) {
   ];
   const lastVisitAt = new Date(lastVisitSources[n % lastVisitSources.length]);
   const lastVisitAtIso = lastVisitAt.toISOString();
+  const emailOverride =
+    typeof routeParams?.customerEmail === 'string' ? routeParams.customerEmail.trim() : '';
+  const phoneOverride =
+    typeof routeParams?.customerPhone === 'string' ? routeParams.customerPhone.trim() : '';
 
   return {
     id: customerId,
     fullName,
     segment,
-    phone: '(555) 201-4498',
-    email: `${buildDemoEmailLocal(fullName)}@email.com`,
+    phone: phoneOverride || '(555) 201-4498',
+    email: emailOverride || `${buildDemoEmailLocal(fullName)}@email.com`,
     totalSpendLabel: `$${Math.round(spendCents / 100).toLocaleString()}`,
     totalVisitsLabel: String(visits),
     lastVisitAtIso,

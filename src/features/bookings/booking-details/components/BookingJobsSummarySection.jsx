@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, Divider } from '../../../../components/ui';
+import { AppText, Divider, MembershipMark } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 
 /**
@@ -23,9 +23,10 @@ import { useTheme } from '../../../../theme';
  *     sessionFees?: Array<{ id?: string; name?: string; priceLabel?: string }>;
  *     total?: string;
  *   };
+ *   isMembershipVisit?: boolean;
  * }} props
  */
-export function BookingJobsSummarySection({ jobs, formattedPrice }) {
+export function BookingJobsSummarySection({ jobs, formattedPrice, isMembershipVisit = false }) {
   const { colors } = useTheme();
   const list = Array.isArray(jobs) ? jobs : [];
 
@@ -62,14 +63,22 @@ export function BookingJobsSummarySection({ jobs, formattedPrice }) {
           marginRight: 12,
           minWidth: 0,
         },
+        serviceNameRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          minWidth: 0,
+        },
         jobPriceCol: {
           alignItems: 'flex-end',
         },
         serviceName: {
           color: colors.text,
+          flexShrink: 1,
           fontSize: 18,
           fontWeight: '700',
           letterSpacing: -0.3,
+          minWidth: 0,
         },
         servicePrice: {
           color: colors.text,
@@ -175,6 +184,13 @@ export function BookingJobsSummarySection({ jobs, formattedPrice }) {
           fontWeight: '700',
           letterSpacing: -0.2,
         },
+        membershipHint: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          letterSpacing: -0.1,
+          marginTop: 8,
+        },
       }),
     [colors],
   );
@@ -193,9 +209,19 @@ export function BookingJobsSummarySection({ jobs, formattedPrice }) {
             <View key={job.id ?? `job-card-${index}`} style={styles.jobCard}>
               <View style={styles.jobTopRow}>
                 <View style={styles.jobMainCol}>
-                  <AppText numberOfLines={3} style={styles.serviceName}>
-                    {job.serviceName || '—'}
-                  </AppText>
+                  <View
+                    accessibilityLabel={
+                      isMembershipVisit
+                        ? `${job.serviceName || 'Service'}, subscription visit`
+                        : undefined
+                    }
+                    style={styles.serviceNameRow}
+                  >
+                    <AppText numberOfLines={3} style={styles.serviceName}>
+                      {job.serviceName || '—'}
+                    </AppText>
+                    {isMembershipVisit ? <MembershipMark /> : null}
+                  </View>
                   {optionLabel ? (
                     <AppText style={styles.optionMetaLine}>{optionLabel}</AppText>
                   ) : null}
@@ -255,6 +281,9 @@ export function BookingJobsSummarySection({ jobs, formattedPrice }) {
             <AppText style={styles.totalLabel}>Visit total</AppText>
             <AppText style={styles.totalValue}>{formattedPrice?.total || '—'}</AppText>
           </View>
+          {isMembershipVisit ? (
+            <AppText style={styles.membershipHint}>Included in membership</AppText>
+          ) : null}
         </View>
       </View>
     </View>

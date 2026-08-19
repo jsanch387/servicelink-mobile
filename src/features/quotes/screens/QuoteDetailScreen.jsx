@@ -17,7 +17,7 @@ import {
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
-import { canonicalNanpDigits, formatPhoneForDisplay } from '../../../utils/phone';
+import { canonicalNanpDigits, formatPhoneWithCountryCode } from '../../../utils/phone';
 import { showUserFacingErrorAlert } from '../../../utils/safeUserFacingMessage';
 import { deleteQuoteForBusiness } from '../api/quotes';
 import {
@@ -180,7 +180,7 @@ export function QuoteDetailScreen() {
         emphasize: true,
       },
     ];
-    const phoneDisplay = String(formatPhoneForDisplay(model.phone) ?? '').trim();
+    const phoneDisplay = String(formatPhoneWithCountryCode(model.phone) ?? '').trim();
     const phoneDigits = canonicalNanpDigits(model.phone);
     if (phoneDisplay.length > 0) {
       const row = {

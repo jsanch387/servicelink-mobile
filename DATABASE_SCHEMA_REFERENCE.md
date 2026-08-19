@@ -57,7 +57,7 @@ UI copy for the Payment block follows the web dashboard: variant from `payment_m
 
 ### `customers`
 
-- customer CRM table (`full_name`, `phone`, `email`, `notes`)
+- customer CRM table (`full_name`, `phone`, `email`, `notes`, `sms_opt_in`)
 
 ## Payments
 

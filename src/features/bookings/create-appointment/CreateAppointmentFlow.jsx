@@ -1,5 +1,5 @@
-import { useNavigation } from '@react-navigation/native';
-import { useLayoutEffect } from 'react';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useLayoutEffect, useMemo } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -13,10 +13,12 @@ import { WizardStepHeader } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
 import { useServicesCatalog } from '../../services/hooks/useServicesCatalog';
+import { useSubscriptionsAccess } from '../../subscriptions/hooks/useSubscriptionsAccess';
 import { CreateAppointmentStepContent } from './components/CreateAppointmentStepContent';
 import { CreateAppointmentSubmittingState } from './components/CreateAppointmentSubmittingState';
 import { CreateFlowFooter } from './components/CreateFlowFooter';
 import { useCreateAppointmentController } from './hooks/useCreateAppointmentController';
+import { parseMembershipVisitRouteParams } from './utils/membershipVisitPrefill';
 
 /**
  * Owner manual booking wizard: catalog service or custom job → optional pricing/add-ons →
@@ -44,15 +46,23 @@ import { useCreateAppointmentController } from './hooks/useCreateAppointmentCont
 export function CreateAppointmentFlow({ onImmersiveSubmitChange, prefilledCustomer }) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const route = useRoute();
   const { colors } = useTheme();
   const { user, session } = useAuth();
   const catalog = useServicesCatalog();
+  const { canUseSubscriptions } = useSubscriptionsAccess();
+
+  const membershipVisitPrefill = useMemo(
+    () => (canUseSubscriptions ? parseMembershipVisitRouteParams(route.params) : null),
+    [canUseSubscriptions, route.params],
+  );
 
   const flow = useCreateAppointmentController({
     catalog,
     userId: user?.id,
     accessToken: session?.access_token,
     navigation,
+    membershipVisitPrefill,
     prefilledCustomer,
   });
 

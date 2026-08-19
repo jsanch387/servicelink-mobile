@@ -9,7 +9,7 @@ import {
   NEEDS_ATTENTION_DAYS,
 } from '../constants';
 
-const CUSTOMER_SELECT = 'id, full_name, phone, email, notes, created_at';
+const CUSTOMER_SELECT = 'id, full_name, phone, email, notes, created_at, sms_opt_in';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -44,6 +44,7 @@ const BOOKING_CUSTOMER_METRICS_SELECT =
  * @property {string | null} email
  * @property {string | null} notes
  * @property {string | null} created_at
+ * @property {boolean | null} [sms_opt_in]
  */
 
 /**
@@ -147,6 +148,39 @@ export async function fetchCustomerForBusiness(businessId, customerId) {
     .maybeSingle();
 
   return { data, error };
+}
+
+/**
+ * CRM SMS consent for receipt / review-link copy.
+ * `sms_opt_in === false` means the customer opted out; null/true allow SMS when phone exists.
+ *
+ * @param {string} businessId
+ * @param {string} customerId
+ * @returns {Promise<{ smsOptIn: boolean | null; error: Error | null }>}
+ */
+export async function fetchCustomerSmsOptIn(businessId, customerId) {
+  const bid = String(businessId ?? '').trim();
+  const cid = String(customerId ?? '').trim();
+  if (!bid || !cid) {
+    return { smsOptIn: null, error: null };
+  }
+
+  const { data, error } = await supabase
+    .from('customers')
+    .select('sms_opt_in')
+    .eq('business_id', bid)
+    .eq('id', cid)
+    .maybeSingle();
+
+  if (error) {
+    return { smsOptIn: null, error };
+  }
+
+  if (data == null || data.sms_opt_in == null) {
+    return { smsOptIn: null, error: null };
+  }
+
+  return { smsOptIn: Boolean(data.sms_opt_in), error: null };
 }
 
 /**

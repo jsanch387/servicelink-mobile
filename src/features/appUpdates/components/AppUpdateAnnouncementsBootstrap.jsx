@@ -1,23 +1,26 @@
 import { useNavigation } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { navigateNestedTabScreen } from '../../../navigation/navigateNestedTabScreen';
-import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
+import { useSubscriptionsAccess } from '../../subscriptions/hooks/useSubscriptionsAccess';
 import { useAppUpdateAnnouncement } from '../hooks/useAppUpdateAnnouncement';
 import { WhatsNewModal } from './WhatsNewModal';
 
 /**
  * Shows the next unseen feature announcement when main tabs are active.
- * SMS launch (`sms-v1`) only appears for owners with customer SMS access (Pro).
+ * Subscriptions launch (`subscriptions-v1`) only appears for owners with
+ * subscriptions access (closed-testing allowlist, then Pro).
  */
 export function AppUpdateAnnouncementsBootstrap() {
   const navigation = useNavigation();
-  const smsAccess = useCustomerSmsAccess();
+  const subscriptionsAccess = useSubscriptionsAccess();
   const { announcement, hasAnnouncement, isReady, dismissCurrent } = useAppUpdateAnnouncement();
   const [actionBusy, setActionBusy] = useState(false);
 
-  const isSmsAnnouncement = announcement?.id === 'sms-v1';
+  const isSubscriptionsAnnouncement = announcement?.id === 'subscriptions-v1';
   const canShowAnnouncement =
-    hasAnnouncement && (!isSmsAnnouncement || (smsAccess.isReady && smsAccess.canUseSms));
+    hasAnnouncement &&
+    (!isSubscriptionsAnnouncement ||
+      (subscriptionsAccess.isReady && subscriptionsAccess.canUseSubscriptions));
 
   const handleDismiss = useCallback(async () => {
     await dismissCurrent();

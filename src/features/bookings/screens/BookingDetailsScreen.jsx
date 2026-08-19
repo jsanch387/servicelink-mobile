@@ -16,11 +16,13 @@ import {
   InfoSection,
   InlineCardError,
   SurfaceCard,
+  useToast,
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { useTheme } from '../../../theme';
+import { phoneForSmsUri } from '../../../utils/phone';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BookingActionsSection } from '../booking-details/components/BookingActionsSection';
 import { BookingCompleteVisitSheet } from '../booking-details/components/BookingCompleteInvoiceDesignSheet';
@@ -37,10 +39,12 @@ import { useMarkBookingCompleteFlow } from '../booking-details/hooks/useMarkBook
 import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
 import { buildBookingDetailsModel } from '../booking-details/utils/buildBookingDetailsModel';
 import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
+import { useMembershipVisitForBooking } from '../../subscriptions/hooks/useMembershipVisitForBooking';
 
 export function BookingDetailsScreen({ route }) {
   const { colors } = useTheme();
   const navigation = useNavigation();
+  const toast = useToast();
   const bookingId = route?.params?.bookingId;
   const [rescheduleSheetOpen, setRescheduleSheetOpen] = useState(false);
   const [jobStatusSheetOpen, setJobStatusSheetOpen] = useState(false);
@@ -53,6 +57,21 @@ export function BookingDetailsScreen({ route }) {
     () => buildBookingDetailsModel(detailsQuery.booking),
     [detailsQuery.booking],
   );
+  const membershipVisit = useMembershipVisitForBooking({
+    businessId: detailsQuery.booking?.business_id,
+    bookingId,
+  });
+  const paymentForDisplay = useMemo(() => {
+    const payment = details.payment;
+    if (!payment?.visible || !membershipVisit.isMembershipVisit) return payment;
+    return {
+      ...payment,
+      status: 'Subscription appointment',
+      detail: null,
+      showMembershipMark: true,
+      accessibilityLabel: 'Subscription appointment. No payment due for this visit.',
+    };
+  }, [details.payment, membershipVisit.isMembershipVisit]);
   const markCompleteFlow = useMarkBookingCompleteFlow(bookingId, {
     booking: detailsQuery.booking
       ? {
@@ -86,11 +105,11 @@ export function BookingDetailsScreen({ route }) {
     return () => task.cancel();
   }, [completeScrollRequestId, isCompletedStatus]);
 
-  const customerPhoneDigits = useMemo(
-    () => String(details.customer.phone ?? '').replace(/\D/g, ''),
+  const customerTelUri = useMemo(
+    () => phoneForSmsUri(details.customer.phone),
     [details.customer.phone],
   );
-  const hasCallablePhone = customerPhoneDigits.length >= 10;
+  const hasCallablePhone = Boolean(customerTelUri);
 
   const handleOpenMaps = useCallback(async () => {
     if (!details.location.hasAddress) {
@@ -114,14 +133,14 @@ export function BookingDetailsScreen({ route }) {
       );
       return;
     }
-    const telUrl = `tel:${customerPhoneDigits}`;
+    const telUrl = `tel:${customerTelUri}`;
     const canOpen = await Linking.canOpenURL(telUrl);
     if (!canOpen) {
       Alert.alert('Unable to open dialer', 'This device cannot open the phone dialer.');
       return;
     }
     await Linking.openURL(telUrl);
-  }, [customerPhoneDigits, hasCallablePhone]);
+  }, [customerTelUri, hasCallablePhone]);
 
   const customerSectionRows = useMemo(() => {
     const rows = [
@@ -219,24 +238,29 @@ export function BookingDetailsScreen({ route }) {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
       return;
     }
-    Alert.alert('Cancel booking?', 'This will mark the booking as canceled.', [
-      { text: 'Keep booking', style: 'cancel' },
-      {
-        text: 'Cancel booking',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await bookingActions.cancelBooking();
-          } catch (error) {
-            Alert.alert(
-              'Could not cancel booking',
-              safeUserFacingMessage(error, { fallback: 'Please try again.' }),
-            );
-          }
+    Alert.alert(
+      'Cancel this appointment?',
+      'The customer will be notified by email if one is on file.',
+      [
+        { text: 'Keep appointment', style: 'cancel' },
+        {
+          text: 'Cancel appointment',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await bookingActions.cancelBooking();
+              toast.success('Appointment canceled');
+            } catch (error) {
+              Alert.alert(
+                'Could not cancel appointment',
+                safeUserFacingMessage(error, { fallback: 'Please try again.' }),
+              );
+            }
+          },
         },
-      },
-    ]);
-  }, [bookingActions, bookingId, isCancelledStatus, isCompletedStatus]);
+      ],
+    );
+  }, [bookingActions, bookingId, isCancelledStatus, isCompletedStatus, toast]);
 
   const actionsBusy =
     bookingActions.isCancellingBooking ||
@@ -374,6 +398,7 @@ export function BookingDetailsScreen({ route }) {
 
             <BookingJobsSummarySection
               formattedPrice={details.formattedPrice}
+              isMembershipVisit={membershipVisit.isMembershipVisit}
               jobs={details.formattedPrice.jobs}
             />
 
@@ -386,7 +411,9 @@ export function BookingDetailsScreen({ route }) {
               title="Customer"
             />
 
-            {details.payment.visible ? <BookingPaymentSection payment={details.payment} /> : null}
+            {paymentForDisplay?.visible ? (
+              <BookingPaymentSection payment={paymentForDisplay} />
+            ) : null}
 
             {details.location.hasAddress ? (
               <InfoSection

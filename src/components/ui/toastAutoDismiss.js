@@ -6,7 +6,6 @@ export const TOAST_AUTO_DISMISS_MS = {
   success: 5500,
   error: 6500,
   info: 5500,
-  loading: null,
   confirmation: 7000,
 };
 
@@ -19,9 +18,6 @@ export const TOAST_AUTO_DISMISS_MS = {
 export function resolveToastAutoDismissMs(type, variant, explicitDuration) {
   if (explicitDuration !== undefined) {
     return explicitDuration;
-  }
-  if (type === 'loading') {
-    return null;
   }
   if (variant === 'sms' || variant === 'email') {
     return TOAST_AUTO_DISMISS_MS.confirmation;

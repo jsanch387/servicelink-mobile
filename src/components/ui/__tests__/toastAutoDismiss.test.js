@@ -22,12 +22,8 @@ describe('resolveToastAutoDismissMs', () => {
     );
   });
 
-  it('keeps loading toasts until updated', () => {
-    expect(resolveToastAutoDismissMs('loading', 'default', undefined)).toBeNull();
-  });
-
   it('honors explicit duration overrides', () => {
     expect(resolveToastAutoDismissMs('success', 'sms', 12000)).toBe(12000);
-    expect(resolveToastAutoDismissMs('loading', 'default', null)).toBeNull();
+    expect(resolveToastAutoDismissMs('info', 'default', null)).toBeNull();
   });
 });

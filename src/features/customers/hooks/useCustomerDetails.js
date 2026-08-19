@@ -76,7 +76,7 @@ export function useCustomerDetails(customerId) {
       });
       return { model, notFound: false };
     },
-    enabled: Boolean(userId) && hasBusinessRow && Boolean(sanitizedId),
+    enabled: Boolean(sanitizedId) && Boolean(userId) && hasBusinessRow,
     staleTime: 45 * 1000,
     gcTime: 15 * 60 * 1000,
   });
@@ -89,7 +89,8 @@ export function useCustomerDetails(customerId) {
     : null;
 
   const isPendingBusiness = Boolean(userId) && businessQ.isPending;
-  const isPendingDetail = hasBusinessRow && Boolean(sanitizedId) && detailQ.isPending;
+  const isPendingDetail =
+    Boolean(sanitizedId) && Boolean(userId) && hasBusinessRow && detailQ.isPending;
   const isLoading = !isReady || isPendingBusiness || isPendingDetail;
 
   const payload = detailQ.data;

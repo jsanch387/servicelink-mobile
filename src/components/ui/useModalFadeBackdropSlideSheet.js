@@ -7,6 +7,16 @@ function slideDistance() {
 
 const useInstantSheetAnim = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
 
+/** Open on the next frame in app; run immediately in Jest so `act` stays quiet. */
+export function scheduleSheetOpen(runOpen) {
+  if (useInstantSheetAnim) {
+    runOpen();
+    return () => {};
+  }
+  const id = requestAnimationFrame(() => runOpen());
+  return () => cancelAnimationFrame(id);
+}
+
 /** Experimental glass sheet settle (On my way confirm only for now). */
 const GLASS_OPEN_SPRING = {
   damping: 20,

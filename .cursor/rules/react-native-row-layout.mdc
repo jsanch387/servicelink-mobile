@@ -1,0 +1,61 @@
+---
+description: Prevent RN Pressable/Text row layouts from stacking vertically
+globs: **/*.{jsx,tsx}
+alwaysApply: true
+---
+
+# React Native horizontal rows
+
+This repo has already hit this bug many times: label + chevron (or value) **stacks vertically** instead of sitting on one row.
+
+## Root causes
+
+1. **`Pressable` + `flexDirection: 'row'`** — On React Native, `Pressable` often does **not** honor row layout on the host. Children stack.
+2. **`Text` / `AppText` with `flex: 1`** — Unreliable in a row. Flex belongs on a wrapping `View`.
+
+## Required pattern
+
+Match `SettingsNavRow` (`src/components/ui/SettingsNavRow.jsx`):
+
+```jsx
+// ✅ GOOD — row styles on inner View; flex on View, not Text
+<Pressable onPress={onPress}>
+  {({ pressed }) => (
+    <View style={[styles.row, pressed && styles.pressed]}>
+      <View style={styles.labelCol}>
+        <AppText numberOfLines={1} style={styles.label}>
+          {label}
+        </AppText>
+      </View>
+      <View style={styles.chevronCol}>
+        <Ionicons name="chevron-forward" size={18} />
+      </View>
+    </View>
+  )}
+</Pressable>
+```
+
+```jsx
+// ❌ BAD — row on Pressable; flex on Text → stacks
+<Pressable style={styles.row} onPress={onPress}>
+  <AppText style={{ flex: 1 }}>{label}</AppText>
+  <Ionicons name="chevron-forward" size={18} />
+</Pressable>
+```
+
+```js
+// styles
+row: { flexDirection: 'row', alignItems: 'center', width: '100%' },
+labelCol: { flex: 1, minWidth: 0, justifyContent: 'center' },
+chevronCol: { width: 22, alignItems: 'center', justifyContent: 'center' },
+```
+
+## Prefer existing UI
+
+For settings-style rows (label + chevron), use **`SettingsNavRow`** inside **`SettingsSection`** instead of hand-rolling.
+
+## Checklist before shipping a tappable row
+
+- [ ] `flexDirection: 'row'` is on a **`View`**, not on `Pressable`
+- [ ] `flex: 1` / `minWidth: 0` is on a **`View`**, not on `AppText`
+- [ ] Trailing chevron/value sits in its own fixed-width `View`

@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AppText, Button, InlineCardError, SkeletonBox, SurfaceCard } from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
+import { phoneForSmsUri } from '../../../utils/phone';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { CustomerDangerSection } from '../customer-details/components/CustomerDangerSection';
 import { CustomerDetailActionsSection } from '../customer-details/components/CustomerDetailActionsSection';
@@ -17,6 +18,8 @@ import { openCustomerCheckInSms } from '../customer-details/utils/openCustomerCh
 import { useCustomerDetails } from '../hooks/useCustomerDetails';
 import { CUSTOMERS_QUERY_ROOT, customerDetailsQueryKey } from '../queryKeys';
 import { MAINTENANCE_QUERY_ROOT } from '../../maintenance/queryKeys';
+import { useMembershipCatalog } from '../../subscriptions/hooks/useMembershipCatalog';
+import { findSubscriberForCustomer } from '../../subscriptions/utils/findSubscriberForCustomer';
 
 function CustomerDetailsSkeleton() {
   return (
@@ -116,30 +119,28 @@ export function CustomerDetailsScreen() {
     notFound,
     refetch,
   } = useCustomerDetails(customerId);
+  const { subscribers } = useMembershipCatalog();
 
-  const customerPhoneDigits = useMemo(
-    () => String(model?.phone ?? '').replace(/\D/g, ''),
-    [model?.phone],
-  );
-  const hasCallablePhone = customerPhoneDigits.length >= 10;
+  const customerTelUri = useMemo(() => phoneForSmsUri(model?.phone), [model?.phone]);
+  const hasCallablePhone = Boolean(customerTelUri);
   const notesText = typeof model?.ownerNotes === 'string' ? model.ownerNotes : '';
 
   const handleCallCustomer = useCallback(async () => {
-    if (!hasCallablePhone) {
+    if (!hasCallablePhone || !customerTelUri) {
       Alert.alert(
         'No phone number',
         'A valid phone number is not available for this customer yet.',
       );
       return;
     }
-    const telUrl = `tel:${customerPhoneDigits}`;
+    const telUrl = `tel:${customerTelUri}`;
     const canOpen = await Linking.canOpenURL(telUrl);
     if (!canOpen) {
       Alert.alert('Unable to open dialer', 'This device cannot open the phone dialer.');
       return;
     }
     await Linking.openURL(telUrl);
-  }, [customerPhoneDigits, hasCallablePhone]);
+  }, [customerTelUri, hasCallablePhone]);
 
   const handleEmailCustomer = useCallback(async () => {
     const email = typeof model?.email === 'string' ? model.email.trim() : '';
@@ -265,6 +266,18 @@ export function CustomerDetailsScreen() {
     }
   }, [businessId, detailCustomerId, notesDraft, notesSaving, queryClient]);
 
+  const linkedSubscription = useMemo(
+    () => findSubscriberForCustomer(subscribers, detailCustomerId),
+    [detailCustomerId, subscribers],
+  );
+
+  const handleViewSubscription = useCallback(() => {
+    if (!linkedSubscription?.id) return;
+    navigation.navigate(ROUTES.SUBSCRIPTION_DETAIL, {
+      subscriptionId: linkedSubscription.id,
+    });
+  }, [linkedSubscription?.id, navigation]);
+
   const handleCreateAppointment = useCallback(() => {
     if (!detailCustomerId || !model) {
       Alert.alert('Unable to create appointment', 'Missing customer context. Please try again.');
@@ -278,18 +291,6 @@ export function CustomerDetailsScreen() {
         phone: model.phone ?? '',
         address: model.lastKnownAddress ?? null,
       },
-    });
-  }, [detailCustomerId, model, navigation]);
-
-  const handleSendMaintenanceDetail = useCallback(() => {
-    if (!detailCustomerId || !model) {
-      Alert.alert('Unable to send offer', 'Missing customer context. Please try again.');
-      return;
-    }
-    navigation.navigate(ROUTES.MAINTENANCE_INVITE, {
-      customerId: detailCustomerId,
-      customerName: model.fullName,
-      customerEmail: model.email ?? '',
     });
   }, [detailCustomerId, model, navigation]);
 
@@ -442,6 +443,7 @@ export function CustomerDetailsScreen() {
           email={model.email}
           fullName={model.fullName}
           hasCallablePhone={hasCallablePhone}
+          hasSubscription={Boolean(linkedSubscription)}
           onCall={handleCallCustomer}
           onEmail={handleEmailCustomer}
           phone={model.phone}
@@ -460,8 +462,8 @@ export function CustomerDetailsScreen() {
           <CustomerDetailActionsSection
             first
             onCreateAppointment={handleCreateAppointment}
-            onSendMaintenanceDetail={handleSendMaintenanceDetail}
             onSendText={handleSendText}
+            onViewSubscription={linkedSubscription ? handleViewSubscription : null}
             removeLoading={removeLoading}
           />
 

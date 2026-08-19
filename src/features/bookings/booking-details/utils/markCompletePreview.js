@@ -6,6 +6,7 @@ import { phoneForSmsUri } from '../../../../utils/phone';
  * @property {boolean} showReviewSmsMessage SMS review link (primary).
  * @property {boolean} showReviewInviteMessage Email review link when SMS is not available.
  * @property {boolean} showNoReviewInviteMessage No contact on file — owner should know invite won't go out.
+ * @property {boolean} showSmsOptOutMessage Phone on file but customer opted out of texts (and no email fallback).
  * @property {boolean} [showReviewInvite] When false, customer gets receipt/thank-you only (already reviewed).
  */
 
@@ -19,16 +20,22 @@ import { phoneForSmsUri } from '../../../../utils/phone';
  *   customer_phone?: string | null;
  *   customer_email?: string | null;
  * } | null | undefined} booking
- * @param {{ canUseSms?: boolean }} [options]
+ * @param {{ canUseSms?: boolean; smsOptIn?: boolean | null }} [options]
  * @returns {MarkCompletePreview}
  */
-export function getMarkCompletePreviewFromBooking(booking, { canUseSms = false } = {}) {
-  const hasPhone = canUseSms && Boolean(phoneForSmsUri(booking?.customer_phone));
+export function getMarkCompletePreviewFromBooking(
+  booking,
+  { canUseSms = false, smsOptIn = null } = {},
+) {
+  const customerAllowsSms = smsOptIn !== false;
+  const hasPhone =
+    canUseSms && customerAllowsSms && Boolean(phoneForSmsUri(booking?.customer_phone));
   if (hasPhone) {
     return {
       showReviewSmsMessage: true,
       showReviewInviteMessage: false,
       showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
       showReviewInvite: true,
     };
   }
@@ -39,14 +46,19 @@ export function getMarkCompletePreviewFromBooking(booking, { canUseSms = false }
       showReviewSmsMessage: false,
       showReviewInviteMessage: true,
       showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
       showReviewInvite: true,
     };
   }
 
+  const optedOutWithPhone =
+    canUseSms && smsOptIn === false && Boolean(phoneForSmsUri(booking?.customer_phone));
+
   return {
     showReviewSmsMessage: false,
     showReviewInviteMessage: false,
-    showNoReviewInviteMessage: true,
+    showNoReviewInviteMessage: !optedOutWithPhone,
+    showSmsOptOutMessage: optedOutWithPhone,
     showReviewInvite: false,
   };
 }

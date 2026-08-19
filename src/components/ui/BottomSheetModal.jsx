@@ -16,7 +16,8 @@ import { useTheme } from '../../theme';
 import { AppText } from './AppText';
 import { BottomSheetOverlayProvider } from './bottomSheetOverlay';
 import { SheetCloseButton } from './SheetCloseButton';
-import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
+import { ToastModalHost } from './ToastModalHost';
+import { scheduleSheetOpen, useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
 
 const GLASS_TOP_RADIUS = 24;
 const GLASS_BLUR_INTENSITY = Platform.select({ ios: 95, android: 100, default: 95 });
@@ -252,6 +253,7 @@ function NativePageSheetModal({
             {footer}
           </ScrollView>
         )}
+        <ToastModalHost />
       </View>
     </Modal>
   );
@@ -302,8 +304,7 @@ function OverlayBottomSheetModal({
   useEffect(() => {
     if (!mounted) return undefined;
     if (visible) {
-      const id = requestAnimationFrame(() => runOpen());
-      return () => cancelAnimationFrame(id);
+      return scheduleSheetOpen(runOpen);
     }
     runClose(() => setMounted(false));
     return undefined;
@@ -516,6 +517,7 @@ function OverlayBottomSheetModal({
     >
       <View style={styles.modalRoot}>
         <BottomSheetOverlayProvider>{content}</BottomSheetOverlayProvider>
+        <ToastModalHost />
       </View>
     </Modal>
   );

@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ROUTES } from '../../../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
+import { SubscriptionDetailScreen } from '../../subscriptions';
 import { CustomerDetailsScreen } from '../screens/CustomerDetailsScreen';
 import { CustomersScreen } from '../screens/CustomersScreen';
 import { MaintenanceInviteScreen } from '../maintenance-invite/screens/MaintenanceInviteScreen';
@@ -39,6 +40,14 @@ export function CustomersNavigator() {
         name={ROUTES.MAINTENANCE_INVITE}
         options={{
           title: 'Maintenance offer',
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        component={SubscriptionDetailScreen}
+        name={ROUTES.SUBSCRIPTION_DETAIL}
+        options={{
           headerBackButtonDisplayMode: 'minimal',
           headerBackTitleVisible: false,
         }}

@@ -97,8 +97,8 @@ export function CustomerStep({ customer, isReturningCustomer = false, onChangeCu
           compact
           containerStyle={FIELD_SHELL}
           label={<RequiredFieldLabel compact text="Phone" />}
-          leftIcon="call-outline"
           placeholder="(555) 234-5678"
+          prefixText="+1"
           testID="create-appt-customer-phone"
           value={customer.phone}
           onChangeText={(t) => onChangeCustomer({ ...customer, phone: t })}

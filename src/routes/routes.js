@@ -39,6 +39,14 @@ export const ROUTES = {
   MAINTENANCE: 'Maintenance',
   /** More stack — single maintenance enrollment detail. */
   MAINTENANCE_DETAIL: 'MaintenanceDetail',
+  /** More stack — customer subscriptions inbox (plans + members). */
+  SUBSCRIPTIONS: 'Subscriptions',
+  /** More stack — single customer subscription detail. */
+  SUBSCRIPTION_DETAIL: 'SubscriptionDetail',
+  /** More stack — membership plan detail (share link, options). */
+  SUBSCRIPTION_PLAN_DETAIL: 'SubscriptionPlanDetail',
+  /** More stack — people subscribed to a single plan. */
+  SUBSCRIPTION_PLAN_SUBSCRIBERS: 'SubscriptionPlanSubscribers',
   /** Root stack — build & send quote (hides tab bar; same pattern as CREATE_APPOINTMENT). */
   CREATE_QUOTE: 'CreateQuote',
   BOOKING_LINK: 'BookingLink',
@@ -97,6 +105,10 @@ export const PATHS = {
   REVIEWS: '/reviews',
   MAINTENANCE: '/maintenance',
   MAINTENANCE_DETAIL: '/maintenance/detail',
+  SUBSCRIPTIONS: '/subscriptions',
+  SUBSCRIPTION_DETAIL: '/subscriptions/detail',
+  SUBSCRIPTION_PLAN_DETAIL: '/subscriptions/plans/detail',
+  SUBSCRIPTION_PLAN_SUBSCRIBERS: '/subscriptions/plans/subscribers',
   CREATE_QUOTE: '/quotes/create',
   BOOKING_LINK: '/booking-link',
   QR_CODE: '/more/qr-code',

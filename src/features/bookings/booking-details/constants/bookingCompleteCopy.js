@@ -4,7 +4,7 @@ export const BOOKING_MARK_COMPLETE_CANCEL_LABEL = 'Cancel';
 
 export const BOOKING_MARK_COMPLETE_CONFIRM_LABEL = 'Complete visit';
 
-/** @typedef {'review_sms' | 'review_email' | 'no_review' | null} BookingMarkCompleteHighlightVariant */
+/** @typedef {'review_sms' | 'review_email' | 'no_review' | 'sms_opt_out' | null} BookingMarkCompleteHighlightVariant */
 
 /**
  * @typedef {object} BookingMarkCompleteSheetCopy
@@ -21,6 +21,7 @@ export const BOOKING_MARK_COMPLETE_CONFIRM_LABEL = 'Complete visit';
  *   showReviewSmsMessage?: boolean;
  *   showReviewInviteMessage?: boolean;
  *   showNoReviewInviteMessage?: boolean;
+ *   showSmsOptOutMessage?: boolean;
  *   showReviewInvite?: boolean;
  * } | null | undefined} modalCopy
  * @returns {BookingMarkCompleteSheetCopy}
@@ -58,6 +59,18 @@ export function getBookingMarkCompleteSheetCopy(modalCopy) {
       highlightBody: includesReviewLink
         ? 'They’ll get an email with their receipt and a link to leave a review.'
         : 'They’ll get an email with their receipt.',
+      body: 'This visit will be marked complete on your calendar.',
+      confirmLabel: BOOKING_MARK_COMPLETE_CONFIRM_LABEL,
+    };
+  }
+
+  if (modalCopy?.showSmsOptOutMessage) {
+    return {
+      title: 'Complete this visit?',
+      highlightVariant: 'sms_opt_out',
+      highlightTitle: 'They opted out of texts',
+      highlightBody:
+        'We won’t send a receipt or review text. This visit will still be marked complete.',
       body: 'This visit will be marked complete on your calendar.',
       confirmLabel: BOOKING_MARK_COMPLETE_CONFIRM_LABEL,
     };

@@ -16,9 +16,22 @@ export const MAINTENANCE_TAB_OPTIONS = [
 export const MAINTENANCE_DETAIL_NOT_FOUND_USER_MESSAGE =
   'This maintenance offer is not in your list anymore. Go back and pull down to refresh.';
 
+/** New maintenance offers cannot be created; existing enrollments stay visible. */
+export const MAINTENANCE_CREATION_DISABLED = true;
+
+export const MAINTENANCE_CREATION_DISABLED_MESSAGE =
+  'New maintenance offers are no longer available. Use Subscriptions instead.';
+
+export const MAINTENANCE_SUNSET_NOTICE_TITLE = 'Maintenance is ending';
+
+export const MAINTENANCE_SUNSET_NOTICE_BODY =
+  'Existing offers stay here. Create new recurring plans in Subscriptions.';
+
+export const MAINTENANCE_SUNSET_NOTICE_CTA = 'Go to subscriptions';
+
 export const MAINTENANCE_LIST_EMPTY_PENDING = {
   title: 'No pending links',
-  body: 'When you send a maintenance service link, it shows here while the customer pays and confirms.',
+  body: 'New maintenance offers can’t be sent. Pending links you already shared still show here.',
 };
 
 export const MAINTENANCE_LIST_EMPTY_CONFIRMED = {

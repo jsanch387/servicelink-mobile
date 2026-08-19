@@ -10,6 +10,32 @@ export const SMS_MESSAGE_TYPE_INVOICE = 'invoice';
 /** Server skip reason when an owner's plan or allowlist rules out texting entirely. */
 export const SMS_SKIP_REASON_NOT_ELIGIBLE = 'not_eligible';
 
+/** `customers.sms_opt_in = false` — owner-side consent off. */
+export const SMS_SKIP_REASON_OPT_OUT = 'sms_opt_out';
+
+/** Telnyx 40300 — customer texted STOP. */
+export const SMS_SKIP_REASON_CARRIER_OPT_OUT = 'carrier_opt_out';
+
+/** Already sent this action for this booking — no extra toast. */
+export const SMS_SKIP_REASON_DUPLICATE = 'duplicate';
+
+/**
+ * @param {string | null | undefined} reason
+ * @returns {boolean}
+ */
+export function isSmsOptOutSkipReason(reason) {
+  return reason === SMS_SKIP_REASON_OPT_OUT || reason === SMS_SKIP_REASON_CARRIER_OPT_OUT;
+}
+
+/**
+ * Idempotent skip — apply state, do not add an SMS skip toast.
+ * @param {string | null | undefined} reason
+ * @returns {boolean}
+ */
+export function isSilentSmsSkipReason(reason) {
+  return reason === SMS_SKIP_REASON_DUPLICATE;
+}
+
 /** Statuses that count as a successful on-the-way send for button state. */
 export const SMS_ON_THE_WAY_SUCCESS_STATUSES = ['queued', 'sent', 'delivered'];
 

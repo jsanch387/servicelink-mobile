@@ -8,6 +8,7 @@ describe('getMarkCompletePreviewFromBooking', () => {
       showReviewSmsMessage: true,
       showReviewInviteMessage: false,
       showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
       showReviewInvite: true,
     });
   });
@@ -25,6 +26,7 @@ describe('getMarkCompletePreviewFromBooking', () => {
       showReviewSmsMessage: false,
       showReviewInviteMessage: true,
       showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
       showReviewInvite: true,
     });
   });
@@ -36,6 +38,7 @@ describe('getMarkCompletePreviewFromBooking', () => {
       showReviewSmsMessage: false,
       showReviewInviteMessage: false,
       showNoReviewInviteMessage: true,
+      showSmsOptOutMessage: false,
       showReviewInvite: false,
     });
   });
@@ -53,6 +56,7 @@ describe('getMarkCompletePreviewFromBooking', () => {
       showReviewSmsMessage: true,
       showReviewInviteMessage: false,
       showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
       showReviewInvite: true,
     });
   });
@@ -67,6 +71,7 @@ describe('getMarkCompletePreviewFromBooking', () => {
       showReviewSmsMessage: false,
       showReviewInviteMessage: true,
       showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
       showReviewInvite: true,
     });
   });
@@ -76,6 +81,22 @@ describe('getMarkCompletePreviewFromBooking', () => {
       showReviewSmsMessage: false,
       showReviewInviteMessage: false,
       showNoReviewInviteMessage: true,
+      showSmsOptOutMessage: false,
+      showReviewInvite: false,
+    });
+  });
+
+  it('explains SMS opt-out when a phone is on file but texts are not allowed', () => {
+    expect(
+      getMarkCompletePreviewFromBooking(
+        { customer_phone: '5552345678', customer_email: null },
+        { canUseSms: true, smsOptIn: false },
+      ),
+    ).toEqual({
+      showReviewSmsMessage: false,
+      showReviewInviteMessage: false,
+      showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: true,
       showReviewInvite: false,
     });
   });

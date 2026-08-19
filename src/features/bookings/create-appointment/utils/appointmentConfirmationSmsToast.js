@@ -10,6 +10,8 @@ const SMS_SKIP_TOAST = {
   no_phone: 'Couldn’t notify your customer — no phone on file.',
   invalid_number: 'Couldn’t notify your customer — invalid phone number.',
   not_configured: 'Appointment saved. Texting isn’t set up yet.',
+  sms_opt_out: 'Couldn’t notify your customer — they opted out of texts.',
+  carrier_opt_out: 'Couldn’t notify your customer — they opted out of texts (STOP).',
   error: 'Couldn’t notify your customer.',
   duplicate: 'Your customer was already notified.',
 };

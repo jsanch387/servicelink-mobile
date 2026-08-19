@@ -271,6 +271,27 @@ describe('buildOwnerBookingPayload', () => {
       expect(b.jobs[0].servicePriceCents).toBe(12000);
     });
 
+    it('sends membership period-visit fields when membershipId is set', () => {
+      const b = buildOwnerManualPublicBookingBody({
+        ...base,
+        membershipId: 'mem-1',
+        applySaleDiscount: true,
+        availableSaleDiscount: {
+          sale: { id: 'sale-1' },
+          subtotalCents: 10000,
+          discountCents: 1000,
+          discountLabel: '10% off',
+          discountType: 'percent',
+          discountValue: 10,
+        },
+      });
+      expect(b.membershipId).toBe('mem-1');
+      expect(b.paymentMethodSelected).toBe('membership');
+      expect(b.applySale).toBe(false);
+      expect(b.applySaleDiscount).toBeUndefined();
+      expect(b.discountSaleId).toBeUndefined();
+    });
+
     it('sends applySaleDiscount false and omits snapshot when owner opts out', () => {
       const b = buildOwnerManualPublicBookingBody({
         ...base,

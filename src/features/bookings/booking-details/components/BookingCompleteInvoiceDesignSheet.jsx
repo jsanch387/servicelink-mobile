@@ -22,11 +22,12 @@ import {
   Divider,
   InlineCardError,
   LabelValueRow,
+  MembershipMark,
   ToastModalHost,
   useBottomSheetOverlay,
   useToast,
 } from '../../../../components/ui';
-import { useModalFadeBackdropSlideSheet } from '../../../../components/ui/useModalFadeBackdropSlideSheet';
+import { scheduleSheetOpen, useModalFadeBackdropSlideSheet } from '../../../../components/ui/useModalFadeBackdropSlideSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SUBMIT_OUTCOME_SUCCESS } from '../../../../components/ui/submitOutcomeTokens';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
@@ -128,6 +129,7 @@ function formatUsd(amount) {
  *   savedReceiptPhone: string;
  *   onPressAddReceiptContact: () => void;
  *   showReceiptContactNotice?: boolean;
+ *   isMembershipVisit?: boolean;
  * }} props
  */
 function CompleteVisitDesignBody({
@@ -160,6 +162,7 @@ function CompleteVisitDesignBody({
   savedReceiptPhone,
   onPressAddReceiptContact,
   showReceiptContactNotice = false,
+  isMembershipVisit = false,
 }) {
   const { colors } = useTheme();
   const overlay = useBottomSheetOverlay();
@@ -270,6 +273,17 @@ function CompleteVisitDesignBody({
           fontWeight: '500',
           lineHeight: 18,
         },
+        membershipTotalHint: {
+          color: colors.textMuted ?? colors.placeholder,
+          fontSize: 13,
+          fontWeight: '500',
+          letterSpacing: -0.1,
+        },
+        membershipTotalHintRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          marginTop: 8,
+        },
         followUpRow: {
           alignItems: 'flex-start',
           flexDirection: 'row',
@@ -378,8 +392,9 @@ function CompleteVisitDesignBody({
       subtotal,
       tapToPayAmount,
       inPersonPayment,
+      isMembershipVisit,
     });
-  }, [inPersonPayment, isPaymentSettled, paidOnline, subtotal, tapToPayAmount]);
+  }, [inPersonPayment, isMembershipVisit, isPaymentSettled, paidOnline, subtotal, tapToPayAmount]);
 
   return (
     <ScrollView
@@ -397,7 +412,9 @@ function CompleteVisitDesignBody({
             <Ionicons color={SUBMIT_OUTCOME_SUCCESS.color} name="checkmark-circle" size={28} />
             <View style={styles.paidBannerTextWrap}>
               <AppText style={styles.paidBannerTitle}>{paymentSettledBanner.title}</AppText>
-              <AppText style={styles.paidBannerDetail}>{paymentSettledBanner.detail}</AppText>
+              {paymentSettledBanner.detail ? (
+                <AppText style={styles.paidBannerDetail}>{paymentSettledBanner.detail}</AppText>
+              ) : null}
             </View>
           </View>
         ) : null}
@@ -426,6 +443,12 @@ function CompleteVisitDesignBody({
             ) : null}
             {amountDue > 0 ? (
               <LabelValueRow emphasize label="Amount due" value={formatUsd(amountDue)} />
+            ) : null}
+            {isMembershipVisit ? (
+              <View style={styles.membershipTotalHintRow}>
+                <AppText style={styles.membershipTotalHint}>Subscription appointment</AppText>
+                <MembershipMark />
+              </View>
             ) : null}
           </>
         )}
@@ -660,8 +683,7 @@ export function BookingCompleteVisitSheet({
       return undefined;
     }
     if (visible) {
-      const id = requestAnimationFrame(() => runOpen());
-      return () => cancelAnimationFrame(id);
+      return scheduleSheetOpen(runOpen);
     }
     runClose(() => setMounted(false));
     return undefined;
@@ -760,8 +782,10 @@ export function BookingCompleteVisitSheet({
   const showCollectActions = amountDue > 0;
   const hasSavedReceiptEmail = isValidEmailFormat(savedReceiptEmail);
   const hasSavedReceiptPhone = Boolean(normalizePhoneForDatabase(savedReceiptPhone));
-  // A phone typed into the receipt form only means a text when this owner can text.
-  const canTextSavedReceiptPhone = canUseSms && hasSavedReceiptPhone;
+  const customerAllowsSms = resolvedModel?.showSmsOptOut !== true;
+  // A phone typed into the receipt form only means a text when this owner can text
+  // and the customer has not opted out.
+  const canTextSavedReceiptPhone = canUseSms && hasSavedReceiptPhone && customerAllowsSms;
   const showReceiptContactNotice =
     showTapToPay && showCollectActions && !hasSavedReceiptEmail && !hasSavedReceiptPhone;
 
@@ -776,6 +800,7 @@ export function BookingCompleteVisitSheet({
       showReviewSms: showReviewSms || canTextSavedReceiptPhone,
       showReviewEmail: hasSavedReceiptEmail && !showReviewSms && !canTextSavedReceiptPhone,
       showReviewInvite,
+      smsOptedOut: Boolean(resolvedModel.showSmsOptOut) && !hasSavedReceiptEmail,
     });
   }, [canTextSavedReceiptPhone, hasSavedReceiptEmail, resolvedModel]);
 
@@ -1153,6 +1178,7 @@ export function BookingCompleteVisitSheet({
                     followUpInfo={followUpInfo}
                     inPersonPayment={inPersonPayment}
                     iosKeyboardScrollPadding={iosKeyboardScrollPadding}
+                    isMembershipVisit={Boolean(resolvedModel.isMembershipVisit)}
                     isMultiJob={Boolean(resolvedModel.isMultiJob)}
                     jobs={resolvedModel.jobs}
                     lineItems={resolvedModel.lineItems}

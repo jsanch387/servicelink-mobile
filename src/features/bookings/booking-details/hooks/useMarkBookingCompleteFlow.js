@@ -5,6 +5,7 @@ import { useToast } from '../../../../components/ui';
 import { useAppReviewPrompt } from '../../../appReview';
 import { useAuth } from '../../../auth';
 import { fetchBusinessProfileForUser } from '../../../home/api/homeDashboard';
+import { fetchCustomerSmsOptIn } from '../../../customers/api/customers';
 import { loadReviewEligibilityContext } from '../../../reviews/api/loadReviewEligibilityContext';
 import { getCompleteVisitNotificationPreview } from '../../../reviews/utils/reviewInviteEligibility';
 import { useCustomerSmsAccess } from '../../../sms/hooks/useCustomerSmsAccess';
@@ -232,7 +233,20 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
 
       setEligibilityCtx(ctx);
 
-      const nextPreview = getCompleteVisitNotificationPreview(booking, ctx, { canUseSms });
+      let smsOptIn = /** @type {boolean | null} */ (null);
+      const customerIdForSms = String(booking.customer_id ?? '').trim();
+      if (customerIdForSms) {
+        const { smsOptIn: nextOptIn } = await fetchCustomerSmsOptIn(businessId, customerIdForSms);
+        if (cancelled || loadGenerationRef.current !== generation) {
+          return;
+        }
+        smsOptIn = nextOptIn;
+      }
+
+      const nextPreview = getCompleteVisitNotificationPreview(booking, ctx, {
+        canUseSms,
+        smsOptIn,
+      });
       notificationPreviewRef.current = nextPreview;
       setPreview(nextPreview);
 

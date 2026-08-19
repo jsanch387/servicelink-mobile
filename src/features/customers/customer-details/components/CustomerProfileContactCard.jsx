@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { AppText, Divider, SurfaceCard } from '../../../../components/ui';
+import { AppText, Divider, MembershipMark, SurfaceCard } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
-import { formatPhoneForDisplay } from '../../../../utils/phone';
+import { formatPhoneWithCountryCode } from '../../../../utils/phone';
 import { customerInitials } from '../utils/customerInitials';
 import { customerSegmentColor, customerSegmentLabel } from '../../utils/customerSegmentDisplay';
 
@@ -84,6 +84,7 @@ export function CustomerProfileContactCard({
   email,
   fullName,
   hasCallablePhone,
+  hasSubscription = false,
   onCall,
   onEmail,
   phone,
@@ -93,7 +94,7 @@ export function CustomerProfileContactCard({
   const initials = useMemo(() => customerInitials(fullName), [fullName]);
   const tag = customerSegmentLabel(segment);
   const accent = customerSegmentColor(segment);
-  const phoneDisplay = formatPhoneForDisplay(phone);
+  const phoneDisplay = formatPhoneWithCountryCode(phone);
   const showPhone = Boolean(String(phoneDisplay ?? '').trim());
   const emailTrim = String(email ?? '').trim();
   const showEmail = Boolean(emailTrim);
@@ -125,14 +126,20 @@ export function CustomerProfileContactCard({
           fontWeight: '700',
           letterSpacing: -0.35,
         },
+        nameCluster: {
+          alignItems: 'center',
+          flex: 1,
+          flexDirection: 'row',
+          marginLeft: 12,
+          minWidth: 0,
+        },
         name: {
           color: colors.text,
-          flex: 1,
+          flexShrink: 1,
           fontSize: 20,
           fontWeight: '700',
           letterSpacing: -0.4,
           lineHeight: 26,
-          marginLeft: 12,
           minWidth: 0,
         },
         pill: {
@@ -162,13 +169,19 @@ export function CustomerProfileContactCard({
 
   return (
     <SurfaceCard padding="md" style={styles.card}>
-      <View style={styles.topRow}>
+      <View
+        accessibilityLabel={hasSubscription ? `${fullName}, subscription member` : undefined}
+        style={styles.topRow}
+      >
         <View style={styles.avatar}>
           <AppText style={styles.initials}>{initials}</AppText>
         </View>
-        <AppText numberOfLines={2} style={styles.name}>
-          {fullName}
-        </AppText>
+        <View style={styles.nameCluster}>
+          <AppText numberOfLines={2} style={styles.name}>
+            {fullName}
+          </AppText>
+          {hasSubscription ? <MembershipMark /> : null}
+        </View>
         <View style={styles.pill}>
           <AppText style={styles.pillText}>{tag}</AppText>
         </View>

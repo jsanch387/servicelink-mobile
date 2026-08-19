@@ -7,7 +7,7 @@ import { useTheme } from '../../theme';
 import { AppText } from './AppText';
 import { BottomSheetModal } from './BottomSheetModal';
 import { Button } from './Button';
-import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
+import { scheduleSheetOpen, useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
 
 /**
  * Opens a bottom sheet to pick one option. Trigger matches {@link TextField} outline styling.
@@ -73,8 +73,7 @@ export function SelectField({
 
   useEffect(() => {
     if (!open || useWheel) return undefined;
-    const id = requestAnimationFrame(() => runOpen());
-    return () => cancelAnimationFrame(id);
+    return scheduleSheetOpen(runOpen);
   }, [open, runOpen, useWheel]);
 
   const styles = useMemo(

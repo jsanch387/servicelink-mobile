@@ -13,6 +13,8 @@ import {
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
+import { useSubscriptionsAccess } from '../../subscriptions/hooks/useSubscriptionsAccess';
+import { MaintenanceEndingNotice } from '../components/MaintenanceEndingNotice';
 import { MaintenanceEnrollmentCard } from '../components/MaintenanceEnrollmentCard';
 import { MaintenanceHowItWorks } from '../components/MaintenanceHowItWorks';
 import {
@@ -45,6 +47,7 @@ export function MaintenanceScreen() {
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
   const inbox = useMaintenanceInbox();
+  const subscriptionsAccess = useSubscriptionsAccess();
   const [listTab, setListTab] = useState(MAINTENANCE_TAB_PENDING);
 
   const openDetail = useCallback(
@@ -71,6 +74,9 @@ export function MaintenanceScreen() {
         },
         pills: {
           marginBottom: 12,
+        },
+        sunsetBlock: {
+          marginBottom: 16,
         },
         howItWorksBlock: {
           marginBottom: 16,
@@ -144,6 +150,13 @@ export function MaintenanceScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
+        <View style={styles.sunsetBlock}>
+          <MaintenanceEndingNotice
+            showSubscriptionsCta={subscriptionsAccess.featureEnabled}
+            onPressSubscriptions={() => navigation.navigate(ROUTES.SUBSCRIPTIONS)}
+          />
+        </View>
+
         <View style={styles.pills}>
           <FilterPills
             onSelect={setListTab}

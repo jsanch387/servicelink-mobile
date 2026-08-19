@@ -7,6 +7,7 @@ import {
   DetailsSectionCard,
   Divider,
   InfoSection,
+  MembershipMark,
 } from '../../../../components/ui';
 import {
   formatScheduledDateUserFacing,
@@ -15,7 +16,7 @@ import {
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 import {
   canonicalNanpDigits,
-  formatPhoneForDisplay,
+  formatPhoneWithCountryCode,
   isValidUsNanpTenDigits,
 } from '../../../../utils/phone';
 import { AddAnotherJobCard } from '../components/AddAnotherJobCard';
@@ -104,6 +105,7 @@ export function ReviewStep({
   onAddAnotherJob,
   addAnotherJobDisabled = false,
   onRemoveJob,
+  isMembershipVisit = false,
 }) {
   const { colors } = useTheme();
   const [swipeTipVisible, setSwipeTipVisible] = useState(false);
@@ -230,7 +232,7 @@ export function ReviewStep({
   }, [customer.phone]);
 
   const phoneLine = useMemo(
-    () => (phoneDigits10 ? formatPhoneForDisplay(phoneDigits10) : null),
+    () => (phoneDigits10 ? formatPhoneWithCountryCode(phoneDigits10) : null),
     [phoneDigits10],
   );
 
@@ -390,6 +392,16 @@ export function ReviewStep({
           fontSize: 18,
           fontWeight: '700',
           letterSpacing: -0.2,
+        },
+        membershipTotalHint: {
+          color: colors.textMuted ?? colors.placeholder,
+          fontSize: 12,
+          fontWeight: '500',
+        },
+        membershipTotalHintRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          marginTop: 6,
         },
         saleOptInPress: {
           alignItems: 'center',
@@ -558,6 +570,12 @@ export function ReviewStep({
                   <AppText style={styles.totalLabel}>{multiJob ? 'Visit total' : 'Total'}</AppText>
                   <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>
                 </View>
+                {isMembershipVisit ? (
+                  <View style={styles.membershipTotalHintRow}>
+                    <AppText style={styles.membershipTotalHint}>Subscription appointment</AppText>
+                    <MembershipMark />
+                  </View>
+                ) : null}
               </View>
               {showSaleOptIn && onToggleApplySaleDiscount ? (
                 <Pressable

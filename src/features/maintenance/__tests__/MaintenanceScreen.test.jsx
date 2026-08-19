@@ -1,10 +1,14 @@
 import { fireEvent, screen } from '@testing-library/react-native';
 import { MaintenanceScreen } from '../screens/MaintenanceScreen';
 import { useMaintenanceInbox } from '../hooks/useMaintenanceInbox';
+import { useSubscriptionsAccess } from '../../subscriptions/hooks/useSubscriptionsAccess';
 import {
   MAINTENANCE_LIST_EMPTY_COMPLETED,
   MAINTENANCE_LIST_EMPTY_CONFIRMED,
   MAINTENANCE_LIST_EMPTY_PENDING,
+  MAINTENANCE_SUNSET_NOTICE_BODY,
+  MAINTENANCE_SUNSET_NOTICE_CTA,
+  MAINTENANCE_SUNSET_NOTICE_TITLE,
 } from '../constants';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
 
@@ -22,7 +26,17 @@ jest.mock('../hooks/useMaintenanceInbox', () => ({
   useMaintenanceInbox: jest.fn(),
 }));
 
+jest.mock('../../subscriptions/hooks/useSubscriptionsAccess', () => ({
+  useSubscriptionsAccess: jest.fn(() => ({
+    featureEnabled: true,
+    canUseSubscriptions: true,
+    showUpsell: false,
+    isReady: true,
+  })),
+}));
+
 const mockUseMaintenanceInbox = useMaintenanceInbox;
+const mockUseSubscriptionsAccess = useSubscriptionsAccess;
 
 function card(overrides = {}) {
   return {
@@ -55,6 +69,12 @@ describe('MaintenanceScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseMaintenanceInbox.mockReturnValue(baseInbox());
+    mockUseSubscriptionsAccess.mockReturnValue({
+      featureEnabled: true,
+      canUseSubscriptions: true,
+      showUpsell: false,
+      isReady: true,
+    });
   });
 
   it('renders loading skeleton without empty-state copy', () => {
@@ -71,6 +91,29 @@ describe('MaintenanceScreen', () => {
 
     expect(screen.getByText(MAINTENANCE_LIST_EMPTY_PENDING.title)).toBeTruthy();
     expect(screen.getByText(MAINTENANCE_LIST_EMPTY_PENDING.body)).toBeTruthy();
+  });
+
+  it('shows the ending notice and routes to subscriptions', () => {
+    renderWithProviders(<MaintenanceScreen />);
+
+    expect(screen.getByText(MAINTENANCE_SUNSET_NOTICE_TITLE)).toBeTruthy();
+    expect(screen.getByText(MAINTENANCE_SUNSET_NOTICE_BODY)).toBeTruthy();
+    fireEvent.press(screen.getByText(MAINTENANCE_SUNSET_NOTICE_CTA));
+    expect(mockNavigate).toHaveBeenCalledWith('Subscriptions');
+  });
+
+  it('hides the subscriptions CTA when the feature is gated off', () => {
+    mockUseSubscriptionsAccess.mockReturnValue({
+      featureEnabled: false,
+      canUseSubscriptions: false,
+      showUpsell: false,
+      isReady: true,
+    });
+
+    renderWithProviders(<MaintenanceScreen />);
+
+    expect(screen.getByText(MAINTENANCE_SUNSET_NOTICE_TITLE)).toBeTruthy();
+    expect(screen.queryByText(MAINTENANCE_SUNSET_NOTICE_CTA)).toBeNull();
   });
 
   it('shows confirmed empty copy when Confirmed tab is selected', () => {

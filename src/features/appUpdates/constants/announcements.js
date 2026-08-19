@@ -27,19 +27,20 @@ import { ROUTES } from '../../../routes/routes';
 /** @type {WhatsNewAnnouncement[]} */
 export const APP_UPDATE_ANNOUNCEMENTS = [
   {
-    id: 'sms-v1',
+    id: 'subscriptions-v1',
     badge: "What's new",
-    illustration: 'sms-bubbles',
-    title: 'We text your customers for you',
+    icon: 'layers-outline',
+    title: 'Subscriptions for recurring work',
     bullets: [
-      'On my way, start, and finish — sent automatically',
-      'Review every message under Notifications → Messages sent',
+      'Create a plan with price and how often you visit',
+      'Customers subscribe from your link',
+      'Track who’s due, past due, or canceled',
     ],
-    primaryLabel: 'View messages',
+    primaryLabel: 'View subscriptions',
     secondaryLabel: 'Got it',
     cta: {
       tab: ROUTES.MORE,
-      screen: ROUTES.SENT_TEXTS,
+      screen: ROUTES.SUBSCRIPTIONS,
     },
   },
 ];

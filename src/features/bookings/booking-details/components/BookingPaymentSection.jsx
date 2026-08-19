@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, DetailsSectionCard } from '../../../../components/ui';
+import { AppText, DetailsSectionCard, MembershipMark } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 
 /**
@@ -17,6 +17,11 @@ export function BookingPaymentSection({ payment }) {
       StyleSheet.create({
         body: {
           gap: 4,
+        },
+        statusRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
         },
         status: {
           color: colors.text,
@@ -42,14 +47,17 @@ export function BookingPaymentSection({ payment }) {
     return null;
   }
 
-  const { status, detail, accessibilityLabel } = payment;
+  const { status, detail, accessibilityLabel, showMembershipMark } = payment;
 
   return (
     <DetailsSectionCard bodyPadding="default" title="Payment">
       <View accessible accessibilityLabel={accessibilityLabel} style={styles.body}>
-        <AppText includeFontPadding={false} style={styles.status}>
-          {status}
-        </AppText>
+        <View style={styles.statusRow}>
+          <AppText includeFontPadding={false} style={styles.status}>
+            {status}
+          </AppText>
+          {showMembershipMark ? <MembershipMark /> : null}
+        </View>
         {detail ? (
           <AppText includeFontPadding={false} style={styles.detail}>
             {detail}

@@ -1,23 +1,20 @@
-import { BetaLabel, SettingsNavRow, SettingsSection } from '../../../../components/ui';
-
-/** Label for the maintenance offer wizard entry point on customer profile. */
-export const CUSTOMER_DETAIL_SEND_MAINTENANCE_LABEL = 'Maintenance detail';
+import { SettingsNavRow, SettingsSection } from '../../../../components/ui';
 
 /**
  * Grouped quick actions for a customer profile.
  *
  * @param {object} props
  * @param {() => void} props.onCreateAppointment
- * @param {() => void} props.onSendMaintenanceDetail
  * @param {() => void} props.onSendText
+ * @param {() => void} [props.onViewSubscription]
  * @param {boolean} [props.first]
  * @param {boolean} [props.removeLoading]
  */
 export function CustomerDetailActionsSection({
   first = false,
   onCreateAppointment,
-  onSendMaintenanceDetail,
   onSendText,
+  onViewSubscription = null,
   removeLoading = false,
 }) {
   return (
@@ -32,16 +29,18 @@ export function CustomerDetailActionsSection({
         disabled={removeLoading}
         icon="chatbubble-ellipses-outline"
         label="Send a text"
+        showDividerBelow={Boolean(onViewSubscription)}
         onPress={onSendText}
       />
-      <SettingsNavRow
-        disabled={removeLoading}
-        icon="repeat-outline"
-        label={CUSTOMER_DETAIL_SEND_MAINTENANCE_LABEL}
-        labelAccessory={<BetaLabel />}
-        showDividerBelow={false}
-        onPress={onSendMaintenanceDetail}
-      />
+      {onViewSubscription ? (
+        <SettingsNavRow
+          disabled={removeLoading}
+          icon="layers-outline"
+          label="Subscription"
+          showDividerBelow={false}
+          onPress={onViewSubscription}
+        />
+      ) : null}
     </SettingsSection>
   );
 }
