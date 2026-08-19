@@ -322,5 +322,16 @@ describe('buildOwnerBookingPayload', () => {
     it('builds empty vehicle strings via helper', () => {
       expect(buildJobVehicleForPublicApi(null)).toEqual({ year: '', make: '', model: '' });
     });
+
+    it('keeps digits in make/model (Ram 2500, F-150, 911)', () => {
+      expect(buildJobVehicleForPublicApi({ year: '2015', make: 'Ram', model: '2500' })).toEqual({
+        year: '2015',
+        make: 'Ram',
+        model: '2500',
+      });
+      expect(
+        buildJobVehicleForPublicApi({ year: '2022', make: 'F-150', model: 'Super Duty' }),
+      ).toEqual({ year: '2022', make: 'F-150', model: 'Super Duty' });
+    });
   });
 });

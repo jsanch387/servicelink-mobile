@@ -14,9 +14,11 @@ import {
   CREATE_APPOINTMENT_MAX_JOBS,
   CREATE_APPOINTMENT_STEP,
   CREATE_APPOINTMENT_STEP_META,
+  addressFormFromPrefilledAddress,
+  addressFormHasStreet,
   createEmptyAddressForm,
-  createEmptyCustomerForm,
   createEmptyVehicleForm,
+  customerFormFromPrefilledCustomer,
 } from '../constants';
 import { serviceDurationHHmmToMinutes } from '../../../../components/ui/durationTime';
 import { formatPhoneInputAsYouType } from '../../../../utils/phone';
@@ -100,6 +102,20 @@ function createDraftLocalId() {
  * @param {string | null | undefined} args.accessToken Supabase session JWT for `POST /api/public/bookings`
  * @param {object} args.navigation React Navigation object with `goBack`
  * @param {import('../utils/membershipVisitPrefill').MembershipVisitPrefill | null} [args.membershipVisitPrefill]
+ * @param {{
+ *   customerId?: string;
+ *   fullName?: string;
+ *   email?: string;
+ *   phone?: string;
+ *   address?: {
+ *     street?: string;
+ *     unit?: string;
+ *     city?: string;
+ *     state?: string;
+ *     zip?: string;
+ *   } | null;
+ * } | null} [args.prefilledCustomer]
+ *   Seeds Customer (+ optional Address) when launched from an existing customer's profile.
  */
 export function useCreateAppointmentController({
   catalog,
@@ -107,6 +123,7 @@ export function useCreateAppointmentController({
   accessToken,
   navigation,
   membershipVisitPrefill = null,
+  prefilledCustomer = null,
 }) {
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -114,12 +131,18 @@ export function useCreateAppointmentController({
 
   const isMembershipVisit = Boolean(membershipVisitPrefill?.membershipId);
 
+  // Mount-only seed from launch params (rebook from customer profile).
+  const seededCustomerAddressRef = useRef(
+    addressFormFromPrefilledAddress(prefilledCustomer?.address),
+  );
+  const hasSeededCustomerAddress = addressFormHasStreet(seededCustomerAddressRef.current);
+  /** Last mobile address the owner entered this session (seed → edits). Restored on Shop → Mobile. */
+  const lastMobileAddressRef = useRef({ ...seededCustomerAddressRef.current });
+
   const [step, setStep] = useState(
     isMembershipVisit ? CREATE_APPOINTMENT_STEP.PRICING : CREATE_APPOINTMENT_STEP.SERVICE,
   );
-  const [servicePickPhase, setServicePickPhase] = useState(
-    isMembershipVisit ? 'chooser' : 'chooser',
-  );
+  const [servicePickPhase, setServicePickPhase] = useState('chooser');
   const [committedJobs, setCommittedJobs] = useState(
     /** @type {ReturnType<typeof snapshotCommittedJob>[]} */ ([]),
   );
@@ -144,15 +167,17 @@ export function useCreateAppointmentController({
   const [selectedDateKey, setSelectedDateKey] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [customer, setCustomer] = useState(() => {
-    if (!isMembershipVisit || !membershipVisitPrefill) return createEmptyCustomerForm();
-    return {
-      fullName: membershipVisitPrefill.customerName,
-      email: membershipVisitPrefill.customerEmail,
-      phone: formatPhoneInputAsYouType(membershipVisitPrefill.customerPhone),
-    };
+    if (isMembershipVisit && membershipVisitPrefill) {
+      return {
+        fullName: membershipVisitPrefill.customerName,
+        email: membershipVisitPrefill.customerEmail,
+        phone: formatPhoneInputAsYouType(membershipVisitPrefill.customerPhone),
+      };
+    }
+    return customerFormFromPrefilledCustomer(prefilledCustomer);
   });
   const [appointmentLocationType, setAppointmentLocationType] = useState(null);
-  const [address, setAddress] = useState(createEmptyAddressForm);
+  const [address, setAddress] = useState(() => ({ ...seededCustomerAddressRef.current }));
   const [vehicle, setVehicle] = useState(createEmptyVehicleForm);
   const membershipPlaceRef = useRef(
     /** @type {{ address: ReturnType<typeof createEmptyAddressForm> | null; vehicle: ReturnType<typeof createEmptyVehicleForm> | null }} */ ({
@@ -239,6 +264,7 @@ export function useCreateAppointmentController({
       };
 
       if (nextAddress) {
+        lastMobileAddressRef.current = { ...nextAddress };
         setAddress((prev) => {
           const hasAny = Object.values(prev).some((v) => String(v ?? '').trim());
           return hasAny ? prev : nextAddress;
@@ -581,6 +607,12 @@ export function useCreateAppointmentController({
     setAddress(shopAddressForm);
   }, [appointmentLocationType, shopAddressForm]);
 
+  // Keep a session snapshot of the mobile address so Shop → Mobile restores edits, not only the seed.
+  useEffect(() => {
+    if (appointmentLocationType !== CREATE_APPOINTMENT_LOCATION_MOBILE) return;
+    lastMobileAddressRef.current = { ...address };
+  }, [address, appointmentLocationType]);
+
   useEffect(() => {
     if (step !== CREATE_APPOINTMENT_STEP.ADDRESS || !addressSkipped) return;
     setStep(CREATE_APPOINTMENT_STEP.VEHICLE);
@@ -591,7 +623,12 @@ export function useCreateAppointmentController({
       setAppointmentLocationType(type);
       if (type === CREATE_APPOINTMENT_LOCATION_MOBILE) {
         const pref = membershipPlaceRef.current.address;
-        setAddress(pref ? { ...pref } : createEmptyAddressForm());
+        if (pref && addressFormHasStreet(pref)) {
+          setAddress({ ...pref });
+          return;
+        }
+        const lastMobile = lastMobileAddressRef.current;
+        setAddress(addressFormHasStreet(lastMobile) ? { ...lastMobile } : createEmptyAddressForm());
         return;
       }
       setAddress(addressFormFromBusinessShopLocation(server.businessServiceLocation ?? {}));
@@ -1118,11 +1155,13 @@ export function useCreateAppointmentController({
       onSelectDateKey: setSelectedDateKey,
       onSelectTime: setSelectedTime,
       customer,
+      isReturningCustomer: Boolean(prefilledCustomer) || isMembershipVisit,
       onChangeCustomer: setCustomer,
       appointmentLocationType,
       onSelectLocationType: handleSelectLocationType,
       shopAddressMissing,
       address,
+      isReturningCustomerAddress: hasSeededCustomerAddress,
       onChangeAddress: setAddress,
       vehicle,
       notes,
@@ -1194,6 +1233,8 @@ export function useCreateAppointmentController({
       selectedTime,
       timeSlots,
       customer,
+      prefilledCustomer,
+      hasSeededCustomerAddress,
       appointmentLocationType,
       handleSelectLocationType,
       address,

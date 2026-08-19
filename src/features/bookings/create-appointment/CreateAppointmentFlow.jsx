@@ -26,9 +26,24 @@ import { parseMembershipVisitRouteParams } from './utils/membershipVisitPrefill'
  * Confirming calls `POST /api/public/bookings` once with appointment fields + `jobs[]`.
  * State and side effects live in {@link useCreateAppointmentController}.
  *
- * @param {{ onImmersiveSubmitChange?: (hideNavigationHeader: boolean) => void }} props
+ * @param {{
+ *   onImmersiveSubmitChange?: (hideNavigationHeader: boolean) => void;
+ *   prefilledCustomer?: {
+ *     customerId?: string;
+ *     fullName?: string;
+ *     email?: string;
+ *     phone?: string;
+ *     address?: {
+ *       street?: string;
+ *       unit?: string;
+ *       city?: string;
+ *       state?: string;
+ *       zip?: string;
+ *     } | null;
+ *   } | null;
+ * }} props
  */
-export function CreateAppointmentFlow({ onImmersiveSubmitChange }) {
+export function CreateAppointmentFlow({ onImmersiveSubmitChange, prefilledCustomer }) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
@@ -38,8 +53,7 @@ export function CreateAppointmentFlow({ onImmersiveSubmitChange }) {
   const { canUseSubscriptions } = useSubscriptionsAccess();
 
   const membershipVisitPrefill = useMemo(
-    () =>
-      canUseSubscriptions ? parseMembershipVisitRouteParams(route.params) : null,
+    () => (canUseSubscriptions ? parseMembershipVisitRouteParams(route.params) : null),
     [canUseSubscriptions, route.params],
   );
 
@@ -49,6 +63,7 @@ export function CreateAppointmentFlow({ onImmersiveSubmitChange }) {
     accessToken: session?.access_token,
     navigation,
     membershipVisitPrefill,
+    prefilledCustomer,
   });
 
   const hideNavigationHeader = flow.showSubmitPanel || flow.appointmentConfirmed;

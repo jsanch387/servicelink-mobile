@@ -27,7 +27,7 @@ export function CustomersSearchBar({ value, onChangeText }) {
     >
       <AppTextInput
         onChangeText={onChangeText}
-        placeholder="Search by customer name..."
+        placeholder="Search by name, email, or phone..."
         placeholderTextColor={colors.placeholder}
         style={inputTextStyle}
         value={value}

@@ -278,6 +278,22 @@ export function CustomerDetailsScreen() {
     });
   }, [linkedSubscription?.id, navigation]);
 
+  const handleCreateAppointment = useCallback(() => {
+    if (!detailCustomerId || !model) {
+      Alert.alert('Unable to create appointment', 'Missing customer context. Please try again.');
+      return;
+    }
+    navigation.navigate(ROUTES.CREATE_APPOINTMENT, {
+      prefilledCustomer: {
+        customerId: detailCustomerId,
+        fullName: model.fullName,
+        email: model.email ?? '',
+        phone: model.phone ?? '',
+        address: model.lastKnownAddress ?? null,
+      },
+    });
+  }, [detailCustomerId, model, navigation]);
+
   const refreshControl = useMemo(
     () => (
       <RefreshControl
@@ -445,6 +461,7 @@ export function CustomerDetailsScreen() {
         <View style={styles.footer}>
           <CustomerDetailActionsSection
             first
+            onCreateAppointment={handleCreateAppointment}
             onSendText={handleSendText}
             onViewSubscription={linkedSubscription ? handleViewSubscription : null}
             removeLoading={removeLoading}

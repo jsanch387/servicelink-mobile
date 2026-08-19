@@ -18,8 +18,10 @@ const FIELD_SHELL = { marginBottom: 0 };
  * @param {object} props
  * @param {{ fullName: string; email: string; phone: string }} props.customer
  * @param {(next: object) => void} props.onChangeCustomer
+ * @param {boolean} [props.isReturningCustomer] true when fields were pre-filled from an existing
+ *   customer profile (see `CustomerDetailsScreen` "Create appointment" action)
  */
-export function CustomerStep({ customer, onChangeCustomer }) {
+export function CustomerStep({ customer, isReturningCustomer = false, onChangeCustomer }) {
   const { colors } = useTheme();
 
   const emailTrim = String(customer.email ?? '').trim();
@@ -55,13 +57,31 @@ export function CustomerStep({ customer, onChangeCustomer }) {
           opacity: 0.95,
           paddingHorizontal: 2,
         },
+        returningBanner: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 6,
+        },
+        returningBannerText: {
+          color: colors.accent,
+          fontSize: 13,
+          fontWeight: '600',
+        },
       }),
-    [colors.placeholder],
+    [colors.accent, colors.placeholder],
   );
 
   return (
     <SurfaceCard padding="none" style={styles.card}>
       <View style={styles.fieldStack}>
+        {isReturningCustomer ? (
+          <View style={styles.returningBanner}>
+            <Ionicons color={colors.accent} name="repeat-outline" size={15} />
+            <AppText style={styles.returningBannerText}>
+              Pre-filled from this customer&apos;s profile
+            </AppText>
+          </View>
+        ) : null}
         <SurfaceTextField
           autoCapitalize="words"
           compact

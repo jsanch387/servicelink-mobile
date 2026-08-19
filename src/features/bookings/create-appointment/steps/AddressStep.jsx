@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
@@ -11,9 +12,11 @@ const FIELD_SHELL = { marginBottom: 0 };
  * @param {{
  *   address: { street: string; unit: string; city: string; state: string; zip: string };
  *   onChangeAddress: (next: { street: string; unit: string; city: string; state: string; zip: string }) => void;
+ *   isReturningCustomerAddress?: boolean;
  * }} props
  */
-export function AddressStep({ address, onChangeAddress }) {
+export function AddressStep({ address, isReturningCustomerAddress = false, onChangeAddress }) {
+  const { colors } = useTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -33,13 +36,31 @@ export function AddressStep({ address, onChangeAddress }) {
         rowItem: {
           flex: 1,
         },
+        returningBanner: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 6,
+        },
+        returningBannerText: {
+          color: colors.accent,
+          fontSize: 13,
+          fontWeight: '600',
+        },
       }),
-    [],
+    [colors.accent],
   );
 
   return (
     <SurfaceCard padding="none" style={styles.card}>
       <View style={styles.fieldStack}>
+        {isReturningCustomerAddress ? (
+          <View style={styles.returningBanner}>
+            <Ionicons color={colors.accent} name="repeat-outline" size={15} />
+            <AppText style={styles.returningBannerText}>
+              Pre-filled from their last appointment
+            </AppText>
+          </View>
+        ) : null}
         <SurfaceTextField
           compact
           containerStyle={FIELD_SHELL}

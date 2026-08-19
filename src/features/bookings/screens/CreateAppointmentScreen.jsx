@@ -1,4 +1,4 @@
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useCallback, useLayoutEffect, useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../../components/ui';
@@ -12,6 +12,8 @@ import { CreateAppointmentFlow } from '../create-appointment/CreateAppointmentFl
 export function CreateAppointmentScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
+  const route = useRoute();
+  const prefilledCustomer = route.params?.prefilledCustomer ?? null;
 
   const styles = useMemo(
     () =>
@@ -64,7 +66,10 @@ export function CreateAppointmentScreen() {
 
   return (
     <View style={styles.root} testID="create-appt-screen">
-      <CreateAppointmentFlow onImmersiveSubmitChange={handleNavigationHeaderVisibility} />
+      <CreateAppointmentFlow
+        onImmersiveSubmitChange={handleNavigationHeaderVisibility}
+        prefilledCustomer={prefilledCustomer}
+      />
     </View>
   );
 }

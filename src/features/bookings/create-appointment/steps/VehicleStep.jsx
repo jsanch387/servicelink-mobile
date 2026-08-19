@@ -1,18 +1,17 @@
 import { StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
+import {
+  BOOKING_VEHICLE_MAKE_MAX,
+  BOOKING_VEHICLE_MODEL_MAX,
+  sanitizeVehicleTextInput,
+  sanitizeVehicleYearInput,
+} from '../../../../utils/vehicle';
 import { AddAnotherJobCard } from '../components/AddAnotherJobCard';
 import { AppointmentNotesCard } from '../components/AppointmentNotesCard';
 import { isVehicleStepComplete } from '../utils/createAppointmentValidators';
 
 const FIELD_SHELL = { marginBottom: 0 };
-
-/** US model years are typically 4 digits; strip anything that is not 0–9. */
-function sanitizeVehicleYearInput(raw) {
-  return String(raw ?? '')
-    .replace(/\D/g, '')
-    .slice(0, 4);
-}
 
 /**
  * @param {{
@@ -66,18 +65,30 @@ export function VehicleStep({
             compact
             containerStyle={FIELD_SHELL}
             label="Make"
+            maxLength={BOOKING_VEHICLE_MAKE_MAX}
             placeholder="Toyota"
             value={vehicle.make}
-            onChangeText={(t) => onChangeVehicle({ ...vehicle, make: t })}
+            onChangeText={(t) =>
+              onChangeVehicle({
+                ...vehicle,
+                make: sanitizeVehicleTextInput(t, BOOKING_VEHICLE_MAKE_MAX),
+              })
+            }
           />
           <SurfaceTextField
             autoCapitalize="words"
             compact
             containerStyle={FIELD_SHELL}
             label="Model"
+            maxLength={BOOKING_VEHICLE_MODEL_MAX}
             placeholder="Camry"
             value={vehicle.model}
-            onChangeText={(t) => onChangeVehicle({ ...vehicle, model: t })}
+            onChangeText={(t) =>
+              onChangeVehicle({
+                ...vehicle,
+                model: sanitizeVehicleTextInput(t, BOOKING_VEHICLE_MODEL_MAX),
+              })
+            }
           />
           {vehicleError ? (
             <AppText style={[styles.error, { color: colors.danger }]}>{vehicleError}</AppText>
