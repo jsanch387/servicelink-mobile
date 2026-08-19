@@ -14,7 +14,7 @@ import {
 } from '../../../../components/ui/durationTime';
 import { QUOTE_NOTE_MAX } from '../../constants/createQuoteFieldLimits';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
-import { canonicalNanpDigits, formatPhoneForDisplay } from '../../../../utils/phone';
+import { canonicalNanpDigits, formatPhoneWithCountryCode } from '../../../../utils/phone';
 import { splitBookingServiceName } from '../../../../utils/splitBookingServiceName';
 import {
   formatScheduledDateUserFacing,
@@ -85,7 +85,7 @@ export function CreateQuoteStepReview({
   }, [customerPhoneDisplay]);
 
   const phoneLine = useMemo(
-    () => (phoneDigits10 ? formatPhoneForDisplay(phoneDigits10) : null),
+    () => (phoneDigits10 ? formatPhoneWithCountryCode(phoneDigits10) : null),
     [phoneDigits10],
   );
 

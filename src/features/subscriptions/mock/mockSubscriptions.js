@@ -62,7 +62,7 @@ import { cadenceKeyFromParts } from '../constants/planCadence';
  * When true (and `__DEV__`), Subscriptions opens the live hub with seeded plans
  * so plan detail / member list can be designed without gating or create-plan.
  */
-export const SEED_SUBSCRIPTIONS_HUB_FOR_DESIGN = true;
+export const SEED_SUBSCRIPTIONS_HUB_FOR_DESIGN = false;
 
 /**
  * @param {number} count
@@ -216,7 +216,9 @@ export const MOCK_SUBSCRIPTIONS = [
     planId: 'plan_monthly_wash',
     priceCents: 4500,
     status: 'active',
-    nextVisitDate: '2026-08-10',
+    // No next visit — exercises “Book a visit” CTA on subscriber detail
+    nextVisitDate: null,
+    nextVisitTime: null,
   }),
   sub({
     id: 'sub_wash_6',

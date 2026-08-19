@@ -58,7 +58,9 @@ describe('buildCompleteVisitModelFromBooking', () => {
       showReviewSms: true,
       showReviewEmail: false,
       showReviewInvite: true,
+      showSmsOptOut: false,
       showInvoiceEmail: true,
+      isMembershipVisit: false,
     });
   });
 

@@ -39,7 +39,9 @@ import { resolveBookingDiscount } from './resolveBookingDiscount';
  * @property {boolean} showReviewSms
  * @property {boolean} showReviewEmail
  * @property {boolean} showReviewInvite
+ * @property {boolean} showSmsOptOut
  * @property {boolean} showInvoiceEmail
+ * @property {boolean} [isMembershipVisit]
  */
 
 /**
@@ -110,7 +112,7 @@ function buildLineItemsFromLegacyColumns(booking) {
  *
  * @param {Record<string, unknown> | null | undefined} booking
  * @param {import('./markCompletePreview').MarkCompletePreview | null | undefined} [preview]
- * @param {{ canUseSms?: boolean }} [options] Only used when `preview` is omitted.
+ * @param {{ canUseSms?: boolean; isMembershipVisit?: boolean }} [options] Only used when `preview` is omitted / membership flag.
  * @returns {CompleteVisitModel | null}
  */
 export function buildCompleteVisitModelFromBooking(booking, preview, options) {
@@ -223,6 +225,13 @@ export function buildCompleteVisitModelFromBooking(booking, preview, options) {
   const customerPhone = normalizePhoneForDatabase(String(booking.customer_phone ?? '')) || null;
   const resolvedPreview = preview ?? getMarkCompletePreviewFromBooking(booking, options);
 
+  const paymentMethod = String(
+    payment?.paymentMethodSelected ?? payment?.payment_method_selected ?? '',
+  )
+    .trim()
+    .toLowerCase();
+  const isMembershipVisit = Boolean(options?.isMembershipVisit) || paymentMethod === 'membership';
+
   return {
     lineItems,
     jobs,
@@ -235,6 +244,8 @@ export function buildCompleteVisitModelFromBooking(booking, preview, options) {
     showReviewSms: Boolean(resolvedPreview.showReviewSmsMessage),
     showReviewEmail: Boolean(resolvedPreview.showReviewInviteMessage),
     showReviewInvite: resolvedPreview.showReviewInvite !== false,
+    showSmsOptOut: Boolean(resolvedPreview.showSmsOptOutMessage),
     showInvoiceEmail: Boolean(customerEmail),
+    isMembershipVisit,
   };
 }

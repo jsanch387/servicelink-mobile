@@ -13,8 +13,7 @@ const DESCRIPTION_COLLAPSE_CHARS = 110;
 
 function previewCadenceLabel(count, interval) {
   const pill = formatCadencePillLabel(count, interval);
-  if (pill === '2 weeks') return 'Every 2 weeks';
-  if (pill === 'Weekly' || pill === 'Monthly') return pill;
+  if (pill === 'Weekly' || pill === 'Biweekly' || pill === 'Monthly') return pill;
   return formatCustomCadenceLabel(count, interval);
 }
 
@@ -184,7 +183,7 @@ function PlanBookingPreviewCard({ plan }) {
     <SurfaceCard outlined padding="none" style={styles.card}>
       <View style={styles.topRow}>
         <AppText numberOfLines={2} style={styles.planName}>
-          {plan?.name || 'Plan'}
+          {plan?.name || 'Subscription'}
         </AppText>
         {selected ? (
           <View style={styles.priceRow}>
@@ -255,9 +254,9 @@ export function SubscriptionsSetupCompleteCard({ plan, onContinue }) {
     <View style={styles.root}>
       <SuccessMoment
         centered
-        iconAccessibilityLabel="Plan ready"
+        iconAccessibilityLabel="Subscription ready"
         replayKey={replayKey}
-        title="Your plan is ready"
+        title="Your subscription is ready"
         variant="inline"
       >
         <View style={styles.previewWrap}>

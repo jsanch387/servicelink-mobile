@@ -7,6 +7,7 @@ import { customersListQueryKey } from '../../../customers/queryKeys';
 import { useCustomerSmsAccess } from '../../../sms/hooks/useCustomerSmsAccess';
 import { catalogAddonsForService } from '../../../services/utils/catalogAddonsForService';
 import { postOwnerManualPublicBooking } from '../api/postOwnerManualPublicBooking';
+import { fetchBookingPlaceById } from '../api/fetchBookingPlaceById';
 import {
   CREATE_APPOINTMENT_CUSTOM_JOB_ID,
   CREATE_APPOINTMENT_LAST_STEP,
@@ -18,6 +19,7 @@ import {
   createEmptyVehicleForm,
 } from '../constants';
 import { serviceDurationHHmmToMinutes } from '../../../../components/ui/durationTime';
+import { formatPhoneInputAsYouType } from '../../../../utils/phone';
 import {
   isAddressStepComplete,
   parseRequiredCustomJobPriceCents,
@@ -68,6 +70,8 @@ import { parseScheduleInputs } from '../../../availability/booking/utils/schedul
 import { createAppointmentFlowStyles } from '../styles/createAppointmentFlowStyles';
 import { showAppointmentConfirmationSmsToast } from '../utils/appointmentConfirmationSmsToast';
 import { resolveCreateAppointmentWizardHeader } from '../utils/resolveCreateAppointmentWizardHeader';
+import { membershipVisitCustomDurationHhMm } from '../utils/membershipVisitPrefill';
+import { membershipCatalogQueryKey } from '../../../subscriptions/queryKeys';
 import { useCreateAppointmentServerData } from './useCreateAppointmentServerData';
 import { useCreateAppointmentSubmitPanel } from './useCreateAppointmentSubmitPanel';
 
@@ -95,32 +99,71 @@ function createDraftLocalId() {
  * @param {string | undefined} args.userId auth user id
  * @param {string | null | undefined} args.accessToken Supabase session JWT for `POST /api/public/bookings`
  * @param {object} args.navigation React Navigation object with `goBack`
+ * @param {import('../utils/membershipVisitPrefill').MembershipVisitPrefill | null} [args.membershipVisitPrefill]
  */
-export function useCreateAppointmentController({ catalog, userId, accessToken, navigation }) {
+export function useCreateAppointmentController({
+  catalog,
+  userId,
+  accessToken,
+  navigation,
+  membershipVisitPrefill = null,
+}) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { canUseSms } = useCustomerSmsAccess();
 
-  const [step, setStep] = useState(CREATE_APPOINTMENT_STEP.SERVICE);
-  const [servicePickPhase, setServicePickPhase] = useState('chooser');
+  const isMembershipVisit = Boolean(membershipVisitPrefill?.membershipId);
+
+  const [step, setStep] = useState(
+    isMembershipVisit ? CREATE_APPOINTMENT_STEP.PRICING : CREATE_APPOINTMENT_STEP.SERVICE,
+  );
+  const [servicePickPhase, setServicePickPhase] = useState(
+    isMembershipVisit ? 'chooser' : 'chooser',
+  );
   const [committedJobs, setCommittedJobs] = useState(
     /** @type {ReturnType<typeof snapshotCommittedJob>[]} */ ([]),
   );
   const draftLocalIdRef = useRef(createDraftLocalId());
-  const [selectedServiceId, setSelectedServiceId] = useState(null);
-  const [customServiceName, setCustomServiceName] = useState('');
-  const [customPriceUsdText, setCustomPriceUsdText] = useState('');
-  const [customDurationHhMm, setCustomDurationHhMm] = useState('01:00');
+  const [selectedServiceId, setSelectedServiceId] = useState(
+    isMembershipVisit ? CREATE_APPOINTMENT_CUSTOM_JOB_ID : null,
+  );
+  const [customServiceName, setCustomServiceName] = useState(() =>
+    isMembershipVisit ? String(membershipVisitPrefill?.planName ?? '').trim() : '',
+  );
+  const [customPriceUsdText, setCustomPriceUsdText] = useState(() =>
+    isMembershipVisit ? '0' : '',
+  );
+  const [customDurationHhMm, setCustomDurationHhMm] = useState(() =>
+    isMembershipVisit && membershipVisitPrefill
+      ? membershipVisitCustomDurationHhMm(membershipVisitPrefill)
+      : '01:00',
+  );
   const [selectedPricingId, setSelectedPricingId] = useState(null);
   const [catalogPriceUsdText, setCatalogPriceUsdText] = useState('');
   const [selectedAddonIds, setSelectedAddonIds] = useState([]);
   const [selectedDateKey, setSelectedDateKey] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
-  const [customer, setCustomer] = useState(createEmptyCustomerForm);
+  const [customer, setCustomer] = useState(() => {
+    if (!isMembershipVisit || !membershipVisitPrefill) return createEmptyCustomerForm();
+    return {
+      fullName: membershipVisitPrefill.customerName,
+      email: membershipVisitPrefill.customerEmail,
+      phone: formatPhoneInputAsYouType(membershipVisitPrefill.customerPhone),
+    };
+  });
   const [appointmentLocationType, setAppointmentLocationType] = useState(null);
   const [address, setAddress] = useState(createEmptyAddressForm);
   const [vehicle, setVehicle] = useState(createEmptyVehicleForm);
-  const [notes, setNotes] = useState('');
+  const membershipPlaceRef = useRef(
+    /** @type {{ address: ReturnType<typeof createEmptyAddressForm> | null; vehicle: ReturnType<typeof createEmptyVehicleForm> | null }} */ ({
+      address: null,
+      vehicle: null,
+    }),
+  );
+  const membershipPlaceFetchedRef = useRef(false);
+  const [notes, setNotes] = useState(() =>
+    isMembershipVisit ? String(membershipVisitPrefill?.notes ?? '').trim() : '',
+  );
   const [successReplayKey, setSuccessReplayKey] = useState(0);
   const [appointmentConfirmed, setAppointmentConfirmed] = useState(false);
   const [confirmRequested, setConfirmRequested] = useState(false);
@@ -131,11 +174,15 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   const customPriceRaw = String(customPriceUsdText ?? '')
     .replace(/\$/g, '')
     .trim();
-  const parsedCustomPriceCents = parseRequiredCustomJobPriceCents(customPriceRaw);
+  const parsedCustomPriceCents = parseRequiredCustomJobPriceCents(customPriceRaw, {
+    allowZero: isMembershipVisit,
+  });
   const customPriceCents = parsedCustomPriceCents ?? NaN;
   const customPriceError =
     customPriceRaw.length > 0 && parsedCustomPriceCents == null
-      ? 'Price must be greater than $0.'
+      ? isMembershipVisit
+        ? 'Enter a valid price (0 or more).'
+        : 'Price must be greater than $0.'
       : undefined;
   const customDurationMinutes = serviceDurationHHmmToMinutes(customDurationHhMm);
   const customJobComplete = Boolean(
@@ -169,6 +216,46 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   useEffect(() => {
     setSelectedTime(null);
   }, [selectedDateKey]);
+
+  useEffect(() => {
+    if (!isMembershipVisit) return;
+    const businessId = String(catalog.businessId ?? '').trim();
+    const bookingId = String(membershipVisitPrefill?.initialBookingId ?? '').trim();
+    if (!businessId || !bookingId || membershipPlaceFetchedRef.current) return;
+
+    membershipPlaceFetchedRef.current = true;
+    let cancelled = false;
+
+    void (async () => {
+      const { address: nextAddress, vehicle: nextVehicle } = await fetchBookingPlaceById(
+        businessId,
+        bookingId,
+      );
+      if (cancelled) return;
+
+      membershipPlaceRef.current = {
+        address: nextAddress,
+        vehicle: nextVehicle,
+      };
+
+      if (nextAddress) {
+        setAddress((prev) => {
+          const hasAny = Object.values(prev).some((v) => String(v ?? '').trim());
+          return hasAny ? prev : nextAddress;
+        });
+      }
+      if (nextVehicle) {
+        setVehicle((prev) => {
+          const hasAny = Object.values(prev).some((v) => String(v ?? '').trim());
+          return hasAny ? prev : nextVehicle;
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [catalog.businessId, isMembershipVisit, membershipVisitPrefill?.initialBookingId]);
 
   const customPriceLabel = Number.isFinite(customPriceCents)
     ? `$${(customPriceCents / 100).toFixed(2)}`
@@ -402,6 +489,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
   );
 
   const availableSaleDiscount = useMemo(() => {
+    if (isMembershipVisit) return null;
     const sale = pickActiveSaleForAppointmentDate(server.sales, selectedDateKey);
     if (!sale) return null;
     const subtotalCents = visitJobs.reduce((sum, job) => {
@@ -420,7 +508,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       subtotalCents,
       sale,
     });
-  }, [selectedDateKey, server.sales, visitJobs]);
+  }, [isMembershipVisit, selectedDateKey, server.sales, visitJobs]);
 
   const availableSaleId = availableSaleDiscount?.sale?.id ?? null;
   const [applySaleDiscount, setApplySaleDiscount] = useState(false);
@@ -502,7 +590,8 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     (type) => {
       setAppointmentLocationType(type);
       if (type === CREATE_APPOINTMENT_LOCATION_MOBILE) {
-        setAddress(createEmptyAddressForm());
+        const pref = membershipPlaceRef.current.address;
+        setAddress(pref ? { ...pref } : createEmptyAddressForm());
         return;
       }
       setAddress(addressFormFromBusinessShopLocation(server.businessServiceLocation ?? {}));
@@ -570,7 +659,8 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         appointmentLocationType,
         jobs: allJobs,
         availableSaleDiscount,
-        applySaleDiscount,
+        applySaleDiscount: isMembershipVisit ? false : applySaleDiscount,
+        membershipId: membershipVisitPrefill?.membershipId ?? null,
       });
       const res = await postOwnerManualPublicBooking(token, body);
       if (!res.ok) {
@@ -583,6 +673,9 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         invalidateBookingCachesAfterMutation(queryClient, data?.id),
         queryClient.invalidateQueries({
           queryKey: customersListQueryKey(catalog.businessId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: membershipCatalogQueryKey(catalog.businessId),
         }),
       ]);
       setSuccessReplayKey((n) => n + 1);
@@ -866,6 +959,10 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       return;
     }
     if (step === CREATE_APPOINTMENT_STEP.PRICING && isCustomJob) {
+      if (isMembershipVisit) {
+        navigation.goBack();
+        return;
+      }
       setStep(CREATE_APPOINTMENT_STEP.SERVICE);
       setServicePickPhase('chooser');
       return;
@@ -881,6 +978,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
     committedJobs.length,
     handleCancelNewJob,
     isCustomJob,
+    isMembershipVisit,
     navArgs,
     navigation,
     servicePickPhase,
@@ -1045,6 +1143,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
         priceLabel: job.selectedPricingOption?.priceLabel ?? '',
       })),
       canAddAnotherJob:
+        !isMembershipVisit &&
         (step === CREATE_APPOINTMENT_STEP.REVIEW || step === CREATE_APPOINTMENT_STEP.VEHICLE) &&
         visitJobs.length < CREATE_APPOINTMENT_MAX_JOBS &&
         Boolean(selectedServiceId || isCustomJob),
@@ -1052,6 +1151,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       onAddAnotherJob: handleAddAnotherJob,
       onCancelNewJob: jobIndex > 0 ? handleCancelNewJob : undefined,
       onRemoveJob: handleRemoveVisitJob,
+      isMembershipVisit,
     }),
     [
       step,
@@ -1113,6 +1213,7 @@ export function useCreateAppointmentController({ catalog, userId, accessToken, n
       canContinue,
       handleCancelNewJob,
       handleRemoveVisitJob,
+      isMembershipVisit,
     ],
   );
 

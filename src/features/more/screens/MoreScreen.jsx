@@ -7,6 +7,7 @@ import {
   AppText,
   AppVersionFootnote,
   BetaLabel,
+  EndingLabel,
   SettingsNavRow,
   SettingsSection,
 } from '../../../components/ui';
@@ -17,12 +18,14 @@ import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { CONTACT_US_ROW_LABEL } from '../../help/constants/helpCopy';
+import { useSubscriptionsAccess } from '../../subscriptions/hooks/useSubscriptionsAccess';
 import { isTapToPayPlatformSupported } from '../../tap-to-pay/constants/tapToPayFeatureFlags';
 
 export function MoreScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
+  const subscriptionsAccess = useSubscriptionsAccess();
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
 
   const styles = useMemo(
@@ -96,15 +99,17 @@ export function MoreScreen() {
           <SettingsNavRow
             icon="repeat-outline"
             label="Maintenance details"
-            labelAccessory={<BetaLabel />}
+            labelAccessory={<EndingLabel />}
             onPress={() => navigation.navigate(ROUTES.MAINTENANCE)}
           />
-          <SettingsNavRow
-            icon="layers-outline"
-            label="Subscriptions"
-            labelAccessory={<BetaLabel />}
-            onPress={() => navigation.navigate(ROUTES.SUBSCRIPTIONS)}
-          />
+          {subscriptionsAccess.featureEnabled ? (
+            <SettingsNavRow
+              icon="layers-outline"
+              label="Subscriptions"
+              labelAccessory={<BetaLabel />}
+              onPress={() => navigation.navigate(ROUTES.SUBSCRIPTIONS)}
+            />
+          ) : null}
           <SettingsNavRow
             icon="link-outline"
             label="Booking link"

@@ -9,6 +9,7 @@ export function CustomJobStep({
   durationHhMm,
   notes,
   showNotes = true,
+  membershipVisit = false,
   onServiceNameChange,
   onPriceUsdTextChange,
   onDurationHhMmChange,
@@ -19,6 +20,7 @@ export function CustomJobStep({
       <SurfaceCard outlined padding="none" style={styles.card}>
         <CustomJobFields
           durationHhMm={durationHhMm}
+          membershipVisit={membershipVisit}
           priceErrorText={priceErrorText}
           priceUsdText={priceUsdText}
           serviceName={serviceName}

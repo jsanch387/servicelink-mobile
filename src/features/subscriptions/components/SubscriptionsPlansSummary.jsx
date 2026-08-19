@@ -119,10 +119,10 @@ export function SubscriptionsPlansSummary({
   return (
     <SurfaceCard padding="md" style={styles.card}>
       <View style={styles.titleRow}>
-        <AppText style={styles.title}>Your plans</AppText>
+        <AppText style={styles.title}>Your subscriptions</AppText>
         {onAddPlan ? (
           <AppText accessibilityRole="button" style={styles.addLabel} onPress={onAddPlan}>
-            Add plan
+            Add subscription
           </AppText>
         ) : null}
       </View>

@@ -84,6 +84,7 @@ export function CreateAppointmentStepContent(p) {
     addAnotherJobDisabled = false,
     onAddAnotherJob,
     onRemoveJob,
+    isMembershipVisit = false,
   } = p;
 
   if (appointmentConfirmed) {
@@ -114,6 +115,7 @@ export function CreateAppointmentStepContent(p) {
         return (
           <CustomJobStep
             durationHhMm={customDurationHhMm}
+            membershipVisit={isMembershipVisit}
             notes={showVisitNotes ? notes : undefined}
             priceErrorText={customPriceError}
             priceUsdText={customPriceUsdText}
@@ -204,6 +206,7 @@ export function CreateAppointmentStepContent(p) {
           availableSaleDiscount={availableSaleDiscount}
           canAddAnotherJob={canAddAnotherJob}
           customer={customer}
+          isMembershipVisit={isMembershipVisit}
           jobs={reviewJobs}
           notes={notes}
           selectedAddonIds={selectedAddonIds}

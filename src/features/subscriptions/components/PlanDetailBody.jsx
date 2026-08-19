@@ -1,87 +1,128 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import {
-  AppText,
-  Button,
-  DeleteButton,
-  DetailsSectionCard,
-  SurfaceCard,
-} from '../../../components/ui';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { AppText, DetailsSectionCard, SurfaceCard } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import {
   formatCadencePillLabel,
   formatCustomCadenceLabel,
   formatPlanPriceCents,
-  lowestSchedulePriceCents,
   sortSchedules,
 } from '../constants/planCadence';
+import {
+  formatServiceDurationSelectLabel,
+  minutesToServiceDurationHHmm,
+} from '../../../components/ui/durationTime';
+import { PlanSubscribersSummary } from './PlanSubscribersSummary';
 
 const DESCRIPTION_COLLAPSE_CHARS = 180;
+const BULLET_PREFIX = /^[•\-\*]\s+(.*)$/;
 
-function cadenceLabel(count, interval) {
-  const pill = formatCadencePillLabel(count, interval);
-  if (pill === '2 weeks') return 'Every 2 weeks';
-  if (pill === 'Weekly' || pill === 'Monthly') return pill;
-  return formatCustomCadenceLabel(count, interval);
-}
-
-function priceSuffixForSchedule(schedule) {
-  if (!schedule) return '';
-  const count = Number(schedule.count) || 1;
-  if (schedule.interval === 'month' && count === 1) return '/mo';
-  if (schedule.interval === 'week' && count === 1) return '/wk';
-  return '';
+/**
+ * Owners enter line breaks + bullet lines (`• item`) in the plan description.
+ * @param {string} text
+ * @returns {Array<{ type: 'paragraph' | 'bullet' | 'blank', text?: string }>}
+ */
+function parseDescriptionBlocks(text) {
+  return String(text ?? '')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((raw) => {
+      const line = raw.trimEnd();
+      if (line.trim() === '') return { type: 'blank' };
+      const trimmed = line.trim();
+      const match = trimmed.match(BULLET_PREFIX);
+      if (match) return { type: 'bullet', text: match[1].trim() };
+      if (trimmed.startsWith('•')) {
+        return { type: 'bullet', text: trimmed.slice(1).trim() };
+      }
+      return { type: 'paragraph', text: line };
+    });
 }
 
 /**
- * Plan detail — hero, description, compact options, subscribers + copy link.
+ * @param {Array<{ type: string, text?: string }>} blocks
+ * @param {number} maxChars
+ */
+function takeDescriptionBlocks(blocks, maxChars) {
+  const out = [];
+  let used = 0;
+  for (const block of blocks) {
+    if (block.type === 'blank') {
+      if (out.length === 0) continue;
+      out.push(block);
+      continue;
+    }
+    const len = String(block.text ?? '').length;
+    if (used > 0 && used + len > maxChars) break;
+    out.push(block);
+    used += len;
+    if (used >= maxChars) break;
+  }
+  return out;
+}
+
+function cadenceLabel(schedule) {
+  if (schedule?.label) return schedule.label;
+  const count = Number(schedule?.count) || 1;
+  const interval = schedule?.interval;
+  if (interval === 'year' && count === 1) return 'Yearly';
+  const pill = formatCadencePillLabel(count, interval);
+  if (pill === 'Weekly' || pill === 'Biweekly' || pill === 'Monthly') return pill;
+  return formatCustomCadenceLabel(count, interval);
+}
+
+/**
+ * Plan detail — name/edit, pricing, description, subscribers, delete.
  *
  * @param {object} props
  * @param {object} props.plan
- * @param {number} props.subscriberCount
- * @param {boolean} props.linkCopied
+ * @param {number} [props.activeSubscriberCount]
+ * @param {number} [props.canceledSubscriberCount]
  * @param {() => void} props.onOpenSubscribers
- * @param {() => void} props.onCopyLink
  * @param {() => void} props.onEdit
  * @param {() => void} props.onDelete
+ * @param {boolean} [props.deleting]
  */
 export function PlanDetailBody({
   plan,
-  subscriberCount,
-  linkCopied,
+  activeSubscriberCount = 0,
+  canceledSubscriberCount = 0,
   onOpenSubscribers,
-  onCopyLink,
   onEdit,
   onDelete,
+  deleting = false,
 }) {
   const { colors, isDark } = useTheme();
   const schedules = useMemo(() => sortSchedules(plan?.offeredSchedules), [plan?.offeredSchedules]);
-  const lowestCents = lowestSchedulePriceCents(schedules);
-  const fromSchedule =
-    schedules.find((row) => Number(row.priceCents) === lowestCents) ?? schedules[0] ?? null;
-  const fromSuffix = priceSuffixForSchedule(fromSchedule);
+  const durationMinutes = Math.max(0, Math.round(Number(plan?.visitDurationMinutes)) || 0);
+  const durationLabel =
+    durationMinutes > 0
+      ? formatServiceDurationSelectLabel(minutesToServiceDurationHHmm(durationMinutes))
+      : null;
   const description = String(plan?.description ?? '').trim();
+  const descriptionBlocks = useMemo(() => parseDescriptionBlocks(description), [description]);
   const [descExpanded, setDescExpanded] = useState(false);
   const descTruncatable = description.length > DESCRIPTION_COLLAPSE_CHARS;
-  const descDisplay =
-    !descTruncatable || descExpanded
-      ? description
-      : `${description.slice(0, DESCRIPTION_COLLAPSE_CHARS).trimEnd()}…`;
+  const visibleDescriptionBlocks = useMemo(() => {
+    if (!descTruncatable || descExpanded) return descriptionBlocks;
+    return takeDescriptionBlocks(descriptionBlocks, DESCRIPTION_COLLAPSE_CHARS);
+  }, [descriptionBlocks, descExpanded, descTruncatable]);
 
   useEffect(() => {
     setDescExpanded(false);
   }, [description]);
 
-  const subscribersLabel =
-    subscriberCount > 0
-      ? `${subscriberCount} subscriber${subscriberCount === 1 ? '' : 's'}`
-      : 'No subscribers yet';
+  const activeCount = Math.max(0, Math.round(Number(activeSubscriberCount)) || 0);
+  const canceledCount = Math.max(0, Math.round(Number(canceledSubscriberCount)) || 0);
+  /** Best balance on dark fills: clear red, not neon, not washed-out. */
+  const deleteAccent = '#e07070';
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         root: {
+          flexGrow: 1,
           gap: 22,
         },
         heroCard: {
@@ -104,7 +145,7 @@ export function PlanDetailBody({
           letterSpacing: -0.4,
           lineHeight: 28,
         },
-        priceLine: {
+        metaText: {
           color: colors.textMuted,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 15,
@@ -115,15 +156,13 @@ export function PlanDetailBody({
           alignItems: 'center',
           flexDirection: 'row',
           flexShrink: 0,
-          gap: 8,
         },
-        /** Compact soft badge — stays small so long plan names keep room. */
         iconBadge: {
           alignItems: 'center',
-          borderRadius: 10,
-          height: 34,
+          borderRadius: 999,
+          height: 36,
           justifyContent: 'center',
-          width: 34,
+          width: 36,
         },
         iconBadgeEdit: {
           backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : colors.shellElevated,
@@ -137,21 +176,30 @@ export function PlanDetailBody({
         priceRow: {
           alignItems: 'center',
           flexDirection: 'row',
-          justifyContent: 'space-between',
+          gap: 12,
           paddingVertical: 10,
+          width: '100%',
+        },
+        priceIconCol: {
+          alignItems: 'center',
+          height: 22,
+          justifyContent: 'center',
+          width: 22,
+        },
+        priceCadenceCol: {
+          flex: 1,
+          minWidth: 0,
         },
         priceCadence: {
           color: colors.text,
-          flex: 1,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 16,
           fontWeight: '500',
           letterSpacing: -0.2,
-          marginRight: 16,
-          minWidth: 0,
         },
         priceAmount: {
           color: colors.text,
+          flexShrink: 0,
           fontFamily: FONT_FAMILIES.semibold,
           fontSize: 16,
           fontWeight: '700',
@@ -168,13 +216,40 @@ export function PlanDetailBody({
           fontWeight: '500',
           lineHeight: 21,
         },
-        description: {
+        descriptionStack: {
+          gap: 6,
+        },
+        descriptionParagraph: {
           color: colors.textSecondary,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 15,
           fontWeight: '500',
           letterSpacing: -0.1,
           lineHeight: 22,
+        },
+        descriptionBlank: {
+          height: 6,
+        },
+        bulletRow: {
+          alignItems: 'flex-start',
+          flexDirection: 'row',
+          gap: 10,
+          paddingRight: 4,
+        },
+        bulletMarkCol: {
+          alignItems: 'center',
+          paddingTop: 8,
+          width: 8,
+        },
+        bulletMark: {
+          backgroundColor: colors.textSecondary,
+          borderRadius: 2,
+          height: 5,
+          width: 5,
+        },
+        bulletTextCol: {
+          flex: 1,
+          minWidth: 0,
         },
         more: {
           alignSelf: 'flex-start',
@@ -186,51 +261,39 @@ export function PlanDetailBody({
           fontSize: 14,
           fontWeight: '600',
         },
-        subscribersInner: {
-          gap: 14,
+        dangerWrap: {
+          marginTop: 'auto',
+          paddingTop: 28,
         },
-        /**
-         * Row layout MUST live on an inner View — Pressable often ignores
-         * flexDirection: 'row' and stacks children (see SettingsNavRow).
-         */
-        subscribersRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          minHeight: 44,
+        deletePress: {
           width: '100%',
         },
-        subscribersLabelCol: {
-          flex: 1,
-          justifyContent: 'center',
-          minWidth: 0,
-        },
-        subscribersLabel: {
-          color: colors.text,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 16,
-          fontWeight: '500',
-          letterSpacing: -0.2,
-        },
-        subscribersChevronCol: {
+        deleteFace: {
           alignItems: 'center',
-          height: 22,
+          backgroundColor: isDark ? colors.buttonSecondaryBg : colors.buttonPrimaryBg,
+          borderRadius: 16,
+          flexDirection: 'row',
+          gap: 8,
+          height: 52,
           justifyContent: 'center',
-          marginLeft: 8,
-          width: 22,
+          paddingHorizontal: 16,
+          width: '100%',
         },
-        linkHelper: {
-          color: colors.textMuted,
+        deleteFacePressed: {
+          backgroundColor: isDark ? colors.buttonSecondaryBgPressed : colors.buttonPrimaryBgPressed,
+        },
+        deleteFaceDisabled: {
+          opacity: 0.55,
+        },
+        deleteLabel: {
+          color: deleteAccent,
           fontFamily: FONT_FAMILIES.medium,
-          fontSize: 14,
-          fontWeight: '500',
-          letterSpacing: -0.1,
-          lineHeight: 20,
-        },
-        dangerWrap: {
-          marginTop: 8,
+          fontSize: 15,
+          fontWeight: '600',
+          letterSpacing: -0.15,
         },
       }),
-    [colors, isDark],
+    [colors, deleteAccent, isDark],
   );
 
   return (
@@ -238,17 +301,16 @@ export function PlanDetailBody({
       <SurfaceCard outlined padding="none" style={styles.heroCard}>
         <View style={styles.heroText}>
           <AppText numberOfLines={2} style={styles.name}>
-            {plan?.name || 'Plan'}
+            {plan?.name || 'Subscription'}
           </AppText>
-          {lowestCents != null ? (
-            <AppText style={styles.priceLine}>
-              From {formatPlanPriceCents(lowestCents)}
-              {fromSuffix}
-            </AppText>
-          ) : null}
+          {durationLabel ? <AppText style={styles.metaText}>{durationLabel}</AppText> : null}
         </View>
         <View style={styles.heroActions}>
-          <Pressable accessibilityLabel="Edit plan" accessibilityRole="button" onPress={onEdit}>
+          <Pressable
+            accessibilityLabel="Edit subscription"
+            accessibilityRole="button"
+            onPress={onEdit}
+          >
             {({ pressed }) => (
               <View
                 style={[
@@ -259,7 +321,7 @@ export function PlanDetailBody({
               >
                 <Ionicons
                   color={isDark ? '#e5e5e5' : colors.text}
-                  name="create-outline"
+                  name="pencil-outline"
                   size={18}
                 />
               </View>
@@ -268,9 +330,59 @@ export function PlanDetailBody({
         </View>
       </SurfaceCard>
 
+      <DetailsSectionCard title="Pricing">
+        {schedules.length === 0 ? (
+          <AppText style={styles.empty}>No pricing options yet.</AppText>
+        ) : (
+          <View style={styles.optionsList}>
+            {schedules.map((row, index) => (
+              <View key={row.id || row.cadenceKey || `${row.interval}-${row.count}-${index}`}>
+                {index > 0 ? <View style={styles.divider} /> : null}
+                <View style={styles.priceRow}>
+                  <View style={styles.priceIconCol}>
+                    <Ionicons color={colors.accentMuted} name="repeat-outline" size={18} />
+                  </View>
+                  <View style={styles.priceCadenceCol}>
+                    <AppText numberOfLines={1} style={styles.priceCadence}>
+                      {cadenceLabel(row)}
+                    </AppText>
+                  </View>
+                  <AppText style={styles.priceAmount}>
+                    {formatPlanPriceCents(row.priceCents)}
+                  </AppText>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </DetailsSectionCard>
+
       {description ? (
         <DetailsSectionCard bodyPadding="roomy" title="Description">
-          <AppText style={styles.description}>{descDisplay}</AppText>
+          <View style={styles.descriptionStack}>
+            {visibleDescriptionBlocks.map((block, index) => {
+              if (block.type === 'blank') {
+                return <View key={`blank-${index}`} style={styles.descriptionBlank} />;
+              }
+              if (block.type === 'bullet') {
+                return (
+                  <View key={`bullet-${index}`} style={styles.bulletRow}>
+                    <View style={styles.bulletMarkCol}>
+                      <View style={styles.bulletMark} />
+                    </View>
+                    <View style={styles.bulletTextCol}>
+                      <AppText style={styles.descriptionParagraph}>{block.text}</AppText>
+                    </View>
+                  </View>
+                );
+              }
+              return (
+                <AppText key={`p-${index}`} style={styles.descriptionParagraph}>
+                  {block.text}
+                </AppText>
+              );
+            })}
+          </View>
           {descTruncatable ? (
             <Pressable
               accessibilityRole="button"
@@ -284,67 +396,40 @@ export function PlanDetailBody({
         </DetailsSectionCard>
       ) : null}
 
-      <DetailsSectionCard title="Plan options">
-        {schedules.length === 0 ? (
-          <AppText style={styles.empty}>No pricing options yet.</AppText>
-        ) : (
-          <View style={styles.optionsList}>
-            {schedules.map((row, index) => (
-              <View key={row.cadenceKey}>
-                {index > 0 ? <View style={styles.divider} /> : null}
-                <View style={styles.priceRow}>
-                  <AppText numberOfLines={1} style={styles.priceCadence}>
-                    {cadenceLabel(row.count, row.interval)}
-                  </AppText>
-                  <AppText style={styles.priceAmount}>
-                    {formatPlanPriceCents(row.priceCents)}
-                  </AppText>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-      </DetailsSectionCard>
-
-      <DetailsSectionCard bodyPadding="roomy" title="Subscribers">
-        <View style={styles.subscribersInner}>
-          <Pressable
-            accessibilityHint="Opens everyone on this plan"
-            accessibilityLabel={subscribersLabel}
-            accessibilityRole="button"
-            onPress={onOpenSubscribers}
-          >
-            {({ pressed }) => (
-              <View style={[styles.subscribersRow, pressed && { opacity: 0.75 }]}>
-                <View style={styles.subscribersLabelCol}>
-                  <AppText numberOfLines={1} style={styles.subscribersLabel}>
-                    {subscribersLabel}
-                  </AppText>
-                </View>
-                <View style={styles.subscribersChevronCol}>
-                  <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />
-                </View>
-              </View>
-            )}
-          </Pressable>
-
-          <View style={styles.divider} />
-
-          <AppText style={styles.linkHelper}>
-            Share this link so customers can subscribe to your plans.
-          </AppText>
-          <Button
-            fullWidth
-            iconName={linkCopied ? 'checkmark-circle' : 'link-outline'}
-            title={linkCopied ? 'Link copied' : 'Copy link'}
-            variant="secondary"
-            onPress={onCopyLink}
-          />
-        </View>
-      </DetailsSectionCard>
+      <PlanSubscribersSummary
+        activeCount={activeCount}
+        canceledCount={canceledCount}
+        onPress={onOpenSubscribers}
+      />
 
       <View style={styles.dangerWrap}>
-        <DeleteButton title="Delete plan" onPress={onDelete} />
+        <Pressable
+          accessibilityLabel="Delete subscription"
+          accessibilityRole="button"
+          accessibilityState={{ busy: deleting, disabled: deleting }}
+          disabled={deleting}
+          style={styles.deletePress}
+          onPress={onDelete}
+        >
+          {({ pressed }) => (
+            <View
+              style={[
+                styles.deleteFace,
+                pressed && !deleting && styles.deleteFacePressed,
+                deleting && styles.deleteFaceDisabled,
+              ]}
+            >
+              {deleting ? (
+                <ActivityIndicator color={deleteAccent} />
+              ) : (
+                <>
+                  <Ionicons color={deleteAccent} name="trash-outline" size={17} />
+                  <AppText style={styles.deleteLabel}>Delete subscription</AppText>
+                </>
+              )}
+            </View>
+          )}
+        </Pressable>
       </View>
     </View>
   );

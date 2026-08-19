@@ -54,6 +54,18 @@ describe('showAppointmentConfirmationSmsToast', () => {
     );
   });
 
+  it('explains SMS opt-out when SMS was the only channel', () => {
+    showAppointmentConfirmationSmsToast(toast, '5552345678', '', {
+      sent: false,
+      reason: 'sms_opt_out',
+    });
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.sms).toHaveBeenCalledWith(
+      'Couldn’t notify your customer — they opted out of texts.',
+      { type: 'info' },
+    );
+  });
+
   it('stays silent when the server rules the owner out of texting', () => {
     showAppointmentConfirmationSmsToast(toast, '5552345678', '', {
       sent: false,

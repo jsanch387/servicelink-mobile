@@ -1,24 +1,19 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, Button, DeleteButton } from '../../../components/ui';
+import { AppText, Button } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { SUBSCRIPTION_CANCEL_BUTTON } from '../constants';
 
 /**
- * Support actions for a subscriber: billing portal + cancel.
+ * Quiet secondary cancel — same family as Account “Log out”: present, not alarming.
+ *
  * @param {object} props
- * @param {boolean} props.canCopyManageLink
- * @param {boolean} [props.linkCopied]
- * @param {() => void} props.onCopyManageLink
  * @param {boolean} props.canCancel
  * @param {boolean} [props.cancelLoading]
  * @param {() => void} props.onCancel
  * @param {string | null} [props.cancelNote]
  */
 export function SubscriptionDetailActions({
-  canCopyManageLink,
-  linkCopied = false,
-  onCopyManageLink,
   canCancel,
   cancelLoading = false,
   onCancel,
@@ -29,58 +24,39 @@ export function SubscriptionDetailActions({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        column: {
-          gap: 12,
-        },
-        hint: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 12,
-          fontWeight: '500',
-          lineHeight: 16,
-          marginTop: -4,
+        cancelBlock: {
+          gap: 8,
+          paddingTop: 4,
         },
         note: {
           color: colors.textMuted,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 13,
           fontWeight: '500',
+          letterSpacing: -0.1,
           lineHeight: 18,
-          marginTop: -2,
+          paddingHorizontal: 2,
         },
       }),
     [colors],
   );
 
-  return (
-    <View style={styles.column}>
-      {canCopyManageLink ? (
-        <>
-          <Button
-            fullWidth
-            title={linkCopied ? 'Billing portal link copied' : 'Copy billing portal link'}
-            variant="surfaceLight"
-            labelColor="#0b0c0f"
-            onPress={onCopyManageLink}
-          />
-          <AppText style={styles.hint}>
-            Customer uses this to update their card or manage billing.
-          </AppText>
-        </>
-      ) : null}
+  if (!canCancel) return null;
 
-      {canCancel ? (
-        <>
-          <DeleteButton
-            disabled={cancelLoading}
-            iconName="close-circle-outline"
-            loading={cancelLoading}
-            title={SUBSCRIPTION_CANCEL_BUTTON}
-            onPress={onCancel}
-          />
-          {cancelNote ? <AppText style={styles.note}>{cancelNote}</AppText> : null}
-        </>
-      ) : null}
+  return (
+    <View style={styles.cancelBlock}>
+      <Button
+        accessibilityHint="Opens a confirmation to cancel at period end or cancel now"
+        accessibilityLabel={SUBSCRIPTION_CANCEL_BUTTON}
+        disabled={cancelLoading}
+        fullWidth
+        iconName="ban-outline"
+        loading={cancelLoading}
+        title={SUBSCRIPTION_CANCEL_BUTTON}
+        variant="secondary"
+        onPress={onCancel}
+      />
+      {cancelNote ? <AppText style={styles.note}>{cancelNote}</AppText> : null}
     </View>
   );
 }

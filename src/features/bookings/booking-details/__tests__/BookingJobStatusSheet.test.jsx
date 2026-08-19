@@ -1,6 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ThemeProvider, TypographyProvider } from '../../../../theme';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { renderWithProviders } from '../../../home/__tests__/testUtils';
 import { JOB_STATUS } from '../../constants/jobStatus';
 import { useBookingAction } from '../../hooks/useBookingAction';
 import { BookingJobStatusSheet } from '../components/BookingJobStatusSheet';
@@ -14,27 +13,16 @@ const startJobAsync = jest.fn();
 const workFinished = jest.fn();
 
 function renderSheet(props = {}) {
-  return render(
-    <SafeAreaProvider
-      initialMetrics={{
-        frame: { x: 0, y: 0, width: 390, height: 844 },
-        insets: { top: 0, left: 0, right: 0, bottom: 0 },
-      }}
-    >
-      <ThemeProvider initialScheme="dark">
-        <TypographyProvider>
-          <BookingJobStatusSheet
-            bookingId="book-1"
-            businessId="biz-1"
-            jobStatus={JOB_STATUS.NOT_STARTED}
-            visible
-            workHandoffStatus={null}
-            onRequestClose={() => {}}
-            {...props}
-          />
-        </TypographyProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>,
+  return renderWithProviders(
+    <BookingJobStatusSheet
+      bookingId="book-1"
+      businessId="biz-1"
+      jobStatus={JOB_STATUS.NOT_STARTED}
+      visible
+      workHandoffStatus={null}
+      onRequestClose={() => {}}
+      {...props}
+    />,
   );
 }
 

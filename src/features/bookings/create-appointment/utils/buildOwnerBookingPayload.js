@@ -142,6 +142,7 @@ export function buildOwnerManualJobItem(job) {
  *   discountValue: number | null;
  * } | null} [args.availableSaleDiscount] - qualifying sale preview for the appointment date
  * @param {boolean} [args.applySaleDiscount] - owner opt-in on Review; server applies sale only when true
+ * @param {string | null} [args.membershipId] - when set, period-visit link on server + membership payment
  */
 export function buildOwnerManualPublicBookingBody({
   catalog,
@@ -154,9 +155,12 @@ export function buildOwnerManualPublicBookingBody({
   jobs,
   availableSaleDiscount = null,
   applySaleDiscount = false,
+  membershipId = null,
 }) {
   const notesTrimmed = typeof notes === 'string' ? notes.trim() : '';
   const jobItems = (jobs ?? []).map((job) => buildOwnerManualJobItem(job));
+  const membershipIdTrimmed = String(membershipId ?? '').trim();
+  const isMembershipVisit = Boolean(membershipIdTrimmed);
 
   /** @type {Record<string, unknown>} */
   const body = {
@@ -164,7 +168,7 @@ export function buildOwnerManualPublicBookingBody({
     businessId: String(catalog.businessId ?? '').trim(),
     scheduledDate: selectedDateKey,
     startTime: startTime12hToApiStartTime(selectedTime),
-    paymentMethodSelected: 'none',
+    paymentMethodSelected: isMembershipVisit ? 'membership' : 'none',
     ownerManualBooking: true,
     serviceLocationType: appointmentLocationTypeForApi(appointmentLocationType),
     customer: {
@@ -188,8 +192,15 @@ export function buildOwnerManualPublicBookingBody({
     jobs: jobItems,
   };
 
+  if (isMembershipVisit) {
+    body.membershipId = membershipIdTrimmed;
+    body.applySale = false;
+  }
+
   const saleAvailable =
-    Boolean(availableSaleDiscount?.sale?.id) && (availableSaleDiscount?.discountCents ?? 0) > 0;
+    !isMembershipVisit &&
+    Boolean(availableSaleDiscount?.sale?.id) &&
+    (availableSaleDiscount?.discountCents ?? 0) > 0;
   if (saleAvailable) {
     body.applySaleDiscount = Boolean(applySaleDiscount);
     if (applySaleDiscount) {

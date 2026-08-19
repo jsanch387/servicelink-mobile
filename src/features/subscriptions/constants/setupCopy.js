@@ -6,8 +6,8 @@ export const SUBSCRIPTIONS_NON_PRO_CTA = 'Subscribe';
 export const SUBSCRIPTIONS_NON_PRO_SECTION_LABEL = 'What you get';
 export const SUBSCRIPTIONS_NON_PRO_BENEFITS = [
   {
-    lead: 'Recurring plans',
-    rest: 'Weekly, monthly, or custom.',
+    lead: 'Recurring subscriptions',
+    rest: 'Weekly, biweekly, or monthly.',
   },
   {
     lead: 'Share a link',
@@ -21,13 +21,13 @@ export const SUBSCRIPTIONS_NON_PRO_BENEFITS = [
 
 export const SUBSCRIPTIONS_PAYMENTS_OFF_TITLE = 'Turn on ServiceLink payments';
 export const SUBSCRIPTIONS_PAYMENTS_OFF_BODY =
-  'Memberships use the same checkout as bookings. Turn on payments to create your first plan.';
+  'Memberships use the same checkout as bookings. Turn on payments to create your first subscription.';
 export const SUBSCRIPTIONS_PAYMENTS_OFF_CTA = 'Turn on payments';
 export const SUBSCRIPTIONS_PAYMENTS_OFF_CONNECTED = 'You are connected to Stripe.';
 
 export const SUBSCRIPTIONS_CREATE_FIRST_TITLE = 'Create a subscription';
 export const SUBSCRIPTIONS_CREATE_FIRST_BODY =
-  'Set a plan, share your link, and get paid on a schedule.';
+  'Set a subscription, share your link, and get paid on a schedule.';
 export const SUBSCRIPTIONS_CREATE_FIRST_CTA = 'Create a subscription';
 export const SUBSCRIPTIONS_CREATE_FIRST_HOW_LABEL = 'How it works';
 
@@ -35,14 +35,14 @@ export const SUBSCRIPTIONS_CREATE_FIRST_POINTS = [
   {
     key: 'create',
     icon: 'pricetag-outline',
-    title: 'Create a plan',
+    title: 'Create a subscription',
     body: 'Name it, set the price, and how often you visit.',
   },
   {
     key: 'share',
     icon: 'link-outline',
     title: 'Share your link',
-    body: 'Customers pick a plan and subscribe themselves.',
+    body: 'Customers pick a subscription and subscribe themselves.',
   },
   {
     key: 'manage',

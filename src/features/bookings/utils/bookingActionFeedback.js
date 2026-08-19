@@ -1,4 +1,10 @@
 import { CUSTOMER_SMS_TOASTS_ENABLED } from '../../sms/constants/customerSmsHold';
+import {
+  SMS_SKIP_REASON_CARRIER_OPT_OUT,
+  SMS_SKIP_REASON_NOT_ELIGIBLE,
+  SMS_SKIP_REASON_OPT_OUT,
+  isSilentSmsSkipReason,
+} from '../../sms/constants/smsMessageTypes';
 import { BOOKING_ACTION } from '../constants/jobStatus';
 
 export const ON_THE_WAY_SUCCESS_SMS = 'Customer notified you’re on the way';
@@ -13,16 +19,20 @@ export const JOB_COMPLETED_SUCCESS_SMS = 'Customer notified with invoice and rev
 export const JOB_COMPLETED_SUCCESS_EMAIL = 'Customer notified with invoice and review link';
 export const JOB_COMPLETED_SUCCESS_SMS_RECEIPT_ONLY = 'Customer notified with their receipt';
 export const JOB_COMPLETED_SUCCESS_EMAIL_RECEIPT_ONLY = 'Customer notified with their receipt';
-export const JOB_COMPLETED_SUCCESS_STATE_ONLY = 'Visit marked complete';
+export const JOB_COMPLETED_SUCCESS_STATE_ONLY = 'Visit complete';
 export const JOB_COMPLETED_SMS_SOFT_NOTE = 'Marked complete — couldn’t text customer';
 
 /** Non-blocking copy when state changed but SMS did not send. */
+const SMS_SKIP_COULDNT_SEND = 'Couldn’t send text.';
+
 const SMS_SKIP_MESSAGES = {
-  no_phone: 'Couldn’t text the customer — no phone on file.',
-  invalid_number: 'Couldn’t text the customer — invalid phone number.',
-  duplicate: 'Couldn’t text the customer — already notified.',
-  not_configured: 'Couldn’t text the customer — texting isn’t set up yet.',
-  error: 'Couldn’t text the customer.',
+  no_phone: 'No phone number on file — customer wasn’t texted.',
+  invalid_number: 'Phone number looks invalid — customer wasn’t texted.',
+  not_configured: SMS_SKIP_COULDNT_SEND,
+  [SMS_SKIP_REASON_NOT_ELIGIBLE]: SMS_SKIP_COULDNT_SEND,
+  [SMS_SKIP_REASON_OPT_OUT]: 'Customer opted out of texts — status still updated.',
+  [SMS_SKIP_REASON_CARRIER_OPT_OUT]: 'Customer opted out of texts (STOP) — status still updated.',
+  error: SMS_SKIP_COULDNT_SEND,
 };
 
 /** Non-blocking copy when visit completed but review email did not send. */
@@ -56,6 +66,24 @@ export function emailSkipMessage(reason) {
 }
 
 /**
+ * Soft skip toast from `sms.reason`. Duplicate is silent. Missing reason is not toasted here.
+ *
+ * @param {ReturnType<import('../../../components/ui').useToast>} toast
+ * @param {string | null | undefined} reason
+ * @returns {boolean} whether a skip toast was shown
+ */
+function toastSmsSkipIfNeeded(toast, reason) {
+  if (!CUSTOMER_SMS_TOASTS_ENABLED) {
+    return false;
+  }
+  if (!reason || isSilentSmsSkipReason(reason)) {
+    return false;
+  }
+  toast.sms(smsSkipMessage(reason), { type: 'info' });
+  return true;
+}
+
+/**
  * @param {ReturnType<import('../../../components/ui').useToast>} toast
  * @param {string} action
  * @param {{
@@ -73,9 +101,7 @@ export function showBookingActionToasts(toast, action, res, options = {}) {
       return;
     }
     toast.success(ON_THE_WAY_SUCCESS_STATE_ONLY);
-    if (CUSTOMER_SMS_TOASTS_ENABLED) {
-      toast.sms(smsSkipMessage(res.smsReason), { type: 'info' });
-    }
+    toastSmsSkipIfNeeded(toast, res.smsReason);
     return;
   }
 
@@ -85,6 +111,13 @@ export function showBookingActionToasts(toast, action, res, options = {}) {
       return;
     }
     if (CUSTOMER_SMS_TOASTS_ENABLED) {
+      if (toastSmsSkipIfNeeded(toast, res.smsReason)) {
+        return;
+      }
+      if (isSilentSmsSkipReason(res.smsReason)) {
+        toast.success(JOB_STARTED_SUCCESS_STATE_ONLY);
+        return;
+      }
       toast.info(JOB_STARTED_SMS_SOFT_NOTE);
       return;
     }
@@ -93,7 +126,7 @@ export function showBookingActionToasts(toast, action, res, options = {}) {
   }
 
   if (action === BOOKING_ACTION.WORK_FINISHED) {
-    if (res.smsReason === 'duplicate') {
+    if (isSilentSmsSkipReason(res.smsReason)) {
       return;
     }
     if (CUSTOMER_SMS_TOASTS_ENABLED && res.smsSent) {
@@ -101,8 +134,7 @@ export function showBookingActionToasts(toast, action, res, options = {}) {
       return;
     }
     if (CUSTOMER_SMS_TOASTS_ENABLED) {
-      if (res.smsReason) {
-        toast.sms(smsSkipMessage(res.smsReason), { type: 'info' });
+      if (toastSmsSkipIfNeeded(toast, res.smsReason)) {
         return;
       }
       toast.info(WORK_FINISHED_SMS_SOFT_NOTE);
@@ -130,8 +162,10 @@ export function showBookingActionToasts(toast, action, res, options = {}) {
       return;
     }
 
-    // Visit is complete — do not nag about SMS/email skip reasons (`not_configured`, etc.).
-    // Complete-visit UI owns success; failures are server/ops and not actionable here.
+    if (toastSmsSkipIfNeeded(toast, res.smsReason)) {
+      return;
+    }
+
     toast.success(JOB_COMPLETED_SUCCESS_STATE_ONLY);
   }
 }

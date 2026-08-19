@@ -24,6 +24,10 @@ jest.mock('../../../sms/hooks/useCustomerSmsAccess', () => ({
   })),
 }));
 
+jest.mock('../../../customers/api/customers', () => ({
+  fetchCustomerSmsOptIn: jest.fn(async () => ({ smsOptIn: true, error: null })),
+}));
+
 jest.mock('../../api/postBookingAction', () => ({
   postBookingAction: jest.fn(),
 }));

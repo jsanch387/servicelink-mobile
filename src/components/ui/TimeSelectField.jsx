@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
-import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
+import { scheduleSheetOpen, useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
 import { triggerWheelSelectionHaptic } from './wheelHaptics';
 
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1));
@@ -158,8 +158,7 @@ export function TimeSelectField({
 
   useEffect(() => {
     if (!open) return undefined;
-    const id = requestAnimationFrame(() => runOpen());
-    return () => cancelAnimationFrame(id);
+    return scheduleSheetOpen(runOpen);
   }, [open, runOpen]);
 
   const hoursRef = useRef(null);

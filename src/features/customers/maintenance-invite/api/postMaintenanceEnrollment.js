@@ -1,5 +1,9 @@
 import { productionWebApiHttpsGuard } from '../../../../lib/productionWebApiHttpsGuard';
 import { resolveStripeMobileCheckoutOrigin } from '../../../../lib/stripeMobileCheckoutOrigin';
+import {
+  MAINTENANCE_CREATION_DISABLED,
+  MAINTENANCE_CREATION_DISABLED_MESSAGE,
+} from '../../../maintenance/constants';
 
 /**
  * @typedef {object} MaintenanceEnrollmentSendData
@@ -78,6 +82,14 @@ export function mapMaintenanceEnrollmentHttpError(httpStatus, serverMessage) {
  * >}
  */
 export async function postMaintenanceEnrollment(accessToken, body) {
+  if (MAINTENANCE_CREATION_DISABLED) {
+    return {
+      ok: false,
+      error: new Error(MAINTENANCE_CREATION_DISABLED_MESSAGE),
+      httpStatus: 410,
+    };
+  }
+
   const origin = resolveStripeMobileCheckoutOrigin();
   const httpsErr = productionWebApiHttpsGuard(origin);
   if (httpsErr) {

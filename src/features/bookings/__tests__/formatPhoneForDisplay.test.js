@@ -1,6 +1,7 @@
 import {
   formatPhoneForDisplay,
   formatPhoneInputAsYouType,
+  formatPhoneWithCountryCode,
   normalizePhoneForDatabase,
   US_NANP_FORMATTED_MAX_LENGTH,
 } from '../../../utils/phone';
@@ -66,5 +67,12 @@ describe('formatPhoneForDisplay', () => {
   it('uses +digits fallback for non-US lengths', () => {
     expect(formatPhoneForDisplay('+44 20 7123 4567')).toMatch(/^\+/);
     expect(formatPhoneForDisplay('+442071234567')).toBe('+442071234567');
+  });
+});
+
+describe('formatPhoneWithCountryCode', () => {
+  it('prefixes US NANP with +1', () => {
+    expect(formatPhoneWithCountryCode('5552345678')).toBe('+1 (555) 234-5678');
+    expect(formatPhoneWithCountryCode('+1 555 234 5678')).toBe('+1 (555) 234-5678');
   });
 });

@@ -2,16 +2,20 @@ import { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
-import { SUBSCRIPTIONS_HUB_OPTIONS } from '../constants';
+import { SUBSCRIPTIONS_HUB_OPTIONS, SUBSCRIPTIONS_HUB_SUBSCRIBERS } from '../constants';
 
 const ACTIVE_BG = '#ffffff';
 const ACTIVE_FG = '#000000';
 
 /**
  * Hub tabs — same white-segment pattern as Payments (Plans | Subscribers).
- * @param {{ value: string; onChange: (id: string) => void }} props
+ * @param {{
+ *   value: string;
+ *   onChange: (id: string) => void;
+ *   subscribersAttention?: boolean;
+ * }} props
  */
-export function SubscriptionsHubTabs({ value, onChange }) {
+export function SubscriptionsHubTabs({ value, onChange, subscribersAttention = false }) {
   const { colors, isDark } = useTheme();
 
   const styles = useMemo(
@@ -37,6 +41,8 @@ export function SubscriptionsHubTabs({ value, onChange }) {
           borderColor: 'transparent',
           borderRadius: 11,
           borderWidth: StyleSheet.hairlineWidth,
+          flexDirection: 'row',
+          gap: 6,
           justifyContent: 'center',
           minHeight: 40,
           paddingHorizontal: 4,
@@ -68,6 +74,12 @@ export function SubscriptionsHubTabs({ value, onChange }) {
           fontFamily: FONT_FAMILIES.bold,
           fontWeight: '700',
         },
+        attentionDot: {
+          backgroundColor: isDark ? '#FBBF24' : '#F59E0B',
+          borderRadius: 4,
+          height: 8,
+          width: 8,
+        },
       }),
     [colors, isDark],
   );
@@ -76,10 +88,11 @@ export function SubscriptionsHubTabs({ value, onChange }) {
     <View accessibilityRole="tablist" style={styles.track}>
       {SUBSCRIPTIONS_HUB_OPTIONS.map((opt) => {
         const selected = opt.key === value;
+        const showDot = subscribersAttention && opt.key === SUBSCRIPTIONS_HUB_SUBSCRIBERS;
         return (
           <View key={opt.key} style={styles.tabHit}>
             <Pressable
-              accessibilityLabel={opt.label}
+              accessibilityLabel={showDot ? `${opt.label}, needs attention` : opt.label}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
               android_ripple={{
@@ -93,6 +106,13 @@ export function SubscriptionsHubTabs({ value, onChange }) {
                 <AppText numberOfLines={1} style={[styles.label, selected && styles.labelActive]}>
                   {opt.label}
                 </AppText>
+                {showDot ? (
+                  <View
+                    accessibilityElementsHidden
+                    importantForAccessibility="no"
+                    style={styles.attentionDot}
+                  />
+                ) : null}
               </View>
             </Pressable>
           </View>

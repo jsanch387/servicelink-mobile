@@ -3,8 +3,15 @@ jest.mock('@tanstack/react-query', () => ({
   useQueryClient: jest.fn(),
 }));
 
+jest.mock('../../../auth', () => ({
+  useAuth: jest.fn(),
+}));
+
+jest.mock('../../api/patchCancelAvailabilityBooking', () => ({
+  patchCancelAvailabilityBooking: jest.fn(),
+}));
+
 jest.mock('../api/bookingDetails', () => ({
-  cancelBookingById: jest.fn(),
   rescheduleBookingById: jest.fn(),
   deleteBookingById: jest.fn(),
 }));
@@ -14,12 +21,14 @@ jest.mock('../utils/invalidateBookingCachesAfterMutation', () => ({
 }));
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { cancelBookingById, deleteBookingById, rescheduleBookingById } from '../api/bookingDetails';
 import { renderHook } from '@testing-library/react-native';
+import { useAuth } from '../../../auth';
+import { patchCancelAvailabilityBooking } from '../../api/patchCancelAvailabilityBooking';
+import { deleteBookingById, rescheduleBookingById } from '../api/bookingDetails';
 import { useBookingActions } from '../hooks/useBookingActions';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
 
-/** Picks the mutation whose `mutationFn` calls `rescheduleBookingById` (stable if hook order changes). */
+/** Picks the mutation whose `mutationFn` calls `rescheduleBookingById`. */
 async function findRescheduleMutationConfig(mutationConfigs) {
   for (const config of mutationConfigs) {
     rescheduleBookingById.mockClear();
@@ -35,17 +44,43 @@ async function findRescheduleMutationConfig(mutationConfigs) {
   throw new Error('Expected a reschedule useMutation config');
 }
 
-describe('useBookingActions reschedule', () => {
+/** Picks the mutation whose `mutationFn` calls `patchCancelAvailabilityBooking`. */
+async function findCancelMutationConfig(mutationConfigs) {
+  for (const config of mutationConfigs) {
+    patchCancelAvailabilityBooking.mockClear();
+    try {
+      await config.mutationFn();
+    } catch {
+      // wrong mutationFn shape or API throw — try next
+    }
+    if (patchCancelAvailabilityBooking.mock.calls.length > 0) {
+      return config;
+    }
+  }
+  throw new Error('Expected a cancel useMutation config');
+}
+
+describe('useBookingActions', () => {
+  const queryClient = {
+    id: 'qc-1',
+    setQueryData: jest.fn(),
+    removeQueries: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    cancelBookingById.mockResolvedValue({ data: { id: 'book-1' }, error: null });
+    useAuth.mockReturnValue({ session: { access_token: 'token-1' } });
+    patchCancelAvailabilityBooking.mockResolvedValue({
+      ok: true,
+      booking: { id: 'book-1', status: 'cancelled' },
+    });
     rescheduleBookingById.mockResolvedValue({ data: { id: 'book-1' }, error: null });
     deleteBookingById.mockResolvedValue({ data: { id: 'book-1' }, error: null });
   });
 
   function renderUseBookingActions() {
     const mutationConfigs = [];
-    useQueryClient.mockReturnValue({ id: 'qc-1' });
+    useQueryClient.mockReturnValue(queryClient);
     useMutation.mockImplementation((config) => {
       mutationConfigs.push(config);
       return {
@@ -57,6 +92,33 @@ describe('useBookingActions reschedule', () => {
     renderHook(() => useBookingActions('book-1'));
     return mutationConfigs;
   }
+
+  it('cancels via server PATCH and invalidates caches on success', async () => {
+    const mutationConfigs = renderUseBookingActions();
+    const cancelMutation = await findCancelMutationConfig(mutationConfigs);
+    patchCancelAvailabilityBooking.mockClear();
+
+    const booking = await cancelMutation.mutationFn();
+    expect(patchCancelAvailabilityBooking).toHaveBeenCalledWith('token-1', 'book-1');
+    expect(booking).toEqual({ id: 'book-1', status: 'cancelled' });
+
+    await cancelMutation.onSuccess(booking);
+    expect(queryClient.setQueryData).toHaveBeenCalled();
+    expect(invalidateBookingCachesAfterMutation).toHaveBeenCalledWith(queryClient, 'book-1');
+  });
+
+  it('throws when cancel API fails', async () => {
+    patchCancelAvailabilityBooking.mockResolvedValue({
+      ok: false,
+      error: new Error('Booking not found'),
+      httpStatus: 404,
+    });
+
+    const mutationConfigs = renderUseBookingActions();
+    const cancelMutation = await findCancelMutationConfig(mutationConfigs);
+
+    await expect(cancelMutation.mutationFn()).rejects.toThrow('Booking not found');
+  });
 
   it('uses reschedule API payload and invalidates caches on success', async () => {
     rescheduleBookingById.mockResolvedValue({
@@ -81,7 +143,7 @@ describe('useBookingActions reschedule', () => {
     });
 
     await rescheduleMutation.onSuccess();
-    expect(invalidateBookingCachesAfterMutation).toHaveBeenCalledWith({ id: 'qc-1' }, 'book-1');
+    expect(invalidateBookingCachesAfterMutation).toHaveBeenCalledWith(queryClient, 'book-1');
   });
 
   it('throws friendly error when reschedule API fails', async () => {
@@ -103,7 +165,7 @@ describe('useBookingActions reschedule', () => {
 
   it('registers cancel, reschedule, and delete mutations without calling APIs on mount', () => {
     renderUseBookingActions();
-    expect(cancelBookingById).not.toHaveBeenCalled();
+    expect(patchCancelAvailabilityBooking).not.toHaveBeenCalled();
     expect(rescheduleBookingById).not.toHaveBeenCalled();
     expect(deleteBookingById).not.toHaveBeenCalled();
     expect(useMutation).toHaveBeenCalledTimes(3);

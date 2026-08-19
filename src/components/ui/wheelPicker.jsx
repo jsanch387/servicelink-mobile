@@ -1,20 +1,21 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Keyboard,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
+import { Button } from './Button';
 import { useBottomSheetOverlay } from './bottomSheetOverlay';
-import { useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
+import { SheetCloseButton } from './SheetCloseButton';
+import { scheduleSheetOpen, useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
 import { triggerWheelSelectionHaptic } from './wheelHaptics';
 
 export const WHEEL_ITEM_HEIGHT = 44;
@@ -153,7 +154,9 @@ export function WheelColumn({ values, selected, onSelectedChange, listRef, wheel
 }
 
 /**
- * Bottom panel that hosts wheel columns: dimmed backdrop, header with close, confirm button.
+ * Bottom panel that hosts wheel columns.
+ * Chrome matches {@link BottomSheetModal} (overlay / fitContent) — wheels stay unchanged.
+ *
  * @param {object} props
  * @param {string} props.title
  * @param {string} props.confirmTitle
@@ -171,6 +174,7 @@ export function WheelPickerSheetShell({
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const topRadius = Platform.OS === 'android' ? 28 : 18;
 
   return (
     <>
@@ -191,24 +195,26 @@ export function WheelPickerSheetShell({
           sheetStyle,
           {
             backgroundColor: colors.shellElevated,
-            borderTopColor: colors.borderStrong,
-            paddingBottom: Math.max(insets.bottom, 14) + 8,
+            borderTopLeftRadius: topRadius,
+            borderTopRightRadius: topRadius,
+            paddingBottom: Math.max(insets.bottom, 16) + 8,
+            paddingHorizontal: 16,
+            paddingTop: 16,
           },
         ]}
       >
-        <View style={styles.sheet}>
-          <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
-            <AppText style={[styles.sheetTitle, { color: colors.textMuted }]}>{title}</AppText>
-            <TouchableOpacity accessibilityRole="button" hitSlop={8} onPress={onRequestClose}>
-              <Ionicons color={colors.textMuted} name="close" size={20} />
-            </TouchableOpacity>
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
+            <AppText style={[styles.sheetTitle, { color: colors.text }]}>{title}</AppText>
+            <SheetCloseButton onPress={onRequestClose} />
           </View>
+          <View style={[styles.headerDivider, { backgroundColor: colors.border }]} />
+        </View>
 
-          {children}
+        {children}
 
-          <TouchableOpacity activeOpacity={0.9} onPress={onConfirm} style={styles.cta}>
-            <AppText style={styles.ctaText}>{confirmTitle}</AppText>
-          </TouchableOpacity>
+        <View style={styles.footer}>
+          <Button fullWidth title={confirmTitle} variant="primary" onPress={onConfirm} />
         </View>
       </Animated.View>
     </>
@@ -225,8 +231,7 @@ function WheelPickerOverlay({ render, onClose }) {
 
   useEffect(() => {
     prepareOpen();
-    const id = requestAnimationFrame(() => runOpen());
-    return () => cancelAnimationFrame(id);
+    return scheduleSheetOpen(runOpen);
   }, [prepareOpen, runOpen]);
 
   return <View style={styles.overlayRoot}>{render({ backdropStyle, close, sheetStyle })}</View>;
@@ -254,8 +259,7 @@ export function useWheelPickerSheet(render) {
 
   useEffect(() => {
     if (!open) return undefined;
-    const id = requestAnimationFrame(() => runOpen());
-    return () => cancelAnimationFrame(id);
+    return scheduleSheetOpen(runOpen);
   }, [open, runOpen]);
 
   useEffect(() => () => overlay?.hide(), [overlay]);
@@ -297,29 +301,37 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backdropFill: {
-    backgroundColor: 'rgba(0,0,0,0.60)',
+    backgroundColor: 'rgba(0,0,0,0.76)',
   },
   sheetWrap: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderTopWidth: 1,
     bottom: 0,
     left: 0,
+    overflow: 'hidden',
     position: 'absolute',
     right: 0,
   },
-  sheet: {
-    paddingBottom: 16,
+  header: {
+    paddingBottom: 0,
   },
-  sheetHeader: {
+  titleRow: {
     alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    gap: 12,
+    marginBottom: 12,
   },
-  sheetTitle: { fontSize: 14, fontWeight: '500' },
+  sheetTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '800',
+    minWidth: 0,
+  },
+  headerDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginBottom: 16,
+  },
+  footer: {
+    marginTop: 8,
+  },
   wheelContainer: {
     height: WHEEL_ITEM_HEIGHT * VISIBLE_ROWS,
     justifyContent: 'center',
@@ -338,14 +350,4 @@ const styles = StyleSheet.create({
   },
   dialItem: { alignItems: 'center', height: WHEEL_ITEM_HEIGHT, justifyContent: 'center' },
   dialItemText: { fontSize: 18, fontWeight: '500' },
-  cta: {
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    height: 48,
-    justifyContent: 'center',
-    marginHorizontal: 16,
-    marginTop: 4,
-  },
-  ctaText: { color: '#000000', fontSize: 16, fontWeight: '600' },
 });

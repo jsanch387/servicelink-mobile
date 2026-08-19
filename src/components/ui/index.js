@@ -1,5 +1,6 @@
 export { AppText } from './AppText';
 export { BetaLabel } from './BetaLabel';
+export { EndingLabel } from './EndingLabel';
 export { NewLabel } from './NewLabel';
 export { TryItLabel } from './TryItLabel';
 export { AppTextInput } from './AppTextInput';
@@ -19,6 +20,7 @@ export { toLocalYyyyMmDd, parseLocalYyyyMmDd, startOfLocalDay } from './calendar
 export { Button } from './Button';
 export { DeleteButton } from './DeleteButton';
 export { DetailIconFieldRow } from './DetailIconFieldRow';
+export { MembershipMark } from './MembershipMark';
 export { DetailsSectionCard } from './DetailsSectionCard';
 export { InfoSection } from './InfoSection';
 export { LabelValueRow } from './LabelValueRow';

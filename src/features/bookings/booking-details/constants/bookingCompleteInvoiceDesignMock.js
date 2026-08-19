@@ -88,6 +88,7 @@ export function getCompleteVisitPaidRowLabel(paidOnline, amountDue) {
  *   showReviewSms?: boolean;
  *   showReviewEmail?: boolean;
  *   showReviewInvite?: boolean;
+ *   smsOptedOut?: boolean;
  * }} p
  * @returns {{ visible: boolean; message: string; iconName: string }}
  */
@@ -96,6 +97,7 @@ export function getCompleteVisitFollowUpInfo(p) {
     showReviewSms: Boolean(p.showReviewSms),
     showReviewEmail: Boolean(p.showReviewEmail ?? p.showReviewInvite),
     showReviewInvite: p.showReviewInvite,
+    smsOptedOut: Boolean(p.smsOptedOut),
   });
 }
 

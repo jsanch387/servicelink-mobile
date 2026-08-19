@@ -50,6 +50,20 @@ describe('completeVisitNotificationCopy', () => {
     });
   });
 
+  it('getCompleteVisitFollowUpMessage explains SMS opt-out when there is no email fallback', () => {
+    expect(
+      getCompleteVisitFollowUpMessage({
+        showReviewSms: false,
+        showReviewEmail: false,
+        smsOptedOut: true,
+      }),
+    ).toEqual({
+      visible: true,
+      message: 'This customer opted out of texts — they won’t be notified automatically.',
+      iconName: 'information-circle-outline',
+    });
+  });
+
   it('getCompleteVisitPaymentSettledBanner covers deposit + in-person', () => {
     expect(
       getCompleteVisitPaymentSettledBanner({
@@ -75,6 +89,21 @@ describe('completeVisitNotificationCopy', () => {
     ).toEqual({
       title: 'Paid in full',
       detail: 'Paid online before this service.',
+    });
+  });
+
+  it('getCompleteVisitPaymentSettledBanner labels membership visits', () => {
+    expect(
+      getCompleteVisitPaymentSettledBanner({
+        paidOnline: 0,
+        subtotal: 0,
+        tapToPayAmount: 0,
+        inPersonPayment: null,
+        isMembershipVisit: true,
+      }),
+    ).toEqual({
+      title: 'Paid in full',
+      detail: 'No payment due for this service.',
     });
   });
 });

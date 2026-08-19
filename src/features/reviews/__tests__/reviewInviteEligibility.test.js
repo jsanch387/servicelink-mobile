@@ -84,6 +84,7 @@ describe('reviewInviteEligibility', () => {
       showReviewSmsMessage: true,
       showReviewInviteMessage: false,
       showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
       showReviewInvite: true,
     });
   });
@@ -101,6 +102,7 @@ describe('reviewInviteEligibility', () => {
       showReviewSmsMessage: true,
       showReviewInviteMessage: false,
       showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
       showReviewInvite: false,
     });
   });
@@ -112,6 +114,7 @@ describe('reviewInviteEligibility', () => {
       showReviewSmsMessage: false,
       showReviewInviteMessage: true,
       showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
       showReviewInvite: false,
     });
   });
@@ -126,7 +129,40 @@ describe('reviewInviteEligibility', () => {
       showReviewSmsMessage: false,
       showReviewInviteMessage: true,
       showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
       showReviewInvite: true,
+    });
+  });
+
+  it('getCompleteVisitNotificationPreview falls back to email when customer opted out of SMS', () => {
+    expect(
+      getCompleteVisitNotificationPreview(
+        { ...eligibleBooking, customer_phone: '5552345678' },
+        emptyCtx(),
+        { canUseSms: true, smsOptIn: false },
+      ),
+    ).toEqual({
+      showReviewSmsMessage: false,
+      showReviewInviteMessage: true,
+      showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: false,
+      showReviewInvite: true,
+    });
+  });
+
+  it('getCompleteVisitNotificationPreview explains SMS opt-out when there is no email fallback', () => {
+    expect(
+      getCompleteVisitNotificationPreview(
+        { ...eligibleBooking, customer_email: null, customer_phone: '5552345678' },
+        emptyCtx(),
+        { canUseSms: true, smsOptIn: false },
+      ),
+    ).toEqual({
+      showReviewSmsMessage: false,
+      showReviewInviteMessage: false,
+      showNoReviewInviteMessage: false,
+      showSmsOptOutMessage: true,
+      showReviewInvite: false,
     });
   });
 });

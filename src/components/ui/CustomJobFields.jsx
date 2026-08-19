@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { DurationSelectField } from './DurationSelectField';
+import { formatServiceDurationSelectLabel } from './durationTime';
 import { RequiredFieldLabel } from './RequiredFieldLabel';
 import { SurfaceTextField } from './SurfaceTextField';
 
@@ -24,6 +25,10 @@ export function normalizeCustomJobPriceInput(rawText, maxLength = 10) {
   return output.slice(0, maxLength);
 }
 
+/**
+ * @param {object} props
+ * @param {boolean} [props.membershipVisit] — locks price + duration for subscription visits
+ */
 export function CustomJobFields({
   serviceName,
   onServiceNameChange,
@@ -34,7 +39,10 @@ export function CustomJobFields({
   onDurationHhMmChange,
   serviceNameMaxLength = 120,
   priceInputMaxLength = 10,
+  membershipVisit = false,
 }) {
+  const durationDisplay = formatServiceDurationSelectLabel(durationHhMm) || durationHhMm;
+
   return (
     <View style={styles.fields}>
       <SurfaceTextField
@@ -46,28 +54,49 @@ export function CustomJobFields({
         testID="create-appt-custom-service"
         value={serviceName}
       />
-      <SurfaceTextField
-        containerStyle={{ marginBottom: 0 }}
-        errorText={priceErrorText}
-        keyboardType="decimal-pad"
-        label={<RequiredFieldLabel text="Price (USD)" />}
-        maxLength={priceInputMaxLength}
-        onChangeText={(value) =>
-          onPriceUsdTextChange(normalizeCustomJobPriceInput(value, priceInputMaxLength))
-        }
-        placeholder="0.00"
-        prefixText="$"
-        style={{ paddingLeft: 2 }}
-        testID="create-appt-custom-price"
-        value={priceUsdText}
-      />
-      <DurationSelectField
-        containerStyle={{ marginBottom: 0, marginTop: 0 }}
-        label={<RequiredFieldLabel text="Duration" />}
-        mode="service"
-        onValueChange={onDurationHhMmChange}
-        value={durationHhMm}
-      />
+      {membershipVisit ? (
+        <SurfaceTextField
+          containerStyle={{ marginBottom: 0 }}
+          editable={false}
+          label={<RequiredFieldLabel text="Price" />}
+          placeholder="Subscription"
+          testID="create-appt-custom-price"
+          value="Subscription"
+        />
+      ) : (
+        <SurfaceTextField
+          containerStyle={{ marginBottom: 0 }}
+          errorText={priceErrorText}
+          keyboardType="decimal-pad"
+          label={<RequiredFieldLabel text="Price (USD)" />}
+          maxLength={priceInputMaxLength}
+          onChangeText={(value) =>
+            onPriceUsdTextChange(normalizeCustomJobPriceInput(value, priceInputMaxLength))
+          }
+          placeholder="0.00"
+          prefixText="$"
+          style={{ paddingLeft: 2 }}
+          testID="create-appt-custom-price"
+          value={priceUsdText}
+        />
+      )}
+      {membershipVisit ? (
+        <SurfaceTextField
+          containerStyle={{ marginBottom: 0 }}
+          editable={false}
+          label={<RequiredFieldLabel text="Duration" />}
+          testID="create-appt-custom-duration"
+          value={durationDisplay}
+        />
+      ) : (
+        <DurationSelectField
+          containerStyle={{ marginBottom: 0, marginTop: 0 }}
+          label={<RequiredFieldLabel text="Duration" />}
+          mode="service"
+          onValueChange={onDurationHhMmChange}
+          value={durationHhMm}
+        />
+      )}
     </View>
   );
 }

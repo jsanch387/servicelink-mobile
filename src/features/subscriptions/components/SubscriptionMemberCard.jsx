@@ -13,28 +13,21 @@ const PILL_LAYOUT = {
   paddingVertical: 3,
 };
 
-const PILL_TEXT = {
-  fontSize: 11,
-  fontWeight: '700',
-  letterSpacing: -0.05,
-};
-
 /**
- * Subscriber list card (CustomerCard-style hierarchy).
+ * Subscriber row — name + status; cadence under name; plan + chevron on bottom row.
+ *
  * @param {object} props
  * @param {string} props.customerName
- * @param {string} props.planName
- * @param {string} [props.nextVisitLabel]
- * @param {string} [props.footerLabel]
+ * @param {string} [props.cadenceLabel]
+ * @param {string} [props.planName]
  * @param {string} props.statusLabel
  * @param {string} [props.statusRaw]
  * @param {() => void} [props.onPress]
  */
 export function SubscriptionMemberCard({
   customerName,
-  planName,
-  nextVisitLabel = '',
-  footerLabel = 'Next visit',
+  cadenceLabel = '',
+  planName = '',
   statusLabel,
   statusRaw = '',
   onPress,
@@ -45,6 +38,9 @@ export function SubscriptionMemberCard({
     () => getSubscriptionStatusPillTheme(statusRaw, colors, isDark),
     [colors, isDark, statusRaw],
   );
+
+  const cadenceTrim = String(cadenceLabel ?? '').trim();
+  const planTrim = String(planName ?? '').trim();
 
   const styles = useMemo(
     () =>
@@ -65,64 +61,69 @@ export function SubscriptionMemberCard({
           gap: 10,
           width: '100%',
         },
+        nameCol: {
+          flex: 1,
+          minWidth: 0,
+          justifyContent: 'center',
+        },
         name: {
           color: colors.text,
-          flex: 1,
           fontFamily: FONT_FAMILIES.semibold,
           fontSize: 16,
           letterSpacing: -0.2,
-          minWidth: 0,
+        },
+        cadence: {
+          color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 12,
+          fontWeight: '500',
+          letterSpacing: -0.1,
+          marginTop: 3,
         },
         statusPill: {
           ...PILL_LAYOUT,
         },
         statusText: {
-          ...PILL_TEXT,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 11,
+          fontWeight: '700',
+          letterSpacing: -0.05,
         },
-        planName: {
-          color: colors.textMuted,
+        bottomRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          marginTop: 12,
+          width: '100%',
+        },
+        planCol: {
+          flex: 1,
+          minWidth: 0,
+          justifyContent: 'center',
+        },
+        plan: {
+          color: colors.textSecondary,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 13,
           fontWeight: '500',
           letterSpacing: -0.1,
-          marginTop: 8,
         },
-        footer: {
+        chevronCol: {
           alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginTop: 14,
-          width: '100%',
-        },
-        footerLabel: {
-          color: colors.placeholder ?? colors.textMuted,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 12,
-          fontWeight: '500',
-        },
-        footerRight: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          gap: 6,
-        },
-        footerValue: {
-          color: colors.text,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 13,
-          fontWeight: '500',
+          justifyContent: 'center',
+          width: 22,
         },
       }),
     [colors],
   );
 
-  const visitValue = nextVisitLabel || 'Not scheduled';
-
-  const inner = (
+  const body = (
     <SurfaceCard outlined padding="none" style={styles.card}>
       <View style={styles.topRow}>
-        <AppText numberOfLines={1} style={styles.name}>
-          {customerName}
-        </AppText>
+        <View style={styles.nameCol}>
+          <AppText numberOfLines={1} style={styles.name}>
+            {customerName}
+          </AppText>
+        </View>
         <View
           style={[
             styles.statusPill,
@@ -135,30 +136,40 @@ export function SubscriptionMemberCard({
           <AppText style={[styles.statusText, { color: pillTheme.color }]}>{statusLabel}</AppText>
         </View>
       </View>
-      <AppText numberOfLines={1} style={styles.planName}>
-        {planName}
-      </AppText>
-      <View style={styles.footer}>
-        <AppText style={styles.footerLabel}>{footerLabel}</AppText>
-        <View style={styles.footerRight}>
-          <AppText style={styles.footerValue}>{visitValue}</AppText>
-          {onPress ? <Ionicons color={colors.textMuted} name="chevron-forward" size={18} /> : null}
+
+      {cadenceTrim ? (
+        <AppText numberOfLines={1} style={styles.cadence}>
+          {cadenceTrim}
+        </AppText>
+      ) : null}
+
+      <View style={styles.bottomRow}>
+        <View style={styles.planCol}>
+          {planTrim ? (
+            <AppText numberOfLines={1} style={styles.plan}>
+              {planTrim}
+            </AppText>
+          ) : null}
         </View>
+        {onPress ? (
+          <View style={styles.chevronCol}>
+            <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />
+          </View>
+        ) : null}
       </View>
     </SurfaceCard>
   );
 
-  if (!onPress) return inner;
+  if (!onPress) return body;
 
   return (
     <Pressable
       accessibilityHint="Opens subscription detail"
       accessibilityLabel={`Subscription for ${customerName}`}
       accessibilityRole="button"
-      style={({ pressed }) => [styles.press, pressed && { opacity: 0.92 }]}
       onPress={onPress}
     >
-      {inner}
+      {({ pressed }) => <View style={[styles.press, pressed && { opacity: 0.92 }]}>{body}</View>}
     </Pressable>
   );
 }

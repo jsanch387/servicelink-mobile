@@ -3,13 +3,20 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import {
   AppText,
+  AppTextInput,
   BottomSheetModal,
   Button,
+  DurationSelectField,
   SurfaceTextField,
   WizardStepHeader,
 } from '../../../components/ui';
-import { useTheme } from '../../../theme';
+import {
+  minutesToServiceDurationHHmm,
+  serviceDurationHHmmToMinutes,
+} from '../../../components/ui/durationTime';
+import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { cadenceKeyFromParts } from '../constants/planCadence';
+import { planSchedulesToEditorValue } from '../utils/planScheduleDraft';
 import { PlanScheduleField } from './PlanScheduleField';
 
 /** @typedef {{ cadenceKey: string; count: number; interval: 'week' | 'month'; priceCents: number }} OfferedSchedule */
@@ -19,19 +26,35 @@ const STEP_SCHEDULE = 1;
 const STEP_DESCRIPTION = 2;
 const STEP_COUNT = 3;
 const DESCRIPTION_MAX_LENGTH = 1000;
+const DEFAULT_DURATION_HHMM = '01:00';
 
-const STEPS = [
+const CREATE_STEPS = [
   {
-    title: 'Name your plan',
-    subtitle: 'What are you offering customers?',
+    title: 'Name your subscription',
+    subtitle: 'What are you offering, and how long is each visit?',
   },
   {
     title: 'How often?',
     subtitle: 'Choose a schedule, set the price, then tap Add.',
   },
   {
-    title: 'Almost done',
-    subtitle: 'Optional — what’s included with this plan.',
+    title: 'Description',
+    subtitle: 'Tell customers what’s included each visit.',
+  },
+];
+
+const EDIT_STEPS = [
+  {
+    title: 'Subscription details',
+    subtitle: 'Update the name and visit length.',
+  },
+  {
+    title: 'Pricing',
+    subtitle: 'Update the schedules customers can pick.',
+  },
+  {
+    title: 'Description',
+    subtitle: 'What’s included each visit.',
   },
 ];
 
@@ -54,54 +77,155 @@ function insertBulletPoint(text, maxLength) {
   return `${current}${needsLineBreak ? '\n' : ''}• `.slice(0, maxLength);
 }
 
+function durationHHmmFromMinutes(raw) {
+  const mins = Math.max(0, Math.round(Number(raw)) || 0);
+  if (mins <= 0) return DEFAULT_DURATION_HHMM;
+  return minutesToServiceDurationHHmm(mins) || DEFAULT_DURATION_HHMM;
+}
+
 /**
+ * Create or edit a membership plan — same stepped sheet UX.
+ *
  * @param {object} props
  * @param {boolean} props.visible
  * @param {() => void} props.onRequestClose
  * @param {(plan: {
  *   name: string;
  *   description: string;
+ *   visitDurationMinutes: number;
  *   offeredSchedules: OfferedSchedule[];
  *   serviceName: string;
  * }) => void | Promise<void>} props.onSubmit
  * @param {boolean} [props.submitting]
+ * @param {'create' | 'edit'} [props.mode]
+ * @param {{
+ *   id?: string;
+ *   name?: string;
+ *   description?: string;
+ *   visitDurationMinutes?: number;
+ *   offeredSchedules?: unknown;
+ * } | null} [props.initialPlan]
  */
 export function SubscriptionsCreatePlanSheet({
   visible,
   onRequestClose,
   onSubmit,
   submitting = false,
+  mode = 'create',
+  initialPlan = null,
 }) {
   const { colors } = useTheme();
+  const isEdit = mode === 'edit';
+  const steps = isEdit ? EDIT_STEPS : CREATE_STEPS;
+
   const [step, setStep] = useState(STEP_NAME);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [durationHHmm, setDurationHHmm] = useState(DEFAULT_DURATION_HHMM);
   const [schedules, setSchedules] = useState([]);
 
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        stack: {
+          gap: 8,
+          paddingBottom: 4,
+        },
+        fieldReset: {
+          marginBottom: 0,
+        },
+        nameStep: {
+          gap: 14,
+        },
+        descriptionCard: {
+          backgroundColor: colors.cardSurface,
+          borderColor: colors.border,
+          borderRadius: 16,
+          borderWidth: 1,
+          minHeight: 160,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+        },
+        descriptionInput: {
+          color: colors.inputText ?? colors.text,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 16,
+          fontWeight: '500',
+          letterSpacing: -0.15,
+          lineHeight: 22,
+          minHeight: 136,
+          padding: 0,
+          textAlignVertical: 'top',
+          width: '100%',
+        },
+        descriptionToolbar: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginTop: 10,
+          paddingHorizontal: 2,
+        },
+        bulletButton: {
+          alignItems: 'center',
+          height: 32,
+          justifyContent: 'center',
+          width: 32,
+        },
+        charCount: {
+          fontSize: 12,
+        },
+        actions: {
+          flexDirection: 'row',
+          gap: 10,
+        },
+        actionBtn: {
+          flex: 1,
+        },
+      }),
+    [colors],
+  );
+
+  const seedKey = visible ? `${mode}:${initialPlan?.id ?? 'new'}` : '';
+
   useEffect(() => {
-    if (!visible) return;
+    if (!seedKey) return;
     setStep(STEP_NAME);
+    if (isEdit && initialPlan) {
+      setName(String(initialPlan.name ?? ''));
+      setDescription(String(initialPlan.description ?? ''));
+      setDurationHHmm(durationHHmmFromMinutes(initialPlan.visitDurationMinutes));
+      setSchedules(planSchedulesToEditorValue(initialPlan.offeredSchedules));
+      return;
+    }
     setName('');
     setDescription('');
+    setDurationHHmm(DEFAULT_DURATION_HHMM);
     setSchedules([]);
-  }, [visible]);
+  }, [seedKey, isEdit, initialPlan]);
 
   const offeredSchedules = useMemo(
     () => schedules.map(scheduleToOffer).filter(Boolean),
     [schedules],
   );
 
+  const visitDurationMinutes = serviceDurationHHmmToMinutes(durationHHmm);
   const nameOk = String(name).trim().length > 0;
+  const durationOk = visitDurationMinutes > 0;
+  const descriptionOk = String(description).trim().length > 0;
   const schedulesOk =
     offeredSchedules.length === schedules.length && schedules.length > 0 && !submitting;
 
   const canAdvance =
-    step === STEP_NAME ? nameOk : step === STEP_SCHEDULE ? schedulesOk : !submitting;
+    step === STEP_NAME
+      ? nameOk && durationOk
+      : step === STEP_SCHEDULE
+        ? schedulesOk
+        : descriptionOk && !submitting;
 
-  const stepMeta = STEPS[step] ?? STEPS[0];
+  const stepMeta = steps[step] ?? steps[0];
   const isLast = step === STEP_DESCRIPTION;
   const leftTitle = step === STEP_NAME ? 'Cancel' : 'Back';
-  const rightTitle = isLast ? 'Create plan' : 'Continue';
+  const rightTitle = isLast ? (isEdit ? 'Save' : 'Create') : 'Continue';
   const showDescriptionCharCount = description.length >= DESCRIPTION_MAX_LENGTH;
 
   const handleLeft = () => {
@@ -118,12 +242,15 @@ export function SubscriptionsCreatePlanSheet({
       setStep((prev) => Math.min(STEP_DESCRIPTION, prev + 1));
       return;
     }
-    void onSubmit({
-      name: String(name).trim(),
-      description: String(description).trim(),
-      offeredSchedules,
-      serviceName: '',
-    });
+    void Promise.resolve(
+      onSubmit({
+        name: String(name).trim(),
+        description: String(description).trim(),
+        visitDurationMinutes,
+        offeredSchedules,
+        serviceName: '',
+      }),
+    );
   };
 
   return (
@@ -154,54 +281,64 @@ export function SubscriptionsCreatePlanSheet({
       sheetHeightPercent={92}
       showHeaderDivider={false}
       stickyFooter
-      title="New plan"
+      title={isEdit ? 'Edit subscription' : 'New subscription'}
       visible={visible}
       onRequestClose={onRequestClose}
     >
       <View style={styles.stack}>
         <WizardStepHeader
           embedded
+          progressAccessibilityLabel={
+            isEdit ? 'Edit subscription progress' : 'Create subscription progress'
+          }
           stepCount={STEP_COUNT}
           stepIndex={step}
           subtitle={stepMeta.subtitle}
           title={stepMeta.title}
-          progressAccessibilityLabel="Create plan progress"
         />
 
         {step === STEP_NAME ? (
-          <SurfaceTextField
-            autoCapitalize="words"
-            autoFocus
-            compact
-            containerStyle={styles.fieldReset}
-            label="Plan name"
-            placeholder="Exterior Wash"
-            value={name}
-            onChangeText={setName}
-          />
+          <View style={styles.nameStep}>
+            <SurfaceTextField
+              autoCapitalize="words"
+              autoFocus
+              compact
+              containerStyle={styles.fieldReset}
+              label="Name"
+              placeholder="Exterior Wash"
+              value={name}
+              onChangeText={setName}
+            />
+            <DurationSelectField
+              compact
+              containerStyle={styles.fieldReset}
+              label="Duration"
+              value={durationHHmm}
+              onValueChange={setDurationHHmm}
+            />
+          </View>
         ) : null}
 
         {step === STEP_SCHEDULE ? (
-          <PlanScheduleField value={schedules} onChange={setSchedules} />
+          <PlanScheduleField listFirst={isEdit} value={schedules} onChange={setSchedules} />
         ) : null}
 
         {step === STEP_DESCRIPTION ? (
           <View>
-            <SurfaceTextField
-              autoFocus
-              compact
-              containerStyle={styles.descriptionField}
-              label="Description"
-              maxLength={DESCRIPTION_MAX_LENGTH}
-              multiline
-              placeholder="What’s included with this plan"
-              style={styles.descriptionInput}
-              textAlignVertical="top"
-              value={description}
-              onChangeText={(text) =>
-                setDescription(String(text ?? '').slice(0, DESCRIPTION_MAX_LENGTH))
-              }
-            />
+            <View style={styles.descriptionCard}>
+              <AppTextInput
+                autoFocus
+                maxLength={DESCRIPTION_MAX_LENGTH}
+                multiline
+                placeholder="What’s included"
+                placeholderTextColor={colors.placeholder}
+                style={styles.descriptionInput}
+                value={description}
+                onChangeText={(text) =>
+                  setDescription(String(text ?? '').slice(0, DESCRIPTION_MAX_LENGTH))
+                }
+              />
+            </View>
             <View style={styles.descriptionToolbar}>
               <Pressable
                 accessibilityLabel="Insert bullet point"
@@ -218,7 +355,9 @@ export function SubscriptionsCreatePlanSheet({
                 <AppText style={[styles.charCount, { color: colors.textMuted }]}>
                   {description.length}/{DESCRIPTION_MAX_LENGTH}
                 </AppText>
-              ) : null}
+              ) : (
+                <View />
+              )}
             </View>
           </View>
         ) : null}
@@ -226,44 +365,3 @@ export function SubscriptionsCreatePlanSheet({
     </BottomSheetModal>
   );
 }
-
-const styles = StyleSheet.create({
-  stack: {
-    gap: 8,
-    paddingBottom: 4,
-  },
-  fieldReset: {
-    marginBottom: 0,
-  },
-  descriptionField: {
-    marginBottom: 4,
-  },
-  descriptionInput: {
-    // Keep paddingTop in sync with SurfaceTextField’s multiline overlay placeholder
-    // so the caret and placeholder sit on the same line.
-    minHeight: 96,
-    paddingTop: 0,
-  },
-  descriptionToolbar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: -2,
-  },
-  bulletButton: {
-    alignItems: 'center',
-    height: 30,
-    justifyContent: 'center',
-    width: 30,
-  },
-  charCount: {
-    fontSize: 12,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  actionBtn: {
-    flex: 1,
-  },
-});

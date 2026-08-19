@@ -178,6 +178,23 @@ export function formatPhoneForDisplay(raw) {
 }
 
 /**
+ * Display phone with a hardcoded country code, e.g. `+1 (512) 555-0142`.
+ * Phase 1: US only (`+1`). Non-NANP values fall back to {@link formatPhoneForDisplay}.
+ *
+ * @param {string | null | undefined} raw
+ * @param {string} [countryCode='+1']
+ * @returns {string}
+ */
+export function formatPhoneWithCountryCode(raw, countryCode = '+1') {
+  const digits = canonicalNanpDigits(raw);
+  if (digits.length === 10) {
+    const code = String(countryCode ?? '+1').trim() || '+1';
+    return `${code} (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  return formatPhoneForDisplay(raw);
+}
+
+/**
  * Persist **10 NANP digits only** (no spaces, parentheses, or `+1`).
  * Incomplete numbers → `null`.
  *

@@ -97,7 +97,7 @@ export function smsMessageStatusPresentation(status) {
     return { label: key === 'undelivered' ? 'Undelivered' : 'Failed', tone: 'danger' };
   }
   if (key === 'skipped_opt_out') {
-    return { label: 'Skipped', tone: 'muted' };
+    return { label: 'Opted out', tone: 'muted' };
   }
   if (!key) {
     return { label: 'Unknown', tone: 'muted' };
@@ -155,7 +155,10 @@ export function mapSmsMessageRowToTimelineItem(row) {
   const status = typeof row?.status === 'string' ? row.status : '';
   const statusPresentation = smsMessageStatusPresentation(status);
   const phoneDisplay = formatPhoneForDisplay(row?.to_phone) || 'Phone unavailable';
-  const body = stripSmsOptOutFooterForDisplay(row?.body);
+  let body = stripSmsOptOutFooterForDisplay(row?.body);
+  if (!body && status.trim().toLowerCase() === 'skipped_opt_out') {
+    body = 'Not sent — this customer opted out of texts.';
+  }
   const type = typeof row?.type === 'string' ? row.type : '';
 
   return {

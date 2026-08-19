@@ -1,21 +1,32 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { cancelBookingById, deleteBookingById, rescheduleBookingById } from '../api/bookingDetails';
+import { useAuth } from '../../../auth';
+import { patchCancelAvailabilityBooking } from '../../api/patchCancelAvailabilityBooking';
+import { deleteBookingById, rescheduleBookingById } from '../api/bookingDetails';
 import { bookingsDetailsQueryKey } from '../../queryKeys';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
 
 export function useBookingActions(bookingId) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const accessToken = session?.access_token ?? null;
 
   const cancelBookingMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await cancelBookingById(bookingId);
-      if (error) {
-        throw new Error(error.message ?? 'Could not cancel booking');
+      const result = await patchCancelAvailabilityBooking(accessToken, bookingId);
+      if (!result.ok) {
+        throw result.error;
       }
-      return data;
+      return result.booking;
     },
-    onSuccess: async () => {
-      await invalidateBookingCachesAfterMutation(queryClient, bookingId);
+    onSuccess: async (booking) => {
+      const id = String(booking?.id ?? bookingId ?? '').trim();
+      if (id && booking?.status) {
+        queryClient.setQueryData(bookingsDetailsQueryKey(id), (prev) => {
+          if (!prev || typeof prev !== 'object') return prev;
+          return { ...prev, status: booking.status };
+        });
+      }
+      await invalidateBookingCachesAfterMutation(queryClient, id || bookingId);
     },
   });
 

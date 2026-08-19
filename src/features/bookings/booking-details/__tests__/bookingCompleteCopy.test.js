@@ -44,6 +44,13 @@ describe('getBookingMarkCompleteSheetCopy', () => {
     expect(copy.highlightTitle).toMatch(/no review request/i);
   });
 
+  it('highlights SMS opt-out when showSmsOptOutMessage is true', () => {
+    const copy = getBookingMarkCompleteSheetCopy({ showSmsOptOutMessage: true });
+    expect(copy.highlightVariant).toBe('sms_opt_out');
+    expect(copy.highlightTitle).toMatch(/opted out of texts/i);
+    expect(copy.highlightBody).toMatch(/still be marked complete/i);
+  });
+
   it('uses simple copy when all preview flags are false', () => {
     const copy = getBookingMarkCompleteSheetCopy({
       showReviewInviteMessage: false,

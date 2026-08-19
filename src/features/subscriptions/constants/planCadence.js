@@ -6,9 +6,9 @@ export const CADENCE_INTERVALS = [
 
 /** Schedule options owners can offer on a plan (maps to Stripe interval + interval_count later). */
 export const PLAN_CADENCE_OPTIONS = [
-  { key: 'every_1_week', label: 'Every week', interval: 'week', intervalCount: 1 },
-  { key: 'every_2_weeks', label: 'Every 2 weeks', interval: 'week', intervalCount: 2 },
-  { key: 'monthly', label: 'Every month', interval: 'month', intervalCount: 1 },
+  { key: 'every_1_week', label: 'Weekly', interval: 'week', intervalCount: 1 },
+  { key: 'every_2_weeks', label: 'Biweekly', interval: 'week', intervalCount: 2 },
+  { key: 'monthly', label: 'Monthly', interval: 'month', intervalCount: 1 },
   { key: 'every_2_months', label: 'Every 2 months', interval: 'month', intervalCount: 2 },
   { key: 'every_3_months', label: 'Every 3 months', interval: 'month', intervalCount: 3 },
 ];
@@ -16,14 +16,13 @@ export const PLAN_CADENCE_OPTIONS = [
 export const DEFAULT_PLAN_CADENCE_KEY = 'monthly';
 
 /**
- * One-tap chips in the plan sheet — the three schedules shops actually sell.
- * Anything else is reachable through the custom picker.
+ * One-tap chips in the plan sheet — weekly, biweekly, monthly.
  */
 export const PLAN_CADENCE_PRESETS = [
   { key: 'every_1_week', shortLabel: 'Weekly', count: 1, interval: /** @type {'week'} */ ('week') },
   {
     key: 'every_2_weeks',
-    shortLabel: '2 weeks',
+    shortLabel: 'Biweekly',
     count: 2,
     interval: /** @type {'week'} */ ('week'),
   },
@@ -163,7 +162,7 @@ export function formatCadenceLabel(cadenceKey) {
 }
 
 /**
- * Compact pill label for hub cards: Weekly, 2 weeks, Monthly, 3 months.
+ * Compact pill label for hub cards: Weekly, Biweekly, Monthly, 3 months.
  * @param {number} count
  * @param {'week' | 'month' | string} interval
  */
@@ -252,13 +251,17 @@ export function formatScheduleSummary(priceCents, count, interval) {
   return `${base} · about ${formatPlanPriceCents(monthly)} a month`;
 }
 
-/** List row subtitle, e.g. "$20 a week" / "$45 every 2 weeks". */
+/** List row subtitle, e.g. "$20 weekly" / "$45 biweekly". */
 export function formatSchedulePriceLine(priceCents, count, interval) {
   const amount = Number(priceCents);
   if (!Number.isFinite(amount) || amount <= 0) return '';
   const unit = normalizeCadenceInterval(interval);
   const n = clampCadenceCount(count, unit);
   const price = formatPlanPriceCents(amount);
+  const pill = formatCadencePillLabel(n, unit);
+  if (pill === 'Weekly' || pill === 'Biweekly' || pill === 'Monthly') {
+    return `${price} ${pill.toLowerCase()}`;
+  }
   if (n === 1) {
     const intervalData = CADENCE_INTERVALS.find((row) => row.key === unit);
     return `${price} a ${intervalData.label}`;

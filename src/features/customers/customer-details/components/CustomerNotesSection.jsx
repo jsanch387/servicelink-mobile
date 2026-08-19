@@ -9,6 +9,7 @@ export function CustomerNotesSection({
   isEditing = false,
   draftNotes = '',
   first = false,
+  placeholder = 'Add notes about this customer',
   onChangeDraftNotes,
   onStartEdit,
   onCancelEdit,
@@ -24,27 +25,22 @@ export function CustomerNotesSection({
     () =>
       StyleSheet.create({
         bodyRow: {
-          alignItems: 'flex-start',
-          flexDirection: 'row',
-          gap: 8,
           paddingHorizontal: 16,
           paddingVertical: 14,
         },
         body: {
           color: isEmpty ? colors.placeholder : colors.textSecondary,
-          flex: 1,
           fontSize: 16,
           fontWeight: '400',
           letterSpacing: -0.15,
           lineHeight: 24,
-          minWidth: 0,
         },
         editIconButton: {
           alignItems: 'center',
           borderRadius: 999,
           height: 30,
           justifyContent: 'center',
-          marginTop: -2,
+          marginRight: -4,
           width: 30,
         },
         editWrap: {
@@ -75,15 +71,31 @@ export function CustomerNotesSection({
     [colors, isEmpty],
   );
 
+  const editAffordance =
+    !isEditing && typeof onStartEdit === 'function' ? (
+      <Pressable
+        accessibilityLabel="Edit notes"
+        accessibilityRole="button"
+        hitSlop={8}
+        onPress={onStartEdit}
+      >
+        {({ pressed }) => (
+          <View style={[styles.editIconButton, pressed && { opacity: 0.65 }]}>
+            <Ionicons color={colors.textMuted} name="create-outline" size={18} />
+          </View>
+        )}
+      </Pressable>
+    ) : null;
+
   return (
-    <SettingsSection first={first} title="Notes">
+    <SettingsSection first={first} title="Notes" titleRight={editAffordance}>
       {isEditing ? (
         <View style={styles.editWrap}>
           <AppTextInput
             autoCapitalize="sentences"
             multiline
             onChangeText={onChangeDraftNotes}
-            placeholder="Add notes about this customer"
+            placeholder={placeholder}
             placeholderTextColor={colors.placeholder}
             style={styles.input}
             value={draftNotes}
@@ -94,7 +106,7 @@ export function CustomerNotesSection({
                 disabled={saveLoading}
                 onPress={onCancelEdit}
                 title="Cancel"
-                variant="outline"
+                variant="secondary"
               />
             </View>
             <View style={styles.actionCell}>
@@ -105,15 +117,6 @@ export function CustomerNotesSection({
       ) : (
         <View style={styles.bodyRow}>
           <AppText style={styles.body}>{resolvedNotes}</AppText>
-          <Pressable
-            accessibilityLabel="Edit customer notes"
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={onStartEdit}
-            style={({ pressed }) => [styles.editIconButton, pressed && { opacity: 0.65 }]}
-          >
-            <Ionicons color={colors.textMuted} name="create-outline" size={18} />
-          </Pressable>
         </View>
       )}
     </SettingsSection>

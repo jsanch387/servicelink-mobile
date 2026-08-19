@@ -295,6 +295,9 @@ export async function markBookingCompletedById(bookingId, businessId) {
 }
 
 /**
+ * @deprecated Owner cancel must go through {@link import('../../api/patchCancelAvailabilityBooking').patchCancelAvailabilityBooking}
+ * so the server can send cancel email and unlink membership period visits. Do not call this from UI.
+ *
  * @param {string} bookingId
  */
 export async function cancelBookingById(bookingId) {

@@ -1,30 +1,37 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef } from 'react';
-import {
-  ActivityIndicator,
-  Animated,
-  PanResponder,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { useEffect, useMemo, useRef } from 'react';
+import { Animated, PanResponder, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../theme';
 import { AppText } from './AppText';
 import { resolveToastEmailTokens, resolveToastSmsTokens } from './toastSmsTokens';
 
-/** @typedef {'success' | 'error' | 'loading' | 'info'} ToastType */
+/** @typedef {'success' | 'error' | 'info'} ToastType */
 /** @typedef {'default' | 'sms' | 'email'} ToastVariant */
 
 const ENTER_DURATION = 220;
 const EXIT_DURATION = 170;
+const CARD_RADIUS = 18;
 
-const GLASS = {
-  text: '#0a0a0a',
-  textSecondary: '#404040',
-  success: '#15803d',
-  error: '#dc2626',
-  info: '#0a0a0a',
+/** Overlay chrome — sits above `shell`, so it cannot reuse `cardSurface` (too close to the bg). */
+const TOAST_SURFACE = {
+  dark: {
+    fill: ['#242426', '#1c1c1e'],
+    bg: '#1c1c1e',
+    border: 'rgba(255,255,255,0.12)',
+    specular: ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0)'],
+    iconWell: 'rgba(255,255,255,0.06)',
+    shadowOpacity: 0.5,
+  },
+  light: {
+    fill: ['#ffffff', '#f4f4f5'],
+    bg: '#ffffff',
+    border: 'rgba(10,10,10,0.12)',
+    specular: ['rgba(255,255,255,0.7)', 'rgba(255,255,255,0)'],
+    iconWell: 'rgba(10,10,10,0.05)',
+    shadowOpacity: 0.16,
+  },
 };
 
 const ICON_BY_TYPE = {
@@ -34,7 +41,7 @@ const ICON_BY_TYPE = {
 };
 
 /**
- * Single floating toast — default pill or SMS card (white surface, accent text, swipe up to dismiss).
+ * Single floating toast — themed card (swipe up to dismiss).
  *
  * @param {{
  *   type: ToastType;
@@ -58,10 +65,9 @@ export function ToastView({
   onPress,
 }) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const translateY = useRef(new Animated.Value(-24)).current;
   const opacity = useRef(new Animated.Value(0)).current;
-  const iconScale = useRef(new Animated.Value(1)).current;
-  const prevTypeRef = useRef(type);
   const isSms = variant === 'sms';
   const isEmail = variant === 'email';
   const isConfirmationCard = isSms || isEmail;
@@ -95,21 +101,6 @@ export function ToastView({
   }, [opacity, translateY]);
 
   useEffect(() => {
-    const settledFromLoading = prevTypeRef.current === 'loading' && type !== 'loading';
-    prevTypeRef.current = type;
-    if (!settledFromLoading) {
-      return;
-    }
-    iconScale.setValue(0.5);
-    Animated.spring(iconScale, {
-      toValue: 1,
-      friction: 5,
-      tension: 140,
-      useNativeDriver: true,
-    }).start();
-  }, [type, iconScale]);
-
-  useEffect(() => {
     if (!dismissing) {
       return;
     }
@@ -136,21 +127,32 @@ export function ToastView({
       ? resolveToastEmailTokens(type)
       : resolveToastSmsTokens(type)
     : null;
-  const accent = isConfirmationCard
-    ? confirmationTokens.text
-    : type === 'success'
-      ? GLASS.success
-      : type === 'error'
-        ? GLASS.error
-        : GLASS.info;
+  const accent =
+    type === 'success' ? colors.textSuccess : type === 'error' ? colors.danger : colors.text;
   const iconName = isConfirmationCard
     ? confirmationTokens.icon
     : (ICON_BY_TYPE[type] ?? ICON_BY_TYPE.info);
-  const messageColor = isConfirmationCard
-    ? confirmationTokens.text
-    : title
-      ? GLASS.textSecondary
-      : GLASS.text;
+  const titleColor = colors.text;
+  const messageColor = title && !isConfirmationCard ? colors.textMuted : colors.text;
+  const surface = isDark ? TOAST_SURFACE.dark : TOAST_SURFACE.light;
+
+  const themed = useMemo(
+    () => ({
+      cardShadow: {
+        backgroundColor: surface.bg,
+        shadowColor: '#000000',
+        shadowOpacity: surface.shadowOpacity,
+      },
+      glassShell: {
+        backgroundColor: surface.bg,
+        borderColor: surface.border,
+      },
+      iconWell: {
+        backgroundColor: surface.iconWell,
+      },
+    }),
+    [surface],
+  );
 
   const handlePress = () => {
     onPress?.();
@@ -169,36 +171,30 @@ export function ToastView({
           accessibilityLiveRegion="polite"
           accessibilityRole="button"
           onPress={handlePress}
-          style={styles.cardShadow}
+          style={[styles.cardShadow, themed.cardShadow]}
         >
-          <View style={styles.glassShell}>
+          <View style={[styles.glassShell, themed.glassShell]}>
             <LinearGradient
-              colors={['#ffffff', '#f7f7f8']}
+              colors={surface.fill}
               end={{ x: 0.5, y: 1 }}
               pointerEvents="none"
               start={{ x: 0.5, y: 0 }}
               style={StyleSheet.absoluteFillObject}
             />
             <LinearGradient
-              colors={['rgba(255,255,255,0.85)', 'rgba(255,255,255,0)']}
+              colors={surface.specular}
               end={{ x: 0.5, y: 1 }}
               pointerEvents="none"
               start={{ x: 0.5, y: 0 }}
               style={styles.specular}
             />
             <View style={styles.content}>
-              <View style={styles.iconWrap}>
-                {type === 'loading' ? (
-                  <ActivityIndicator color={GLASS.text} size="small" />
-                ) : (
-                  <Animated.View style={{ transform: [{ scale: iconScale }] }}>
-                    <Ionicons color={accent} name={iconName} size={22} />
-                  </Animated.View>
-                )}
+              <View style={[styles.iconWrap, themed.iconWell]}>
+                <Ionicons color={accent} name={iconName} size={22} />
               </View>
               <View style={styles.textWrap}>
                 {title && !isConfirmationCard ? (
-                  <AppText numberOfLines={1} style={styles.title}>
+                  <AppText numberOfLines={1} style={[styles.title, { color: titleColor }]}>
                     {title}
                   </AppText>
                 ) : null}
@@ -234,20 +230,15 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   cardShadow: {
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.28,
-    shadowRadius: 28,
-    elevation: 16,
+    borderRadius: CARD_RADIUS,
+    elevation: 20,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 24,
     width: '100%',
   },
   glassShell: {
-    backgroundColor: '#ffffff',
-    borderColor: 'rgba(0,0,0,0.06)',
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: CARD_RADIUS,
+    borderWidth: 1,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -267,16 +258,16 @@ const styles = StyleSheet.create({
   },
   iconWrap: {
     alignItems: 'center',
-    height: 24,
+    borderRadius: 18,
+    height: 36,
     justifyContent: 'center',
-    width: 24,
+    width: 36,
   },
   textWrap: {
     flex: 1,
     minWidth: 0,
   },
   title: {
-    color: GLASS.text,
     fontSize: 15,
     fontWeight: '600',
     letterSpacing: -0.2,
@@ -288,7 +279,5 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
     lineHeight: 19,
   },
-  messageWithTitle: {
-    color: GLASS.textSecondary,
-  },
+  messageWithTitle: {},
 });

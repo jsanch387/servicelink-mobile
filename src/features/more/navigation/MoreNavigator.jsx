@@ -194,6 +194,7 @@ export function MoreNavigator() {
           component={SubscriptionDetailScreen}
           name={ROUTES.SUBSCRIPTION_DETAIL}
           options={{
+            title: 'Subscriber',
             headerBackButtonDisplayMode: 'minimal',
             headerBackTitleVisible: false,
           }}
@@ -202,6 +203,7 @@ export function MoreNavigator() {
           component={SubscriptionPlanDetailScreen}
           name={ROUTES.SUBSCRIPTION_PLAN_DETAIL}
           options={{
+            title: 'Subscription details',
             headerBackButtonDisplayMode: 'minimal',
             headerBackTitleVisible: false,
           }}

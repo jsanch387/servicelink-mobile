@@ -20,6 +20,7 @@ describe('showBookingActionToasts (SMS enabled)', () => {
       email: jest.fn(),
       success: jest.fn(),
       info: jest.fn(),
+      error: jest.fn(),
     };
   }
 
@@ -84,6 +85,40 @@ describe('showBookingActionToasts (SMS enabled)', () => {
     expect(toast.sms).toHaveBeenCalledWith(smsSkipMessage('error'), { type: 'info' });
   });
 
+  it('explains SMS opt-out without treating the action as failed', () => {
+    const toast = createToast();
+    showBookingActionToasts(toast, BOOKING_ACTION.ON_THE_WAY, {
+      smsSent: false,
+      smsReason: 'sms_opt_out',
+    });
+    expect(toast.success).toHaveBeenCalled();
+    expect(toast.sms).toHaveBeenCalledWith(smsSkipMessage('sms_opt_out'), { type: 'info' });
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('explains STOP opt-out on job_started and still treats the job as started', () => {
+    const toast = createToast();
+    showBookingActionToasts(toast, BOOKING_ACTION.JOB_STARTED, {
+      smsSent: false,
+      smsReason: 'carrier_opt_out',
+    });
+    expect(toast.sms).toHaveBeenCalledWith(smsSkipMessage('carrier_opt_out'), { type: 'info' });
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('explains SMS opt-out on job_completed when neither channel reached the customer', () => {
+    const toast = createToast();
+    showBookingActionToasts(toast, BOOKING_ACTION.JOB_COMPLETED, {
+      smsSent: false,
+      smsReason: 'sms_opt_out',
+      emailSent: false,
+      emailReason: 'no_email',
+    });
+    expect(toast.sms).toHaveBeenCalledWith(smsSkipMessage('sms_opt_out'), { type: 'info' });
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
   it('shows soft note when work_finished SMS failed without a reason', () => {
     const toast = createToast();
     showBookingActionToasts(toast, BOOKING_ACTION.WORK_FINISHED, {
@@ -91,5 +126,34 @@ describe('showBookingActionToasts (SMS enabled)', () => {
       smsReason: null,
     });
     expect(toast.info).toHaveBeenCalledWith(WORK_FINISHED_SMS_SOFT_NOTE);
+  });
+
+  it('stays silent on duplicate skip toasts', () => {
+    const toast = createToast();
+    showBookingActionToasts(toast, BOOKING_ACTION.ON_THE_WAY, {
+      smsSent: false,
+      smsReason: 'duplicate',
+    });
+    expect(toast.success).toHaveBeenCalled();
+    expect(toast.sms).not.toHaveBeenCalled();
+
+    const started = createToast();
+    showBookingActionToasts(started, BOOKING_ACTION.JOB_STARTED, {
+      smsSent: false,
+      smsReason: 'duplicate',
+    });
+    expect(started.sms).not.toHaveBeenCalled();
+    expect(started.info).not.toHaveBeenCalled();
+  });
+
+  it('maps skip reasons to owner-facing copy', () => {
+    expect(smsSkipMessage('no_phone')).toBe('No phone number on file — customer wasn’t texted.');
+    expect(smsSkipMessage('sms_opt_out')).toBe(
+      'Customer opted out of texts — status still updated.',
+    );
+    expect(smsSkipMessage('carrier_opt_out')).toBe(
+      'Customer opted out of texts (STOP) — status still updated.',
+    );
+    expect(smsSkipMessage('error')).toBe('Couldn’t send text.');
   });
 });

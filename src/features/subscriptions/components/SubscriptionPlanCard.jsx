@@ -11,10 +11,13 @@ import {
   sortSchedules,
 } from '../constants/planCadence';
 
-function hubCadencePillLabel(count, interval) {
+function hubCadencePillLabel(schedule) {
+  if (schedule?.label) return schedule.label;
+  const count = Number(schedule?.count) || 1;
+  const interval = schedule?.interval;
+  if (interval === 'year' && count === 1) return 'Yearly';
   const pill = formatCadencePillLabel(count, interval);
-  if (pill === '2 weeks') return 'Every 2 weeks';
-  if (pill === 'Weekly' || pill === 'Monthly') return pill;
+  if (pill === 'Weekly' || pill === 'Biweekly' || pill === 'Monthly') return pill;
   return formatCustomCadenceLabel(count, interval);
 }
 
@@ -23,6 +26,7 @@ function priceSuffixForSchedule(schedule) {
   const count = Number(schedule.count) || 1;
   if (schedule.interval === 'month' && count === 1) return '/mo';
   if (schedule.interval === 'week' && count === 1) return '/wk';
+  if (schedule.interval === 'year' && count === 1) return '/yr';
   return '';
 }
 
@@ -160,9 +164,7 @@ export function SubscriptionPlanCard({ plan, onPress }) {
         <View style={styles.pillsRow}>
           {schedules.map((row) => (
             <View key={row.cadenceKey} style={styles.pill}>
-              <AppText style={styles.pillText}>
-                {hubCadencePillLabel(row.count, row.interval)}
-              </AppText>
+              <AppText style={styles.pillText}>{hubCadencePillLabel(row)}</AppText>
             </View>
           ))}
         </View>
@@ -181,8 +183,8 @@ export function SubscriptionPlanCard({ plan, onPress }) {
 
   return (
     <TouchableOpacity
-      accessibilityHint="Opens plan details"
-      accessibilityLabel={`Plan ${plan.name}`}
+      accessibilityHint="Opens subscription details"
+      accessibilityLabel={`Subscription ${plan.name}`}
       accessibilityRole="button"
       activeOpacity={0.92}
       style={styles.press}

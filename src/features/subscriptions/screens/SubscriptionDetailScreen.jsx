@@ -1,138 +1,202 @@
-import { Ionicons } from '@expo/vector-icons';
-import * as Clipboard from 'expo-clipboard';
-import * as Haptics from 'expo-haptics';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
+import { InlineCardError, SurfaceCard, useToast } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import { navigateNestedTabScreen } from '../../../navigation/navigateNestedTabScreen';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
+import { CustomerNotesSection } from '../../customers/customer-details/components/CustomerNotesSection';
+import { SubscriberCustomerCard } from '../components/SubscriberCustomerCard';
 import { SubscriptionDetailActions } from '../components/SubscriptionDetailActions';
 import { SubscriptionDetailBody } from '../components/SubscriptionDetailBody';
+import { SubscriptionDetailSkeleton } from '../components/SubscriptionDetailSkeleton';
+import { CANCEL_MEMBERSHIP_NOW, CANCEL_MEMBERSHIP_PERIOD_END } from '../api/postCancelMembership';
+import { updateMembershipSubscriberNotes } from '../api/updateMembershipSubscriberNotes';
 import {
   SUBSCRIPTION_CANCEL_ALERT_MESSAGE,
   SUBSCRIPTION_CANCEL_ALERT_TITLE,
+  SUBSCRIPTION_CANCEL_KEEP,
+  SUBSCRIPTION_CANCEL_NOW,
+  SUBSCRIPTION_CANCEL_PERIOD_END,
   SUBSCRIPTION_DETAIL_NOT_FOUND,
+  SUBSCRIPTION_REBOOK_NO_CONTACT,
 } from '../constants';
-import { MOCK_SUBSCRIPTIONS } from '../mock/mockSubscriptions';
+import { useCancelMembership } from '../hooks/useCancelMembership';
+import { useMembershipSubscriber } from '../hooks/useMembershipCatalog';
+import { useSendMembershipScheduleLink } from '../hooks/useSendMembershipScheduleLink';
+import { useSubscriptionsAccess } from '../hooks/useSubscriptionsAccess';
+import { membershipCatalogQueryKey } from '../queryKeys';
+import { getCancelMembershipToastMessage } from '../utils/cancelMembershipCopy';
+import { getScheduleLinkSentToastMessage } from '../utils/scheduleLinkSentCopy';
 import { mapSubscriptionDetailModel } from '../utils/subscriptionPresentation';
 
 export function SubscriptionDetailScreen() {
   const { colors } = useTheme();
+  const toast = useToast();
   const navigation = useNavigation();
   const route = useRoute();
   const subscriptionId = String(route.params?.subscriptionId ?? '').trim() || undefined;
+  const { subscriber, businessId, isPending, errorMessage, refetch } =
+    useMembershipSubscriber(subscriptionId);
+  const { featureEnabled } = useSubscriptionsAccess();
+  const { sendScheduleLink, isSending } = useSendMembershipScheduleLink({ businessId });
+  const { cancelMembership, isCanceling } = useCancelMembership({ businessId });
+  const queryClient = useQueryClient();
 
-  const [linkCopyFeedback, setLinkCopyFeedback] = useState(false);
-  const [canceledIds, setCanceledIds] = useState(() => new Set());
+  const model = useMemo(
+    () => (subscriber ? mapSubscriptionDetailModel(subscriber) : null),
+    [subscriber],
+  );
 
-  const sourceRow = useMemo(() => {
-    if (!subscriptionId) return null;
-    return MOCK_SUBSCRIPTIONS.find((row) => row.id === subscriptionId) ?? null;
-  }, [subscriptionId]);
+  const [notes, setNotes] = useState('');
+  const [notesEditing, setNotesEditing] = useState(false);
+  const [notesDraft, setNotesDraft] = useState('');
+  const [notesSaving, setNotesSaving] = useState(false);
 
-  const model = useMemo(() => {
-    if (!sourceRow) return null;
-    const locallyCanceled = canceledIds.has(sourceRow.id);
-    const row = locallyCanceled
-      ? {
-          ...sourceRow,
-          status: 'canceled',
-          cancelAtPeriodEnd: false,
-          nextVisitDate: null,
-          nextVisitTime: null,
-          nextBillingDate: null,
-        }
-      : sourceRow;
-    return mapSubscriptionDetailModel(row);
-  }, [canceledIds, sourceRow]);
+  useEffect(() => {
+    if (notesSaving) return;
+    const next = String(model?.notes ?? '');
+    setNotes(next);
+    setNotesDraft(next);
+    setNotesEditing(false);
+  }, [model?.id, model?.notes, notesSaving]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: model?.customerName ? model.customerName : 'Subscription',
+      title: 'Subscriber',
+      headerRight: undefined,
     });
-  }, [model?.customerName, navigation]);
+  }, [navigation]);
 
-  const handleViewCustomer = useCallback(() => {
-    if (!model?.customerId) return;
-    navigation.navigate(ROUTES.CUSTOMER_DETAILS, {
-      customerId: model.customerId,
+  const handleOpenVisit = useCallback(() => {
+    const bookingId = String(model?.periodVisitBookingId ?? '').trim();
+    if (!bookingId) return;
+    navigateNestedTabScreen(navigation, {
+      tab: ROUTES.BOOKINGS,
+      screen: ROUTES.BOOKING_DETAILS,
+      params: { bookingId },
+    });
+  }, [model?.periodVisitBookingId, navigation]);
+
+  const handleBookVisit = useCallback(() => {
+    if (!model?.needsVisit) return;
+    navigation.navigate(ROUTES.CREATE_APPOINTMENT, {
+      membershipId: model.id,
+      customerId: model.customerId ?? '',
+      initialBookingId: model.initialBookingId ?? '',
       customerName: model.customerName,
-      customerEmail: model.customerEmail || undefined,
-      customerPhone: model.customerPhone || undefined,
+      customerEmail: model.customerEmail,
+      customerPhone: model.customerPhone,
+      notes: model.notes ?? '',
+      planName: model.planName || model.serviceName,
+      durationMinutes: model.visitDurationMinutes || 60,
     });
   }, [model, navigation]);
 
-  const handleCopyManageLink = useCallback(async () => {
-    const link = String(model?.manageLink ?? '').trim();
-    if (!link) return;
-    await Clipboard.setStringAsync(link);
-    void Haptics.selectionAsync().catch(() => {});
-    setLinkCopyFeedback(true);
-    setTimeout(() => setLinkCopyFeedback(false), 2000);
-  }, [model?.manageLink]);
+  const handleSendRebookLink = useCallback(async () => {
+    if (!model?.needsVisit) return;
+    if (!model.canSendRebookLink) {
+      Alert.alert('Missing contact info', SUBSCRIPTION_REBOOK_NO_CONTACT);
+      return;
+    }
+    try {
+      const result = await sendScheduleLink(model.id);
+      const message = getScheduleLinkSentToastMessage(result);
+      if (result.smsed) {
+        toast.sms(message);
+      } else if (result.emailed) {
+        toast.email(message);
+      } else {
+        toast.success(message);
+      }
+    } catch (error) {
+      const status = Number(error?.httpStatus) || 0;
+      if (status === 409) {
+        void refetch();
+      }
+      toast.error(error?.message?.trim() || 'Could not send schedule link.');
+    }
+  }, [model?.canSendRebookLink, model?.id, model?.needsVisit, refetch, sendScheduleLink, toast]);
 
-  const handleConfirmCancel = useCallback(() => {
-    if (!model?.id) return;
-    setCanceledIds((prev) => {
-      const next = new Set(prev);
-      next.add(model.id);
-      return next;
-    });
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    Alert.alert(
-      'Subscription canceled',
-      'Mock only — nothing was sent to Stripe. They would keep access until period end.',
-    );
-  }, [model?.id]);
+  const handleCancelMembership = useCallback(
+    async (action) => {
+      if (!model?.canCancel || isCanceling) return;
+      try {
+        const result = await cancelMembership({ subscriberId: model.id, action });
+        toast.success(
+          getCancelMembershipToastMessage({
+            alreadyCanceled: result.alreadyCanceled,
+            action,
+          }),
+        );
+      } catch (error) {
+        toast.error(
+          error?.message?.trim() || 'Could not cancel this subscription. Try again in a moment.',
+        );
+      }
+    },
+    [cancelMembership, isCanceling, model?.canCancel, model?.id, toast],
+  );
 
   const handleCancel = useCallback(() => {
-    if (!model?.canCancel) return;
+    if (!model?.canCancel || isCanceling) return;
     Alert.alert(SUBSCRIPTION_CANCEL_ALERT_TITLE, SUBSCRIPTION_CANCEL_ALERT_MESSAGE, [
-      { text: 'Keep subscription', style: 'cancel' },
+      { text: SUBSCRIPTION_CANCEL_KEEP, style: 'cancel' },
       {
-        text: 'Cancel subscription',
+        text: SUBSCRIPTION_CANCEL_PERIOD_END,
+        onPress: () => {
+          void handleCancelMembership(CANCEL_MEMBERSHIP_PERIOD_END);
+        },
+      },
+      {
+        text: SUBSCRIPTION_CANCEL_NOW,
         style: 'destructive',
-        onPress: handleConfirmCancel,
+        onPress: () => {
+          void handleCancelMembership(CANCEL_MEMBERSHIP_NOW);
+        },
       },
     ]);
-  }, [handleConfirmCancel, model?.canCancel]);
+  }, [handleCancelMembership, isCanceling, model?.canCancel]);
 
-  const customerRows = useMemo(() => {
-    if (!model) return [];
-    const rows = [
-      {
-        key: 'name',
-        icon: 'person-outline',
-        value: model.customerName,
-        emphasize: true,
-        onPress: handleViewCustomer,
-        accessibilityLabel: `View ${model.customerName} profile`,
-        trailing: <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />,
-      },
-    ];
-    const phone = String(model.customerPhone ?? '').trim();
-    if (phone) {
-      rows.push({
-        key: 'phone',
-        icon: 'call-outline',
-        value: phone,
-        interactionStyle: 'none',
-      });
+  const handleStartEditNotes = useCallback(() => {
+    if (notesSaving || !model) return;
+    setNotesDraft(notes);
+    setNotesEditing(true);
+  }, [model, notes, notesSaving]);
+
+  const handleCancelEditNotes = useCallback(() => {
+    if (notesSaving) return;
+    setNotesDraft(notes);
+    setNotesEditing(false);
+  }, [notes, notesSaving]);
+
+  const handleSaveNotes = useCallback(async () => {
+    if (notesSaving || !model) return;
+    if (!businessId) {
+      Alert.alert('Unable to save notes', 'Missing business context. Please go back and retry.');
+      return;
     }
-    const email = String(model.customerEmail ?? '').trim();
-    if (email) {
-      rows.push({
-        key: 'email',
-        icon: 'mail-outline',
-        value: email,
-        interactionStyle: 'none',
-      });
+    setNotesSaving(true);
+    try {
+      const { error } = await updateMembershipSubscriberNotes(businessId, model.id, notesDraft);
+      if (error) {
+        Alert.alert(
+          'Unable to save notes',
+          safeUserFacingMessage(error, { fallback: 'Please try again in a moment.' }),
+        );
+        return;
+      }
+      setNotes(String(notesDraft ?? '').trim());
+      setNotesEditing(false);
+      await queryClient.invalidateQueries({ queryKey: membershipCatalogQueryKey(businessId) });
+    } finally {
+      setNotesSaving(false);
     }
-    return rows;
-  }, [colors.textMuted, handleViewCustomer, model]);
+  }, [businessId, model, notesDraft, notesSaving, queryClient]);
 
   const styles = useMemo(
     () =>
@@ -148,18 +212,48 @@ export function SubscriptionDetailScreen() {
           gap: 22,
           paddingBottom: 36,
           paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: 16,
+          paddingTop: 14,
         },
       }),
     [colors],
   );
 
-  if (!subscriptionId || !model) {
+  if (!featureEnabled) {
+    return null;
+  }
+
+  if (!subscriptionId) {
     return (
       <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.root}>
         <View style={[styles.content, { paddingTop: 20 }]}>
           <SurfaceCard padding="md">
             <InlineCardError message={SUBSCRIPTION_DETAIL_NOT_FOUND} />
+          </SurfaceCard>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isPending && !model) {
+    return (
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.root}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          <SubscriptionDetailSkeleton />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (!model) {
+    return (
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.root}>
+        <View style={[styles.content, { paddingTop: 20 }]}>
+          <SurfaceCard padding="md">
+            <InlineCardError message={errorMessage || SUBSCRIPTION_DETAIL_NOT_FOUND} />
           </SurfaceCard>
         </View>
       </SafeAreaView>
@@ -174,15 +268,31 @@ export function SubscriptionDetailScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
-        <SubscriptionDetailBody model={model} />
-        <InfoSection rowGap={14} rows={customerRows} title="Customer" />
+        <SubscriptionDetailBody
+          model={model}
+          onBookVisit={handleBookVisit}
+          onOpenVisit={handleOpenVisit}
+          onSendScheduleLink={handleSendRebookLink}
+          sendScheduleLinkLoading={isSending || isCanceling}
+        />
+        <SubscriberCustomerCard email={model.customerEmail} phone={model.customerPhone} />
+        <CustomerNotesSection
+          draftNotes={notesDraft}
+          first
+          isEditing={notesEditing}
+          notes={notes}
+          placeholder="Prefers weekdays in the morning, gate code…"
+          saveLoading={notesSaving}
+          onCancelEdit={handleCancelEditNotes}
+          onChangeDraftNotes={setNotesDraft}
+          onSaveEdit={handleSaveNotes}
+          onStartEdit={handleStartEditNotes}
+        />
         <SubscriptionDetailActions
           canCancel={model.canCancel}
-          canCopyManageLink={model.canCopyManageLink}
+          cancelLoading={isCanceling}
           cancelNote={model.canCancelImmediateNote}
-          linkCopied={linkCopyFeedback}
           onCancel={handleCancel}
-          onCopyManageLink={() => void handleCopyManageLink()}
         />
       </ScrollView>
     </SafeAreaView>

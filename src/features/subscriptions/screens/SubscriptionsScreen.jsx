@@ -3,9 +3,16 @@ import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, Button, FilterPills, InlineCardError, SurfaceCard } from '../../../components/ui';
+import {
+  AppText,
+  Button,
+  FilterPills,
+  InlineCardError,
+  SurfaceCard,
+  useToast,
+} from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
@@ -23,42 +30,36 @@ import {
   resolveStripeConnectSetupPresentation,
 } from '../../payments/utils/stripeConnectSetupCopy';
 import { useSubscription } from '../../subscription';
+import { AddSubscriptionFab } from '../components/AddSubscriptionFab';
 import { SubscriptionMemberCard } from '../components/SubscriptionMemberCard';
 import { SubscriptionPlanCard } from '../components/SubscriptionPlanCard';
-import { SubscriptionsCreateFirstGuide } from '../components/SubscriptionsCreateFirstGuide';
 import { SubscriptionsCreatePlanSheet } from '../components/SubscriptionsCreatePlanSheet';
+import { SubscriptionsEmptyLearning } from '../components/SubscriptionsEmptyLearning';
 import { SubscriptionsEnablePaymentsGate } from '../components/SubscriptionsEnablePaymentsGate';
+import { SubscriptionsHubSkeleton } from '../components/SubscriptionsHubSkeleton';
 import { SubscriptionsHubTabs } from '../components/SubscriptionsHubTabs';
 import { SubscriptionsNonProGate } from '../components/SubscriptionsNonProGate';
-import { SubscriptionsSetupCompleteCard } from '../components/SubscriptionsSetupCompleteCard';
 import {
+  SUBSCRIPTION_CREATE_SUCCESS,
   SUBSCRIPTIONS_HUB_PLANS,
   SUBSCRIPTIONS_LIST_EMPTY,
   SUBSCRIPTIONS_PLANS_EMPTY,
   SUBSCRIPTIONS_TAB_ACTIVE,
-  SUBSCRIPTIONS_TAB_OPTIONS,
+  SUBSCRIPTIONS_TAB_CANCELED,
 } from '../constants';
 import { SUBSCRIPTIONS_MEMBERS_EMPTY_AFTER_SETUP } from '../constants/setupCopy';
-import { lowestSchedulePriceCents, sortSchedules } from '../constants/planCadence';
-import {
-  getMockHubPlans,
-  MOCK_SUBSCRIPTIONS,
-  SEED_SUBSCRIPTIONS_HUB_FOR_DESIGN,
-} from '../mock/mockSubscriptions';
+import { filterSubscribersByListTab, useMembershipCatalog } from '../hooks/useMembershipCatalog';
+import { useMembershipPlanWrites } from '../hooks/useMembershipPlanWrites';
+import { useSubscriptionsAccess } from '../hooks/useSubscriptionsAccess';
 import { mapSubscriptionListCard } from '../utils/subscriptionPresentation';
 
-/** @typedef {'setup' | 'complete' | 'live'} SetupPhase */
+const HOME_FAB_BOTTOM = 30;
 
-const USE_DESIGN_HUB_SEED = __DEV__ && SEED_SUBSCRIPTIONS_HUB_FOR_DESIGN;
-
-/**
- * Gates on live Pro / Stripe Connect / payments data, then create-first → hub.
- * Plans & members stay local until the memberships API is wired.
- */
 export function SubscriptionsScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
+  const toast = useToast();
   const { session } = useAuth();
   const {
     hasProAccess,
@@ -68,27 +69,19 @@ export function SubscriptionsScreen() {
     refetchSubscription,
   } = useSubscription();
   const payment = usePaymentDashboardRead();
+  const catalog = useMembershipCatalog();
+  const subscriptionsAccess = useSubscriptionsAccess();
+  const { createPlan, isCreating } = useMembershipPlanWrites({
+    businessId: catalog.businessId,
+  });
 
-  const [phase, setPhase] = useState(
-    /** @type {SetupPhase} */ (USE_DESIGN_HUB_SEED ? 'live' : 'setup'),
-  );
-  const [plans, setPlans] = useState(
-    /** @type {Array<import('../mock/mockSubscriptions').MockSubscriptionPlan & { offeredCadenceKeys?: string[]; cadenceKey?: string }>} */ (
-      USE_DESIGN_HUB_SEED ? getMockHubPlans() : []
-    ),
-  );
-  const [latestPlan, setLatestPlan] = useState(
-    /** @type {(import('../mock/mockSubscriptions').MockSubscriptionPlan & { offeredCadenceKeys?: string[]; cadenceKey?: string }) | null} */ (
-      null
-    ),
-  );
   const [hubTab, setHubTab] = useState(SUBSCRIPTIONS_HUB_PLANS);
   const [listTab, setListTab] = useState(SUBSCRIPTIONS_TAB_ACTIVE);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
-  const [savingPlan, setSavingPlan] = useState(false);
   const [connectSubmitting, setConnectSubmitting] = useState(false);
   const [enablePaymentsLoading, setEnablePaymentsLoading] = useState(false);
 
+  const plans = catalog.plans;
   const connectPresentation = useMemo(() => {
     const account = payment.paymentAccount;
     return resolveStripeConnectSetupPresentation(account, getStripeConnectSetupCopy(account));
@@ -97,40 +90,20 @@ export function SubscriptionsScreen() {
   const requirementsMet =
     hasProAccess && payment.stripeConnectReady && payment.hasPaymentSettingsRow;
 
-  const handleSavePlan = useCallback(
+  const handleCreateSubmit = useCallback(
     async (draft) => {
-      setSavingPlan(true);
       try {
-        await new Promise((r) => setTimeout(r, 350));
-        const offeredSchedules = sortSchedules(draft.offeredSchedules);
-        const plan = {
-          id: `plan_${Date.now()}`,
-          name: draft.name,
-          description: String(draft.description ?? '').trim(),
-          serviceName: draft.serviceName,
-          offeredSchedules,
-          priceCents: lowestSchedulePriceCents(offeredSchedules) ?? 0,
-          interval: /** @type {'month'} */ ('month'),
-          offeredCadenceKeys: offeredSchedules.map((row) => row.cadenceKey),
-          visitsPerPeriod: 1,
-          isPublic: true,
-        };
-        const isFirstPlan = plans.length === 0;
-        setPlans((prev) => [...prev, plan]);
-        setLatestPlan(plan);
+        await createPlan(draft);
+        toast.success(SUBSCRIPTION_CREATE_SUCCESS);
         setCreateSheetOpen(false);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        if (isFirstPlan) {
-          setPhase('complete');
-        } else {
-          setPhase('live');
-          setHubTab(SUBSCRIPTIONS_HUB_PLANS);
-        }
-      } finally {
-        setSavingPlan(false);
+        setHubTab(SUBSCRIPTIONS_HUB_PLANS);
+      } catch (e) {
+        toast.error(
+          safeUserFacingMessage(e, { fallback: 'Could not create subscription. Try again.' }),
+        );
       }
     },
-    [plans.length],
+    [createPlan, toast],
   );
 
   const onStripeConnectPress = useCallback(async () => {
@@ -214,6 +187,10 @@ export function SubscriptionsScreen() {
           backgroundColor: colors.shell,
           flex: 1,
         },
+        body: {
+          flex: 1,
+          position: 'relative',
+        },
         scroll: {
           flex: 1,
         },
@@ -223,22 +200,11 @@ export function SubscriptionsScreen() {
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
         },
-        contentComplete: {
-          justifyContent: 'center',
-        },
         setupBlock: {
           gap: 14,
         },
-        completeBlock: {
-          flexGrow: 1,
-          justifyContent: 'center',
-          width: '100%',
-        },
         loadingWrap: {
-          alignItems: 'center',
-          flexGrow: 1,
-          justifyContent: 'center',
-          paddingVertical: 48,
+          alignSelf: 'stretch',
         },
         retryWrap: {
           marginTop: 12,
@@ -251,25 +217,13 @@ export function SubscriptionsScreen() {
           gap: 12,
         },
         plansHeader: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          gap: 12,
-          justifyContent: 'space-between',
           marginBottom: 12,
         },
         plansHeaderTitle: {
           color: colors.text,
-          flex: 1,
           fontSize: 16,
           fontWeight: '700',
           letterSpacing: -0.2,
-        },
-        addPlanLabel: {
-          color: colors.accent,
-          flexShrink: 0,
-          fontSize: 14,
-          fontWeight: '700',
-          letterSpacing: -0.1,
         },
         emptyWrap: {
           alignItems: 'center',
@@ -303,216 +257,211 @@ export function SubscriptionsScreen() {
   );
 
   const showLoading =
-    !USE_DESIGN_HUB_SEED &&
-    (Boolean(subscriptionLoading) ||
-      !isOwnerProfileLoaded ||
-      (hasProAccess && (payment.isPendingBusiness || payment.isPendingPayments)));
+    Boolean(subscriptionLoading) ||
+    !isOwnerProfileLoaded ||
+    (hasProAccess && (payment.isPendingBusiness || payment.isPendingPayments)) ||
+    (requirementsMet && catalog.isPending);
 
   const loadError =
     subscriptionLoadError ||
-    (hasProAccess ? payment.businessError || payment.paymentLoadError : null);
+    (hasProAccess ? payment.businessError || payment.paymentLoadError : null) ||
+    (requirementsMet ? catalog.errorMessage : null);
 
-  const showNonPro =
-    !USE_DESIGN_HUB_SEED && !showLoading && !loadError && isOwnerProfileLoaded && !hasProAccess;
+  const showNonPro = !showLoading && !loadError && isOwnerProfileLoaded && !hasProAccess;
   const showNeedsConnect =
-    !USE_DESIGN_HUB_SEED &&
-    !showLoading &&
-    !loadError &&
-    hasProAccess &&
-    !payment.stripeConnectReady;
+    !showLoading && !loadError && hasProAccess && !payment.stripeConnectReady;
   const showPaymentsOff =
-    !USE_DESIGN_HUB_SEED &&
     !showLoading &&
     !loadError &&
     hasProAccess &&
     payment.stripeConnectReady &&
     payment.gateServicelinkCheckout;
-  const showReady = USE_DESIGN_HUB_SEED || (!showLoading && !loadError && requirementsMet);
-  const showComplete = !USE_DESIGN_HUB_SEED && showReady && phase === 'complete' && latestPlan;
-  const showCreateFirst =
-    !USE_DESIGN_HUB_SEED && showReady && !showComplete && plans.length === 0 && phase !== 'live';
-  const showLiveHub =
-    USE_DESIGN_HUB_SEED || (showReady && !showComplete && (phase === 'live' || plans.length > 0));
+  const showReady = !showLoading && !loadError && requirementsMet;
+  const showEmptyLearning = showReady && plans.length === 0;
+  const showLiveHub = showReady && plans.length > 0;
 
   const hubMembers = useMemo(() => {
-    return MOCK_SUBSCRIPTIONS.map(mapSubscriptionListCard).filter((card) => {
-      if (listTab === SUBSCRIPTIONS_TAB_ACTIVE) {
-        return card.statusRaw === 'active';
-      }
-      return card.statusRaw === listTab;
-    });
-  }, [listTab]);
+    return filterSubscribersByListTab(catalog.subscribers, listTab).map(mapSubscriptionListCard);
+  }, [catalog.subscribers, listTab]);
+
+  const subscribersNeedVisit = useMemo(
+    () =>
+      catalog.subscribers.some(
+        (row) => row.isActiveList && String(row.visitStatus ?? '').trim() === 'needs_visit',
+      ),
+    [catalog.subscribers],
+  );
+
+  const subscribersTabOptions = useMemo(() => {
+    const activeCount = catalog.subscribers.filter((row) => row.isActiveList).length;
+    const canceledCount = catalog.subscribers.filter((row) => row.isCanceledList).length;
+    return [
+      { key: SUBSCRIPTIONS_TAB_ACTIVE, label: `Active (${activeCount})` },
+      { key: SUBSCRIPTIONS_TAB_CANCELED, label: `Canceled (${canceledCount})` },
+    ];
+  }, [catalog.subscribers]);
 
   const membersEmpty = SUBSCRIPTIONS_LIST_EMPTY[listTab] ?? SUBSCRIPTIONS_MEMBERS_EMPTY_AFTER_SETUP;
 
+  const handleRetry = useCallback(() => {
+    void refetchSubscription();
+    void payment.refetchPayments();
+    void catalog.refetch();
+  }, [catalog, payment, refetchSubscription]);
+
+  if (!subscriptionsAccess.featureEnabled) {
+    return null;
+  }
+
   return (
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
-      <ScrollView
-        contentContainerStyle={[styles.content, showComplete ? styles.contentComplete : null]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        style={styles.scroll}
-      >
-        {showLoading ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator color={colors.accent} size="large" />
-          </View>
-        ) : null}
+      <View style={styles.body}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          {showLoading ? (
+            <View style={styles.loadingWrap}>
+              <SubscriptionsHubSkeleton />
+            </View>
+          ) : null}
 
-        {!showLoading && loadError ? (
-          <SurfaceCard padding="md">
-            <InlineCardError message={loadError} />
-            <View style={styles.retryWrap}>
-              <Button
-                fullWidth
-                title="Try again"
-                variant="secondary"
-                onPress={() => {
-                  void refetchSubscription();
-                  void payment.refetchPayments();
+          {!showLoading && loadError ? (
+            <SurfaceCard padding="md">
+              <InlineCardError message={loadError} />
+              <View style={styles.retryWrap}>
+                <Button fullWidth title="Try again" variant="secondary" onPress={handleRetry} />
+              </View>
+            </SurfaceCard>
+          ) : null}
+
+          {showNonPro ? (
+            <View style={styles.setupBlock}>
+              <SubscriptionsNonProGate />
+            </View>
+          ) : null}
+
+          {showNeedsConnect ? (
+            <View style={styles.setupBlock}>
+              <PaymentsStripeConnectSetupCard
+                buttonTitle={connectPresentation.buttonTitle}
+                description={connectPresentation.description}
+                loading={connectSubmitting}
+                title={connectPresentation.title}
+                onConnectPress={() => {
+                  void onStripeConnectPress();
                 }}
               />
             </View>
-          </SurfaceCard>
-        ) : null}
+          ) : null}
 
-        {showNonPro ? (
-          <View style={styles.setupBlock}>
-            <SubscriptionsNonProGate />
-          </View>
-        ) : null}
+          {showPaymentsOff ? (
+            <View style={styles.setupBlock}>
+              <SubscriptionsEnablePaymentsGate
+                loading={enablePaymentsLoading}
+                onEnablePress={() => {
+                  void onServicelinkEnablePress();
+                }}
+              />
+            </View>
+          ) : null}
 
-        {showNeedsConnect ? (
-          <View style={styles.setupBlock}>
-            <PaymentsStripeConnectSetupCard
-              buttonTitle={connectPresentation.buttonTitle}
-              description={connectPresentation.description}
-              loading={connectSubmitting}
-              title={connectPresentation.title}
-              onConnectPress={() => {
-                void onStripeConnectPress();
-              }}
-            />
-          </View>
-        ) : null}
+          {showEmptyLearning ? <SubscriptionsEmptyLearning /> : null}
 
-        {showPaymentsOff ? (
-          <View style={styles.setupBlock}>
-            <SubscriptionsEnablePaymentsGate
-              loading={enablePaymentsLoading}
-              onEnablePress={() => {
-                void onServicelinkEnablePress();
-              }}
-            />
-          </View>
-        ) : null}
+          {showLiveHub ? (
+            <>
+              <SubscriptionsHubTabs
+                subscribersAttention={subscribersNeedVisit}
+                value={hubTab}
+                onChange={setHubTab}
+              />
 
-        {showCreateFirst ? (
-          <View style={styles.setupBlock}>
-            <SubscriptionsCreateFirstGuide onCreatePress={() => setCreateSheetOpen(true)} />
-          </View>
-        ) : null}
-
-        {showComplete ? (
-          <View style={styles.completeBlock}>
-            <SubscriptionsSetupCompleteCard
-              plan={latestPlan}
-              onContinue={() => {
-                void Haptics.selectionAsync().catch(() => {});
-                setHubTab(SUBSCRIPTIONS_HUB_PLANS);
-                setPhase('live');
-              }}
-            />
-          </View>
-        ) : null}
-
-        {showLiveHub ? (
-          <>
-            <SubscriptionsHubTabs value={hubTab} onChange={setHubTab} />
-
-            {hubTab === SUBSCRIPTIONS_HUB_PLANS ? (
-              <>
-                <View style={styles.plansHeader}>
-                  <AppText style={styles.plansHeaderTitle}>Your plans</AppText>
-                  <AppText
-                    accessibilityRole="button"
-                    style={styles.addPlanLabel}
-                    onPress={() => setCreateSheetOpen(true)}
-                  >
-                    Add plan
-                  </AppText>
-                </View>
-
-                {plans.length === 0 ? (
-                  <View style={styles.emptyWrap}>
-                    <AppText style={styles.emptyTitle}>{SUBSCRIPTIONS_PLANS_EMPTY.title}</AppText>
-                    <AppText style={styles.emptyBody}>{SUBSCRIPTIONS_PLANS_EMPTY.body}</AppText>
+              {hubTab === SUBSCRIPTIONS_HUB_PLANS ? (
+                <>
+                  <View style={styles.plansHeader}>
+                    <AppText style={styles.plansHeaderTitle}>Your subscriptions</AppText>
                   </View>
-                ) : (
-                  <View style={styles.list}>
-                    {plans.map((plan) => (
-                      <SubscriptionPlanCard
-                        key={plan.id}
-                        plan={plan}
-                        onPress={() =>
-                          navigation.navigate(ROUTES.SUBSCRIPTION_PLAN_DETAIL, { plan })
-                        }
-                      />
-                    ))}
-                  </View>
-                )}
-              </>
-            ) : (
-              <>
-                <View style={styles.statusPills}>
-                  <FilterPills
-                    onSelect={setListTab}
-                    options={SUBSCRIPTIONS_TAB_OPTIONS}
-                    selectedKey={listTab}
-                  />
-                </View>
 
-                {hubMembers.length === 0 ? (
-                  <View style={styles.emptyCentered}>
-                    <AppText style={styles.emptyTitle}>{membersEmpty.title}</AppText>
-                    <AppText style={styles.emptyBody}>{membersEmpty.body}</AppText>
+                  {plans.length === 0 ? (
+                    <View style={styles.emptyWrap}>
+                      <AppText style={styles.emptyTitle}>{SUBSCRIPTIONS_PLANS_EMPTY.title}</AppText>
+                      <AppText style={styles.emptyBody}>{SUBSCRIPTIONS_PLANS_EMPTY.body}</AppText>
+                    </View>
+                  ) : (
+                    <View style={styles.list}>
+                      {plans.map((plan) => (
+                        <SubscriptionPlanCard
+                          key={plan.id}
+                          plan={plan}
+                          onPress={() =>
+                            navigation.navigate(ROUTES.SUBSCRIPTION_PLAN_DETAIL, {
+                              planId: plan.id,
+                              plan,
+                            })
+                          }
+                        />
+                      ))}
+                    </View>
+                  )}
+                </>
+              ) : (
+                <>
+                  <View style={styles.statusPills}>
+                    <FilterPills
+                      onSelect={setListTab}
+                      options={subscribersTabOptions}
+                      selectedKey={listTab}
+                    />
                   </View>
-                ) : (
-                  <View style={styles.list}>
-                    {hubMembers.map((card) => (
-                      <SubscriptionMemberCard
-                        key={card.id}
-                        customerName={card.customerName}
-                        footerLabel={card.footerLabel}
-                        nextVisitLabel={card.nextVisitLabel}
-                        planName={card.planName}
-                        statusLabel={card.statusLabel}
-                        statusRaw={card.statusRaw}
-                        onPress={() =>
-                          navigation.navigate(ROUTES.SUBSCRIPTION_DETAIL, {
-                            subscriptionId: card.id,
-                          })
-                        }
-                      />
-                    ))}
-                  </View>
-                )}
-              </>
-            )}
-          </>
+
+                  {hubMembers.length === 0 ? (
+                    <View style={styles.emptyCentered}>
+                      <AppText style={styles.emptyTitle}>{membersEmpty.title}</AppText>
+                      <AppText style={styles.emptyBody}>{membersEmpty.body}</AppText>
+                    </View>
+                  ) : (
+                    <View style={styles.list}>
+                      {hubMembers.map((card) => (
+                        <SubscriptionMemberCard
+                          key={card.id}
+                          cadenceLabel={card.cadenceLabel}
+                          customerName={card.customerName}
+                          planName={card.planName}
+                          statusLabel={card.statusLabel}
+                          statusRaw={card.statusRaw}
+                          onPress={() =>
+                            navigation.navigate(ROUTES.SUBSCRIPTION_DETAIL, {
+                              subscriptionId: card.id,
+                            })
+                          }
+                        />
+                      ))}
+                    </View>
+                  )}
+                </>
+              )}
+            </>
+          ) : null}
+        </ScrollView>
+
+        {showEmptyLearning || (showLiveHub && hubTab === SUBSCRIPTIONS_HUB_PLANS) ? (
+          <AddSubscriptionFab bottom={HOME_FAB_BOTTOM} onPress={() => setCreateSheetOpen(true)} />
         ) : null}
-      </ScrollView>
 
-      <SubscriptionsCreatePlanSheet
-        submitting={savingPlan}
-        visible={createSheetOpen}
-        onRequestClose={() => {
-          if (!savingPlan) setCreateSheetOpen(false);
-        }}
-        onSubmit={handleSavePlan}
-      />
+        <SubscriptionsCreatePlanSheet
+          submitting={isCreating}
+          visible={createSheetOpen}
+          onRequestClose={() => {
+            if (isCreating) return;
+            setCreateSheetOpen(false);
+          }}
+          onSubmit={handleCreateSubmit}
+        />
 
-      <StripeConnectLaunchOverlay visible={connectSubmitting} />
+        <StripeConnectLaunchOverlay visible={connectSubmitting} />
+      </View>
     </SafeAreaView>
   );
 }
