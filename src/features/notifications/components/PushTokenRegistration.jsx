@@ -4,18 +4,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 import { useAuth } from '../../auth';
 import { upsertPushDeviceToken } from '../api/upsertPushDeviceToken';
-
-async function ensureAndroidChannel() {
-  if (Platform.OS !== 'android') {
-    return;
-  }
-  await Notifications.setNotificationChannelAsync('default', {
-    name: 'ServiceLink',
-    importance: Notifications.AndroidImportance.HIGH,
-    vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#0a0a0a',
-  });
-}
+import { PUSH_PERMISSION_REQUEST } from '../constants/pushAlertSetup';
+import { ensureAndroidDefaultNotificationChannel } from '../utils/ensureAndroidDefaultNotificationChannel';
 
 function resolveExpoProjectId() {
   return Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId ?? undefined;
@@ -34,12 +24,12 @@ export function PushTokenRegistration() {
       return;
     }
     try {
-      await ensureAndroidChannel();
+      await ensureAndroidDefaultNotificationChannel();
 
       const { status: existing } = await Notifications.getPermissionsAsync();
       let nextStatus = existing;
       if (existing !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
+        const { status } = await Notifications.requestPermissionsAsync(PUSH_PERMISSION_REQUEST);
         nextStatus = status;
       }
       if (nextStatus !== 'granted') {

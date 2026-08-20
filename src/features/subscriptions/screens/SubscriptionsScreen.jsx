@@ -5,14 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  AppText,
-  Button,
-  FilterPills,
-  InlineCardError,
-  SurfaceCard,
-  useToast,
-} from '../../../components/ui';
+import { AppText, Button, FilterPills, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
@@ -40,7 +33,6 @@ import { SubscriptionsHubSkeleton } from '../components/SubscriptionsHubSkeleton
 import { SubscriptionsHubTabs } from '../components/SubscriptionsHubTabs';
 import { SubscriptionsNonProGate } from '../components/SubscriptionsNonProGate';
 import {
-  SUBSCRIPTION_CREATE_SUCCESS,
   SUBSCRIPTIONS_HUB_PLANS,
   SUBSCRIPTIONS_LIST_EMPTY,
   SUBSCRIPTIONS_PLANS_EMPTY,
@@ -59,7 +51,6 @@ export function SubscriptionsScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
-  const toast = useToast();
   const { session } = useAuth();
   const {
     hasProAccess,
@@ -92,18 +83,10 @@ export function SubscriptionsScreen() {
 
   const handleCreateSubmit = useCallback(
     async (draft) => {
-      try {
-        await createPlan(draft);
-        toast.success(SUBSCRIPTION_CREATE_SUCCESS);
-        setCreateSheetOpen(false);
-        setHubTab(SUBSCRIPTIONS_HUB_PLANS);
-      } catch (e) {
-        toast.error(
-          safeUserFacingMessage(e, { fallback: 'Could not create subscription. Try again.' }),
-        );
-      }
+      await createPlan(draft);
+      setHubTab(SUBSCRIPTIONS_HUB_PLANS);
     },
-    [createPlan, toast],
+    [createPlan],
   );
 
   const onStripeConnectPress = useCallback(async () => {

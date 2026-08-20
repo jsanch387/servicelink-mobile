@@ -17,7 +17,10 @@ import { AppText } from './AppText';
 import { BottomSheetOverlayProvider } from './bottomSheetOverlay';
 import { SheetCloseButton } from './SheetCloseButton';
 import { ToastModalHost } from './ToastModalHost';
-import { scheduleSheetOpen, useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
+import {
+  scheduleSheetOpen,
+  useModalFadeBackdropSlideSheet,
+} from './useModalFadeBackdropSlideSheet';
 
 const GLASS_TOP_RADIUS = 24;
 const GLASS_BLUR_INTENSITY = Platform.select({ ios: 95, android: 100, default: 95 });

@@ -2,6 +2,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, Platform } from 'react-native';
+import { PUSH_PERMISSION_REQUEST } from '../constants/pushAlertSetup';
 
 /**
  * Tracks device-level push permission and refreshes when the screen is focused or the app returns active.
@@ -41,7 +42,7 @@ export function usePushNotificationPermission() {
     }
     try {
       setLoadError(null);
-      const { status: next } = await Notifications.requestPermissionsAsync();
+      const { status: next } = await Notifications.requestPermissionsAsync(PUSH_PERMISSION_REQUEST);
       setStatus(next);
       return next;
     } catch {

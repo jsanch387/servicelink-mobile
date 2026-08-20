@@ -12,7 +12,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
-import { scheduleSheetOpen, useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
+import {
+  scheduleSheetOpen,
+  useModalFadeBackdropSlideSheet,
+} from './useModalFadeBackdropSlideSheet';
 import { triggerWheelSelectionHaptic } from './wheelHaptics';
 
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1));

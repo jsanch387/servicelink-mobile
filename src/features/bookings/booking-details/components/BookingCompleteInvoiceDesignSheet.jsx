@@ -27,7 +27,10 @@ import {
   useBottomSheetOverlay,
   useToast,
 } from '../../../../components/ui';
-import { scheduleSheetOpen, useModalFadeBackdropSlideSheet } from '../../../../components/ui/useModalFadeBackdropSlideSheet';
+import {
+  scheduleSheetOpen,
+  useModalFadeBackdropSlideSheet,
+} from '../../../../components/ui/useModalFadeBackdropSlideSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SUBMIT_OUTCOME_SUCCESS } from '../../../../components/ui/submitOutcomeTokens';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';

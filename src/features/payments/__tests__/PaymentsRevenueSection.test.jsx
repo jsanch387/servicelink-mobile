@@ -13,6 +13,9 @@ function emptySummary(overrides = {}) {
   return {
     range: 'month',
     setRange: jest.fn(),
+    customFromYmd: null,
+    customToYmd: null,
+    selectCustomRange: jest.fn(),
     summary: {
       collectedCents: 0,
       jobsPaid: 0,
@@ -94,5 +97,32 @@ describe('PaymentsRevenueSection', () => {
 
     renderWithProviders(<PaymentsRevenueSection businessId="biz-1" />);
     expect(screen.getByText('Could not load revenue')).toBeTruthy();
+  });
+
+  it('shows the custom date range on the trigger', () => {
+    mockUsePaymentsRevenue.mockReturnValue(
+      emptySummary({
+        range: 'custom',
+        customFromYmd: '2026-03-03',
+        customToYmd: '2026-03-18',
+        selectCustomRange: jest.fn(),
+        summary: {
+          collectedCents: 8000,
+          jobsPaid: 2,
+          changePct: 10,
+          compareLabel: 'vs prior period',
+          bucketKind: 'daily',
+          bars: [
+            { key: '2026-03-03', label: '3', fullLabel: 'Tue, Mar 3', cents: 3000 },
+            { key: '2026-03-18', label: '18', fullLabel: 'Wed, Mar 18', cents: 5000 },
+          ],
+        },
+      }),
+    );
+
+    renderWithProviders(<PaymentsRevenueSection businessId="biz-1" />);
+    expect(screen.getByLabelText(/Time range: Mar 3–18/)).toBeTruthy();
+    expect(screen.getByText(/10% vs prior period/)).toBeTruthy();
+    expect(screen.getByText('Best day')).toBeTruthy();
   });
 });

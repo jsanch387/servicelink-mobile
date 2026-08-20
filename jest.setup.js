@@ -50,12 +50,14 @@ jest.mock('react-native-reanimated', () => {
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
   setNotificationChannelAsync: jest.fn(() => Promise.resolve()),
+  getNotificationChannelAsync: jest.fn(() => Promise.resolve(null)),
+  deleteNotificationChannelAsync: jest.fn(() => Promise.resolve()),
   getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'denied' })),
   requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'denied' })),
   getExpoPushTokenAsync: jest.fn(() => Promise.resolve({ data: 'ExponentPushToken[test]' })),
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   getLastNotificationResponseAsync: jest.fn(() => Promise.resolve(null)),
-  AndroidImportance: { DEFAULT: 3 },
+  AndroidImportance: { DEFAULT: 3, HIGH: 4, MAX: 5 },
 }));
 
 jest.mock('./src/features/appUpdates/components/AppUpdateAnnouncementsBootstrap', () => ({

@@ -1,6 +1,10 @@
 import { REVENUE_RANGE } from '../constants/paymentsRevenueRanges';
 import {
   revenueDateWindow,
+  revenueCustomDateWindow,
+  formatRevenueCustomRangeLabel,
+  inclusiveDayCount,
+  isCompleteCustomRevenueRange,
   parseLocalYmd,
   startOfWeekMonday,
   addDays,
@@ -66,5 +70,62 @@ describe('startOfWeekMonday / addDays / parseLocalYmd', () => {
 
   it('adds days in local calendar', () => {
     expect(addDays(new Date(2026, 6, 31), 1)).toEqual(new Date(2026, 7, 1));
+  });
+});
+
+describe('revenueCustomDateWindow', () => {
+  it('returns the same-length window immediately before', () => {
+    expect(revenueCustomDateWindow('2026-03-03', '2026-03-18')).toEqual({
+      fromYmd: '2026-03-03',
+      toYmd: '2026-03-18',
+      prevFromYmd: '2026-02-15',
+      prevToYmd: '2026-03-02',
+    });
+    expect(inclusiveDayCount('2026-03-03', '2026-03-18')).toBe(16);
+  });
+
+  it('treats a single day as a 1-day window', () => {
+    expect(revenueCustomDateWindow('2026-07-15', '2026-07-15')).toEqual({
+      fromYmd: '2026-07-15',
+      toYmd: '2026-07-15',
+      prevFromYmd: '2026-07-14',
+      prevToYmd: '2026-07-14',
+    });
+  });
+
+  it('swaps inverted bounds', () => {
+    expect(revenueCustomDateWindow('2026-03-18', '2026-03-03')).toEqual({
+      fromYmd: '2026-03-03',
+      toYmd: '2026-03-18',
+      prevFromYmd: '2026-02-15',
+      prevToYmd: '2026-03-02',
+    });
+  });
+
+  it('returns null bounds when either date is missing', () => {
+    expect(revenueCustomDateWindow(null, '2026-03-18')).toEqual({
+      fromYmd: null,
+      toYmd: null,
+      prevFromYmd: null,
+      prevToYmd: null,
+    });
+  });
+});
+
+describe('formatRevenueCustomRangeLabel', () => {
+  it('formats same-month, same-year, and cross-year windows', () => {
+    expect(formatRevenueCustomRangeLabel('2026-03-03', '2026-03-18')).toBe('Mar 3–18');
+    expect(formatRevenueCustomRangeLabel('2026-03-03', '2026-04-02')).toBe('Mar 3–Apr 2');
+    expect(formatRevenueCustomRangeLabel('2025-12-28', '2026-01-04')).toBe(
+      'Dec 28, 2025–Jan 4, 2026',
+    );
+    expect(formatRevenueCustomRangeLabel('2026-03-03', '2026-03-03')).toBe('Mar 3');
+  });
+
+  it('requires two different dates for a complete custom range', () => {
+    expect(isCompleteCustomRevenueRange('2026-03-03', '2026-03-18')).toBe(true);
+    expect(isCompleteCustomRevenueRange('2026-03-03', '2026-03-03')).toBe(false);
+    expect(isCompleteCustomRevenueRange('2026-03-03', null)).toBe(false);
+    expect(isCompleteCustomRevenueRange(null, null)).toBe(false);
   });
 });

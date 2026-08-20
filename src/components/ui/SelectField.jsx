@@ -7,7 +7,10 @@ import { useTheme } from '../../theme';
 import { AppText } from './AppText';
 import { BottomSheetModal } from './BottomSheetModal';
 import { Button } from './Button';
-import { scheduleSheetOpen, useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
+import {
+  scheduleSheetOpen,
+  useModalFadeBackdropSlideSheet,
+} from './useModalFadeBackdropSlideSheet';
 
 /**
  * Opens a bottom sheet to pick one option. Trigger matches {@link TextField} outline styling.

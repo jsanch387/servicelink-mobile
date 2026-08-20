@@ -15,7 +15,10 @@ import { AppText } from './AppText';
 import { Button } from './Button';
 import { useBottomSheetOverlay } from './bottomSheetOverlay';
 import { SheetCloseButton } from './SheetCloseButton';
-import { scheduleSheetOpen, useModalFadeBackdropSlideSheet } from './useModalFadeBackdropSlideSheet';
+import {
+  scheduleSheetOpen,
+  useModalFadeBackdropSlideSheet,
+} from './useModalFadeBackdropSlideSheet';
 import { triggerWheelSelectionHaptic } from './wheelHaptics';
 
 export const WHEEL_ITEM_HEIGHT = 44;

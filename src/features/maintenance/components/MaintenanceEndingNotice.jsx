@@ -14,10 +14,7 @@ import {
  *   showSubscriptionsCta?: boolean;
  * }} props
  */
-export function MaintenanceEndingNotice({
-  onPressSubscriptions,
-  showSubscriptionsCta = false,
-}) {
+export function MaintenanceEndingNotice({ onPressSubscriptions, showSubscriptionsCta = false }) {
   const { colors } = useTheme();
 
   const styles = useMemo(

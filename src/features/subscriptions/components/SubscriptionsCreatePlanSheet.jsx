@@ -10,6 +10,8 @@ import {
   SurfaceTextField,
   WizardStepHeader,
 } from '../../../components/ui';
+import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
+import { SubscriptionsCreatePlanOutcome } from './SubscriptionsCreatePlanOutcome';
 import {
   minutesToServiceDurationHHmm,
   serviceDurationHHmmToMinutes,
@@ -119,10 +121,15 @@ export function SubscriptionsCreatePlanSheet({
   const steps = isEdit ? EDIT_STEPS : CREATE_STEPS;
 
   const [step, setStep] = useState(STEP_NAME);
+  const [phase, setPhase] = useState(
+    /** @type {'form' | 'pending' | 'success' | 'error'} */ ('form'),
+  );
+  const [submitError, setSubmitError] = useState(/** @type {string | null} */ (null));
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [durationHHmm, setDurationHHmm] = useState(DEFAULT_DURATION_HHMM);
   const [schedules, setSchedules] = useState([]);
+  const isOutcome = !isEdit && phase !== 'form';
 
   const styles = useMemo(
     () =>
@@ -190,6 +197,8 @@ export function SubscriptionsCreatePlanSheet({
   useEffect(() => {
     if (!seedKey) return;
     setStep(STEP_NAME);
+    setPhase('form');
+    setSubmitError(null);
     if (isEdit && initialPlan) {
       setName(String(initialPlan.name ?? ''));
       setDescription(String(initialPlan.description ?? ''));
@@ -228,7 +237,16 @@ export function SubscriptionsCreatePlanSheet({
   const rightTitle = isLast ? (isEdit ? 'Save' : 'Create') : 'Continue';
   const showDescriptionCharCount = description.length >= DESCRIPTION_MAX_LENGTH;
 
+  const draftPayload = () => ({
+    name: String(name).trim(),
+    description: String(description).trim(),
+    visitDurationMinutes,
+    offeredSchedules,
+    serviceName: '',
+  });
+
   const handleLeft = () => {
+    if (phase === 'pending') return;
     if (step === STEP_NAME) {
       onRequestClose();
       return;
@@ -237,131 +255,157 @@ export function SubscriptionsCreatePlanSheet({
   };
 
   const handleRight = () => {
-    if (!canAdvance) return;
+    if (!canAdvance || phase === 'pending') return;
     if (!isLast) {
       setStep((prev) => Math.min(STEP_DESCRIPTION, prev + 1));
       return;
     }
-    void Promise.resolve(
-      onSubmit({
-        name: String(name).trim(),
-        description: String(description).trim(),
-        visitDurationMinutes,
-        offeredSchedules,
-        serviceName: '',
-      }),
-    );
+    if (isEdit) {
+      void Promise.resolve(onSubmit(draftPayload()));
+      return;
+    }
+    setPhase('pending');
+    setSubmitError(null);
+    void Promise.resolve(onSubmit(draftPayload()))
+      .then(() => {
+        setPhase('success');
+      })
+      .catch((e) => {
+        setSubmitError(
+          safeUserFacingMessage(e, { fallback: 'Could not create subscription. Try again.' }),
+        );
+        setPhase('error');
+      });
   };
 
   return (
     <BottomSheetModal
       allowBackdropClose={false}
       footer={
-        <View style={styles.actions}>
-          <Button
-            disabled={submitting}
-            fullWidth
-            style={styles.actionBtn}
-            title={leftTitle}
-            variant="secondary"
-            onPress={handleLeft}
-          />
-          <Button
-            disabled={!canAdvance}
-            fullWidth
-            loading={isLast && submitting}
-            style={styles.actionBtn}
-            title={rightTitle}
-            variant="surfaceLight"
-            onPress={handleRight}
-          />
-        </View>
+        isOutcome ? null : (
+          <View style={styles.actions}>
+            <Button
+              disabled={submitting || phase === 'pending'}
+              fullWidth
+              style={styles.actionBtn}
+              title={leftTitle}
+              variant="secondary"
+              onPress={handleLeft}
+            />
+            <Button
+              disabled={!canAdvance || phase === 'pending'}
+              fullWidth
+              loading={isEdit && isLast && submitting}
+              style={styles.actionBtn}
+              title={rightTitle}
+              variant="surfaceLight"
+              onPress={handleRight}
+            />
+          </View>
+        )
       }
+      centerContent={isOutcome}
       liftFooterWithKeyboard={false}
       sheetHeightPercent={92}
+      showCloseButton={phase !== 'pending'}
       showHeaderDivider={false}
       stickyFooter
       title={isEdit ? 'Edit subscription' : 'New subscription'}
       visible={visible}
-      onRequestClose={onRequestClose}
+      onRequestClose={() => {
+        if (phase === 'pending' || submitting) return;
+        onRequestClose();
+      }}
     >
-      <View style={styles.stack}>
-        <WizardStepHeader
-          embedded
-          progressAccessibilityLabel={
-            isEdit ? 'Edit subscription progress' : 'Create subscription progress'
-          }
-          stepCount={STEP_COUNT}
-          stepIndex={step}
-          subtitle={stepMeta.subtitle}
-          title={stepMeta.title}
+      {isOutcome ? (
+        <SubscriptionsCreatePlanOutcome
+          errorMessage={submitError}
+          phase={phase}
+          onDone={onRequestClose}
+          onRetry={() => {
+            setSubmitError(null);
+            setPhase('form');
+          }}
         />
+      ) : (
+        <View style={styles.stack}>
+          <WizardStepHeader
+            embedded
+            progressAccessibilityLabel={
+              isEdit ? 'Edit subscription progress' : 'Create subscription progress'
+            }
+            stepCount={STEP_COUNT}
+            stepIndex={step}
+            subtitle={stepMeta.subtitle}
+            title={stepMeta.title}
+          />
 
-        {step === STEP_NAME ? (
-          <View style={styles.nameStep}>
-            <SurfaceTextField
-              autoCapitalize="words"
-              autoFocus
-              compact
-              containerStyle={styles.fieldReset}
-              label="Name"
-              placeholder="Exterior Wash"
-              value={name}
-              onChangeText={setName}
-            />
-            <DurationSelectField
-              compact
-              containerStyle={styles.fieldReset}
-              label="Duration"
-              value={durationHHmm}
-              onValueChange={setDurationHHmm}
-            />
-          </View>
-        ) : null}
-
-        {step === STEP_SCHEDULE ? (
-          <PlanScheduleField listFirst={isEdit} value={schedules} onChange={setSchedules} />
-        ) : null}
-
-        {step === STEP_DESCRIPTION ? (
-          <View>
-            <View style={styles.descriptionCard}>
-              <AppTextInput
+          {step === STEP_NAME ? (
+            <View style={styles.nameStep}>
+              <SurfaceTextField
+                autoCapitalize="words"
                 autoFocus
-                maxLength={DESCRIPTION_MAX_LENGTH}
-                multiline
-                placeholder="What’s included"
-                placeholderTextColor={colors.placeholder}
-                style={styles.descriptionInput}
-                value={description}
-                onChangeText={(text) =>
-                  setDescription(String(text ?? '').slice(0, DESCRIPTION_MAX_LENGTH))
-                }
+                compact
+                containerStyle={styles.fieldReset}
+                label="Name"
+                placeholder="Exterior Wash"
+                value={name}
+                onChangeText={setName}
+              />
+              <DurationSelectField
+                compact
+                containerStyle={styles.fieldReset}
+                label="Duration"
+                value={durationHHmm}
+                onValueChange={setDurationHHmm}
               />
             </View>
-            <View style={styles.descriptionToolbar}>
-              <Pressable
-                accessibilityLabel="Insert bullet point"
-                accessibilityRole="button"
-                hitSlop={8}
-                style={styles.bulletButton}
-                onPress={() =>
-                  setDescription((current) => insertBulletPoint(current, DESCRIPTION_MAX_LENGTH))
-                }
-              >
-                <Ionicons color={colors.textMuted} name="list-outline" size={18} />
-              </Pressable>
-              {showDescriptionCharCount ? (
-                <AppText style={[styles.charCount, { color: colors.textMuted }]}>
-                  {description.length}/{DESCRIPTION_MAX_LENGTH}
-                </AppText>
-              ) : (
-                <View />
-              )}
+          ) : null}
+
+          {step === STEP_SCHEDULE ? (
+            <PlanScheduleField listFirst={isEdit} value={schedules} onChange={setSchedules} />
+          ) : null}
+
+          {step === STEP_DESCRIPTION ? (
+            <View>
+              <View style={styles.descriptionCard}>
+                <AppTextInput
+                  autoFocus
+                  maxLength={DESCRIPTION_MAX_LENGTH}
+                  multiline
+                  placeholder="What’s included"
+                  placeholderTextColor={colors.placeholder}
+                  style={styles.descriptionInput}
+                  value={description}
+                  onChangeText={(text) =>
+                    setDescription(String(text ?? '').slice(0, DESCRIPTION_MAX_LENGTH))
+                  }
+                />
+              </View>
+              <View style={styles.descriptionToolbar}>
+                <Pressable
+                  accessibilityLabel="Insert bullet point"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  style={styles.bulletButton}
+                  onPress={() =>
+                    setDescription((current) => insertBulletPoint(current, DESCRIPTION_MAX_LENGTH))
+                  }
+                >
+                  <Ionicons color={colors.textMuted} name="list-outline" size={18} />
+                </Pressable>
+                {showDescriptionCharCount ? (
+                  <AppText style={[styles.charCount, { color: colors.textMuted }]}>
+                    {description.length}/{DESCRIPTION_MAX_LENGTH}
+                  </AppText>
+                ) : (
+                  <View />
+                )}
+              </View>
             </View>
-          </View>
-        ) : null}
-      </View>
+          ) : null}
+        </View>
+      )}
     </BottomSheetModal>
   );
 }

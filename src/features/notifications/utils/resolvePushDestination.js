@@ -78,6 +78,7 @@ const SCREEN_SLUG_DESTINATIONS = {
   },
   upgrade: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.ACCOUNT_SETTINGS },
   settings: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.ACCOUNT_SETTINGS },
+  subscriptions: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.SUBSCRIPTIONS },
 };
 
 /** Path-style `reference_id` values (deep links) → same destinations as screen slugs. */
@@ -166,6 +167,19 @@ export function resolvePushDestination({ referenceType, referenceId }) {
       };
     }
     return { kind: 'main_app_tab', tab: ROUTES.CUSTOMERS, stackScreen: ROUTES.CUSTOMERS_LIST };
+  }
+
+  /** New subscriber / visit-needed: `reference_id` is `customer_memberships.id`. */
+  if (refType === 'subscriber' || refType === 'membership') {
+    if (id) {
+      return {
+        kind: 'main_app_tab',
+        tab: ROUTES.MORE,
+        stackScreen: ROUTES.SUBSCRIPTION_DETAIL,
+        stackParams: { subscriptionId: id },
+      };
+    }
+    return { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.SUBSCRIPTIONS };
   }
 
   if (refType === 'review' || refType.includes('review')) {

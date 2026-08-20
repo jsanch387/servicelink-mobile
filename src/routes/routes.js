@@ -106,7 +106,8 @@ export const PATHS = {
   MAINTENANCE: '/maintenance',
   MAINTENANCE_DETAIL: '/maintenance/detail',
   SUBSCRIPTIONS: '/subscriptions',
-  SUBSCRIPTION_DETAIL: '/subscriptions/detail',
+  /** Matches `servicelinkmobile://subscriptions/subscribers/{uuid}` — `customer_memberships.id`. */
+  SUBSCRIPTION_DETAIL: '/subscriptions/subscribers/:subscriptionId',
   SUBSCRIPTION_PLAN_DETAIL: '/subscriptions/plans/detail',
   SUBSCRIPTION_PLAN_SUBSCRIBERS: '/subscriptions/plans/subscribers',
   CREATE_QUOTE: '/quotes/create',

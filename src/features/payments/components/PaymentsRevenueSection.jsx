@@ -34,7 +34,12 @@ function formatUsd(cents, { compact = false } = {}) {
   }).format(dollars);
 }
 
-function bestPeriodTitle(range) {
+function bestPeriodTitle(range, bucketKind) {
+  if (range === REVENUE_RANGE.CUSTOM) {
+    if (bucketKind === 'weekly') return 'Best week';
+    if (bucketKind === 'monthly') return 'Best month';
+    return 'Best day';
+  }
   if (range === REVENUE_RANGE.WEEK) return 'Best day';
   if (range === REVENUE_RANGE.MONTH) return 'Best week';
   if (range === REVENUE_RANGE.YEAR) return 'Best month';
@@ -105,7 +110,17 @@ function chartLabelLeft(x, index, count) {
  */
 export function PaymentsRevenueSection({ businessId }) {
   const { colors, isDark } = useTheme();
-  const { range, setRange, summary, isPending, isError, errorMessage } = usePaymentsRevenue({
+  const {
+    range,
+    setRange,
+    customFromYmd,
+    customToYmd,
+    selectCustomRange,
+    summary,
+    isPending,
+    isError,
+    errorMessage,
+  } = usePaymentsRevenue({
     businessId,
   });
 
@@ -116,7 +131,7 @@ export function PaymentsRevenueSection({ businessId }) {
 
   useEffect(() => {
     setSelectedIndex(Math.max(0, bars.length - 1));
-  }, [range, bars.length]);
+  }, [range, customFromYmd, customToYmd, bars.length]);
 
   const plotWidth = chartWidth > 0 ? chartWidth : 320;
   const chart = useMemo(() => buildAreaPaths(bars, plotWidth), [bars, plotWidth]);
@@ -381,7 +396,13 @@ export function PaymentsRevenueSection({ businessId }) {
         <View style={styles.heroHeader}>
           <View style={styles.amountRow}>
             <AppText style={styles.heroAmount}>{formatUsd(summary.collectedCents)}</AppText>
-            <PaymentsRevenueRangePicker value={range} onChange={setRange} />
+            <PaymentsRevenueRangePicker
+              customFromYmd={customFromYmd}
+              customToYmd={customToYmd}
+              value={range}
+              onChange={setRange}
+              onSelectCustom={selectCustomRange}
+            />
           </View>
           {isEmpty ? (
             <AppText style={styles.emptyCaption}>{REVENUE_EMPTY_CAPTION}</AppText>
@@ -547,7 +568,7 @@ export function PaymentsRevenueSection({ businessId }) {
             <View style={styles.twinIcon}>
               <Ionicons color={colors.textMuted} name="sunny-outline" size={16} />
             </View>
-            <AppText style={styles.twinLabel}>{bestPeriodTitle(range)}</AppText>
+            <AppText style={styles.twinLabel}>{bestPeriodTitle(range, summary.bucketKind)}</AppText>
           </View>
           <AppText numberOfLines={1} style={styles.twinValue}>
             {best ? formatUsd(best.cents, { compact: true }) : '—'}

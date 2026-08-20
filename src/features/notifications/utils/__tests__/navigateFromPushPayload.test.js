@@ -42,6 +42,26 @@ describe('navigateFromPushPayload', () => {
     });
   });
 
+  it('maps subscriber push to subscriber detail', () => {
+    const navigation = { navigate: jest.fn() };
+    navigateFromPushPayload(navigation, {
+      reference_type: 'subscriber',
+      reference_id: 'mem-push-1',
+    });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.MORE,
+      params: {
+        state: {
+          routes: [
+            { name: ROUTES.MORE_HOME },
+            { name: ROUTES.SUBSCRIPTION_DETAIL, params: { subscriptionId: 'mem-push-1' } },
+          ],
+          index: 1,
+        },
+      },
+    });
+  });
+
   it('maps review push to Reviews screen', () => {
     const navigation = { navigate: jest.fn() };
     navigateFromPushPayload(navigation, {

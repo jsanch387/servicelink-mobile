@@ -174,6 +174,39 @@ describe('resolvePushDestination', () => {
     });
   });
 
+  it('maps subscriber and membership alias to subscriber detail', () => {
+    const expected = {
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.SUBSCRIPTION_DETAIL,
+      stackParams: { subscriptionId: 'mem-1' },
+    };
+    expect(resolvePushDestination({ referenceType: 'subscriber', referenceId: 'mem-1' })).toEqual(
+      expected,
+    );
+    expect(resolvePushDestination({ referenceType: 'membership', referenceId: 'mem-1' })).toEqual(
+      expected,
+    );
+  });
+
+  it('maps subscriber without id to subscriptions hub', () => {
+    expect(resolvePushDestination({ referenceType: 'subscriber', referenceId: '' })).toEqual({
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.SUBSCRIPTIONS,
+    });
+  });
+
+  it('maps subscriptions screen slug to subscriptions hub', () => {
+    expect(
+      resolvePushDestination({ referenceType: 'screen', referenceId: 'subscriptions' }),
+    ).toEqual({
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.SUBSCRIPTIONS,
+    });
+  });
+
   it('returns noop when routing keys are empty', () => {
     expect(resolvePushDestination({ referenceType: '', referenceId: '' })).toEqual({
       kind: 'noop',

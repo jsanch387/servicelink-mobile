@@ -20,7 +20,4 @@ export const SUBSCRIPTIONS_FEATURE_ENABLED = true;
  *
  * @type {readonly string[]}
  */
-export const SUBSCRIPTIONS_EARLY_ACCESS_EMAILS = [
-  'urbanink.help@gmail.com',
-  'jesuss387@gmail.com',
-];
+export const SUBSCRIPTIONS_EARLY_ACCESS_EMAILS = ['urbanink.help@gmail.com', 'jesuss387@gmail.com'];

@@ -218,4 +218,67 @@ describe('aggregatePaymentsRevenue', () => {
     expect(summary.collectedCents).toBe(10000);
     expect(summary.bars[2].cents).toBe(10000); // Wed
   });
+
+  it('builds daily bars and prior-period compare for a short custom range', () => {
+    const summary = aggregatePaymentsRevenue({
+      range: REVENUE_RANGE.CUSTOM,
+      fromYmd: '2026-07-13',
+      toYmd: '2026-07-15',
+      currentRows: [
+        completedRow({ id: '1', scheduled_date: '2026-07-13', totalCents: 4000 }),
+        completedRow({ id: '2', scheduled_date: '2026-07-15', totalCents: 6000 }),
+      ],
+      previousRows: [completedRow({ id: 'p', scheduled_date: '2026-07-10', totalCents: 5000 })],
+      now,
+    });
+
+    expect(summary.collectedCents).toBe(10000);
+    expect(summary.jobsPaid).toBe(2);
+    expect(summary.bucketKind).toBe('daily');
+    expect(summary.bars).toHaveLength(3);
+    expect(summary.bars[0].label).toBe('13');
+    expect(summary.bars[0].cents).toBe(4000);
+    expect(summary.bars[2].cents).toBe(6000);
+    expect(summary.changePct).toBe(100);
+    expect(summary.compareLabel).toBe('vs prior period');
+  });
+
+  it('uses weekly chunks for custom ranges longer than 31 days', () => {
+    const summary = aggregatePaymentsRevenue({
+      range: REVENUE_RANGE.CUSTOM,
+      fromYmd: '2026-06-01',
+      toYmd: '2026-07-12',
+      currentRows: [
+        completedRow({ id: '1', scheduled_date: '2026-06-03', totalCents: 2000 }),
+        completedRow({ id: '2', scheduled_date: '2026-06-10', totalCents: 3000 }),
+      ],
+      now,
+    });
+
+    expect(summary.bucketKind).toBe('weekly');
+    expect(summary.bars.length).toBeGreaterThan(4);
+    expect(summary.bars[0].label).toBe('Jun 1');
+    expect(summary.bars[0].cents).toBe(2000);
+    expect(summary.bars[1].cents).toBe(3000);
+    expect(summary.collectedCents).toBe(5000);
+  });
+
+  it('uses monthly bars for long custom ranges', () => {
+    const summary = aggregatePaymentsRevenue({
+      range: REVENUE_RANGE.CUSTOM,
+      fromYmd: '2025-01-15',
+      toYmd: '2026-07-15',
+      currentRows: [
+        completedRow({ id: '1', scheduled_date: '2025-02-01', totalCents: 1000 }),
+        completedRow({ id: '2', scheduled_date: '2026-07-10', totalCents: 4000 }),
+      ],
+      now,
+    });
+
+    expect(summary.bucketKind).toBe('monthly');
+    expect(summary.bars[0].label).toBe('Jan 25');
+    expect(summary.bars.some((b) => b.cents === 1000)).toBe(true);
+    expect(summary.bars.some((b) => b.cents === 4000)).toBe(true);
+    expect(summary.collectedCents).toBe(5000);
+  });
 });

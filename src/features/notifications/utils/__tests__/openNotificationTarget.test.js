@@ -102,6 +102,40 @@ describe('openNotificationTarget', () => {
     });
   });
 
+  it('navigates to subscriber detail from More stack', () => {
+    const navigation = nav();
+    openNotificationTarget(navigation, { referenceType: 'subscriber', referenceId: 'mem-9' });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.MORE,
+      params: {
+        state: {
+          routes: [
+            { name: ROUTES.MORE_HOME },
+            { name: ROUTES.SUBSCRIPTION_DETAIL, params: { subscriptionId: 'mem-9' } },
+          ],
+          index: 1,
+        },
+      },
+    });
+  });
+
+  it('treats membership as an alias for subscriber', () => {
+    const navigation = nav();
+    openNotificationTarget(navigation, { referenceType: 'membership', referenceId: 'mem-alias' });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.MORE,
+      params: {
+        state: {
+          routes: [
+            { name: ROUTES.MORE_HOME },
+            { name: ROUTES.SUBSCRIPTION_DETAIL, params: { subscriptionId: 'mem-alias' } },
+          ],
+          index: 1,
+        },
+      },
+    });
+  });
+
   it.each(['payment', 'payout', 'deposit'])(
     'navigates to More payments for %s',
     (referenceType) => {

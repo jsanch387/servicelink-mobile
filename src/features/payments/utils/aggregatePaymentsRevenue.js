@@ -1,7 +1,17 @@
 import { calendarYyyyMmDdFromScheduledDate, localYyyyMmDd } from '../../home/utils/bookingStart';
 import { computeBookingEarningsCents } from '../../home/utils/todaysEarnings';
-import { REVENUE_RANGE } from '../constants/paymentsRevenueRanges';
-import { addDays, parseLocalYmd, revenueDateWindow } from './revenueDateWindows';
+import {
+  REVENUE_CUSTOM_DAILY_MAX_DAYS,
+  REVENUE_CUSTOM_WEEKLY_MAX_DAYS,
+  REVENUE_RANGE,
+} from '../constants/paymentsRevenueRanges';
+import {
+  addDays,
+  inclusiveDayCount,
+  parseLocalYmd,
+  revenueCustomDateWindow,
+  revenueDateWindow,
+} from './revenueDateWindows';
 
 /**
  * @typedef {{ label: string; fullLabel: string; cents: number; key: string }} RevenueBar
@@ -11,6 +21,7 @@ import { addDays, parseLocalYmd, revenueDateWindow } from './revenueDateWindows'
  *   changePct: number | null;
  *   compareLabel: string | null;
  *   bars: RevenueBar[];
+ *   bucketKind: 'daily' | 'weekly' | 'monthly' | 'yearly';
  * }} PaymentsRevenueSummary
  */
 
@@ -182,9 +193,130 @@ function barsForYear(byDay, year) {
 }
 
 /**
+ * @param {string} fromYmd
+ * @param {string} toYmd
+ * @returns {'daily' | 'weekly' | 'monthly'}
+ */
+function customBucketKind(fromYmd, toYmd) {
+  const days = inclusiveDayCount(fromYmd, toYmd);
+  if (days <= REVENUE_CUSTOM_DAILY_MAX_DAYS) return 'daily';
+  if (days <= REVENUE_CUSTOM_WEEKLY_MAX_DAYS) return 'weekly';
+  return 'monthly';
+}
+
+/**
+ * @param {Date} from
+ * @param {Date} to
+ * @returns {string}
+ */
+function customChunkFullLabel(from, to) {
+  const fromLabel = `${MONTH_SHORT[from.getMonth()]} ${from.getDate()}`;
+  if (localYyyyMmDd(from) === localYyyyMmDd(to)) return fromLabel;
+  if (from.getFullYear() === to.getFullYear() && from.getMonth() === to.getMonth()) {
+    return `${fromLabel}–${to.getDate()}`;
+  }
+  if (from.getFullYear() === to.getFullYear()) {
+    return `${fromLabel}–${MONTH_SHORT[to.getMonth()]} ${to.getDate()}`;
+  }
+  return `${fromLabel}, ${from.getFullYear()}–${MONTH_SHORT[to.getMonth()]} ${to.getDate()}, ${to.getFullYear()}`;
+}
+
+/**
  * @param {Map<string, number>} byDay
+ * @param {string} fromYmd
+ * @param {string} toYmd
  * @returns {RevenueBar[]}
  */
+function barsForCustomDays(byDay, fromYmd, toYmd) {
+  const start = parseLocalYmd(fromYmd);
+  const end = parseLocalYmd(toYmd);
+  const sameMonth =
+    start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth();
+  /** @type {RevenueBar[]} */
+  const bars = [];
+  let cursor = start;
+  while (cursor.getTime() <= end.getTime()) {
+    const ymd = localYyyyMmDd(cursor);
+    const weekday = cursor.getDay();
+    const monthShort = MONTH_SHORT[cursor.getMonth()];
+    const dayNum = cursor.getDate();
+    bars.push({
+      key: ymd,
+      label: sameMonth ? String(dayNum) : `${monthShort} ${dayNum}`,
+      fullLabel: `${WEEKDAY_MED[weekday]}, ${monthShort} ${dayNum}`,
+      cents: byDay.get(ymd) ?? 0,
+    });
+    cursor = addDays(cursor, 1);
+  }
+  return bars;
+}
+
+/**
+ * Consecutive 7-day chunks from the custom start (last chunk may be shorter).
+ *
+ * @param {Map<string, number>} byDay
+ * @param {string} fromYmd
+ * @param {string} toYmd
+ * @returns {RevenueBar[]}
+ */
+function barsForCustomWeeks(byDay, fromYmd, toYmd) {
+  /** @type {RevenueBar[]} */
+  const bars = [];
+  let cursor = parseLocalYmd(fromYmd);
+  const end = parseLocalYmd(toYmd);
+  let weekIndex = 1;
+  while (cursor.getTime() <= end.getTime()) {
+    const chunkEnd = addDays(cursor, 6);
+    const to = chunkEnd.getTime() > end.getTime() ? end : chunkEnd;
+    const fromKey = localYyyyMmDd(cursor);
+    const toKey = localYyyyMmDd(to);
+    bars.push({
+      key: `cw${weekIndex}-${fromKey}`,
+      label: `${MONTH_SHORT[cursor.getMonth()]} ${cursor.getDate()}`,
+      fullLabel: customChunkFullLabel(cursor, to),
+      cents: sumDaysInRange(byDay, fromKey, toKey),
+    });
+    cursor = addDays(to, 1);
+    weekIndex += 1;
+  }
+  return bars;
+}
+
+/**
+ * @param {Map<string, number>} byDay
+ * @param {string} fromYmd
+ * @param {string} toYmd
+ * @returns {RevenueBar[]}
+ */
+function barsForCustomMonths(byDay, fromYmd, toYmd) {
+  const start = parseLocalYmd(fromYmd);
+  const end = parseLocalYmd(toYmd);
+  const showYear = start.getFullYear() !== end.getFullYear();
+  /** @type {RevenueBar[]} */
+  const bars = [];
+  let year = start.getFullYear();
+  let month = start.getMonth();
+
+  while (year < end.getFullYear() || (year === end.getFullYear() && month <= end.getMonth())) {
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+    const from = monthStart.getTime() < start.getTime() ? start : monthStart;
+    const to = monthEnd.getTime() > end.getTime() ? end : monthEnd;
+    bars.push({
+      key: `${year}-${month + 1}`,
+      label: showYear ? `${MONTH_SHORT[month]} ${String(year).slice(2)}` : MONTH_SHORT[month],
+      fullLabel: `${MONTH_LONG[month]} ${year}`,
+      cents: sumDaysInRange(byDay, localYyyyMmDd(from), localYyyyMmDd(to)),
+    });
+    month += 1;
+    if (month > 11) {
+      month = 0;
+      year += 1;
+    }
+  }
+  return bars;
+}
+
 function barsForAllTime(byDay) {
   /** @type {Map<number, number>} */
   const byYear = new Map();
@@ -228,6 +360,8 @@ function changePercent(current, previous) {
  *   currentRows: object[] | null | undefined;
  *   previousRows?: object[] | null | undefined;
  *   now?: Date;
+ *   fromYmd?: string | null;
+ *   toYmd?: string | null;
  * }} args
  * @returns {PaymentsRevenueSummary}
  */
@@ -236,18 +370,38 @@ export function aggregatePaymentsRevenue({
   currentRows,
   previousRows = [],
   now = new Date(),
+  fromYmd = null,
+  toYmd = null,
 }) {
-  const window = revenueDateWindow(range, now);
+  const window =
+    range === REVENUE_RANGE.CUSTOM
+      ? revenueCustomDateWindow(fromYmd, toYmd)
+      : revenueDateWindow(range, now);
   const current = summarizeCompletedRows(currentRows);
   const previous = summarizeCompletedRows(previousRows);
 
   /** @type {RevenueBar[]} */
   let bars = [];
-  if (range === REVENUE_RANGE.WEEK && window.fromYmd && window.toYmd) {
+  /** @type {'daily' | 'weekly' | 'monthly' | 'yearly'} */
+  let bucketKind = 'yearly';
+
+  if (range === REVENUE_RANGE.CUSTOM && window.fromYmd && window.toYmd) {
+    bucketKind = customBucketKind(window.fromYmd, window.toYmd);
+    if (bucketKind === 'daily') {
+      bars = barsForCustomDays(current.byDay, window.fromYmd, window.toYmd);
+    } else if (bucketKind === 'weekly') {
+      bars = barsForCustomWeeks(current.byDay, window.fromYmd, window.toYmd);
+    } else {
+      bars = barsForCustomMonths(current.byDay, window.fromYmd, window.toYmd);
+    }
+  } else if (range === REVENUE_RANGE.WEEK && window.fromYmd && window.toYmd) {
+    bucketKind = 'daily';
     bars = barsForWeek(current.byDay, window.fromYmd, window.toYmd);
   } else if (range === REVENUE_RANGE.MONTH && window.fromYmd && window.toYmd) {
+    bucketKind = 'weekly';
     bars = barsForMonth(current.byDay, window.fromYmd, window.toYmd);
   } else if (range === REVENUE_RANGE.YEAR) {
+    bucketKind = 'monthly';
     bars = barsForYear(current.byDay, now.getFullYear());
   } else {
     bars = barsForAllTime(current.byDay);
@@ -265,6 +419,9 @@ export function aggregatePaymentsRevenue({
   } else if (range === REVENUE_RANGE.YEAR) {
     changePct = changePercent(current.collectedCents, previous.collectedCents);
     compareLabel = changePct == null ? null : 'vs last year';
+  } else if (range === REVENUE_RANGE.CUSTOM && window.fromYmd && window.toYmd) {
+    changePct = changePercent(current.collectedCents, previous.collectedCents);
+    compareLabel = changePct == null ? null : 'vs prior period';
   }
 
   return {
@@ -273,5 +430,6 @@ export function aggregatePaymentsRevenue({
     changePct,
     compareLabel,
     bars,
+    bucketKind,
   };
 }
