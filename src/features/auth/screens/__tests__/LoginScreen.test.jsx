@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { Platform } from 'react-native';
 import { renderWithProviders } from '../../../home/__tests__/testUtils';
 import { LoginScreen } from '../LoginScreen';
 import { useAuth } from '../..';
@@ -20,8 +21,10 @@ describe('LoginScreen social sign-in', () => {
   const signInWithPassword = jest.fn();
   const signInWithGoogle = jest.fn();
   const signInWithApple = jest.fn();
+  const originalOs = Platform.OS;
 
   beforeEach(() => {
+    Platform.OS = 'ios';
     jest.clearAllMocks();
     sendLoginCode.mockResolvedValue({ error: null });
     signInWithPassword.mockResolvedValue({ error: null });
@@ -35,12 +38,25 @@ describe('LoginScreen social sign-in', () => {
     });
   });
 
-  it('shows Google and Apple sign-in on the login screen', () => {
+  afterEach(() => {
+    Platform.OS = originalOs;
+  });
+
+  it('shows Google and Apple side by side on iOS', () => {
     renderWithProviders(<LoginScreen />);
     expect(screen.getByTestId('login-google')).toBeTruthy();
     expect(screen.getByTestId('login-apple')).toBeTruthy();
     expect(screen.getByLabelText('Continue with Google')).toBeTruthy();
     expect(screen.getByLabelText('Continue with Apple')).toBeTruthy();
+  });
+
+  it('shows only a full-width Google button on Android', () => {
+    Platform.OS = 'android';
+    renderWithProviders(<LoginScreen />);
+    expect(screen.getByTestId('login-google')).toBeTruthy();
+    expect(screen.getByLabelText('Continue with Google')).toBeTruthy();
+    expect(screen.queryByTestId('login-apple')).toBeNull();
+    expect(screen.queryByLabelText('Continue with Apple')).toBeNull();
   });
 
   it('starts Google OAuth from the login button', async () => {

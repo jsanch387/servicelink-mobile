@@ -155,6 +155,7 @@ export function LoginScreen() {
   };
 
   const socialDisabled = submitting || socialBusy !== null;
+  const showAppleSignIn = Platform.OS === 'ios';
 
   return (
     <View style={styles.screen} testID="login-screen">
@@ -269,30 +270,41 @@ export function LoginScreen() {
                       <View style={[styles.dividerLine, styles.dividerLineFill]} />
                     </View>
 
-                    <View style={styles.oauthRow}>
-                      <View style={styles.oauthHalf}>
-                        <SocialSignInButton
-                          compact
-                          disabled={socialDisabled}
-                          fullWidth={false}
-                          loading={socialBusy === 'google'}
-                          onPress={handleGoogleSignIn}
-                          provider="google"
-                          testID="login-google"
-                        />
+                    {showAppleSignIn ? (
+                      <View style={styles.oauthRow}>
+                        <View style={styles.oauthHalf}>
+                          <SocialSignInButton
+                            compact
+                            disabled={socialDisabled}
+                            fullWidth={false}
+                            loading={socialBusy === 'google'}
+                            onPress={handleGoogleSignIn}
+                            provider="google"
+                            testID="login-google"
+                          />
+                        </View>
+                        <View style={styles.oauthHalf}>
+                          <SocialSignInButton
+                            compact
+                            disabled={socialDisabled}
+                            fullWidth={false}
+                            loading={socialBusy === 'apple'}
+                            onPress={handleAppleSignIn}
+                            provider="apple"
+                            testID="login-apple"
+                          />
+                        </View>
                       </View>
-                      <View style={styles.oauthHalf}>
-                        <SocialSignInButton
-                          compact
-                          disabled={socialDisabled}
-                          fullWidth={false}
-                          loading={socialBusy === 'apple'}
-                          onPress={handleAppleSignIn}
-                          provider="apple"
-                          testID="login-apple"
-                        />
-                      </View>
-                    </View>
+                    ) : (
+                      <SocialSignInButton
+                        disabled={socialDisabled}
+                        fullWidth
+                        loading={socialBusy === 'google'}
+                        onPress={handleGoogleSignIn}
+                        provider="google"
+                        testID="login-google"
+                      />
+                    )}
                     {socialError ? (
                       <AppText accessibilityRole="alert" style={styles.socialError}>
                         {socialError}
