@@ -1,6 +1,9 @@
-# Mobile email OTP login
+# Mobile sign-in
 
-Mobile sign-in uses **email → 6-digit code → verify** (no Google/Apple on login).
+Mobile is **sign-in only** (App Store 3.1.1 companion). Accounts are created on the web. Owners can sign in with:
+
+- **Email → 6-digit code → verify**
+- **Google** or **Apple** (same in-app browser OAuth as before; existing ServiceLink account required)
 
 ## Supabase setup (required)
 
@@ -8,12 +11,19 @@ Mobile sign-in uses **email → 6-digit code → verify** (no Google/Apple on lo
 2. **Authentication → Email Templates → Magic Link** — paste the HTML from
    `supabase/email-templates/magic-link-sign-in-otp.html` (matches the confirm-email design; uses `{{ .Token }}` only, no `{{ .ConfirmationURL }}`).
 
-3. Optional: custom SMTP under **Project Settings → Auth**.
+3. **Authentication → URL Configuration → Additional Redirect URLs** — add exactly:
+
+   `servicelinkmobile://auth/callback`
+
+4. **Authentication → Providers → Google** and **Apple** — enable both (same clients as the web app). Mobile uses Supabase-hosted OAuth in `expo-web-browser`, not native Google/Apple SDKs.
+
+5. Optional: custom SMTP under **Project Settings → Auth**.
 
 ## App behavior
 
 - `sendEmailLoginOtp` calls `signInWithOtp` with **`shouldCreateUser: false`** (login-only; no new auth users on mobile).
-- After verify, native requires an existing **`profiles`** row or the session is cleared.
+- After verify **or OAuth**, native requires an existing **`profiles`** row or the session is cleared (same “No account for this email” copy).
+- Google / Apple open Supabase OAuth in the system in-app browser and return to `servicelinkmobile://auth/callback`. Sign-up stays on the web.
 
 Docs: [Supabase passwordless email](https://supabase.com/docs/guides/auth/auth-email-passwordless)
 

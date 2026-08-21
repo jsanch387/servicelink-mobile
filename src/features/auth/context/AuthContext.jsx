@@ -16,7 +16,9 @@ import {
   onAuthStateChange,
   resendSignupConfirmationEmail,
   sendEmailLoginOtp,
+  signInWithAppleOAuth,
   signInWithEmailPassword,
+  signInWithGoogleOAuth,
   signOut as signOutRequest,
   signUpWithEmailPassword,
   validateSessionWithServerOrSignOut,
@@ -204,6 +206,28 @@ export function AuthProvider({ children }) {
     return { error: null };
   }, []);
 
+  const signInWithGoogle = useCallback(async () => {
+    const { error, cancelled } = await signInWithGoogleOAuth();
+    if (cancelled) {
+      return { error: null, cancelled: true };
+    }
+    if (error) {
+      return { error: getAuthErrorMessage(error), cancelled: false };
+    }
+    return { error: null, cancelled: false };
+  }, []);
+
+  const signInWithApple = useCallback(async () => {
+    const { error, cancelled } = await signInWithAppleOAuth();
+    if (cancelled) {
+      return { error: null, cancelled: true };
+    }
+    if (error) {
+      return { error: getAuthErrorMessage(error), cancelled: false };
+    }
+    return { error: null, cancelled: false };
+  }, []);
+
   const signUp = useCallback(async (email, password) => {
     const { data, error } = await signUpWithEmailPassword(email, password);
     if (error) {
@@ -240,6 +264,8 @@ export function AuthProvider({ children }) {
       sendLoginCode,
       verifyLoginCode,
       signInWithPassword,
+      signInWithGoogle,
+      signInWithApple,
       signUp,
       resendSignupConfirmation,
       signOut,
@@ -250,6 +276,8 @@ export function AuthProvider({ children }) {
       sendLoginCode,
       verifyLoginCode,
       signInWithPassword,
+      signInWithGoogle,
+      signInWithApple,
       signUp,
       resendSignupConfirmation,
       signOut,

@@ -9,7 +9,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppShellGlow, AppText, Button, SurfaceTextField } from '../../../components/ui';
+import {
+  AppShellGlow,
+  AppText,
+  Button,
+  SocialSignInButton,
+  SurfaceTextField,
+} from '../../../components/ui';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { useAuth } from '..';
@@ -26,17 +32,20 @@ import { isAppReviewLoginEmail } from '../utils/appReviewLogin';
 export function LoginScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
-  const { sendLoginCode, signInWithPassword } = useAuth();
+  const { sendLoginCode, signInWithPassword, signInWithGoogle, signInWithApple } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [socialBusy, setSocialBusy] = useState(null);
   const [formError, setFormError] = useState('');
   const [formErrorHint, setFormErrorHint] = useState('');
+  const [socialError, setSocialError] = useState('');
   const passwordFieldRef = useRef(null);
 
   const clearFormErrors = () => {
     setFormError('');
     setFormErrorHint('');
+    setSocialError('');
   };
 
   const styles = useMemo(
@@ -71,6 +80,12 @@ export function LoginScreen() {
           letterSpacing: -0.05,
           lineHeight: 19,
           marginTop: 24,
+          textAlign: 'center',
+        },
+        socialError: {
+          color: colors.danger,
+          fontSize: 14,
+          marginTop: 12,
           textAlign: 'center',
         },
       }),
@@ -110,6 +125,36 @@ export function LoginScreen() {
     }
     navigation.navigate(ROUTES.LOGIN_EMAIL_CODE, { email: trimmedEmail });
   };
+
+  const handleGoogleSignIn = async () => {
+    Keyboard.dismiss();
+    clearFormErrors();
+    setSocialBusy('google');
+    const { error, cancelled } = await signInWithGoogle();
+    setSocialBusy(null);
+    if (cancelled) {
+      return;
+    }
+    if (error) {
+      setSocialError(error);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    Keyboard.dismiss();
+    clearFormErrors();
+    setSocialBusy('apple');
+    const { error, cancelled } = await signInWithApple();
+    setSocialBusy(null);
+    if (cancelled) {
+      return;
+    }
+    if (error) {
+      setSocialError(error);
+    }
+  };
+
+  const socialDisabled = submitting || socialBusy !== null;
 
   return (
     <View style={styles.screen} testID="login-screen">
@@ -210,12 +255,49 @@ export function LoginScreen() {
                     ) : null}
                     <Button
                       accessibilityLabel={useAppReviewPasswordLogin ? 'Sign in' : 'Send login code'}
+                      disabled={socialDisabled}
                       fullWidth
                       loading={submitting}
                       onPress={handleSendCode}
                       testID="login-submit"
                       title={useAppReviewPasswordLogin ? 'Sign in' : 'Send login code'}
                     />
+
+                    <View style={styles.divider}>
+                      <View style={[styles.dividerLine, styles.dividerLineFill]} />
+                      <AppText style={styles.dividerText}>or</AppText>
+                      <View style={[styles.dividerLine, styles.dividerLineFill]} />
+                    </View>
+
+                    <View style={styles.oauthRow}>
+                      <View style={styles.oauthHalf}>
+                        <SocialSignInButton
+                          compact
+                          disabled={socialDisabled}
+                          fullWidth={false}
+                          loading={socialBusy === 'google'}
+                          onPress={handleGoogleSignIn}
+                          provider="google"
+                          testID="login-google"
+                        />
+                      </View>
+                      <View style={styles.oauthHalf}>
+                        <SocialSignInButton
+                          compact
+                          disabled={socialDisabled}
+                          fullWidth={false}
+                          loading={socialBusy === 'apple'}
+                          onPress={handleAppleSignIn}
+                          provider="apple"
+                          testID="login-apple"
+                        />
+                      </View>
+                    </View>
+                    {socialError ? (
+                      <AppText accessibilityRole="alert" style={styles.socialError}>
+                        {socialError}
+                      </AppText>
+                    ) : null}
                   </View>
                 </View>
 
