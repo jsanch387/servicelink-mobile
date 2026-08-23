@@ -89,6 +89,14 @@ describe('buildBookingDetailsModel', () => {
     expect(buildBookingDetailsModel({ duration_minutes: 30 }).schedule.duration).toBe('30 min');
   });
 
+  it('maps customer_id when the booking is linked to a CRM customer', () => {
+    const model = buildBookingDetailsModel({
+      customer_id: 'cust-1',
+      customer_name: 'Alex Rivera',
+    });
+    expect(model.customer.id).toBe('cust-1');
+  });
+
   it('formats customer phone for US display', () => {
     const model = buildBookingDetailsModel({
       customer_phone: '3054441212',
@@ -101,6 +109,7 @@ describe('buildBookingDetailsModel', () => {
       customer_name: 'Alex Rivera',
     });
     expect(model.customer.name).toBe('Alex Rivera');
+    expect(model.customer.id).toBeNull();
     expect(model.customer.phone).toBe('');
     expect(model.customer.email).toBe('');
   });

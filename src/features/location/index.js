@@ -22,3 +22,7 @@ export {
   markServiceAreaSkippedThisSession,
   clearServiceAreaSessionSkip,
 } from './constants/serviceAreaPrompt';
+export {
+  ADDRESS_AUTOCOMPLETE_ENABLED,
+  isAddressAutocompleteAvailable,
+} from './constants/addressAutocompleteFeatureFlags';

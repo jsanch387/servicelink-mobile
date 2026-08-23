@@ -42,6 +42,7 @@ import {
   StoreUpdateBanner,
 } from '../../appUpdates';
 import { useNotificationUnreadCount } from '../../notifications/hooks/useNotificationUnreadCount';
+import { useCreatePaymentAccess } from '../../payments/create-payment/hooks/useCreatePaymentAccess';
 import { useBookingsFreeTierUsage } from '../../bookings/hooks/useBookingsFreeTierUsage';
 import { bookingsFreeTierCountQueryKey } from '../../bookings/queryKeys';
 import { resolveFreeTierBookingUsed } from '../../bookings/utils/resolveFreeTierBookingUsed';
@@ -52,6 +53,7 @@ export function HomeScreen() {
   const queryClient = useQueryClient();
   const { unreadCount } = useNotificationUnreadCount();
   const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
+  const createPaymentAccess = useCreatePaymentAccess();
   const smsAccess = useCustomerSmsAccess();
   const useNextUpLifecycle = smsAccess.canUseSms;
   const dashboard = useHomeDashboard();
@@ -378,6 +380,10 @@ export function HomeScreen() {
     navigation.navigate(ROUTES.CREATE_QUOTE);
   }, [navigation, warnFreePlanBookingLimitIfNeeded]);
 
+  const handleCreatePayment = useCallback(() => {
+    navigation.navigate(ROUTES.CREATE_PAYMENT);
+  }, [navigation]);
+
   const handleOpenNotifications = useCallback(() => {
     navigation.navigate(ROUTES.NOTIFICATIONS_INBOX);
   }, [navigation]);
@@ -678,7 +684,9 @@ export function HomeScreen() {
       </ScrollView>
       <FloatingCreateMenu
         bottom={30}
+        showCreatePayment={createPaymentAccess.featureEnabled}
         onCreateAppointment={handleCreateAppointment}
+        onCreatePayment={handleCreatePayment}
         onCreateQuote={handleCreateQuote}
       />
     </SafeAreaView>

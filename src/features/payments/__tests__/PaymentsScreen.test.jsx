@@ -69,6 +69,7 @@ jest.mock('@react-navigation/native', () => {
     useNavigation: () => ({
       navigate: jest.fn(),
     }),
+    useRoute: () => ({ params: {} }),
   };
 });
 
@@ -283,6 +284,19 @@ describe('PaymentsScreen', () => {
     expect(screen.getByRole('button', { name: 'Sign in on the web' })).toBeTruthy();
     expect(screen.queryByText('Upgrade to Pro')).toBeNull();
     expect(screen.queryByText('Set up payments')).toBeNull();
+  });
+
+  it('shows recent mock transactions on the Transactions tab', () => {
+    renderWithProviders(<PaymentsScreen />);
+    expect(screen.getByLabelText('Transactions')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Transactions'));
+    expect(screen.getByTestId('payments-transactions')).toBeTruthy();
+    expect(screen.getByText('Lights')).toBeTruthy();
+    expect(screen.getAllByText('Payment link · Paid').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Signature Shine')).toBeTruthy();
+    expect(screen.queryByText('Express wash')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Show more'));
+    expect(screen.getByText('Express wash')).toBeTruthy();
   });
 
   it('keeps Revenue visible for Pro without Stripe Connect', async () => {

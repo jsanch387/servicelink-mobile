@@ -12,35 +12,37 @@ const ROW_GAP = 12;
 /** Extra inset from screen right so speed-dial rows sit closer to the main FAB center. */
 const ACTION_MENU_RIGHT_NUDGE = Math.round(FAB_SIZE * 0.05);
 
-/** Secondary action color (distinct from accent), matches speed-dial style. */
-const QUOTE_ACTION_ORANGE = '#ea580c';
+/** Close FAB fill — dark-theme error coral (reads pink-red on dark). */
+const FAB_CLOSE_RED = '#f87171';
 
 const MENU_ITEMS = [
   {
     key: 'appointment',
     icon: 'calendar-outline',
     label: 'Create appointment',
-    colorToken: 'accent',
+  },
+  {
+    key: 'payment',
+    icon: 'card-outline',
+    label: 'Create payment',
   },
   {
     key: 'quote',
-    icon: 'document-text-outline',
+    icon: 'document-outline',
     label: 'Create quote',
-    colorToken: 'orange',
   },
 ];
-
-function circleBackground(colors, token) {
-  if (token === 'orange') {
-    return QUOTE_ACTION_ORANGE;
-  }
-  return colors.accent;
-}
 
 /**
  * Floating create FAB with a speed-dial menu (label pill + icon row, + / × on main control).
  */
-export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom = 30 }) {
+export function FloatingCreateMenu({
+  onCreateAppointment,
+  onCreateQuote,
+  onCreatePayment,
+  showCreatePayment = true,
+  bottom = 30,
+}) {
   const { colors } = useTheme();
   const [open, setOpen] = useState(false);
   const progress = useRef(new Animated.Value(0)).current;
@@ -77,9 +79,15 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
         onCreateAppointment?.();
         return;
       }
-      onCreateQuote?.();
+      if (key === 'quote') {
+        onCreateQuote?.();
+        return;
+      }
+      if (key === 'payment') {
+        onCreatePayment?.();
+      }
     },
-    [closeMenu, onCreateAppointment, onCreateQuote, vibrateSoft],
+    [closeMenu, onCreateAppointment, onCreatePayment, onCreateQuote, vibrateSoft],
   );
 
   const styles = useMemo(
@@ -127,6 +135,7 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
         },
         actionIconOuter: {
           alignItems: 'center',
+          backgroundColor: colors.accent,
           borderRadius: 24,
           height: 48,
           justifyContent: 'center',
@@ -160,6 +169,11 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
     [bottom, colors],
   );
 
+  const menuItems = useMemo(
+    () => MENU_ITEMS.filter((item) => item.key !== 'payment' || showCreatePayment),
+    [showCreatePayment],
+  );
+
   const menuOpacity = progress.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 1],
@@ -175,6 +189,10 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
   const fabScale = progress.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 0.98],
+  });
+  const fabIconRotate = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '45deg'],
   });
 
   return (
@@ -197,13 +215,13 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
               },
             ]}
           >
-            {MENU_ITEMS.map((item) => (
+            {menuItems.map((item) => (
               <View key={item.key} style={styles.actionRow}>
                 <Pressable
                   accessibilityLabel={item.label}
                   accessibilityRole="button"
                   style={styles.labelPill}
-                  testID={item.key === 'appointment' ? 'create-appointment' : 'create-quote'}
+                  testID={`create-${item.key}`}
                   onPress={() => handleSelect(item.key)}
                 >
                   <Text allowFontScaling={false} numberOfLines={1} style={styles.labelText}>
@@ -213,13 +231,8 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
                 <Pressable
                   accessibilityElementsHidden
                   importantForAccessibility="no-hide-descendants"
-                  style={[
-                    styles.actionIconOuter,
-                    { backgroundColor: circleBackground(colors, item.colorToken) },
-                  ]}
-                  testID={
-                    item.key === 'appointment' ? 'create-appointment-icon' : 'create-quote-icon'
-                  }
+                  style={styles.actionIconOuter}
+                  testID={`create-${item.key}-icon`}
                   onPress={() => handleSelect(item.key)}
                 >
                   <Ionicons color={colors.surface} name={item.icon} size={22} />
@@ -230,7 +243,13 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
         </View>
       ) : null}
 
-      <Animated.View style={[styles.fab, { transform: [{ scale: fabScale }] }]}>
+      <Animated.View
+        style={[
+          styles.fab,
+          open && { backgroundColor: FAB_CLOSE_RED },
+          { transform: [{ scale: fabScale }] },
+        ]}
+      >
         <Pressable
           accessibilityLabel={open ? 'Close create menu' : 'Open create menu'}
           accessibilityRole="button"
@@ -238,7 +257,9 @@ export function FloatingCreateMenu({ onCreateAppointment, onCreateQuote, bottom 
           testID="create-menu-fab"
           onPress={toggleMenu}
         >
-          <Ionicons color={colors.surface} name={open ? 'close' : 'add'} size={28} />
+          <Animated.View style={{ transform: [{ rotate: fabIconRotate }] }}>
+            <Ionicons color={open ? '#0a0a0a' : colors.surface} name="add" size={28} />
+          </Animated.View>
         </Pressable>
       </Animated.View>
     </>

@@ -15,7 +15,7 @@ Order matches the scroll layout; useful when tracing UX or adding a section.
 5. **Today’s earnings** — `TodaysPotentialCard` (when priced jobs exist today).
 6. **Today’s timeline** — `RestOfTodayCard`.
 7. **Link visits** — `LinkStatsSection` (views + copyable booking URL).
-8. **`FloatingCreateMenu`** — Create appointment / quote entry points (overlay).
+8. **`FloatingCreateMenu`** — Create appointment / quote / payment entry points (overlay).
 
 `useHomeDashboard()` is called once; **`useMarkBookingCompleteFlow()`** handles mark-complete from the Next Up card (`POST …/actions` `job_completed` when feature flag is on).
 

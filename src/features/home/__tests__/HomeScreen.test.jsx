@@ -55,6 +55,17 @@ jest.mock('../../subscription', () => ({
   showWebAccountFeatureAlert: (...args) => mockShowWebAccountFeatureAlert(...args),
 }));
 
+const mockCreatePaymentAccess = {
+  featureEnabled: true,
+  canUseCreatePayment: true,
+  showUpsell: false,
+  isReady: true,
+};
+
+jest.mock('../../payments/create-payment/hooks/useCreatePaymentAccess', () => ({
+  useCreatePaymentAccess: () => mockCreatePaymentAccess,
+}));
+
 jest.mock('../../sms/hooks/useCustomerSmsAccess', () => ({
   useCustomerSmsAccess: () => ({
     featureEnabled: true,
@@ -160,6 +171,10 @@ describe('HomeScreen', () => {
       isLoading: false,
       isError: false,
     });
+    mockCreatePaymentAccess.featureEnabled = true;
+    mockCreatePaymentAccess.canUseCreatePayment = true;
+    mockCreatePaymentAccess.showUpsell = false;
+    mockCreatePaymentAccess.isReady = true;
   });
 
   it('renders section labels, link stats, and empty today timeline when loaded', () => {
@@ -255,6 +270,11 @@ describe('HomeScreen', () => {
       fireEvent.press(screen.getByLabelText('Create quote'));
       expect(alertSpy).not.toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith(ROUTES.CREATE_QUOTE);
+      mockNavigate.mockClear();
+      fireEvent.press(screen.getByLabelText('Open create menu'));
+      fireEvent.press(screen.getByLabelText('Create payment'));
+      expect(alertSpy).not.toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith(ROUTES.CREATE_PAYMENT);
     } finally {
       alertSpy.mockRestore();
     }
@@ -386,6 +406,38 @@ describe('HomeScreen', () => {
     renderWithProviders(<HomeScreen />);
     fireEvent.press(screen.getByLabelText('Notifications'));
     expect(mockNavigate).toHaveBeenCalledWith(ROUTES.NOTIFICATIONS_INBOX);
+  });
+
+  it('hides Create payment on the FAB when the rollout flag excludes this owner', () => {
+    mockCreatePaymentAccess.featureEnabled = false;
+    renderWithProviders(<HomeScreen />);
+    fireEvent.press(screen.getByLabelText('Open create menu'));
+    expect(screen.queryByLabelText('Create payment')).toBeNull();
+  });
+
+  it('navigates to create payment when FAB menu payment is pressed', () => {
+    renderWithProviders(<HomeScreen />);
+    fireEvent.press(screen.getByLabelText('Open create menu'));
+    fireEvent.press(screen.getByLabelText('Create payment'));
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.CREATE_PAYMENT);
+  });
+
+  it('allows create payment from FAB when free plan is at the booking limit', () => {
+    mockUseSubscription.mockReturnValue({
+      hasProAccess: false,
+      isOwnerProfileLoaded: true,
+    });
+    mockUseBookingsFreeTierUsage.mockReturnValue({
+      used: 5,
+      limit: 5,
+      isLoading: false,
+      isError: false,
+    });
+    renderWithProviders(<HomeScreen />);
+    fireEvent.press(screen.getByLabelText('Open create menu'));
+    fireEvent.press(screen.getByLabelText('Create payment'));
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.CREATE_PAYMENT);
+    expect(mockShowWebAccountFeatureAlert).not.toHaveBeenCalled();
   });
 
   it('navigates to create appointment when FAB menu appointment is pressed', () => {

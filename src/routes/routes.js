@@ -20,6 +20,7 @@ export const ROUTES = {
   BOOKINGS: 'Bookings',
   BOOKINGS_LIST: 'BookingsList',
   BOOKING_DETAILS: 'BookingDetails',
+  BOOKING_ACTIVITY: 'BookingActivity',
   EDIT_BOOKING: 'EditBooking',
   CUSTOMERS: 'Customers',
   CUSTOMERS_LIST: 'CustomersList',
@@ -74,6 +75,8 @@ export const ROUTES = {
   NOTIFICATIONS_INBOX: 'NotificationsInbox',
   /** Root stack — new appointment from home FAB (back returns to tabs). */
   CREATE_APPOINTMENT: 'CreateAppointment',
+  /** Root stack — quick pay / payment link from home FAB (back returns to tabs). */
+  CREATE_PAYMENT: 'CreatePayment',
   SUPPORT: 'Support',
   /** More stack — merchant help guides (Tap to Pay education, etc.). */
   HELP: 'Help',
@@ -91,6 +94,7 @@ export const PATHS = {
   BOOKINGS: '/bookings',
   BOOKINGS_LIST: '/bookings/list',
   BOOKING_DETAILS: '/bookings/:bookingId',
+  BOOKING_ACTIVITY: '/bookings/:bookingId/activity',
   EDIT_BOOKING: '/bookings/:bookingId/edit',
   CUSTOMERS: '/customers',
   CUSTOMERS_LIST: '/customers/list',
@@ -126,6 +130,7 @@ export const PATHS = {
   CUSTOMER_SMS_UPSELL: '/more/notifications/customer-texts',
   NOTIFICATIONS_INBOX: '/notifications',
   CREATE_APPOINTMENT: '/create-appointment',
+  CREATE_PAYMENT: '/create-payment',
   SUPPORT: '/more/support',
   HELP: '/more/help',
   LEGAL: '/more/legal',

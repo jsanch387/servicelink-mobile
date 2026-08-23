@@ -1,42 +1,58 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, SurfaceCard } from '../../../components/ui';
+import { AppText, LoadMoreLink, SurfaceCard } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
-import { PAYMENTS_TRANSACTIONS_MOCK } from '../constants/paymentsTransactionsMockData';
+import {
+  PAYMENTS_TRANSACTIONS_MOCK,
+  PAYMENTS_TRANSACTIONS_PAGE_SIZE,
+} from '../constants/paymentsTransactionsMockData';
 
 function formatUsd(cents) {
   const abs = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
   }).format(Math.abs(cents) / 100);
   return cents < 0 ? `−${abs}` : `+${abs}`;
 }
 
 function methodIcon(method) {
   if (method === 'tap') return 'phone-portrait-outline';
+  if (method === 'link') return 'link-outline';
   if (method === 'online') return 'globe-outline';
   if (method === 'payout') return 'business-outline';
   return 'cash-outline';
 }
 
-/**
- * Sample Transactions tab — money in and out, plain English (mock data only).
- */
-export function PaymentsTransactionsMock() {
-  const { colors, isDark } = useTheme();
+function groupRowsByDay(rows) {
+  /** @type {Map<string, typeof PAYMENTS_TRANSACTIONS_MOCK>} */
+  const map = new Map();
+  for (const row of rows) {
+    const list = map.get(row.dayGroup) ?? [];
+    list.push(row);
+    map.set(row.dayGroup, list);
+  }
+  return Array.from(map.entries()).map(([dayGroup, groupRows]) => ({
+    dayGroup,
+    rows: groupRows,
+  }));
+}
 
-  const groups = useMemo(() => {
-    /** @type {Map<string, typeof PAYMENTS_TRANSACTIONS_MOCK>} */
-    const map = new Map();
-    for (const row of PAYMENTS_TRANSACTIONS_MOCK) {
-      const list = map.get(row.dayGroup) ?? [];
-      list.push(row);
-      map.set(row.dayGroup, list);
-    }
-    return Array.from(map.entries()).map(([dayGroup, rows]) => ({ dayGroup, rows }));
+/**
+ * Payments → Transactions. Mock rows only — newest first, paged.
+ */
+export function PaymentsTransactionsSection() {
+  const { colors, isDark } = useTheme();
+  const [visibleCount, setVisibleCount] = useState(PAYMENTS_TRANSACTIONS_PAGE_SIZE);
+
+  const groups = useMemo(
+    () => groupRowsByDay(PAYMENTS_TRANSACTIONS_MOCK.slice(0, visibleCount)),
+    [visibleCount],
+  );
+  const hasMore = visibleCount < PAYMENTS_TRANSACTIONS_MOCK.length;
+
+  const handleShowMore = useCallback(() => {
+    setVisibleCount((prev) => prev + PAYMENTS_TRANSACTIONS_PAGE_SIZE);
   }, []);
 
   const styles = useMemo(
@@ -74,6 +90,7 @@ export function PaymentsTransactionsMock() {
           gap: 12,
           paddingHorizontal: 4,
           paddingVertical: 14,
+          width: '100%',
         },
         rowDivider: {
           borderTopColor: colors.border,
@@ -103,6 +120,10 @@ export function PaymentsTransactionsMock() {
           fontSize: 13,
           fontWeight: '500',
         },
+        amountCol: {
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+        },
         amountIn: {
           color: colors.moneyPositive,
           fontFamily: FONT_FAMILIES.semibold,
@@ -120,8 +141,8 @@ export function PaymentsTransactionsMock() {
   );
 
   return (
-    <View style={styles.stack}>
-      <AppText style={styles.intro}>Every payment and payout, newest first.</AppText>
+    <View style={styles.stack} testID="payments-transactions">
+      <AppText style={styles.intro}>Newest first. Paid links and in-person charges show here.</AppText>
 
       {groups.map((group) => (
         <View key={group.dayGroup} style={styles.group}>
@@ -140,14 +161,24 @@ export function PaymentsTransactionsMock() {
                     {row.subtitle}
                   </AppText>
                 </View>
-                <AppText style={row.tone === 'in' ? styles.amountIn : styles.amountOut}>
-                  {formatUsd(row.amountCents)}
-                </AppText>
+                <View style={styles.amountCol}>
+                  <AppText style={row.tone === 'in' ? styles.amountIn : styles.amountOut}>
+                    {formatUsd(row.amountCents)}
+                  </AppText>
+                </View>
               </View>
             ))}
           </SurfaceCard>
         </View>
       ))}
+
+      {hasMore ? (
+        <LoadMoreLink
+          accessibilityHint="Shows older transactions"
+          label="Show more"
+          onPress={handleShowMore}
+        />
+      ) : null}
     </View>
   );
 }

@@ -11,6 +11,7 @@ import { useTheme } from '../../theme';
  * @param {import('react').ReactNode} props.children
  * @param {'default' | 'overline'} [props.titleTone]
  * @param {'default' | 'roomy'} [props.bodyPadding]
+ * @param {import('react-native').StyleProp<import('react-native').ViewStyle>} [props.cardStyle]
  */
 export function DetailsSectionCard({
   title,
@@ -18,6 +19,7 @@ export function DetailsSectionCard({
   children,
   titleTone = 'default',
   bodyPadding = 'default',
+  cardStyle,
 }) {
   const { colors } = useTheme();
 
@@ -79,7 +81,9 @@ export function DetailsSectionCard({
           {titleRight}
         </View>
       ) : null}
-      <SurfaceCard style={isRoomy ? styles.cardRoomy : styles.cardDefault}>{children}</SurfaceCard>
+      <SurfaceCard style={[isRoomy ? styles.cardRoomy : styles.cardDefault, cardStyle]}>
+        {children}
+      </SurfaceCard>
     </View>
   );
 }

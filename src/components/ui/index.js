@@ -73,4 +73,5 @@ export {
   WheelPickerSheetShell,
 } from './wheelPicker';
 export { WizardProgressBar } from './WizardProgressBar';
+export { HeaderTextButton } from './HeaderTextButton';
 export { WizardStepHeader } from './WizardStepHeader';

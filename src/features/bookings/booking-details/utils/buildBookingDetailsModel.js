@@ -653,6 +653,7 @@ export function buildBookingDetailsModel(booking) {
       total,
     },
     customer: {
+      id: String(booking?.customer_id ?? '').trim() || null,
       name: clean(booking?.customer_name, 'Walk-in customer'),
       phone: customerPhoneDisplay,
       email: customerEmailDisplay,

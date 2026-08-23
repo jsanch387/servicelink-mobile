@@ -22,6 +22,7 @@ import { attemptPushNavigation } from '../features/notifications/utils/attemptPu
 import { CreateAppointmentScreen } from '../features/bookings';
 import { EditBookingScreen } from '../features/bookings/screens/EditBookingScreen';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
+import { CreatePaymentScreen } from '../features/payments';
 import { CreateQuoteScreen } from '../features/quotes/screens/CreateQuoteScreen';
 import { useSubscription } from '../features/subscription';
 import { MainTabNavigator } from './MainTabNavigator';
@@ -308,6 +309,19 @@ export function AuthNavigator() {
                 options={{
                   headerShown: true,
                   title: 'Edit appointment',
+                  headerBackButtonDisplayMode: 'minimal',
+                  headerBackTitleVisible: false,
+                  headerTitleStyle: {
+                    fontFamily: FONT_FAMILIES.semibold,
+                  },
+                }}
+              />
+              <Stack.Screen
+                component={CreatePaymentScreen}
+                name={ROUTES.CREATE_PAYMENT}
+                options={{
+                  headerShown: true,
+                  title: 'New payment',
                   headerBackButtonDisplayMode: 'minimal',
                   headerBackTitleVisible: false,
                   headerTitleStyle: {

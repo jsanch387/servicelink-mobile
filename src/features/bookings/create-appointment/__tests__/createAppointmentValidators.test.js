@@ -1,3 +1,4 @@
+import { addressFormFromStructuredLocation } from '../constants';
 import {
   isAddressStepComplete,
   isCustomerStepComplete,
@@ -98,5 +99,22 @@ describe('createAppointmentValidators', () => {
     ).toBe(true);
     expect(isReviewStepComplete({ ...base, selectedTime: null })).toBe(false);
     expect(isReviewStepComplete({ ...base, selectedPricingId: 'wrong' })).toBe(false);
+  });
+});
+
+describe('addressFormFromStructuredLocation', () => {
+  it('maps a MapTiler pick and keeps unit', () => {
+    expect(
+      addressFormFromStructuredLocation(
+        { street: '123 Main St', city: 'Austin', state: 'tx', zip: '78701-1234' },
+        { unit: 'Apt 4' },
+      ),
+    ).toEqual({
+      street: '123 Main St',
+      unit: 'Apt 4',
+      city: 'Austin',
+      state: 'TX',
+      zip: '78701',
+    });
   });
 });

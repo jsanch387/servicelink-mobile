@@ -100,6 +100,7 @@ function InfoRow({
  * @param {object} props
  * @param {'default' | 'overline'} [props.titleTone] — forwarded to `DetailsSectionCard`.
  * @param {'default' | 'roomy'} [props.bodyPadding] — forwarded to `DetailsSectionCard`.
+ * @param {import('react-native').StyleProp<import('react-native').ViewStyle>} [props.cardStyle]
  */
 export function InfoSection({
   title,
@@ -109,6 +110,7 @@ export function InfoSection({
   rowGap = 9,
   titleTone = 'default',
   bodyPadding = 'default',
+  cardStyle,
 }) {
   const styles = useMemo(
     () =>
@@ -124,7 +126,12 @@ export function InfoSection({
   );
 
   return (
-    <DetailsSectionCard bodyPadding={bodyPadding} title={title} titleTone={titleTone}>
+    <DetailsSectionCard
+      bodyPadding={bodyPadding}
+      cardStyle={cardStyle}
+      title={title}
+      titleTone={titleTone}
+    >
       <View style={styles.rowsWrap}>
         {rows.map((row, index) => (
           <InfoRow

@@ -26,6 +26,9 @@ const AUTOCOMPLETE_DEBOUNCE_MS = 450;
  *   placeholder?: string;
  *   errorText?: string;
  *   containerStyle?: object;
+ *   showProviderFooter?: boolean;
+ *   onFocus?: () => void;
+ *   onProviderUnavailable?: () => void;
  * }} props
  */
 export function LocationAutocompleteField({
@@ -38,6 +41,9 @@ export function LocationAutocompleteField({
   placeholder = 'Search city or address',
   errorText,
   containerStyle,
+  showProviderFooter = true,
+  onFocus,
+  onProviderUnavailable,
 }) {
   const { colors, isDark } = useTheme();
   const suppressSearchUntilEditRef = useRef(false);
@@ -75,6 +81,7 @@ export function LocationAutocompleteField({
       setProviderError('Location suggestions are not configured.');
       setSuggestions([]);
       setHasCompletedSearch(false);
+      onProviderUnavailable?.();
       return undefined;
     }
 
@@ -98,6 +105,7 @@ export function LocationAutocompleteField({
         setSuggestions([]);
         setProviderError('Location suggestions are unavailable.');
         setHasCompletedSearch(false);
+        onProviderUnavailable?.();
       } finally {
         if (!controller.signal.aborted) setIsLoading(false);
       }
@@ -107,7 +115,7 @@ export function LocationAutocompleteField({
       clearTimeout(timeout);
       controller.abort();
     };
-  }, [isFocused, mode, selectedLocation, trimmedValue]);
+  }, [isFocused, mode, onProviderUnavailable, selectedLocation, trimmedValue]);
 
   const pickLocation = (location) => {
     suppressSearchUntilEditRef.current = true;
@@ -252,7 +260,10 @@ export function LocationAutocompleteField({
             setIsFocused(true);
             onChangeText(next);
           }}
-          onFocus={() => setIsFocused(true)}
+          onFocus={() => {
+            setIsFocused(true);
+            onFocus?.();
+          }}
         />
       </View>
 
@@ -313,9 +324,11 @@ export function LocationAutocompleteField({
                       </Pressable>
                     ))}
           </ScrollView>
-          <View style={styles.footer}>
-            <AppText style={styles.footerText}>US locations · Powered by MapTiler</AppText>
-          </View>
+          {showProviderFooter ? (
+            <View style={styles.footer}>
+              <AppText style={styles.footerText}>US locations · Powered by MapTiler</AppText>
+            </View>
+          ) : null}
         </View>
       ) : null}
     </View>
