@@ -291,6 +291,10 @@ export function PaymentsScreen() {
         contentRevenue: {
           paddingBottom: revenueScrollBottomPad,
         },
+        contentTransactions: {
+          flexGrow: 1,
+          paddingBottom: revenueScrollBottomPad,
+        },
         saveBar: {
           bottom: Math.max(insets.bottom - 12, 0),
           left: 16,
@@ -431,7 +435,9 @@ export function PaymentsScreen() {
     ? settingsReady
       ? styles.contentSettings
       : { paddingBottom: Math.max(insets.bottom, 24) + 32 }
-    : styles.contentRevenue;
+    : showTransactionsTab
+      ? styles.contentTransactions
+      : styles.contentRevenue;
 
   return (
     <View style={styles.root}>
@@ -445,7 +451,9 @@ export function PaymentsScreen() {
 
         {showRevenueTab ? <PaymentsRevenueSection businessId={businessId} /> : null}
 
-        {showTransactionsTab ? <PaymentsTransactionsSection /> : null}
+        {showTransactionsTab && !hasProAccess ? <PaymentsNonProUpsell /> : null}
+
+        {showTransactionsTab && hasProAccess ? <PaymentsTransactionsSection /> : null}
 
         {showSettingsTab && settingsNeedsPro ? <PaymentsNonProUpsell /> : null}
 

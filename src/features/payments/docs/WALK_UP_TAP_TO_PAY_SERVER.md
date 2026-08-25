@@ -208,5 +208,5 @@ Stripe / the card network may still notify the cardholder (bank push, card state
 
 - Customer receipt / confirmation email or SMS
 - Attaching this charge to a booking, quote, or CRM customer
-- Live Transactions list (UI is still mock)
+- Live Transactions list (wired on Payments → Transactions)
 - Android Tap to Pay

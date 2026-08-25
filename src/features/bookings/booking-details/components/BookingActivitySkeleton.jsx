@@ -1,8 +1,8 @@
 import { StyleSheet, View } from 'react-native';
-import { SkeletonBox } from '../../../../components/ui';
+import { FROSTED_ICON_WELL_SIZE, SkeletonBox } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 
-const WELL = 36;
+const WELL = FROSTED_ICON_WELL_SIZE;
 const ROW_GAP = 44;
 
 function ActivityRowSkeleton({ isLast }) {

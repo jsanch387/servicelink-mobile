@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText } from '../../../../components/ui';
+import { AppText, FrostedIconWell, FROSTED_ICON_WELL_SIZE } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 import { formatActivityMetaLine } from '../utils/buildBookingActivityModel';
 
-const WELL = 36;
+const WELL = FROSTED_ICON_WELL_SIZE;
 const ROW_GAP = 44;
 const CHANNEL_ICON = {
   email: 'mail',
@@ -36,7 +36,7 @@ function metaCopy(event) {
  * @param {boolean} [props.isLast]
  */
 export function BookingActivityEventRow({ event, isLast = false }) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const failed = event.outcome === 'failed';
   const sending = event.outcome === 'sending';
   const outcomeColor = failed ? colors.danger : sending ? colors.textMuted : colors.moneyPositive;
@@ -58,16 +58,6 @@ export function BookingActivityEventRow({ event, isLast = false }) {
         railWrap: {
           alignItems: 'center',
           height: ROW_GAP,
-          width: WELL,
-        },
-        iconWell: {
-          alignItems: 'center',
-          backgroundColor: isDark ? 'rgba(255,255,255,0.26)' : 'rgba(255,255,255,0.62)',
-          borderColor: isDark ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.80)',
-          borderRadius: 10,
-          borderWidth: StyleSheet.hairlineWidth,
-          height: WELL,
-          justifyContent: 'center',
           width: WELL,
         },
         rail: {
@@ -130,7 +120,7 @@ export function BookingActivityEventRow({ event, isLast = false }) {
           lineHeight: 18,
         },
       }),
-    [colors, isDark, outcomeColor],
+    [colors, outcomeColor],
   );
 
   return (
@@ -140,9 +130,7 @@ export function BookingActivityEventRow({ event, isLast = false }) {
       style={styles.block}
     >
       <View style={styles.head}>
-        <View style={styles.iconWell}>
-          <Ionicons color={iconColor} name={event.icon} size={20} />
-        </View>
+        <FrostedIconWell color={iconColor} icon={event.icon} />
         <View style={styles.body}>
           <View style={styles.top}>
             <View style={styles.titleCol}>

@@ -35,6 +35,7 @@ export { SuccessConfirmation } from './SuccessConfirmation';
 export { FilterPills } from './FilterPills';
 export { SegmentedToggle } from './SegmentedToggle';
 export { FloatingActionButton } from './FloatingActionButton';
+export { FrostedIconWell, FROSTED_ICON_WELL_SIZE, frostedSurfaceColors } from './FrostedIconWell';
 export { DashedBorderFrame } from './DashedBorderFrame';
 export { SpotlightCard, SurfaceCard, SURFACE_CARD_MD_PADDING_VERTICAL } from './Card';
 export { InlineCardError } from './InlineCardError';

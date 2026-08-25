@@ -117,7 +117,6 @@ After pay: Connect webhook `checkout.session.completed` marks `payment_requests`
 
 - Deposit links on appointment create
 - Auto-text the URL
-- Live Transactions tab data (UI is mock — next after this closed test)
 - ServiceLink receipts (Stripe Checkout / the card network may still notify the payer)
 - Owner revoke / expire a live link
 - Branded short URL (`myservicelink.app/pay/…`)

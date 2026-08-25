@@ -12,7 +12,7 @@ Ship notes for the **Revenue** tab on Payments. Settings (Stripe Connect, deposi
 | **Compare**      | Week / Month / Year show % vs last week/month/year. Custom shows % vs the same-length prior window. All time has no compare.                              |
 | **Empty UX**     | Show `$0` + flat chart. Quiet caption: _Finish a job and it shows up here._ No “no completed jobs this month” banner.                                     |
 | **Access**       | **Revenue is open** to free and Pro (conversion). **Settings** stays Pro / Connect gated. Pro without Connect still sees Revenue.                         |
-| **Transactions** | Tab is back (Revenue · Transactions · Settings). UI-only mock list for now — newest first, Show more for older rows. No API yet.                          |
+| **Transactions** | Live `GET /api/payments/transactions`. See [`PAYMENTS_TRANSACTIONS.md`](./PAYMENTS_TRANSACTIONS.md). Pro required. |
 
 ## User flows to verify
 
@@ -29,11 +29,12 @@ Ship notes for the **Revenue** tab on Payments. Settings (Stripe Connect, deposi
 PaymentsScreen
   └─ PaymentsScreenTabs (Revenue | Transactions | Settings)
   └─ PaymentsRevenueSection          ← always when Revenue tab
-  └─ PaymentsTransactionsSection     ← mock list when Transactions tab
        └─ usePaymentsRevenue
             ├─ revenueDateWindow(range) / revenueCustomDateWindow
             ├─ fetchCompletedBookingPayments (current ± previous)
             └─ aggregatePaymentsRevenue → summary
+  └─ PaymentsTransactionsSection     ← live feed when Transactions tab
+       └─ usePaymentsTransactions → GET /api/payments/transactions
 ```
 
 ### Key files
@@ -50,7 +51,7 @@ PaymentsScreen
 | `utils/aggregatePaymentsRevenue.js`              | Totals, bars, change %                                 |
 | `constants/paymentsRevenueRanges.js`             | Range ids + empty caption                              |
 | `constants/paymentsScreenTabs.js`                | Revenue · Transactions · Settings                      |
-| `components/PaymentsTransactionsSection.jsx`     | Mock ledger (newest first, Show more)                  |
+| `components/PaymentsTransactionsSection.jsx`     | Live ledger + Stripe balance header                    |
 | `queryKeys.js`                                   | `paymentsRevenueQueryKey(businessId, range, from, to)` |
 
 ### Data query
@@ -112,7 +113,6 @@ npx jest src/features/payments/__tests__/aggregatePaymentsRevenue.test.js \
 
 ## Out of scope (v1)
 
-- Live Transactions data (still mock)
 - Pending or confirmed jobs in the chart
 - In-app subscription purchase (App Store)
 - Editing Stripe / deposits from the Revenue tab
