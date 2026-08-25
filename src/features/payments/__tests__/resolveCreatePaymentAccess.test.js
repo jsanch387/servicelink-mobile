@@ -5,10 +5,9 @@ import {
 } from '../create-payment/utils/resolveCreatePaymentAccess';
 
 describe('closed-testing allowlist', () => {
-  it('includes only the two owner emails', () => {
-    expect([...CREATE_PAYMENT_EARLY_ACCESS_EMAILS].map((e) => e.toLowerCase()).sort()).toEqual([
+  it('includes only the closed-test owner email', () => {
+    expect([...CREATE_PAYMENT_EARLY_ACCESS_EMAILS].map((e) => e.toLowerCase())).toEqual([
       'jesuss387@gmail.com',
-      'urbanink.help@gmail.com',
     ]);
   });
 });
@@ -19,7 +18,7 @@ describe('resolveCreatePaymentAccess', () => {
       resolveCreatePaymentAccess({
         enabled: false,
         hasProAccess: true,
-        email: 'urbanink.help@gmail.com',
+        email: 'jesuss387@gmail.com',
         profileLoaded: true,
       }),
     ).toEqual({
@@ -52,7 +51,7 @@ describe('resolveCreatePaymentAccess', () => {
         resolveCreatePaymentAccess({
           enabled: true,
           hasProAccess: true,
-          email: 'UrbanInk.Help@gmail.com',
+          email: 'Jesuss387@Gmail.com',
           profileLoaded: true,
         }),
       ).toEqual({

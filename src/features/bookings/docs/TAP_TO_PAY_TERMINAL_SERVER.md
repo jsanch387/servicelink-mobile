@@ -62,7 +62,7 @@ On `payment_accounts`:
 
 **`POST /api/payments/tap-to-pay/connection-token`** (merchant, no booking) — preferred for **app warm-up** when the user is already signed in. Same auth (`Authorization: Bearer`) and optional `{ "stripeAccountId": "acct_…" }` body. Response: `{ "success": true, "secret": "…" }`. Mobile reads `stripe_terminal_location_id` + `stripe_account_id` from `payment_accounts` (Supabase) to connect before any booking sheet opens.
 
-**Fallback (until merchant route ships):** mobile uses `POST …/bookings/{bookingId}/tap-to-pay/connection-token` with the merchant’s most recently updated booking id from Supabase. Warm-up is skipped when neither route is available.
+Walk-up collection and app warm-up use the merchant route only. Booking `…/bookings/{id}/tap-to-pay/connection-token` stays for complete-visit Tap to Pay.
 
 **Full server implementation brief:** [`TAP_TO_PAY_WARMUP_SERVER.md`](./TAP_TO_PAY_WARMUP_SERVER.md) — copy-paste prompt + contract for the merchant connection-token route.
 

@@ -8,11 +8,14 @@ import { fireLightImpactHaptic } from '../../../utils/feedbackHaptics';
 import { useAuth } from '../../auth';
 import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
+import { useTapToPayConnectReadiness } from '../../tap-to-pay/hooks/useTapToPayConnectReadiness';
+import { useTapToPayReaderPrewarm } from '../../tap-to-pay/hooks/useTapToPayReaderPrewarm';
 import { CREATE_PAYMENT_STEP } from './constants';
 import { useCreatePaymentCharge } from './hooks/useCreatePaymentCharge';
 import { useCreatePaymentLink } from './hooks/useCreatePaymentLink';
 import { CreatePaymentChooseStep } from './steps/CreatePaymentChooseStep';
 import { CreatePaymentCollectStep } from './steps/CreatePaymentCollectStep';
+import { CreatePaymentPaidStep } from './steps/CreatePaymentPaidStep';
 import { CreatePaymentLinkFormStep } from './steps/CreatePaymentLinkFormStep';
 import { CreatePaymentLinkReadyStep } from './steps/CreatePaymentLinkReadyStep';
 import { parseCreatePaymentAmount } from './utils/createPaymentAmount';
@@ -36,11 +39,20 @@ export function CreatePaymentFlow({ onClose, onHeaderLeadingChange }) {
   const [copied, setCopied] = useState(false);
   const footerPadding = Math.max(insets.bottom, 12);
   const parsedAmount = parseCreatePaymentAmount(amount);
-  const { charge, charging } = useCreatePaymentCharge({
+  const { charge, previewPaid, charging, phase, error, readerWasWarmAtStart } =
+    useCreatePaymentCharge({
     accessToken: session?.access_token,
     amount,
     note,
-    onSuccess: onClose,
+    onSuccess: () => setStep(CREATE_PAYMENT_STEP.COLLECT_PAID),
+  });
+  const { merchantDisplayName, stripeAccountId, terminalLocationId } =
+    useTapToPayConnectReadiness();
+  useTapToPayReaderPrewarm({
+    enabled: step === CREATE_PAYMENT_STEP.COLLECT,
+    connectParams: { terminalLocationId, stripeAccountId },
+    merchantDisplayName,
+    reason: 'walkup_form_prewarm',
   });
   const { createLink, creating } = useCreatePaymentLink({
     accessToken: session?.access_token,
@@ -78,6 +90,14 @@ export function CreatePaymentFlow({ onClose, onHeaderLeadingChange }) {
       onHeaderLeadingChange({
         label: 'Done',
         accessibilityLabel: 'Done with payment link',
+        onPress: onClose,
+      });
+      return;
+    }
+    if (step === CREATE_PAYMENT_STEP.COLLECT_PAID) {
+      onHeaderLeadingChange({
+        label: 'Done',
+        accessibilityLabel: 'Done with payment',
         onPress: onClose,
       });
       return;
@@ -147,11 +167,15 @@ export function CreatePaymentFlow({ onClose, onHeaderLeadingChange }) {
       {step === CREATE_PAYMENT_STEP.COLLECT ? (
         <CreatePaymentCollectStep
           amount={amount}
+          chargePhase={phase}
+          charging={charging}
+          error={error}
           footerPadding={footerPadding}
           note={note}
-          charging={charging}
+          readerWasWarm={readerWasWarmAtStart}
           onAmountChange={setAmount}
           onCharge={charge}
+          onPreviewPaid={previewPaid}
           onNoteChange={setNote}
         />
       ) : null}
@@ -165,6 +189,9 @@ export function CreatePaymentFlow({ onClose, onHeaderLeadingChange }) {
           onCreateLink={handleCreateLink}
           onNoteChange={setNote}
         />
+      ) : null}
+      {step === CREATE_PAYMENT_STEP.COLLECT_PAID ? (
+        <CreatePaymentPaidStep footerPadding={footerPadding} />
       ) : null}
       {step === CREATE_PAYMENT_STEP.LINK_READY ? (
         <CreatePaymentLinkReadyStep

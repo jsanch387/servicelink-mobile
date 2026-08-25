@@ -14,10 +14,8 @@ describe('mapTapToPayHttpError', () => {
     expect(mapTapToPayHttpError(0, null)).toMatch(/Network error/);
   });
 
-  it('maps merchant 404 to warm-up API missing', () => {
-    expect(mapTapToPayHttpError(404, null, 'merchant')).toBe(
-      'Tap to Pay warm-up API is not available on the server yet.',
-    );
+  it('maps merchant 404 to no business profile', () => {
+    expect(mapTapToPayHttpError(404, null, 'merchant')).toBe('Business profile not found');
     expect(mapTapToPayHttpError(404, null, 'booking')).toBe('Appointment not found.');
   });
 });

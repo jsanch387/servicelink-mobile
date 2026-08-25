@@ -22,18 +22,18 @@ export function useBookingActivity(bookingId) {
     retryDelay: 400,
   });
 
-  const groups = useMemo(
+  const events = useMemo(
     () => (query.data ? buildBookingActivityModel(query.data) : []),
     [query.data],
   );
 
   const errorMessage = useMemo(
-    () => (query.isError ? (query.error?.message ?? 'Could not load activity') : null),
+    () => (query.isError ? (query.error?.message ?? 'Could not load customer updates') : null),
     [query.error?.message, query.isError],
   );
 
   return {
-    groups,
+    events,
     isLoading: query.isPending,
     isFetching: query.isFetching,
     errorMessage,

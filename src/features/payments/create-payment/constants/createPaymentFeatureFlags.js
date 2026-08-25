@@ -19,7 +19,4 @@ export const CREATE_PAYMENT_FEATURE_ENABLED = true;
  *
  * @type {readonly string[]}
  */
-export const CREATE_PAYMENT_EARLY_ACCESS_EMAILS = [
-  'urbanink.help@gmail.com',
-  'jesuss387@gmail.com',
-];
+export const CREATE_PAYMENT_EARLY_ACCESS_EMAILS = ['jesuss387@gmail.com'];

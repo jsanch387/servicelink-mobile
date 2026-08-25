@@ -2,121 +2,98 @@
  * Canonical customer-update catalog for a booking.
  */
 
-/** @typedef {'booked' | 'upcoming' | 'during' | 'canceled' | 'after'} BookingActivityGroupId */
+/**
+ * @typedef {'text' | 'email'} BookingActivityChannel
+ */
 
 /**
  * @typedef {object} BookingActivityEventDef
- * @property {BookingActivityGroupId} group
  * @property {import('@expo/vector-icons').IconProps['name']} icon
- * @property {string} iconColor
- * @property {string} iconBg
  * @property {string} title
+ * @property {BookingActivityChannel} channel
+ */
+
+/**
+ * @typedef {'sent' | 'sending' | 'failed'} BookingActivityOutcome
  */
 
 /**
  * @typedef {object} BookingActivityEvent
  * @property {string} key
  * @property {import('@expo/vector-icons').IconProps['name']} icon
- * @property {string} iconColor
- * @property {string} iconBg
  * @property {string} title
- * @property {string} status
- * @property {boolean} [comingSoon]
- */
-
-/**
- * @typedef {object} BookingActivityGroup
- * @property {BookingActivityGroupId} id
- * @property {string} title
- * @property {BookingActivityEvent[]} events
+ * @property {BookingActivityOutcome} outcome
+ * @property {string} statusLine
+ * @property {string} [at]
+ * @property {string} [whenLabel]
+ * @property {boolean} [optedOut]
+ * @property {BookingActivityChannel} channel
  */
 
 /** @type {Record<string, BookingActivityEventDef>} */
 export const BOOKING_ACTIVITY_EVENT_DEFS = {
   'confirmation-email': {
-    group: 'booked',
-    icon: 'mail-outline',
-    iconColor: '#0a84ff',
-    iconBg: 'rgba(10, 132, 255, 0.14)',
-    title: 'Confirmation email',
+    icon: 'checkmark-done',
+    title: 'Confirmation',
+    channel: 'email',
   },
   'confirmation-sms': {
-    group: 'booked',
-    icon: 'chatbubble-ellipses-outline',
-    iconColor: '#34c759',
-    iconBg: 'rgba(52, 199, 89, 0.16)',
-    title: 'Confirmation text',
+    icon: 'checkmark-done',
+    title: 'Confirmation',
+    channel: 'text',
   },
   'reminder-email': {
-    group: 'upcoming',
-    icon: 'alarm-outline',
-    iconColor: '#fb923c',
-    iconBg: 'rgba(251, 146, 60, 0.16)',
-    title: 'Reminder email',
+    icon: 'alarm',
+    title: 'Reminder',
+    channel: 'email',
   },
   'reminder-sms': {
-    group: 'upcoming',
-    icon: 'alarm-outline',
-    iconColor: '#fb923c',
-    iconBg: 'rgba(251, 146, 60, 0.16)',
-    title: 'Reminder text',
+    icon: 'alarm',
+    title: 'Reminder',
+    channel: 'text',
   },
   'on-the-way': {
-    group: 'during',
-    icon: 'navigate-outline',
-    iconColor: '#0a84ff',
-    iconBg: 'rgba(10, 132, 255, 0.14)',
+    icon: 'navigate',
     title: 'On the way',
+    channel: 'text',
   },
   'job-started': {
-    group: 'during',
-    icon: 'play-outline',
-    iconColor: '#10b981',
-    iconBg: 'rgba(16, 185, 129, 0.16)',
+    icon: 'play',
     title: 'Job started',
+    channel: 'text',
   },
   'work-finished': {
-    group: 'during',
-    icon: 'flag-outline',
-    iconColor: '#f59e0b',
-    iconBg: 'rgba(245, 158, 11, 0.16)',
+    icon: 'flag',
     title: 'Job done',
+    channel: 'text',
   },
   'cancellation-email': {
-    group: 'canceled',
-    icon: 'close-circle-outline',
-    iconColor: '#f87171',
-    iconBg: 'rgba(248, 113, 113, 0.14)',
-    title: 'Cancellation email',
+    icon: 'close-circle',
+    title: 'Cancellation',
+    channel: 'email',
   },
   'receipt-sms': {
-    group: 'after',
-    icon: 'receipt-outline',
-    iconColor: '#38bdf8',
-    iconBg: 'rgba(56, 189, 248, 0.16)',
-    title: 'Receipt text',
+    icon: 'receipt',
+    title: 'Receipt',
+    channel: 'text',
   },
-  'review-link': {
-    group: 'after',
-    icon: 'star-outline',
-    iconColor: '#f59e0b',
-    iconBg: 'rgba(245, 158, 11, 0.16)',
-    title: 'Review link',
+  'review-email': {
+    icon: 'star',
+    title: 'Review request',
+    channel: 'email',
+  },
+  'review-sms': {
+    icon: 'star',
+    title: 'Review request',
+    channel: 'text',
   },
 };
 
-/** @type {{ id: BookingActivityGroupId; title: string }[]} */
-export const BOOKING_ACTIVITY_GROUP_ORDER = [
-  { id: 'booked', title: 'Booked' },
-  { id: 'upcoming', title: 'Before the visit' },
-  { id: 'during', title: 'During the visit' },
-  { id: 'canceled', title: 'Canceled' },
-  { id: 'after', title: 'After the visit' },
-];
-
 export const BOOKING_ACTIVITY_SMS_SUCCESS_STATUSES = ['queued', 'sent', 'delivered'];
 
-/** Production `sms_messages.type` → catalog key. Failed rows are ignored. */
+export const BOOKING_ACTIVITY_SMS_FAILED_STATUSES = ['failed', 'undelivered', 'skipped_opt_out'];
+
+/** Production `sms_messages.type` → catalog key. */
 export const BOOKING_ACTIVITY_SMS_TYPE_TO_KEY = {
   booking_confirmation: 'confirmation-sms',
   booking_reminder: 'reminder-sms',

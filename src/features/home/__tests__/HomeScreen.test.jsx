@@ -66,6 +66,14 @@ jest.mock('../../payments/create-payment/hooks/useCreatePaymentAccess', () => ({
   useCreatePaymentAccess: () => mockCreatePaymentAccess,
 }));
 
+jest.mock('../../payments/create-payment/hooks/useCreatePaymentHighlight', () => ({
+  useCreatePaymentHighlight: () => ({
+    showHighlight: false,
+    markSeen: jest.fn(),
+    ready: true,
+  }),
+}));
+
 jest.mock('../../sms/hooks/useCustomerSmsAccess', () => ({
   useCustomerSmsAccess: () => ({
     featureEnabled: true,

@@ -3,103 +3,176 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
+import { formatActivityMetaLine } from '../utils/buildBookingActivityModel';
 
-const ICON_SIZE = 32;
+const WELL = 36;
+const ROW_GAP = 44;
+const CHANNEL_ICON = {
+  email: 'mail',
+  text: 'chatbubble',
+};
+
+function outcomeCopy(event) {
+  if (event.outcome === 'failed') {
+    return "Didn't send";
+  }
+  if (event.outcome === 'sending') {
+    return 'Sending';
+  }
+  return 'Sent';
+}
+
+function metaCopy(event) {
+  return formatActivityMetaLine(event.channel, event.whenLabel ?? '', {
+    optedOut: event.optedOut,
+  });
+}
 
 /**
- * One customer-update row on booking Activity.
+ * Action row: icon for what we sent, channel + time, and whether it went through.
  *
  * @param {object} props
  * @param {import('../constants/bookingActivityEvents').BookingActivityEvent} props.event
- * @param {boolean} [props.showDivider]
+ * @param {boolean} [props.isLast]
  */
-export function BookingActivityEventRow({ event, showDivider = true }) {
-  const { colors } = useTheme();
+export function BookingActivityEventRow({ event, isLast = false }) {
+  const { colors, isDark } = useTheme();
+  const failed = event.outcome === 'failed';
+  const sending = event.outcome === 'sending';
+  const outcomeColor = failed ? colors.danger : sending ? colors.textMuted : colors.moneyPositive;
+  const iconColor = failed ? colors.danger : '#ffffff';
+  const meta = metaCopy(event);
+  const channelIcon = CHANNEL_ICON[event.channel] ?? CHANNEL_ICON.text;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: {
-          alignSelf: 'stretch',
+        block: {
           width: '100%',
         },
-        row: {
+        head: {
           alignItems: 'center',
           flexDirection: 'row',
-          minHeight: 52,
-          paddingHorizontal: 16,
-          paddingVertical: 11,
           width: '100%',
+        },
+        railWrap: {
+          alignItems: 'center',
+          height: ROW_GAP,
+          width: WELL,
         },
         iconWell: {
           alignItems: 'center',
-          backgroundColor: event.iconBg,
-          borderRadius: ICON_SIZE / 2,
-          height: ICON_SIZE,
+          backgroundColor: isDark ? 'rgba(255,255,255,0.26)' : 'rgba(255,255,255,0.62)',
+          borderColor: isDark ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.80)',
+          borderRadius: 10,
+          borderWidth: StyleSheet.hairlineWidth,
+          height: WELL,
           justifyContent: 'center',
-          marginRight: 12,
-          width: ICON_SIZE,
+          width: WELL,
+        },
+        rail: {
+          backgroundColor: colors.border,
+          flex: 1,
+          marginVertical: 8,
+          width: 2,
+        },
+        body: {
+          flex: 1,
+          minWidth: 0,
+          paddingLeft: 16,
+        },
+        top: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 12,
         },
         titleCol: {
           flex: 1,
-          justifyContent: 'center',
           minWidth: 0,
         },
         title: {
-          color: event.comingSoon ? colors.textMuted : colors.text,
+          color: colors.text,
           fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 14,
-          fontWeight: '600',
-          letterSpacing: -0.15,
+          fontSize: 16,
+          letterSpacing: -0.3,
+          lineHeight: 21,
         },
-        statusCol: {
-          flexShrink: 0,
-          marginLeft: 12,
-          maxWidth: '42%',
+        metaRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 6,
+          marginTop: 4,
         },
-        status: {
+        channelMark: {
+          alignItems: 'center',
+          height: 16,
+          justifyContent: 'center',
+          width: 16,
+        },
+        metaCopy: {
+          flex: 1,
+          minWidth: 0,
+        },
+        when: {
           color: colors.textMuted,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 13,
-          fontWeight: '500',
+          lineHeight: 18,
+        },
+        outcomeCol: {
+          flexShrink: 0,
+        },
+        outcome: {
+          color: outcomeColor,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 13,
           letterSpacing: -0.1,
-          textAlign: 'right',
-        },
-        dividerRow: {
-          paddingLeft: 16 + ICON_SIZE + 12,
-          paddingRight: 16,
-        },
-        hairline: {
-          backgroundColor: colors.border,
-          height: StyleSheet.hairlineWidth,
-          opacity: 0.55,
+          lineHeight: 18,
         },
       }),
-    [colors, event.comingSoon, event.iconBg],
+    [colors, isDark, outcomeColor],
   );
 
   return (
-    <View style={styles.root}>
-      <View style={styles.row}>
+    <View
+      accessibilityLabel={`${event.title}. ${meta}. ${event.statusLine}`}
+      accessible
+      style={styles.block}
+    >
+      <View style={styles.head}>
         <View style={styles.iconWell}>
-          <Ionicons color={event.iconColor} name={event.icon} size={16} />
+          <Ionicons color={iconColor} name={event.icon} size={20} />
         </View>
-        <View style={styles.titleCol}>
-          <AppText numberOfLines={1} style={styles.title}>
-            {event.title}
-          </AppText>
-        </View>
-        <View style={styles.statusCol}>
-          <AppText numberOfLines={2} style={styles.status}>
-            {event.status}
-          </AppText>
+        <View style={styles.body}>
+          <View style={styles.top}>
+            <View style={styles.titleCol}>
+              <AppText numberOfLines={1} style={styles.title}>
+                {event.title}
+              </AppText>
+              {meta ? (
+                <View style={styles.metaRow}>
+                  <View style={styles.channelMark}>
+                    <Ionicons color={colors.textMuted} name={channelIcon} size={12} />
+                  </View>
+                  <View style={styles.metaCopy}>
+                    <AppText numberOfLines={2} style={styles.when}>
+                      {meta}
+                    </AppText>
+                  </View>
+                </View>
+              ) : null}
+            </View>
+            <View style={styles.outcomeCol}>
+              <AppText style={styles.outcome}>{outcomeCopy(event)}</AppText>
+            </View>
+          </View>
         </View>
       </View>
-      {showDivider ? (
-        <View style={styles.dividerRow}>
-          <View style={styles.hairline} />
+      {isLast ? null : (
+        <View style={styles.railWrap}>
+          <View style={styles.rail} />
         </View>
-      ) : null}
+      )}
     </View>
   );
 }

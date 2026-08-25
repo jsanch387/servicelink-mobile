@@ -6,14 +6,15 @@
  */
 export function mapTapToPayHttpError(httpStatus, serverMessage, scope = 'booking') {
   const fallback = serverMessage?.trim() || null;
+  const merchant = scope === 'merchant';
   switch (httpStatus) {
     case 400:
-      return fallback || 'Nothing to collect for this booking.';
+      return fallback || (merchant ? 'Enter an amount greater than $0.' : 'Nothing to collect for this booking.');
     case 401:
-      return 'Sign in again to collect payment.';
+      return fallback || 'Sign in again to collect payment.';
     case 404:
-      if (scope === 'merchant') {
-        return fallback || 'Tap to Pay warm-up API is not available on the server yet.';
+      if (merchant) {
+        return fallback || 'Business profile not found';
       }
       return fallback || 'Appointment not found.';
     case 409:
@@ -21,9 +22,14 @@ export function mapTapToPayHttpError(httpStatus, serverMessage, scope = 'booking
     case 422:
       return fallback || 'Set up Stripe payments to use Tap to Pay.';
     case 429:
-      return fallback || 'You’re sending requests too quickly. Try again shortly.';
+      return (
+        fallback ||
+        (merchant
+          ? 'Too many Tap to Pay requests. Please wait a moment and try again.'
+          : 'You’re sending requests too quickly. Try again shortly.')
+      );
     case 500:
-      return fallback || 'Couldn’t start Tap to Pay. Try again or mark as paid.';
+      return fallback || (merchant ? 'Couldn’t start Tap to Pay. Try again.' : 'Couldn’t start Tap to Pay. Try again or mark as paid.');
     case 0:
       return fallback || 'Network error. Check your connection and try again.';
     default:

@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, BottomSheetModal, Button, EchoBarsLoader } from '../../../components/ui';
+import { AppText, BottomSheetModal, Button } from '../../../components/ui';
 import { useTheme } from '../../../theme';
-import { TapToPayPulseVisual } from './TapToPayPulseVisual';
 import { formatTapToPayAmount, resolveTapToPaySheetCopy } from '../constants/tapToPayCopy';
-import {
-  TAP_TO_PAY_FOOTER_BUTTON_MIN_HEIGHT,
-  TAP_TO_PAY_STATUS_SLOT_MIN_HEIGHT,
-  TAP_TO_PAY_STATUS_STAGE_MIN_HEIGHT,
-  TAP_TO_PAY_VISUAL_STAGE_HEIGHT,
-} from '../constants/tapToPayLayout';
+import { TAP_TO_PAY_FOOTER_BUTTON_MIN_HEIGHT } from '../constants/tapToPayLayout';
 import { useTapToPaySheet } from '../hooks/useTapToPaySheet';
+import { TapToPayStatusPanel } from './TapToPayStatusPanel';
 
 const CLOSE_ANIMATION_MS = 280;
 
@@ -38,7 +33,7 @@ export function TapToPaySheet({
   prewarmConnectParams = null,
   onSuccess,
 }) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [visible, setVisible] = useState(true);
   const pendingAfterCloseRef = useRef(null);
 
@@ -109,47 +104,6 @@ export function TapToPaySheet({
           lineHeight: 20,
           marginTop: 6,
         },
-        statusPanel: {
-          alignItems: 'center',
-          backgroundColor: 'transparent',
-          borderColor: isDark ? 'rgba(255,255,255,0.14)' : colors.border,
-          borderRadius: 18,
-          borderWidth: 1,
-          gap: 4,
-          justifyContent: 'center',
-          marginTop: 24,
-          minHeight: TAP_TO_PAY_STATUS_STAGE_MIN_HEIGHT + 40,
-          paddingHorizontal: 20,
-          paddingVertical: 28,
-          width: '100%',
-        },
-        loadingCluster: {
-          alignItems: 'center',
-          gap: 12,
-          justifyContent: 'center',
-          width: '100%',
-        },
-        visualBlock: {
-          alignItems: 'center',
-          height: TAP_TO_PAY_VISUAL_STAGE_HEIGHT,
-          justifyContent: 'center',
-          width: '100%',
-        },
-        statusSlot: {
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: -10,
-          minHeight: TAP_TO_PAY_STATUS_SLOT_MIN_HEIGHT,
-          paddingHorizontal: 4,
-          width: '100%',
-        },
-        statusLine: {
-          color: colors.textSecondary,
-          fontSize: 15,
-          fontWeight: '600',
-          letterSpacing: -0.1,
-          textAlign: 'center',
-        },
         footerWrap: {
           marginTop: 10,
         },
@@ -158,7 +112,7 @@ export function TapToPaySheet({
           width: '100%',
         },
       }),
-    [colors, isDark],
+    [colors],
   );
 
   const footer =
@@ -188,40 +142,13 @@ export function TapToPaySheet({
       </AppText>
       {copy.hint ? <AppText style={styles.sheetHint}>{copy.hint}</AppText> : null}
 
-      <View style={styles.statusPanel}>
-        {isLoadingVisual ? (
-          <View style={styles.loadingCluster}>
-            <EchoBarsLoader
-              accessibilityLabel={
-                flow.isLoadingIntent
-                  ? 'Preparing payment'
-                  : flow.isProcessing
-                    ? 'Processing payment'
-                    : 'Opening Tap to Pay'
-              }
-              color={colors.text}
-              size="large"
-            />
-            {copy.statusLine && !flow.isLoadingIntent ? (
-              <AppText style={styles.statusLine}>{copy.statusLine}</AppText>
-            ) : null}
-          </View>
-        ) : (
-          <>
-            <View style={styles.visualBlock}>
-              <TapToPayPulseVisual
-                accentColor={colors.text}
-                phase={flow.phase === 'success' ? 'success' : 'error'}
-              />
-            </View>
-            {copy.statusLine && !flow.isLoadingIntent ? (
-              <View style={styles.statusSlot}>
-                <AppText style={styles.statusLine}>{copy.statusLine}</AppText>
-              </View>
-            ) : null}
-          </>
-        )}
-      </View>
+      <TapToPayStatusPanel
+        isLoadingIntent={flow.isLoadingIntent}
+        isLoadingVisual={isLoadingVisual}
+        isProcessing={flow.isProcessing}
+        phase={flow.phase}
+        statusLine={copy.statusLine}
+      />
     </BottomSheetModal>
   );
 }

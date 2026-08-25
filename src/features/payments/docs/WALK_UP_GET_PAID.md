@@ -1,7 +1,7 @@
 # Create payment — Payment link (v1)
 
 **Audience:** Mobile + web / API  
-**Status:** Payment link is v1. Walk-up Tap to Pay is the next pass.  
+**Status:** Payment link is v1. Walk-up Tap to Pay: [`WALK_UP_TAP_TO_PAY_SERVER.md`](./WALK_UP_TAP_TO_PAY_SERVER.md).  
 **Server contract (web repo):** `docs/contracts/mobile-create-payment-link.md`
 
 Owners get paid **without a booking**: Home FAB → **Create payment** → **Payment link**. Amount + a short note is the whole charge. No customer, booking, or appointment.
@@ -15,7 +15,7 @@ Compile-time flags live in `create-payment/constants/createPaymentFeatureFlags.j
 | Flag | Current | Effect |
 | ---- | ------- | ------ |
 | `CREATE_PAYMENT_FEATURE_ENABLED` | `true` | Kill switch. `false` hides the FAB item and bounces the screen. |
-| `CREATE_PAYMENT_EARLY_ACCESS_EMAILS` | Two owner emails | **Non-empty:** only those logins see Create payment. **Empty:** everyone can open the screen. |
+| `CREATE_PAYMENT_EARLY_ACCESS_EMAILS` | `jesuss387@gmail.com` | **Non-empty:** only those logins see Create payment. **Empty:** everyone can open the screen. |
 
 Same pattern as Subscriptions / SMS. Clear the email list when you want production-wide rollout.
 
@@ -115,10 +115,10 @@ After pay: Connect webhook `checkout.session.completed` marks `payment_requests`
 
 ## Out of scope (next / later)
 
-- Walk-up Tap to Pay (`POST /api/payments/tap-to-pay/intent`)
 - Deposit links on appointment create
 - Auto-text the URL
-- Live Transactions tab data (UI is mock)
+- Live Transactions tab data (UI is mock — next after this closed test)
+- ServiceLink receipts (Stripe Checkout / the card network may still notify the payer)
 - Owner revoke / expire a live link
 - Branded short URL (`myservicelink.app/pay/…`)
 

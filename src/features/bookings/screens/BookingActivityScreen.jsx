@@ -4,18 +4,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AppText,
   Button,
+  DetailsSectionCard,
   InlineCardError,
-  SettingsSection,
-  SurfaceCard,
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
-import { useTheme } from '../../../theme';
+import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { BookingActivityEventRow } from '../booking-details/components/BookingActivityEventRow';
 import { BookingActivitySkeleton } from '../booking-details/components/BookingActivitySkeleton';
 import { useBookingActivity } from '../booking-details/hooks/useBookingActivity';
 
 /**
- * Customer updates for one booking. Fetches only while this screen is mounted.
+ * Texts and emails sent to the customer for one booking.
  */
 export function BookingActivityScreen({ route }) {
   const { colors } = useTheme();
@@ -30,20 +29,36 @@ export function BookingActivityScreen({ route }) {
           flex: 1,
         },
         content: {
+          flexGrow: 1,
+          gap: 22,
           paddingBottom: 36,
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
         },
+        heading: {
+          color: colors.text,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 20,
+          letterSpacing: -0.4,
+          lineHeight: 26,
+          marginBottom: 12,
+        },
         errorRetry: {
           marginTop: 12,
         },
-        empty: {
+        emptyTitle: {
+          color: colors.text,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 16,
+          letterSpacing: -0.25,
+          lineHeight: 21,
+        },
+        emptyBody: {
           color: colors.textMuted,
-          fontSize: 15,
-          fontWeight: '500',
-          lineHeight: 22,
-          paddingHorizontal: 4,
-          paddingTop: 8,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 14,
+          lineHeight: 20,
+          marginTop: 4,
         },
       }),
     [colors],
@@ -69,43 +84,56 @@ export function BookingActivityScreen({ route }) {
         refreshControl={refreshControl}
         showsVerticalScrollIndicator={false}
       >
-        {activity.isLoading ? <BookingActivitySkeleton /> : null}
+        <View>
+          <AppText accessibilityRole="header" style={styles.heading}>
+            Updates sent to your customer
+          </AppText>
 
-        {activity.errorMessage && !activity.isLoading ? (
-          <SurfaceCard>
-            <InlineCardError message={activity.errorMessage} />
-            <Button
-              accessibilityHint="Attempts to load activity again"
-              accessibilityLabel="Try again"
-              fullWidth
-              loading={activity.isFetching}
-              style={styles.errorRetry}
-              title="Try again"
-              variant="secondary"
-              onPress={() => void activity.refetch()}
-            />
-          </SurfaceCard>
-        ) : null}
+          {activity.isLoading ? (
+            <DetailsSectionCard bodyPadding="roomy">
+              <BookingActivitySkeleton />
+            </DetailsSectionCard>
+          ) : null}
 
-        {!activity.isLoading && !activity.errorMessage && activity.groups.length === 0 ? (
-          <AppText style={styles.empty}>No updates for this appointment yet.</AppText>
-        ) : null}
+          {activity.errorMessage && !activity.isLoading ? (
+            <DetailsSectionCard bodyPadding="roomy">
+              <InlineCardError message={activity.errorMessage} />
+              <Button
+                accessibilityHint="Attempts to load customer updates again"
+                accessibilityLabel="Try again"
+                fullWidth
+                loading={activity.isFetching}
+                style={styles.errorRetry}
+                title="Try again"
+                variant="secondary"
+                onPress={() => void activity.refetch()}
+              />
+            </DetailsSectionCard>
+          ) : null}
 
-        {!activity.isLoading && !activity.errorMessage
-          ? activity.groups.map((group, index) => (
-              <SettingsSection first={index === 0} key={group.id} title={group.title}>
+          {!activity.isLoading && !activity.errorMessage ? (
+            <DetailsSectionCard bodyPadding="roomy">
+              {activity.events.length === 0 ? (
                 <View>
-                  {group.events.map((event, eventIndex) => (
+                  <AppText style={styles.emptyTitle}>Nothing sent yet</AppText>
+                  <AppText style={styles.emptyBody}>
+                    Texts and emails about this visit show up here.
+                  </AppText>
+                </View>
+              ) : (
+                <View>
+                  {activity.events.map((event, index) => (
                     <BookingActivityEventRow
                       key={event.key}
                       event={event}
-                      showDivider={eventIndex < group.events.length - 1}
+                      isLast={index === activity.events.length - 1}
                     />
                   ))}
                 </View>
-              </SettingsSection>
-            ))
-          : null}
+              )}
+            </DetailsSectionCard>
+          ) : null}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

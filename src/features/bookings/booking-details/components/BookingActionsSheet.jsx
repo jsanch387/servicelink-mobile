@@ -16,6 +16,9 @@ import { ACTIONS_MOVED_TIP_GREEN } from './BookingActionsMovedTip';
 
 const MOTION_ENABLED = typeof process === 'undefined' || process.env.NODE_ENV !== 'test';
 
+/** Same well as `HeaderTextButton` so iOS 26 glass keeps the icon centered. */
+const HEADER_GLASS_SIZE = 34;
+
 /** Wait for the actions overlay to finish closing before presenting another sheet. */
 export const BOOKING_ACTIONS_HANDOFF_MS = 320;
 
@@ -199,6 +202,82 @@ function ActionGridTile({
   );
 }
 
+function HeaderDancingDots({ color }) {
+  const hops = useRef([
+    new Animated.Value(MOTION_ENABLED ? 0 : 1),
+    new Animated.Value(MOTION_ENABLED ? 0 : 1),
+    new Animated.Value(MOTION_ENABLED ? 0 : 1),
+  ]).current;
+
+  useEffect(() => {
+    if (!MOTION_ENABLED) {
+      hops.forEach((hop) => hop.setValue(1));
+      return undefined;
+    }
+    const loops = hops.map((hop, index) => {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(hop, {
+            toValue: 1,
+            duration: 720,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(hop, {
+            toValue: 0,
+            duration: 720,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      const start = setTimeout(() => loop.start(), index * 180);
+      return () => {
+        clearTimeout(start);
+        loop.stop();
+      };
+    });
+    return () => loops.forEach((stop) => stop());
+  }, [hops]);
+
+  return (
+    <View style={dancingDotStyles.row}>
+      {hops.map((hop, index) => (
+        <Animated.View
+          key={`header-dot-${index}`}
+          style={[
+            dancingDotStyles.dot,
+            { backgroundColor: color },
+            {
+              opacity: hop.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }),
+              transform: [
+                {
+                  translateY: hop.interpolate({ inputRange: [0, 1], outputRange: [0, -1.5] }),
+                },
+              ],
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+const dancingDotStyles = StyleSheet.create({
+  row: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 3.5,
+    height: 12,
+    justifyContent: 'center',
+  },
+  dot: {
+    borderRadius: 2.5,
+    height: 5,
+    width: 5,
+  },
+});
+
 /**
  * Header overflow for booking actions. Row layout lives on the inner View.
  *
@@ -208,64 +287,26 @@ function ActionGridTile({
  * }} props
  */
 export function BookingActionsHeaderButton({ highlight = false, onPress }) {
-  const { colors, isDark } = useTheme();
-  const pulse = useRef(new Animated.Value(MOTION_ENABLED && highlight ? 0 : 1)).current;
-  const ringColor = ACTIONS_MOVED_TIP_GREEN;
-
-  useEffect(() => {
-    if (!MOTION_ENABLED || !highlight) {
-      pulse.setValue(1);
-      return undefined;
-    }
-    pulse.setValue(0);
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 900,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 900,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [highlight, pulse]);
+  const { colors } = useTheme();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         face: {
           alignItems: 'center',
-          height: 44,
+          height: HEADER_GLASS_SIZE,
           justifyContent: 'center',
-          width: 44,
+          width: HEADER_GLASS_SIZE,
+        },
+        icon: {
+          includeFontPadding: false,
+          textAlign: 'center',
         },
         pressed: {
           opacity: 0.55,
         },
-        glow: {
-          borderRadius: 16,
-          borderWidth: 2,
-          height: 32,
-          position: 'absolute',
-          width: 32,
-        },
-        well: {
-          backgroundColor: isDark ? 'rgba(34, 197, 94, 0.22)' : 'rgba(22, 163, 74, 0.12)',
-          borderRadius: 16,
-          height: 32,
-          position: 'absolute',
-          width: 32,
-        },
       }),
-    [isDark],
+    [],
   );
 
   return (
@@ -277,35 +318,16 @@ export function BookingActionsHeaderButton({ highlight = false, onPress }) {
     >
       {({ pressed }) => (
         <View style={[styles.face, pressed && styles.pressed]}>
-          {highlight ? <View pointerEvents="none" style={styles.well} /> : null}
           {highlight ? (
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.glow,
-                {
-                  borderColor: ringColor,
-                  opacity: pulse.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.28, 0.95],
-                  }),
-                  transform: [
-                    {
-                      scale: pulse.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1, 1.18],
-                      }),
-                    },
-                  ],
-                },
-              ]}
+            <HeaderDancingDots color={ACTIONS_MOVED_TIP_GREEN} />
+          ) : (
+            <Ionicons
+              color={colors.text}
+              name="ellipsis-horizontal"
+              size={22}
+              style={styles.icon}
             />
-          ) : null}
-          <Ionicons
-            color={highlight ? ringColor : colors.text}
-            name="ellipsis-horizontal"
-            size={22}
-          />
+          )}
         </View>
       )}
     </Pressable>

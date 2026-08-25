@@ -121,6 +121,20 @@ describe('tapToPayTerminalConnect', () => {
   });
 
   describe('ensureTapToPayReaderConnected', () => {
+    it('skips reconnect on collect when the reader is already warm', async () => {
+      markTapToPayInitialized('acct_test');
+      markTapToPayConnected('tml_test|acct_test');
+
+      const terminal = createTerminalMocks();
+      await ensureTapToPayReaderConnected({
+        ...connectParamsFrom(terminal),
+        reason: 'collect',
+      });
+
+      expect(terminal.easyConnect).not.toHaveBeenCalled();
+      expect(terminal.disconnectReader).not.toHaveBeenCalled();
+    });
+
     it('recovers from already-connected by disconnecting then retrying once', async () => {
       markTapToPayInitialized('acct_test');
       // Cold JS session, but native SDK still holds a reader (Fitz-style desync).

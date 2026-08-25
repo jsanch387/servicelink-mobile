@@ -6,15 +6,13 @@ import { useTheme } from '../../theme';
  * Compact round membership emblem — uses theme primary fill so it matches the app.
  *
  * @param {object} [props]
- * @param {'sm' | 'md'} [props.size]
+ * @param {'sm' | 'md' | 'lg'} [props.size]
  * @param {import('react-native').StyleProp<import('react-native').ViewStyle>} [props.style]
  */
 export function MembershipMark({ size = 'sm', style }) {
   const { colors } = useTheme();
-  const isMd = size === 'md';
-
-  const wrap = isMd ? 20 : 16;
-  const icon = isMd ? 11 : 9;
+  const wrap = size === 'lg' ? 24 : size === 'md' ? 20 : 16;
+  const icon = size === 'lg' ? 14 : size === 'md' ? 11 : 9;
 
   return (
     <View

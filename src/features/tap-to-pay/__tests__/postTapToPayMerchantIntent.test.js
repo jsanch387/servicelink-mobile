@@ -60,16 +60,26 @@ describe('postTapToPayMerchantIntent', () => {
     );
   });
 
-  it('maps a missing walk-up route to a collect error', async () => {
+  it('maps 404 to the server business-profile error', async () => {
     global.fetch.mockResolvedValue({
       ok: false,
       status: 404,
       headers: { get: () => null },
-      json: async () => ({ error: 'Not found' }),
+      json: async () => ({ error: 'Business profile not found' }),
     });
 
+    const result = await postTapToPayMerchantIntent('token', {
+      amountCents: 4000,
+      note: 'Lights',
+    });
+    expect(result.ok).toBe(false);
+    expect(result.error.message).toBe('Business profile not found');
+  });
+
+  it('requires a note before calling the server', async () => {
     const result = await postTapToPayMerchantIntent('token', { amountCents: 4000 });
     expect(result.ok).toBe(false);
-    expect(result.error.message).toBe('Not found');
+    expect(result.error.message).toMatch(/note/i);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });

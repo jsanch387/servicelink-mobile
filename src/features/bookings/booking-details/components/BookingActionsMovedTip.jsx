@@ -5,7 +5,7 @@ import { AppText } from '../../../../components/ui';
 import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 
-/** Same green as the header ⋯ highlight. */
+/** Accent on the “actions have moved” banner. */
 export const ACTIONS_MOVED_TIP_GREEN = '#22c55e';
 
 /**

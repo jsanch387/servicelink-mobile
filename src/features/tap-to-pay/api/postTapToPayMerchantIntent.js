@@ -1,8 +1,22 @@
 import { productionWebApiHttpsGuard } from '../../../lib/productionWebApiHttpsGuard';
 import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileCheckoutOrigin';
+import {
+  CREATE_PAYMENT_MAX_AMOUNT_CENTS,
+  CREATE_PAYMENT_MIN_AMOUNT_CENTS,
+  sanitizeCreatePaymentNote,
+} from '../../payments/create-payment/utils/createPaymentAmount';
 import { parseTapToPayIntentConnectParams } from '../utils/parseTapToPayIntentConnectParams';
 import { logTapToPayDebug, logTapToPayFailure, maskId } from '../utils/logTapToPayDebug';
 import { mapTapToPayHttpError } from '../utils/mapTapToPayHttpError';
+
+function readRetryAfterSec(res) {
+  const raw = (res.headers.get('Retry-After') ?? res.headers.get('retry-after'))?.trim();
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    return undefined;
+  }
+  return Math.round(n);
+}
 
 function createRequestId() {
   if (globalThis.crypto?.randomUUID) {
@@ -32,7 +46,7 @@ function createRequestId() {
  *       connectParams: import('../utils/parseTapToPayIntentConnectParams').TapToPayConnectParams;
  *       requestId?: string;
  *     }
- *   | { ok: false; error: Error; httpStatus: number; requestId?: string }
+ *   | { ok: false; error: Error; httpStatus: number; requestId?: string; retryAfterSec?: number }
  * >}
  */
 export async function postTapToPayMerchantIntent(accessToken, options) {
@@ -46,17 +60,21 @@ export async function postTapToPayMerchantIntent(accessToken, options) {
   }
 
   const amountCents = Math.max(0, Math.round(Number(options?.amountCents) || 0));
-  if (amountCents <= 0) {
-    return { ok: false, error: new Error('Nothing to collect.'), httpStatus: 0 };
+  if (amountCents < CREATE_PAYMENT_MIN_AMOUNT_CENTS || amountCents > CREATE_PAYMENT_MAX_AMOUNT_CENTS) {
+    return { ok: false, error: new Error('Enter an amount greater than $0.'), httpStatus: 0 };
   }
 
-  const note = typeof options?.note === 'string' ? options.note.trim() : '';
+  const note = sanitizeCreatePaymentNote(options?.note);
+  if (!note) {
+    return { ok: false, error: new Error('Add a short note for what this payment is for.'), httpStatus: 0 };
+  }
+
   const stripeAccountId =
     typeof options?.stripeAccountId === 'string' ? options.stripeAccountId.trim() : '';
   const body = {
     amountCents,
     currency: 'usd',
-    ...(note ? { note } : {}),
+    note,
     ...(stripeAccountId ? { stripeAccountId } : {}),
   };
   const requestId = createRequestId();
@@ -147,10 +165,8 @@ export async function postTapToPayMerchantIntent(accessToken, options) {
     };
   }
 
-  const mappedError =
-    res.status === 404
-      ? serverMessage || 'Couldn’t start Tap to Pay. Try again.'
-      : mapTapToPayHttpError(res.status, serverMessage, 'merchant');
+  const mappedError = mapTapToPayHttpError(res.status, serverMessage, 'merchant');
+  const retryAfterSec = res.status === 429 ? readRetryAfterSec(res) : undefined;
   logTapToPayFailure('merchant-intent', {
     message: serverMessage ?? mappedError,
     httpStatus: res.status,
@@ -163,5 +179,6 @@ export async function postTapToPayMerchantIntent(accessToken, options) {
     error: new Error(mappedError),
     httpStatus: res.status,
     requestId: echoedRequestId,
+    ...(retryAfterSec != null ? { retryAfterSec } : {}),
   };
 }

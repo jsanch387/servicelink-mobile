@@ -2,7 +2,7 @@ import { supabase } from '../../../../lib/supabase';
 
 const SMS_ACTIVITY_SELECT = 'id, type, status, sent_at, created_at';
 const REVIEW_INVITE_SELECT = 'id, email_sent_at, sms_sent_at, created_at';
-const BOOKING_ACTIVITY_SELECT = 'id, status, customer_email';
+const BOOKING_ACTIVITY_SELECT = 'id, status, customer_email, created_at';
 
 /**
  * Activity sources for one booking. Loaded only when the Activity screen opens.
@@ -12,6 +12,7 @@ const BOOKING_ACTIVITY_SELECT = 'id, status, customer_email';
  *   data: {
  *     bookingStatus: string | null;
  *     customerEmail: string | null;
+ *     bookingCreatedAt: string | null;
  *     smsRows: object[];
  *     reviewInvite: object | null;
  *   } | null;
@@ -67,6 +68,8 @@ export async function fetchBookingActivity(bookingId) {
         typeof bookingResult.data?.customer_email === 'string'
           ? bookingResult.data.customer_email
           : null,
+      bookingCreatedAt:
+        typeof bookingResult.data?.created_at === 'string' ? bookingResult.data.created_at : null,
       smsRows: smsResult.data ?? [],
       reviewInvite: inviteResult.data ?? null,
     },

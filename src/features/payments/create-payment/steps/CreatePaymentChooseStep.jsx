@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { WizardStepHeader } from '../../../../components/ui';
 import { SCREEN_GUTTER } from '../../../../constants/layout';
+import { isTapToPayUiEnabled } from '../../../tap-to-pay/constants/tapToPayFeatureFlags';
 import { CreatePaymentPathCard } from '../components/CreatePaymentPathCard';
 import {
   CREATE_PAYMENT_MODE,
@@ -14,6 +15,7 @@ import {
 export function CreatePaymentChooseStep({ onChooseCollect, onChooseLink }) {
   const collect = CREATE_PAYMENT_MODE_COPY[CREATE_PAYMENT_MODE.COLLECT_NOW];
   const link = CREATE_PAYMENT_MODE_COPY[CREATE_PAYMENT_MODE.SEND_LINK];
+  const showTapToPay = isTapToPayUiEnabled();
 
   const styles = useMemo(
     () =>
@@ -25,7 +27,12 @@ export function CreatePaymentChooseStep({ onChooseCollect, onChooseLink }) {
           paddingTop: CREATE_PAYMENT_PAGE_PAD_TOP,
         },
         header: {
-          marginBottom: 20,
+          marginBottom: 22,
+        },
+        pair: {
+          alignItems: 'stretch',
+          flexDirection: 'row',
+          gap: 10,
         },
       }),
     [],
@@ -44,22 +51,28 @@ export function CreatePaymentChooseStep({ onChooseCollect, onChooseLink }) {
         subtitle={CREATE_PAYMENT_SUBTITLE}
         title={CREATE_PAYMENT_TITLE}
       />
-      <CreatePaymentPathCard
-        icon={collect.icon}
-        iconLibrary={collect.iconLibrary}
-        subtitle={collect.subtitle}
-        testID="create-payment-path-collect"
-        title={collect.title}
-        onPress={onChooseCollect}
-      />
-      <CreatePaymentPathCard
-        icon={link.icon}
-        iconLibrary={link.iconLibrary}
-        subtitle={link.subtitle}
-        testID="create-payment-path-link"
-        title={link.title}
-        onPress={onChooseLink}
-      />
+      <View style={styles.pair}>
+        {showTapToPay ? (
+          <CreatePaymentPathCard
+            eyebrow={collect.eyebrow}
+            icon={collect.icon}
+            iconLibrary={collect.iconLibrary}
+            subtitle={collect.subtitle}
+            testID="create-payment-path-collect"
+            title={collect.title}
+            onPress={onChooseCollect}
+          />
+        ) : null}
+        <CreatePaymentPathCard
+          eyebrow={link.eyebrow}
+          icon={link.icon}
+          iconLibrary={link.iconLibrary}
+          subtitle={link.subtitle}
+          testID="create-payment-path-link"
+          title={link.title}
+          onPress={onChooseLink}
+        />
+      </View>
     </ScrollView>
   );
 }

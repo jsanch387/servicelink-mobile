@@ -39,7 +39,7 @@ export function BookingsNavigator() {
         component={BookingActivityScreen}
         name={ROUTES.BOOKING_ACTIVITY}
         options={{
-          title: 'Activity',
+          title: 'Customer updates',
           headerBackButtonDisplayMode: 'minimal',
           headerBackTitleVisible: false,
         }}

@@ -12,7 +12,7 @@ export const CREATE_PAYMENT_MAX_AMOUNT = 9_999.99;
 
 export const CREATE_PAYMENT_MAX_AMOUNT_CENTS = 999_999;
 
-/** Server `note` max for `POST /api/payments/link`. */
+/** Server `note` max for walk-up payment link and Tap to Pay. */
 export const CREATE_PAYMENT_NOTE_MAX_LENGTH = 200;
 
 /** Typed amount: digits + optional cents, capped so it cannot run off-screen. */

@@ -57,7 +57,6 @@ export function useTapToPayWarmup() {
   const { session } = useAuth();
   const accessToken = session?.access_token ?? null;
   const {
-    businessId,
     isConnectReady,
     isLoading,
     merchantDisplayName,
@@ -69,7 +68,6 @@ export function useTapToPayWarmup() {
   const terminalRef = useRef(terminal);
   terminalRef.current = terminal;
   const prepareInFlightRef = useRef(false);
-  const warmupBookingIdRef = useRef(null);
 
   const canWarm =
     isTapToPayPlatformSupported() &&
@@ -91,8 +89,6 @@ export function useTapToPayWarmup() {
         return await fetchTapToPayWarmupConnectionToken({
           accessToken,
           stripeAccountId: resolvedStripeAccountId,
-          businessId,
-          warmupBookingIdRef,
         });
       } catch (err) {
         logTapToPayFailure('connection-token', {
@@ -106,7 +102,7 @@ export function useTapToPayWarmup() {
     return () => {
       clearMerchantTapToPayConnectionTokenFetcher();
     };
-  }, [accessToken, businessId, canWarm, stripeAccountId]);
+  }, [accessToken, canWarm, stripeAccountId]);
 
   const runSilentPrepare = useCallback(async () => {
     if (!canWarm || !accessToken || !terminalLocationId?.trim() || !stripeAccountId?.trim()) {
@@ -162,7 +158,6 @@ export function useTapToPayWarmup() {
       // Clear JS flags immediately, then best-effort release any native reader so
       // the next login does not hit "Already connected to a reader".
       resetTapToPayTerminalSession();
-      warmupBookingIdRef.current = null;
       const disconnectReader = terminalRef.current?.disconnectReader;
       if (typeof disconnectReader === 'function') {
         void disconnectReader().then((result) => {

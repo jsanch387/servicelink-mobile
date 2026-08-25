@@ -1,4 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
+import { Platform } from 'react-native';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
 import { CREATE_PAYMENT_TITLE } from '../create-payment/constants';
@@ -40,7 +41,13 @@ jest.mock('../create-payment/hooks/useCreatePaymentLink', () => ({
   useCreatePaymentLink: () => ({ createLink: mockCreateLink, creating: false }),
 }));
 
-const mockConnectReadiness = { isConnectReady: true, isLoading: false };
+const mockConnectReadiness = {
+  isConnectReady: true,
+  isLoading: false,
+  merchantDisplayName: 'Acme',
+  stripeAccountId: 'acct_1',
+  terminalLocationId: 'tml_1',
+};
 const mockAccess = {
   featureEnabled: true,
   canUseCreatePayment: true,
@@ -79,11 +86,29 @@ describe('CreatePaymentScreen', () => {
     expect(screen.getByTestId('create-payment-screen')).toBeTruthy();
     expect(screen.getByTestId('create-payment-choose')).toBeTruthy();
     expect(screen.getByText(CREATE_PAYMENT_TITLE)).toBeTruthy();
+    expect(screen.getByText('Take a payment.')).toBeTruthy();
     expect(screen.getByTestId('create-payment-path-collect')).toBeTruthy();
+    expect(screen.getByText('Now')).toBeTruthy();
     expect(screen.getByText('Tap to pay')).toBeTruthy();
+    expect(screen.getByText('They tap their card or phone on your iPhone.')).toBeTruthy();
     expect(screen.getByTestId('create-payment-path-link')).toBeTruthy();
+    expect(screen.getByText('Later')).toBeTruthy();
     expect(screen.getByText('Payment link')).toBeTruthy();
+    expect(screen.getByText('Send a link. They pay on their phone.')).toBeTruthy();
     expect(screen.queryByTestId('create-payment-amount')).toBeNull();
+  });
+
+  it('hides Tap to pay on Android', () => {
+    const originalOs = Platform.OS;
+    Platform.OS = 'android';
+    try {
+      renderWithProviders(<CreatePaymentScreen />);
+      expect(screen.queryByTestId('create-payment-path-collect')).toBeNull();
+      expect(screen.queryByText('Tap to pay')).toBeNull();
+      expect(screen.getByTestId('create-payment-path-link')).toBeTruthy();
+    } finally {
+      Platform.OS = originalOs;
+    }
   });
 
   it('opens tap to pay with a charge button', () => {
@@ -115,8 +140,12 @@ describe('CreatePaymentScreen', () => {
     });
     expect(screen.getByTestId('create-payment-link-ready')).toBeTruthy();
     expect(screen.getByText('Payment link ready')).toBeTruthy();
-    expect(screen.getByText('Share it or copy it. The customer pays.')).toBeTruthy();
-    expect(screen.getByText('Expires in 24 hours.')).toBeTruthy();
+    expect(
+      screen.getByText('Text or share this link. They open it and pay. You don’t need to wait with them.'),
+    ).toBeTruthy();
+    expect(
+      screen.getByText('This link stops working in 24 hours. Need another? Make a new one.'),
+    ).toBeTruthy();
     expect(screen.queryByText('Create payment link')).toBeNull();
     expect(screen.getByTestId('create-payment-copy-link')).toBeTruthy();
     expect(screen.getByText('Copy')).toBeTruthy();
