@@ -15,11 +15,9 @@ Compile-time flags live in `create-payment/constants/createPaymentFeatureFlags.j
 | Flag | Current | Effect |
 | ---- | ------- | ------ |
 | `CREATE_PAYMENT_FEATURE_ENABLED` | `true` | Kill switch. `false` hides the FAB item and bounces the screen. |
-| `CREATE_PAYMENT_EARLY_ACCESS_EMAILS` | `jesuss387@gmail.com` | **Non-empty:** only those logins see Create payment. **Empty:** everyone can open the screen. |
+| `CREATE_PAYMENT_EARLY_ACCESS_EMAILS` | `[]` (open) | **Non-empty:** only those logins see Create payment. **Empty:** everyone can open the screen. |
 
-Same pattern as Subscriptions / SMS. Clear the email list when you want production-wide rollout.
-
-Pro and Stripe Connect are **not** skipped by the allowlist. An allowlisted free user still sees the web upsell.
+Pro and Stripe Connect still apply. A free user sees the web upsell.
 
 ---
 
@@ -27,7 +25,7 @@ Pro and Stripe Connect are **not** skipped by the allowlist. An allowlisted free
 
 ```text
 Home FAB
-  └─ hidden if flag off or email not on the allowlist
+  └─ hidden if the kill switch is off, or an email allowlist is set and this login is not on it
 
 Create payment screen
   ├─ Not Pro            → Payments web upsell (Sign in on the web)
