@@ -104,7 +104,8 @@ export async function fetchPaymentsTransactions(accessToken, options = {}) {
 
   const serverMessage = typeof payload?.error === 'string' ? payload.error.trim() : '';
 
-  if (res.ok && payload?.success === true) {
+  const looksLikePage = Array.isArray(payload?.items) || Boolean(payload?.balance);
+  if (res.ok && (payload?.success === true || payload?.success === 'true' || looksLikePage)) {
     return {
       ok: true,
       page: parsePaymentsTransactionsPage(payload),

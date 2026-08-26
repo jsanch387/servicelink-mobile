@@ -5,7 +5,7 @@ import { EasOverTheAirUpdateBootstrap } from '../features/appUpdates';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, Platform, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, StyleSheet, View } from 'react-native';
 import { AppFontLoadingShell } from '../components/ui';
 import { useAuth } from '../features/auth';
 import { ForgotPasswordScreen } from '../features/auth/screens/ForgotPasswordScreen';
@@ -15,7 +15,6 @@ import { LoginScreen } from '../features/auth/screens/LoginScreen';
 // import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
 // import { CheckYourEmailScreen } from '../features/auth/screens/CheckYourEmailScreen';
 import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
-import { MobileSetupRequiredScreen } from '../features/onboarding/screens/MobileSetupRequiredScreen';
 import { PENDING_NAVIGATE_TO_BOOKING_LINK_KEY } from '../features/onboarding/constants/postOnboardingNavigation';
 import { consumePendingPushNavigation } from '../features/notifications/constants/pendingPushNavigation';
 import { attemptPushNavigation } from '../features/notifications/utils/attemptPushNavigation';
@@ -263,7 +262,7 @@ export function AuthNavigator() {
         >
           {session && needsOnboarding ? (
             <Stack.Screen
-              component={Platform.OS === 'web' ? OnboardingScreen : MobileSetupRequiredScreen}
+              component={OnboardingScreen}
               name={ROUTES.ONBOARDING}
               options={{ gestureEnabled: false }}
             />

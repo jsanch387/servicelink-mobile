@@ -93,6 +93,27 @@ describe('fetchPaymentsTransactions', () => {
     expect(result.error.message).toBe('Upgrade to Pro to view transactions.');
   });
 
+  it('treats a 200 empty list as no transactions, even without success', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({
+        items: [],
+        balance: {
+          availableLabel: '$0.00',
+          pendingLabel: '$0.00',
+        },
+      }),
+    });
+
+    const result = await fetchPaymentsTransactions('token');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.page.items).toEqual([]);
+    expect(result.page.balance.availableLabel).toBe('$0.00');
+  });
+
   it('requires a token', async () => {
     const result = await fetchPaymentsTransactions('');
     expect(result.ok).toBe(false);

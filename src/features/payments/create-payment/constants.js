@@ -15,8 +15,7 @@ export const CREATE_PAYMENT_SUBTITLE = 'Take a payment.';
 
 export const CREATE_PAYMENT_COLLECT_TITLE = 'Tap to pay';
 
-export const CREATE_PAYMENT_COLLECT_SUBTITLE =
-  'Type the amount. Tap Charge. Hold your iPhone out — they tap their card or phone on yours.';
+export const CREATE_PAYMENT_COLLECT_SUBTITLE = 'They tap their card or phone on yours.';
 
 export const CREATE_PAYMENT_PAID_TITLE = 'You’re paid';
 
@@ -31,11 +30,9 @@ export const CREATE_PAYMENT_LINK_CREATE_LABEL = 'Create payment link';
 
 export const CREATE_PAYMENT_LINK_READY_TITLE = 'Payment link ready';
 
-export const CREATE_PAYMENT_LINK_READY_SUBTITLE =
-  'Text or share this link. They open it and pay. You don’t need to wait with them.';
+export const CREATE_PAYMENT_LINK_READY_SUBTITLE = 'Share it. They pay on their phone.';
 
-export const CREATE_PAYMENT_LINK_READY_EXPIRES =
-  'This link stops working in 24 hours. Need another? Make a new one.';
+export const CREATE_PAYMENT_LINK_READY_EXPIRES = 'Expires in 24 hours.';
 
 export const CREATE_PAYMENT_MODE = {
   COLLECT_NOW: 'collect_now',

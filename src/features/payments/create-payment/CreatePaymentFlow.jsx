@@ -191,7 +191,7 @@ export function CreatePaymentFlow({ onClose, onHeaderLeadingChange }) {
         />
       ) : null}
       {step === CREATE_PAYMENT_STEP.COLLECT_PAID ? (
-        <CreatePaymentPaidStep footerPadding={footerPadding} />
+        <CreatePaymentPaidStep footerPadding={footerPadding} onDone={onClose} />
       ) : null}
       {step === CREATE_PAYMENT_STEP.LINK_READY ? (
         <CreatePaymentLinkReadyStep

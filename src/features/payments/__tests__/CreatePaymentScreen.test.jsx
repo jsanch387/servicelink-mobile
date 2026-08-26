@@ -33,8 +33,18 @@ const mockCharge = jest.fn();
 
 const mockCreateLink = jest.fn(async () => 'https://checkout.stripe.com/c/pay/cs_test_1');
 
+const chargeState = { succeeds: false };
+
 jest.mock('../create-payment/hooks/useCreatePaymentCharge', () => ({
-  useCreatePaymentCharge: () => ({ charge: mockCharge, charging: false }),
+  useCreatePaymentCharge: ({ onSuccess } = {}) => ({
+    charge: () => {
+      mockCharge();
+      if (chargeState.succeeds) {
+        onSuccess?.();
+      }
+    },
+    charging: false,
+  }),
 }));
 
 jest.mock('../create-payment/hooks/useCreatePaymentLink', () => ({
@@ -73,6 +83,7 @@ jest.mock('../../home/api/homeDashboard', () => ({
 describe('CreatePaymentScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    chargeState.succeeds = false;
     mockConnectReadiness.isConnectReady = true;
     mockConnectReadiness.isLoading = false;
     mockAccess.featureEnabled = true;
@@ -127,6 +138,20 @@ describe('CreatePaymentScreen', () => {
     expect(screen.queryByTestId('bottom-sheet-modal')).toBeNull();
   });
 
+  it('shows Done on the paid screen and closes', () => {
+    chargeState.succeeds = true;
+    renderWithProviders(<CreatePaymentScreen />);
+    fireEvent.press(screen.getByTestId('create-payment-path-collect'));
+    fireEvent.changeText(screen.getByTestId('create-payment-amount'), '40');
+    fireEvent.changeText(screen.getByTestId('create-payment-note'), 'Lights');
+    fireEvent.press(screen.getByTestId('create-payment-charge'));
+    expect(screen.getByTestId('create-payment-paid')).toBeTruthy();
+    expect(screen.getByText('You’re paid')).toBeTruthy();
+    expect(screen.getByTestId('create-payment-paid-done')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('create-payment-paid-done'));
+    expect(mockGoBack).toHaveBeenCalled();
+  });
+
   it('opens payment link and creates a shareable preview', async () => {
     renderWithProviders(<CreatePaymentScreen />);
     fireEvent.press(screen.getByTestId('create-payment-path-link'));
@@ -140,12 +165,8 @@ describe('CreatePaymentScreen', () => {
     });
     expect(screen.getByTestId('create-payment-link-ready')).toBeTruthy();
     expect(screen.getByText('Payment link ready')).toBeTruthy();
-    expect(
-      screen.getByText('Text or share this link. They open it and pay. You don’t need to wait with them.'),
-    ).toBeTruthy();
-    expect(
-      screen.getByText('This link stops working in 24 hours. Need another? Make a new one.'),
-    ).toBeTruthy();
+    expect(screen.getByText('Share it. They pay on their phone.')).toBeTruthy();
+    expect(screen.getByText('Expires in 24 hours.')).toBeTruthy();
     expect(screen.queryByText('Create payment link')).toBeNull();
     expect(screen.getByTestId('create-payment-copy-link')).toBeTruthy();
     expect(screen.getByText('Copy')).toBeTruthy();
