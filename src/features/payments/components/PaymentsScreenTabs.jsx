@@ -62,7 +62,7 @@ export function PaymentsScreenTabs({ value, onChange }) {
         label: {
           color: colors.textMuted,
           fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: '600',
           letterSpacing: -0.2,
           textAlign: 'center',

@@ -154,6 +154,40 @@ export function addressFormFromPrefilledAddress(prefilledAddress) {
 /**
  * @param {{ street?: string; unit?: string; city?: string; state?: string; zip?: string } | null | undefined} address
  */
+/**
+ * Fills the address form from a MapTiler pick. Keeps unit if the user already typed one.
+ *
+ * @param {{
+ *   street?: string | null;
+ *   city?: string | null;
+ *   state?: string | null;
+ *   zip?: string | null;
+ *   label?: string | null;
+ * } | null | undefined} location
+ * @param {{ unit?: string } | null | undefined} [current]
+ */
+export function addressFormFromStructuredLocation(location, current) {
+  const street =
+    String(location?.street ?? '').trim() ||
+    String(location?.label ?? '')
+      .split(',')[0]
+      ?.trim() ||
+    '';
+  return {
+    street: street.slice(0, 200),
+    unit: String(current?.unit ?? '').trim(),
+    city: String(location?.city ?? '').trim(),
+    state: String(location?.state ?? '')
+      .trim()
+      .toUpperCase()
+      .slice(0, 2),
+    zip: String(location?.zip ?? '')
+      .trim()
+      .replace(/\D/g, '')
+      .slice(0, 5),
+  };
+}
+
 export function addressFormHasStreet(address) {
   return Boolean(String(address?.street ?? '').trim());
 }

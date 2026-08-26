@@ -20,6 +20,8 @@ import {
   isValidUsNanpTenDigits,
 } from '../../../../utils/phone';
 import { AddAnotherJobCard } from '../components/AddAnotherJobCard';
+// Deposit collection is not live yet — keep ReviewPaymentChoice for the next pass.
+// import { ReviewPaymentChoice } from '../components/ReviewPaymentChoice';
 import { SwipeToDeleteRow } from '../components/SwipeToDeleteRow';
 import { SwipeToRemoveJobTip } from '../components/SwipeToRemoveJobTip';
 import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
@@ -614,6 +616,10 @@ export function ReviewStep({
             </View>
           </View>
         </View>
+
+        {/* Payment / collect a deposit — not wired yet. Next move.
+        {isMembershipVisit ? null : <ReviewPaymentChoice totalUsd={totalUsd} />}
+        */}
 
         {showScheduleSection ? (
           <DetailsSectionCard bodyPadding="roomy" title="Schedule">

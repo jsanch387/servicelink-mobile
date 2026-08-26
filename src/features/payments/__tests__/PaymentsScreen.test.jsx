@@ -21,6 +21,36 @@ jest.mock('../hooks/useSavePaymentSettings', () => ({
   useSavePaymentSettings: (...args) => mockUseSavePaymentSettings(...args),
 }));
 
+jest.mock('../hooks/usePaymentsTransactions', () => ({
+  usePaymentsTransactions: () => ({
+    balance: {
+      availableCaption: 'Available',
+      pendingCaption: 'On the way',
+      availableLabel: '$0.00',
+      pendingLabel: '$0.00',
+    },
+    items: [
+      {
+        id: 'txn_1',
+        tone: 'in',
+        title: 'Lights',
+        subtitle: 'Jordan Lee · Tap to pay',
+        amountLabel: '+$38.54',
+        statusLabel: 'Paid',
+        dateLabel: 'Aug 24',
+        feeLabel: null,
+        source: 'tap_to_pay',
+      },
+    ],
+    hasMore: false,
+    isLoading: false,
+    isFetchingMore: false,
+    errorMessage: null,
+    refetch: jest.fn(),
+    fetchMore: jest.fn(),
+  }),
+}));
+
 jest.mock('../hooks/usePaymentsRevenue', () => ({
   usePaymentsRevenue: () => ({
     range: 'month',
@@ -69,6 +99,7 @@ jest.mock('@react-navigation/native', () => {
     useNavigation: () => ({
       navigate: jest.fn(),
     }),
+    useRoute: () => ({ params: {} }),
   };
 });
 
@@ -283,6 +314,30 @@ describe('PaymentsScreen', () => {
     expect(screen.getByRole('button', { name: 'Sign in on the web' })).toBeTruthy();
     expect(screen.queryByText('Upgrade to Pro')).toBeNull();
     expect(screen.queryByText('Set up payments')).toBeNull();
+  });
+
+  it('shows live transactions on the Transactions tab', () => {
+    renderWithProviders(<PaymentsScreen />);
+    expect(screen.getByLabelText('Transactions')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Transactions'));
+    expect(screen.getByTestId('payments-transactions')).toBeTruthy();
+    expect(screen.getByText('Lights')).toBeTruthy();
+    expect(screen.getByText('Jordan Lee · Tap to pay')).toBeTruthy();
+    expect(screen.getByText('+$38.54')).toBeTruthy();
+  });
+
+  it('asks free owners to upgrade on Transactions', () => {
+    mockUseSubscription.mockReturnValue({
+      hasProAccess: false,
+      isOwnerProfileLoaded: true,
+      isLoading: false,
+      loadError: null,
+      refetchSubscription: jest.fn(),
+    });
+    renderWithProviders(<PaymentsScreen />);
+    fireEvent.press(screen.getByLabelText('Transactions'));
+    expect(screen.getByTestId('payments-non-pro-upsell')).toBeTruthy();
+    expect(screen.queryByTestId('payments-transactions')).toBeNull();
   });
 
   it('keeps Revenue visible for Pro without Stripe Connect', async () => {

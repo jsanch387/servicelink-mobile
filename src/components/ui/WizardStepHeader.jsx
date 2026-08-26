@@ -25,6 +25,7 @@ export function WizardStepHeader({
   progressAccessibilityLabel = 'Wizard progress',
   embedded = false,
   showProgress = true,
+  style,
 }) {
   const { colors } = useTheme();
   const progress =
@@ -61,9 +62,9 @@ export function WizardStepHeader({
         subtitle: {
           color: colors.textMuted,
           fontSize: 15,
-          fontWeight: '500',
-          lineHeight: 20,
-          marginTop: 2,
+          fontWeight: '400',
+          lineHeight: 22,
+          marginTop: 6,
         },
       }),
     [colors, embedded, showProgress],
@@ -73,7 +74,7 @@ export function WizardStepHeader({
     <Pressable
       // Keep children as separate a11y/text nodes for Maestro (default Pressable merges them).
       accessible={false}
-      style={styles.wrap}
+      style={[styles.wrap, style]}
       testID="wizard-step-header"
       onPress={Keyboard.dismiss}
     >

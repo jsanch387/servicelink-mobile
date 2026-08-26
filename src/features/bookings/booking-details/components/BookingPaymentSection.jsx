@@ -22,6 +22,11 @@ export function BookingPaymentSection({ payment }) {
           alignItems: 'center',
           flexDirection: 'row',
           flexWrap: 'wrap',
+          gap: 8,
+        },
+        membershipMark: {
+          marginLeft: 0,
+          marginTop: 0,
         },
         status: {
           color: colors.text,
@@ -53,10 +58,12 @@ export function BookingPaymentSection({ payment }) {
     <DetailsSectionCard bodyPadding="default" title="Payment">
       <View accessible accessibilityLabel={accessibilityLabel} style={styles.body}>
         <View style={styles.statusRow}>
+          {showMembershipMark ? (
+            <MembershipMark size="lg" style={styles.membershipMark} />
+          ) : null}
           <AppText includeFontPadding={false} style={styles.status}>
             {status}
           </AppText>
-          {showMembershipMark ? <MembershipMark /> : null}
         </View>
         {detail ? (
           <AppText includeFontPadding={false} style={styles.detail}>

@@ -40,6 +40,13 @@ export function bookingsDetailsQueryKey(bookingId) {
 }
 
 /**
+ * @param {string | undefined} bookingId
+ */
+export function bookingsActivityQueryKey(bookingId) {
+  return [...BOOKINGS_QUERY_ROOT, 'activity', bookingId ?? 'none'];
+}
+
+/**
  * @param {string | undefined} businessId
  */
 export function bookingsFreeTierCountQueryKey(businessId) {

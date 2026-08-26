@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
+import { useRoute } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +13,7 @@ import { PaymentAcceptServicelinkCard } from '../components/PaymentAcceptService
 import { PaymentsRevenueSection } from '../components/PaymentsRevenueSection';
 import { PaymentsScreenSkeleton } from '../components/PaymentsScreenSkeleton';
 import { PaymentsScreenTabs } from '../components/PaymentsScreenTabs';
+import { PaymentsTransactionsSection } from '../components/PaymentsTransactionsSection';
 import { PaymentsNonProUpsell } from '../components/PaymentsNonProUpsell';
 import { PaymentsStripeConnectSetupCard } from '../components/PaymentsStripeConnectSetupCard';
 import { StripeConnectLaunchOverlay } from '../components/StripeConnectLaunchOverlay';
@@ -56,6 +58,8 @@ export function PaymentsScreen() {
   const payment = usePaymentDashboardRead();
   const businessId = payment.business?.id ?? null;
   const { savePaymentSettings, isSaving, saveError } = useSavePaymentSettings({ businessId });
+  const route = useRoute();
+  const requestedTab = route.params?.initialTab;
 
   const stickyBarHeight = 56;
   const settingsScrollBottomPad = Math.max(insets.bottom, 16) + stickyBarHeight + 20;
@@ -83,7 +87,15 @@ export function PaymentsScreen() {
   const [connectSubmitting, setConnectSubmitting] = useState(false);
   const [enableSubmitting, setEnableSubmitting] = useState(false);
   const [tapToPayEnablePromptSignal, setTapToPayEnablePromptSignal] = useState(0);
-  const [screenTab, setScreenTab] = useState(PAYMENTS_SCREEN_TAB.REVENUE);
+  const [screenTab, setScreenTab] = useState(() => {
+    if (
+      requestedTab === PAYMENTS_SCREEN_TAB.SETTINGS ||
+      requestedTab === PAYMENTS_SCREEN_TAB.TRANSACTIONS
+    ) {
+      return requestedTab;
+    }
+    return PAYMENTS_SCREEN_TAB.REVENUE;
+  });
 
   const onStripeConnectPress = useCallback(async () => {
     const token = session?.access_token ?? null;
@@ -279,6 +291,10 @@ export function PaymentsScreen() {
         contentRevenue: {
           paddingBottom: revenueScrollBottomPad,
         },
+        contentTransactions: {
+          flexGrow: 1,
+          paddingBottom: revenueScrollBottomPad,
+        },
         saveBar: {
           bottom: Math.max(insets.bottom - 12, 0),
           left: 16,
@@ -344,6 +360,7 @@ export function PaymentsScreen() {
 
   const showSettingsTab = screenTab === PAYMENTS_SCREEN_TAB.SETTINGS;
   const showRevenueTab = screenTab === PAYMENTS_SCREEN_TAB.REVENUE;
+  const showTransactionsTab = screenTab === PAYMENTS_SCREEN_TAB.TRANSACTIONS;
 
   if (payment.isPendingBusiness) {
     return <PaymentsScreenSkeleton accessibilityLabel="Loading" />;
@@ -418,7 +435,9 @@ export function PaymentsScreen() {
     ? settingsReady
       ? styles.contentSettings
       : { paddingBottom: Math.max(insets.bottom, 24) + 32 }
-    : styles.contentRevenue;
+    : showTransactionsTab
+      ? styles.contentTransactions
+      : styles.contentRevenue;
 
   return (
     <View style={styles.root}>
@@ -431,6 +450,10 @@ export function PaymentsScreen() {
         <PaymentsScreenTabs value={screenTab} onChange={setScreenTab} />
 
         {showRevenueTab ? <PaymentsRevenueSection businessId={businessId} /> : null}
+
+        {showTransactionsTab && !hasProAccess ? <PaymentsNonProUpsell /> : null}
+
+        {showTransactionsTab && hasProAccess ? <PaymentsTransactionsSection /> : null}
 
         {showSettingsTab && settingsNeedsPro ? <PaymentsNonProUpsell /> : null}
 

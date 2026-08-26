@@ -7,16 +7,25 @@ import { AppText } from './AppText';
  * Full-width segmented control — same pattern as Services (Services / Categories / Add-ons).
  *
  * @param {object} props
- * @param {Array<{ key: string; label: string; iconName?: keyof typeof Ionicons.glyphMap }>} props.options
+ * @param {Array<{ key: string; label: string; iconName?: keyof typeof Ionicons.glyphMap; testID?: string }>} props.options
  * @param {string} props.selected
  * @param {(key: string) => void} props.onSelect
+ * @param {'default' | 'lifted'} [props.appearance] `lifted` is lighter on a card (not shell-dark).
  */
-export function SegmentedToggle({ options, selected, onSelect }) {
-  const { colors } = useTheme();
+export function SegmentedToggle({ options, selected, onSelect, appearance = 'default' }) {
+  const { colors, isDark } = useTheme();
+  const lifted = appearance === 'lifted';
+  const trackBg = lifted ? colors.inputBg : colors.shell;
+  const selectedBg = lifted
+    ? isDark
+      ? '#3a3a3c'
+      : '#ffffff'
+    : colors.cardSurface;
+  const wrapBorder = lifted ? colors.inputBorder : colors.border;
 
   return (
-    <View style={[styles.wrapper, { borderColor: colors.border }]}>
-      <View style={[styles.track, { backgroundColor: colors.shell }]}>
+    <View style={[styles.wrapper, lifted && styles.wrapperLifted, { borderColor: wrapBorder }]}>
+      <View style={[styles.track, { backgroundColor: trackBg }]}>
         {options.map((option) => {
           const isSelected = option.key === selected;
           const tone = isSelected ? colors.text : colors.textMuted;
@@ -25,11 +34,12 @@ export function SegmentedToggle({ options, selected, onSelect }) {
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
               key={option.key}
+              testID={option.testID}
               onPress={() => onSelect(option.key)}
               style={[
                 styles.option,
                 isSelected && {
-                  backgroundColor: colors.cardSurface,
+                  backgroundColor: selectedBg,
                   borderColor: 'transparent',
                 },
               ]}
@@ -60,6 +70,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 14,
     padding: 4,
+  },
+  wrapperLifted: {
+    marginBottom: 0,
   },
   track: {
     borderRadius: 10,

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   InteractionManager,
@@ -24,17 +25,24 @@ import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { useTheme } from '../../../theme';
 import { phoneForSmsUri } from '../../../utils/phone';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
-import { BookingActionsSection } from '../booking-details/components/BookingActionsSection';
+import { BookingActionsMovedTip } from '../booking-details/components/BookingActionsMovedTip';
+import {
+  BookingActionsHeaderButton,
+  BookingActionsSheet,
+} from '../booking-details/components/BookingActionsSheet';
 import { BookingCompleteVisitSheet } from '../booking-details/components/BookingCompleteInvoiceDesignSheet';
 import { BookingJobStatusSheet } from '../booking-details/components/BookingJobStatusSheet';
 import { BookingMarkCompleteSheet } from '../booking-details/components/BookingMarkCompleteSheet';
 import { BookingPaymentSection } from '../booking-details/components/BookingPaymentSection';
 import { BookingDetailsStatusBanner } from '../booking-details/components/BookingDetailsStatusBanner';
 import { BookingRescheduleSheet } from '../booking-details/components/BookingRescheduleSheet';
+import { BookingActivitySection } from '../booking-details/components/BookingActivitySection';
+import { BookingLocationSection } from '../booking-details/components/BookingLocationSection';
 import { BookingDetailsSkeleton } from '../booking-details/components/BookingDetailsSkeleton';
 import { BookingJobsSummarySection } from '../booking-details/components/BookingJobsSummarySection';
 import { ScheduleSection } from '../booking-details/components/ScheduleSection';
 import { useBookingActions } from '../booking-details/hooks/useBookingActions';
+import { useBookingActionsMovedTip } from '../booking-details/hooks/useBookingActionsMovedTip';
 import { useMarkBookingCompleteFlow } from '../booking-details/hooks/useMarkBookingCompleteFlow';
 import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
 import { buildBookingDetailsModel } from '../booking-details/utils/buildBookingDetailsModel';
@@ -46,6 +54,7 @@ export function BookingDetailsScreen({ route }) {
   const navigation = useNavigation();
   const toast = useToast();
   const bookingId = route?.params?.bookingId;
+  const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
   const [rescheduleSheetOpen, setRescheduleSheetOpen] = useState(false);
   const [jobStatusSheetOpen, setJobStatusSheetOpen] = useState(false);
   const [completeScrollRequestId, setCompleteScrollRequestId] = useState(0);
@@ -87,6 +96,33 @@ export function BookingDetailsScreen({ route }) {
   const isCompletedStatus = statusLower === 'completed' || statusLower === 'complete';
   const isCancelledStatus = statusLower === 'cancelled' || statusLower === 'canceled';
   const showJobStatusAction = smsAccess.canUseSms && !isCompletedStatus && !isCancelledStatus;
+  const showActionsMenu =
+    !detailsQuery.isLoading &&
+    !detailsQuery.errorMessage &&
+    !isCancelledStatus &&
+    !isCompletedStatus;
+  const { visible: showActionsMovedTip, dismiss: dismissActionsMovedTip } =
+    useBookingActionsMovedTip({ enabled: showActionsMenu });
+
+  const handleOpenActions = useCallback(() => {
+    if (showActionsMovedTip) {
+      dismissActionsMovedTip();
+    }
+    setActionsSheetOpen(true);
+  }, [dismissActionsMovedTip, showActionsMovedTip]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: showActionsMenu
+        ? () => (
+            <BookingActionsHeaderButton
+              highlight={showActionsMovedTip}
+              onPress={handleOpenActions}
+            />
+          )
+        : undefined,
+    });
+  }, [handleOpenActions, navigation, showActionsMenu, showActionsMovedTip]);
 
   useEffect(() => {
     setCompleteScrollRequestId(0);
@@ -105,12 +141,6 @@ export function BookingDetailsScreen({ route }) {
     return () => task.cancel();
   }, [completeScrollRequestId, isCompletedStatus]);
 
-  const customerTelUri = useMemo(
-    () => phoneForSmsUri(details.customer.phone),
-    [details.customer.phone],
-  );
-  const hasCallablePhone = Boolean(customerTelUri);
-
   const handleOpenMaps = useCallback(async () => {
     if (!details.location.hasAddress) {
       return;
@@ -125,40 +155,43 @@ export function BookingDetailsScreen({ route }) {
     }
     await Linking.openURL(mapsUrl);
   }, [details.location.address, details.location.hasAddress]);
-  const handleCallCustomer = useCallback(async () => {
-    if (!hasCallablePhone) {
-      Alert.alert(
-        'No phone number',
-        'A valid customer phone number is not available for this booking.',
-      );
-      return;
-    }
-    const telUrl = `tel:${customerTelUri}`;
-    const canOpen = await Linking.canOpenURL(telUrl);
-    if (!canOpen) {
-      Alert.alert('Unable to open dialer', 'This device cannot open the phone dialer.');
-      return;
-    }
-    await Linking.openURL(telUrl);
-  }, [customerTelUri, hasCallablePhone]);
+  const handleOpenCustomer = useCallback(() => {
+    const customerId = details.customer.id;
+    if (!customerId) return;
+    navigation.navigate(ROUTES.CUSTOMER_DETAILS, { customerId });
+  }, [details.customer.id, navigation]);
 
   const customerSectionRows = useMemo(() => {
+    const canOpenCustomer = Boolean(details.customer.id);
     const rows = [
       {
         key: 'customer-name',
         icon: 'person-outline',
         value: details.customer.name,
         emphasize: true,
+        interactionStyle: 'none',
+        onPress: canOpenCustomer ? handleOpenCustomer : undefined,
+        accessibilityLabel: canOpenCustomer ? `View ${details.customer.name}` : undefined,
+        trailing: canOpenCustomer ? (
+          <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />
+        ) : null,
       },
     ];
+    if (canOpenCustomer) return rows;
+
     const phoneDisplay = String(details.customer.phone ?? '').trim();
+    const walkInTelUri = phoneForSmsUri(phoneDisplay);
     if (phoneDisplay.length > 0) {
       rows.push({
         key: 'customer-phone',
         icon: 'call-outline',
         value: phoneDisplay,
-        onPress: hasCallablePhone ? handleCallCustomer : undefined,
-        accessibilityLabel: hasCallablePhone ? 'Call customer' : undefined,
+        onPress: walkInTelUri
+          ? () => {
+              void Linking.openURL(`tel:${walkInTelUri}`);
+            }
+          : undefined,
+        accessibilityLabel: walkInTelUri ? 'Call customer' : undefined,
       });
     }
     const emailDisplay = String(details.customer.email ?? '').trim();
@@ -171,11 +204,12 @@ export function BookingDetailsScreen({ route }) {
     }
     return rows;
   }, [
+    colors.textMuted,
+    details.customer.id,
     details.customer.name,
     details.customer.phone,
     details.customer.email,
-    hasCallablePhone,
-    handleCallCustomer,
+    handleOpenCustomer,
   ]);
 
   const notesDisplay = useMemo(() => {
@@ -210,6 +244,10 @@ export function BookingDetailsScreen({ route }) {
     }
     navigation.navigate(ROUTES.EDIT_BOOKING, { bookingId });
   }, [bookingId, isCancelledStatus, isCompletedStatus, navigation]);
+  const handleOpenActivity = useCallback(() => {
+    if (!bookingId) return;
+    navigation.navigate(ROUTES.BOOKING_ACTIVITY, { bookingId });
+  }, [bookingId, navigation]);
   const handleReschedule = useCallback(() => {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
       return;
@@ -302,6 +340,7 @@ export function BookingDetailsScreen({ route }) {
         root: {
           backgroundColor: colors.shell,
           flex: 1,
+          overflow: 'visible',
         },
         content: {
           gap: 22,
@@ -309,14 +348,14 @@ export function BookingDetailsScreen({ route }) {
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
         },
-        actionsWrap: {
-          marginTop: 4,
-        },
         errorWrap: {
           marginTop: 8,
         },
         errorRetry: {
           marginTop: 12,
+        },
+        notesCard: {
+          borderRadius: 10,
         },
         deleteSection: {
           marginTop: 6,
@@ -354,6 +393,24 @@ export function BookingDetailsScreen({ route }) {
         onSubmitReschedule={bookingActions.rescheduleBooking}
         visible={rescheduleSheetOpen}
         onRequestClose={() => setRescheduleSheetOpen(false)}
+      />
+      <BookingActionsSheet
+        isCancelDisabled={isCancelledStatus || isCompletedStatus}
+        isCancellingBooking={bookingActions.isCancellingBooking}
+        isDeletingBooking={bookingActions.isDeletingBooking}
+        isEditDisabled={isCancelledStatus || isCompletedStatus}
+        isMarkCompletedDisabled={isCompletedStatus}
+        isMarkingCompleted={markCompleteFlow.isConfirming}
+        isRescheduleDisabled={isCancelledStatus || isCompletedStatus}
+        isReschedulingBooking={bookingActions.isReschedulingBooking}
+        showJobStatusAction={showJobStatusAction}
+        visible={actionsSheetOpen}
+        onCancelBooking={handleCancelBooking}
+        onEdit={handleEditBooking}
+        onJobStatusPress={() => setJobStatusSheetOpen(true)}
+        onMarkCompleted={handleMarkCompleted}
+        onRequestClose={() => setActionsSheetOpen(false)}
+        onReschedule={handleReschedule}
       />
       <BookingJobStatusSheet
         bookingId={bookingId}
@@ -416,20 +473,9 @@ export function BookingDetailsScreen({ route }) {
             ) : null}
 
             {details.location.hasAddress ? (
-              <InfoSection
-                bodyPadding="roomy"
-                footer={
-                  <Button
-                    fullWidth
-                    iconName="navigate-outline"
-                    onPress={handleOpenMaps}
-                    title="Open in Maps"
-                    variant="secondary"
-                  />
-                }
-                rowGap={14}
-                rows={[{ icon: 'location-outline', value: details.location.address }]}
-                title="Location"
+              <BookingLocationSection
+                address={details.location.address}
+                onPress={handleOpenMaps}
               />
             ) : null}
 
@@ -448,30 +494,14 @@ export function BookingDetailsScreen({ route }) {
 
             <InfoSection
               bodyPadding="roomy"
+              cardStyle={styles.notesCard}
               hideIcons
               rowGap={14}
               rows={[{ icon: 'document-text-outline', value: notesDisplay }]}
               title="Notes"
             />
 
-            <View style={styles.actionsWrap}>
-              <BookingActionsSection
-                isCancelDisabled={isCancelledStatus || isCompletedStatus}
-                isCancellingBooking={bookingActions.isCancellingBooking}
-                isDeletingBooking={bookingActions.isDeletingBooking}
-                isEditDisabled={isCancelledStatus || isCompletedStatus}
-                isMarkCompletedDisabled={isCompletedStatus}
-                isMarkingCompleted={markCompleteFlow.isConfirming}
-                isRescheduleDisabled={isCancelledStatus || isCompletedStatus}
-                isReschedulingBooking={bookingActions.isReschedulingBooking}
-                onCancelBooking={handleCancelBooking}
-                onEdit={handleEditBooking}
-                onJobStatusPress={() => setJobStatusSheetOpen(true)}
-                onMarkCompleted={handleMarkCompleted}
-                onReschedule={handleReschedule}
-                showJobStatusAction={showJobStatusAction}
-              />
-            </View>
+            <BookingActivitySection onPress={handleOpenActivity} />
             <View style={styles.deleteSection}>
               <DeleteButton
                 accessibilityHint="Removes this appointment from your calendar. This can\'t be undone."
@@ -485,6 +515,12 @@ export function BookingDetailsScreen({ route }) {
           </>
         ) : null}
       </ScrollView>
+      {showActionsMenu && showActionsMovedTip ? (
+        <BookingActionsMovedTip
+          onDismiss={dismissActionsMovedTip}
+          onPressActions={handleOpenActions}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

@@ -5,6 +5,10 @@ export function paymentsDashboardQueryKey(businessId) {
   return [...PAYMENTS_QUERY_ROOT, 'dashboard', businessId ?? 'none'];
 }
 
+export function paymentsTransactionsQueryKey() {
+  return [...PAYMENTS_QUERY_ROOT, 'transactions'];
+}
+
 export function paymentsRevenueQueryKey(businessId, range, fromYmd = null, toYmd = null) {
   return [
     ...PAYMENTS_QUERY_ROOT,

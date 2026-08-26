@@ -32,6 +32,10 @@ jest.mock('../../features/bookings', () => ({
   CreateAppointmentScreen: () => null,
 }));
 
+jest.mock('../../features/payments', () => ({
+  CreatePaymentScreen: () => null,
+}));
+
 jest.mock('../../features/notifications/screens/NotificationsInboxScreen', () => ({
   NotificationsInboxScreen: () => null,
 }));

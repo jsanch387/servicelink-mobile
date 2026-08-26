@@ -3,7 +3,7 @@
 **Audience:** Web / API team (or paste this entire doc into your server-side coding agent)  
 **Mobile repo:** `servicelink-mobile`  
 **Related:** [`TAP_TO_PAY_TERMINAL_SERVER.md`](./TAP_TO_PAY_TERMINAL_SERVER.md), [`MOBILE_BOOKING_TAP_TO_PAY.md`](./MOBILE_BOOKING_TAP_TO_PAY.md)  
-**Status:** **Required for production warm-up** — mobile ships today with a temporary booking fallback
+**Status:** Implemented — merchant `POST /api/payments/tap-to-pay/connection-token`. Mobile no longer falls back to a booking token.
 
 ---
 
@@ -14,7 +14,7 @@ Implement a merchant-scoped Stripe Terminal connection-token endpoint for Servic
 
 Context:
 - Mobile (iOS) warms up Stripe Terminal on app launch and foreground when the user is already signed in — no booking context yet.
-- Today mobile calls POST /api/payments/tap-to-pay/connection-token and gets 404. It temporarily falls back to POST /api/availability/bookings/{bookingId}/tap-to-pay/connection-token using the merchant's most recent booking from Supabase. We want to remove that hack.
+- Walk-up Tap to Pay also uses this merchant token. Do not use a booking connection-token for that screen.
 
 Requirements:
 1. Add POST /api/payments/tap-to-pay/connection-token
@@ -224,21 +224,9 @@ Same as step 4–7 if the reader dropped in background.
 
 ---
 
-## Temporary mobile fallback (remove after merchant route ships)
+## Booking fallback (removed)
 
-Until your route exists, mobile:
-
-1. Tries `POST /api/payments/tap-to-pay/connection-token`
-2. On **404 only**, queries Supabase for the merchant’s most recently updated `bookings.id`
-3. Calls `POST /api/availability/bookings/{bookingId}/tap-to-pay/connection-token` with `{ stripeAccountId }`
-
-This works but is undesirable:
-
-- Merchants with **zero bookings** cannot warm up
-- Uses an unrelated booking id for a merchant-level operation
-- Extra latency (Supabase query + booking route)
-
-Once the merchant route returns `200`, mobile never uses the fallback.
+Mobile no longer falls back to `POST …/bookings/{bookingId}/tap-to-pay/connection-token` for warm-up or walk-up collection. A 404 on the merchant route means **no business profile**, not “route missing.”
 
 ---
 
@@ -313,7 +301,7 @@ These stay as-is; mobile still uses them during collection:
 | File                                                                 | Purpose                             |
 | -------------------------------------------------------------------- | ----------------------------------- |
 | `src/features/tap-to-pay/api/postTapToPayMerchantConnectionToken.js` | HTTP client for merchant route      |
-| `src/features/tap-to-pay/api/fetchTapToPayWarmupConnectionToken.js`  | Merchant + booking fallback         |
+| `src/features/tap-to-pay/api/fetchTapToPayWarmupConnectionToken.js`  | Merchant token only                 |
 | `src/features/tap-to-pay/hooks/useTapToPayWarmup.js`                 | App launch / foreground warm-up     |
 | `src/features/payments/api/fetchPaymentDashboard.js`                 | Reads `stripe_terminal_location_id` |
 

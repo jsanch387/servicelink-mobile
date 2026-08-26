@@ -259,21 +259,13 @@ export async function ensureTapToPayReaderConnected({
   const stripeAccountId = connectParams?.stripeAccountId?.trim() ?? null;
   const connectKey = `${locationId}|${stripeAccountId ?? ''}`;
 
-  if (tapToPayTerminalSession.lastConnectKey === connectKey) {
-    // Collect must not trust a stale in-memory warm flag — Stripe may have
-    // dropped the reader while our session still says connected.
-    if (reason !== 'collect' && reason !== 'collect_retry') {
-      logTapToPayDebug('terminal.connect.skip', {
-        locationId: maskId(locationId),
-        reason,
-      });
-      return { locationId, connectKey };
-    }
-    logTapToPayDebug('terminal.connect.force', {
+  if (tapToPayTerminalSession.lastConnectKey === connectKey && isTapToPayReaderWarm()) {
+    logTapToPayDebug('terminal.connect.skip', {
       locationId: maskId(locationId),
       reason,
-      note: 'reconnecting for collect even though session looks warm',
+      note: 'reader already warm for this location',
     });
+    return { locationId, connectKey };
   }
 
   if (tapToPayTerminalSession.lastConnectKey) {
