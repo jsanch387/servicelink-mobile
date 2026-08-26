@@ -11,7 +11,6 @@ import {
   View,
 } from 'react-native';
 import { AppText, BottomSheetModal, Button } from '../../../../components/ui';
-import { BOTTOM_SHEET_GLASS_ENABLED } from '../../../../components/ui/bottomSheetAppearance';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 import { ACTIONS_MOVED_TIP_GREEN } from './BookingActionsMovedTip';
 
@@ -409,7 +408,6 @@ export function BookingActionsSheet({
   return (
     <BottomSheetModal
       allowBackdropClose={!actionsBusy}
-      appearance={BOTTOM_SHEET_GLASS_ENABLED ? 'glass' : 'default'}
       fitContent
       showCloseButton
       showHeaderDivider
