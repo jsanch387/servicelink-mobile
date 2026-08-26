@@ -9,7 +9,6 @@ import {
   EchoBarsLoader,
   SuccessConfirmation,
 } from '../../../../components/ui';
-import { BOTTOM_SHEET_GLASS_ENABLED } from '../../../../components/ui/bottomSheetAppearance';
 import { useCyclingStatusMessage } from '../../../../hooks/useCyclingStatusMessage';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 import {
@@ -799,7 +798,6 @@ export function BookingJobStatusSheet({
   return (
     <BottomSheetModal
       allowBackdropClose={phase !== 'pending'}
-      appearance={BOTTOM_SHEET_GLASS_ENABLED ? 'glass' : 'default'}
       fitContent
       footer={footer}
       showCloseButton={phase !== 'pending'}

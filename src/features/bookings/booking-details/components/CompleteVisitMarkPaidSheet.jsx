@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, BottomSheetModal, Button } from '../../../../components/ui';
-import { BOTTOM_SHEET_GLASS_ENABLED } from '../../../../components/ui/bottomSheetAppearance';
 import { useTheme } from '../../../../theme';
 
 /** @typedef {'cash' | 'payment_app' | 'other'} InPersonPaymentMethod */
@@ -158,7 +157,6 @@ export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
 
   return (
     <BottomSheetModal
-      appearance={BOTTOM_SHEET_GLASS_ENABLED ? 'glass' : 'default'}
       fitContent
       footer={
         <View style={styles.footerWrap}>

@@ -2,13 +2,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, BottomSheetModal, Button } from '../../../components/ui';
-import { BOTTOM_SHEET_GLASS_ENABLED } from '../../../components/ui/bottomSheetAppearance';
 import { useTheme } from '../../../theme';
 import { fireSelectionHaptic } from '../../../utils/feedbackHaptics';
 
 /**
  * Confirm before skipping the “job done” customer text from Next Up.
- * Matches On my way / Done confirm modal visual language (icon badge; glass when enabled).
+ * Matches On my way / Done confirm modal visual language (icon badge).
  *
  * @param {{
  *   visible: boolean;
@@ -69,7 +68,6 @@ export function SkipWorkNotifyConfirmModal({ visible, onRequestClose, onConfirmS
 
   return (
     <BottomSheetModal
-      appearance={BOTTOM_SHEET_GLASS_ENABLED ? 'glass' : 'default'}
       fitContent
       footer={
         <View style={styles.footer}>

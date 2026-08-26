@@ -51,12 +51,8 @@ const GLASS_BACKDROP = Platform.select({
  * - **iOS** (`fitContent` short sheets) + **Android**: overlay sheet from the bottom
  *   with rounded top corners (Android’s common bottom-sheet pattern).
  *
- * **Glass appearance (temporarily off for OTA):** the frosted `BlurView` path below
- * is fully implemented and kept. Call sites gate it with
- * `BOTTOM_SHEET_GLASS_ENABLED` in `bottomSheetAppearance.js` because store
- * binaries without ExpoBlur crash with “Unimplemented Component: ExpoBlurView”.
- * Turn glass back on with the **next native / binary release** that includes
- * `expo-blur`: set `BOTTOM_SHEET_GLASS_ENABLED = true`, then OTA.
+ * **Glass appearance:** opt in per sheet with `appearance="glass"` when
+ * `BOTTOM_SHEET_GLASS_ENABLED` is on. Needs `expo-blur` in the native binary.
  *
  * @param {object} props
  * @param {boolean} props.visible
@@ -74,8 +70,8 @@ const GLASS_BACKDROP = Platform.select({
  * @param {boolean} [props.centerContent] — vertically center children in the scroll area
  * @param {boolean} [props.showHeaderDivider] — title underline rule; default true
  * @param {'default' | 'glass'} [props.appearance]
- *   - `default` — solid elevated sheet (current OTA-safe path)
- *   - `glass` — frosted BlurView sheet (code kept; re-enable via BOTTOM_SHEET_GLASS_ENABLED after next binary)
+ *   - `default` — solid elevated sheet
+ *   - `glass` — frosted BlurView (opt in at the call site)
  */
 export function BottomSheetModal({
   visible,
@@ -483,8 +479,7 @@ function OverlayBottomSheetModal({
         ]}
       >
         {isGlass ? (
-          // Glass path kept intact — call sites gate via BOTTOM_SHEET_GLASS_ENABLED
-          // until the next native binary ships with ExpoBlur, then flip that flag on.
+          // Glass path — call sites opt in via appearance="glass" + BOTTOM_SHEET_GLASS_ENABLED.
           <BlurView intensity={GLASS_BLUR_INTENSITY} style={sheetClipStyle} tint="dark">
             <LinearGradient
               colors={[

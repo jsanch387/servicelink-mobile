@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, BottomSheetModal } from '../../../components/ui';
-import { BOTTOM_SHEET_GLASS_ENABLED } from '../../../components/ui/bottomSheetAppearance';
 import { showWebAccountFeatureAlert } from '../../subscription';
 import { useTheme } from '../../../theme';
 import { linkViewsPeriodAccessCopy } from '../constants/linkViewsAccessCopy';
@@ -194,7 +193,6 @@ export function LinkViewsPeriodPicker({
       </Pressable>
 
       <BottomSheetModal
-        appearance={BOTTOM_SHEET_GLASS_ENABLED ? 'glass' : 'default'}
         fitContent
         footer={sheetFooter}
         showCloseButton
