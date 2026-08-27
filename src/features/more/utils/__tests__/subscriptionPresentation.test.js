@@ -1,4 +1,9 @@
-import { hasProAccessFromProfile, isProAccess } from '../subscriptionPresentation';
+import {
+  hasOwnerSubscriptionPaymentFailed,
+  hasProAccessFromProfile,
+  isProAccess,
+  ownerPaymentFailedNoticeEpisodeKey,
+} from '../subscriptionPresentation';
 
 describe('isProAccess / hasProAccessFromProfile (web-aligned)', () => {
   it('explicit free tier → not Pro regardless of Stripe remnants', () => {
@@ -59,6 +64,70 @@ describe('isProAccess / hasProAccessFromProfile (web-aligned)', () => {
 
   it('subscription id without pro tier → not Pro', () => {
     expect(isProAccess('free', null, 'active', 'sub_1', 'cus_1')).toBe(false);
+  });
+
+  it('detects billed Pro payment failed (past_due / unpaid)', () => {
+    expect(
+      hasOwnerSubscriptionPaymentFailed({
+        subscription_tier: 'pro',
+        subscription_status: 'past_due',
+        stripe_subscription_id: 'sub_1',
+      }),
+    ).toBe(true);
+    expect(
+      hasOwnerSubscriptionPaymentFailed({
+        subscription_tier: 'pro',
+        subscription_status: 'unpaid',
+        stripe_subscription_id: 'sub_1',
+      }),
+    ).toBe(true);
+    expect(
+      hasOwnerSubscriptionPaymentFailed({
+        subscription_tier: 'free',
+        subscription_status: 'past_due',
+        stripe_subscription_id: 'sub_1',
+      }),
+    ).toBe(true);
+  });
+
+  it('does not treat active, canceled, or never-billed as payment failed', () => {
+    expect(
+      hasOwnerSubscriptionPaymentFailed({
+        subscription_tier: 'pro',
+        subscription_status: 'active',
+        stripe_subscription_id: 'sub_1',
+      }),
+    ).toBe(false);
+    expect(
+      hasOwnerSubscriptionPaymentFailed({
+        subscription_tier: 'pro',
+        subscription_status: 'canceled',
+        stripe_subscription_id: 'sub_1',
+      }),
+    ).toBe(false);
+    expect(
+      hasOwnerSubscriptionPaymentFailed({
+        subscription_tier: 'pro',
+        subscription_status: 'past_due',
+        stripe_subscription_id: '',
+      }),
+    ).toBe(false);
+  });
+
+  it('keys a payment-failed episode by subscription, status, and period end', () => {
+    expect(
+      ownerPaymentFailedNoticeEpisodeKey({
+        subscription_status: 'past_due',
+        stripe_subscription_id: 'sub_1',
+        subscription_current_period_end: '2026-09-01T00:00:00.000Z',
+      }),
+    ).toBe('sub_1:past_due:2026-09-01T00:00:00.000Z');
+    expect(
+      ownerPaymentFailedNoticeEpisodeKey({
+        subscription_status: 'active',
+        stripe_subscription_id: 'sub_1',
+      }),
+    ).toBe('');
   });
 
   it('ignores period end for access (web: status is SoT)', () => {

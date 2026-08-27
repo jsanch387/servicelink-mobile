@@ -71,7 +71,9 @@ describe('NextUpCard', () => {
         subtitle=""
       />,
     );
+    expect(screen.getByLabelText('Loading next up')).toBeTruthy();
     expect(screen.queryByText('Next up')).toBeNull();
+    expect(screen.queryByText('Nothing scheduled yet')).toBeNull();
   });
 
   it('shows empty state when there is no next booking', () => {

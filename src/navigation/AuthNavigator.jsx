@@ -26,8 +26,9 @@ import { CreateQuoteScreen } from '../features/quotes/screens/CreateQuoteScreen'
 import { useSubscription } from '../features/subscription';
 import { MainTabNavigator } from './MainTabNavigator';
 import { ROUTES } from '../routes/routes';
-import { FONT_FAMILIES, useTheme } from '../theme';
+import { useTheme } from '../theme';
 import { navigationRef } from './navigationRef';
+import { nativeStackScreenOptions } from './nativeStackScreenOptions';
 
 const Stack = createNativeStackNavigator();
 
@@ -255,8 +256,10 @@ export function AuthNavigator() {
         <Stack.Navigator
           key={stackKey}
           screenOptions={{
-            animation: stackKey === 'auth' ? 'fade' : 'slide_from_right',
-            contentStyle: { backgroundColor: colors.shell },
+            ...nativeStackScreenOptions({
+              animation: stackKey === 'auth' ? 'fade' : 'slide_from_right',
+              colors,
+            }),
             headerShown: false,
           }}
         >
@@ -284,9 +287,6 @@ export function AuthNavigator() {
                   title: 'Notifications',
                   headerBackButtonDisplayMode: 'minimal',
                   headerBackTitleVisible: false,
-                  headerTitleStyle: {
-                    fontFamily: FONT_FAMILIES.semibold,
-                  },
                 }}
               />
               <Stack.Screen
@@ -297,9 +297,6 @@ export function AuthNavigator() {
                   title: 'New appointment',
                   headerBackButtonDisplayMode: 'minimal',
                   headerBackTitleVisible: false,
-                  headerTitleStyle: {
-                    fontFamily: FONT_FAMILIES.semibold,
-                  },
                 }}
               />
               <Stack.Screen
@@ -310,9 +307,6 @@ export function AuthNavigator() {
                   title: 'Edit appointment',
                   headerBackButtonDisplayMode: 'minimal',
                   headerBackTitleVisible: false,
-                  headerTitleStyle: {
-                    fontFamily: FONT_FAMILIES.semibold,
-                  },
                 }}
               />
               <Stack.Screen
@@ -323,9 +317,6 @@ export function AuthNavigator() {
                   title: 'New payment',
                   headerBackButtonDisplayMode: 'minimal',
                   headerBackTitleVisible: false,
-                  headerTitleStyle: {
-                    fontFamily: FONT_FAMILIES.semibold,
-                  },
                 }}
               />
               <Stack.Screen
@@ -335,9 +326,6 @@ export function AuthNavigator() {
                   headerShown: true,
                   headerBackButtonDisplayMode: 'minimal',
                   headerBackTitleVisible: false,
-                  headerTitleStyle: {
-                    fontFamily: FONT_FAMILIES.semibold,
-                  },
                 }}
               />
             </>

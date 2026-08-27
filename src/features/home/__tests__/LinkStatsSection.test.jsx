@@ -32,6 +32,7 @@ describe('LinkStatsSection', () => {
 
   it('shows skeleton state while loading', () => {
     renderWithProviders(<LinkStatsSection businessError={null} isLoading slug="" views={0} />);
+    expect(screen.getByLabelText('Loading link visits')).toBeTruthy();
     expect(screen.queryByText('Views')).toBeNull();
     expect(screen.queryByText(/Link unavailable/)).toBeNull();
   });

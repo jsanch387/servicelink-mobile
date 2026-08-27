@@ -1,7 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
-import { HeaderTextButton } from '../../../components/ui';
+import {
+  HeaderTextButton,
+  androidBalancedHeaderLeft,
+  androidHeaderTitleBalanceRight,
+} from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { navigateNestedTabScreen } from '../../../navigation/navigateNestedTabScreen';
 import { ROUTES } from '../../../routes/routes';
@@ -79,17 +83,18 @@ export function CreatePaymentScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerLeft: () => (
+      headerLeft: androidBalancedHeaderLeft(() => (
         <HeaderTextButton
           accessibilityLabel={leading.accessibilityLabel}
           label={leading.label}
           onPress={() => (leading.onPress ? leading.onPress() : navigation.goBack())}
         />
-      ),
+      )),
+      headerRight: androidHeaderTitleBalanceRight(),
     });
 
     return () => {
-      navigation.setOptions({ headerShown: true, headerLeft: undefined });
+      navigation.setOptions({ headerShown: true, headerLeft: undefined, headerRight: undefined });
     };
   }, [leading, navigation]);
 

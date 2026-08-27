@@ -56,6 +56,7 @@ export function ForgotPasswordScreen() {
           flex: 1,
           fontFamily: FONT_FAMILIES.semibold,
           fontSize: 17,
+          textAlign: 'center',
         },
         body: {
           flex: 1,

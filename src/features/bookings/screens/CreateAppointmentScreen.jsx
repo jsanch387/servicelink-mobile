@@ -1,7 +1,11 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useCallback, useLayoutEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { HeaderTextButton } from '../../../components/ui';
+import {
+  HeaderTextButton,
+  androidBalancedHeaderLeft,
+  androidHeaderTitleBalanceRight,
+} from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { CreateAppointmentFlow } from '../create-appointment/CreateAppointmentFlow';
 
@@ -35,17 +39,18 @@ export function CreateAppointmentScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerLeft: () => (
+      headerLeft: androidBalancedHeaderLeft(() => (
         <HeaderTextButton
           accessibilityLabel="Cancel new appointment"
           label="Cancel"
           onPress={() => navigation.goBack()}
         />
-      ),
+      )),
+      headerRight: androidHeaderTitleBalanceRight(),
     });
 
     return () => {
-      navigation.setOptions({ headerShown: true, headerLeft: undefined });
+      navigation.setOptions({ headerShown: true, headerLeft: undefined, headerRight: undefined });
     };
   }, [navigation]);
 

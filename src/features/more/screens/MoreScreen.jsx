@@ -15,6 +15,7 @@ import { resetAppUpdatesForDev } from '../../appUpdates';
 import { clearTapToPayEducationSeen } from '../../tap-to-pay/native/presentTapToPayEducation';
 import { resetNextUpCoachTipsForDev } from '../../home/dev/resetNextUpCoachTipsForDev';
 import { resetCreatePaymentHighlightForDev } from '../../payments/create-payment/dev/resetCreatePaymentHighlightForDev';
+import { resetOwnerPaymentFailedNoticeForDev } from '../../subscription/dev/resetOwnerPaymentFailedNoticeForDev';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { SCREEN_GUTTER } from '../../../constants/layout';
@@ -63,10 +64,11 @@ export function MoreScreen() {
       clearTapToPayEducationSeen(),
       resetNextUpCoachTipsForDev(),
       resetCreatePaymentHighlightForDev(),
+      resetOwnerPaymentFailedNoticeForDev(),
     ]).then(() => {
       Alert.alert(
         'Dev',
-        "What's new, Tap to Pay, Next Up coach tips, Try it, and Create payment highlight reset.",
+        "What's new, Tap to Pay, Next Up coach tips, Try it, Create payment highlight, and Pro payment notice reset.",
       );
     });
   };

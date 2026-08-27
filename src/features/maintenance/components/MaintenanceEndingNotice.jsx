@@ -1,20 +1,10 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, Button, EndingLabel, SurfaceCard } from '../../../components/ui';
+import { AppText, EndingLabel, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
-import {
-  MAINTENANCE_SUNSET_NOTICE_BODY,
-  MAINTENANCE_SUNSET_NOTICE_CTA,
-  MAINTENANCE_SUNSET_NOTICE_TITLE,
-} from '../constants';
+import { MAINTENANCE_SUNSET_NOTICE_BODY, MAINTENANCE_SUNSET_NOTICE_TITLE } from '../constants';
 
-/**
- * @param {{
- *   onPressSubscriptions?: () => void;
- *   showSubscriptionsCta?: boolean;
- * }} props
- */
-export function MaintenanceEndingNotice({ onPressSubscriptions, showSubscriptionsCta = false }) {
+export function MaintenanceEndingNotice() {
   const { colors } = useTheme();
 
   const styles = useMemo(
@@ -50,9 +40,6 @@ export function MaintenanceEndingNotice({ onPressSubscriptions, showSubscription
           lineHeight: 20,
           marginTop: 8,
         },
-        cta: {
-          marginTop: 14,
-        },
       }),
     [colors],
   );
@@ -68,15 +55,6 @@ export function MaintenanceEndingNotice({ onPressSubscriptions, showSubscription
         </View>
       </View>
       <AppText style={styles.body}>{MAINTENANCE_SUNSET_NOTICE_BODY}</AppText>
-      {showSubscriptionsCta && onPressSubscriptions ? (
-        <Button
-          fullWidth
-          style={styles.cta}
-          title={MAINTENANCE_SUNSET_NOTICE_CTA}
-          variant="secondary"
-          onPress={onPressSubscriptions}
-        />
-      ) : null}
     </SurfaceCard>
   );
 }

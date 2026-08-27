@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { nativeStackScreenOptions } from '../../../navigation/nativeStackScreenOptions';
 import { ROUTES } from '../../../routes/routes';
-import { FONT_FAMILIES, useTheme } from '../../../theme';
+import { useTheme } from '../../../theme';
 import { AvailabilityScreen } from '../../availability/screens/AvailabilityScreen';
 import { BookingLinkScreen } from '../../bookingLink/screens/BookingLinkScreen';
 import { PaymentsScreen } from '../../payments/screens/PaymentsScreen';
@@ -43,13 +44,7 @@ export function MoreNavigator() {
   return (
     <MarketingCampaignsProvider>
       <Stack.Navigator
-        screenOptions={{
-          animation: 'slide_from_right',
-          contentStyle: { backgroundColor: colors.shell },
-          headerTitleStyle: {
-            fontFamily: FONT_FAMILIES.semibold,
-          },
-        }}
+        screenOptions={nativeStackScreenOptions({ colors })}
       >
         <Stack.Screen
           component={MoreScreen}

@@ -3,7 +3,7 @@ export const MAINTENANCE_HOW_IT_WORKS_LINK_LABEL = 'How it works';
 export const MAINTENANCE_HOW_IT_WORKS_DISMISS_LABEL = 'Got it';
 
 export const MAINTENANCE_HOW_IT_WORKS_INTRO =
-  'Maintenance is ending and will be replaced by Subscriptions. Existing offers stay here.';
+  'Maintenance details are going away. We’re bringing in Subscriptions so customers can subscribe to ongoing services.';
 
 export const MAINTENANCE_HOW_IT_WORKS_ITEMS = [
   {
@@ -18,8 +18,8 @@ export const MAINTENANCE_HOW_IT_WORKS_ITEMS = [
   },
   {
     icon: 'layers-outline',
-    title: 'Use Subscriptions',
-    body: 'Create a subscription plan for new recurring service.',
+    title: 'Subscriptions',
+    body: 'Customers will be able to subscribe to ongoing services.',
   },
 ];
 

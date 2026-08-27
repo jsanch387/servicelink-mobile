@@ -36,6 +36,7 @@ Implementation: `src/features/more/utils/subscriptionPresentation.js`.
 | Trialing / active Pro                | `true`         | **Yes**  | Full Pro features                     |
 | Comped Pro (tier pro, no Stripe ids) | `true`         | **Yes**  |                                       |
 | Canceled / churned (not entitled)    | `false`        | **Yes**  | Same as free — no full-screen paywall |
+| Billed Pro, `past_due` / `unpaid`    | `false`        | **Yes**  | Dismissible Home heads-up; plan stays on web |
 
 ---
 
@@ -77,6 +78,7 @@ Step 5 **Activate my link** → `POST /api/onboarding-v2/complete` only (no Stri
 | --------------------- | --------------------------------------------------------------- |
 | Pro access            | `src/features/more/utils/subscriptionPresentation.js`           |
 | Subscription state    | `src/features/subscription/context/SubscriptionContext.jsx`     |
+| Payment-failed Home notice | `src/features/subscription/components/OwnerSubscriptionPaymentFailedBanner.jsx` |
 | Web sign-in at limits | `src/features/subscription/utils/showWebAccountFeatureAlert.js` |
 | Navigator             | `src/navigation/AuthNavigator.jsx`                              |
 | Stripe Connect only   | `src/features/stripe/docs/mobile-stripe-feature-map.md`         |

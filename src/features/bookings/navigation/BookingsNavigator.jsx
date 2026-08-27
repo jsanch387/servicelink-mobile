@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { nativeStackScreenOptions } from '../../../navigation/nativeStackScreenOptions';
 import { ROUTES } from '../../../routes/routes';
-import { FONT_FAMILIES, useTheme } from '../../../theme';
+import { useTheme } from '../../../theme';
 import { CustomerDetailsScreen } from '../../customers/screens/CustomerDetailsScreen';
 import { BookingActivityScreen } from '../screens/BookingActivityScreen';
 import { BookingDetailsScreen } from '../screens/BookingDetailsScreen';
@@ -13,13 +14,7 @@ export function BookingsNavigator() {
 
   return (
     <Stack.Navigator
-      screenOptions={{
-        animation: 'slide_from_right',
-        contentStyle: { backgroundColor: colors.shell },
-        headerTitleStyle: {
-          fontFamily: FONT_FAMILIES.semibold,
-        },
-      }}
+      screenOptions={nativeStackScreenOptions({ colors })}
     >
       <Stack.Screen
         component={BookingsScreen}

@@ -19,7 +19,13 @@ function LinkStatsSkeleton() {
   );
 
   return (
-    <SurfaceCard outlined={false} padding="none" style={styles.card}>
+    <SurfaceCard
+      accessibilityLabel="Loading link visits"
+      accessibilityRole="progressbar"
+      outlined={false}
+      padding="none"
+      style={styles.card}
+    >
       <View style={styles.inner}>
         <View style={styles.statsBlock}>
           <View style={styles.topRow}>
@@ -29,7 +35,7 @@ function LinkStatsSkeleton() {
           <View style={styles.metaRow}>
             <SkeletonBox
               borderRadius={5}
-              height={12}
+              height={16}
               pulse
               style={styles.periodSkeleton}
               width={88}

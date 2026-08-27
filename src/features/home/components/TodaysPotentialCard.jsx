@@ -32,7 +32,7 @@ export function TodaysPotentialCard({ potentialCents = 0, collectedCents = 0, is
             <SkeletonBox borderRadius={10} height={36} pulse width={36} />
             <SkeletonBox
               borderRadius={8}
-              height={30}
+              height={35}
               pulse
               style={styles.skeletonAmount}
               width={92}

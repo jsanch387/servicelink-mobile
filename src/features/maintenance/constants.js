@@ -20,12 +20,12 @@ export const MAINTENANCE_DETAIL_NOT_FOUND_USER_MESSAGE =
 export const MAINTENANCE_CREATION_DISABLED = true;
 
 export const MAINTENANCE_CREATION_DISABLED_MESSAGE =
-  'New maintenance offers are no longer available. Use Subscriptions instead.';
+  'Maintenance details are going away. We’re bringing in Subscriptions so customers can subscribe to ongoing services.';
 
-export const MAINTENANCE_SUNSET_NOTICE_TITLE = 'Maintenance is ending';
+export const MAINTENANCE_SUNSET_NOTICE_TITLE = 'Maintenance details';
 
 export const MAINTENANCE_SUNSET_NOTICE_BODY =
-  'Existing offers stay here. Create new recurring plans in Subscriptions.';
+  'Maintenance details are going away. We’re bringing in Subscriptions so customers can subscribe to ongoing services.';
 
 export const MAINTENANCE_SUNSET_NOTICE_CTA = 'Go to subscriptions';
 

@@ -13,6 +13,8 @@ import { MARK_COMPLETE_SHOW_COMPLETE_VISIT_DESIGN_PREVIEW } from '../../bookings
 import { BookingMarkCompleteSheet } from '../../bookings/booking-details/components/BookingMarkCompleteSheet';
 import { useMarkBookingCompleteFlow } from '../../bookings/booking-details/hooks/useMarkBookingCompleteFlow';
 import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
+import { OwnerSubscriptionPaymentFailedBanner } from '../../subscription/components/OwnerSubscriptionPaymentFailedBanner';
+import { useOwnerSubscriptionPaymentFailedNotice } from '../../subscription/hooks/useOwnerSubscriptionPaymentFailedNotice';
 import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
 import { FloatingCreateMenu } from '../components/FloatingCreateMenu';
 import { HomeFreeBookingsUsageCard } from '../components/HomeFreeBookingsUsageCard';
@@ -52,7 +54,12 @@ export function HomeScreen() {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const { unreadCount } = useNotificationUnreadCount();
-  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
+  const { hasProAccess, isOwnerProfileLoaded, ownerProfile, refetchSubscription } =
+    useSubscription();
+  const paymentFailedNotice = useOwnerSubscriptionPaymentFailedNotice({
+    enabled: isOwnerProfileLoaded,
+    ownerProfile,
+  });
   const createPaymentAccess = useCreatePaymentAccess();
   const smsAccess = useCustomerSmsAccess();
   const useNextUpLifecycle = smsAccess.canUseSms;
@@ -111,11 +118,15 @@ export function HomeScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([dashboard.refetch(), linkViews.refetch()]);
+      await Promise.all([
+        dashboard.refetch(),
+        linkViews.refetch(),
+        refetchSubscription?.() ?? Promise.resolve(),
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [dashboard, linkViews]);
+  }, [dashboard, linkViews, refetchSubscription]);
 
   const homeErrors = useMemo(
     () =>
@@ -500,7 +511,7 @@ export function HomeScreen() {
                 accessibilityLabel="Loading business name"
                 accessibilityRole="progressbar"
                 borderRadius={8}
-                height={25}
+                height={31}
                 pulse
                 style={styles.profileNameSkeleton}
                 width="72%"
@@ -543,6 +554,11 @@ export function HomeScreen() {
               minimumVersion={storeUpdateMinimumVersion}
               onPressUpdate={openNativeStoreUpdate}
             />
+          </View>
+        ) : null}
+        {paymentFailedNotice.visible ? (
+          <View style={styles.storeUpdateWrap}>
+            <OwnerSubscriptionPaymentFailedBanner onDismiss={paymentFailedNotice.dismiss} />
           </View>
         ) : null}
         {showLifecycleDesignPreview || showCompleteVisitDesignPreview ? (

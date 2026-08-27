@@ -74,5 +74,11 @@ export {
   WheelPickerSheetShell,
 } from './wheelPicker';
 export { WizardProgressBar } from './WizardProgressBar';
-export { HeaderTextButton } from './HeaderTextButton';
+export {
+  HeaderTextButton,
+  HeaderBarSideSlot,
+  androidBalancedHeaderLeft,
+  androidHeaderTitleBalanceRight,
+  HEADER_BAR_SIDE_SLOT_WIDTH,
+} from './HeaderTextButton';
 export { WizardStepHeader } from './WizardStepHeader';

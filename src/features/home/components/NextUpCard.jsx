@@ -46,11 +46,11 @@ import { OnMyWayConfirmModal } from './OnMyWayConfirmModal';
 import { SkipWorkNotifyConfirmModal } from './SkipWorkNotifyConfirmModal';
 
 /**
- * Minimum inner content height for the empty Next Up state, aligned with `NextUpSkeleton`:
- * headline block (22 + 10 + 14) + service lines (22 + 15 + 5 + 14) + actions (26 + 50) = 178.
+ * Minimum inner content height for the empty Next Up state, aligned with `NextUpSkeleton`
+ * and the filled upcoming card: name 29 + when 19 + service 35 + vehicle 22 + actions 78 = 183.
  * Keeps the spotlight card from shrinking when there is no booking.
  */
-const NEXT_UP_CARD_BODY_MIN_HEIGHT = 178;
+const NEXT_UP_CARD_BODY_MIN_HEIGHT = 183;
 
 const enableMotion = typeof process !== 'undefined' && process.env.NODE_ENV !== 'test';
 
@@ -82,47 +82,53 @@ function LivePulseIndicator({ color, opacityAnim, ringScaleAnim, ringOpacityAnim
   );
 }
 
-function NextUpSkeleton({ bone }) {
+function NextUpSkeleton() {
+  const { colors } = useTheme();
+  const bone = colors.nextUpText;
+
   return (
-    <SpotlightCard collapsable={false} style={styles.card}>
-      <View style={styles.skeletonHeadBlock}>
+    <SpotlightCard
+      accessibilityLabel="Loading next up"
+      accessibilityRole="progressbar"
+      collapsable={false}
+      style={styles.card}
+    >
+      <View style={styles.skeletonBody}>
         <SkeletonBox
           backgroundColor={bone}
-          borderRadius={10}
-          height={22}
+          borderRadius={8}
+          height={29}
           pulse
           style={styles.skeletonName}
         />
         <SkeletonBox
           backgroundColor={bone}
-          borderRadius={8}
-          height={14}
+          borderRadius={6}
+          height={16}
           pulse
           style={styles.skeletonWhen}
         />
-      </View>
-      <SkeletonBox
-        backgroundColor={bone}
-        borderRadius={6}
-        height={15}
-        pulse
-        style={{ marginTop: 22 }}
-        width="72%"
-      />
-      <SkeletonBox
-        backgroundColor={bone}
-        borderRadius={6}
-        height={14}
-        pulse
-        style={{ marginTop: 5 }}
-        width="100%"
-      />
-      <View collapsable={false} style={styles.actions}>
-        <View style={styles.actionCell}>
-          <SkeletonBox backgroundColor={bone} borderRadius={12} height={50} pulse width="100%" />
-        </View>
-        <View style={styles.actionCell}>
-          <SkeletonBox backgroundColor={bone} borderRadius={12} height={50} pulse width="100%" />
+        <SkeletonBox
+          backgroundColor={bone}
+          borderRadius={6}
+          height={21}
+          pulse
+          style={styles.skeletonService}
+        />
+        <SkeletonBox
+          backgroundColor={bone}
+          borderRadius={6}
+          height={19}
+          pulse
+          style={styles.skeletonVehicle}
+        />
+        <View collapsable={false} style={styles.skeletonActions}>
+          <View style={styles.actionCell}>
+            <SkeletonBox backgroundColor={bone} borderRadius={14} height={52} pulse width="100%" />
+          </View>
+          <View style={styles.actionCell}>
+            <SkeletonBox backgroundColor={bone} borderRadius={14} height={52} pulse width="100%" />
+          </View>
         </View>
       </View>
     </SpotlightCard>
@@ -153,7 +159,6 @@ export function NextUpCard({
   const bookingAction = useBookingAction(businessId);
   const scheduleError = businessError || bookingsError || null;
   const empty = !isLoading && !scheduleError && !nextBooking;
-  const bone = colors.nextUpTextMuted;
 
   const actionMode = useMemo(() => {
     if (!useLifecycleActions) {
@@ -492,7 +497,7 @@ export function NextUpCard({
     : false;
 
   if (isLoading) {
-    return <NextUpSkeleton bone={bone} />;
+    return <NextUpSkeleton />;
   }
 
   const showActions = !empty && !scheduleError && actionMode !== 'complete';
@@ -769,21 +774,44 @@ export function NextUpCard({
 }
 
 const styles = StyleSheet.create({
-  skeletonHeadBlock: {
+  skeletonBody: {
     alignSelf: 'stretch',
-    gap: 10,
     minWidth: 0,
+    width: '100%',
   },
   skeletonName: {
-    alignSelf: 'stretch',
-    maxWidth: '72%',
+    alignSelf: 'flex-start',
+    maxWidth: 220,
     minWidth: 0,
+    width: '58%',
   },
   skeletonWhen: {
     alignSelf: 'flex-start',
+    marginTop: 3,
+    maxWidth: 168,
+    minWidth: 0,
+    width: '42%',
+  },
+  skeletonService: {
+    alignSelf: 'flex-start',
+    marginTop: 14,
     maxWidth: 200,
     minWidth: 0,
-    width: '48%',
+    width: '52%',
+  },
+  skeletonVehicle: {
+    alignSelf: 'flex-start',
+    marginTop: 3,
+    maxWidth: 160,
+    minWidth: 0,
+    width: '40%',
+  },
+  skeletonActions: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 26,
+    width: '100%',
   },
   card: {
     marginTop: 10,

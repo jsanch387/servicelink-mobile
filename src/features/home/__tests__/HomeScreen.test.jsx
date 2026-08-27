@@ -4,6 +4,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
 import { useLinkViewsAnalytics } from '../hooks/useLinkViewsAnalytics';
 import { ROUTES } from '../../../routes/routes';
+import { OWNER_PAYMENT_FAILED_NOTICE_TITLE } from '../../subscription/constants/ownerPaymentFailedCopy';
 import { renderWithProviders } from './testUtils';
 
 const mockNavigate = jest.fn();
@@ -46,6 +47,8 @@ jest.mock('../../notifications/hooks/useNotificationUnreadCount', () => ({
 const mockUseSubscription = jest.fn(() => ({
   hasProAccess: true,
   isOwnerProfileLoaded: true,
+  ownerProfile: null,
+  refetchSubscription: jest.fn(),
 }));
 
 const mockShowWebAccountFeatureAlert = jest.fn();
@@ -53,6 +56,16 @@ const mockShowWebAccountFeatureAlert = jest.fn();
 jest.mock('../../subscription', () => ({
   useSubscription: (...args) => mockUseSubscription(...args),
   showWebAccountFeatureAlert: (...args) => mockShowWebAccountFeatureAlert(...args),
+}));
+
+const mockPaymentFailedNotice = {
+  visible: false,
+  isReady: true,
+  dismiss: jest.fn(),
+};
+
+jest.mock('../../subscription/hooks/useOwnerSubscriptionPaymentFailedNotice', () => ({
+  useOwnerSubscriptionPaymentFailedNotice: () => mockPaymentFailedNotice,
 }));
 
 const mockCreatePaymentAccess = {
@@ -169,6 +182,14 @@ function baseDashboard(overrides = {}) {
 describe('HomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPaymentFailedNotice.visible = false;
+    mockPaymentFailedNotice.isReady = true;
+    mockUseSubscription.mockReturnValue({
+      hasProAccess: true,
+      isOwnerProfileLoaded: true,
+      ownerProfile: null,
+      refetchSubscription: jest.fn(),
+    });
     mockNavigate.mockClear();
     mockShowWebAccountFeatureAlert.mockClear();
     mockUseHomeDashboard.mockReturnValue(baseDashboard());
@@ -232,10 +253,13 @@ describe('HomeScreen', () => {
     renderWithProviders(<HomeScreen />);
     expect(screen.getByLabelText('Loading business name')).toBeTruthy();
     expect(screen.queryByText('Your business')).toBeNull();
+    expect(screen.getByLabelText('Loading next up')).toBeTruthy();
     expect(screen.getByText("Today's earnings")).toBeTruthy();
     expect(screen.getByLabelText("Loading today's earnings")).toBeTruthy();
     expect(screen.getByText("Today's timeline")).toBeTruthy();
+    expect(screen.getByLabelText("Loading today's timeline")).toBeTruthy();
     expect(screen.queryByText('Nothing scheduled today')).toBeNull();
+    expect(screen.getByLabelText('Loading link visits')).toBeTruthy();
   });
 
   it('keeps long business names inside the header space', () => {
@@ -519,5 +543,11 @@ describe('HomeScreen', () => {
     fireEvent.press(screen.getByLabelText('Open create menu'));
     fireEvent.press(screen.getByLabelText('Create quote'));
     expect(mockNavigate).toHaveBeenCalledWith(ROUTES.CREATE_QUOTE);
+  });
+
+  it('shows a heads-up on Home when a billed Pro payment has failed', () => {
+    mockPaymentFailedNotice.visible = true;
+    renderWithProviders(<HomeScreen />);
+    expect(screen.getByText(OWNER_PAYMENT_FAILED_NOTICE_TITLE)).toBeTruthy();
   });
 });

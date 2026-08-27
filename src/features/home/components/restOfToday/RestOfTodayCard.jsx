@@ -11,8 +11,15 @@ function timelineDotColor(statusKind, colors) {
 }
 
 function RestOfTodaySkeleton() {
+  const { colors } = useTheme();
+
   return (
-    <SurfaceCard outlined={false} style={styles.card}>
+    <SurfaceCard
+      accessibilityLabel="Loading today's timeline"
+      accessibilityRole="progressbar"
+      outlined={false}
+      style={styles.card}
+    >
       {[0, 1, 2].map((k) => (
         <View key={k} style={styles.row}>
           <View style={styles.railCol}>
@@ -23,18 +30,16 @@ function RestOfTodaySkeleton() {
               style={styles.markerCircle}
               width={14}
             />
-            {k < 2 ? (
-              <SkeletonBox borderRadius={2} height={40} pulse style={{ marginTop: 6 }} width={2} />
-            ) : null}
+            {k < 2 ? <View style={[styles.rail, { backgroundColor: colors.borderStrong }]} /> : null}
           </View>
           <View style={styles.content}>
-            <SkeletonBox borderRadius={8} height={13} pulse width={k === 1 ? 72 : 90} />
+            <SkeletonBox borderRadius={6} height={13} pulse width={k === 1 ? 72 : 90} />
             <SkeletonBox
-              borderRadius={8}
+              borderRadius={6}
               height={16}
               pulse
-              style={{ marginTop: 8 }}
-              width={k === 0 ? '78%' : '64%'}
+              style={styles.skeletonTitle}
+              width={k === 0 ? '72%' : '58%'}
             />
           </View>
         </View>
@@ -185,6 +190,9 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  skeletonTitle: {
+    marginTop: 4,
   },
   titleRow: {
     alignItems: 'center',
