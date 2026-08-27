@@ -43,9 +43,7 @@ export function MoreNavigator() {
 
   return (
     <MarketingCampaignsProvider>
-      <Stack.Navigator
-        screenOptions={nativeStackScreenOptions({ colors })}
-      >
+      <Stack.Navigator screenOptions={nativeStackScreenOptions({ colors })}>
         <Stack.Screen
           component={MoreScreen}
           name={ROUTES.MORE_HOME}

@@ -11,7 +11,11 @@ describe('FloatingCreateMenu payment highlight', () => {
 
   it('shows the New payment treatment once, then the regular row', async () => {
     renderWithProviders(
-      <FloatingCreateMenu showCreatePayment onCreateAppointment={jest.fn()} onCreatePayment={jest.fn()} />,
+      <FloatingCreateMenu
+        showCreatePayment
+        onCreateAppointment={jest.fn()}
+        onCreatePayment={jest.fn()}
+      />,
     );
 
     await waitFor(() => {

@@ -473,10 +473,7 @@ export function BookingDetailsScreen({ route }) {
             ) : null}
 
             {details.location.hasAddress ? (
-              <BookingLocationSection
-                address={details.location.address}
-                onPress={handleOpenMaps}
-              />
+              <BookingLocationSection address={details.location.address} onPress={handleOpenMaps} />
             ) : null}
 
             {details.hasVehicle ? (

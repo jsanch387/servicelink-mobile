@@ -2,10 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import { AppText, Button } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
-import {
-  CREATE_PAYMENT_COLLECT_SUBTITLE,
-  CREATE_PAYMENT_COLLECT_TITLE,
-} from '../constants';
+import { CREATE_PAYMENT_COLLECT_SUBTITLE, CREATE_PAYMENT_COLLECT_TITLE } from '../constants';
 import { CreatePaymentChargePending } from '../components/CreatePaymentChargePending';
 import {
   CreatePaymentAmountCard,

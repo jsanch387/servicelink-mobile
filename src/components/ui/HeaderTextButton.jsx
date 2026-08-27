@@ -29,7 +29,10 @@ export function androidHeaderTitleBalanceRight() {
   if (Platform.OS !== 'android') {
     return undefined;
   }
-  return () => <HeaderBarSideSlot />;
+  function AndroidHeaderTitleBalanceRight() {
+    return <HeaderBarSideSlot />;
+  }
+  return AndroidHeaderTitleBalanceRight;
 }
 
 /**
@@ -41,19 +44,17 @@ export function androidBalancedHeaderLeft(renderLeft) {
   if (Platform.OS !== 'android') {
     return renderLeft;
   }
-  return () => <HeaderBarSideSlot align="flex-start">{renderLeft()}</HeaderBarSideSlot>;
+  function AndroidBalancedHeaderLeft() {
+    return <HeaderBarSideSlot align="flex-start">{renderLeft()}</HeaderBarSideSlot>;
+  }
+  return AndroidBalancedHeaderLeft;
 }
 
 /**
  * Nav header leading label (Cancel / Back / Done).
  * Sized so iOS 26 glass capsules keep the word optically centered.
  */
-export function HeaderTextButton({
-  label,
-  onPress,
-  accessibilityLabel,
-  testID,
-}) {
+export function HeaderTextButton({ label, onPress, accessibilityLabel, testID }) {
   const { colors } = useTheme();
 
   const styles = useMemo(

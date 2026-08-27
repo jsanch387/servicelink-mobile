@@ -9,7 +9,10 @@ export function mapTapToPayHttpError(httpStatus, serverMessage, scope = 'booking
   const merchant = scope === 'merchant';
   switch (httpStatus) {
     case 400:
-      return fallback || (merchant ? 'Enter an amount greater than $0.' : 'Nothing to collect for this booking.');
+      return (
+        fallback ||
+        (merchant ? 'Enter an amount greater than $0.' : 'Nothing to collect for this booking.')
+      );
     case 401:
       return fallback || 'Sign in again to collect payment.';
     case 404:
@@ -29,7 +32,12 @@ export function mapTapToPayHttpError(httpStatus, serverMessage, scope = 'booking
           : 'You’re sending requests too quickly. Try again shortly.')
       );
     case 500:
-      return fallback || (merchant ? 'Couldn’t start Tap to Pay. Try again.' : 'Couldn’t start Tap to Pay. Try again or mark as paid.');
+      return (
+        fallback ||
+        (merchant
+          ? 'Couldn’t start Tap to Pay. Try again.'
+          : 'Couldn’t start Tap to Pay. Try again or mark as paid.')
+      );
     case 0:
       return fallback || 'Network error. Check your connection and try again.';
     default:

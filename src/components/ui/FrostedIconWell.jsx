@@ -22,7 +22,12 @@ export function frostedSurfaceColors(isDark) {
  *   iconLibrary?: 'ionicons' | 'material-community';
  * }} props
  */
-export function FrostedIconWell({ icon, color = '#ffffff', iconSize = 20, iconLibrary = 'ionicons' }) {
+export function FrostedIconWell({
+  icon,
+  color = '#ffffff',
+  iconSize = 20,
+  iconLibrary = 'ionicons',
+}) {
   const { isDark } = useTheme();
   const Icon = iconLibrary === 'material-community' ? MaterialCommunityIcons : Ionicons;
 

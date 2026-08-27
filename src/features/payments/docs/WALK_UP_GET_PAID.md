@@ -12,9 +12,9 @@ Owners get paid **without a booking**: Home FAB → **Create payment** → **Pay
 
 Compile-time flags live in `create-payment/constants/createPaymentFeatureFlags.js`.
 
-| Flag | Current | Effect |
-| ---- | ------- | ------ |
-| `CREATE_PAYMENT_FEATURE_ENABLED` | `true` | Kill switch. `false` hides the FAB item and bounces the screen. |
+| Flag                                 | Current     | Effect                                                                                        |
+| ------------------------------------ | ----------- | --------------------------------------------------------------------------------------------- |
+| `CREATE_PAYMENT_FEATURE_ENABLED`     | `true`      | Kill switch. `false` hides the FAB item and bounces the screen.                               |
 | `CREATE_PAYMENT_EARLY_ACCESS_EMAILS` | `[]` (open) | **Non-empty:** only those logins see Create payment. **Empty:** everyone can open the screen. |
 
 Pro and Stripe Connect still apply. A free user sees the web upsell.
@@ -71,11 +71,11 @@ X-Request-ID: <uuid>
 }
 ```
 
-| Field | Rules |
-| ----- | ----- |
+| Field         | Rules                                                          |
+| ------------- | -------------------------------------------------------------- |
 | `amountCents` | Integer `50`–`999999` (Stripe $0.50 min; keypad cap $9,999.99) |
-| `currency` | `usd` when sent |
-| `note` | Trimmed, required, max 200 chars (Checkout line name) |
+| `currency`    | `usd` when sent                                                |
+| `note`        | Trimmed, required, max 200 chars (Checkout line name)          |
 
 Success `200`:
 
@@ -90,13 +90,13 @@ Success `200`:
 
 Mobile copies / shares **exactly** `url` (`paymentUrl` / `checkoutUrl` also accepted). Optional ids are stored only if returned.
 
-| Status | Mobile |
-| ------ | ------ |
-| 401 | Sign in again |
-| 404 | No business profile |
-| 422 | Finish Stripe setup |
-| 429 | Rate limited (`Retry-After`) |
-| 500/502 | Couldn’t create the link |
+| Status  | Mobile                       |
+| ------- | ---------------------------- |
+| 401     | Sign in again                |
+| 404     | No business profile          |
+| 422     | Finish Stripe setup          |
+| 429     | Rate limited (`Retry-After`) |
+| 500/502 | Couldn’t create the link     |
 
 After pay: Connect webhook `checkout.session.completed` marks `payment_requests` `paid`. **Do not** write `booking_payments`. **Do not** call a second complete route.
 
@@ -123,14 +123,14 @@ After pay: Connect webhook `checkout.session.completed` marks `payment_requests`
 
 ## Mobile files
 
-| Path | Role |
-| ---- | ---- |
+| Path                                                    | Role                          |
+| ------------------------------------------------------- | ----------------------------- |
 | `create-payment/constants/createPaymentFeatureFlags.js` | Kill switch + email allowlist |
-| `create-payment/utils/resolveCreatePaymentAccess.js` | FAB / screen rollout |
-| `create-payment/hooks/useCreatePaymentAccess.js` | Runtime access |
-| `screens/CreatePaymentScreen.jsx` | Pro + Connect gates |
-| `create-payment/CreatePaymentFlow.jsx` | Choose → form → ready |
-| `create-payment/api/postCreatePaymentLink.js` | `POST /api/payments/link` |
-| `create-payment/hooks/useCreatePaymentLink.js` | Create + toast errors |
+| `create-payment/utils/resolveCreatePaymentAccess.js`    | FAB / screen rollout          |
+| `create-payment/hooks/useCreatePaymentAccess.js`        | Runtime access                |
+| `screens/CreatePaymentScreen.jsx`                       | Pro + Connect gates           |
+| `create-payment/CreatePaymentFlow.jsx`                  | Choose → form → ready         |
+| `create-payment/api/postCreatePaymentLink.js`           | `POST /api/payments/link`     |
+| `create-payment/hooks/useCreatePaymentLink.js`          | Create + toast errors         |
 
 Booking Tap to Pay (complete visit) is separate: [`../../bookings/docs/MOBILE_BOOKING_TAP_TO_PAY.md`](../../bookings/docs/MOBILE_BOOKING_TAP_TO_PAY.md).

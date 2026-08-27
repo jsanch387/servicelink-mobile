@@ -33,8 +33,7 @@ export function useCreatePaymentCharge({ accessToken, amount, note, onSuccess })
   const [error, setError] = useState(/** @type {string | null} */ (null));
   const [readerWasWarmAtStart, setReaderWasWarmAtStart] = useState(false);
 
-  const charging =
-    phase === 'preparing' || phase === 'loading_intent' || phase === 'processing';
+  const charging = phase === 'preparing' || phase === 'loading_intent' || phase === 'processing';
 
   const charge = useCallback(async () => {
     if (charging) {
@@ -128,7 +127,9 @@ export function useCreatePaymentCharge({ accessToken, amount, note, onSuccess })
           ? err.code
           : null;
       setPhase('error');
-      setError(isTapToPayCanceledTerminalError(code, message) ? TAP_TO_PAY_PAYMENT_CANCELED : message);
+      setError(
+        isTapToPayCanceledTerminalError(code, message) ? TAP_TO_PAY_PAYMENT_CANCELED : message,
+      );
     }
   }, [
     accessToken,

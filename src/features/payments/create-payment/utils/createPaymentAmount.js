@@ -41,7 +41,9 @@ export function hasCreatePaymentNote(raw) {
 
 /** @param {string | null | undefined} raw */
 export function sanitizeCreatePaymentNote(raw) {
-  return String(raw ?? '').trim().slice(0, CREATE_PAYMENT_NOTE_MAX_LENGTH);
+  return String(raw ?? '')
+    .trim()
+    .slice(0, CREATE_PAYMENT_NOTE_MAX_LENGTH);
 }
 
 /** @param {number | null | undefined} amount */

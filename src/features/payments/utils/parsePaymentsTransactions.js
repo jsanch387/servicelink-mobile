@@ -76,7 +76,8 @@ export function parsePaymentsTransactionBalance(raw) {
  * @returns {import('../constants/paymentsTransactions').PaymentsTransactionsPage}
  */
 export function parsePaymentsTransactionsPage(payload) {
-  const body = payload && typeof payload === 'object' ? /** @type {Record<string, unknown>} */ (payload) : {};
+  const body =
+    payload && typeof payload === 'object' ? /** @type {Record<string, unknown>} */ (payload) : {};
   const items = Array.isArray(body.items)
     ? body.items.map(parsePaymentsTransactionItem).filter(Boolean)
     : [];

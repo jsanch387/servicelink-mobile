@@ -7,6 +7,7 @@ import { PaymentsScreen } from '../screens/PaymentsScreen';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
 import { CUSTOMER_PAYMENT_METHOD } from '../constants/customerPaymentMethods';
 import { DEPOSIT_AMOUNT_MODE } from '../constants/depositAmount';
+import { PAYMENTS_SCREEN_TAB } from '../constants/paymentsScreenTabs';
 
 const mockUsePaymentDashboardRead = jest.fn();
 const mockUseSavePaymentSettings = jest.fn();
@@ -90,6 +91,8 @@ jest.mock('../../tap-to-pay/constants/tapToPayFeatureFlags', () => ({
   isTapToPayUiEnabled: jest.fn(() => true),
 }));
 
+const mockUseRoute = jest.fn(() => ({ params: {} }));
+
 jest.mock('@react-navigation/native', () => {
   const R = require('react');
   return {
@@ -99,7 +102,7 @@ jest.mock('@react-navigation/native', () => {
     useNavigation: () => ({
       navigate: jest.fn(),
     }),
-    useRoute: () => ({ params: {} }),
+    useRoute: () => mockUseRoute(),
   };
 });
 
@@ -169,6 +172,7 @@ describe('PaymentsScreen', () => {
       saveError: '',
       resetSaveError: jest.fn(),
     });
+    mockUseRoute.mockReturnValue({ params: {} });
   });
 
   it('shows loading when business query is pending', () => {
@@ -324,6 +328,13 @@ describe('PaymentsScreen', () => {
     expect(screen.getByText('Lights')).toBeTruthy();
     expect(screen.getByText('Jordan Lee · Tap to pay')).toBeTruthy();
     expect(screen.getByText('+$38.54')).toBeTruthy();
+  });
+
+  it('opens the Transactions tab from an initialTab param', () => {
+    mockUseRoute.mockReturnValue({ params: { initialTab: PAYMENTS_SCREEN_TAB.TRANSACTIONS } });
+    renderWithProviders(<PaymentsScreen />);
+    expect(screen.getByTestId('payments-transactions')).toBeTruthy();
+    expect(screen.getByText('Lights')).toBeTruthy();
   });
 
   it('asks free owners to upgrade on Transactions', () => {

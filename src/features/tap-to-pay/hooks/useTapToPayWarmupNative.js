@@ -56,13 +56,8 @@ function resolveWarmupBlockReason({
 export function useTapToPayWarmup() {
   const { session } = useAuth();
   const accessToken = session?.access_token ?? null;
-  const {
-    isConnectReady,
-    isLoading,
-    merchantDisplayName,
-    terminalLocationId,
-    stripeAccountId,
-  } = useTapToPayConnectReadiness();
+  const { isConnectReady, isLoading, merchantDisplayName, terminalLocationId, stripeAccountId } =
+    useTapToPayConnectReadiness();
 
   const terminal = useStripeTerminal();
   const terminalRef = useRef(terminal);

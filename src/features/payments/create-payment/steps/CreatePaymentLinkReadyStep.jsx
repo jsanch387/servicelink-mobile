@@ -78,15 +78,8 @@ export function CreatePaymentLinkReadyStep({
           title={CREATE_PAYMENT_LINK_READY_TITLE}
           variant="inline"
         >
-          <Animated.View
-            entering={FadeInDown.delay(280).duration(360)}
-            style={styles.recap}
-          >
-            <CreatePaymentLinkPreview
-              amount={amount}
-              businessName={businessName}
-              note={note}
-            />
+          <Animated.View entering={FadeInDown.delay(280).duration(360)} style={styles.recap}>
+            <CreatePaymentLinkPreview amount={amount} businessName={businessName} note={note} />
             <View style={styles.expiresRow}>
               <View style={styles.expiresIcon}>
                 <Ionicons color={colors.textMuted} name="information-circle-outline" size={14} />

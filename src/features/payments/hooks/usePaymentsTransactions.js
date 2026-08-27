@@ -49,14 +49,16 @@ export function usePaymentsTransactions({ enabled = true } = {}) {
     gcTime: 15 * 60 * 1000,
   });
 
-  const pages = query.data?.pages ?? [];
+  const pages = useMemo(() => query.data?.pages ?? [], [query.data?.pages]);
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   const lookupArgs = useMemo(() => bookingLabelLookupArgs(items), [items]);
   const labelsQ = useQuery({
     queryKey: [...paymentsTransactionsQueryKey(), 'booking-labels', lookupArgs],
     queryFn: () => fetchTransactionBookingLabels(lookupArgs),
     enabled: Boolean(
-      enabled && accessToken && (lookupArgs.bookingIds.length > 0 || lookupArgs.paymentIds.length > 0),
+      enabled &&
+      accessToken &&
+      (lookupArgs.bookingIds.length > 0 || lookupArgs.paymentIds.length > 0),
     ),
     staleTime: 5 * 60 * 1000,
   });

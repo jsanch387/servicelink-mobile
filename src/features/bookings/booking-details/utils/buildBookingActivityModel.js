@@ -9,21 +9,31 @@ import {
  * @param {string | null | undefined} status
  */
 export function isSuccessfulActivitySmsStatus(status) {
-  return BOOKING_ACTIVITY_SMS_SUCCESS_STATUSES.includes(String(status ?? '').trim().toLowerCase());
+  return BOOKING_ACTIVITY_SMS_SUCCESS_STATUSES.includes(
+    String(status ?? '')
+      .trim()
+      .toLowerCase(),
+  );
 }
 
 /**
  * @param {string | null | undefined} status
  */
 export function isFailedActivitySmsStatus(status) {
-  return BOOKING_ACTIVITY_SMS_FAILED_STATUSES.includes(String(status ?? '').trim().toLowerCase());
+  return BOOKING_ACTIVITY_SMS_FAILED_STATUSES.includes(
+    String(status ?? '')
+      .trim()
+      .toLowerCase(),
+  );
 }
 
 /**
  * @param {string | null | undefined} status
  */
 export function isCanceledBookingStatus(status) {
-  const key = String(status ?? '').trim().toLowerCase();
+  const key = String(status ?? '')
+    .trim()
+    .toLowerCase();
   return key === 'cancelled' || key === 'canceled';
 }
 
@@ -91,7 +101,9 @@ export function formatActivityMetaLine(channel, when, extra = {}) {
  * @returns {import('../constants/bookingActivityEvents').BookingActivityOutcome | null}
  */
 function outcomeFromSmsStatus(status) {
-  const key = String(status ?? '').trim().toLowerCase();
+  const key = String(status ?? '')
+    .trim()
+    .toLowerCase();
   if (key === 'queued') {
     return 'sending';
   }
@@ -126,7 +138,10 @@ export function latestSmsByEventKey(rows) {
       latest.set(eventKey, {
         at,
         outcome,
-        optedOut: String(row?.status ?? '').trim().toLowerCase() === 'skipped_opt_out',
+        optedOut:
+          String(row?.status ?? '')
+            .trim()
+            .toLowerCase() === 'skipped_opt_out',
       });
     }
   }
@@ -154,8 +169,7 @@ export function buildBookingActivityModel({
   const canceled = isCanceledBookingStatus(bookingStatus);
   const reviewEmailAt =
     typeof reviewInvite?.email_sent_at === 'string' ? reviewInvite.email_sent_at : '';
-  const reviewSmsAt =
-    typeof reviewInvite?.sms_sent_at === 'string' ? reviewInvite.sms_sent_at : '';
+  const reviewSmsAt = typeof reviewInvite?.sms_sent_at === 'string' ? reviewInvite.sms_sent_at : '';
 
   /** @type {Array<{ key: string; outcome: import('../constants/bookingActivityEvents').BookingActivityOutcome; at?: string; optedOut?: boolean }>} */
   const selected = [];

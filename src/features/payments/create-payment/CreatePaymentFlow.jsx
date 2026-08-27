@@ -41,11 +41,11 @@ export function CreatePaymentFlow({ onClose, onHeaderLeadingChange }) {
   const parsedAmount = parseCreatePaymentAmount(amount);
   const { charge, previewPaid, charging, phase, error, readerWasWarmAtStart } =
     useCreatePaymentCharge({
-    accessToken: session?.access_token,
-    amount,
-    note,
-    onSuccess: () => setStep(CREATE_PAYMENT_STEP.COLLECT_PAID),
-  });
+      accessToken: session?.access_token,
+      amount,
+      note,
+      onSuccess: () => setStep(CREATE_PAYMENT_STEP.COLLECT_PAID),
+    });
   const { merchantDisplayName, stripeAccountId, terminalLocationId } =
     useTapToPayConnectReadiness();
   useTapToPayReaderPrewarm({
@@ -157,7 +157,11 @@ export function CreatePaymentFlow({ onClose, onHeaderLeadingChange }) {
   );
 
   return (
-    <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.safe} testID="create-payment-flow">
+    <SafeAreaView
+      edges={['bottom', 'left', 'right']}
+      style={styles.safe}
+      testID="create-payment-flow"
+    >
       {step === CREATE_PAYMENT_STEP.CHOOSE ? (
         <CreatePaymentChooseStep
           onChooseCollect={() => setStep(CREATE_PAYMENT_STEP.COLLECT)}

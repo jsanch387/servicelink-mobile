@@ -89,7 +89,10 @@ export async function postCreatePaymentLink(accessToken, options) {
   }
 
   const amountCents = Math.max(0, Math.round(Number(options?.amountCents) || 0));
-  if (amountCents < CREATE_PAYMENT_MIN_AMOUNT_CENTS || amountCents > CREATE_PAYMENT_MAX_AMOUNT_CENTS) {
+  if (
+    amountCents < CREATE_PAYMENT_MIN_AMOUNT_CENTS ||
+    amountCents > CREATE_PAYMENT_MAX_AMOUNT_CENTS
+  ) {
     return { ok: false, error: new Error('Enter an amount.'), httpStatus: 0 };
   }
 

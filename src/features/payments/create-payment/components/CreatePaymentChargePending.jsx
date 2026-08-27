@@ -48,11 +48,7 @@ export function CreatePaymentChargePending({ phase = 'preparing', readerWasWarm 
 
   return (
     <View style={styles.root} testID="create-payment-charge-pending">
-      <EchoBarsLoader
-        accessibilityLabel={statusLine}
-        color={colors.text}
-        size="large"
-      />
+      <EchoBarsLoader accessibilityLabel={statusLine} color={colors.text} size="large" />
       <AppText style={styles.status}>{statusLine}</AppText>
     </View>
   );

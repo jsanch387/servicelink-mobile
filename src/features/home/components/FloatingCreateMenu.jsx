@@ -392,9 +392,7 @@ export function FloatingCreateMenu({
                           />
                         ) : null}
                         <Ionicons
-                          color={
-                            isPayment ? (isDark ? '#0a0a0a' : '#ffffff') : colors.surface
-                          }
+                          color={isPayment ? (isDark ? '#0a0a0a' : '#ffffff') : colors.surface}
                           name={item.icon}
                           size={22}
                         />

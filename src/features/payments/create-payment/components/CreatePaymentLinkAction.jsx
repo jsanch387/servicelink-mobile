@@ -11,13 +11,7 @@ const CIRCLE = 72;
  * iOS-style glass circle + caption (Share / Copy).
  * Frosted look without BlurView — same OTA-safe approach as toasts.
  */
-export function CreatePaymentLinkAction({
-  iconName,
-  label,
-  onPress,
-  testID,
-  tint,
-}) {
+export function CreatePaymentLinkAction({ iconName, label, onPress, testID, tint }) {
   const { colors, isDark } = useTheme();
   const iconColor = tint ?? colors.text;
   const labelColor = tint ?? colors.textMuted;

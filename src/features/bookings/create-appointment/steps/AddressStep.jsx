@@ -3,10 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SegmentedToggle, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
-import {
-  LocationAutocompleteField,
-  isAddressAutocompleteAvailable,
-} from '../../../location';
+import { LocationAutocompleteField, isAddressAutocompleteAvailable } from '../../../location';
 import { ChoiceRow } from '../components/ChoiceRow';
 import { addressFormFromStructuredLocation, createEmptyAddressForm } from '../constants';
 import { CREATE_APPOINTMENT_LOCATION_OPTIONS } from '../utils/createAppointmentServiceLocation';
@@ -20,7 +17,12 @@ const ADDRESS_MODE = {
 };
 
 const ADDRESS_MODE_OPTIONS = [
-  { key: ADDRESS_MODE.SEARCH, label: 'Search', iconName: 'search-outline', testID: 'create-appt-address-mode-search' },
+  {
+    key: ADDRESS_MODE.SEARCH,
+    label: 'Search',
+    iconName: 'search-outline',
+    testID: 'create-appt-address-mode-search',
+  },
   {
     key: ADDRESS_MODE.MANUAL,
     label: 'Enter manually',
@@ -327,7 +329,11 @@ export function AddressStep({ address, isReturningCustomerAddress = false, onCha
             ) : null}
           </>
         ) : (
-          <AddressManualFields address={address} styles={styles} onChangeAddress={onChangeAddress} />
+          <AddressManualFields
+            address={address}
+            styles={styles}
+            onChangeAddress={onChangeAddress}
+          />
         )}
       </View>
     </SurfaceCard>

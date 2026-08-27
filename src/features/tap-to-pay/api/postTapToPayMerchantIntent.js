@@ -60,13 +60,20 @@ export async function postTapToPayMerchantIntent(accessToken, options) {
   }
 
   const amountCents = Math.max(0, Math.round(Number(options?.amountCents) || 0));
-  if (amountCents < CREATE_PAYMENT_MIN_AMOUNT_CENTS || amountCents > CREATE_PAYMENT_MAX_AMOUNT_CENTS) {
+  if (
+    amountCents < CREATE_PAYMENT_MIN_AMOUNT_CENTS ||
+    amountCents > CREATE_PAYMENT_MAX_AMOUNT_CENTS
+  ) {
     return { ok: false, error: new Error('Enter an amount greater than $0.'), httpStatus: 0 };
   }
 
   const note = sanitizeCreatePaymentNote(options?.note);
   if (!note) {
-    return { ok: false, error: new Error('Add a short note for what this payment is for.'), httpStatus: 0 };
+    return {
+      ok: false,
+      error: new Error('Add a short note for what this payment is for.'),
+      httpStatus: 0,
+    };
   }
 
   const stripeAccountId =

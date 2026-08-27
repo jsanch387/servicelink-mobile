@@ -23,12 +23,12 @@ Home FAB → Create payment → Tap to pay
 
 There is **no ServiceLink sheet** after Charge. The reader is the UI. **Do not poll.** **Do not** write `payment_requests` or create the PaymentIntent in the app.
 
-| Step | Mobile UI                | Server                                                                              |
-| ---- | ------------------------ | ----------------------------------------------------------------------------------- |
-| 1    | Amount + “what’s it for” | Auth + Connect gate                                                                 |
-| 2    | Charge                   | `ensureTerminalLocation` + PI on the connected account                              |
-| 3    | Native Tap to Pay UI     | Insert `payment_requests` (`status: open`, `collection_method: tap_to_pay`)         |
-| 4    | Owner toast “Paid”       | Connect webhook marks the row `paid`                                                |
+| Step | Mobile UI                | Server                                                                      |
+| ---- | ------------------------ | --------------------------------------------------------------------------- |
+| 1    | Amount + “what’s it for” | Auth + Connect gate                                                         |
+| 2    | Charge                   | `ensureTerminalLocation` + PI on the connected account                      |
+| 3    | Native Tap to Pay UI     | Insert `payment_requests` (`status: open`, `collection_method: tap_to_pay`) |
+| 4    | Owner toast “Paid”       | Connect webhook marks the row `paid`                                        |
 
 Warm-up uses **`POST /api/payments/tap-to-pay/connection-token`** (merchant-scoped, no booking). Do **not** use the booking `…/bookings/{id}/tap-to-pay/connection-token` for this screen.
 
@@ -73,12 +73,12 @@ Server resolves `business_id` from the signed-in profile. **Do not** send `busin
 }
 ```
 
-| Field             | Required | Rules                                                                  |
-| ----------------- | -------- | ---------------------------------------------------------------------- |
-| `amountCents`     | yes      | Integer `50`–`999999` (Stripe $0.50 min; keypad cap $9,999.99)         |
-| `currency`        | no       | Must be `usd` when sent. Defaults to `usd`.                            |
-| `note`            | yes      | Trimmed, non-empty, max **200**. PI description + metadata             |
-| `stripeAccountId` | no       | Sent when mobile knows it. Must match this business’s `acct_…`.        |
+| Field             | Required | Rules                                                           |
+| ----------------- | -------- | --------------------------------------------------------------- |
+| `amountCents`     | yes      | Integer `50`–`999999` (Stripe $0.50 min; keypad cap $9,999.99)  |
+| `currency`        | no       | Must be `usd` when sent. Defaults to `usd`.                     |
+| `note`            | yes      | Trimmed, non-empty, max **200**. PI description + metadata      |
+| `stripeAccountId` | no       | Sent when mobile knows it. Must match this business’s `acct_…`. |
 
 Do not send a customer, booking id, or phone.
 
@@ -120,15 +120,15 @@ Charge model is **direct charges** on the connected account. Mobile does **not**
 
 Body is always `{ "success": false, "error": "human-readable message" }` with a real HTTP status.
 
-| Status  | When                                      | Mobile                                                                 |
-| ------- | ----------------------------------------- | ---------------------------------------------------------------------- |
-| 401     | Signed out / bad token                    | Sign in again to collect payment.                                      |
-| 400     | Bad amount, note, currency, or account id | Prefer server `error` (amount / note / USD / `stripeAccountId`)        |
-| 404     | No business profile                       | Business profile not found                                             |
-| 422     | Connect not ready                         | Set up Stripe payments to use Tap to Pay.                              |
-| 403     | `stripeAccountId` mismatch                | Stripe account does not match this business.                           |
+| Status  | When                                      | Mobile                                                                  |
+| ------- | ----------------------------------------- | ----------------------------------------------------------------------- |
+| 401     | Signed out / bad token                    | Sign in again to collect payment.                                       |
+| 400     | Bad amount, note, currency, or account id | Prefer server `error` (amount / note / USD / `stripeAccountId`)         |
+| 404     | No business profile                       | Business profile not found                                              |
+| 422     | Connect not ready                         | Set up Stripe payments to use Tap to Pay.                               |
+| 403     | `stripeAccountId` mismatch                | Stripe account does not match this business.                            |
 | 429     | Rate limited                              | Server `error`; `Retry-After` seconds. **15/min and 80/hour per owner** |
-| 500/502 | Persist or Stripe create failed           | Couldn’t start Tap to Pay. Try again.                                  |
+| 500/502 | Persist or Stripe create failed           | Couldn’t start Tap to Pay. Try again.                                   |
 
 Treat **404** as “no business,” and **422** as “finish Stripe setup.” Prefer the server `error` string when present.
 
@@ -194,13 +194,13 @@ Stripe / the card network may still notify the cardholder (bank push, card state
 
 ## Mobile files
 
-| Path | Role |
-| ---- | ---- |
-| `create-payment/hooks/useCreatePaymentCharge.js` | Charge → merchant intent → Terminal collect |
-| `tap-to-pay/api/postTapToPayMerchantIntent.js` | `POST /api/payments/tap-to-pay/intent` |
-| `tap-to-pay/api/postTapToPayMerchantConnectionToken.js` | `POST /api/payments/tap-to-pay/connection-token` |
-| `tap-to-pay/api/fetchTapToPayWarmupConnectionToken.js` | Merchant token only (no booking fallback) |
-| Create payment screen gates | Pro + Connect before the chooser (same as payment link) |
+| Path                                                    | Role                                                    |
+| ------------------------------------------------------- | ------------------------------------------------------- |
+| `create-payment/hooks/useCreatePaymentCharge.js`        | Charge → merchant intent → Terminal collect             |
+| `tap-to-pay/api/postTapToPayMerchantIntent.js`          | `POST /api/payments/tap-to-pay/intent`                  |
+| `tap-to-pay/api/postTapToPayMerchantConnectionToken.js` | `POST /api/payments/tap-to-pay/connection-token`        |
+| `tap-to-pay/api/fetchTapToPayWarmupConnectionToken.js`  | Merchant token only (no booking fallback)               |
+| Create payment screen gates                             | Pro + Connect before the chooser (same as payment link) |
 
 ---
 

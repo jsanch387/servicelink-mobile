@@ -19,15 +19,15 @@ Index for owner appointments (create → edit → details → Complete) and rela
 
 ## Mobile contracts (Complete / actions)
 
-| Doc                                                                        | When to read                                                 |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| [`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md)                 | Quick reference — all actions, toasts, errors                |
-| [`MOBILE_BOOKING_WORK_FINISHED.md`](./MOBILE_BOOKING_WORK_FINISHED.md)     | Done / Skip (`work_finished`)                                |
-| [`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md)     | Complete sheet + `job_completed` payload                     |
-| [`MOBILE_BOOKING_TAP_TO_PAY.md`](./MOBILE_BOOKING_TAP_TO_PAY.md)           | Tap to Pay — intent, Terminal SDK, iOS v1                    |
-| [`TAP_TO_PAY_TERMINAL_SERVER.md`](./TAP_TO_PAY_TERMINAL_SERVER.md)         | Terminal Location server reference (implemented)             |
-| [`TAP_TO_PAY_WARMUP_SERVER.md`](./TAP_TO_PAY_WARMUP_SERVER.md)             | **App warm-up** — merchant connection-token (implemented)    |
-| [`MOBILE_SMS_AND_BOOKING_ACTIONS.md`](./MOBILE_SMS_AND_BOOKING_ACTIONS.md) | SMS/email response shapes                                    |
+| Doc                                                                        | When to read                                              |
+| -------------------------------------------------------------------------- | --------------------------------------------------------- |
+| [`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md)                 | Quick reference — all actions, toasts, errors             |
+| [`MOBILE_BOOKING_WORK_FINISHED.md`](./MOBILE_BOOKING_WORK_FINISHED.md)     | Done / Skip (`work_finished`)                             |
+| [`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md)     | Complete sheet + `job_completed` payload                  |
+| [`MOBILE_BOOKING_TAP_TO_PAY.md`](./MOBILE_BOOKING_TAP_TO_PAY.md)           | Tap to Pay — intent, Terminal SDK, iOS v1                 |
+| [`TAP_TO_PAY_TERMINAL_SERVER.md`](./TAP_TO_PAY_TERMINAL_SERVER.md)         | Terminal Location server reference (implemented)          |
+| [`TAP_TO_PAY_WARMUP_SERVER.md`](./TAP_TO_PAY_WARMUP_SERVER.md)             | **App warm-up** — merchant connection-token (implemented) |
+| [`MOBILE_SMS_AND_BOOKING_ACTIONS.md`](./MOBILE_SMS_AND_BOOKING_ACTIONS.md) | SMS/email response shapes                                 |
 
 ## Server contracts
 

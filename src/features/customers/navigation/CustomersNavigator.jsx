@@ -13,9 +13,7 @@ export function CustomersNavigator() {
   const { colors } = useTheme();
 
   return (
-    <Stack.Navigator
-      screenOptions={nativeStackScreenOptions({ colors })}
-    >
+    <Stack.Navigator screenOptions={nativeStackScreenOptions({ colors })}>
       <Stack.Screen
         component={CustomersScreen}
         name={ROUTES.CUSTOMERS_LIST}

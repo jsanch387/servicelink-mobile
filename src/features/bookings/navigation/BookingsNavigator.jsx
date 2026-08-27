@@ -13,9 +13,7 @@ export function BookingsNavigator() {
   const { colors } = useTheme();
 
   return (
-    <Stack.Navigator
-      screenOptions={nativeStackScreenOptions({ colors })}
-    >
+    <Stack.Navigator screenOptions={nativeStackScreenOptions({ colors })}>
       <Stack.Screen
         component={BookingsScreen}
         name={ROUTES.BOOKINGS_LIST}

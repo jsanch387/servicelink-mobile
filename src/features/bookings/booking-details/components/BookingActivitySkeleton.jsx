@@ -19,8 +19,20 @@ function ActivityRowSkeleton({ isLast }) {
           width={WELL}
         />
         <View style={styles.copy}>
-          <SkeletonBox backgroundColor={colors.textMuted} borderRadius={6} height={14} pulse width="42%" />
-          <SkeletonBox backgroundColor={colors.textMuted} borderRadius={6} height={11} pulse width="56%" />
+          <SkeletonBox
+            backgroundColor={colors.textMuted}
+            borderRadius={6}
+            height={14}
+            pulse
+            width="42%"
+          />
+          <SkeletonBox
+            backgroundColor={colors.textMuted}
+            borderRadius={6}
+            height={11}
+            pulse
+            width="56%"
+          />
         </View>
       </View>
       {isLast ? null : (

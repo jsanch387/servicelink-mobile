@@ -88,7 +88,17 @@ export function CreatePaymentAmountHero({
           top: 0,
         },
       }),
-    [amountColor, amountHeight, amountSize, bold, compact, digitsWidth, dollarColor, dollarSize, face],
+    [
+      amountColor,
+      amountHeight,
+      amountSize,
+      bold,
+      compact,
+      digitsWidth,
+      dollarColor,
+      dollarSize,
+      face,
+    ],
   );
 
   return (

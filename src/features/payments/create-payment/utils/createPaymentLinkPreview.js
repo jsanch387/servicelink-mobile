@@ -24,7 +24,9 @@ export function buildCreatePaymentLinkPreviewUrl({ amount, note } = {}) {
     params.set('for', trimmedNote.slice(0, 80));
   }
   const query = params.toString();
-  return query ? `${origin}${CREATE_PAYMENT_LINK_PATH}?${query}` : `${origin}${CREATE_PAYMENT_LINK_PATH}`;
+  return query
+    ? `${origin}${CREATE_PAYMENT_LINK_PATH}?${query}`
+    : `${origin}${CREATE_PAYMENT_LINK_PATH}`;
 }
 
 /** Host line for the iMessage-style preview (no scheme). */

@@ -16,11 +16,7 @@ export function SegmentedToggle({ options, selected, onSelect, appearance = 'def
   const { colors, isDark } = useTheme();
   const lifted = appearance === 'lifted';
   const trackBg = lifted ? colors.inputBg : colors.shell;
-  const selectedBg = lifted
-    ? isDark
-      ? '#3a3a3c'
-      : '#ffffff'
-    : colors.cardSurface;
+  const selectedBg = lifted ? (isDark ? '#3a3a3c' : '#ffffff') : colors.cardSurface;
   const wrapBorder = lifted ? colors.inputBorder : colors.border;
 
   return (

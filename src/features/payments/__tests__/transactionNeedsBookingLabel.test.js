@@ -1,4 +1,7 @@
-import { bookingLabelLookupArgs, transactionNeedsBookingLabel } from '../utils/transactionNeedsBookingLabel';
+import {
+  bookingLabelLookupArgs,
+  transactionNeedsBookingLabel,
+} from '../utils/transactionNeedsBookingLabel';
 
 describe('transactionNeedsBookingLabel', () => {
   it('looks up when title is Mixed jobs and serviceName is also generic', () => {

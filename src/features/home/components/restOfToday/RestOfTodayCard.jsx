@@ -30,7 +30,9 @@ function RestOfTodaySkeleton() {
               style={styles.markerCircle}
               width={14}
             />
-            {k < 2 ? <View style={[styles.rail, { backgroundColor: colors.borderStrong }]} /> : null}
+            {k < 2 ? (
+              <View style={[styles.rail, { backgroundColor: colors.borderStrong }]} />
+            ) : null}
           </View>
           <View style={styles.content}>
             <SkeletonBox borderRadius={6} height={13} pulse width={k === 1 ? 72 : 90} />

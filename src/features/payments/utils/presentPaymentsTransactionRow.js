@@ -32,8 +32,7 @@ function cleanService(value) {
   return isGenericMultiJobTitle(primary) ? '' : primary;
 }
 
-const KNOWN_METHODS =
-  /^(tap to pay|payment link|cash|card|payment app|other)$/i;
+const KNOWN_METHODS = /^(tap to pay|payment link|cash|card|payment app|other)$/i;
 const PLACEHOLDER_NAME =
   /^(customer|guest|unknown|walk[\s-]?up|walk[\s-]?in|no name|unnamed|n\/a)$/i;
 
@@ -85,7 +84,10 @@ export function presentPaymentsTransactionRow(item) {
 
   if (isPayout(item)) {
     const title = stripGenericMultiJobLabel(item?.title);
-    const primary = /^payouts?(\s+to your bank)?$/i.test(title) || !title ? 'Payout' : fromTitle.primary || 'Payout';
+    const primary =
+      /^payouts?(\s+to your bank)?$/i.test(title) || !title
+        ? 'Payout'
+        : fromTitle.primary || 'Payout';
     return {
       primary,
       extraLabel: '',

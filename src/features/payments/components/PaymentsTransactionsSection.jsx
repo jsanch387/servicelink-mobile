@@ -197,7 +197,9 @@ export function PaymentsTransactionsSection() {
                 const glyph = rowIcon(item);
                 const primary = isGenericMultiJobTitle(presented.primary) ? '' : presented.primary;
                 const extraLabel = presented.extraLabel;
-                const subtitle = isGenericMultiJobTitle(presented.subtitle) ? '' : presented.subtitle;
+                const subtitle = isGenericMultiJobTitle(presented.subtitle)
+                  ? ''
+                  : presented.subtitle;
                 return (
                   <View key={item.id} style={styles.row}>
                     <FrostedIconWell

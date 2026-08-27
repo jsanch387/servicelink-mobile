@@ -90,7 +90,9 @@ describe('postCreatePaymentLink', () => {
 
     const result = await postCreatePaymentLink('token', { amountCents: 4000, note: 'Lights' });
     expect(result.ok).toBe(false);
-    expect(result.error.message).toBe('Too many payment links. Please wait a moment and try again.');
+    expect(result.error.message).toBe(
+      'Too many payment links. Please wait a moment and try again.',
+    );
     expect(result.retryAfterSec).toBe(12);
   });
 

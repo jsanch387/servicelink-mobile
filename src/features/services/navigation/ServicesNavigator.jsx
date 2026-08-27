@@ -10,9 +10,7 @@ export function ServicesNavigator() {
   const { colors } = useTheme();
 
   return (
-    <Stack.Navigator
-      screenOptions={nativeStackScreenOptions({ colors })}
-    >
+    <Stack.Navigator screenOptions={nativeStackScreenOptions({ colors })}>
       <Stack.Screen
         component={ServicesScreen}
         name={ROUTES.SERVICES_LIST}

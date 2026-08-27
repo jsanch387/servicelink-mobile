@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const BOOKING_ACTIONS_MOVED_TIP_SEEN_KEY =
-  'servicelink.bookingDetails.actionsMovedTipSeen';
+export const BOOKING_ACTIONS_MOVED_TIP_SEEN_KEY = 'servicelink.bookingDetails.actionsMovedTipSeen';
 
 export async function hasSeenBookingActionsMovedTip() {
   try {

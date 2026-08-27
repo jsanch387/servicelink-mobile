@@ -80,10 +80,21 @@ export function PaymentsTransactionsSkeleton() {
         </View>
         {ROW_WIDTHS.map((widths) => (
           <View key={widths.title} style={styles.row}>
-            <SkeletonBox borderRadius={10} height={FROSTED_ICON_WELL_SIZE} pulse width={FROSTED_ICON_WELL_SIZE} />
+            <SkeletonBox
+              borderRadius={10}
+              height={FROSTED_ICON_WELL_SIZE}
+              pulse
+              width={FROSTED_ICON_WELL_SIZE}
+            />
             <View style={styles.copy}>
               <SkeletonBox borderRadius={6} height={14} pulse width={widths.title} />
-              <SkeletonBox borderRadius={6} height={12} pulse style={{ marginTop: 8 }} width={widths.sub} />
+              <SkeletonBox
+                borderRadius={6}
+                height={12}
+                pulse
+                style={{ marginTop: 8 }}
+                width={widths.sub}
+              />
             </View>
             <SkeletonBox borderRadius={6} height={14} pulse width={widths.amount} />
           </View>

@@ -97,6 +97,16 @@ export function PaymentsScreen() {
     return PAYMENTS_SCREEN_TAB.REVENUE;
   });
 
+  useEffect(() => {
+    if (
+      requestedTab === PAYMENTS_SCREEN_TAB.SETTINGS ||
+      requestedTab === PAYMENTS_SCREEN_TAB.TRANSACTIONS ||
+      requestedTab === PAYMENTS_SCREEN_TAB.REVENUE
+    ) {
+      setScreenTab(requestedTab);
+    }
+  }, [requestedTab]);
+
   const onStripeConnectPress = useCallback(async () => {
     const token = session?.access_token ?? null;
     if (!token) {

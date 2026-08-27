@@ -1,12 +1,7 @@
 import { useMemo } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  AppText,
-  Button,
-  DetailsSectionCard,
-  InlineCardError,
-} from '../../../components/ui';
+import { AppText, Button, DetailsSectionCard, InlineCardError } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { BookingActivityEventRow } from '../booking-details/components/BookingActivityEventRow';

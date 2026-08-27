@@ -94,7 +94,9 @@ describe('buildBookingActivityModel', () => {
 
   it('shows a confirmation text that only failed', () => {
     const events = buildBookingActivityModel({
-      smsRows: [{ type: 'booking_confirmation', status: 'failed', created_at: '2026-08-01T10:00:00Z' }],
+      smsRows: [
+        { type: 'booking_confirmation', status: 'failed', created_at: '2026-08-01T10:00:00Z' },
+      ],
     });
     expect(events.map((event) => event.key)).toEqual(['confirmation-sms']);
     expect(events[0].outcome).toBe('failed');

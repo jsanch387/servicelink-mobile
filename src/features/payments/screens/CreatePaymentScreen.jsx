@@ -57,7 +57,7 @@ export function CreatePaymentScreen() {
 
   const handleClose = useCallback(() => {
     navigation.goBack();
-  }, [navigation.goBack]);
+  }, [navigation]);
 
   const handleSetupPayments = useCallback(() => {
     navigateNestedTabScreen(navigation, {
@@ -101,18 +101,23 @@ export function CreatePaymentScreen() {
   const showLoading = !access.isReady || isConnectLoading;
   const showUpsell = access.isReady && access.featureEnabled && access.showUpsell;
   const showConnectSetup =
-    access.isReady && access.featureEnabled && !access.showUpsell && !isConnectLoading && !isConnectReady;
+    access.isReady &&
+    access.featureEnabled &&
+    !access.showUpsell &&
+    !isConnectLoading &&
+    !isConnectReady;
   const showFlow =
-    access.isReady && access.featureEnabled && !access.showUpsell && !isConnectLoading && isConnectReady;
+    access.isReady &&
+    access.featureEnabled &&
+    !access.showUpsell &&
+    !isConnectLoading &&
+    isConnectReady;
 
   return (
     <View style={styles.root} testID="create-payment-screen">
       {showLoading ? (
         <View style={styles.loading}>
-          <ActivityIndicator
-            accessibilityLabel="Loading payment options"
-            color={colors.accent}
-          />
+          <ActivityIndicator accessibilityLabel="Loading payment options" color={colors.accent} />
         </View>
       ) : null}
       {showUpsell ? (
@@ -122,10 +127,7 @@ export function CreatePaymentScreen() {
       ) : null}
       {showConnectSetup ? <CreatePaymentConnectSetup onSetupPress={handleSetupPayments} /> : null}
       {showFlow ? (
-        <CreatePaymentFlow
-          onClose={handleClose}
-          onHeaderLeadingChange={handleLeadingChange}
-        />
+        <CreatePaymentFlow onClose={handleClose} onHeaderLeadingChange={handleLeadingChange} />
       ) : null}
     </View>
   );

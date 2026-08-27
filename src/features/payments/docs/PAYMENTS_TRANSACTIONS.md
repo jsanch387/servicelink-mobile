@@ -23,37 +23,37 @@ Payments → Transactions
            Arrived
 ```
 
-| UI | Field |
-| -- | ----- |
-| Header | Available hero (`availableCaption` + `availableLabel`) + On the way row |
-| Row title | `title` — first service only. Smaller `+N more` from `extraCount` when `extraCount > 0` |
-| Row subtitle | `Customer · how they paid`. Method only when the name is missing |
-| Payout | Title `Payout` + `statusLabel` (`Arrived`). Same two-line row. `subtitle` is empty |
-| Day label | `dateLabel` (grouped; painted as-is) |
-| Status | `statusLabel` only when it is not `Paid` |
-| Amount | `amountLabel` — color from `tone` |
+| UI           | Field                                                                                   |
+| ------------ | --------------------------------------------------------------------------------------- |
+| Header       | Available hero (`availableCaption` + `availableLabel`) + On the way row                 |
+| Row title    | `title` — first service only. Smaller `+N more` from `extraCount` when `extraCount > 0` |
+| Row subtitle | `Customer · how they paid`. Method only when the name is missing                        |
+| Payout       | Title `Payout` + `statusLabel` (`Arrived`). Same two-line row. `subtitle` is empty      |
+| Day label    | `dateLabel` (grouped; painted as-is)                                                    |
+| Status       | `statusLabel` only when it is not `Paid`                                                |
+| Amount       | `amountLabel` — color from `tone`                                                       |
 
-| Field | Rule |
-| ----- | ---- |
-| `title` | First service name only. Payouts: `Payout`. Walk-up notes stay the note. |
-| `extraCount` | Extra jobs after the first (`2` jobs → `1`). `0` when one job, walk-up, membership, or payout. |
-| `subtitle` | `Customer · how they paid`. No card digits. Payouts: `""`. |
-| `methodLabel` | How they paid (`Tap to pay`, `Payment link`, `Cash`, `Card`). Not Visa / last four. |
-| `statusLabel` | `Paid` / `Arrived` / `Refunded` / `On the way` / `Pending`. |
-| `bookingId` | When the row is tied to a booking. |
-| `serviceName` | Same as `title` for a job. `null` otherwise. |
-| `jobCount` | `extraCount + 1` for a booking job. `0` for payout / walk-up without a booking. |
+| Field         | Rule                                                                                           |
+| ------------- | ---------------------------------------------------------------------------------------------- |
+| `title`       | First service name only. Payouts: `Payout`. Walk-up notes stay the note.                       |
+| `extraCount`  | Extra jobs after the first (`2` jobs → `1`). `0` when one job, walk-up, membership, or payout. |
+| `subtitle`    | `Customer · how they paid`. No card digits. Payouts: `""`.                                     |
+| `methodLabel` | How they paid (`Tap to pay`, `Payment link`, `Cash`, `Card`). Not Visa / last four.            |
+| `statusLabel` | `Paid` / `Arrived` / `Refunded` / `On the way` / `Pending`.                                    |
+| `bookingId`   | When the row is tied to a booking.                                                             |
+| `serviceName` | Same as `title` for a job. `null` otherwise.                                                   |
+| `jobCount`    | `extraCount + 1` for a booking job. `0` for payout / walk-up without a booking.                |
 
 Server will not send `Mixed jobs` / `Double jobs`, pricing tiers, or card last-four. Mobile still ignores those if they appear.
 
 ## Mobile files
 
-| Path | Role |
-| ---- | ---- |
-| `api/fetchPaymentsTransactions.js` | GET + error map |
-| `utils/parsePaymentsTransactions.js` | Defensive parse |
-| `hooks/usePaymentsTransactions.js` | Infinite pages (`startingAfter` = opaque `nextCursor`) |
-| `components/PaymentsTransactionsSection.jsx` | Header + list |
+| Path                                         | Role                                                   |
+| -------------------------------------------- | ------------------------------------------------------ |
+| `api/fetchPaymentsTransactions.js`           | GET + error map                                        |
+| `utils/parsePaymentsTransactions.js`         | Defensive parse                                        |
+| `hooks/usePaymentsTransactions.js`           | Infinite pages (`startingAfter` = opaque `nextCursor`) |
+| `components/PaymentsTransactionsSection.jsx` | Header + list                                          |
 
 ## What mobile must not do
 

@@ -12,7 +12,7 @@ Ship notes for the **Revenue** tab on Payments. Settings (Stripe Connect, deposi
 | **Compare**      | Week / Month / Year show % vs last week/month/year. Custom shows % vs the same-length prior window. All time has no compare.                              |
 | **Empty UX**     | Show `$0` + flat chart. Quiet caption: _Finish a job and it shows up here._ No “no completed jobs this month” banner.                                     |
 | **Access**       | **Revenue is open** to free and Pro (conversion). **Settings** stays Pro / Connect gated. Pro without Connect still sees Revenue.                         |
-| **Transactions** | Live `GET /api/payments/transactions`. See [`PAYMENTS_TRANSACTIONS.md`](./PAYMENTS_TRANSACTIONS.md). Pro required. |
+| **Transactions** | Live `GET /api/payments/transactions`. See [`PAYMENTS_TRANSACTIONS.md`](./PAYMENTS_TRANSACTIONS.md). Pro required.                                        |
 
 ## User flows to verify
 

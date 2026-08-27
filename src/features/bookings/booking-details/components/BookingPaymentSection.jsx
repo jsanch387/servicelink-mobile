@@ -58,9 +58,7 @@ export function BookingPaymentSection({ payment }) {
     <DetailsSectionCard bodyPadding="default" title="Payment">
       <View accessible accessibilityLabel={accessibilityLabel} style={styles.body}>
         <View style={styles.statusRow}>
-          {showMembershipMark ? (
-            <MembershipMark size="lg" style={styles.membershipMark} />
-          ) : null}
+          {showMembershipMark ? <MembershipMark size="lg" style={styles.membershipMark} /> : null}
           <AppText includeFontPadding={false} style={styles.status}>
             {status}
           </AppText>
