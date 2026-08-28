@@ -1,22 +1,17 @@
 import { useNavigation } from '@react-navigation/native';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import {
   HeaderTextButton,
   androidBalancedHeaderLeft,
   androidHeaderTitleBalanceRight,
 } from '../../../components/ui';
-import { SCREEN_GUTTER } from '../../../constants/layout';
-import { navigateNestedTabScreen } from '../../../navigation/navigateNestedTabScreen';
-import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
-import { PaymentsNonProUpsell } from '../components/PaymentsNonProUpsell';
-import { PAYMENTS_SCREEN_TAB } from '../constants/paymentsScreenTabs';
 import { CreatePaymentConnectSetup } from '../create-payment/components/CreatePaymentConnectSetup';
 import { CreatePaymentFlow } from '../create-payment/CreatePaymentFlow';
-import { CREATE_PAYMENT_PAGE_PAD_TOP } from '../create-payment/constants';
 import { useCreatePaymentAccess } from '../create-payment/hooks/useCreatePaymentAccess';
 import { useTapToPayConnectReadiness } from '../../tap-to-pay/hooks/useTapToPayConnectReadiness';
+import { navigateToPaymentsSetup } from '../../tap-to-pay/utils/navigateToPaymentsSetup';
 
 const DEFAULT_LEADING = {
   label: 'Cancel',
@@ -46,11 +41,6 @@ export function CreatePaymentScreen() {
           flex: 1,
           justifyContent: 'center',
         },
-        gate: {
-          flexGrow: 1,
-          paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: CREATE_PAYMENT_PAGE_PAD_TOP,
-        },
       }),
     [colors],
   );
@@ -60,11 +50,7 @@ export function CreatePaymentScreen() {
   }, [navigation]);
 
   const handleSetupPayments = useCallback(() => {
-    navigateNestedTabScreen(navigation, {
-      tab: ROUTES.MORE,
-      screen: ROUTES.MORE_PAYMENTS,
-      params: { initialTab: PAYMENTS_SCREEN_TAB.SETTINGS },
-    });
+    navigateToPaymentsSetup(navigation);
   }, [navigation]);
 
   const handleLeadingChange = useCallback((next) => {
@@ -78,8 +64,12 @@ export function CreatePaymentScreen() {
   useEffect(() => {
     if (access.isReady && !access.featureEnabled) {
       navigation.goBack();
+      return;
     }
-  }, [access.featureEnabled, access.isReady, navigation]);
+    if (access.isReady && access.featureEnabled && access.showUpsell) {
+      navigateToPaymentsSetup(navigation);
+    }
+  }, [access.featureEnabled, access.isReady, access.showUpsell, navigation]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -98,8 +88,7 @@ export function CreatePaymentScreen() {
     };
   }, [leading, navigation]);
 
-  const showLoading = !access.isReady || isConnectLoading;
-  const showUpsell = access.isReady && access.featureEnabled && access.showUpsell;
+  const showLoading = !access.isReady || isConnectLoading || access.showUpsell;
   const showConnectSetup =
     access.isReady &&
     access.featureEnabled &&
@@ -119,11 +108,6 @@ export function CreatePaymentScreen() {
         <View style={styles.loading}>
           <ActivityIndicator accessibilityLabel="Loading payment options" color={colors.accent} />
         </View>
-      ) : null}
-      {showUpsell ? (
-        <ScrollView contentContainerStyle={styles.gate} testID="create-payment-pro-upsell">
-          <PaymentsNonProUpsell />
-        </ScrollView>
       ) : null}
       {showConnectSetup ? <CreatePaymentConnectSetup onSetupPress={handleSetupPayments} /> : null}
       {showFlow ? (

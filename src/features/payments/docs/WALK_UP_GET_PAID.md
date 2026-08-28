@@ -17,7 +17,7 @@ Compile-time flags live in `create-payment/constants/createPaymentFeatureFlags.j
 | `CREATE_PAYMENT_FEATURE_ENABLED`     | `true`      | Kill switch. `false` hides the FAB item and bounces the screen.                               |
 | `CREATE_PAYMENT_EARLY_ACCESS_EMAILS` | `[]` (open) | **Non-empty:** only those logins see Create payment. **Empty:** everyone can open the screen. |
 
-Pro and Stripe Connect still apply. A free user sees the web upsell.
+Pro and Stripe Connect still apply. Free users still see **Create payment** on the FAB; tapping it opens **More → Payments → Settings**.
 
 ---
 
@@ -26,9 +26,10 @@ Pro and Stripe Connect still apply. A free user sees the web upsell.
 ```text
 Home FAB
   └─ hidden if the kill switch is off, or an email allowlist is set and this login is not on it
+  └─ shown for free users (upgrade nudge). Tap → More → Payments → Settings
 
 Create payment screen
-  ├─ Not Pro            → Payments web upsell (Sign in on the web)
+  ├─ Not Pro            → redirect to More → Payments → Settings
   ├─ Pro, no Connect    → “Set up payments” → More → Payments → Settings
   └─ Pro + Connect      → Get paid chooser (Payment link + Tap to pay)
 ```

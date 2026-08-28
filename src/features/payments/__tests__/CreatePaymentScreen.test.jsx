@@ -192,13 +192,18 @@ describe('CreatePaymentScreen', () => {
     );
   });
 
-  it('shows the web upsell when the owner is not Pro', () => {
+  it('sends non-Pro owners to Payments setup', () => {
     mockAccess.canUseCreatePayment = false;
     mockAccess.showUpsell = true;
     renderWithProviders(<CreatePaymentScreen />);
-    expect(screen.getByTestId('create-payment-pro-upsell')).toBeTruthy();
-    expect(screen.getByTestId('payments-non-pro-upsell')).toBeTruthy();
     expect(screen.queryByTestId('create-payment-choose')).toBeNull();
+    expect(screen.queryByTestId('create-payment-pro-upsell')).toBeNull();
+    expect(mockNavigate).toHaveBeenCalledWith(
+      'MainApp',
+      expect.objectContaining({
+        screen: 'More',
+      }),
+    );
   });
 
   it('wires Cancel to go back from the chooser', () => {

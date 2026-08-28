@@ -24,8 +24,9 @@ export function isCreatePaymentEarlyAccessEmail(email) {
  *
  * 1. **Email-only** — allowlist non-empty. Only those logins see the FAB.
  *    Pro / Connect are still checked on the screen.
- * 2. **Open** — clear the allowlist. Anyone can open the screen; non-Pro
- *    get the web upsell; missing Connect goes to Payments → Settings.
+ * 2. **Open** — clear the allowlist. Anyone sees Create payment on the FAB
+ *    (including free users). Non-Pro go to Payments → Settings (subscribe
+ *    or Stripe Connect); missing Connect goes there too.
  *
  * @param {{
  *   enabled?: boolean;

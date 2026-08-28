@@ -45,6 +45,7 @@ import {
 } from '../../appUpdates';
 import { useNotificationUnreadCount } from '../../notifications/hooks/useNotificationUnreadCount';
 import { useCreatePaymentAccess } from '../../payments/create-payment/hooks/useCreatePaymentAccess';
+import { navigateToPaymentsSetup } from '../../tap-to-pay/utils/navigateToPaymentsSetup';
 import { useBookingsFreeTierUsage } from '../../bookings/hooks/useBookingsFreeTierUsage';
 import { bookingsFreeTierCountQueryKey } from '../../bookings/queryKeys';
 import { resolveFreeTierBookingUsed } from '../../bookings/utils/resolveFreeTierBookingUsed';
@@ -392,8 +393,12 @@ export function HomeScreen() {
   }, [navigation, warnFreePlanBookingLimitIfNeeded]);
 
   const handleCreatePayment = useCallback(() => {
+    if (createPaymentAccess.isReady && createPaymentAccess.showUpsell) {
+      navigateToPaymentsSetup(navigation);
+      return;
+    }
     navigation.navigate(ROUTES.CREATE_PAYMENT);
-  }, [navigation]);
+  }, [createPaymentAccess.isReady, createPaymentAccess.showUpsell, navigation]);
 
   const handleOpenNotifications = useCallback(() => {
     navigation.navigate(ROUTES.NOTIFICATIONS_INBOX);
@@ -700,6 +705,7 @@ export function HomeScreen() {
       </ScrollView>
       <FloatingCreateMenu
         bottom={30}
+        /* Free users still see this row; tap opens Payments (subscribe / Connect). */
         showCreatePayment={createPaymentAccess.featureEnabled}
         onCreateAppointment={handleCreateAppointment}
         onCreatePayment={handleCreatePayment}

@@ -5,7 +5,8 @@
  * Create payment on the home FAB and bounce the screen.
  *
  * **Open (current):** empty `CREATE_PAYMENT_EARLY_ACCESS_EMAILS` — anyone can
- * open the screen. Pro + Stripe Connect still required to charge.
+ * see Create payment on the FAB, including free users. Pro + Stripe Connect
+ * still required to charge. Free users go to Payments → Settings.
  * Put emails back in the array to restrict the FAB again.
  */
 

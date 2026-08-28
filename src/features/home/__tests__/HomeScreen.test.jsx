@@ -454,11 +454,34 @@ describe('HomeScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith(ROUTES.CREATE_PAYMENT);
   });
 
-  it('allows create payment from FAB when free plan is at the booking limit', () => {
+  it('opens Payments setup for free users so they can subscribe or connect', () => {
     mockUseSubscription.mockReturnValue({
       hasProAccess: false,
       isOwnerProfileLoaded: true,
     });
+    mockCreatePaymentAccess.canUseCreatePayment = false;
+    mockCreatePaymentAccess.showUpsell = true;
+    renderWithProviders(<HomeScreen />);
+    fireEvent.press(screen.getByLabelText('Open create menu'));
+    expect(screen.getByLabelText('Create payment')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Create payment'));
+    expect(mockNavigate).not.toHaveBeenCalledWith(ROUTES.CREATE_PAYMENT);
+    expect(mockNavigate).toHaveBeenCalledWith(
+      ROUTES.MAIN_APP,
+      expect.objectContaining({
+        screen: ROUTES.MORE,
+      }),
+    );
+    expect(mockShowWebAccountFeatureAlert).not.toHaveBeenCalled();
+  });
+
+  it('opens Payments setup for free users even when the booking limit is reached', () => {
+    mockUseSubscription.mockReturnValue({
+      hasProAccess: false,
+      isOwnerProfileLoaded: true,
+    });
+    mockCreatePaymentAccess.canUseCreatePayment = false;
+    mockCreatePaymentAccess.showUpsell = true;
     mockUseBookingsFreeTierUsage.mockReturnValue({
       used: 5,
       limit: 5,
@@ -467,8 +490,15 @@ describe('HomeScreen', () => {
     });
     renderWithProviders(<HomeScreen />);
     fireEvent.press(screen.getByLabelText('Open create menu'));
+    expect(screen.getByLabelText('Create payment')).toBeTruthy();
     fireEvent.press(screen.getByLabelText('Create payment'));
-    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.CREATE_PAYMENT);
+    expect(mockNavigate).not.toHaveBeenCalledWith(ROUTES.CREATE_PAYMENT);
+    expect(mockNavigate).toHaveBeenCalledWith(
+      ROUTES.MAIN_APP,
+      expect.objectContaining({
+        screen: ROUTES.MORE,
+      }),
+    );
     expect(mockShowWebAccountFeatureAlert).not.toHaveBeenCalled();
   });
 
