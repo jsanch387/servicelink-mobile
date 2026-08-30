@@ -4,11 +4,15 @@ import {
   bookingLinkEditDirtyVsProps,
   bookingLinkEditIsDirty,
 } from '../utils/bookingLinkTextSave';
-import { BOOKING_SERVICE_TYPE_MOBILE } from '../edit/constants/bookingLinkBookingTab';
+import {
+  BOOKING_SERVICE_TYPE_BOTH,
+  BOOKING_SERVICE_TYPE_MOBILE,
+} from '../edit/constants/bookingLinkBookingTab';
 
 const defaultEditFields = {
   nameInput: '',
   typeInput: '',
+  specialtiesInput: [],
   cityInput: '',
   stateInput: '',
   zipInput: '',
@@ -19,8 +23,13 @@ const defaultEditFields = {
   serviceTypeInput: BOOKING_SERVICE_TYPE_MOBILE,
   shopStreetInput: '',
   shopUnitInput: '',
+  shopCityInput: '',
+  shopStateInput: '',
+  shopZipInput: '',
   spanishEnabled: false,
   defaultLanguageInput: 'en',
+  policyEnabled: false,
+  policyInput: '',
 };
 
 describe('bookingLinkTextSave', () => {
@@ -102,6 +111,71 @@ describe('bookingLinkTextSave', () => {
         nameInput: 'Shop',
         typeInput: 'Detailing',
         instagramInput: 'new',
+      }),
+    ).toBe(true);
+  });
+
+  it('marks dirty when customer policy changes', () => {
+    const baseProps = {
+      businessName: 'Shop',
+      businessType: 'Detailing',
+      businessCity: '',
+      businessState: '',
+      businessZip: '',
+      businessBio: '',
+      phoneNumber: '',
+      socialMedia: {},
+      serviceLocationMode: 'mobile_only',
+      shopStreetAddress: '',
+      shopUnit: '',
+      publicBookingLocales: ['en'],
+      publicBookingDefaultLocale: 'en',
+      bookingPolicyEnabled: false,
+      bookingPolicyText: '',
+    };
+    expect(
+      bookingLinkEditDirtyVsProps(baseProps, {
+        ...defaultEditFields,
+        nameInput: 'Shop',
+        typeInput: 'Detailing',
+        policyEnabled: true,
+        policyInput: 'Deposits are non-refundable.',
+      }),
+    ).toBe(true);
+  });
+
+  it('marks dirty when shop city changes without touching mobile city', () => {
+    const baseProps = {
+      businessName: 'Shop',
+      businessType: 'Detailing',
+      businessCity: 'Austin',
+      businessState: 'TX',
+      businessZip: '78701',
+      businessBio: '',
+      phoneNumber: '',
+      socialMedia: {},
+      serviceLocationMode: 'both',
+      shopStreetAddress: '410 E Pecan St',
+      shopUnit: '',
+      shopCity: 'Austin',
+      shopState: 'TX',
+      shopZip: '78701',
+      publicBookingLocales: ['en'],
+      publicBookingDefaultLocale: 'en',
+    };
+    expect(
+      bookingLinkEditDirtyVsProps(baseProps, {
+        ...defaultEditFields,
+        nameInput: 'Shop',
+        typeInput: 'Detailing',
+        cityInput: 'Austin',
+        stateInput: 'TX',
+        zipInput: '78701',
+        serviceTypeInput: BOOKING_SERVICE_TYPE_BOTH,
+        shopStreetInput: '410 E Pecan St',
+        shopCityInput: 'Pflugerville',
+        shopStateInput: 'TX',
+        shopZipInput: '78660',
       }),
     ).toBe(true);
   });

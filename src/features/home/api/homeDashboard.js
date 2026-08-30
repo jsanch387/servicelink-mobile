@@ -18,7 +18,7 @@ export async function fetchBusinessProfileForUser(userId) {
   const { data, error } = await supabase
     .from('business_profiles')
     .select(
-      'id, business_name, business_type, business_slug, free_bookings_count, accept_quote_req',
+      'id, business_name, business_type, specialties, business_slug, free_bookings_count, accept_quote_req',
     )
     .eq('profile_id', userId)
     .maybeSingle();

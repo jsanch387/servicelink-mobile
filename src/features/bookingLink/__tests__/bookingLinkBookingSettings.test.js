@@ -34,11 +34,17 @@ describe('bookingLinkBookingSettings', () => {
         business_zip: '78701',
         shop_street_address: '123 Main St',
         shop_unit: 'Suite 4',
+        shop_city: 'Pflugerville',
+        shop_state: 'tx',
+        shop_zip: '78660',
       }),
     ).toEqual({
       mode: BOOKING_SERVICE_TYPE_BOTH,
       shopStreetAddress: '123 Main St',
       shopUnit: 'Suite 4',
+      shopCity: 'Pflugerville',
+      shopState: 'TX',
+      shopZip: '78660',
       city: 'Austin',
       state: 'TX',
       zip: '78701',
@@ -46,18 +52,28 @@ describe('bookingLinkBookingSettings', () => {
   });
 
   it('clears shop fields when mobile only', () => {
-    expect(serviceLocationToDb(BOOKING_SERVICE_TYPE_MOBILE, '123 Main', 'A')).toEqual({
+    expect(
+      serviceLocationToDb(BOOKING_SERVICE_TYPE_MOBILE, '123 Main', 'A', 'Pflugerville', 'TX', '78660'),
+    ).toEqual({
       service_location_mode: 'mobile_only',
       shop_street_address: null,
       shop_unit: null,
+      shop_city: null,
+      shop_state: null,
+      shop_zip: null,
     });
   });
 
   it('persists shop fields when shop mode', () => {
-    expect(serviceLocationToDb(BOOKING_SERVICE_TYPE_SHOP, '123 Main', 'Suite 1')).toEqual({
+    expect(
+      serviceLocationToDb(BOOKING_SERVICE_TYPE_SHOP, '123 Main', 'Suite 1', 'Pflugerville', 'TX', '78660'),
+    ).toEqual({
       service_location_mode: 'shop_only',
       shop_street_address: '123 Main',
       shop_unit: 'Suite 1',
+      shop_city: 'Pflugerville',
+      shop_state: 'TX',
+      shop_zip: '78660',
     });
   });
 

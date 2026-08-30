@@ -33,6 +33,7 @@ export { EchoBarsLoader } from './EchoBarsLoader';
 export { AnimatedCheckmark } from './AnimatedCheckmark';
 export { SuccessConfirmation } from './SuccessConfirmation';
 export { FilterPills } from './FilterPills';
+export { SpecialtyChips } from './SpecialtyChips';
 export { SegmentedToggle } from './SegmentedToggle';
 export { FloatingActionButton } from './FloatingActionButton';
 export { FrostedIconWell, FROSTED_ICON_WELL_SIZE, frostedSurfaceColors } from './FrostedIconWell';

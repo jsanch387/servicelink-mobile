@@ -7,6 +7,7 @@ import {
   formatLocationSuggestionKind,
   hasMapTilerApiKey,
   searchMapTilerLocations,
+  zipFromMapTilerFeature,
 } from '../api/mapTilerGeocoding';
 
 /**
@@ -54,4 +55,5 @@ export {
   formatLocationSuggestionKind,
   hasMapTilerApiKey,
   searchMapTilerLocations,
+  zipFromMapTilerFeature,
 };

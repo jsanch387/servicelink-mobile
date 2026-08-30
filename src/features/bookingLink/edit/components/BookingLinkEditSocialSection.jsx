@@ -52,11 +52,7 @@ export function BookingLinkEditSocialSection({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        sectionBodyTight: {
-          marginBottom: 4,
-        },
         card: {
-          marginTop: 4,
           overflow: 'hidden',
           paddingHorizontal: 12,
           paddingVertical: 10,
@@ -143,11 +139,9 @@ export function BookingLinkEditSocialSection({
   );
 
   return (
-    <View style={editStyles.bioSection}>
+    <View>
       <AppText style={editStyles.sectionTitle}>Social</AppText>
-      <AppText style={[editStyles.sectionBody, styles.sectionBodyTight]}>
-        Shown on your booking page.
-      </AppText>
+      <AppText style={editStyles.sectionBody}>Shown on your booking page.</AppText>
 
       <SurfaceCard padding="none" style={[editStyles.editSectionCard, styles.card]}>
         <View style={styles.fields}>

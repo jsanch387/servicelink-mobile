@@ -11,7 +11,10 @@ import {
 import { useAuth } from '../../auth';
 import { useTheme } from '../../../theme';
 import { markProfileWelcomeModalSeen } from '../api/bookingLink';
+import { resolveBusinessSpecialties } from '../../../constants/businessSpecialties';
 import { BookingLinkEditMode } from '../edit';
+import { BookingLinkEditProfileCompletion } from '../edit/components/BookingLinkEditProfileCompletion';
+import { buildProfileCompletionChecklist } from '../edit/utils/profileCompletionChecklist';
 import { useBookingLinkProfile } from '../hooks/useBookingLinkProfile';
 import { BookingLinkWelcomeModal } from '../components/BookingLinkWelcomeModal';
 import { BookingLinkEditFab } from '../preview/components/BookingLinkEditFab';
@@ -172,9 +175,44 @@ export function BookingLinkScreen() {
         scrollContent: {
           paddingBottom: 28,
         },
+        previewCompletion: {
+          paddingHorizontal: 16,
+          paddingTop: 12,
+        },
       }),
     [colors],
   );
+
+  const previewCompletion = useMemo(
+    () =>
+      buildProfileCompletionChecklist({
+        hasCover: Boolean(coverImageUrl),
+        hasLogo: Boolean(logoUrl),
+        nameInput: businessNameEdit,
+        typeInput: businessTypeEdit,
+        specialtiesInput: resolveBusinessSpecialties(businessTypeEdit, profile?.specialties),
+        cityInput: city,
+        stateInput: state,
+        zipInput: zip,
+        phoneInput: phoneNumber,
+        bioInput: bio,
+        galleryImageCount: galleryImages.length,
+      }),
+    [
+      bio,
+      businessNameEdit,
+      businessTypeEdit,
+      city,
+      coverImageUrl,
+      galleryImages.length,
+      logoUrl,
+      phoneNumber,
+      profile?.specialties,
+      state,
+      zip,
+    ],
+  );
+  const showPreviewCompletionBar = previewCompletion.percent < 100;
 
   const handleEditSaved = useCallback(async () => {
     await refetchBookingProfile();
@@ -255,6 +293,9 @@ export function BookingLinkScreen() {
           businessState={state}
           businessType={businessTypeEdit}
           businessZip={zip}
+          specialties={profile?.specialties ?? null}
+          bookingPolicyEnabled={profile?.booking_policy_enabled === true}
+          bookingPolicyText={profile?.booking_policy_text ?? ''}
           coverImageUrl={coverImageUrl}
           coverImagePath={coverImagePath}
           defaultLanguage={bookingLanguages.defaultLocale}
@@ -269,6 +310,9 @@ export function BookingLinkScreen() {
           serviceLocationMode={normalizeDbServiceLocationMode(profile?.service_location_mode)}
           shopStreetAddress={profile?.shop_street_address ?? ''}
           shopUnit={profile?.shop_unit ?? ''}
+          shopCity={profile?.shop_city ?? ''}
+          shopState={profile?.shop_state ?? ''}
+          shopZip={profile?.shop_zip ?? ''}
           socialMedia={profile?.social_media}
           spanishEnabled={bookingLanguages.offerSpanish}
           serviceType={dbModeToUiServiceType(profile?.service_location_mode)}
@@ -286,6 +330,17 @@ export function BookingLinkScreen() {
         </ScrollView>
       ) : (
         <View style={styles.previewLayer}>
+          {showPreviewCompletionBar ? (
+            <View style={styles.previewCompletion}>
+              <BookingLinkEditProfileCompletion
+                percent={previewCompletion.percent}
+                onPress={() => {
+                  setInitialEditTab(BOOKING_LINK_EDIT_DEFAULT_TAB);
+                  setIsEditMode(true);
+                }}
+              />
+            </View>
+          ) : null}
           <BookingLinkPreview
             activeSale={activeSale}
             activeTab={activeTab}

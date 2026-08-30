@@ -19,9 +19,9 @@ export const BOOKING_DEFAULT_LANGUAGE_OPTIONS = [
 export function getBookingServiceTypeDescription(serviceType) {
   switch (serviceType) {
     case BOOKING_SERVICE_TYPE_SHOP:
-      return 'Customers visit your shop. Add your business address below.';
+      return 'They come to you. No address needed from the customer.';
     case BOOKING_SERVICE_TYPE_BOTH:
-      return 'You offer mobile service and in-shop visits. Add your shop address below.';
+      return 'Customers pick mobile or shop when they book.';
     case BOOKING_SERVICE_TYPE_MOBILE:
     default:
       return 'You go to them. Customers enter their address when booking.';

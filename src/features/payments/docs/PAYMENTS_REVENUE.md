@@ -2,6 +2,8 @@
 
 Ship notes for the **Revenue** tab on Payments. Settings (Stripe Connect, deposits, Tap to Pay) stays separate and gated.
 
+**Chart data + web differences:** [`PAYMENTS_REVENUE_CHART.md`](./PAYMENTS_REVENUE_CHART.md) — query, windows, money formula, bar buckets, and why web `GET /api/payments/revenue` can disagree.
+
 ## Product rules
 
 | Rule             | Detail                                                                                                                                                    |
@@ -74,7 +76,7 @@ Previous-period fetch runs for Week / Month / Year / Custom so the UI can show %
 | All time | One bar per year with activity (or current year at `$0` if none)   |
 | Custom   | Daily (≤31 days), weekly chunks (≤180 days), else monthly          |
 
-Month does **not** use Mon–Sun calendar weeks (those can spill across months and show 5–6 bars). Week 4 absorbs the remainder of the month (up to day 28–31).
+Month does **not** use Mon–Sun calendar weeks (those can spill across months and show 5–6 bars). Week 4 absorbs the remainder of the month (up to day 28–31). Chart axis stays `Wk 1`–`Wk 4`; the selection card and Best week use the date span (`Jul 1–7`).
 
 ## Earnings alignment
 

@@ -10,11 +10,15 @@ const MEDIA_BUCKET_NAME = 'business_images';
  * @property {string} id
  * @property {string | null} business_name
  * @property {string | null} business_type
+ * @property {string[] | null} specialties
  * @property {string | null} service_area
  * @property {string | null} business_zip
  * @property {string | null} service_location_mode
  * @property {string | null} shop_street_address
  * @property {string | null} shop_unit
+ * @property {string | null} shop_city
+ * @property {string | null} shop_state
+ * @property {string | null} shop_zip
  * @property {string[] | null} public_booking_locales
  * @property {string | null} public_booking_default_locale
  * @property {string | null} bio
@@ -22,6 +26,8 @@ const MEDIA_BUCKET_NAME = 'business_images';
  * @property {Record<string, string>} social_media
  * @property {string | null} business_slug
  * @property {string | null} business_link
+ * @property {boolean} booking_policy_enabled
+ * @property {string | null} booking_policy_text
  * @property {boolean | null} accept_quote_req
  * @property {string | null} logo_path
  * @property {string | null} banner_path
@@ -39,11 +45,15 @@ const BUSINESS_PROFILE_SELECT = [
   'id',
   'business_name',
   'business_type',
+  'specialties',
   'service_area',
   'business_zip',
   'service_location_mode',
   'shop_street_address',
   'shop_unit',
+  'shop_city',
+  'shop_state',
+  'shop_zip',
   'public_booking_locales',
   'public_booking_default_locale',
   'bio',
@@ -52,6 +62,8 @@ const BUSINESS_PROFILE_SELECT = [
   'business_slug',
   'business_link',
   'accept_quote_req',
+  'booking_policy_enabled',
+  'booking_policy_text',
   'logo_path',
   'banner_path',
   'profile_id',
@@ -235,11 +247,17 @@ export async function normalizeMobileBusinessProfile({
     profileWelcomeModalSeen: readProfileWelcomeModalSeenFromRow(ownerProfileRow),
     business_name: cleanTextOrNull(businessProfileRow?.business_name),
     business_type: cleanTextOrNull(businessProfileRow?.business_type),
+    specialties: Array.isArray(businessProfileRow?.specialties)
+      ? businessProfileRow.specialties.filter((item) => typeof item === 'string')
+      : null,
     service_area: cleanTextOrNull(businessProfileRow?.service_area),
     business_zip: cleanTextOrNull(businessProfileRow?.business_zip),
     service_location_mode: cleanTextOrNull(businessProfileRow?.service_location_mode),
     shop_street_address: cleanTextOrNull(businessProfileRow?.shop_street_address),
     shop_unit: cleanTextOrNull(businessProfileRow?.shop_unit),
+    shop_city: cleanTextOrNull(businessProfileRow?.shop_city),
+    shop_state: cleanTextOrNull(businessProfileRow?.shop_state),
+    shop_zip: cleanTextOrNull(businessProfileRow?.shop_zip),
     public_booking_locales: Array.isArray(businessProfileRow?.public_booking_locales)
       ? businessProfileRow.public_booking_locales.filter((l) => l === 'en' || l === 'es')
       : null,
@@ -255,6 +273,8 @@ export async function normalizeMobileBusinessProfile({
       typeof businessProfileRow?.accept_quote_req === 'boolean'
         ? businessProfileRow.accept_quote_req
         : null,
+    booking_policy_enabled: businessProfileRow?.booking_policy_enabled === true,
+    booking_policy_text: cleanTextOrNull(businessProfileRow?.booking_policy_text),
     logo_path: cleanTextOrNull(businessProfileRow?.logo_path),
     banner_path: cleanTextOrNull(businessProfileRow?.banner_path),
     logo_url: logoUrl,

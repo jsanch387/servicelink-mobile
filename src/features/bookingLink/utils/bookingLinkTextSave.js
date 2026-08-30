@@ -1,3 +1,8 @@
+import {
+  resolveBusinessSpecialties,
+  specialtiesFingerprint,
+} from '../../../constants/businessSpecialties';
+import { canonicalizeBusinessType } from '../../../constants/businessTypes';
 import { canonicalNanpDigits } from '../../../utils/phone';
 import {
   languagesToDb,
@@ -7,11 +12,13 @@ import {
   uiServiceTypeToDbMode,
 } from './bookingLinkBookingSettings';
 import { socialMediaFingerprint, socialMediaToDb } from './socialMedia';
+import { normalizeBookingPolicyText } from '../edit/constants/bookingLinkCustomerPolicy';
 
 /**
  * @typedef {object} BookingLinkEditSnapshot
  * @property {string} businessName
  * @property {string} businessType
+ * @property {string} specialtiesKey
  * @property {string} city
  * @property {string} state Two-letter uppercase or ''
  * @property {string} zip Five-digit ZIP or ''
@@ -21,8 +28,13 @@ import { socialMediaFingerprint, socialMediaToDb } from './socialMedia';
  * @property {string} serviceLocationMode DB mode: mobile_only | shop_only | both
  * @property {string} shopStreetAddress
  * @property {string} shopUnit
+ * @property {string} shopCity
+ * @property {string} shopState
+ * @property {string} shopZip
  * @property {string} publicBookingLocalesKey
  * @property {string} publicBookingDefaultLocale en | es
+ * @property {boolean} bookingPolicyEnabled
+ * @property {string} bookingPolicyText
  */
 
 function normalizeZipSlice(raw) {
@@ -48,6 +60,7 @@ export function phoneDigitsFingerprint(value) {
  * @param {{
  *   businessName?: string,
  *   businessType?: string,
+ *   specialties?: string[] | null,
  *   businessCity?: string,
  *   businessState?: string,
  *   businessZip?: string,
@@ -57,8 +70,13 @@ export function phoneDigitsFingerprint(value) {
  *   serviceLocationMode?: string,
  *   shopStreetAddress?: string,
  *   shopUnit?: string,
+ *   shopCity?: string,
+ *   shopState?: string,
+ *   shopZip?: string,
  *   publicBookingLocales?: string[],
  *   publicBookingDefaultLocale?: string,
+ *   bookingPolicyEnabled?: boolean,
+ *   bookingPolicyText?: string,
  * }} props
  * @returns {BookingLinkEditSnapshot}
  */
@@ -66,6 +84,9 @@ export function bookingLinkEditBaselineFromProps(props) {
   return {
     businessName: String(props.businessName ?? '').trim(),
     businessType: String(props.businessType ?? '').trim(),
+    specialtiesKey: specialtiesFingerprint(
+      resolveBusinessSpecialties(props.businessType, props.specialties),
+    ),
     city: String(props.businessCity ?? '').trim(),
     state: normalizeStateSlice(props.businessState),
     zip: normalizeZipSlice(props.businessZip),
@@ -75,8 +96,13 @@ export function bookingLinkEditBaselineFromProps(props) {
     serviceLocationMode: normalizeDbServiceLocationMode(props.serviceLocationMode),
     shopStreetAddress: String(props.shopStreetAddress ?? '').trim(),
     shopUnit: String(props.shopUnit ?? '').trim(),
+    shopCity: String(props.shopCity ?? '').trim(),
+    shopState: normalizeStateSlice(props.shopState),
+    shopZip: normalizeZipSlice(props.shopZip),
     publicBookingLocalesKey: publicBookingLocalesKey(props.publicBookingLocales),
     publicBookingDefaultLocale: props.publicBookingDefaultLocale === 'es' ? 'es' : 'en',
+    bookingPolicyEnabled: Boolean(props.bookingPolicyEnabled),
+    bookingPolicyText: normalizeBookingPolicyText(props.bookingPolicyText).trim(),
   };
 }
 
@@ -94,6 +120,7 @@ export function bookingLinkEditDraftFromFields(fields) {
   return {
     businessName: String(fields.nameInput ?? '').trim(),
     businessType: String(fields.typeInput ?? '').trim(),
+    specialtiesKey: specialtiesFingerprint(fields.specialtiesInput),
     city: String(fields.cityInput ?? '').trim(),
     state: normalizeStateSlice(fields.stateInput),
     zip: normalizeZipSlice(fields.zipInput),
@@ -106,8 +133,13 @@ export function bookingLinkEditDraftFromFields(fields) {
     serviceLocationMode: uiServiceTypeToDbMode(fields.serviceTypeInput),
     shopStreetAddress: String(fields.shopStreetInput ?? '').trim(),
     shopUnit: String(fields.shopUnitInput ?? '').trim(),
+    shopCity: String(fields.shopCityInput ?? '').trim(),
+    shopState: normalizeStateSlice(fields.shopStateInput),
+    shopZip: normalizeZipSlice(fields.shopZipInput),
     publicBookingLocalesKey: publicBookingLocalesKey(public_booking_locales),
     publicBookingDefaultLocale: public_booking_default_locale,
+    bookingPolicyEnabled: Boolean(fields.policyEnabled),
+    bookingPolicyText: normalizeBookingPolicyText(fields.policyInput).trim(),
   };
 }
 
@@ -119,6 +151,7 @@ export function bookingLinkEditSnapshotsEqual(a, b) {
   return (
     a.businessName === b.businessName &&
     a.businessType === b.businessType &&
+    a.specialtiesKey === b.specialtiesKey &&
     a.city === b.city &&
     a.state === b.state &&
     a.zip === b.zip &&
@@ -128,8 +161,13 @@ export function bookingLinkEditSnapshotsEqual(a, b) {
     a.serviceLocationMode === b.serviceLocationMode &&
     a.shopStreetAddress === b.shopStreetAddress &&
     a.shopUnit === b.shopUnit &&
+    a.shopCity === b.shopCity &&
+    a.shopState === b.shopState &&
+    a.shopZip === b.shopZip &&
     a.publicBookingLocalesKey === b.publicBookingLocalesKey &&
-    a.publicBookingDefaultLocale === b.publicBookingDefaultLocale
+    a.publicBookingDefaultLocale === b.publicBookingDefaultLocale &&
+    a.bookingPolicyEnabled === b.bookingPolicyEnabled &&
+    a.bookingPolicyText === b.bookingPolicyText
   );
 }
 
@@ -172,6 +210,7 @@ export function buildSaveBookingLinkTextVariables(args) {
     businessId,
     nameInput,
     typeInput,
+    specialtiesInput,
     cityInput,
     stateInput,
     zipInput,
@@ -180,6 +219,9 @@ export function buildSaveBookingLinkTextVariables(args) {
     serviceTypeInput,
     shopStreetInput,
     shopUnitInput,
+    shopCityInput,
+    shopStateInput,
+    shopZipInput,
     spanishEnabled,
     defaultLanguageInput,
     logoImageUri,
@@ -189,6 +231,8 @@ export function buildSaveBookingLinkTextVariables(args) {
     gallery,
     instagramInput,
     tiktokInput,
+    policyEnabled,
+    policyInput,
   } = args;
 
   const { public_booking_locales, public_booking_default_locale } = languagesToDb(
@@ -196,7 +240,14 @@ export function buildSaveBookingLinkTextVariables(args) {
     defaultLanguageInput === 'es' ? 'es' : 'en',
   );
 
-  const serviceLocationDb = serviceLocationToDb(serviceTypeInput, shopStreetInput, shopUnitInput);
+  const serviceLocationDb = serviceLocationToDb(
+    serviceTypeInput,
+    shopStreetInput,
+    shopUnitInput,
+    shopCityInput,
+    shopStateInput,
+    shopZipInput,
+  );
   const social_media = socialMediaToDb({
     instagram: instagramInput,
     tiktok: tiktokInput,
@@ -206,7 +257,8 @@ export function buildSaveBookingLinkTextVariables(args) {
     userId,
     businessId,
     businessName: nameInput,
-    businessType: typeInput,
+    businessType: canonicalizeBusinessType(typeInput) ?? String(typeInput ?? '').trim(),
+    specialties: specialtiesInput,
     city: cityInput,
     state: stateInput,
     zip: zipInput,
@@ -216,8 +268,14 @@ export function buildSaveBookingLinkTextVariables(args) {
     service_location_mode: serviceLocationDb.service_location_mode,
     shop_street_address: serviceLocationDb.shop_street_address,
     shop_unit: serviceLocationDb.shop_unit,
+    shop_city: serviceLocationDb.shop_city,
+    shop_state: serviceLocationDb.shop_state,
+    shop_zip: serviceLocationDb.shop_zip,
     public_booking_locales,
     public_booking_default_locale,
+    booking_policy_enabled:
+      Boolean(policyEnabled) && Boolean(normalizeBookingPolicyText(policyInput).trim()),
+    booking_policy_text: normalizeBookingPolicyText(policyInput).trim() || null,
     logoImageUri: logoImageUri ?? null,
     coverImageUri: coverImageUri ?? null,
     previousLogoPath: previousLogoPath ?? null,

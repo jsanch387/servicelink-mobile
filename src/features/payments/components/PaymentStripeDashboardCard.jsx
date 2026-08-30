@@ -1,12 +1,16 @@
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { AppText, Button, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { useAuth } from '../../auth';
 import { fetchStripeExpressDashboardUrl } from '../api/stripeExpressDashboard';
-import { STRIPE_GENERIC_DASHBOARD_URL } from '../constants/stripeUrls';
+import {
+  STRIPE_CARD_RATE_LABEL,
+  STRIPE_GENERIC_DASHBOARD_URL,
+  STRIPE_TAP_TO_PAY_RATE_LABEL,
+} from '../constants/stripeUrls';
 import { paymentLayoutStyles, paymentTextStyles } from '../constants/paymentTypography';
 
 /**
@@ -16,6 +20,49 @@ export function PaymentStripeDashboardCard({ stripeAccountId = null }) {
   const { colors } = useTheme();
   const { session } = useAuth();
   const [opening, setOpening] = useState(false);
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        card: {
+          gap: 14,
+        },
+        fees: {
+          borderTopColor: colors.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          gap: 8,
+          paddingTop: 12,
+        },
+        feesTitle: {
+          color: colors.textMuted,
+          fontSize: 12,
+          fontWeight: '600',
+          letterSpacing: -0.1,
+        },
+        feeRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          width: '100%',
+        },
+        feeLabelCol: {
+          flex: 1,
+          minWidth: 0,
+        },
+        feeLabel: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '400',
+        },
+        feeRateCol: {
+          justifyContent: 'center',
+        },
+        feeRate: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+        },
+      }),
+    [colors],
+  );
 
   const hasExpressAccount =
     typeof stripeAccountId === 'string' && stripeAccountId.trim().startsWith('acct_');
@@ -97,12 +144,25 @@ export function PaymentStripeDashboardCard({ stripeAccountId = null }) {
           void openDashboard();
         }}
       />
+      <View style={styles.fees}>
+        <AppText style={styles.feesTitle}>Stripe charges</AppText>
+        <View style={styles.feeRow}>
+          <View style={styles.feeLabelCol}>
+            <AppText style={styles.feeLabel}>Cards</AppText>
+          </View>
+          <View style={styles.feeRateCol}>
+            <AppText style={styles.feeRate}>{STRIPE_CARD_RATE_LABEL}</AppText>
+          </View>
+        </View>
+        <View style={styles.feeRow}>
+          <View style={styles.feeLabelCol}>
+            <AppText style={styles.feeLabel}>Tap to pay</AppText>
+          </View>
+          <View style={styles.feeRateCol}>
+            <AppText style={styles.feeRate}>{STRIPE_TAP_TO_PAY_RATE_LABEL}</AppText>
+          </View>
+        </View>
+      </View>
     </SurfaceCard>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    gap: 14,
-  },
-});

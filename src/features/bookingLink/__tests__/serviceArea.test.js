@@ -1,3 +1,4 @@
+import { formatServiceCoverageLabel } from '../edit/utils/formatBookingServiceAreaLabel';
 import {
   buildServiceArea,
   parseServiceAreaCityState,
@@ -46,5 +47,19 @@ describe('buildServiceArea', () => {
 
   it('returns null when all empty', () => {
     expect(buildServiceArea('', '')).toBe(null);
+  });
+});
+
+describe('formatServiceCoverageLabel', () => {
+  it('includes radius miles', () => {
+    expect(formatServiceCoverageLabel('Austin', 'TX', 25)).toBe('Austin, TX · 25 mi');
+  });
+
+  it('omits radius when missing', () => {
+    expect(formatServiceCoverageLabel('Austin', 'TX', null)).toBe('Austin, TX');
+  });
+
+  it('returns null without city and state', () => {
+    expect(formatServiceCoverageLabel('', '', 25)).toBeNull();
   });
 });

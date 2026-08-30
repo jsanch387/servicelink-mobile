@@ -1,3 +1,5 @@
+import { sanitizeBusinessSpecialties } from '../../../constants/businessSpecialties';
+import { canonicalizeBusinessType } from '../../../constants/businessTypes';
 import { supabase } from '../../../lib/supabase';
 import { normalizePhoneForDatabase } from '../../../utils/phone';
 import { buildServiceArea, normalizeBusinessZip } from '../utils/serviceArea';
@@ -21,6 +23,7 @@ const MEDIA_BUCKET = BUSINESS_IMAGES_BUCKET;
  * @param {string} input.businessId
  * @param {string} input.businessName
  * @param {string} input.businessType
+ * @param {string[] | null | undefined} [input.specialties]
  * @param {string} input.city
  * @param {string} input.state
  * @param {string} input.zip
@@ -30,8 +33,13 @@ const MEDIA_BUCKET = BUSINESS_IMAGES_BUCKET;
  * @param {string} input.service_location_mode
  * @param {string | null} input.shop_street_address
  * @param {string | null} input.shop_unit
+ * @param {string | null} [input.shop_city]
+ * @param {string | null} [input.shop_state]
+ * @param {string | null} [input.shop_zip]
  * @param {string[]} input.public_booking_locales
  * @param {string} input.public_booking_default_locale
+ * @param {boolean} [input.booking_policy_enabled]
+ * @param {string | null} [input.booking_policy_text]
  * @param {string | null | undefined} [input.logoImageUri]
  * @param {string | null | undefined} [input.coverImageUri]
  * @param {string | null | undefined} [input.previousLogoPath]
@@ -45,6 +53,7 @@ export async function saveOwnerBookingLink(input) {
     businessId,
     businessName,
     businessType,
+    specialties,
     city,
     state,
     zip,
@@ -54,8 +63,13 @@ export async function saveOwnerBookingLink(input) {
     service_location_mode,
     shop_street_address,
     shop_unit,
+    shop_city,
+    shop_state,
+    shop_zip,
     public_booking_locales,
     public_booking_default_locale,
+    booking_policy_enabled,
+    booking_policy_text,
     logoImageUri,
     coverImageUri,
     previousLogoPath,
@@ -68,7 +82,8 @@ export async function saveOwnerBookingLink(input) {
   }
 
   let name = String(businessName ?? '').trim();
-  let type = String(businessType ?? '').trim();
+  let type = canonicalizeBusinessType(businessType) ?? String(businessType ?? '').trim();
+  const specialtiesToStore = sanitizeBusinessSpecialties(specialties);
 
   if (!name || !type) {
     const { data: existing, error: existingErr } = await supabase
@@ -143,6 +158,7 @@ export async function saveOwnerBookingLink(input) {
   const updateRow = {
     business_name: name,
     business_type: type,
+    specialties: specialtiesToStore,
     service_area: serviceArea,
     business_zip: businessZip,
     bio: bioText || null,
@@ -151,8 +167,14 @@ export async function saveOwnerBookingLink(input) {
     service_location_mode,
     shop_street_address,
     shop_unit,
+    shop_city,
+    shop_state,
+    shop_zip,
     public_booking_locales,
     public_booking_default_locale,
+    booking_policy_enabled:
+      Boolean(booking_policy_enabled) && Boolean(String(booking_policy_text ?? '').trim()),
+    booking_policy_text: String(booking_policy_text ?? '').trim() || null,
     updated_at: new Date().toISOString(),
     ...(logoResult ? { logo_path: logoResult.storagePath } : {}),
     ...(bannerResult ? { banner_path: bannerResult.storagePath } : {}),

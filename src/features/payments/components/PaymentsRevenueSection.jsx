@@ -6,6 +6,7 @@ import { AppText, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { REVENUE_RANGE, REVENUE_EMPTY_CAPTION } from '../constants/paymentsRevenueRanges';
 import { usePaymentsRevenue } from '../hooks/usePaymentsRevenue';
+import { formatRevenueWindowCaption } from '../utils/revenueDateWindows';
 import { PaymentsRevenueRangePicker } from './PaymentsRevenueRangePicker';
 
 const CHART_H = 200;
@@ -115,6 +116,8 @@ export function PaymentsRevenueSection({ businessId }) {
     setRange,
     customFromYmd,
     customToYmd,
+    fromYmd,
+    toYmd,
     selectCustomRange,
     summary,
     isPending,
@@ -123,6 +126,11 @@ export function PaymentsRevenueSection({ businessId }) {
   } = usePaymentsRevenue({
     businessId,
   });
+
+  const windowCaption = useMemo(
+    () => formatRevenueWindowCaption(fromYmd, toYmd),
+    [fromYmd, toYmd],
+  );
 
   const bars = summary.bars;
   const best = pickBest(bars);
@@ -172,23 +180,52 @@ export function PaymentsRevenueSection({ businessId }) {
           flexDirection: 'row',
           gap: 12,
           justifyContent: 'space-between',
+          width: '100%',
+        },
+        amountCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+        },
+        rangeCol: {
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+        },
+        metaRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 12,
+          justifyContent: 'space-between',
+          marginTop: 2,
+          width: '100%',
+        },
+        metaLeft: {
+          flex: 1,
+          minWidth: 0,
+        },
+        rangeDatesCol: {
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+        },
+        rangeDates: {
+          color: colors.textMuted,
+          fontSize: 12,
+          fontWeight: '500',
+          letterSpacing: -0.1,
+          textAlign: 'right',
         },
         heroAmount: {
           color: colors.text,
-          flex: 1,
-          flexShrink: 1,
           fontFamily: FONT_FAMILIES.bold,
           fontSize: 40,
           fontWeight: '700',
           letterSpacing: -1.4,
           lineHeight: 46,
-          minWidth: 0,
         },
         changePill: {
           alignSelf: 'flex-start',
           backgroundColor: isDark ? 'rgba(52, 199, 89, 0.16)' : 'rgba(22, 163, 74, 0.12)',
           borderRadius: 999,
-          marginTop: 2,
           paddingHorizontal: 10,
           paddingVertical: 5,
         },
@@ -356,7 +393,6 @@ export function PaymentsRevenueSection({ businessId }) {
           fontWeight: '500',
           letterSpacing: -0.1,
           lineHeight: 18,
-          marginTop: 8,
         },
       }),
     [colors, isDark],
@@ -395,30 +431,43 @@ export function PaymentsRevenueSection({ businessId }) {
       <View style={styles.heroBlock}>
         <View style={styles.heroHeader}>
           <View style={styles.amountRow}>
-            <AppText style={styles.heroAmount}>{formatUsd(summary.collectedCents)}</AppText>
-            <PaymentsRevenueRangePicker
-              customFromYmd={customFromYmd}
-              customToYmd={customToYmd}
-              value={range}
-              onChange={setRange}
-              onSelectCustom={selectCustomRange}
-            />
+            <View style={styles.amountCol}>
+              <AppText style={styles.heroAmount}>{formatUsd(summary.collectedCents)}</AppText>
+            </View>
+            <View style={styles.rangeCol}>
+              <PaymentsRevenueRangePicker
+                customFromYmd={customFromYmd}
+                customToYmd={customToYmd}
+                value={range}
+                onChange={setRange}
+                onSelectCustom={selectCustomRange}
+              />
+            </View>
           </View>
-          {isEmpty ? (
-            <AppText style={styles.emptyCaption}>{REVENUE_EMPTY_CAPTION}</AppText>
-          ) : showChange ? (
-            <View style={[styles.changePill, !changeUp && styles.changePillDown]}>
-              <AppText style={[styles.changePillText, !changeUp && styles.changePillTextDown]}>
-                {changeUp ? '↑' : '↓'} {Math.abs(changePct)}% {summary.compareLabel}
-              </AppText>
+          <View style={styles.metaRow}>
+            <View style={styles.metaLeft}>
+              {isEmpty ? (
+                <AppText style={styles.emptyCaption}>{REVENUE_EMPTY_CAPTION}</AppText>
+              ) : showChange ? (
+                <View style={[styles.changePill, !changeUp && styles.changePillDown]}>
+                  <AppText style={[styles.changePillText, !changeUp && styles.changePillTextDown]}>
+                    {changeUp ? '↑' : '↓'} {Math.abs(changePct)}% {summary.compareLabel}
+                  </AppText>
+                </View>
+              ) : range === REVENUE_RANGE.ALL ? (
+                <View style={[styles.changePill, styles.changePillMuted]}>
+                  <AppText style={[styles.changePillText, styles.changePillTextMuted]}>
+                    All completed jobs
+                  </AppText>
+                </View>
+              ) : null}
             </View>
-          ) : range === REVENUE_RANGE.ALL ? (
-            <View style={[styles.changePill, styles.changePillMuted]}>
-              <AppText style={[styles.changePillText, styles.changePillTextMuted]}>
-                All completed jobs
-              </AppText>
-            </View>
-          ) : null}
+            {windowCaption ? (
+              <View style={styles.rangeDatesCol}>
+                <AppText style={styles.rangeDates}>{windowCaption}</AppText>
+              </View>
+            ) : null}
+          </View>
         </View>
 
         <View style={styles.chartWrap}>

@@ -1,5 +1,4 @@
 import { buildProfileCompletionChecklist } from '../edit/utils/profileCompletionChecklist';
-import { BOOKING_SERVICE_TYPE_SHOP } from '../edit/constants/bookingLinkBookingTab';
 
 describe('buildProfileCompletionChecklist', () => {
   it('returns zero percent when nothing is filled', () => {
@@ -8,12 +7,16 @@ describe('buildProfileCompletionChecklist', () => {
     expect(result.items.every((item) => !item.complete)).toBe(true);
   });
 
-  it('includes shop street when shop mode is selected', () => {
+  it('treats location as complete when city and state are set', () => {
     const result = buildProfileCompletionChecklist({
-      serviceTypeInput: BOOKING_SERVICE_TYPE_SHOP,
-      shopStreetInput: '',
+      cityInput: 'Austin',
+      stateInput: 'TX',
     });
-    expect(result.items.some((item) => item.id === 'shopStreet')).toBe(true);
+    expect(result.items.find((item) => item.id === 'location')).toEqual({
+      id: 'location',
+      label: 'Location',
+      complete: true,
+    });
   });
 
   it('includes bio in checklist', () => {
@@ -31,7 +34,8 @@ describe('buildProfileCompletionChecklist', () => {
       hasCover: true,
       hasLogo: true,
       nameInput: 'Shop',
-      typeInput: 'Detailing',
+      typeInput: 'Vehicle Services',
+      specialtiesInput: ['detailing'],
       cityInput: 'Austin',
       stateInput: 'TX',
       zipInput: '78701',

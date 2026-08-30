@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceTextField } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import {
@@ -9,6 +9,7 @@ import {
   hasMapTilerApiKey,
   searchLocations,
 } from '../services/locationAutocomplete';
+import { useLocationSuggestionOverlay } from './LocationSuggestionOverlay';
 
 const MIN_AUTOCOMPLETE_QUERY_LENGTH = 3;
 const AUTOCOMPLETE_DEBOUNCE_MS = 450;
@@ -23,6 +24,7 @@ const AUTOCOMPLETE_DEBOUNCE_MS = 450;
  *   selectedLocation?: import('../types/location').StructuredLocation | null;
  *   mode?: import('../types/location').LocationAutocompleteMode;
  *   label?: string;
+ *   leftIcon?: string;
  *   placeholder?: string;
  *   errorText?: string;
  *   containerStyle?: object;
@@ -38,6 +40,7 @@ export function LocationAutocompleteField({
   selectedLocation = null,
   mode = 'service-origin',
   label = 'Location',
+  leftIcon = 'location-outline',
   placeholder = 'Search city or address',
   errorText,
   containerStyle,
@@ -46,6 +49,8 @@ export function LocationAutocompleteField({
   onProviderUnavailable,
 }) {
   const { colors, isDark } = useTheme();
+  const setOverlay = useLocationSuggestionOverlay();
+  const fieldRef = useRef(null);
   const suppressSearchUntilEditRef = useRef(false);
   const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -149,13 +154,13 @@ export function LocationAutocompleteField({
           left: 0,
           maxHeight: 220,
           overflow: 'hidden',
-          position: 'absolute',
+          position: setOverlay ? 'relative' : 'absolute',
           right: 0,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 8 },
           shadowOpacity: isDark ? 0.4 : 0.12,
           shadowRadius: 16,
-          top: fieldHeight > 0 ? fieldHeight + 8 : '100%',
+          top: setOverlay ? 0 : fieldHeight > 0 ? fieldHeight + 8 : '100%',
           width: '100%',
           zIndex: 50,
         },
@@ -218,7 +223,7 @@ export function LocationAutocompleteField({
           fontWeight: '500',
         },
       }),
-    [colors, fieldHeight, iconBg, isDark, pressedBg, showSuggestions],
+    [colors, fieldHeight, iconBg, isDark, pressedBg, setOverlay, showSuggestions],
   );
 
   const renderStatusRow = (iconNode, title, subtitle, titleColor) => (
@@ -231,8 +236,102 @@ export function LocationAutocompleteField({
     </View>
   );
 
+  const suggestionPanel = showSuggestions ? (
+    <View style={styles.suggestions}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        bounces={false}
+        style={styles.suggestionScroll}
+        contentContainerStyle={styles.suggestionScrollContent}
+      >
+        {isLoading && suggestions.length === 0
+          ? renderStatusRow(
+              <ActivityIndicator color={colors.textMuted} size="small" />,
+              'Finding locations',
+              'Searching nearby places…',
+            )
+          : providerError
+            ? renderStatusRow(
+                <Ionicons color={colors.danger} name="alert-circle-outline" size={16} />,
+                providerError,
+                null,
+                colors.danger,
+              )
+            : suggestions.length === 0
+              ? renderStatusRow(
+                  <Ionicons color={colors.textMuted} name="location-outline" size={16} />,
+                  'No locations found',
+                  'Check the spelling or try a nearby ZIP code.',
+                )
+              : suggestions.map((location) => (
+                  <Pressable
+                    key={location.providerId}
+                    accessibilityRole="button"
+                    style={styles.rowPressable}
+                    onPress={() => pickLocation(location)}
+                  >
+                    {({ pressed }) => (
+                      <View style={[styles.row, pressed ? styles.rowPressed : null]}>
+                        <View style={styles.iconBadge}>
+                          <Ionicons color={colors.textMuted} name="location-outline" size={16} />
+                        </View>
+                        <View style={styles.textCol}>
+                          <AppText numberOfLines={1} style={styles.title}>
+                            {formatLocationDisplay(location)}
+                          </AppText>
+                          <AppText numberOfLines={1} style={styles.subtitle}>
+                            {formatLocationSuggestionKind(location.placeType)}
+                          </AppText>
+                        </View>
+                      </View>
+                    )}
+                  </Pressable>
+                ))}
+      </ScrollView>
+      {showProviderFooter ? (
+        <View style={styles.footer}>
+          <AppText style={styles.footerText}>US locations · Powered by MapTiler</AppText>
+        </View>
+      ) : null}
+    </View>
+  ) : null;
+
+  useEffect(() => {
+    if (!setOverlay) return undefined;
+    if (!showSuggestions || !suggestionPanel) {
+      setOverlay(null);
+      return undefined;
+    }
+
+    const publish = () => {
+      fieldRef.current?.measureInWindow((x, y, width, height) => {
+        if (width <= 0) return;
+        setOverlay({
+          left: x,
+          top: y + height + 8,
+          width,
+          node: suggestionPanel,
+        });
+      });
+    };
+
+    publish();
+    const showSub = Keyboard.addListener('keyboardDidShow', publish);
+    const hideSub = Keyboard.addListener('keyboardDidHide', publish);
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [setOverlay, showSuggestions, suggestionPanel]);
+
+  useEffect(() => {
+    if (!setOverlay) return undefined;
+    return () => setOverlay(null);
+  }, [setOverlay]);
+
   return (
-    <View style={[styles.root, containerStyle]}>
+    <View ref={fieldRef} collapsable={false} style={[styles.root, containerStyle]}>
       <View
         style={styles.fieldWrap}
         onLayout={(event) => {
@@ -249,7 +348,7 @@ export function LocationAutocompleteField({
           containerStyle={{ marginBottom: 0 }}
           errorText={errorText}
           label={label}
-          leftIcon="search-outline"
+          leftIcon={leftIcon}
           placeholder={placeholder}
           value={value}
           onBlur={() => {
@@ -267,70 +366,7 @@ export function LocationAutocompleteField({
         />
       </View>
 
-      {showSuggestions ? (
-        <View style={styles.suggestions}>
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled
-            bounces={false}
-            style={styles.suggestionScroll}
-            contentContainerStyle={styles.suggestionScrollContent}
-          >
-            {isLoading && suggestions.length === 0
-              ? renderStatusRow(
-                  <ActivityIndicator color={colors.textMuted} size="small" />,
-                  'Finding locations',
-                  'Searching nearby places…',
-                )
-              : providerError
-                ? renderStatusRow(
-                    <Ionicons color={colors.danger} name="alert-circle-outline" size={16} />,
-                    providerError,
-                    null,
-                    colors.danger,
-                  )
-                : suggestions.length === 0
-                  ? renderStatusRow(
-                      <Ionicons color={colors.textMuted} name="location-outline" size={16} />,
-                      'No locations found',
-                      'Check the spelling or try a nearby ZIP code.',
-                    )
-                  : suggestions.map((location) => (
-                      <Pressable
-                        key={location.providerId}
-                        accessibilityRole="button"
-                        style={styles.rowPressable}
-                        onPress={() => pickLocation(location)}
-                      >
-                        {({ pressed }) => (
-                          <View style={[styles.row, pressed ? styles.rowPressed : null]}>
-                            <View style={styles.iconBadge}>
-                              <Ionicons
-                                color={colors.textMuted}
-                                name="location-outline"
-                                size={16}
-                              />
-                            </View>
-                            <View style={styles.textCol}>
-                              <AppText numberOfLines={1} style={styles.title}>
-                                {formatLocationDisplay(location)}
-                              </AppText>
-                              <AppText numberOfLines={1} style={styles.subtitle}>
-                                {formatLocationSuggestionKind(location.placeType)}
-                              </AppText>
-                            </View>
-                          </View>
-                        )}
-                      </Pressable>
-                    ))}
-          </ScrollView>
-          {showProviderFooter ? (
-            <View style={styles.footer}>
-              <AppText style={styles.footerText}>US locations · Powered by MapTiler</AppText>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
+      {setOverlay ? null : suggestionPanel}
     </View>
   );
 }

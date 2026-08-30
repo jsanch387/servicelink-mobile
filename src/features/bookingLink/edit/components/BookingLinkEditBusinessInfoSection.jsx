@@ -1,5 +1,12 @@
 import { View } from 'react-native';
-import { AppText, SelectField, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
+import {
+  AppText,
+  SelectField,
+  SpecialtyChips,
+  SurfaceCard,
+  SurfaceTextField,
+} from '../../../../components/ui';
+import { getSpecialtiesForBusinessType } from '../../../../constants/businessSpecialties';
 
 export function BookingLinkEditBusinessInfoSection({
   styles,
@@ -9,15 +16,12 @@ export function BookingLinkEditBusinessInfoSection({
   businessTypeOptions,
   typeInput,
   onTypeInputChange,
-  cityInput,
-  onCityInputChange,
-  stateInput,
-  onStateInputChange,
-  zipInput,
-  onZipInputChange,
-  bioInput,
-  onBioInputChange,
+  specialtiesInput,
+  onSpecialtiesChange,
+  specialtyError,
 }) {
+  const specialtyOptions = typeInput ? getSpecialtiesForBusinessType(typeInput) : [];
+
   return (
     <View style={[styles.infoSection, rootStyle]}>
       <AppText style={styles.sectionTitle}>Business Information</AppText>
@@ -29,56 +33,41 @@ export function BookingLinkEditBusinessInfoSection({
           onChangeText={onNameInputChange}
         />
 
-        <View style={styles.infoField}>
+        <View style={styles.infoFieldLast}>
           <SelectField
             fieldStyle={styles.infoSelectFieldFlushTop}
-            label="Business Type *"
+            label="Business type"
             options={businessTypeOptions}
             presentation="wheel"
             value={typeInput}
             onValueChange={onTypeInputChange}
           />
-        </View>
-
-        <SurfaceTextField
-          containerStyle={styles.infoField}
-          label="City *"
-          value={cityInput}
-          onChangeText={onCityInputChange}
-        />
-
-        <View style={styles.locationFieldsRow}>
-          <SurfaceTextField
-            autoCapitalize="characters"
-            containerStyle={[styles.infoField, styles.locationFieldState]}
-            label="State *"
-            maxLength={2}
-            value={stateInput}
-            onChangeText={onStateInputChange}
-          />
-
-          <SurfaceTextField
-            containerStyle={[styles.infoField, styles.locationFieldZip]}
-            keyboardType="number-pad"
-            label="ZIP *"
-            maxLength={5}
-            value={zipInput}
-            onChangeText={onZipInputChange}
-          />
+          {specialtyOptions.length > 0 ? (
+            <SpecialtyChips
+              error={specialtyError}
+              options={specialtyOptions}
+              value={specialtiesInput}
+              onChange={onSpecialtiesChange}
+            />
+          ) : null}
         </View>
       </SurfaceCard>
+    </View>
+  );
+}
 
-      <View style={styles.bioSection}>
-        <AppText style={styles.sectionTitle}>Business Bio (Optional)</AppText>
-        <SurfaceTextField
-          containerStyle={styles.bioFieldWrap}
-          multiline
-          style={styles.bioInput}
-          textAlignVertical="top"
-          value={bioInput}
-          onChangeText={onBioInputChange}
-        />
-      </View>
+export function BookingLinkEditBioSection({ styles, bioInput, onBioInputChange }) {
+  return (
+    <View style={styles.bioSection}>
+      <AppText style={styles.sectionTitle}>Business Bio (Optional)</AppText>
+      <SurfaceTextField
+        containerStyle={styles.bioFieldWrap}
+        multiline
+        style={styles.bioInput}
+        textAlignVertical="top"
+        value={bioInput}
+        onChangeText={onBioInputChange}
+      />
     </View>
   );
 }

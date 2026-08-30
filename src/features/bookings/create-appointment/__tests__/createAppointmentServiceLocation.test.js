@@ -28,6 +28,9 @@ describe('createAppointmentServiceLocation', () => {
       addressFormFromBusinessShopLocation({
         shopStreetAddress: '123 Main',
         shopUnit: 'Suite 1',
+        shopCity: 'Pflugerville',
+        shopState: 'TX',
+        shopZip: '78660',
         city: 'Austin',
         state: 'TX',
         zip: '78701',
@@ -35,9 +38,9 @@ describe('createAppointmentServiceLocation', () => {
     ).toEqual({
       street: '123 Main',
       unit: 'Suite 1',
-      city: 'Austin',
+      city: 'Pflugerville',
       state: 'TX',
-      zip: '78701',
+      zip: '78660',
     });
   });
 

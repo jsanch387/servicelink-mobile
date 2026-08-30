@@ -49,6 +49,10 @@ jest.mock('../../features/tap-to-pay/components/TapToPayWarmupBootstrap', () => 
   TapToPayWarmupBootstrap: () => null,
 }));
 
+jest.mock('../../features/bookingLink/components/ShopAddressUpdatePrompt', () => ({
+  ShopAddressUpdatePrompt: () => null,
+}));
+
 jest.mock('../../features/location', () => ({
   LocationCollectionModal: () => null,
   useLocationPrompt: () => ({

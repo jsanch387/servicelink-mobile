@@ -195,6 +195,26 @@ export function formatRevenueCustomRangeLabel(fromYmd, toYmd) {
 }
 
 /**
+ * Caption under the range picker: "Aug 1 – Aug 31".
+ * @param {string | null | undefined} fromYmd
+ * @param {string | null | undefined} toYmd
+ * @returns {string | null}
+ */
+export function formatRevenueWindowCaption(fromYmd, toYmd) {
+  const fromKey = String(fromYmd ?? '').trim();
+  const toKey = String(toYmd ?? '').trim();
+  if (!fromKey || !toKey) return null;
+
+  const from = parseLocalYmd(fromKey);
+  const to = parseLocalYmd(toKey);
+  const monthDay = (d) => `${MONTH_SHORT[d.getMonth()]} ${d.getDate()}`;
+  if (from.getFullYear() !== to.getFullYear()) {
+    return `${monthDay(from)}, ${from.getFullYear()} – ${monthDay(to)}, ${to.getFullYear()}`;
+  }
+  return `${monthDay(from)} – ${monthDay(to)}`;
+}
+
+/**
  * @param {string} ymd - YYYY-MM-DD
  * @returns {Date}
  */

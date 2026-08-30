@@ -1,44 +1,46 @@
 import { useMemo } from 'react';
-import { Pressable, Switch, View } from 'react-native';
+import { Switch, View } from 'react-native';
 import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
+import { LocationAutocompleteField, ServiceAreaFields } from '../../../location';
 import { useTheme } from '../../../../theme';
 import {
   BOOKING_DEFAULT_LANGUAGE_OPTIONS,
   BOOKING_SERVICE_TYPE_OPTIONS,
   bookingServiceTypeShowsServiceArea,
   bookingServiceTypeShowsShopAddress,
-  getBookingServiceTypeDescription,
 } from '../constants/bookingLinkBookingTab';
-import { formatBookingServiceAreaLabel } from '../utils/formatBookingServiceAreaLabel';
+import { BookingLinkEditCustomerPolicySection } from './BookingLinkEditCustomerPolicySection';
 import { BookingLinkEditInlineSegment } from './BookingLinkEditInlineSegment';
 
 export function BookingLinkEditBookingSection({
   styles,
   rootStyle,
-  cityInput,
-  stateInput,
-  zipInput,
-  onCityInputChange,
-  onStateInputChange,
-  onZipInputChange,
+  locationInput,
+  selectedLocation,
+  locationError,
+  radiusInput,
   serviceType,
   onServiceTypeChange,
-  shopStreetInput,
-  onShopStreetInputChange,
+  onLocationInputChange,
+  onLocationSelect,
+  onRadiusChange,
+  shopAddressInput,
+  selectedShopLocation,
+  shopAddressError,
+  onShopAddressInputChange,
+  onShopAddressSelect,
   shopUnitInput,
   onShopUnitInputChange,
   spanishEnabled,
   onSpanishEnabledChange,
   defaultLanguage,
   onDefaultLanguageChange,
-  onGoToDetailsTab,
+  policyEnabled,
+  onPolicyEnabledChange,
+  policyInput,
+  onPolicyInputChange,
 }) {
   const { colors, isDark } = useTheme();
-
-  const serviceAreaLabel = useMemo(
-    () => formatBookingServiceAreaLabel(cityInput, stateInput, zipInput),
-    [cityInput, stateInput, zipInput],
-  );
 
   const showShopAddress = bookingServiceTypeShowsShopAddress(serviceType);
   const showServiceArea = bookingServiceTypeShowsServiceArea(serviceType);
@@ -53,7 +55,7 @@ export function BookingLinkEditBookingSection({
       <View style={styles.bookingBlock}>
         <AppText style={styles.sectionTitle}>Where you work</AppText>
 
-        <SurfaceCard padding="md" style={styles.editSectionCard}>
+        <SurfaceCard padding="md" style={[styles.editSectionCard, styles.bookingWhereCard]}>
           <BookingLinkEditInlineSegment
             accessibilityLabel="Service type"
             options={BOOKING_SERVICE_TYPE_OPTIONS}
@@ -62,71 +64,47 @@ export function BookingLinkEditBookingSection({
             onSelect={onServiceTypeChange}
           />
 
-          <AppText style={styles.bookingHelperText}>
-            {getBookingServiceTypeDescription(serviceType)}
-          </AppText>
-
           {showShopAddress ? (
             <View style={styles.bookingShopFields}>
-              <SurfaceTextField
-                containerStyle={styles.infoField}
-                label="Street address *"
-                placeholder="123 Main St"
-                value={shopStreetInput}
-                onChangeText={onShopStreetInputChange}
+              <LocationAutocompleteField
+                errorText={shopAddressError}
+                label="Shop address"
+                leftIcon="location-outline"
+                mode="customer-address"
+                placeholder="Search street address"
+                selectedLocation={selectedShopLocation}
+                showProviderFooter={false}
+                value={shopAddressInput}
+                onChangeText={onShopAddressInputChange}
+                onSelect={onShopAddressSelect}
               />
-
               <SurfaceTextField
-                containerStyle={styles.infoField}
-                label="Unit / suite (Optional)"
+                containerStyle={styles.infoFieldLast}
+                label="Unit (optional)"
                 placeholder="Suite 4"
                 value={shopUnitInput}
                 onChangeText={onShopUnitInputChange}
               />
-
-              <SurfaceTextField
-                containerStyle={styles.infoField}
-                label="City *"
-                value={cityInput}
-                onChangeText={onCityInputChange}
-              />
-
-              <View style={styles.locationFieldsRow}>
-                <SurfaceTextField
-                  autoCapitalize="characters"
-                  containerStyle={[styles.infoField, styles.locationFieldState]}
-                  label="State *"
-                  maxLength={2}
-                  value={stateInput}
-                  onChangeText={onStateInputChange}
-                />
-
-                <SurfaceTextField
-                  containerStyle={[styles.infoField, styles.locationFieldZip]}
-                  keyboardType="number-pad"
-                  label="ZIP *"
-                  maxLength={5}
-                  value={zipInput}
-                  onChangeText={onZipInputChange}
-                />
-              </View>
             </View>
           ) : null}
 
           {showServiceArea ? (
-            <View style={styles.bookingAreaFooter}>
-              <AppText style={styles.bookingAreaFooterText}>
-                {`Your area: ${serviceAreaLabel ?? 'not set'} · `}
-              </AppText>
-              <Pressable
-                accessibilityHint="Opens the Details tab to edit city, state, and ZIP"
-                accessibilityLabel="Edit service area in Details"
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={onGoToDetailsTab}
-              >
-                <AppText style={styles.bookingAreaFooterLink}>edit in Details</AppText>
-              </Pressable>
+            <View
+              style={
+                showShopAddress ? styles.bookingMobileFieldsAfterShop : styles.bookingMobileFields
+              }
+            >
+              <ServiceAreaFields
+                footer="none"
+                locationError={locationError}
+                locationInput={locationInput}
+                locationLabel="Service area"
+                radius={radiusInput}
+                selectedLocation={selectedLocation}
+                onLocationInputChange={onLocationInputChange}
+                onLocationSelect={onLocationSelect}
+                onRadiusChange={onRadiusChange}
+              />
             </View>
           ) : null}
         </SurfaceCard>
@@ -162,6 +140,14 @@ export function BookingLinkEditBookingSection({
           ) : null}
         </SurfaceCard>
       </View>
+
+      <BookingLinkEditCustomerPolicySection
+        policyEnabled={policyEnabled}
+        policyInput={policyInput}
+        styles={styles}
+        onPolicyEnabledChange={onPolicyEnabledChange}
+        onPolicyInputChange={onPolicyInputChange}
+      />
     </View>
   );
 }

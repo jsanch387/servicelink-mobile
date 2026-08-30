@@ -1,5 +1,9 @@
 import { supabase } from '../../../lib/supabase';
-import { BUSINESS_TYPE_OPTIONS } from '../../../constants/businessTypeOptions';
+import { sanitizeBusinessSpecialties, SPECIALTIES_REQUIRED_ERROR } from '../../../constants/businessSpecialties';
+import {
+  canonicalizeBusinessType,
+  isAllowedBusinessTypeValue,
+} from '../../../constants/businessTypes';
 import { getSession } from '../../auth/api/auth';
 import {
   MAX_ONBOARDING_BUSINESS_NAME_LENGTH,
@@ -22,8 +26,7 @@ import {
 } from '../../services/api/services';
 
 function isAllowedBusinessType(value) {
-  const v = String(value ?? '').trim();
-  return BUSINESS_TYPE_OPTIONS.some((o) => o.value === v);
+  return isAllowedBusinessTypeValue(value);
 }
 
 function clampOnboardingStep(n) {
@@ -88,14 +91,18 @@ function generatePublicId() {
  * Onboarding step 1 via Supabase: upsert `business_profiles` (name + type), then set
  * `profiles.onboarding_status = 'in_progress'` and `onboarding_step = 2`.
  *
- * @param {{ businessName: string; businessType: string }} input
+ * @param {{ businessName: string; businessType: string; specialties?: string[] }} input
  * @returns {Promise<{ ok: true } | { ok: false; error: Error }>}
  */
-export async function saveOnboardingStep1({ businessName, businessType }) {
+export async function saveOnboardingStep1({ businessName, businessType, specialties }) {
   const name = String(businessName ?? '').trim();
-  const type = String(businessType ?? '').trim();
+  const type = canonicalizeBusinessType(businessType) ?? String(businessType ?? '').trim();
+  const specialtiesToStore = sanitizeBusinessSpecialties(specialties);
   if (!name || !type || !isAllowedBusinessType(type)) {
     return { ok: false, error: new Error('Enter a valid business name and type.') };
+  }
+  if (specialtiesToStore.length === 0) {
+    return { ok: false, error: new Error(SPECIALTIES_REQUIRED_ERROR) };
   }
   if (name.length > MAX_ONBOARDING_BUSINESS_NAME_LENGTH) {
     return {
@@ -131,6 +138,7 @@ export async function saveOnboardingStep1({ businessName, businessType }) {
       .update({
         business_name: name,
         business_type: type,
+        specialties: specialtiesToStore,
       })
       .eq('id', existing.id)
       .eq('profile_id', userId);
@@ -149,6 +157,7 @@ export async function saveOnboardingStep1({ businessName, businessType }) {
           public_id,
           business_name: name,
           business_type: type,
+          specialties: specialtiesToStore,
           business_slug: null,
         })
         .select('id')
@@ -185,6 +194,7 @@ export async function saveOnboardingStep1({ businessName, businessType }) {
         .update({
           business_name: name,
           business_type: type,
+          specialties: specialtiesToStore,
         })
         .eq('id', raced.id)
         .eq('profile_id', userId);

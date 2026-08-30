@@ -5,6 +5,7 @@ import {
   resolveStripeMobileCheckoutOrigin,
 } from '../../../lib/stripeMobileCheckoutOrigin';
 import { clearServiceAreaSessionSkip } from '../constants/serviceAreaPrompt';
+import { mapServiceAreaRow } from '../utils/mapServiceAreaRow';
 
 /**
  * Resolve the owner's business_profiles.id.
@@ -89,6 +90,45 @@ export async function checkUserLocationStatus(userId) {
       hasConfirmedServiceArea: false,
       businessProfileId: null,
       error: err instanceof Error ? err : new Error('Failed to check service area'),
+    };
+  }
+}
+
+/**
+ * Primary active service area for a business profile (MapTiler city/state/ZIP + radius).
+ * @param {string} businessProfileId
+ * @returns {Promise<{
+ *   serviceArea: {
+ *     location: import('../types/location').StructuredLocation | null;
+ *     radiusMiles: number;
+ *     label: string;
+ *   } | null;
+ *   error: Error | null;
+ * }>}
+ */
+export async function fetchPrimaryServiceArea(businessProfileId) {
+  if (!businessProfileId) {
+    return { serviceArea: null, error: new Error('Missing business profile') };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('business_service_areas')
+      .select('*')
+      .eq('business_profile_id', businessProfileId)
+      .eq('is_primary', true)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      return { serviceArea: null, error: new Error(error.message) };
+    }
+
+    return { serviceArea: mapServiceAreaRow(data), error: null };
+  } catch (err) {
+    return {
+      serviceArea: null,
+      error: err instanceof Error ? err : new Error('Failed to load service area'),
     };
   }
 }

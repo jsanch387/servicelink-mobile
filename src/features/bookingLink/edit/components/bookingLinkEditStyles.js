@@ -25,6 +25,7 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       zIndex: 10,
     },
     tabPanel: {
+      overflow: 'visible',
       paddingTop: EDIT_CHROME_GAP,
     },
     content: {},
@@ -33,9 +34,12 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
     },
     bookingTabSection: {
       alignSelf: 'stretch',
+      overflow: 'visible',
     },
     bookingBlock: {
       marginBottom: SECTION_STACK_GAP,
+      overflow: 'visible',
+      zIndex: 20,
     },
     bookingHelperText: {
       color: colors.textMuted,
@@ -45,32 +49,28 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       lineHeight: 18,
       marginTop: 12,
     },
-    bookingShopFields: {
-      marginTop: 14,
+    bookingWhereCard: {
+      overflow: 'visible',
+      zIndex: 20,
     },
-    bookingAreaFooter: {
-      alignItems: 'center',
+    bookingShopFields: {
+      gap: 12,
+      marginTop: 14,
+      overflow: 'visible',
+      zIndex: 30,
+    },
+    bookingMobileFields: {
+      marginTop: 14,
+      overflow: 'visible',
+      zIndex: 10,
+    },
+    bookingMobileFieldsAfterShop: {
       borderTopColor: colors.border,
       borderTopWidth: StyleSheet.hairlineWidth,
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginHorizontal: -16,
-      marginTop: 14,
-      paddingHorizontal: 16,
-      paddingTop: 12,
-    },
-    bookingAreaFooterText: {
-      color: colors.textMuted,
-      fontSize: 12,
-      fontWeight: '500',
-      lineHeight: 17,
-    },
-    bookingAreaFooterLink: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '600',
-      lineHeight: 17,
-      textDecorationLine: 'underline',
+      marginTop: 16,
+      overflow: 'visible',
+      paddingTop: 16,
+      zIndex: 10,
     },
     bookingLanguageRowSolo: {
       alignItems: 'center',
@@ -94,6 +94,52 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       letterSpacing: -0.15,
       minWidth: 0,
       paddingRight: 12,
+    },
+    bookingPolicyHint: {
+      marginBottom: 0,
+    },
+    bookingPolicyFields: {
+      borderTopColor: colors.border,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      marginTop: 14,
+      paddingTop: 14,
+    },
+    bookingPolicyLabel: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '500',
+      letterSpacing: -0.1,
+      marginBottom: 8,
+    },
+    bookingPolicyInputShell: {
+      backgroundColor: colors.inputBg,
+      borderRadius: 14,
+      maxHeight: 260,
+      overflow: 'hidden',
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    bookingPolicyInput: {
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      color: colors.inputText ?? colors.text,
+      fontSize: 15,
+      fontWeight: '500',
+      letterSpacing: -0.15,
+      lineHeight: 22,
+      margin: 0,
+      maxHeight: 236,
+      minHeight: 160,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      textAlignVertical: 'top',
+    },
+    bookingPolicyCount: {
+      alignSelf: 'flex-end',
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '500',
+      marginTop: 10,
     },
     inlineSegmentTrack: {
       backgroundColor: colors.shellElevated,
@@ -272,6 +318,14 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
     infoSection: {
       marginTop: SECTION_STACK_GAP,
     },
+    locationSection: {
+      overflow: 'visible',
+      zIndex: 20,
+    },
+    locationSectionCard: {
+      overflow: 'visible',
+      zIndex: 20,
+    },
     editSectionCard: {
       alignSelf: 'stretch',
       marginTop: 10,
@@ -306,7 +360,12 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       marginTop: 0,
     },
     contactSection: {
+      gap: SECTION_STACK_GAP,
       marginTop: SECTION_STACK_GAP,
+    },
+    contactPhoneField: {
+      marginBottom: 0,
+      marginTop: 10,
     },
     gallerySection: {
       marginTop: SECTION_STACK_GAP,

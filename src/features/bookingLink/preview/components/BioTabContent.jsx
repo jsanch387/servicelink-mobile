@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '../../../../components/ui';
+import { resolveBusinessIndustry } from '../../../../constants/businessTypes';
 import { useTheme } from '../../../../theme';
 
 export function BioTabContent({ bio, businessType = '' }) {
   const { colors } = useTheme();
-  const businessTypeLabel = businessType.trim();
+  const industry = resolveBusinessIndustry(businessType);
+  const businessTypeLabel = (industry.value ? industry.label : businessType).trim();
   const styles = useMemo(
     () =>
       StyleSheet.create({

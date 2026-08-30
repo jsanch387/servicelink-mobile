@@ -91,6 +91,8 @@ export function usePaymentsRevenue({ businessId }) {
     setRange,
     customFromYmd,
     customToYmd,
+    fromYmd: window.fromYmd,
+    toYmd: window.toYmd,
     selectCustomRange,
     summary,
     isPending: Boolean(businessId) && customReady && revenueQ.isPending,

@@ -66,6 +66,13 @@ export function publicBookingLocalesKey(locales) {
   return normalizePublicBookingLocales(locales).join('\u0001');
 }
 
+function normalizeShopState(value) {
+  return String(value ?? '')
+    .replace(/[^a-z]/gi, '')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 /**
  * @param {{
  *   service_location_mode?: string | null,
@@ -73,6 +80,9 @@ export function publicBookingLocalesKey(locales) {
  *   business_zip?: string | null,
  *   shop_street_address?: string | null,
  *   shop_unit?: string | null,
+ *   shop_city?: string | null,
+ *   shop_state?: string | null,
+ *   shop_zip?: string | null,
  * }} row
  */
 export function serviceLocationFromProfile(row) {
@@ -81,6 +91,9 @@ export function serviceLocationFromProfile(row) {
     mode: dbModeToUiServiceType(normalizeDbServiceLocationMode(row?.service_location_mode)),
     shopStreetAddress: String(row?.shop_street_address ?? '').trim(),
     shopUnit: String(row?.shop_unit ?? '').trim(),
+    shopCity: String(row?.shop_city ?? '').trim(),
+    shopState: normalizeShopState(row?.shop_state),
+    shopZip: normalizeBusinessZip(row?.shop_zip),
     city,
     state,
     zip: normalizeBusinessZip(row?.business_zip),
@@ -113,16 +126,32 @@ export function languagesFromProfile(row) {
  * @param {string} uiServiceType
  * @param {string} shopStreet
  * @param {string} shopUnit
+ * @param {string} [shopCity]
+ * @param {string} [shopState]
+ * @param {string} [shopZip]
  */
-export function serviceLocationToDb(uiServiceType, shopStreet, shopUnit) {
+export function serviceLocationToDb(
+  uiServiceType,
+  shopStreet,
+  shopUnit,
+  shopCity,
+  shopState,
+  shopZip,
+) {
   const mode = uiServiceTypeToDbMode(uiServiceType);
   const offersShop = mode === DB_SERVICE_LOCATION_SHOP || mode === DB_SERVICE_LOCATION_BOTH;
   const street = String(shopStreet ?? '').trim();
   const unit = String(shopUnit ?? '').trim();
+  const city = String(shopCity ?? '').trim();
+  const state = normalizeShopState(shopState);
+  const zip = normalizeBusinessZip(shopZip);
   return {
     service_location_mode: mode,
     shop_street_address: offersShop ? street || null : null,
     shop_unit: offersShop && unit ? unit : null,
+    shop_city: offersShop ? city || null : null,
+    shop_state: offersShop ? state || null : null,
+    shop_zip: offersShop && zip ? zip : null,
   };
 }
 

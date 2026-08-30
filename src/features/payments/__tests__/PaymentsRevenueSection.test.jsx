@@ -15,6 +15,8 @@ function emptySummary(overrides = {}) {
     setRange: jest.fn(),
     customFromYmd: null,
     customToYmd: null,
+    fromYmd: '2026-07-01',
+    toYmd: '2026-07-31',
     selectCustomRange: jest.fn(),
     summary: {
       collectedCents: 0,
@@ -65,8 +67,8 @@ describe('PaymentsRevenueSection', () => {
           changePct: 20,
           compareLabel: 'vs last month',
           bars: [
-            { key: 'w1', label: 'Wk 1', fullLabel: 'Week 1', cents: 50000 },
-            { key: 'w2', label: 'Wk 2', fullLabel: 'Week 2', cents: 75000 },
+            { key: 'w1', label: 'Wk 1', fullLabel: 'Jul 1–7', cents: 50000 },
+            { key: 'w2', label: 'Wk 2', fullLabel: 'Jul 8–14', cents: 75000 },
           ],
         },
       }),
@@ -75,6 +77,10 @@ describe('PaymentsRevenueSection', () => {
     renderWithProviders(<PaymentsRevenueSection businessId="biz-1" />);
 
     expect(screen.getByText('$1,250')).toBeTruthy();
+    expect(screen.getByText('Jul 1 – Jul 31')).toBeTruthy();
+    expect(screen.getByText('Wk 1')).toBeTruthy();
+    expect(screen.getAllByText('Jul 8–14').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText('Week 2')).toBeNull();
     expect(screen.getByText(/20% vs last month/)).toBeTruthy();
     expect(screen.getByText('4')).toBeTruthy();
     expect(screen.queryByText(REVENUE_EMPTY_CAPTION)).toBeNull();
@@ -105,6 +111,8 @@ describe('PaymentsRevenueSection', () => {
         range: 'custom',
         customFromYmd: '2026-03-03',
         customToYmd: '2026-03-18',
+        fromYmd: '2026-03-03',
+        toYmd: '2026-03-18',
         selectCustomRange: jest.fn(),
         summary: {
           collectedCents: 8000,
@@ -122,6 +130,7 @@ describe('PaymentsRevenueSection', () => {
 
     renderWithProviders(<PaymentsRevenueSection businessId="biz-1" />);
     expect(screen.getByLabelText(/Time range: Mar 3–18/)).toBeTruthy();
+    expect(screen.getByText('Mar 3 – Mar 18')).toBeTruthy();
     expect(screen.getByText(/10% vs prior period/)).toBeTruthy();
     expect(screen.getByText('Best day')).toBeTruthy();
   });

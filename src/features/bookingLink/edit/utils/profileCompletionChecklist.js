@@ -1,4 +1,4 @@
-import { bookingServiceTypeOffersShop } from '../../utils/bookingLinkEditValidation';
+import { sanitizeBusinessSpecialties } from '../../../../constants/businessSpecialties';
 
 /**
  * @typedef {object} ProfileCompletionChecklistItem
@@ -13,6 +13,7 @@ import { bookingServiceTypeOffersShop } from '../../utils/bookingLinkEditValidat
  *   hasLogo?: boolean,
  *   nameInput?: string,
  *   typeInput?: string,
+ *   specialtiesInput?: string[],
  *   cityInput?: string,
  *   stateInput?: string,
  *   zipInput?: string,
@@ -25,9 +26,7 @@ import { bookingServiceTypeOffersShop } from '../../utils/bookingLinkEditValidat
  */
 export function buildProfileCompletionChecklist(input) {
   const hasLocation =
-    Boolean(String(input.cityInput ?? '').trim()) &&
-    Boolean(String(input.stateInput ?? '').trim()) &&
-    String(input.zipInput ?? '').replace(/\D/g, '').length === 5;
+    Boolean(String(input.cityInput ?? '').trim()) && Boolean(String(input.stateInput ?? '').trim());
 
   /** @type {ProfileCompletionChecklistItem[]} */
   const items = [
@@ -49,11 +48,13 @@ export function buildProfileCompletionChecklist(input) {
     {
       id: 'businessType',
       label: 'Business type',
-      complete: Boolean(String(input.typeInput ?? '').trim()),
+      complete:
+        Boolean(String(input.typeInput ?? '').trim()) &&
+        sanitizeBusinessSpecialties(input.specialtiesInput).length > 0,
     },
     {
       id: 'location',
-      label: 'City, state & ZIP',
+      label: 'Location',
       complete: hasLocation,
     },
     {
@@ -72,14 +73,6 @@ export function buildProfileCompletionChecklist(input) {
       complete: Number(input.galleryImageCount ?? 0) > 0,
     },
   ];
-
-  if (bookingServiceTypeOffersShop(input.serviceTypeInput)) {
-    items.push({
-      id: 'shopStreet',
-      label: 'Shop street address',
-      complete: Boolean(String(input.shopStreetInput ?? '').trim()),
-    });
-  }
 
   const completeCount = items.filter((item) => item.complete).length;
   const percent = items.length ? Math.round((completeCount / items.length) * 100) : 0;

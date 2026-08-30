@@ -9,10 +9,15 @@ import {
   BOOKING_LINK_EDIT_TAB_DETAILS,
   BOOKING_LINK_EDIT_TAB_PHOTOS,
 } from '../constants/bookingLinkEditTabs';
+import { LocationSuggestionOverlayProvider } from '../../../location/components/LocationSuggestionOverlay';
 import { useBookingLinkEditController } from '../hooks/useBookingLinkEditController';
 import { createBookingLinkEditStyles } from './bookingLinkEditStyles';
 import { BookingLinkEditBookingSection } from './BookingLinkEditBookingSection';
-import { BookingLinkEditBusinessInfoSection } from './BookingLinkEditBusinessInfoSection';
+import {
+  BookingLinkEditBioSection,
+  BookingLinkEditBusinessInfoSection,
+} from './BookingLinkEditBusinessInfoSection';
+import { BookingLinkEditLocationSection } from './BookingLinkEditLocationSection';
 import { BookingLinkEditContactSection } from './BookingLinkEditContactSection';
 import { BookingLinkEditCoverSection } from './BookingLinkEditCoverSection';
 import { BookingLinkEditFloatingActions } from './BookingLinkEditFloatingActions';
@@ -36,23 +41,26 @@ export function BookingLinkEditMode({ initialEditTab = BOOKING_LINK_EDIT_DEFAULT
   );
 
   const scrollBottomPad = Math.max(insets.bottom, 16) + FLOATING_ACTIONS_CLEARANCE;
+  const showCompletionBar = ctrl.profileCompletionPercent < 100;
 
   return (
-    <View style={styles.wrap}>
+    <LocationSuggestionOverlayProvider style={styles.wrap}>
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPad }]}
         keyboardShouldPersistTaps="handled"
         removeClippedSubviews={false}
         showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[1]}
+        stickyHeaderIndices={[showCompletionBar ? 1 : 0]}
         style={styles.scroll}
       >
-        <View style={styles.scrollTopPad}>
-          <BookingLinkEditProfileCompletion
-            percent={ctrl.profileCompletionPercent}
-            onPress={() => setCompletionSheetVisible(true)}
-          />
-        </View>
+        {showCompletionBar ? (
+          <View style={styles.scrollTopPad}>
+            <BookingLinkEditProfileCompletion
+              percent={ctrl.profileCompletionPercent}
+              onPress={() => setCompletionSheetVisible(true)}
+            />
+          </View>
+        ) : null}
 
         <View style={styles.stickyTabsShell}>
           <BookingLinkEditTabs activeTab={activeTab} onChangeTab={setActiveTab} />
@@ -94,46 +102,67 @@ export function BookingLinkEditMode({ initialEditTab = BOOKING_LINK_EDIT_DEFAULT
           ) : null}
 
           {activeTab === BOOKING_LINK_EDIT_TAB_DETAILS ? (
-            <BookingLinkEditBusinessInfoSection
-              bioInput={ctrl.bioInput}
-              businessTypeOptions={ctrl.businessTypeOptions}
-              cityInput={ctrl.cityInput}
-              nameInput={ctrl.nameInput}
-              rootStyle={styles.tabPanelFirstSection}
-              stateInput={ctrl.stateInput}
-              styles={styles}
-              typeInput={ctrl.typeInput}
-              zipInput={ctrl.zipInput}
-              onBioInputChange={ctrl.setBioInput}
-              onCityInputChange={ctrl.setCityInput}
-              onNameInputChange={ctrl.setNameInput}
-              onStateInputChange={ctrl.onStateInputChange}
-              onTypeInputChange={ctrl.setTypeInput}
-              onZipInputChange={ctrl.onZipInputChange}
-            />
+            <View style={styles.locationSection}>
+              <BookingLinkEditBusinessInfoSection
+                businessTypeOptions={ctrl.businessTypeOptions}
+                nameInput={ctrl.nameInput}
+                rootStyle={styles.tabPanelFirstSection}
+                specialtiesInput={ctrl.specialtiesInput}
+                specialtyError={ctrl.specialtyError}
+                styles={styles}
+                typeInput={ctrl.typeInput}
+                onNameInputChange={ctrl.setNameInput}
+                onSpecialtiesChange={ctrl.onSpecialtiesChange}
+                onTypeInputChange={ctrl.onTypeInputChange}
+              />
+
+              <BookingLinkEditLocationSection
+                locationError={ctrl.locationError}
+                locationInput={ctrl.locationInput}
+                radius={ctrl.radiusInput}
+                selectedLocation={ctrl.selectedLocation}
+                styles={styles}
+                onLocationInputChange={ctrl.onLocationInputChange}
+                onLocationSelect={ctrl.onLocationSelect}
+                onRadiusChange={ctrl.onRadiusChange}
+              />
+
+              <BookingLinkEditBioSection
+                bioInput={ctrl.bioInput}
+                styles={styles}
+                onBioInputChange={ctrl.setBioInput}
+              />
+            </View>
           ) : null}
 
           {activeTab === BOOKING_LINK_EDIT_TAB_BOOKING ? (
             <BookingLinkEditBookingSection
-              cityInput={ctrl.cityInput}
               defaultLanguage={ctrl.defaultLanguageInput}
+              locationError={ctrl.locationError}
+              locationInput={ctrl.locationInput}
+              policyEnabled={ctrl.policyEnabled}
+              policyInput={ctrl.policyInput}
+              radiusInput={ctrl.radiusInput}
               rootStyle={styles.tabPanelFirstSection}
+              selectedLocation={ctrl.selectedLocation}
               serviceType={ctrl.serviceTypeInput}
-              shopStreetInput={ctrl.shopStreetInput}
+              selectedShopLocation={ctrl.selectedShopLocation}
+              shopAddressError={ctrl.shopAddressError}
+              shopAddressInput={ctrl.shopAddressInput}
               shopUnitInput={ctrl.shopUnitInput}
               spanishEnabled={ctrl.spanishEnabled}
-              stateInput={ctrl.stateInput}
               styles={styles}
-              zipInput={ctrl.zipInput}
-              onCityInputChange={ctrl.setCityInput}
               onDefaultLanguageChange={ctrl.setDefaultLanguageInput}
-              onGoToDetailsTab={() => setActiveTab(BOOKING_LINK_EDIT_TAB_DETAILS)}
+              onLocationInputChange={ctrl.onLocationInputChange}
+              onLocationSelect={ctrl.onLocationSelect}
+              onPolicyEnabledChange={ctrl.setPolicyEnabled}
+              onPolicyInputChange={ctrl.onPolicyInputChange}
+              onRadiusChange={ctrl.onRadiusChange}
               onServiceTypeChange={ctrl.setServiceTypeInput}
-              onShopStreetInputChange={ctrl.setShopStreetInput}
+              onShopAddressInputChange={ctrl.onShopAddressInputChange}
+              onShopAddressSelect={ctrl.onShopAddressSelect}
               onShopUnitInputChange={ctrl.setShopUnitInput}
               onSpanishEnabledChange={ctrl.onSpanishEnabledChange}
-              onStateInputChange={ctrl.onStateInputChange}
-              onZipInputChange={ctrl.onZipInputChange}
             />
           ) : null}
 
@@ -156,7 +185,7 @@ export function BookingLinkEditMode({ initialEditTab = BOOKING_LINK_EDIT_DEFAULT
       <BookingLinkEditFloatingActions
         canSave={ctrl.canSave}
         colors={ctrl.colors}
-        isSaving={ctrl.saveMutation.isPending}
+        isSaving={ctrl.isSaving}
         previewOutlineColor={ctrl.previewOutlineColor}
         onDoneEditing={ctrl.onDoneEditing}
         onSave={ctrl.handleSave}
@@ -165,9 +194,9 @@ export function BookingLinkEditMode({ initialEditTab = BOOKING_LINK_EDIT_DEFAULT
       <BookingLinkEditProfileCompletionSheet
         items={ctrl.profileCompletionItems}
         percent={ctrl.profileCompletionPercent}
-        visible={completionSheetVisible}
+        visible={showCompletionBar && completionSheetVisible}
         onRequestClose={() => setCompletionSheetVisible(false)}
       />
-    </View>
+    </LocationSuggestionOverlayProvider>
   );
 }

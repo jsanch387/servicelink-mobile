@@ -40,6 +40,12 @@ describe('aggregatePaymentsRevenue', () => {
     expect(summary.jobsPaid).toBe(3);
     expect(summary.bars).toHaveLength(4);
     expect(summary.bars.map((b) => b.label)).toEqual(['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4']);
+    expect(summary.bars.map((b) => b.fullLabel)).toEqual([
+      'Jul 1–7',
+      'Jul 8–14',
+      'Jul 15–21',
+      'Jul 22–31',
+    ]);
     expect(summary.bars[0].cents).toBe(10000);
     expect(summary.bars[1].cents).toBe(20000);
     expect(summary.bars[2].cents).toBe(0);
@@ -72,6 +78,7 @@ describe('aggregatePaymentsRevenue', () => {
     });
 
     expect(summary.bars).toHaveLength(4);
+    expect(summary.bars[3].fullLabel).toBe('Feb 22–28');
     expect(summary.bars[2].cents).toBe(4000);
     expect(summary.bars[3].cents).toBe(1000);
   });

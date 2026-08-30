@@ -4,7 +4,13 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError } from '../../../components/ui';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
-import { BUSINESS_TYPE_OPTIONS } from '../../../constants/businessTypeOptions';
+import {
+  sanitizeBusinessSpecialties,
+  specialtiesAllowedForBusinessType,
+  resolveBusinessSpecialties,
+  SPECIALTIES_REQUIRED_ERROR,
+} from '../../../constants/businessSpecialties';
+import { getIndustryOnboardingCopy, isAllowedBusinessTypeValue } from '../../../constants/businessTypes';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
 import { useBusinessAvailability } from '../../availability/hooks/useBusinessAvailability';
@@ -62,8 +68,7 @@ const STEP_SUBTITLES = [
 ];
 
 function isValidBusinessType(value) {
-  const v = String(value ?? '').trim();
-  return v.length > 0 && BUSINESS_TYPE_OPTIONS.some((o) => o.value === v);
+  return isAllowedBusinessTypeValue(value);
 }
 
 function centsToPriceInput(cents) {
@@ -89,6 +94,7 @@ export function OnboardingScreen() {
   const [stepIndex, setStepIndex] = useState(0);
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
+  const [specialties, setSpecialties] = useState([]);
   const [stepError, setStepError] = useState('');
   const [step1Submitting, setStep1Submitting] = useState(false);
   const [activateSubmitting, setActivateSubmitting] = useState(false);
@@ -181,8 +187,12 @@ export function OnboardingScreen() {
       }
       const name = String(data.business_name ?? '').trim();
       const type = String(data.business_type ?? '').trim();
+      const nextSpecialties = resolveBusinessSpecialties(type, data.specialties);
       setBusinessName((prev) => (name ? name : prev));
       setBusinessType((prev) => (type ? type : prev));
+      if (nextSpecialties.length) {
+        setSpecialties((prev) => (prev.length ? prev : nextSpecialties));
+      }
     })();
     return () => {
       cancelled = true;
@@ -359,11 +369,16 @@ export function OnboardingScreen() {
         setStepError('Choose a business type.');
         return;
       }
+      if (sanitizeBusinessSpecialties(specialties).length === 0) {
+        setStepError(SPECIALTIES_REQUIRED_ERROR);
+        return;
+      }
       setStepError('');
       setStep1Submitting(true);
       const res = await saveOnboardingStep1({
         businessName: name,
         businessType,
+        specialties,
       });
       setStep1Submitting(false);
       if (!res.ok) {
@@ -563,6 +578,14 @@ export function OnboardingScreen() {
 
   const onBusinessTypeChange = (value) => {
     setBusinessType(value);
+    setSpecialties((prev) => specialtiesAllowedForBusinessType(value, prev));
+    if (stepError) {
+      setStepError('');
+    }
+  };
+
+  const onSpecialtiesChange = (next) => {
+    setSpecialties(sanitizeBusinessSpecialties(next));
     if (stepError) {
       setStepError('');
     }
@@ -635,12 +658,13 @@ export function OnboardingScreen() {
                 <OnboardingBusinessStepCard
                   businessName={businessName}
                   businessType={businessType}
+                  specialties={specialties}
                   onBusinessNameChange={onBusinessNameChange}
                   onBusinessTypeChange={onBusinessTypeChange}
+                  onSpecialtiesChange={onSpecialtiesChange}
                 />
                 <AppText style={styles.businessTypeHint}>
-                  The business type you choose affects which settings and options you see in the
-                  app.
+                  {getIndustryOnboardingCopy(businessType).typeHelper} You can change this later.
                 </AppText>
               </View>
             ) : null}

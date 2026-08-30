@@ -3,6 +3,7 @@ import {
   revenueDateWindow,
   revenueCustomDateWindow,
   formatRevenueCustomRangeLabel,
+  formatRevenueWindowCaption,
   inclusiveDayCount,
   isCompleteCustomRevenueRange,
   parseLocalYmd,
@@ -127,5 +128,24 @@ describe('formatRevenueCustomRangeLabel', () => {
     expect(isCompleteCustomRevenueRange('2026-03-03', '2026-03-03')).toBe(false);
     expect(isCompleteCustomRevenueRange('2026-03-03', null)).toBe(false);
     expect(isCompleteCustomRevenueRange(null, null)).toBe(false);
+  });
+});
+
+describe('formatRevenueWindowCaption', () => {
+  it('repeats the month on both ends', () => {
+    expect(formatRevenueWindowCaption('2026-08-01', '2026-08-31')).toBe('Aug 1 – Aug 31');
+    expect(formatRevenueWindowCaption('2026-08-24', '2026-08-30')).toBe('Aug 24 – Aug 30');
+    expect(formatRevenueWindowCaption('2026-01-01', '2026-12-31')).toBe('Jan 1 – Dec 31');
+  });
+
+  it('includes years when the window crosses a year', () => {
+    expect(formatRevenueWindowCaption('2025-12-28', '2026-01-04')).toBe(
+      'Dec 28, 2025 – Jan 4, 2026',
+    );
+  });
+
+  it('returns null when either bound is missing', () => {
+    expect(formatRevenueWindowCaption(null, null)).toBeNull();
+    expect(formatRevenueWindowCaption('2026-08-01', null)).toBeNull();
   });
 });

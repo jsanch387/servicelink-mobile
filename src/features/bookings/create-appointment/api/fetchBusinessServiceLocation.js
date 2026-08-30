@@ -14,7 +14,9 @@ export async function fetchBusinessServiceLocation(businessId) {
 
   const { data, error } = await supabase
     .from('business_profiles')
-    .select('service_location_mode, shop_street_address, shop_unit, service_area, business_zip')
+    .select(
+      'service_location_mode, shop_street_address, shop_unit, shop_city, shop_state, shop_zip, service_area, business_zip',
+    )
     .eq('id', id)
     .maybeSingle();
 

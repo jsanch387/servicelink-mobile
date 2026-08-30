@@ -1,15 +1,34 @@
 import * as Haptics from 'expo-haptics';
-import { useCallback, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, useWindowDimensions } from 'react-native';
 import { useAuth } from '../../../auth';
 import { useTheme } from '../../../../theme';
+import {
+  buildServiceAreaPayload,
+  DEFAULT_SERVICE_AREA_RADIUS,
+  fetchPrimaryServiceArea,
+  formatLocationDisplay,
+  normalizeServiceAreaRadius,
+  primaryServiceAreaQueryKey,
+  resolveLegacyServiceLocation,
+  saveUserLocation,
+  useLocationPrompt,
+} from '../../../location';
+import { formatBookingServiceAreaLabel } from '../utils/formatBookingServiceAreaLabel';
 import {
   formatPhoneForDisplay,
   formatPhoneInputAsYouType,
   getPhoneInputValidationMessage,
 } from '../../../../utils/phone';
 import { safeUserFacingMessage } from '../../../../utils/safeUserFacingMessage';
-import { BUSINESS_TYPE_OPTIONS } from '../../constants/businessTypeOptions';
+import {
+  sanitizeBusinessSpecialties,
+  specialtiesAllowedForBusinessType,
+  resolveBusinessSpecialties,
+  SPECIALTIES_REQUIRED_ERROR,
+} from '../../../../constants/businessSpecialties';
+import { getBusinessTypeSelectOptions } from '../../../../constants/businessTypes';
 import {
   BOOKING_LINK_EDIT_GALLERY_COLUMNS,
   BOOKING_LINK_EDIT_GALLERY_GAP,
@@ -19,6 +38,7 @@ import {
 import { bookingLinkGalleryAccessCopy } from '../constants/galleryAccessCopy';
 import { showWebAccountFeatureAlert } from '../../../subscription';
 import { useSaveBookingLinkText } from '../../hooks/useSaveBookingLinkText';
+import { shopAddressPromptQueryKey } from '../../queryKeys';
 import { validateBookingLinkEditFields } from '../../utils/bookingLinkEditValidation';
 import {
   buildSaveBookingLinkTextVariables,
@@ -29,6 +49,7 @@ import {
   BOOKING_DEFAULT_LANGUAGE_EN,
   BOOKING_SERVICE_TYPE_MOBILE,
 } from '../constants/bookingLinkBookingTab';
+import { buildSavedShopLocation, formatShopAddressLabel } from '../../utils/shopAddressLocation';
 import {
   pickCoverPhotoUri,
   pickGalleryPhotoUri,
@@ -37,6 +58,7 @@ import {
 import { portfolioImageKey } from '../../utils/portfolio';
 import { portfolioRowStoragePath } from '../../utils/storagePath';
 import { normalizeSocialHandle, socialMediaFromDb } from '../../utils/socialMedia';
+import { normalizeBookingPolicyText } from '../constants/bookingLinkCustomerPolicy';
 
 export function useBookingLinkEditController({
   onBack,
@@ -58,9 +80,15 @@ export function useBookingLinkEditController({
   serviceLocationMode,
   shopStreetAddress,
   shopUnit,
+  shopCity,
+  shopState,
+  shopZip,
   spanishEnabled: initialSpanishEnabled = false,
   defaultLanguage: initialDefaultLanguage = BOOKING_DEFAULT_LANGUAGE_EN,
   publicBookingLocales,
+  bookingPolicyEnabled: initialBookingPolicyEnabled = false,
+  bookingPolicyText: initialBookingPolicyText = '',
+  specialties: initialSpecialties = null,
   portfolioImages = [],
   hasProAccess = false,
   isOwnerProfileLoaded = false,
@@ -68,6 +96,8 @@ export function useBookingLinkEditController({
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
+  const queryClient = useQueryClient();
+  const { recheckPromptStatus } = useLocationPrompt();
 
   const portfolioTilePx = useMemo(() => {
     const horizontalPad = 32;
@@ -85,6 +115,9 @@ export function useBookingLinkEditController({
 
   const [nameInput, setNameInput] = useState(() => String(businessName ?? ''));
   const [typeInput, setTypeInput] = useState(() => String(businessType ?? ''));
+  const [specialtiesInput, setSpecialtiesInput] = useState(() =>
+    resolveBusinessSpecialties(businessType, initialSpecialties),
+  );
   const [cityInput, setCityInput] = useState(() => String(businessCity ?? ''));
   const [stateInput, setStateInput] = useState(() =>
     String(businessState ?? '')
@@ -97,6 +130,15 @@ export function useBookingLinkEditController({
       .replace(/\D/g, '')
       .slice(0, 5),
   );
+  const [locationInput, setLocationInput] = useState(
+    () => formatBookingServiceAreaLabel(businessCity, businessState, businessZip) ?? '',
+  );
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [locationError, setLocationError] = useState('');
+  const [radiusInput, setRadiusInput] = useState(DEFAULT_SERVICE_AREA_RADIUS);
+  const [locationHydrated, setLocationHydrated] = useState(false);
+  const [isSavingServiceArea, setIsSavingServiceArea] = useState(false);
+  const locationTouchedRef = useRef(false);
   const [bioInput, setBioInput] = useState(() => String(businessBio ?? ''));
   const [phoneInput, setPhoneInput] = useState(() => formatPhoneForDisplay(phoneNumber));
   const [instagramInput, setInstagramInput] = useState(
@@ -105,11 +147,45 @@ export function useBookingLinkEditController({
   const [tiktokInput, setTiktokInput] = useState(() => socialMediaFromDb(socialMedia).tiktok);
   const [serviceTypeInput, setServiceTypeInput] = useState(() => initialServiceType);
   const [shopStreetInput, setShopStreetInput] = useState(() => String(shopStreetAddress ?? ''));
+  const [shopCityInput, setShopCityInput] = useState(() => String(shopCity ?? ''));
+  const [shopStateInput, setShopStateInput] = useState(() =>
+    String(shopState ?? '')
+      .replace(/[^a-z]/gi, '')
+      .slice(0, 2)
+      .toUpperCase(),
+  );
+  const [shopZipInput, setShopZipInput] = useState(() =>
+    String(shopZip ?? '')
+      .replace(/\D/g, '')
+      .slice(0, 5),
+  );
+  const [shopAddressInput, setShopAddressInput] = useState(
+    () =>
+      formatShopAddressLabel(shopStreetAddress, shopCity, shopState, shopZip) ||
+      String(shopStreetAddress ?? ''),
+  );
+  const [selectedShopLocation, setSelectedShopLocation] = useState(() =>
+    buildSavedShopLocation({
+      street: shopStreetAddress,
+      city: shopCity,
+      state: shopState,
+      zip: shopZip,
+    }),
+  );
+  const [shopAddressError, setShopAddressError] = useState('');
   const [shopUnitInput, setShopUnitInput] = useState(() => String(shopUnit ?? ''));
   const [spanishEnabled, setSpanishEnabled] = useState(() => Boolean(initialSpanishEnabled));
   const [defaultLanguageInput, setDefaultLanguageInput] = useState(() =>
     initialDefaultLanguage === 'es' ? 'es' : BOOKING_DEFAULT_LANGUAGE_EN,
   );
+  const [policyEnabled, setPolicyEnabled] = useState(() => Boolean(initialBookingPolicyEnabled));
+  const [policyInput, setPolicyInput] = useState(() =>
+    normalizeBookingPolicyText(initialBookingPolicyText),
+  );
+
+  const onPolicyInputChange = useCallback((text) => {
+    setPolicyInput(normalizeBookingPolicyText(text));
+  }, []);
 
   const onPhoneInputChange = useCallback((text) => {
     setPhoneInput(formatPhoneInputAsYouType(text));
@@ -128,13 +204,19 @@ export function useBookingLinkEditController({
   const [localGalleryUris, setLocalGalleryUris] = useState([]);
   const [removedPortfolioKeys, setRemovedPortfolioKeys] = useState(() => new Set());
 
-  const businessTypeOptions = useMemo(() => {
-    const t = typeInput.trim();
-    if (t && !BUSINESS_TYPE_OPTIONS.some((o) => o.value === t)) {
-      return [{ value: t, label: t }, ...BUSINESS_TYPE_OPTIONS];
-    }
-    return BUSINESS_TYPE_OPTIONS;
-  }, [typeInput]);
+  const businessTypeOptions = useMemo(
+    () => getBusinessTypeSelectOptions(typeInput),
+    [typeInput],
+  );
+
+  const onTypeInputChange = useCallback((next) => {
+    setTypeInput(next);
+    setSpecialtiesInput((prev) => specialtiesAllowedForBusinessType(next, prev));
+  }, []);
+
+  const onSpecialtiesChange = useCallback((next) => {
+    setSpecialtiesInput(sanitizeBusinessSpecialties(next));
+  }, []);
 
   const coverDisplayUri = localCoverUri ?? coverImageUrl ?? null;
   const logoDisplayUri = localLogoUri ?? logoUrl ?? null;
@@ -227,17 +309,232 @@ export function useBookingLinkEditController({
     setLocalGalleryUris((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
-  const onStateInputChange = useCallback((t) => {
-    setStateInput(
-      t
+  const serviceAreaQuery = useQuery({
+    queryKey: primaryServiceAreaQueryKey(businessId),
+    queryFn: async () => {
+      const { serviceArea, error } = await fetchPrimaryServiceArea(businessId);
+      if (error) throw error;
+      return serviceArea;
+    },
+    enabled: Boolean(businessId),
+    staleTime: 45 * 1000,
+  });
+
+  useEffect(() => {
+    if (!serviceAreaQuery.isSuccess || locationHydrated) return;
+    if (locationTouchedRef.current) {
+      setLocationHydrated(true);
+      return;
+    }
+
+    const area = serviceAreaQuery.data;
+    const abortController = new AbortController();
+
+    async function hydrateLocation() {
+      if (area?.location) {
+        setSelectedLocation(area.location);
+        setLocationInput(area.location.label);
+        setCityInput(area.location.city);
+        setStateInput(area.location.state);
+        if (area.location.zip) {
+          setZipInput(area.location.zip);
+        }
+      } else {
+        const resolved = await resolveLegacyServiceLocation({
+          city: businessCity,
+          state: businessState,
+          zip: businessZip,
+          signal: abortController.signal,
+        });
+        if (abortController.signal.aborted || locationTouchedRef.current) return;
+
+        if (resolved) {
+          setSelectedLocation(resolved);
+          setLocationInput(formatLocationDisplay(resolved));
+          if (resolved.city) setCityInput(resolved.city.trim());
+          if (resolved.state) {
+            setStateInput(
+              String(resolved.state)
+                .replace(/[^a-z]/gi, '')
+                .slice(0, 2)
+                .toUpperCase(),
+            );
+          }
+          if (resolved.zip) {
+            setZipInput((prev) => {
+              const next = String(resolved.zip)
+                .replace(/\D/g, '')
+                .slice(0, 5);
+              return next.length === 5 ? next : prev;
+            });
+          }
+        } else if (area?.label) {
+          setLocationInput(area.label);
+        } else {
+          const fallback = formatBookingServiceAreaLabel(
+            businessCity,
+            businessState,
+            businessZip,
+          );
+          if (fallback) setLocationInput(fallback);
+        }
+      }
+
+      if (area?.radiusMiles) {
+        setRadiusInput(normalizeServiceAreaRadius(area.radiusMiles));
+      }
+
+      if (!abortController.signal.aborted) {
+        setLocationHydrated(true);
+      }
+    }
+
+    hydrateLocation();
+    return () => abortController.abort();
+  }, [
+    businessCity,
+    businessState,
+    businessZip,
+    locationHydrated,
+    serviceAreaQuery.data,
+    serviceAreaQuery.isSuccess,
+  ]);
+
+  const clearSelectedLocationIfDiverged = useCallback((city, state, zip) => {
+    setSelectedLocation((prev) => {
+      if (!prev) return null;
+      const nextState = String(state ?? '')
+        .replace(/[^a-z]/gi, '')
+        .slice(0, 2)
+        .toUpperCase();
+      const nextZip = String(zip ?? '')
+        .replace(/\D/g, '')
+        .slice(0, 5);
+      if (
+        prev.city.trim() === String(city ?? '').trim() &&
+        prev.state === nextState &&
+        (!prev.zip || prev.zip === nextZip)
+      ) {
+        return prev;
+      }
+      return null;
+    });
+  }, []);
+
+  const onCityInputChange = useCallback(
+    (next) => {
+      setCityInput(next);
+      clearSelectedLocationIfDiverged(next, stateInput, zipInput);
+    },
+    [clearSelectedLocationIfDiverged, stateInput, zipInput],
+  );
+
+  const onStateInputChange = useCallback(
+    (t) => {
+      const next = t
         .replace(/[^a-zA-Z]/g, '')
+        .slice(0, 2)
+        .toUpperCase();
+      setStateInput(next);
+      clearSelectedLocationIfDiverged(cityInput, next, zipInput);
+    },
+    [cityInput, clearSelectedLocationIfDiverged, zipInput],
+  );
+
+  const onZipInputChange = useCallback(
+    (t) => {
+      const next = t.replace(/\D/g, '').slice(0, 5);
+      setZipInput(next);
+      clearSelectedLocationIfDiverged(cityInput, stateInput, next);
+    },
+    [cityInput, clearSelectedLocationIfDiverged, stateInput],
+  );
+
+  const onLocationInputChange = useCallback((next) => {
+    locationTouchedRef.current = true;
+    setLocationInput(next);
+    setSelectedLocation(null);
+    setLocationError('');
+  }, []);
+
+  const onLocationSelect = useCallback((location) => {
+    locationTouchedRef.current = true;
+    setSelectedLocation(location);
+    setLocationInput(formatLocationDisplay(location));
+    setCityInput(location.city.trim());
+    setStateInput(
+      String(location.state ?? '')
+        .replace(/[^a-z]/gi, '')
         .slice(0, 2)
         .toUpperCase(),
     );
+    setZipInput((prev) => {
+      const next = String(location.zip ?? '')
+        .replace(/\D/g, '')
+        .slice(0, 5);
+      return next.length === 5 ? next : prev;
+    });
+    setLocationError('');
   }, []);
 
-  const onZipInputChange = useCallback((t) => {
-    setZipInput(t.replace(/\D/g, '').slice(0, 5));
+  const onRadiusChange = useCallback((next) => {
+    locationTouchedRef.current = true;
+    setRadiusInput(normalizeServiceAreaRadius(next));
+  }, []);
+
+  const shopAddressBaseline = useMemo(
+    () =>
+      formatShopAddressLabel(shopStreetAddress, shopCity, shopState, shopZip) ||
+      String(shopStreetAddress ?? '').trim(),
+    [shopCity, shopState, shopStreetAddress, shopZip],
+  );
+
+  const shopRequiresSuggestion = Boolean(
+    shopAddressInput.trim() !== shopAddressBaseline && !selectedShopLocation,
+  );
+
+  const onShopAddressInputChange = useCallback((next) => {
+    setShopAddressInput(next);
+    setSelectedShopLocation(null);
+    setShopStreetInput('');
+    setShopCityInput('');
+    setShopStateInput('');
+    setShopZipInput('');
+    setShopAddressError('');
+  }, []);
+
+  const onShopAddressSelect = useCallback((location) => {
+    const street = String(location?.street ?? '').trim() || String(location?.label ?? '').trim();
+    const nextZip = String(location?.zip ?? '')
+      .replace(/\D/g, '')
+      .slice(0, 5);
+    const nextCity = String(location?.city ?? '').trim();
+    const nextState = String(location?.state ?? '')
+      .replace(/[^a-z]/gi, '')
+      .slice(0, 2)
+      .toUpperCase();
+
+    if (!String(location?.street ?? '').trim()) {
+      setSelectedShopLocation(null);
+      setShopStreetInput('');
+      setShopCityInput('');
+      setShopStateInput('');
+      setShopZipInput('');
+      setShopAddressError('Choose a street address from the list.');
+      return;
+    }
+
+    const fullLabel =
+      formatShopAddressLabel(street, nextCity, nextState, nextZip) ||
+      formatLocationDisplay(location);
+
+    setSelectedShopLocation(location);
+    setShopAddressInput(fullLabel);
+    setShopStreetInput(street);
+    setShopCityInput(nextCity);
+    setShopStateInput(nextState);
+    setShopZipInput(nextZip);
+    setShopAddressError('');
   }, []);
 
   const onSpanishEnabledChange = useCallback((next) => {
@@ -251,6 +548,7 @@ export function useBookingLinkEditController({
     () => ({
       nameInput,
       typeInput,
+      specialtiesInput,
       cityInput,
       stateInput,
       zipInput,
@@ -261,12 +559,18 @@ export function useBookingLinkEditController({
       serviceTypeInput,
       shopStreetInput,
       shopUnitInput,
+      shopCityInput,
+      shopStateInput,
+      shopZipInput,
       spanishEnabled,
       defaultLanguageInput,
+      policyEnabled,
+      policyInput,
     }),
     [
       nameInput,
       typeInput,
+      specialtiesInput,
       cityInput,
       stateInput,
       zipInput,
@@ -277,8 +581,13 @@ export function useBookingLinkEditController({
       serviceTypeInput,
       shopStreetInput,
       shopUnitInput,
+      shopCityInput,
+      shopStateInput,
+      shopZipInput,
       spanishEnabled,
       defaultLanguageInput,
+      policyEnabled,
+      policyInput,
     ],
   );
 
@@ -292,13 +601,19 @@ export function useBookingLinkEditController({
       businessState,
       businessZip,
       businessType,
+      specialties: initialSpecialties,
       phoneNumber,
       socialMedia,
       serviceLocationMode,
       shopStreetAddress,
       shopUnit,
+      shopCity,
+      shopState,
+      shopZip,
       publicBookingLocales,
       publicBookingDefaultLocale: initialDefaultLanguage,
+      bookingPolicyEnabled: initialBookingPolicyEnabled,
+      bookingPolicyText: initialBookingPolicyText,
     }),
     [
       businessBio,
@@ -307,19 +622,59 @@ export function useBookingLinkEditController({
       businessState,
       businessZip,
       businessType,
+      initialSpecialties,
       phoneNumber,
       socialMedia,
       serviceLocationMode,
       shopStreetAddress,
       shopUnit,
+      shopCity,
+      shopState,
+      shopZip,
       publicBookingLocales,
       initialDefaultLanguage,
+      initialBookingPolicyEnabled,
+      initialBookingPolicyText,
     ],
   );
 
   const hasTextChanges = useMemo(
     () => bookingLinkEditDirtyVsProps(editBaselineProps, editFieldsForSnapshot),
     [editBaselineProps, editFieldsForSnapshot],
+  );
+
+  const baselineRadius = useMemo(
+    () =>
+      serviceAreaQuery.data?.radiusMiles
+        ? normalizeServiceAreaRadius(serviceAreaQuery.data.radiusMiles)
+        : DEFAULT_SERVICE_AREA_RADIUS,
+    [serviceAreaQuery.data],
+  );
+
+  const baselineLocationKey = useMemo(() => {
+    const location = serviceAreaQuery.data?.location;
+    if (!location) return '';
+    return `${location.latitude},${location.longitude}`;
+  }, [serviceAreaQuery.data]);
+
+  const currentLocationKey = selectedLocation
+    ? `${selectedLocation.latitude},${selectedLocation.longitude}`
+    : '';
+
+  const locationInputBaseline = useMemo(() => {
+    if (serviceAreaQuery.data?.location?.label) return serviceAreaQuery.data.location.label;
+    if (serviceAreaQuery.data?.label) return serviceAreaQuery.data.label;
+    return formatBookingServiceAreaLabel(businessCity, businessState, businessZip) ?? '';
+  }, [businessCity, businessState, businessZip, serviceAreaQuery.data]);
+
+  const hasLocationChanges = Boolean(
+    locationHydrated &&
+    selectedLocation &&
+    (currentLocationKey !== baselineLocationKey || radiusInput !== baselineRadius),
+  );
+
+  const locationRequiresSuggestion = Boolean(
+    locationInput.trim() !== locationInputBaseline.trim() && !selectedLocation,
   );
 
   const hasImageChanges = Boolean(localCoverUri || localLogoUri);
@@ -338,7 +693,16 @@ export function useBookingLinkEditController({
     return false;
   }, [portfolioImages, visiblePortfolioImages, localGalleryUris, businessId]);
 
-  const hasRequiredNameType = Boolean(nameInput.trim() && typeInput.trim());
+  const specialtyError = useMemo(() => {
+    if (!typeInput.trim()) return '';
+    return sanitizeBusinessSpecialties(specialtiesInput).length === 0
+      ? SPECIALTIES_REQUIRED_ERROR
+      : '';
+  }, [specialtiesInput, typeInput]);
+
+  const hasRequiredNameType = Boolean(
+    nameInput.trim() && typeInput.trim() && !specialtyError,
+  );
 
   const phoneInputError = useMemo(() => getPhoneInputValidationMessage(phoneInput), [phoneInput]);
 
@@ -349,6 +713,7 @@ export function useBookingLinkEditController({
         hasLogo: Boolean(logoDisplayUri),
         nameInput,
         typeInput,
+        specialtiesInput,
         cityInput,
         stateInput,
         zipInput,
@@ -363,6 +728,7 @@ export function useBookingLinkEditController({
       logoDisplayUri,
       nameInput,
       typeInput,
+      specialtiesInput,
       cityInput,
       stateInput,
       zipInput,
@@ -377,8 +743,9 @@ export function useBookingLinkEditController({
   const canSave = Boolean(
     businessId &&
     user?.id &&
-    (hasTextChanges || hasImageChanges || hasGalleryChanges) &&
+    (hasTextChanges || hasImageChanges || hasGalleryChanges || hasLocationChanges) &&
     !saveMutation.isPending &&
+    !isSavingServiceArea &&
     !phoneInputError &&
     (hasRequiredNameType || hasImageChanges || hasGalleryChanges),
   );
@@ -407,37 +774,95 @@ export function useBookingLinkEditController({
       zipInput,
       serviceTypeInput,
       shopStreetInput,
+      shopCityInput,
+      shopStateInput,
+      shopZipInput,
+      shopRequiresSuggestion,
+      typeInput,
+      specialtiesInput,
+      locationRequiresSuggestion,
+      policyEnabled,
+      policyInput,
     });
     if (!locationValidation.ok) {
+      if (locationRequiresSuggestion) {
+        setLocationError(locationValidation.message);
+      }
+      if (shopRequiresSuggestion) {
+        setShopAddressError(locationValidation.message);
+      }
       Alert.alert(locationValidation.title, locationValidation.message);
       return;
     }
     try {
-      const galleryPayload =
-        hasGalleryChanges && businessId
-          ? {
-              existingOrderedStoragePaths: visiblePortfolioImages
-                .map((img) => portfolioRowStoragePath(img, businessId))
-                .filter(Boolean),
-              newLocalUrisOrdered: localGalleryUris.map((item) => item.uri),
-            }
-          : undefined;
+      let locationToPersist = selectedLocation;
+      if (!locationToPersist) {
+        locationToPersist = await resolveLegacyServiceLocation({
+          city: cityInput,
+          state: stateInput,
+          zip: zipInput,
+        });
+        if (locationToPersist) {
+          setSelectedLocation(locationToPersist);
+          setLocationInput(formatLocationDisplay(locationToPersist));
+        }
+      }
 
-      await saveMutation.mutateAsync(
-        buildSaveBookingLinkTextVariables({
-          userId: user.id,
-          businessId,
-          ...editFieldsForSnapshot,
-          coverImageUri: localCoverUri,
-          logoImageUri: localLogoUri,
-          previousBannerPath: coverImagePath,
-          previousLogoPath: logoPath,
-          ...(galleryPayload ? { gallery: galleryPayload } : {}),
-        }),
+      const shouldWriteServiceArea = Boolean(
+        locationToPersist &&
+        (!serviceAreaQuery.data?.location ||
+          `${locationToPersist.latitude},${locationToPersist.longitude}` !== baselineLocationKey ||
+          radiusInput !== baselineRadius),
       );
+
+      if (shouldWriteServiceArea) {
+        setIsSavingServiceArea(true);
+        const payload = buildServiceAreaPayload(locationToPersist, parseInt(radiusInput, 10));
+        const result = await saveUserLocation(payload, businessId);
+        if (!result.ok) {
+          throw result.error ?? new Error('Unable to save service area.');
+        }
+        await queryClient.invalidateQueries({ queryKey: primaryServiceAreaQueryKey(businessId) });
+        await recheckPromptStatus();
+      }
+
+      const shouldSaveProfile =
+        hasTextChanges ||
+        hasImageChanges ||
+        hasGalleryChanges ||
+        hasLocationChanges ||
+        shouldWriteServiceArea;
+      if (shouldSaveProfile) {
+        const galleryPayload =
+          hasGalleryChanges && businessId
+            ? {
+                existingOrderedStoragePaths: visiblePortfolioImages
+                  .map((img) => portfolioRowStoragePath(img, businessId))
+                  .filter(Boolean),
+                newLocalUrisOrdered: localGalleryUris.map((item) => item.uri),
+              }
+            : undefined;
+
+        await saveMutation.mutateAsync(
+          buildSaveBookingLinkTextVariables({
+            userId: user.id,
+            businessId,
+            ...editFieldsForSnapshot,
+            coverImageUri: localCoverUri,
+            logoImageUri: localLogoUri,
+            previousBannerPath: coverImagePath,
+            previousLogoPath: logoPath,
+            ...(galleryPayload ? { gallery: galleryPayload } : {}),
+          }),
+        );
+        await queryClient.invalidateQueries({ queryKey: shopAddressPromptQueryKey(user.id) });
+      }
+
       onSaved?.();
     } catch (e) {
       Alert.alert('Could not save', safeUserFacingMessage(e, { fallback: 'Please try again.' }));
+    } finally {
+      setIsSavingServiceArea(false);
     }
   }, [
     businessId,
@@ -448,6 +873,18 @@ export function useBookingLinkEditController({
     coverImagePath,
     logoPath,
     hasGalleryChanges,
+    hasTextChanges,
+    hasImageChanges,
+    hasLocationChanges,
+    baselineLocationKey,
+    baselineRadius,
+    locationRequiresSuggestion,
+    shopRequiresSuggestion,
+    selectedLocation,
+    serviceAreaQuery.data,
+    radiusInput,
+    queryClient,
+    recheckPromptStatus,
     visiblePortfolioImages,
     localGalleryUris,
     onSaved,
@@ -459,6 +896,13 @@ export function useBookingLinkEditController({
     zipInput,
     serviceTypeInput,
     shopStreetInput,
+    shopCityInput,
+    shopStateInput,
+    shopZipInput,
+    typeInput,
+    specialtiesInput,
+    policyEnabled,
+    policyInput,
   ]);
 
   return {
@@ -471,23 +915,41 @@ export function useBookingLinkEditController({
     nameInput,
     setNameInput,
     typeInput,
-    setTypeInput,
+    onTypeInputChange,
+    specialtiesInput,
+    onSpecialtiesChange,
+    specialtyError,
     cityInput,
-    setCityInput,
+    onCityInputChange,
     stateInput,
     onStateInputChange,
     zipInput,
     onZipInputChange,
+    locationInput,
+    selectedLocation,
+    locationError,
+    radiusInput,
+    onLocationInputChange,
+    onLocationSelect,
+    onRadiusChange,
     serviceTypeInput,
     setServiceTypeInput,
     shopStreetInput,
-    setShopStreetInput,
+    shopAddressInput,
+    selectedShopLocation,
+    shopAddressError,
+    onShopAddressInputChange,
+    onShopAddressSelect,
     shopUnitInput,
     setShopUnitInput,
     spanishEnabled,
     onSpanishEnabledChange,
     defaultLanguageInput,
     setDefaultLanguageInput,
+    policyEnabled,
+    setPolicyEnabled,
+    policyInput,
+    onPolicyInputChange,
     bioInput,
     setBioInput,
     phoneInput,
@@ -512,6 +974,7 @@ export function useBookingLinkEditController({
     onDoneEditing: onBack,
     handleSave,
     canSave,
+    isSaving: saveMutation.isPending || isSavingServiceArea,
     saveMutation,
     profileCompletionPercent: profileCompletion.percent,
     profileCompletionItems: profileCompletion.items,

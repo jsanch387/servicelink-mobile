@@ -5,6 +5,10 @@ export function bookingLinkOwnerProfileQueryKey(userId) {
   return [...BOOKING_LINK_QUERY_KEY, 'owner-profile', userId ?? ''];
 }
 
+export function shopAddressPromptQueryKey(userId) {
+  return [...BOOKING_LINK_QUERY_KEY, 'shop-address-prompt', userId ?? ''];
+}
+
 export function bookingLinkPublicProfileQueryKey(slug) {
   return [...BOOKING_LINK_QUERY_KEY, 'public-profile', slug ?? ''];
 }

@@ -51,21 +51,22 @@ export function isLocationStepComplete(appointmentLocationType) {
 }
 
 /**
+ * Shop mailing address only. Never fall back to the mobile serving city/state/ZIP.
  * @param {{
  *   shopStreetAddress?: string,
  *   shopUnit?: string,
- *   city?: string,
- *   state?: string,
- *   zip?: string,
+ *   shopCity?: string,
+ *   shopState?: string,
+ *   shopZip?: string,
  * }} serviceLocation
  */
 export function addressFormFromBusinessShopLocation(serviceLocation) {
   return {
     street: String(serviceLocation?.shopStreetAddress ?? '').trim(),
     unit: String(serviceLocation?.shopUnit ?? '').trim(),
-    city: String(serviceLocation?.city ?? '').trim(),
-    state: String(serviceLocation?.state ?? '').trim(),
-    zip: String(serviceLocation?.zip ?? '').trim(),
+    city: String(serviceLocation?.shopCity ?? '').trim(),
+    state: String(serviceLocation?.shopState ?? '').trim(),
+    zip: String(serviceLocation?.shopZip ?? '').trim(),
   };
 }
 

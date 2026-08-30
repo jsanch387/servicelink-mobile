@@ -35,3 +35,18 @@ export function formatBookingServiceAreaLabel(city, state, zip) {
   }
   return null;
 }
+
+/**
+ * Web coverage label — city/state plus travel distance, e.g. `"Austin, TX · 25 mi"`.
+ * @param {string | undefined} city
+ * @param {string | undefined} state
+ * @param {string | number | null | undefined} radiusMiles
+ * @returns {string | null}
+ */
+export function formatServiceCoverageLabel(city, state, radiusMiles) {
+  const area = formatBookingServiceAreaLabel(city, state);
+  if (!area) return null;
+  const miles = Number(radiusMiles);
+  if (!Number.isFinite(miles) || miles <= 0) return area;
+  return `${area} · ${Math.round(miles)} mi`;
+}

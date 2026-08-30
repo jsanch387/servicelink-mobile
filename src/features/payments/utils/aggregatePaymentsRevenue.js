@@ -168,7 +168,7 @@ function barsForMonth(byDay, fromYmd, toYmd) {
     return {
       key: `${year}-${month + 1}-w${weekIndex}`,
       label: `Wk ${weekIndex}`,
-      fullLabel: `Week ${weekIndex}`,
+      fullLabel: customChunkFullLabel(from, to),
       cents: sumDaysInRange(byDay, localYyyyMmDd(from), localYyyyMmDd(to)),
     };
   });

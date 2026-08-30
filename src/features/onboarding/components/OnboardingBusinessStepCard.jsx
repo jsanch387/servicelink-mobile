@@ -1,18 +1,24 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { SelectField, SurfaceCard, SurfaceTextField } from '../../../components/ui';
-import { BUSINESS_TYPE_OPTIONS } from '../../../constants/businessTypeOptions';
+import { SelectField, SpecialtyChips, SurfaceCard, SurfaceTextField } from '../../../components/ui';
+import { getSpecialtiesForBusinessType } from '../../../constants/businessSpecialties';
+import { getBusinessTypeSelectOptions } from '../../../constants/businessTypes';
 import { MAX_ONBOARDING_BUSINESS_NAME_LENGTH } from '../constants/onboardingInputLimits';
 
 /**
- * Step 1: business display name + type (values held by parent until persistence exists).
+ * Step 1: business name, industry, and niches.
  */
 export function OnboardingBusinessStepCard({
   businessName,
   onBusinessNameChange,
   businessType,
   onBusinessTypeChange,
+  specialties,
+  onSpecialtiesChange,
+  specialtyError,
 }) {
+  const specialtyOptions = businessType ? getSpecialtiesForBusinessType(businessType) : [];
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -23,6 +29,9 @@ export function OnboardingBusinessStepCard({
           marginTop: 0,
         },
         selectFlushTop: {
+          marginTop: 0,
+        },
+        chipsWrap: {
           marginTop: 0,
         },
       }),
@@ -37,7 +46,7 @@ export function OnboardingBusinessStepCard({
         label="Business name"
         maxLength={MAX_ONBOARDING_BUSINESS_NAME_LENGTH}
         onChangeText={onBusinessNameChange}
-        placeholder="e.g. Sparkle Mobile Detailing"
+        placeholder="e.g. your business name"
         value={businessName}
       />
 
@@ -45,14 +54,25 @@ export function OnboardingBusinessStepCard({
         <SelectField
           fieldStyle={styles.selectFlushTop}
           label="Business type"
-          options={BUSINESS_TYPE_OPTIONS}
-          placeholder="Select type"
+          options={getBusinessTypeSelectOptions(businessType)}
+          placeholder="Pick one"
           presentation="wheel"
           title="Business type"
           value={businessType || null}
           onValueChange={onBusinessTypeChange}
         />
       </View>
+
+      {specialtyOptions.length > 0 ? (
+        <View style={styles.chipsWrap}>
+          <SpecialtyChips
+            error={specialtyError}
+            options={specialtyOptions}
+            value={specialties}
+            onChange={onSpecialtiesChange}
+          />
+        </View>
+      ) : null}
     </SurfaceCard>
   );
 }

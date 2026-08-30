@@ -11,6 +11,7 @@ import { AppUpdateAnnouncementsBootstrap } from '../features/appUpdates';
 import { NotificationsRealtimeBridge } from '../features/notifications/components/NotificationsRealtimeBridge';
 import { PushTokenRegistration } from '../features/notifications/components/PushTokenRegistration';
 import { PaymentsScreen } from '../features/payments/screens/PaymentsScreen';
+import { ShopAddressUpdatePrompt } from '../features/bookingLink/components/ShopAddressUpdatePrompt';
 import { LocationCollectionModal, useLocationPrompt } from '../features/location';
 import { MAIN_TAB_CONFIG, ROUTES } from '../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../theme';
@@ -55,6 +56,7 @@ export function MainTabNavigator() {
         onDismiss={handleDismissPrompt}
         onSave={handleSaveLocation}
       />
+      <ShopAddressUpdatePrompt locationPromptVisible={promptVisible} />
       <Tab.Navigator
         screenOptions={{
           headerShown: false,

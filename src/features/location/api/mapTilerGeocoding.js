@@ -95,6 +95,36 @@ function stateAbbreviation(item) {
 }
 
 /**
+ * US ZIP from a MapTiler / Mapbox-style geocoding feature.
+ * Provider ids are often `postcode.*` even when docs say `postal_code`.
+ *
+ * @param {{
+ *   text?: string;
+ *   place_name?: string;
+ *   properties?: { postcode?: string; postal_code?: string; postalcode?: string };
+ *   context?: object[];
+ *   id?: string;
+ *   place_type?: string[];
+ * } | null | undefined} feature
+ * @returns {string}
+ */
+export function zipFromMapTilerFeature(feature) {
+  if (!feature) return '';
+
+  const zipItem = findHierarchyItem(feature, ['postal_code', 'postcode', 'postalcode']);
+  const fromHierarchy = String(`${zipItem?.text ?? ''} ${zipItem?.id ?? ''}`).match(/\b\d{5}\b/)?.[0];
+  if (fromHierarchy) return fromHierarchy;
+
+  const props = feature.properties ?? {};
+  const fromProps = String(props.postcode ?? props.postal_code ?? props.postalcode ?? '').match(
+    /\b\d{5}\b/,
+  )?.[0];
+  if (fromProps) return fromProps;
+
+  return String(feature.place_name ?? '').match(/\b\d{5}\b/)?.[0] ?? '';
+}
+
+/**
  * @param {string} city
  * @param {string} state
  * @param {string} zip
@@ -111,6 +141,8 @@ export function formatLocationDisplayLabel(city, state, zip) {
 export function formatLocationSuggestionKind(placeType) {
   switch (placeType) {
     case 'postal_code':
+    case 'postcode':
+    case 'postalcode':
       return 'ZIP code';
     case 'address':
       return 'Address';
@@ -164,11 +196,9 @@ function mapFeature(feature) {
     'municipal_district',
   ]);
   const regionItem = findHierarchyItem(feature, ['region']);
-  const zipItem = findHierarchyItem(feature, ['postal_code']);
   const city = cityItem?.text?.trim() ?? '';
   const state = stateAbbreviation(regionItem);
-  const zipMatch = zipItem?.text?.match(/\b\d{5}\b/);
-  const zip = zipMatch?.[0] ?? '';
+  const zip = zipFromMapTilerFeature(feature);
   const longitude = feature.center?.[0];
   const latitude = feature.center?.[1];
   const street = streetFromFeature(feature);
