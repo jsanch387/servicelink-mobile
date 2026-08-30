@@ -1,11 +1,13 @@
 import { View } from 'react-native';
 import {
   AppText,
+  AppTextInput,
   SelectField,
   SpecialtyChips,
   SurfaceCard,
   SurfaceTextField,
 } from '../../../../components/ui';
+import { useTheme } from '../../../../theme';
 import { getSpecialtiesForBusinessType } from '../../../../constants/businessSpecialties';
 
 export function BookingLinkEditBusinessInfoSection({
@@ -57,17 +59,25 @@ export function BookingLinkEditBusinessInfoSection({
 }
 
 export function BookingLinkEditBioSection({ styles, bioInput, onBioInputChange }) {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.bioSection}>
       <AppText style={styles.sectionTitle}>Business Bio (Optional)</AppText>
-      <SurfaceTextField
-        containerStyle={styles.bioFieldWrap}
-        multiline
-        style={styles.bioInput}
-        textAlignVertical="top"
-        value={bioInput}
-        onChangeText={onBioInputChange}
-      />
+      <View style={[styles.multilineInputShell, styles.bioFieldWrap]}>
+        <AppTextInput
+          accessibilityLabel="Business bio"
+          multiline
+          nestedScrollEnabled
+          placeholder="Tell customers about your business"
+          placeholderTextColor={colors.placeholder}
+          scrollEnabled
+          style={styles.multilineInput}
+          textAlignVertical="top"
+          value={bioInput}
+          onChangeText={onBioInputChange}
+        />
+      </View>
     </View>
   );
 }

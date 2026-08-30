@@ -102,19 +102,21 @@ export function SelectField({
           borderRadius: 16,
           borderWidth: pressed ? 1.5 : 1,
           flexDirection: 'row',
-          minHeight: 40,
-          paddingHorizontal: 10,
-          paddingVertical: 6,
+          minHeight: 52,
+          paddingHorizontal: 12,
+          paddingVertical: 0,
+        },
+        triggerLabelCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+          paddingLeft: 6,
+          paddingRight: 10,
         },
         triggerText: {
           color: colors.text,
-          flex: 1,
-          fontSize: 15,
+          fontSize: 16,
           fontWeight: '500',
-          minHeight: 34,
-          paddingLeft: 6,
-          paddingRight: 10,
-          paddingVertical: Platform.select({ android: 6, default: 8 }),
           textAlign: 'left',
         },
         triggerPlaceholder: {
@@ -256,12 +258,14 @@ export function SelectField({
         style={({ pressed: pressedState }) => [styles.trigger, pressedState && { opacity: 0.9 }]}
       >
         <View style={[styles.triggerShell, triggerStyle]}>
-          <AppText
-            numberOfLines={1}
-            style={[styles.triggerText, !selectedLabel && styles.triggerPlaceholder]}
-          >
-            {selectedLabel ?? placeholder}
-          </AppText>
+          <View style={styles.triggerLabelCol}>
+            <AppText
+              numberOfLines={1}
+              style={[styles.triggerText, !selectedLabel && styles.triggerPlaceholder]}
+            >
+              {selectedLabel ?? placeholder}
+            </AppText>
+          </View>
           <View style={styles.triggerIconWrap}>
             <Ionicons color={colors.textMuted} name="chevron-down" size={22} />
           </View>

@@ -1,12 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMemo } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-import { AppText, AppTextInput, SurfaceCard } from '../../../../components/ui';
+import { StyleSheet, View } from 'react-native';
+import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 
-/** Matches phone / social input control height. */
-const CONTROL_SIZE = 40;
-/** Fills the square badge so the glyph reads as tall as the input. */
+const BADGE_SIZE = 52;
 const BADGE_ICON_SIZE = 22;
 
 const SOCIAL_PLATFORMS = [
@@ -26,14 +24,6 @@ const SOCIAL_PLATFORMS = [
 
 /**
  * Social handles for booking-link edit Contact tab (`business_profiles.social_media`).
- *
- * @param {{
- *   styles: object;
- *   instagramInput: string;
- *   tiktokInput: string;
- *   onInstagramInputChange: (text: string) => void;
- *   onTiktokInputChange: (text: string) => void;
- * }} props
  */
 export function BookingLinkEditSocialSection({
   styles: editStyles,
@@ -55,7 +45,7 @@ export function BookingLinkEditSocialSection({
         card: {
           overflow: 'hidden',
           paddingHorizontal: 12,
-          paddingVertical: 10,
+          paddingVertical: 14,
         },
         fields: {
           gap: 10,
@@ -63,76 +53,29 @@ export function BookingLinkEditSocialSection({
         field: {
           gap: 5,
         },
-        label: {
-          color: colors.text,
-          fontSize: 13,
-          fontWeight: '600',
-          letterSpacing: -0.2,
-        },
         inputRow: {
           alignItems: 'center',
           flexDirection: 'row',
           gap: 8,
+          width: '100%',
         },
         badge: {
           alignItems: 'center',
           backgroundColor: isDark ? '#1A1A1A' : '#111111',
           borderColor: colors.border,
-          borderRadius: 10,
+          borderRadius: 16,
           borderWidth: 1,
           flexShrink: 0,
-          height: CONTROL_SIZE,
+          height: BADGE_SIZE,
           justifyContent: 'center',
-          maxHeight: CONTROL_SIZE,
-          minHeight: CONTROL_SIZE,
-          overflow: 'hidden',
-          width: CONTROL_SIZE,
+          width: BADGE_SIZE,
         },
-        inputShell: {
-          alignItems: 'center',
-          backgroundColor: isDark ? colors.shell : colors.shellElevated,
-          borderColor: colors.border,
-          borderRadius: 10,
-          borderWidth: 1,
+        inputCol: {
           flex: 1,
-          flexDirection: 'row',
-          height: CONTROL_SIZE,
-          minHeight: CONTROL_SIZE,
-          maxHeight: CONTROL_SIZE,
-          paddingHorizontal: 12,
+          minWidth: 0,
         },
-        atSlot: {
-          alignItems: 'center',
-          height: CONTROL_SIZE,
-          justifyContent: 'center',
-          marginRight: 2,
-          // Optical nudge — @ sits low vs TextInput baseline on iOS.
-          paddingBottom: 2,
-        },
-        atPrefix: {
-          color: colors.textMuted,
-          fontSize: 15,
-          fontWeight: '600',
-          letterSpacing: -0.1,
-          lineHeight: 18,
-          ...Platform.select({
-            android: { includeFontPadding: false, textAlignVertical: 'center' },
-          }),
-        },
-        fieldInput: {
-          color: colors.text,
-          flex: 1,
-          fontSize: 15,
-          fontWeight: '500',
-          letterSpacing: -0.1,
-          margin: 0,
-          paddingHorizontal: 0,
-          paddingVertical: 0,
-          textAlignVertical: 'center',
-          ...Platform.select({
-            android: { includeFontPadding: false },
-            ios: { height: CONTROL_SIZE },
-          }),
+        inputField: {
+          marginBottom: 0,
         },
       }),
     [colors, isDark],
@@ -140,30 +83,26 @@ export function BookingLinkEditSocialSection({
 
   return (
     <View>
-      <AppText style={editStyles.sectionTitle}>Social</AppText>
-      <AppText style={editStyles.sectionBody}>Shown on your booking page.</AppText>
+      <AppText style={editStyles.sectionTitle}>Socials</AppText>
 
       <SurfaceCard padding="none" style={[editStyles.editSectionCard, styles.card]}>
         <View style={styles.fields}>
           {SOCIAL_PLATFORMS.map((platform) => (
             <View key={platform.key} style={styles.field}>
-              <AppText style={styles.label}>{platform.label}</AppText>
+              <AppText style={editStyles.contactFieldLabel}>{platform.label}</AppText>
               <View style={styles.inputRow}>
                 <View style={styles.badge}>
                   <Ionicons color="#FFFFFF" name={platform.icon} size={BADGE_ICON_SIZE} />
                 </View>
-                <View style={styles.inputShell}>
-                  <View style={styles.atSlot}>
-                    <AppText includeFontPadding={false} style={styles.atPrefix}>
-                      @
-                    </AppText>
-                  </View>
-                  <AppTextInput
+                <View style={styles.inputCol}>
+                  <SurfaceTextField
                     autoCapitalize="none"
                     autoCorrect={false}
+                    compact
+                    containerStyle={styles.inputField}
+                    label={null}
                     placeholder={platform.placeholder}
-                    placeholderTextColor={colors.textMuted}
-                    style={styles.fieldInput}
+                    prefixText="@"
                     value={values[platform.key]}
                     onChangeText={onChange[platform.key]}
                   />

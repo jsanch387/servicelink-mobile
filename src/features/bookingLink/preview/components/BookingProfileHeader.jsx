@@ -92,57 +92,57 @@ export function BookingProfileHeader({
         },
         profileBlock: {
           alignItems: 'center',
-          marginTop: -64,
-          paddingHorizontal: 24,
+          marginTop: -48,
+          paddingHorizontal: 20,
           position: 'relative',
           zIndex: 10,
         },
         logoWrap: {
-          marginBottom: 24,
+          marginBottom: 12,
           position: 'relative',
         },
         logoFrame: {
           backgroundColor: colors.borderStrong,
-          borderRadius: 45,
-          padding: 4,
+          borderRadius: 34,
+          padding: 3,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.32,
-          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.28,
+          shadowRadius: 12,
         },
         logo: {
           alignItems: 'center',
           backgroundColor: colors.border,
           borderColor: colors.shell,
-          borderRadius: 38,
-          borderWidth: 4,
-          height: 128,
+          borderRadius: 30,
+          borderWidth: 3,
+          height: 96,
           justifyContent: 'center',
-          width: 128,
+          width: 96,
         },
         logoImage: {
           borderColor: colors.shell,
-          borderRadius: 38,
-          borderWidth: 4,
-          height: 128,
-          width: 128,
+          borderRadius: 30,
+          borderWidth: 3,
+          height: 96,
+          width: 96,
         },
         verifiedBadge: {
           alignItems: 'center',
           backgroundColor: colors.shell,
           borderColor: colors.borderStrong,
-          borderRadius: 12,
+          borderRadius: 10,
           borderWidth: 2,
-          bottom: -2,
-          height: 32,
+          bottom: -1,
+          height: 26,
           justifyContent: 'center',
           position: 'absolute',
-          right: -2,
+          right: -1,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          width: 32,
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.28,
+          shadowRadius: 6,
+          width: 26,
         },
         businessNameWrap: {
           maxWidth: 672,
@@ -158,7 +158,7 @@ export function BookingProfileHeader({
           flexDirection: 'row',
           gap: 8,
           justifyContent: 'center',
-          marginTop: 6,
+          marginTop: 4,
         },
         locationText: {
           color: colors.textMuted,
@@ -171,7 +171,7 @@ export function BookingProfileHeader({
           flexDirection: 'row',
           gap: 10,
           justifyContent: 'center',
-          marginTop: 14,
+          marginTop: 12,
         },
         socialRowAfterCta: {
           marginTop: 16,
@@ -203,7 +203,7 @@ export function BookingProfileHeader({
           alignItems: 'center',
           flexDirection: 'row',
           gap: 8,
-          marginTop: 20,
+          marginTop: 16,
           maxWidth: 672,
           width: '100%',
         },
@@ -317,13 +317,13 @@ export function BookingProfileHeader({
               {logoUrl ? (
                 <Image source={{ uri: logoUrl }} style={styles.logoImage} />
               ) : (
-                <Ionicons name="business-outline" size={38} color={colors.textMuted} />
+                <Ionicons name="business-outline" size={30} color={colors.textMuted} />
               )}
             </View>
           </View>
           {showVerifiedBadge ? (
             <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={20} color="#60a5fa" />
+              <Ionicons name="checkmark-circle" size={16} color="#60a5fa" />
             </View>
           ) : null}
         </View>

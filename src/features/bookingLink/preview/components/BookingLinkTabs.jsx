@@ -15,7 +15,7 @@ export function BookingLinkTabs({ activeTab, onChangeTab }) {
           borderBottomColor: colors.border,
           borderBottomWidth: 1,
           flexDirection: 'row',
-          marginTop: 26,
+          marginTop: 18,
           paddingHorizontal: SCREEN_GUTTER,
         },
         tab: {

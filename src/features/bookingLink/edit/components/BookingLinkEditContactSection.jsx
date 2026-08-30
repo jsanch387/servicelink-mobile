@@ -15,16 +15,20 @@ export function BookingLinkEditContactSection({
 }) {
   return (
     <View style={[editStyles.contactSection, rootStyle]}>
-      <AppText style={editStyles.sectionTitle}>Phone number</AppText>
-      <SurfacePhoneField
-        containerStyle={editStyles.contactPhoneField}
-        errorText={phoneInputError}
-        label={null}
-        placeholder="(555) 234-5678"
-        prefixText="+1"
-        value={phoneInput}
-        onChangeText={onPhoneInputChange}
-      />
+      <View>
+        <AppText style={editStyles.sectionTitle}>Phone number</AppText>
+        <SurfacePhoneField
+          accessibilityLabel="Phone number"
+          compact
+          containerStyle={editStyles.contactPhoneField}
+          errorText={phoneInputError}
+          label={null}
+          placeholder="(555) 234-5678"
+          prefixText="+1"
+          value={phoneInput}
+          onChangeText={onPhoneInputChange}
+        />
+      </View>
 
       <BookingLinkEditSocialSection
         instagramInput={instagramInput}

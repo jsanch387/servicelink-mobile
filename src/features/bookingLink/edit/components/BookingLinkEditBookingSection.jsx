@@ -5,12 +5,16 @@ import { LocationAutocompleteField, ServiceAreaFields } from '../../../location'
 import { useTheme } from '../../../../theme';
 import {
   BOOKING_DEFAULT_LANGUAGE_OPTIONS,
+  BOOKING_SERVICE_TYPE_MOBILE,
   BOOKING_SERVICE_TYPE_OPTIONS,
   bookingServiceTypeShowsServiceArea,
   bookingServiceTypeShowsShopAddress,
 } from '../constants/bookingLinkBookingTab';
+import { formatServiceCoverageLabel } from '../utils/formatBookingServiceAreaLabel';
+import { parseServiceAreaCityState } from '../../utils/serviceArea';
 import { BookingLinkEditCustomerPolicySection } from './BookingLinkEditCustomerPolicySection';
 import { BookingLinkEditInlineSegment } from './BookingLinkEditInlineSegment';
+import { BookingLinkEditMobileAreaSummary } from './BookingLinkEditMobileAreaSummary';
 
 export function BookingLinkEditBookingSection({
   styles,
@@ -44,6 +48,14 @@ export function BookingLinkEditBookingSection({
 
   const showShopAddress = bookingServiceTypeShowsShopAddress(serviceType);
   const showServiceArea = bookingServiceTypeShowsServiceArea(serviceType);
+  const showMobileAreaSummary = showShopAddress && showServiceArea;
+
+  const coverageLabel = useMemo(() => {
+    const fromSelected = selectedLocation
+      ? { city: selectedLocation.city, state: selectedLocation.state }
+      : parseServiceAreaCityState(locationInput);
+    return formatServiceCoverageLabel(fromSelected.city, fromSelected.state, radiusInput);
+  }, [locationInput, radiusInput, selectedLocation]);
 
   const switchTrackColor = useMemo(
     () => ({ false: colors.borderStrong, true: colors.timelineCompletedFill }),
@@ -88,12 +100,19 @@ export function BookingLinkEditBookingSection({
             </View>
           ) : null}
 
-          {showServiceArea ? (
-            <View
-              style={
-                showShopAddress ? styles.bookingMobileFieldsAfterShop : styles.bookingMobileFields
-              }
-            >
+          {showMobileAreaSummary ? (
+            <View style={styles.bookingMobileFieldsAfterShop}>
+              <BookingLinkEditMobileAreaSummary
+                coverageLabel={coverageLabel}
+                errorText={locationError}
+                styles={styles}
+                onEdit={() => onServiceTypeChange(BOOKING_SERVICE_TYPE_MOBILE)}
+              />
+            </View>
+          ) : null}
+
+          {showServiceArea && !showMobileAreaSummary ? (
+            <View style={styles.bookingMobileFields}>
               <ServiceAreaFields
                 footer="none"
                 locationError={locationError}

@@ -44,7 +44,7 @@ export function BookingLinkEditCustomerPolicySection({
         {policyEnabled ? (
           <View style={styles.bookingPolicyFields}>
             <AppText style={styles.bookingPolicyLabel}>Policy</AppText>
-            <View style={styles.bookingPolicyInputShell}>
+            <View style={styles.multilineInputShell}>
               <AppTextInput
                 accessibilityLabel="Policy"
                 maxLength={BOOKING_POLICY_MAX_LENGTH}
@@ -53,7 +53,7 @@ export function BookingLinkEditCustomerPolicySection({
                 placeholder="Write the policy customers agree to"
                 placeholderTextColor={colors.placeholder}
                 scrollEnabled
-                style={styles.bookingPolicyInput}
+                style={styles.multilineInput}
                 textAlignVertical="top"
                 value={policyInput}
                 onChangeText={onPolicyInputChange}

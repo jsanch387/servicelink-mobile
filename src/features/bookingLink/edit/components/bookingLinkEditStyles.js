@@ -72,6 +72,53 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       paddingTop: 16,
       zIndex: 10,
     },
+    bookingMobileSummary: {
+      paddingVertical: 2,
+    },
+    bookingMobileSummaryPressed: {
+      opacity: 0.72,
+    },
+    bookingMobileSummaryHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      width: '100%',
+    },
+    bookingMobileSummaryLabelCol: {
+      flex: 1,
+      justifyContent: 'center',
+      minWidth: 0,
+    },
+    bookingMobileSummaryLabel: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '500',
+      letterSpacing: -0.1,
+    },
+    bookingMobileSummaryEditCol: {
+      flexShrink: 0,
+      justifyContent: 'center',
+      marginLeft: 12,
+    },
+    bookingMobileSummaryEdit: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '500',
+      letterSpacing: -0.1,
+      textDecorationLine: 'underline',
+    },
+    bookingMobileSummaryValue: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontWeight: '400',
+      letterSpacing: -0.1,
+      marginTop: 4,
+    },
+    bookingMobileSummaryError: {
+      color: colors.danger,
+      fontSize: 13,
+      fontWeight: '500',
+      marginTop: 6,
+    },
     bookingLanguageRowSolo: {
       alignItems: 'center',
       flexDirection: 'row',
@@ -111,7 +158,7 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       letterSpacing: -0.1,
       marginBottom: 8,
     },
-    bookingPolicyInputShell: {
+    multilineInputShell: {
       backgroundColor: colors.inputBg,
       borderRadius: 14,
       maxHeight: 260,
@@ -119,7 +166,7 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       paddingHorizontal: 14,
       paddingVertical: 12,
     },
-    bookingPolicyInput: {
+    multilineInput: {
       backgroundColor: 'transparent',
       borderWidth: 0,
       color: colors.inputText ?? colors.text,
@@ -363,6 +410,12 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       gap: SECTION_STACK_GAP,
       marginTop: SECTION_STACK_GAP,
     },
+    contactFieldLabel: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '600',
+      letterSpacing: -0.2,
+    },
     contactPhoneField: {
       marginBottom: 0,
       marginTop: 10,
@@ -467,11 +520,6 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       right: 6,
       top: 6,
       width: 26,
-    },
-    bioInput: {
-      minHeight: 128,
-      paddingTop: 12,
-      textAlignVertical: 'top',
     },
   });
 }
