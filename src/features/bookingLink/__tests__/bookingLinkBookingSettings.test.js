@@ -53,7 +53,14 @@ describe('bookingLinkBookingSettings', () => {
 
   it('clears shop fields when mobile only', () => {
     expect(
-      serviceLocationToDb(BOOKING_SERVICE_TYPE_MOBILE, '123 Main', 'A', 'Pflugerville', 'TX', '78660'),
+      serviceLocationToDb(
+        BOOKING_SERVICE_TYPE_MOBILE,
+        '123 Main',
+        'A',
+        'Pflugerville',
+        'TX',
+        '78660',
+      ),
     ).toEqual({
       service_location_mode: 'mobile_only',
       shop_street_address: null,
@@ -66,7 +73,14 @@ describe('bookingLinkBookingSettings', () => {
 
   it('persists shop fields when shop mode', () => {
     expect(
-      serviceLocationToDb(BOOKING_SERVICE_TYPE_SHOP, '123 Main', 'Suite 1', 'Pflugerville', 'TX', '78660'),
+      serviceLocationToDb(
+        BOOKING_SERVICE_TYPE_SHOP,
+        '123 Main',
+        'Suite 1',
+        'Pflugerville',
+        'TX',
+        '78660',
+      ),
     ).toEqual({
       service_location_mode: 'shop_only',
       shop_street_address: '123 Main',

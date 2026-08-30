@@ -10,7 +10,10 @@ import {
   resolveBusinessSpecialties,
   SPECIALTIES_REQUIRED_ERROR,
 } from '../../../constants/businessSpecialties';
-import { getIndustryOnboardingCopy, isAllowedBusinessTypeValue } from '../../../constants/businessTypes';
+import {
+  getIndustryOnboardingCopy,
+  isAllowedBusinessTypeValue,
+} from '../../../constants/businessTypes';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
 import { useBusinessAvailability } from '../../availability/hooks/useBusinessAvailability';

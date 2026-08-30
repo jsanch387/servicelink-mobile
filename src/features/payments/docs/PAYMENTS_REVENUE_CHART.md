@@ -13,13 +13,13 @@ Mobile and web both show a “revenue” headline + chart, but they do **not** s
 
 On mobile, Revenue is **completed-job earnings**, not a Stripe ledger.
 
-| Rule | Mobile (source of truth for this chart) |
-| --- | --- |
-| Who is included | Rows in `bookings` with `status = 'completed'` only. Confirmed, pending, canceled never appear. |
-| How much | `computeBookingEarningsCents(row).collectedCents` — same helper as Home `todaysEarnings`. A completed job is treated as **fully collected** even if `booking_payments` still shows remaining. |
-| When it lands on the chart | The booking’s **`scheduled_date`** (calendar `YYYY-MM-DD`), not payment time, not “marked complete” time. |
-| Timezone | Device **local calendar**. Windows are inclusive `YYYY-MM-DD` strings. No IANA timezone param. |
-| Default range | **Month** (this calendar month). |
+| Rule                       | Mobile (source of truth for this chart)                                                                                                                                                       |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Who is included            | Rows in `bookings` with `status = 'completed'` only. Confirmed, pending, canceled never appear.                                                                                               |
+| How much                   | `computeBookingEarningsCents(row).collectedCents` — same helper as Home `todaysEarnings`. A completed job is treated as **fully collected** even if `booking_payments` still shows remaining. |
+| When it lands on the chart | The booking’s **`scheduled_date`** (calendar `YYYY-MM-DD`), not payment time, not “marked complete” time.                                                                                     |
+| Timezone                   | Device **local calendar**. Windows are inclusive `YYYY-MM-DD` strings. No IANA timezone param.                                                                                                |
+| Default range              | **Month** (this calendar month).                                                                                                                                                              |
 
 A job scheduled last Wednesday, completed today, still sits on last Wednesday’s bar.
 
@@ -43,15 +43,15 @@ React Query key: `['payments', 'revenue', businessId, range, fromYmd|open, toYmd
 
 ### Key files
 
-| File | Role |
-| --- | --- |
-| `src/features/payments/hooks/usePaymentsRevenue.js` | Range state, two fetches, aggregate |
-| `src/features/payments/api/fetchCompletedBookingPayments.js` | Supabase query |
-| `src/features/payments/utils/revenueDateWindows.js` | Inclusive windows + prior period |
-| `src/features/payments/utils/aggregatePaymentsRevenue.js` | Totals, day map, chart bars, % |
-| `src/features/home/utils/todaysEarnings.js` | `computeBookingEarningsCents` — **do not fork** |
-| `src/features/home/utils/bookingStart.js` | `calendarYyyyMmDdFromScheduledDate` |
-| `src/features/payments/constants/paymentsRevenueRanges.js` | Range ids + custom bucket cutoffs |
+| File                                                         | Role                                            |
+| ------------------------------------------------------------ | ----------------------------------------------- |
+| `src/features/payments/hooks/usePaymentsRevenue.js`          | Range state, two fetches, aggregate             |
+| `src/features/payments/api/fetchCompletedBookingPayments.js` | Supabase query                                  |
+| `src/features/payments/utils/revenueDateWindows.js`          | Inclusive windows + prior period                |
+| `src/features/payments/utils/aggregatePaymentsRevenue.js`    | Totals, day map, chart bars, %                  |
+| `src/features/home/utils/todaysEarnings.js`                  | `computeBookingEarningsCents` — **do not fork** |
+| `src/features/home/utils/bookingStart.js`                    | `calendarYyyyMmDdFromScheduledDate`             |
+| `src/features/payments/constants/paymentsRevenueRanges.js`   | Range ids + custom bucket cutoffs               |
 
 ---
 
@@ -86,24 +86,24 @@ Previous-period fetch uses the same query with `prevFromYmd` / `prevToYmd`. All 
 
 All bounds are **inclusive** local `YYYY-MM-DD`. “Today” is the device’s local midnight.
 
-| Range | Current window | Previous window (for %) |
-| --- | --- | --- |
-| **Week** | Monday–Sunday containing today | The Mon–Sun immediately before |
-| **Month** | 1st → last day of this calendar month | 1st → last day of last calendar month |
-| **Year** | Jan 1 → Dec 31 of this calendar year | Jan 1 → Dec 31 of last calendar year |
-| **All time** | No `scheduled_date` filter | None (`changePct` is null) |
-| **Custom** | Inclusive `from`–`to` (swapped if inverted). Start and end must be **different** days. | Same length immediately **before** `from` |
+| Range        | Current window                                                                         | Previous window (for %)                   |
+| ------------ | -------------------------------------------------------------------------------------- | ----------------------------------------- |
+| **Week**     | Monday–Sunday containing today                                                         | The Mon–Sun immediately before            |
+| **Month**    | 1st → last day of this calendar month                                                  | 1st → last day of last calendar month     |
+| **Year**     | Jan 1 → Dec 31 of this calendar year                                                   | Jan 1 → Dec 31 of last calendar year      |
+| **All time** | No `scheduled_date` filter                                                             | None (`changePct` is null)                |
+| **Custom**   | Inclusive `from`–`to` (swapped if inverted). Start and end must be **different** days. | Same length immediately **before** `from` |
 
 Week starts **Monday** (`weekday === 0` → go back 6 days; else `1 - weekday`).
 
 ### Examples (device local, Saturday Aug 29, 2026)
 
-| Range | Current | Previous |
-| --- | --- | --- |
-| Week | Mon Aug 24 → Sun Aug 30 | Mon Aug 17 → Sun Aug 23 |
-| Month | Aug 1 → Aug 31 | Jul 1 → Jul 31 |
-| Year | 2026-01-01 → 2026-12-31 | 2025-01-01 → 2025-12-31 |
-| Custom Aug 10–Aug 20 (11 days) | Aug 10–20 | Jul 30–Aug 9 |
+| Range                          | Current                 | Previous                |
+| ------------------------------ | ----------------------- | ----------------------- |
+| Week                           | Mon Aug 24 → Sun Aug 30 | Mon Aug 17 → Sun Aug 23 |
+| Month                          | Aug 1 → Aug 31          | Jul 1 → Jul 31          |
+| Year                           | 2026-01-01 → 2026-12-31 | 2025-01-01 → 2025-12-31 |
+| Custom Aug 10–Aug 20 (11 days) | Aug 10–20               | Jul 30–Aug 9            |
 
 Month and year include **future days in the calendar period** (rest of this week / rest of this year). Those bars are `$0` until jobs exist. That is intentional.
 
@@ -138,15 +138,15 @@ Do **not** invent a second formula on web. If a completed job disagrees with Hom
 
 Each bar: `{ key, label, fullLabel, cents }`. Zero-height bars are kept so the axis stays complete.
 
-| Range | `bucketKind` | Bars |
-| --- | --- | --- |
-| Week | `daily` | 7 days Mon→Sun. Label `Mo`…`Su`. |
-| Month | `weekly` | Exactly **4** segments inside the calendar month: days **1–7, 8–14, 15–21, 22–end**. Axis labels `Wk 1`–`Wk 4`. Selection card / Best week use dates (`Jul 1–7`). Week 4 absorbs day 28–31. **Not** Mon–Sun weeks (those spill months and produce 5–6 bars). |
-| Year | `monthly` | 12 months of **this calendar year** (`now.getFullYear()`). |
-| All time | `yearly` | One bar per year that has activity. If none, a single `$0` bar for the current year. |
-| Custom, ≤31 inclusive days | `daily` | One bar per day. |
-| Custom, 32–180 days | `weekly` | Consecutive **7-day chunks from the custom start** (last chunk may be shorter). Not calendar weeks. |
-| Custom, >180 days | `monthly` | Calendar months clipped to the custom bounds. |
+| Range                      | `bucketKind` | Bars                                                                                                                                                                                                                                                         |
+| -------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Week                       | `daily`      | 7 days Mon→Sun. Label `Mo`…`Su`.                                                                                                                                                                                                                             |
+| Month                      | `weekly`     | Exactly **4** segments inside the calendar month: days **1–7, 8–14, 15–21, 22–end**. Axis labels `Wk 1`–`Wk 4`. Selection card / Best week use dates (`Jul 1–7`). Week 4 absorbs day 28–31. **Not** Mon–Sun weeks (those spill months and produce 5–6 bars). |
+| Year                       | `monthly`    | 12 months of **this calendar year** (`now.getFullYear()`).                                                                                                                                                                                                   |
+| All time                   | `yearly`     | One bar per year that has activity. If none, a single `$0` bar for the current year.                                                                                                                                                                         |
+| Custom, ≤31 inclusive days | `daily`      | One bar per day.                                                                                                                                                                                                                                             |
+| Custom, 32–180 days        | `weekly`     | Consecutive **7-day chunks from the custom start** (last chunk may be shorter). Not calendar weeks.                                                                                                                                                          |
+| Custom, >180 days          | `monthly`    | Calendar months clipped to the custom bounds.                                                                                                                                                                                                                |
 
 Constants: `REVENUE_CUSTOM_DAILY_MAX_DAYS = 31`, `REVENUE_CUSTOM_WEEKLY_MAX_DAYS = 180`.
 
@@ -172,26 +172,26 @@ else           →  round(((current - previous) / previous) * 100)
 Web: `GET /api/payments/revenue?period=&timeZone=`  
 Loader: `business-profile/src/features/payments/revenue/loadOwnerPaymentsRevenue.ts`
 
-| Concern | Web today |
-| --- | --- |
-| What counts | Stripe Connect **net** balance transactions (charges/refunds; payouts excluded) **plus** offline `booking_payments` where `session_payment_method` ∈ `cash` \| `payment_app` \| `other` and `session_payment_amount_cents > 0`. Tap to pay is Stripe-only — do not add it again from `booking_payments`. |
-| When it lands | Event `createdAt`: Stripe txn created, or `session_payment_recorded_at`. **Not** `bookings.scheduled_date`. |
-| Timezone | Owner `timeZone` query param (IANA). Windows converted to `fromIso` / `toIso`. |
-| Week | Last **7 local days including today** (rolling). |
-| Month | Last **30 local days including today** (rolling). |
-| Year | Period id is **`ytd`**: Jan 1 this year → **today** (not Dec 31). Compare = same dates last year. |
-| All time | Jan 1 **2020** → today (hard floor). |
-| Custom | Inclusive YMD; end **clamped to today**; max day cap on web. Prior = equal length before start. |
-| Chart | Only `day` or `month` buckets (`span > 90` → month). No 4-week month chart, no year-of-years, no custom weekly chunks. |
-| Change % | `previous === 0` → `current === 0 ? 0 : null` (mobile would show `100` when current > 0). |
+| Concern       | Web today                                                                                                                                                                                                                                                                                                |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What counts   | Stripe Connect **net** balance transactions (charges/refunds; payouts excluded) **plus** offline `booking_payments` where `session_payment_method` ∈ `cash` \| `payment_app` \| `other` and `session_payment_amount_cents > 0`. Tap to pay is Stripe-only — do not add it again from `booking_payments`. |
+| When it lands | Event `createdAt`: Stripe txn created, or `session_payment_recorded_at`. **Not** `bookings.scheduled_date`.                                                                                                                                                                                              |
+| Timezone      | Owner `timeZone` query param (IANA). Windows converted to `fromIso` / `toIso`.                                                                                                                                                                                                                           |
+| Week          | Last **7 local days including today** (rolling).                                                                                                                                                                                                                                                         |
+| Month         | Last **30 local days including today** (rolling).                                                                                                                                                                                                                                                        |
+| Year          | Period id is **`ytd`**: Jan 1 this year → **today** (not Dec 31). Compare = same dates last year.                                                                                                                                                                                                        |
+| All time      | Jan 1 **2020** → today (hard floor).                                                                                                                                                                                                                                                                     |
+| Custom        | Inclusive YMD; end **clamped to today**; max day cap on web. Prior = equal length before start.                                                                                                                                                                                                          |
+| Chart         | Only `day` or `month` buckets (`span > 90` → month). No 4-week month chart, no year-of-years, no custom weekly chunks.                                                                                                                                                                                   |
+| Change %      | `previous === 0` → `current === 0 ? 0 : null` (mobile would show `100` when current > 0).                                                                                                                                                                                                                |
 
 Same Saturday Aug 29, 2026, America/Chicago:
 
-| Period | Web window | Mobile window |
-| --- | --- | --- |
-| week | Aug 23–29 | Aug 24–30 (Mon–Sun) |
-| month | Jul 31–Aug 29 | Aug 1–31 |
-| year / ytd | Jan 1–Aug 29 2026 | Jan 1–Dec 31 2026 |
+| Period     | Web window        | Mobile window       |
+| ---------- | ----------------- | ------------------- |
+| week       | Aug 23–29         | Aug 24–30 (Mon–Sun) |
+| month      | Jul 31–Aug 29     | Aug 1–31            |
+| year / ytd | Jan 1–Aug 29 2026 | Jan 1–Dec 31 2026   |
 
 ---
 
@@ -201,16 +201,16 @@ Use this when someone reports “mobile says $X, web says $Y.”
 
 ### 1. Different money (usually the largest gap)
 
-| Situation | Mobile | Web |
-| --- | --- | --- |
-| Completed job, payment row incomplete / $0 | Full job price still counts | Counts only Stripe net and recorded offline cash |
-| Stripe fee | Gross / potential (job price + fees as Home does) | **Net** after Stripe fees |
-| Refund | Job still counts at completed potential unless status is no longer completed | Refund balance txn **subtracts** |
-| Confirmed job with a card charge | **Excluded** (`status !== completed`) | **Included** if Stripe / offline event is in range |
-| Completed job, paid next week | On the **scheduled** day | On the **payment** day |
-| Offline cash / Venmo recorded on `booking_payments` | Folded into the one job total (and only if the booking is completed) | Separate event on `session_payment_recorded_at` |
-| Tap to pay | Inside `computeBookingEarningsCents` via the payment row | Stripe only |
-| Payouts | Not a concept | Excluded (correct) |
+| Situation                                           | Mobile                                                                       | Web                                                |
+| --------------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------- |
+| Completed job, payment row incomplete / $0          | Full job price still counts                                                  | Counts only Stripe net and recorded offline cash   |
+| Stripe fee                                          | Gross / potential (job price + fees as Home does)                            | **Net** after Stripe fees                          |
+| Refund                                              | Job still counts at completed potential unless status is no longer completed | Refund balance txn **subtracts**                   |
+| Confirmed job with a card charge                    | **Excluded** (`status !== completed`)                                        | **Included** if Stripe / offline event is in range |
+| Completed job, paid next week                       | On the **scheduled** day                                                     | On the **payment** day                             |
+| Offline cash / Venmo recorded on `booking_payments` | Folded into the one job total (and only if the booking is completed)         | Separate event on `session_payment_recorded_at`    |
+| Tap to pay                                          | Inside `computeBookingEarningsCents` via the payment row                     | Stripe only                                        |
+| Payouts                                             | Not a concept                                                                | Excluded (correct)                                 |
 
 ### 2. Different windows (same label, different days)
 
@@ -255,13 +255,13 @@ Do not merge Stripe net into this chart if the goal is “same number as the pho
 
 ### Period id mapping
 
-| Mobile `range` | Web query if matching mobile | Do not send |
-| --- | --- | --- |
-| `week` | `period=week` with **calendar** Mon–Sun | Rolling last 7 |
-| `month` | `period=month` with **calendar** month | Rolling last 30 |
-| `year` | `period=year` (full calendar year) | `ytd` |
-| `all` | `period=all` with no floor (or a documented floor if product wants one) | Silent 2020 clip without saying so |
-| `custom` | `period=custom&from=&to=` | End clamp only if mobile also clamps (it does not) |
+| Mobile `range` | Web query if matching mobile                                            | Do not send                                        |
+| -------------- | ----------------------------------------------------------------------- | -------------------------------------------------- |
+| `week`         | `period=week` with **calendar** Mon–Sun                                 | Rolling last 7                                     |
+| `month`        | `period=month` with **calendar** month                                  | Rolling last 30                                    |
+| `year`         | `period=year` (full calendar year)                                      | `ytd`                                              |
+| `all`          | `period=all` with no floor (or a documented floor if product wants one) | Silent 2020 clip without saying so                 |
+| `custom`       | `period=custom&from=&to=`                                               | End clamp only if mobile also clamps (it does not) |
 
 ---
 
@@ -275,11 +275,11 @@ One completed booking:
 - `booking_payments.total_amount_cents` empty, `session_payment_amount_cents = 0`
 - Customer paid cash Friday Aug 28; `session_payment_recorded_at = 2026-08-28T18:00:00Z`
 
-| Surface | Amount | Which bar |
-| --- | --- | --- |
-| Mobile Week (Aug 24–30) | **$150** | Wednesday Aug 26 |
-| Web Week (Aug 23–29) if using Stripe/offline | **$150** only if cash is recorded offline | Friday Aug 28 |
-| Web Week if the cash row is missing | **$0** | — |
+| Surface                                      | Amount                                    | Which bar        |
+| -------------------------------------------- | ----------------------------------------- | ---------------- |
+| Mobile Week (Aug 24–30)                      | **$150**                                  | Wednesday Aug 26 |
+| Web Week (Aug 23–29) if using Stripe/offline | **$150** only if cash is recorded offline | Friday Aug 28    |
+| Web Week if the cash row is missing          | **$0**                                    | —                |
 
 Same job, card via Stripe with a $4.65 fee: mobile still **$150** (potential); web Stripe path **~$145** net, dated on the charge.
 

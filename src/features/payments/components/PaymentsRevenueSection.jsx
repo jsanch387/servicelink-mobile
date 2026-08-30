@@ -127,10 +127,7 @@ export function PaymentsRevenueSection({ businessId }) {
     businessId,
   });
 
-  const windowCaption = useMemo(
-    () => formatRevenueWindowCaption(fromYmd, toYmd),
-    [fromYmd, toYmd],
-  );
+  const windowCaption = useMemo(() => formatRevenueWindowCaption(fromYmd, toYmd), [fromYmd, toYmd]);
 
   const bars = summary.bars;
   const best = pickBest(bars);

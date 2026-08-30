@@ -4,12 +4,7 @@ import { AppText } from '../../../../components/ui';
 /**
  * Compact mobile-coverage row for Booking → Both (shop fields stay full).
  */
-export function BookingLinkEditMobileAreaSummary({
-  coverageLabel,
-  errorText,
-  styles,
-  onEdit,
-}) {
+export function BookingLinkEditMobileAreaSummary({ coverageLabel, errorText, styles, onEdit }) {
   return (
     <Pressable
       accessibilityHint="Opens Mobile to edit your service area"

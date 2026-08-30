@@ -1,4 +1,1 @@
-export {
-  BUSINESS_TYPE_OPTIONS,
-  getBusinessTypeSelectOptions,
-} from './businessTypes';
+export { BUSINESS_TYPE_OPTIONS, getBusinessTypeSelectOptions } from './businessTypes';

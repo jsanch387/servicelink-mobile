@@ -20,7 +20,7 @@ import { Button } from './Button';
 export function SpecialtyChips({ options, value, onChange, error, fieldStyle }) {
   const { colors } = useTheme();
   const [open, setOpen] = useState(false);
-  const selected = new Set(value);
+  const selected = useMemo(() => new Set(value), [value]);
   const hasError = Boolean(error?.trim());
   const selectedOptions = options.filter((option) => selected.has(option.slug));
   const canAddMore = selectedOptions.length < options.length;

@@ -204,10 +204,7 @@ export function useBookingLinkEditController({
   const [localGalleryUris, setLocalGalleryUris] = useState([]);
   const [removedPortfolioKeys, setRemovedPortfolioKeys] = useState(() => new Set());
 
-  const businessTypeOptions = useMemo(
-    () => getBusinessTypeSelectOptions(typeInput),
-    [typeInput],
-  );
+  const businessTypeOptions = useMemo(() => getBusinessTypeSelectOptions(typeInput), [typeInput]);
 
   const onTypeInputChange = useCallback((next) => {
     setTypeInput(next);
@@ -362,20 +359,14 @@ export function useBookingLinkEditController({
           }
           if (resolved.zip) {
             setZipInput((prev) => {
-              const next = String(resolved.zip)
-                .replace(/\D/g, '')
-                .slice(0, 5);
+              const next = String(resolved.zip).replace(/\D/g, '').slice(0, 5);
               return next.length === 5 ? next : prev;
             });
           }
         } else if (area?.label) {
           setLocationInput(area.label);
         } else {
-          const fallback = formatBookingServiceAreaLabel(
-            businessCity,
-            businessState,
-            businessZip,
-          );
+          const fallback = formatBookingServiceAreaLabel(businessCity, businessState, businessZip);
           if (fallback) setLocationInput(fallback);
         }
       }
@@ -700,9 +691,7 @@ export function useBookingLinkEditController({
       : '';
   }, [specialtiesInput, typeInput]);
 
-  const hasRequiredNameType = Boolean(
-    nameInput.trim() && typeInput.trim() && !specialtyError,
-  );
+  const hasRequiredNameType = Boolean(nameInput.trim() && typeInput.trim() && !specialtyError);
 
   const phoneInputError = useMemo(() => getPhoneInputValidationMessage(phoneInput), [phoneInput]);
 

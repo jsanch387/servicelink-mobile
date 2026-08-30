@@ -112,7 +112,9 @@ export function zipFromMapTilerFeature(feature) {
   if (!feature) return '';
 
   const zipItem = findHierarchyItem(feature, ['postal_code', 'postcode', 'postalcode']);
-  const fromHierarchy = String(`${zipItem?.text ?? ''} ${zipItem?.id ?? ''}`).match(/\b\d{5}\b/)?.[0];
+  const fromHierarchy = String(`${zipItem?.text ?? ''} ${zipItem?.id ?? ''}`).match(
+    /\b\d{5}\b/,
+  )?.[0];
   if (fromHierarchy) return fromHierarchy;
 
   const props = feature.properties ?? {};

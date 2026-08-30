@@ -1,7 +1,4 @@
-import {
-  dbModeOffersShop,
-  normalizeDbServiceLocationMode,
-} from './bookingLinkBookingSettings';
+import { dbModeOffersShop, normalizeDbServiceLocationMode } from './bookingLinkBookingSettings';
 
 /**
  * Shop / Both profiles saved before shop city/state had their own columns.

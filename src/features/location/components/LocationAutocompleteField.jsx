@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceTextField } from '../../../components/ui';
 import { useTheme } from '../../../theme';
@@ -122,14 +122,14 @@ export function LocationAutocompleteField({
     };
   }, [isFocused, mode, onProviderUnavailable, selectedLocation, trimmedValue]);
 
-  const pickLocation = (location) => {
+  const pickLocation = useCallback((location) => {
     suppressSearchUntilEditRef.current = true;
     setSuggestions([]);
     setProviderError('');
     setHasCompletedSearch(false);
     setIsFocused(false);
     onSelect(location);
-  };
+  }, [onSelect]);
 
   const pressedBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
   const iconBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
@@ -226,17 +226,23 @@ export function LocationAutocompleteField({
     [colors, fieldHeight, iconBg, isDark, pressedBg, setOverlay, showSuggestions],
   );
 
-  const renderStatusRow = (iconNode, title, subtitle, titleColor) => (
-    <View style={styles.row}>
-      <View style={styles.iconBadge}>{iconNode}</View>
-      <View style={styles.textCol}>
-        <AppText style={[styles.title, titleColor ? { color: titleColor } : null]}>{title}</AppText>
-        {subtitle ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
+  const renderStatusRow = useCallback(
+    (iconNode, title, subtitle, titleColor) => (
+      <View style={styles.row}>
+        <View style={styles.iconBadge}>{iconNode}</View>
+        <View style={styles.textCol}>
+          <AppText style={[styles.title, titleColor ? { color: titleColor } : null]}>{title}</AppText>
+          {subtitle ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
+        </View>
       </View>
-    </View>
+    ),
+    [styles],
   );
 
-  const suggestionPanel = showSuggestions ? (
+  const suggestionPanel = useMemo(() => {
+    if (!showSuggestions) return null;
+
+    return (
     <View style={styles.suggestions}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
@@ -295,7 +301,19 @@ export function LocationAutocompleteField({
         </View>
       ) : null}
     </View>
-  ) : null;
+    );
+  }, [
+    colors.danger,
+    colors.textMuted,
+    isLoading,
+    pickLocation,
+    providerError,
+    renderStatusRow,
+    showProviderFooter,
+    showSuggestions,
+    styles,
+    suggestions,
+  ]);
 
   useEffect(() => {
     if (!setOverlay) return undefined;

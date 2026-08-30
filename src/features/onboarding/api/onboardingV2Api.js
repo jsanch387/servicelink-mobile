@@ -1,5 +1,8 @@
 import { supabase } from '../../../lib/supabase';
-import { sanitizeBusinessSpecialties, SPECIALTIES_REQUIRED_ERROR } from '../../../constants/businessSpecialties';
+import {
+  sanitizeBusinessSpecialties,
+  SPECIALTIES_REQUIRED_ERROR,
+} from '../../../constants/businessSpecialties';
 import {
   canonicalizeBusinessType,
   isAllowedBusinessTypeValue,

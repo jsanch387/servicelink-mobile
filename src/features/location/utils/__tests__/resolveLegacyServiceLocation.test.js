@@ -53,9 +53,7 @@ describe('resolveLegacyServiceLocation', () => {
 
   it('returns null when MapTiler is unavailable', async () => {
     hasMapTilerApiKey.mockReturnValue(false);
-    await expect(
-      resolveLegacyServiceLocation({ city: 'Austin', state: 'TX' }),
-    ).resolves.toBeNull();
+    await expect(resolveLegacyServiceLocation({ city: 'Austin', state: 'TX' })).resolves.toBeNull();
     expect(searchLocations).not.toHaveBeenCalled();
   });
 });
