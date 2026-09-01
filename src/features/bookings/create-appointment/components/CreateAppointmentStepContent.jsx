@@ -87,6 +87,9 @@ export function CreateAppointmentStepContent(p) {
     onAddAnotherJob,
     onRemoveJob,
     isMembershipVisit = false,
+    reviewDepositOffer = null,
+    reviewPaymentChoice,
+    onChangeReviewPaymentChoice,
   } = p;
 
   if (appointmentConfirmed) {
@@ -235,6 +238,9 @@ export function CreateAppointmentStepContent(p) {
           addAnotherJobDisabled={addAnotherJobDisabled}
           onRemoveJob={onRemoveJob}
           onToggleApplySaleDiscount={onToggleApplySaleDiscount}
+          reviewDepositOffer={reviewDepositOffer}
+          reviewPaymentChoice={reviewPaymentChoice}
+          onChangeReviewPaymentChoice={onChangeReviewPaymentChoice}
         />
       );
     default:

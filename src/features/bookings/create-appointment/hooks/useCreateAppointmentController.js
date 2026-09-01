@@ -76,6 +76,10 @@ import { membershipVisitCustomDurationHhMm } from '../utils/membershipVisitPrefi
 import { membershipCatalogQueryKey } from '../../../subscriptions/queryKeys';
 import { useCreateAppointmentServerData } from './useCreateAppointmentServerData';
 import { useCreateAppointmentSubmitPanel } from './useCreateAppointmentSubmitPanel';
+import {
+  REVIEW_PAYMENT_CHOICE,
+  resolveReviewDepositOffer,
+} from '../utils/resolveReviewDepositOffer';
 
 function centsToUsdText(cents) {
   const n = Math.max(0, Math.round(Number(cents) || 0)) / 100;
@@ -315,6 +319,7 @@ export function useCreateAppointmentController({
     businessId: catalog.businessId,
     userId,
     selectedServiceId: isCustomJob ? null : selectedServiceId,
+    includePaymentSettings: true,
   });
 
   const selectedServiceRow = useMemo(() => {
@@ -514,27 +519,32 @@ export function useCreateAppointmentController({
     [visitJobs],
   );
 
+  const visitSubtotalCents = useMemo(
+    () =>
+      visitJobs.reduce((sum, job) => {
+        const baseCents = Math.round(Number(job.selectedPricingOption?.priceCents) || 0);
+        const addonsCents = (job.selectedAddonRows ?? []).reduce(
+          (addonSum, a) =>
+            addonSum +
+            (a.priceCents != null && Number.isFinite(Number(a.priceCents))
+              ? Math.round(Number(a.priceCents))
+              : Math.round(parsePriceLabelToUsd(a.priceLabel ?? a.price) * 100)),
+          0,
+        );
+        return sum + baseCents + addonsCents;
+      }, 0),
+    [visitJobs],
+  );
+
   const availableSaleDiscount = useMemo(() => {
     if (isMembershipVisit) return null;
     const sale = pickActiveSaleForAppointmentDate(server.sales, selectedDateKey);
     if (!sale) return null;
-    const subtotalCents = visitJobs.reduce((sum, job) => {
-      const baseCents = Math.round(Number(job.selectedPricingOption?.priceCents) || 0);
-      const addonsCents = (job.selectedAddonRows ?? []).reduce(
-        (addonSum, a) =>
-          addonSum +
-          (a.priceCents != null && Number.isFinite(Number(a.priceCents))
-            ? Math.round(Number(a.priceCents))
-            : Math.round(parsePriceLabelToUsd(a.priceLabel ?? a.price) * 100)),
-        0,
-      );
-      return sum + baseCents + addonsCents;
-    }, 0);
     return buildAppliedSaleDiscount({
-      subtotalCents,
+      subtotalCents: visitSubtotalCents,
       sale,
     });
-  }, [isMembershipVisit, selectedDateKey, server.sales, visitJobs]);
+  }, [isMembershipVisit, selectedDateKey, server.sales, visitSubtotalCents]);
 
   const availableSaleId = availableSaleDiscount?.sale?.id ?? null;
   const [applySaleDiscount, setApplySaleDiscount] = useState(false);
@@ -547,6 +557,38 @@ export function useCreateAppointmentController({
 
   const toggleApplySaleDiscount = useCallback(() => {
     setApplySaleDiscount((prev) => !prev);
+  }, []);
+
+  const reviewTotalUsd = appliedSaleDiscount
+    ? Math.max(0, (appliedSaleDiscount.totalCents ?? 0) / 100)
+    : visitSubtotalCents / 100;
+
+  const reviewDepositOffer = useMemo(
+    () =>
+      resolveReviewDepositOffer({
+        formHydration: server.paymentFormHydration,
+        stripeConnectReady: server.stripeConnectReady,
+        isMembershipVisit,
+        totalUsd: reviewTotalUsd,
+      }),
+    [
+      isMembershipVisit,
+      reviewTotalUsd,
+      server.paymentFormHydration,
+      server.stripeConnectReady,
+    ],
+  );
+
+  const [reviewPaymentChoice, setReviewPaymentChoice] = useState(REVIEW_PAYMENT_CHOICE.NONE);
+
+  useEffect(() => {
+    if (!reviewDepositOffer.visible) {
+      setReviewPaymentChoice(REVIEW_PAYMENT_CHOICE.NONE);
+    }
+  }, [reviewDepositOffer.visible]);
+
+  const handleChangeReviewPaymentChoice = useCallback((next) => {
+    setReviewPaymentChoice(next);
   }, []);
 
   const scheduleLoading =
@@ -1191,6 +1233,9 @@ export function useCreateAppointmentController({
       onCancelNewJob: jobIndex > 0 ? handleCancelNewJob : undefined,
       onRemoveJob: handleRemoveVisitJob,
       isMembershipVisit,
+      reviewDepositOffer,
+      reviewPaymentChoice,
+      onChangeReviewPaymentChoice: handleChangeReviewPaymentChoice,
     }),
     [
       step,
@@ -1255,6 +1300,9 @@ export function useCreateAppointmentController({
       handleCancelNewJob,
       handleRemoveVisitJob,
       isMembershipVisit,
+      reviewDepositOffer,
+      reviewPaymentChoice,
+      handleChangeReviewPaymentChoice,
     ],
   );
 

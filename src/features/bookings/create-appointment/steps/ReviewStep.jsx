@@ -20,9 +20,9 @@ import {
   isValidUsNanpTenDigits,
 } from '../../../../utils/phone';
 import { AddAnotherJobCard } from '../components/AddAnotherJobCard';
-// Deposit collection is not live yet — keep ReviewPaymentChoice for the next pass.
-// import { ReviewPaymentChoice } from '../components/ReviewPaymentChoice';
+import { ReviewPaymentChoice } from '../components/ReviewPaymentChoice';
 import { SwipeToDeleteRow } from '../components/SwipeToDeleteRow';
+import { REVIEW_PAYMENT_CHOICE } from '../utils/resolveReviewDepositOffer';
 import { SwipeToRemoveJobTip } from '../components/SwipeToRemoveJobTip';
 import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
 import { formatBookingDurationMinutes } from '../utils/createFlowDuration';
@@ -83,6 +83,9 @@ function formatFullServiceAddress(address) {
  *   onAddAnotherJob?: () => void;
  *   addAnotherJobDisabled?: boolean;
  *   onRemoveJob?: (localId: string) => void;
+ *   reviewDepositOffer?: { visible: boolean; depositUsd: number } | null;
+ *   reviewPaymentChoice?: string;
+ *   onChangeReviewPaymentChoice?: (next: string) => void;
  * }} props
  */
 export function ReviewStep({
@@ -108,6 +111,9 @@ export function ReviewStep({
   addAnotherJobDisabled = false,
   onRemoveJob,
   isMembershipVisit = false,
+  reviewDepositOffer = null,
+  reviewPaymentChoice = REVIEW_PAYMENT_CHOICE.NONE,
+  onChangeReviewPaymentChoice,
 }) {
   const { colors } = useTheme();
   const [swipeTipVisible, setSwipeTipVisible] = useState(false);
@@ -617,9 +623,13 @@ export function ReviewStep({
           </View>
         </View>
 
-        {/* Payment / collect a deposit — not wired yet. Next move.
-        {isMembershipVisit ? null : <ReviewPaymentChoice totalUsd={totalUsd} />}
-        */}
+        {reviewDepositOffer?.visible && !isMembershipVisit ? (
+          <ReviewPaymentChoice
+            choice={reviewPaymentChoice}
+            depositUsd={reviewDepositOffer.depositUsd}
+            onChangeChoice={onChangeReviewPaymentChoice}
+          />
+        ) : null}
 
         {showScheduleSection ? (
           <DetailsSectionCard bodyPadding="roomy" title="Schedule">

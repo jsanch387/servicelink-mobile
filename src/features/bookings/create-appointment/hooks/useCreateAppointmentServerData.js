@@ -5,6 +5,12 @@ import { getBookingCalendarRange } from '../../../availability/booking';
 import { ownerHasProAccess } from '../../../bookingLink/api/bookingLink';
 import { fetchSalesForBusiness } from '../../../marketing/api/sales';
 import { fetchAccountSettingsBundle } from '../../../more/api/fetchAccountSettings';
+import {
+  fetchPaymentDashboardRows,
+  isStripeConnectReady,
+} from '../../../payments/api/fetchPaymentDashboard';
+import { paymentsDashboardQueryKey } from '../../../payments/queryKeys';
+import { mapPaymentSettingsToFormHydration } from '../../../payments/utils/paymentSettingsMaps';
 import { fetchActivePriceOptionsForService } from '../api/priceOptions';
 import { fetchBusinessServiceLocation } from '../api/fetchBusinessServiceLocation';
 import { fetchBlockingBookingsInRange } from '../api/schedulingBookings';
@@ -18,13 +24,14 @@ import {
 
 /**
  * Loads availability, owner Pro flag, price options for the selected service, and blocking bookings
- * for the create-appointment schedule step.
+ * for the create-appointment schedule step. Payment settings are optional (create Review only).
  */
 export function useCreateAppointmentServerData({
   businessId,
   userId,
   selectedServiceId,
   excludeBookingId,
+  includePaymentSettings = false,
 }) {
   const { rangeFrom, rangeTo } = useMemo(() => getBookingCalendarRange(), []);
 
@@ -107,6 +114,22 @@ export function useCreateAppointmentServerData({
     staleTime: 45 * 1000,
   });
 
+  const paymentsQ = useQuery({
+    queryKey: paymentsDashboardQueryKey(businessId),
+    queryFn: () => fetchPaymentDashboardRows(businessId),
+    enabled: Boolean(includePaymentSettings && businessId),
+    staleTime: 60 * 1000,
+  });
+
+  const paymentFormHydration = useMemo(
+    () => mapPaymentSettingsToFormHydration(paymentsQ.data?.paymentSettings),
+    [paymentsQ.data?.paymentSettings],
+  );
+  const stripeConnectReady = useMemo(
+    () => isStripeConnectReady(paymentsQ.data?.paymentAccount ?? null),
+    [paymentsQ.data?.paymentAccount],
+  );
+
   const refreshSchedulingData = async () => {
     const [availabilityResult, blockingResult] = await Promise.all([
       availabilityQ.refetch(),
@@ -137,6 +160,8 @@ export function useCreateAppointmentServerData({
     blockingError: blockingQ.error?.message ?? null,
     sales: salesQ.data ?? [],
     salesLoading: salesQ.isPending,
+    paymentFormHydration,
+    stripeConnectReady,
     rangeFrom,
     rangeTo,
     refreshSchedulingData,

@@ -1,39 +1,44 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
-import { formatUsdFromNumber } from '../utils/priceLabelMath';
-
-const CHOICE = {
-  NONE: 'none',
-  DEPOSIT: 'deposit',
-};
+import { formatCreatePaymentDollars } from '../../../payments/create-payment/utils/createPaymentAmount';
+import { REVIEW_PAYMENT_CHOICE } from '../utils/resolveReviewDepositOffer';
 
 /**
- * Review-only payment sketch. Local selection, no booking or server wiring.
+ * Review payment choice: collect later, or send the business deposit link.
+ *
+ * @param {{
+ *   depositUsd: number;
+ *   choice?: string;
+ *   onChangeChoice?: (next: string) => void;
+ * }} props
  */
-export function ReviewPaymentChoice({ totalUsd = 0 }) {
+export function ReviewPaymentChoice({
+  depositUsd = 0,
+  choice = REVIEW_PAYMENT_CHOICE.NONE,
+  onChangeChoice,
+}) {
   const { colors } = useTheme();
-  const [choice, setChoice] = useState(CHOICE.NONE);
-  const depositUsd = totalUsd > 0 ? Math.round(totalUsd * 0.2 * 100) / 100 : 50;
+  const depositLabel = formatCreatePaymentDollars(depositUsd);
 
   const options = useMemo(
     () => [
       {
-        key: CHOICE.NONE,
+        key: REVIEW_PAYMENT_CHOICE.NONE,
         title: 'No payment now',
         subtitle: 'Collect later, in person',
         icon: 'hand-left-outline',
       },
       {
-        key: CHOICE.DEPOSIT,
-        title: 'Collect a deposit',
-        subtitle: `${formatUsdFromNumber(depositUsd)} · we text or email them`,
+        key: REVIEW_PAYMENT_CHOICE.DEPOSIT,
+        title: 'Send a deposit link',
+        subtitle: `${depositLabel} · we’ll text or email them`,
         icon: 'wallet-outline',
       },
     ],
-    [depositUsd],
+    [depositLabel],
   );
 
   const styles = useMemo(
@@ -140,7 +145,9 @@ export function ReviewPaymentChoice({ totalUsd = 0 }) {
   );
 
   const holdCopy =
-    choice === CHOICE.DEPOSIT ? 'We’ll send the link. Booking confirms when they pay.' : null;
+    choice === REVIEW_PAYMENT_CHOICE.DEPOSIT
+      ? 'We’ll send the link. Booking confirms when they pay.'
+      : null;
 
   return (
     <View style={styles.section} testID="review-payment-choice">
@@ -155,7 +162,7 @@ export function ReviewPaymentChoice({ totalUsd = 0 }) {
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
                 testID={`review-payment-choice-${option.key}`}
-                onPress={() => setChoice(option.key)}
+                onPress={() => onChangeChoice?.(option.key)}
               >
                 {({ pressed }) => (
                   <View style={[styles.face, pressed && { opacity: 0.72 }]}>
