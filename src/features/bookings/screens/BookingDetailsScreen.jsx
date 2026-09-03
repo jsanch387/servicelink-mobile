@@ -16,6 +16,7 @@ import {
   DeleteButton,
   InfoSection,
   InlineCardError,
+  LocationSection,
   SurfaceCard,
   useToast,
 } from '../../../components/ui';
@@ -23,6 +24,7 @@ import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { useTheme } from '../../../theme';
+import { openMapsToAddress } from '../../../utils/openMapsToAddress';
 import { phoneForSmsUri } from '../../../utils/phone';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BookingActionsMovedTip } from '../booking-details/components/BookingActionsMovedTip';
@@ -37,7 +39,6 @@ import { BookingPaymentSection } from '../booking-details/components/BookingPaym
 import { BookingDetailsStatusBanner } from '../booking-details/components/BookingDetailsStatusBanner';
 import { BookingRescheduleSheet } from '../booking-details/components/BookingRescheduleSheet';
 import { BookingActivitySection } from '../booking-details/components/BookingActivitySection';
-import { BookingLocationSection } from '../booking-details/components/BookingLocationSection';
 import { BookingDetailsSkeleton } from '../booking-details/components/BookingDetailsSkeleton';
 import { BookingJobsSummarySection } from '../booking-details/components/BookingJobsSummarySection';
 import { ScheduleSection } from '../booking-details/components/ScheduleSection';
@@ -141,19 +142,13 @@ export function BookingDetailsScreen({ route }) {
     return () => task.cancel();
   }, [completeScrollRequestId, isCompletedStatus]);
 
-  const handleOpenMaps = useCallback(async () => {
+  const handleOpenMaps = useCallback(() => {
     if (!details.location.hasAddress) {
       return;
     }
-    const address = details.location.address?.trim();
-    const encoded = encodeURIComponent(address);
-    const mapsUrl = `https://maps.apple.com/?q=${encoded}`;
-    const canOpen = await Linking.canOpenURL(mapsUrl);
-    if (!canOpen) {
-      Alert.alert('Unable to open maps', 'No maps application is available on this device.');
-      return;
-    }
-    await Linking.openURL(mapsUrl);
+    void openMapsToAddress(details.location.address, {
+      noAddressMessage: 'Add an address on this booking to get directions.',
+    });
   }, [details.location.address, details.location.hasAddress]);
   const handleOpenCustomer = useCallback(() => {
     const customerId = details.customer.id;
@@ -473,7 +468,7 @@ export function BookingDetailsScreen({ route }) {
             ) : null}
 
             {details.location.hasAddress ? (
-              <BookingLocationSection address={details.location.address} onPress={handleOpenMaps} />
+              <LocationSection address={details.location.address} onPress={handleOpenMaps} />
             ) : null}
 
             {details.hasVehicle ? (

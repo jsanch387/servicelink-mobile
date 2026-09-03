@@ -32,6 +32,7 @@ import {
   CREATE_QUOTE_CUSTOM_DETAILS_COPY,
   CREATE_QUOTE_CUSTOM_JOB_ID,
   CREATE_QUOTE_PRICING_DETAILS_COPY,
+  CREATE_QUOTE_SECOND_VEHICLE_ENABLED,
   CREATE_QUOTE_STEP,
   CREATE_QUOTE_WIZARD_STEPS,
 } from '../constants/createQuoteWizard';
@@ -51,6 +52,7 @@ import {
   isCreateQuoteDetailsStepSkipped,
 } from '../utils/createQuoteFlowNavigation';
 import { canAdvanceCreateQuoteStep } from '../utils/createQuoteStepGuards';
+import { formatQuoteVehicleLine, readPrefillSecondVehicle } from '../utils/quoteVehicles';
 import {
   dbTimeToCreateQuoteTime12hSnapped,
   twelveHourDisplayToHhMm,
@@ -62,8 +64,9 @@ import {
  * Path B: existing request/draft — `POST /api/quotes/[id]/send` when `quoteRequestId` is set.
  *
  * Params (from quote request): `quoteRequestId`, `customerName`, `customerEmail`, `customerPhone`,
- * `vehicleYear`, `vehicleMake`, `vehicleModel`, `serviceName`, `customerRequestNotes` (read-only on
- * review), `scheduledDateYyyyMmDd`, `scheduledStartTime12h`. Cold start from Home omits params.
+ * `vehicleYear`, `vehicleMake`, `vehicleModel`, `vehicles` (second vehicle), `serviceName`,
+ * `customerRequestNotes` (read-only on review), `scheduledDateYyyyMmDd`, `scheduledStartTime12h`.
+ * Cold start from Home omits params.
  */
 export function CreateQuoteScreen() {
   const { colors } = useTheme();
@@ -114,6 +117,42 @@ export function CreateQuoteScreen() {
   const [vehicleYear, setVehicleYear] = useState(() => prefVehicleYear || '');
   const [vehicleMake, setVehicleMake] = useState(() => prefVehicleMake || '');
   const [vehicleModel, setVehicleModel] = useState(() => prefVehicleModel || '');
+  const prefSecondVehicle = useMemo(
+    () =>
+      readPrefillSecondVehicle({
+        assets: route.params?.assets,
+        vehicles: route.params?.vehicles,
+        requestMessage: customerRequestNotes,
+        primaryLine: formatQuoteVehicleLine({
+          year: prefVehicleYear,
+          make: prefVehicleMake,
+          model: prefVehicleModel,
+        }),
+      }),
+    [
+      customerRequestNotes,
+      prefVehicleMake,
+      prefVehicleModel,
+      prefVehicleYear,
+      route.params?.assets,
+      route.params?.vehicles,
+    ],
+  );
+  // Second vehicle — revisit when CREATE_QUOTE_SECOND_VEHICLE_ENABLED is true.
+  const [showSecondVehicle, setShowSecondVehicle] = useState(() =>
+    CREATE_QUOTE_SECOND_VEHICLE_ENABLED
+      ? Boolean(prefSecondVehicle.year || prefSecondVehicle.make || prefSecondVehicle.model)
+      : false,
+  );
+  const [vehicle2Year, setVehicle2Year] = useState(() =>
+    CREATE_QUOTE_SECOND_VEHICLE_ENABLED ? prefSecondVehicle.year : '',
+  );
+  const [vehicle2Make, setVehicle2Make] = useState(() =>
+    CREATE_QUOTE_SECOND_VEHICLE_ENABLED ? prefSecondVehicle.make : '',
+  );
+  const [vehicle2Model, setVehicle2Model] = useState(() =>
+    CREATE_QUOTE_SECOND_VEHICLE_ENABLED ? prefSecondVehicle.model : '',
+  );
   /** UI-only selection; catalog IDs come from mock until real services are wired. */
   const [selectedServiceId, setSelectedServiceId] = useState(
     /** @type {string | null} */ (() => (prefServiceName ? CREATE_QUOTE_CUSTOM_JOB_ID : null)),
@@ -321,6 +360,10 @@ export function CreateQuoteScreen() {
       vehicleYear,
       vehicleMake,
       vehicleModel,
+      showSecondVehicle,
+      vehicle2Year,
+      vehicle2Make,
+      vehicle2Model,
       selectedServiceId,
       isCustomJob,
       selectedPricingId,
@@ -348,11 +391,34 @@ export function CreateQuoteScreen() {
       selectedPricingId,
       selectedServiceId,
       serviceName,
+      showSecondVehicle,
+      vehicle2Make,
+      vehicle2Model,
+      vehicle2Year,
       vehicleMake,
       vehicleModel,
       vehicleYear,
     ],
   );
+
+  const handleAddSecondVehicle = useCallback(() => {
+    setShowSecondVehicle(true);
+  }, []);
+
+  const handleRemoveCommittedVehicle = useCallback(() => {
+    const secondFilled = [vehicle2Year, vehicle2Make, vehicle2Model].some((value) =>
+      Boolean(String(value ?? '').trim()),
+    );
+    if (secondFilled) {
+      setVehicleYear(vehicle2Year);
+      setVehicleMake(vehicle2Make);
+      setVehicleModel(vehicle2Model);
+    }
+    setShowSecondVehicle(false);
+    setVehicle2Year('');
+    setVehicle2Make('');
+    setVehicle2Model('');
+  }, [vehicle2Make, vehicle2Model, vehicle2Year]);
 
   const canContinue = canAdvanceCreateQuoteStep(stepIndex, formSnapshot);
 
@@ -370,6 +436,15 @@ export function CreateQuoteScreen() {
       setVehicleMake,
       vehicleModel,
       setVehicleModel,
+      showSecondVehicle,
+      onAddSecondVehicle: handleAddSecondVehicle,
+      onRemoveCommittedVehicle: handleRemoveCommittedVehicle,
+      vehicle2Year,
+      setVehicle2Year,
+      vehicle2Make,
+      setVehicle2Make,
+      vehicle2Model,
+      setVehicle2Model,
       catalogServices,
       catalogCategories,
       catalogLoading,
@@ -403,6 +478,7 @@ export function CreateQuoteScreen() {
       setScheduledDateYyyyMmDd,
       scheduledStartTime12h,
       setScheduledStartTime12h,
+      businessName: String(business?.business_name ?? '').trim(),
       businessNote,
       setBusinessNote,
       onBusinessNoteFocus: handleBusinessNoteFocus,
@@ -410,6 +486,7 @@ export function CreateQuoteScreen() {
     }),
     [
       addonsForSelectedService,
+      business?.business_name,
       businessNote,
       catalogCategories,
       catalogDerived,
@@ -425,7 +502,9 @@ export function CreateQuoteScreen() {
       handleChooseScheduleDate,
       handleChooseYourServices,
       handleBusinessNoteFocus,
+      handleAddSecondVehicle,
       handleLetCustomerChooseSchedule,
+      handleRemoveCommittedVehicle,
       handleSelectCatalogService,
       handleToggleAddon,
       isCustomJob,
@@ -441,6 +520,10 @@ export function CreateQuoteScreen() {
       selectedServiceId,
       serviceName,
       servicePickPhase,
+      showSecondVehicle,
+      vehicle2Make,
+      vehicle2Model,
+      vehicle2Year,
       vehicleMake,
       vehicleModel,
       vehicleYear,
@@ -501,6 +584,9 @@ export function CreateQuoteScreen() {
       vehicleYear,
       vehicleMake,
       vehicleModel,
+      vehicle2Year: CREATE_QUOTE_SECOND_VEHICLE_ENABLED && showSecondVehicle ? vehicle2Year : '',
+      vehicle2Make: CREATE_QUOTE_SECOND_VEHICLE_ENABLED && showSecondVehicle ? vehicle2Make : '',
+      vehicle2Model: CREATE_QUOTE_SECOND_VEHICLE_ENABLED && showSecondVehicle ? vehicle2Model : '',
       serviceName: quoteServiceName,
       priceUsdText: quotePriceUsdText,
       durationHhMm: quoteDurationHhMm,
@@ -545,7 +631,6 @@ export function CreateQuoteScreen() {
         }
       }
 
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       setSendSucceeded(true);
     } finally {
       setSending(false);
@@ -568,6 +653,10 @@ export function CreateQuoteScreen() {
     scheduledDateYyyyMmDd,
     scheduledStartTime12h,
     serviceName,
+    showSecondVehicle,
+    vehicle2Make,
+    vehicle2Model,
+    vehicle2Year,
     vehicleMake,
     vehicleModel,
     vehicleYear,
@@ -858,7 +947,11 @@ export function CreateQuoteScreen() {
           edges={['top', 'bottom', 'left', 'right']}
           style={{ backgroundColor: colors.shell, flex: 1 }}
         >
-          <CreateQuoteSubmittingState error={sendError} onBackToReview={handleBackToReview} />
+          <CreateQuoteSubmittingState
+            active={sending}
+            error={sendError}
+            onBackToReview={handleBackToReview}
+          />
         </SafeAreaView>
       </Modal>
     </>

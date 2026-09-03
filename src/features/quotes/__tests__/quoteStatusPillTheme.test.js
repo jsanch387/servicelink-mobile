@@ -16,15 +16,24 @@ describe('getQuoteStatusPillTheme', () => {
     expect(t.backgroundColor).toContain('22,163,74');
   });
 
-  it('uses orange tones for sent / requested (light)', () => {
-    const sent = getQuoteStatusPillTheme('sent', lightColors, false);
-    expect(sent.color).toMatch(/c2410c|orange/i);
+  it('uses orange for requests the owner owes and blue while waiting on the customer', () => {
     const req = getQuoteStatusPillTheme('requested', lightColors, false);
-    expect(req.backgroundColor).toEqual(sent.backgroundColor);
+    expect(req.color).toMatch(/c2410c|orange/i);
+    const sent = getQuoteStatusPillTheme('sent', lightColors, false);
+    expect(sent.color).toMatch(/1d4ed8|blue/i);
+    expect(sent.backgroundColor).not.toEqual(req.backgroundColor);
   });
 
   it('uses danger for declined', () => {
     const t = getQuoteStatusPillTheme('declined', lightColors, false);
     expect(t.color).toBe(lightColors.danger);
+  });
+
+  it('includes a status icon name', () => {
+    expect(getQuoteStatusPillTheme('approved', lightColors, false).iconName).toBe(
+      'checkmark-circle',
+    );
+    expect(getQuoteStatusPillTheme('sent', lightColors, false).iconName).toBe('time');
+    expect(getQuoteStatusPillTheme('requested', lightColors, false).iconName).toBe('mail-unread');
   });
 });

@@ -1,5 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   AppText,
@@ -7,8 +6,13 @@ import {
   DetailsSectionCard,
   Divider,
   InfoSection,
+  LocationSection,
 } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
+import { openMapsToAddress } from '../../../utils/openMapsToAddress';
+import { buildSentQuoteActivityEvents } from '../utils/buildQuoteActivityEvents';
+import { QuoteActivityTimeline } from './QuoteActivityTimeline';
+import { QuoteNotesThread } from './QuoteNotesThread';
 import { getQuoteStatusPillTheme } from '../utils/quoteStatusPillTheme';
 
 /**
@@ -22,21 +26,30 @@ import { getQuoteStatusPillTheme } from '../utils/quoteStatusPillTheme';
  *   durationLabel?: string | null;
  *   statusLabel?: string;
  *   statusRaw?: string;
- *   sentAt?: string;
- *   goodUntil?: string;
+ *   createdAtIso?: string | null;
+ *   viewedAtIso?: string | null;
+ *   reminderAtIso?: string | null;
+ *   communications?: object[];
+ *   vehicles?: string[];
  *   linkHint?: string;
  *   scheduleLabel?: string;
  *   scheduleState?: 'customer' | 'scheduled' | 'incomplete';
  *   scheduleDateLabel?: string | null;
  *   scheduleTimeLabel?: string | null;
+ *   customerName?: string;
  *   customerNote?: string;
  *   businessNote?: string;
  *   note?: string;
  *   serviceAddressLine?: string;
  * }} props.model
+ * @param {string} [props.businessName]
  * @param {import('react').ReactNode} [props.betweenProposalAndActivity] Rendered between Proposal and Activity (e.g. customer `InfoSection`).
  */
-export function SentQuoteDetailBody({ model, betweenProposalAndActivity = null }) {
+export function SentQuoteDetailBody({
+  model,
+  businessName = '',
+  betweenProposalAndActivity = null,
+}) {
   const { colors, isDark } = useTheme();
 
   const pillTheme = useMemo(
@@ -148,64 +161,8 @@ export function SentQuoteDetailBody({ model, betweenProposalAndActivity = null }
           gap: 16,
           paddingTop: 2,
         },
-        noteText: {
-          color: colors.textSecondary,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 15,
-          lineHeight: 22,
-          paddingVertical: 2,
-        },
-        notesStack: {
-          gap: 0,
-          paddingVertical: 2,
-        },
-        noteLabel: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 12,
-          fontWeight: '600',
-          letterSpacing: 0.2,
-          marginBottom: 8,
-        },
-        notesDivider: {
-          marginVertical: 16,
-        },
-        activityStack: {
-          gap: 18,
-          paddingTop: 4,
-        },
-        linkCallout: {
-          backgroundColor: isDark ? 'rgba(250,250,250,0.05)' : 'rgba(10,10,10,0.04)',
-          borderColor: colors.border,
-          borderRadius: 12,
-          borderWidth: 1,
-          flexDirection: 'row',
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 14,
-        },
-        linkCalloutIcon: {
-          paddingTop: 2,
-        },
-        linkCalloutTitle: {
-          color: colors.textMuted,
-          fontSize: 11,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontWeight: '600',
-          letterSpacing: 0.35,
-          marginBottom: 6,
-          textTransform: 'uppercase',
-        },
-        linkCalloutBody: {
-          color: colors.textSecondary,
-          fontSize: 15,
-          fontFamily: FONT_FAMILIES.medium,
-          fontWeight: '500',
-          letterSpacing: -0.1,
-          lineHeight: 22,
-        },
       }),
-    [colors, isDark],
+    [colors],
   );
 
   const serviceHeadline =
@@ -219,15 +176,35 @@ export function SentQuoteDetailBody({ model, betweenProposalAndActivity = null }
     hasScheduleDate ||
     hasScheduleTime ||
     Boolean(model.durationLabel);
-  const hasSentAt = Boolean(model.sentAt && model.sentAt !== '—');
-  const hasLinkHint = Boolean(model.linkHint && model.linkHint !== '—');
   const customerNote = String(model.customerNote ?? '').trim();
   const businessNote = String(model.businessNote ?? model.note ?? '').trim();
   const hasNotes = Boolean(customerNote || businessNote);
-
-  const expiresCopy =
-    model.goodUntil && model.goodUntil !== '—' ? `Good through ${model.goodUntil}` : null;
-  const showActivitySection = hasSentAt || Boolean(expiresCopy) || hasLinkHint;
+  const activityEvents = useMemo(
+    () =>
+      buildSentQuoteActivityEvents({
+        createdAt: model.createdAtIso,
+        viewedAt: model.viewedAtIso,
+        reminderAt: model.reminderAtIso,
+        communications: model.communications,
+      }),
+    [model.communications, model.createdAtIso, model.reminderAtIso, model.viewedAtIso],
+  );
+  const vehicleRows = useMemo(
+    () =>
+      (Array.isArray(model.vehicles) ? model.vehicles : [])
+        .map((vehicle) => String(vehicle ?? '').trim())
+        .filter(Boolean)
+        .map((value, index) => ({
+          key: `vehicle-${index}`,
+          icon: 'car-sport-outline',
+          value,
+        })),
+    [model.vehicles],
+  );
+  const serviceAddressLine = String(model.serviceAddressLine ?? '').trim();
+  const handleOpenMaps = useCallback(() => {
+    void openMapsToAddress(serviceAddressLine);
+  }, [serviceAddressLine]);
 
   return (
     <View style={styles.sectionsColumn}>
@@ -291,6 +268,15 @@ export function SentQuoteDetailBody({ model, betweenProposalAndActivity = null }
         </View>
       </DetailsSectionCard>
 
+      {vehicleRows.length > 0 ? (
+        <InfoSection
+          bodyPadding="roomy"
+          rowGap={14}
+          rows={vehicleRows}
+          title={vehicleRows.length > 1 ? 'Vehicles' : 'Vehicle'}
+        />
+      ) : null}
+
       {showScheduleSection ? (
         <DetailsSectionCard title="Schedule">
           <View style={styles.scheduleStack}>
@@ -335,61 +321,20 @@ export function SentQuoteDetailBody({ model, betweenProposalAndActivity = null }
 
       {betweenProposalAndActivity}
 
-      {model.serviceAddressLine ? (
-        <InfoSection
-          bodyPadding="roomy"
-          rowGap={14}
-          rows={[{ icon: 'location-outline', value: model.serviceAddressLine }]}
-          title="Location"
-        />
+      {serviceAddressLine ? (
+        <LocationSection address={serviceAddressLine} onPress={handleOpenMaps} />
       ) : null}
 
       {hasNotes ? (
-        <DetailsSectionCard title="Notes">
-          <View style={styles.notesStack}>
-            {customerNote ? (
-              <View>
-                <AppText style={styles.noteLabel}>Customer notes</AppText>
-                <AppText style={styles.noteText}>{customerNote}</AppText>
-              </View>
-            ) : null}
-            {customerNote && businessNote ? <Divider style={styles.notesDivider} /> : null}
-            {businessNote ? (
-              <View>
-                <AppText style={styles.noteLabel}>Business notes</AppText>
-                <AppText style={styles.noteText}>{businessNote}</AppText>
-              </View>
-            ) : null}
-          </View>
-        </DetailsSectionCard>
+        <QuoteNotesThread
+          businessName={businessName}
+          businessNote={businessNote}
+          customerName={model.customerName}
+          customerNote={customerNote}
+        />
       ) : null}
 
-      {showActivitySection ? (
-        <DetailsSectionCard title="Activity">
-          <View style={styles.activityStack}>
-            {hasSentAt ? (
-              <DetailIconFieldRow icon="paper-plane-outline" label="Sent" value={model.sentAt} />
-            ) : null}
-            {expiresCopy ? (
-              <DetailIconFieldRow icon="hourglass-outline" label="Link" value={expiresCopy} />
-            ) : null}
-
-            {hasLinkHint && (hasSentAt || expiresCopy) ? <Divider /> : null}
-
-            {hasLinkHint ? (
-              <View style={styles.linkCallout}>
-                <View style={styles.linkCalloutIcon}>
-                  <Ionicons color={colors.accent} name="link-outline" size={20} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.linkCalloutTitle}>Customer</AppText>
-                  <AppText style={styles.linkCalloutBody}>{model.linkHint}</AppText>
-                </View>
-              </View>
-            ) : null}
-          </View>
-        </DetailsSectionCard>
-      ) : null}
+      <QuoteActivityTimeline events={activityEvents} />
     </View>
   );
 }

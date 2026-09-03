@@ -2,14 +2,15 @@ import {
   QUOTE_DETAIL_KIND_REQUEST,
   QUOTE_DETAIL_KIND_SENT,
   QUOTES_FILTER_APPROVED,
-  QUOTES_FILTER_NEEDS_ACTION,
-  QUOTES_FILTER_WAITING,
+  QUOTES_FILTER_REQUEST,
+  QUOTES_FILTER_SENT,
 } from '../constants';
 import { splitBookingServiceName } from '../../../utils/splitBookingServiceName';
 import {
   formatScheduledDateUserFacing,
   isValidCalendarYyyyMmDd,
 } from './formatScheduledDateDisplay';
+import { resolveQuoteRequestBrief } from './resolveQuoteRequestBrief';
 import { dbTimeToCreateQuoteTime12hSnapped } from './validateSendQuotePayload';
 
 function startOfLocalDayMs(ms) {
@@ -43,6 +44,29 @@ export function formatQuoteInboxRelative(iso, nowMs = Date.now()) {
 }
 
 /**
+ * Day label for a card — `Today`, `Tomorrow`, else a weekday with its date
+ * (`Tue, Sep 8`) so the owner never has to work out which day is meant.
+ *
+ * @param {string | null | undefined} yyyyMmDd
+ * @param {number} [nowMs]
+ */
+export function formatQuoteCardDayLabel(yyyyMmDd, nowMs = Date.now()) {
+  const raw = String(yyyyMmDd ?? '').trim();
+  if (!isValidCalendarYyyyMmDd(raw)) return '';
+  const [year, month, day] = raw.split('-').map(Number);
+  const dayStart = new Date(year, month - 1, day).getTime();
+  const dayDiff = Math.round((dayStart - startOfLocalDayMs(nowMs)) / 86400000);
+  if (dayDiff === 0) return 'Today';
+  if (dayDiff === 1) return 'Tomorrow';
+  if (dayDiff === -1) return 'Yesterday';
+  return new Date(dayStart).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+/**
  * @param {string | null | undefined} iso
  */
 export function formatQuoteDetailTimestamp(iso) {
@@ -59,7 +83,29 @@ export function formatQuoteDetailTimestamp(iso) {
 }
 
 /**
- * @param {string | null | undefined} iso
+ * Activity timeline stamp — drops the year inside the current year so the rail
+ * stays quiet: `Sep 2, 11:09 PM`.
+ *
+ * @param {string | number | null | undefined} iso
+ * @param {number} [nowMs]
+ */
+export function formatQuoteActivityTimestamp(iso, nowMs = Date.now()) {
+  if (iso == null || iso === '') return '';
+  const ms = typeof iso === 'number' ? iso : new Date(iso).getTime();
+  if (!Number.isFinite(ms)) return '';
+  const when = new Date(ms);
+  const sameYear = when.getFullYear() === new Date(nowMs).getFullYear();
+  return when.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * @param {string | number | null | undefined} iso
  */
 export function formatQuoteCalendarDate(iso) {
   if (!iso) return '—';
@@ -122,6 +168,90 @@ function formatVehicleLine(row) {
     .map((p) => (p == null ? '' : String(p).trim()))
     .filter(Boolean);
   return parts.join(' ');
+}
+
+/**
+ * Display lines for whatever the quote is about. Prefer `assets` labels;
+ * fall back to the car-1 fields older rows still carry.
+ *
+ * @param {object | null | undefined} row
+ * @returns {string[]}
+ */
+export function quoteAssetLines(row) {
+  const assets = Array.isArray(row?.assets) ? row.assets : [];
+  if (assets.length > 0) {
+    return assets.map((asset) => String(asset?.label ?? '').trim()).filter(Boolean);
+  }
+
+  const primary =
+    String(row?.vehicleLine ?? '').trim() ||
+    formatVehicleLine({
+      vehicle_year: quoteField(row, 'vehicle_year', 'vehicleYear'),
+      vehicle_make: quoteField(row, 'vehicle_make', 'vehicleMake'),
+      vehicle_model: quoteField(row, 'vehicle_model', 'vehicleModel'),
+    });
+  const { additionalVehicles } = resolveQuoteRequestBrief({
+    message: quoteField(row, 'request_message', 'requestMessage'),
+    vehicle: primary,
+  });
+  return [primary, ...additionalVehicles].map((line) => String(line ?? '').trim()).filter(Boolean);
+}
+
+function formatCardVehicles(row) {
+  const labels = quoteAssetLines(row);
+  return {
+    label: labels[0] ?? '',
+    extra: labels.length > 1 ? `+${labels.length - 1} more` : '',
+  };
+}
+
+/**
+ * Car 1 year / make / model — first vehicle asset, else the legacy columns.
+ *
+ * @param {object} row
+ */
+function firstVehicleFields(row) {
+  const assets = Array.isArray(row?.assets) ? row.assets : [];
+  const firstVehicle =
+    assets.find((asset) => String(asset?.type ?? '').toLowerCase() === 'vehicle') ?? assets[0];
+  const attributes =
+    firstVehicle?.attributes && typeof firstVehicle.attributes === 'object'
+      ? firstVehicle.attributes
+      : {};
+  const year = attributes.year ?? quoteField(row, 'vehicle_year', 'vehicleYear');
+  const make = attributes.make ?? quoteField(row, 'vehicle_make', 'vehicleMake');
+  const model = attributes.model ?? quoteField(row, 'vehicle_model', 'vehicleModel');
+  return {
+    year: year != null ? String(year).trim() : '',
+    make: make != null ? String(make).trim() : '',
+    model: model != null ? String(model).trim() : '',
+  };
+}
+
+/**
+ * Unlabelled timing on a card — `Tomorrow - 2:30 PM`, `Sat, Jul 4 - 9 AM`.
+ *
+ * @param {object} row
+ * @param {number} nowMs
+ */
+function formatCardWhen(row, nowMs) {
+  const day = formatQuoteCardDayLabel(row?.scheduled_date ?? row?.scheduledDate, nowMs);
+  if (!day) return '';
+  const time =
+    dbTimeToCreateQuoteTime12hSnapped(
+      String(row?.scheduled_start_time ?? row?.scheduledTime ?? '').trim(),
+    ) || '';
+  return time ? `${day} - ${time.replace(':00', '')}` : day;
+}
+
+/**
+ * Card wording stays friendlier than the detail pill: `sent` reads as `Quote sent`.
+ *
+ * @param {string | null | undefined} status
+ */
+function formatQuoteCardStatus(status) {
+  const s = String(status ?? '').toLowerCase();
+  return s === 'sent' ? 'Quote sent' : formatOwnerFacingQuoteStatus(status);
 }
 
 function quoteField(row, snakeCaseKey, camelCaseKey) {
@@ -225,14 +355,14 @@ export function partitionQuotesForInbox(rows) {
 }
 
 /**
- * Groups quotes by the owner's next task instead of inbound/outbound source.
+ * Groups quotes into Request, Sent, and Approved inbox filters.
  *
  * @param {QuoteRow[]} rows
  */
 export function groupQuotesByWorkflow(rows) {
   const groups = {
-    [QUOTES_FILTER_NEEDS_ACTION]: [],
-    [QUOTES_FILTER_WAITING]: [],
+    [QUOTES_FILTER_REQUEST]: [],
+    [QUOTES_FILTER_SENT]: [],
     [QUOTES_FILTER_APPROVED]: [],
   };
 
@@ -242,11 +372,11 @@ export function groupQuotesByWorkflow(rows) {
       .toLowerCase();
 
     if (status === 'sent' || status === 'viewed') {
-      groups[QUOTES_FILTER_WAITING].push(row);
+      groups[QUOTES_FILTER_SENT].push(row);
     } else if (status === 'approved') {
       groups[QUOTES_FILTER_APPROVED].push(row);
     } else if (status !== 'declined' && status !== 'expired' && status !== 'cancelled') {
-      groups[QUOTES_FILTER_NEEDS_ACTION].push(row);
+      groups[QUOTES_FILTER_REQUEST].push(row);
     }
   }
 
@@ -257,22 +387,31 @@ export function groupQuotesByWorkflow(rows) {
  * @param {QuoteRow} row
  * @param {number} nowMs
  */
-export function mapQuoteRequestCard(row, nowMs) {
-  const name = String(row.customer_name ?? '').trim() || 'Customer';
-  const service = String(row.service_name ?? '').trim();
-  const vehicle = formatVehicleLine(row);
-  const hasMessage = Boolean(String(row.request_message ?? '').trim());
-  const summary = hasMessage ? summarizeInboundQuote(row) : '';
-  const title = service || vehicle || 'Quote request';
-  const receivedLabel = formatQuoteInboxRelative(row.updated_at ?? row.created_at, nowMs);
+export function mapQuoteRequestCard(row, nowMs = Date.now()) {
+  const name = String(quoteField(row, 'customer_name', 'customerName') ?? '').trim() || 'Customer';
+  const service = String(quoteField(row, 'service_name', 'serviceName') ?? '').trim();
+  const vehicles = formatCardVehicles(row);
+  const message = String(quoteField(row, 'request_message', 'requestMessage') ?? '').trim();
+  const brief = resolveQuoteRequestBrief({
+    serviceName: service,
+    message,
+    vehicle: vehicles.label,
+  });
+  const when = formatCardWhen(row, nowMs) || brief.preferredTiming || '';
+  const activityAt =
+    quoteField(row, 'updated_at', 'activityAt') ?? quoteField(row, 'created_at', 'createdAt');
+  const receivedLabel = formatQuoteInboxRelative(activityAt, nowMs);
   return {
     id: row.id,
-    activityAt: row.updated_at ?? row.created_at ?? null,
+    activityAt: activityAt ?? null,
     customerName: name,
-    title,
-    summary,
-    vehicleLabel: vehicle && vehicle !== title ? vehicle : '',
-    timestampLabel: receivedLabel ? `Received ${receivedLabel}` : 'Recently received',
+    title: brief.headline,
+    summary: '',
+    vehicleLabel: vehicles.label,
+    vehicleExtraLabel: vehicles.extra,
+    priceLabel: '',
+    timestampLabel: '',
+    timingLabel: when,
     receivedLabel,
     statusLabel: 'New request',
     statusRaw: 'requested',
@@ -281,24 +420,37 @@ export function mapQuoteRequestCard(row, nowMs) {
 
 /**
  * @param {QuoteRow} row
+ * @param {number} [nowMs]
  */
-export function mapSentQuoteCard(row) {
-  const name = String(row.customer_name ?? '').trim() || 'Customer';
-  const service = String(row.service_name ?? '').trim();
+export function mapSentQuoteCard(row, nowMs = Date.now()) {
+  const name = String(quoteField(row, 'customer_name', 'customerName') ?? '').trim() || 'Customer';
+  const service = String(quoteField(row, 'service_name', 'serviceName') ?? '').trim();
   const serviceName = service ? splitBookingServiceName(service).primary : '';
-  const price = formatQuoteMoney(row.price_cents);
-  const line =
-    service && row.price_cents != null ? `${service} · ${price}` : service || price || '—';
+  const totalCents = quoteField(row, 'price_cents', 'totalCents');
+  const hasPrice = totalCents != null && Number.isFinite(Number(totalCents));
+  const price = hasPrice ? formatQuoteMoney(totalCents) : '';
+  const line = service && hasPrice ? `${service} · ${price}` : service || price || '—';
+  const vehicles = formatCardVehicles(row);
+  const isApproved = String(row.status ?? '').toLowerCase() === 'approved';
+  /** An approved job with no date still needs booking, so say so rather than leaving it blank. */
+  const when = formatCardWhen(row, nowMs) || (isApproved ? 'Not set yet' : '');
+  const activityAt =
+    quoteField(row, 'updated_at', 'activityAt') ?? quoteField(row, 'created_at', 'createdAt');
 
   return {
     id: row.id,
-    activityAt: row.updated_at ?? row.created_at ?? null,
+    activityAt: activityAt ?? null,
     customerName: name,
     title: serviceName || 'Custom quote',
-    vehicleLabel: formatVehicleLine(row),
+    summary: '',
+    serviceLabel: serviceName,
+    vehicleLabel: vehicles.label,
+    vehicleExtraLabel: vehicles.extra,
+    priceLabel: price,
     timestampLabel: '',
+    timingLabel: when,
     line,
-    statusLabel: formatOwnerFacingQuoteStatus(row.status),
+    statusLabel: formatQuoteCardStatus(row.status),
     statusRaw: String(row.status ?? ''),
   };
 }
@@ -321,18 +473,17 @@ export function deriveQuoteDetailKind(row) {
  * @param {{ activeLinkExpiresAt?: string | null }} [opts]
  */
 export function mapQuoteDetailModel(row, kind, opts = {}) {
-  const activeLinkExpiresAt = opts.activeLinkExpiresAt ?? null;
+  const activeLinkExpiresAt =
+    opts.activeLinkExpiresAt ??
+    quoteField(row, 'public_link_expires_at', 'publicLinkExpiresAt') ??
+    null;
   const name = String(quoteField(row, 'customer_name', 'customerName') ?? '').trim() || 'Customer';
-  const vehicleYear = quoteField(row, 'vehicle_year', 'vehicleYear');
-  const vehicleMake = quoteField(row, 'vehicle_make', 'vehicleMake');
-  const vehicleModel = quoteField(row, 'vehicle_model', 'vehicleModel');
-  const vehicle =
-    String(row.vehicleLine ?? '').trim() ||
-    formatVehicleLine({
-      vehicle_year: vehicleYear,
-      vehicle_make: vehicleMake,
-      vehicle_model: vehicleModel,
-    });
+  const firstVehicle = firstVehicleFields(row);
+  const vehicleYear = firstVehicle.year;
+  const vehicleMake = firstVehicle.make;
+  const vehicleModel = firstVehicle.model;
+  const assetLines = quoteAssetLines(row);
+  const vehicle = assetLines[0] || '';
   const service = String(quoteField(row, 'service_name', 'serviceName') ?? '').trim();
   const scheduledDate = String(quoteField(row, 'scheduled_date', 'scheduledDate') ?? '').trim();
   const scheduledTime = String(
@@ -368,14 +519,19 @@ export function mapQuoteDetailModel(row, kind, opts = {}) {
         220,
       ),
       vehicle,
+      vehicles: assetLines,
+      assets: Array.isArray(row.assets) ? row.assets : null,
       message: requestMessage,
       receivedAt: formatQuoteDetailTimestamp(
-        quoteField(row, 'created_at', 'createdAt') ?? quoteField(row, 'updated_at', 'activityAt'),
+        quoteField(row, 'requested_at', 'requestedAt') ??
+          quoteField(row, 'created_at', 'createdAt') ??
+          quoteField(row, 'updated_at', 'activityAt'),
       ),
+      createdAtIso: quoteField(row, 'created_at', 'createdAt') ?? null,
       serviceName: service,
-      vehicleYear: vehicleYear != null ? String(vehicleYear).trim() : '',
-      vehicleMake: String(vehicleMake ?? '').trim(),
-      vehicleModel: String(vehicleModel ?? '').trim(),
+      vehicleYear,
+      vehicleMake,
+      vehicleModel,
       scheduledDateYyyyMmDd,
       scheduledStartTime12h,
       requestedDateLabel,
@@ -400,9 +556,17 @@ export function mapQuoteDetailModel(row, kind, opts = {}) {
       : null;
   const addonDetails = normalizeQuoteAddonDetails(quoteField(row, 'addon_details', 'addonDetails'));
   const customerNote = String(
-    quoteField(row, 'request_message', 'requestMessage') ?? row.customerRequestNotes ?? '',
+    quoteField(row, 'request_message', 'requestMessage') ??
+      row.customerRequestNotes ??
+      row.customerNote ??
+      '',
   ).trim();
-  const businessNote = String(row.businessNote ?? row.note ?? '').trim();
+  const businessNote = String(
+    quoteField(row, 'note', 'note') ??
+      quoteField(row, 'business_note', 'businessNote') ??
+      row.ownerNote ??
+      '',
+  ).trim();
 
   const st = String(row.status ?? '').toLowerCase();
   let linkHint = 'Customer opens your quote from the link you sent.';
@@ -429,6 +593,13 @@ export function mapQuoteDetailModel(row, kind, opts = {}) {
       durationLabel = `${dm} min`;
     }
   }
+
+  const createdAtIso = quoteField(row, 'created_at', 'createdAt') ?? null;
+  const viewedAtIso = quoteField(row, 'viewed_at', 'viewedAt') ?? null;
+  const reminderAtIso =
+    quoteField(row, 'customer_reminder_sent_at', 'customerReminderSentAt') ?? null;
+  const expiresAtIso = activeLinkExpiresAt ?? null;
+  const communications = Array.isArray(row.communications) ? row.communications : [];
 
   let scheduleLabel = 'Customer will choose date and time';
   let scheduleState = 'customer';
@@ -462,10 +633,19 @@ export function mapQuoteDetailModel(row, kind, opts = {}) {
     statusLabel: formatOwnerFacingQuoteStatus(row.status),
     /** Raw DB enum for pill styling. */
     statusRaw: String(row.status ?? ''),
-    sentAt: formatQuoteDetailTimestamp(
-      quoteField(row, 'updated_at', 'activityAt') ?? quoteField(row, 'created_at', 'createdAt'),
-    ),
-    goodUntil: activeLinkExpiresAt ? formatQuoteCalendarDate(activeLinkExpiresAt) : '—',
+    vehicleYear,
+    vehicleMake,
+    vehicleModel,
+    vehicles: assetLines,
+    assets: Array.isArray(row.assets) ? row.assets : null,
+    sentAt: formatQuoteDetailTimestamp(createdAtIso),
+    viewedAt: formatQuoteDetailTimestamp(viewedAtIso),
+    createdAtIso,
+    viewedAtIso,
+    reminderAtIso,
+    communications,
+    expiresAtIso,
+    goodUntil: expiresAtIso ? formatQuoteCalendarDate(expiresAtIso) : '—',
     quoteSummary,
     linkHint,
     scheduleLabel,

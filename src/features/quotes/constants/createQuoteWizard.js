@@ -9,6 +9,12 @@ export const CREATE_QUOTE_CUSTOM_JOB_ID = '__custom_job__';
  */
 export const CREATE_QUOTE_WRAP_INPUT_STEPS_IN_SURFACE_CARD = true;
 
+/**
+ * Second vehicle on create-quote. Off until we revisit — keep the wiring,
+ * hide add-another / prefill / send of vehicle 2.
+ */
+export const CREATE_QUOTE_SECOND_VEHICLE_ENABLED = false;
+
 /** Vertical gap between form fields (mobile-friendly rhythm). */
 export const CREATE_QUOTE_FIELD_GAP = 20;
 
@@ -46,7 +52,7 @@ export const CREATE_QUOTE_WIZARD_STEPS = [
   {
     id: 'vehicle',
     title: 'Vehicle',
-    subtitle: 'Optional — add year, make, and model, or leave all three blank.',
+    subtitle: 'Optional vehicle, then a note the customer will see.',
   },
   {
     id: 'service',

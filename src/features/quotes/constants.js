@@ -2,14 +2,14 @@
 export const QUOTE_DETAIL_KIND_REQUEST = 'request';
 export const QUOTE_DETAIL_KIND_SENT = 'sent';
 
-export const QUOTES_FILTER_NEEDS_ACTION = 'needs_action';
-export const QUOTES_FILTER_WAITING = 'waiting';
+export const QUOTES_FILTER_REQUEST = 'request';
+export const QUOTES_FILTER_SENT = 'sent';
 export const QUOTES_FILTER_APPROVED = 'approved';
 
-/** Task-based quote lifecycle filters for the owner inbox. */
+/** Inbox filters by quote lifecycle. */
 export const QUOTES_FILTER_OPTIONS = [
-  { key: QUOTES_FILTER_NEEDS_ACTION, label: 'Needs action' },
-  { key: QUOTES_FILTER_WAITING, label: 'Waiting' },
+  { key: QUOTES_FILTER_REQUEST, label: 'Requested' },
+  { key: QUOTES_FILTER_SENT, label: 'Sent' },
   { key: QUOTES_FILTER_APPROVED, label: 'Approved' },
 ];
 

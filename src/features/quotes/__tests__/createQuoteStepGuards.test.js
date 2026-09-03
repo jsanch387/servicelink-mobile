@@ -44,6 +44,30 @@ describe('canAdvanceCreateQuoteStep', () => {
     ).toBe(true);
   });
 
+  it('requires a complete second vehicle once that slot is open', () => {
+    expect(
+      canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.VEHICLE, {
+        ...baseSnapshot,
+        showSecondVehicle: true,
+        vehicleYear: '2021',
+        vehicleMake: 'GMC',
+        vehicleModel: 'Sierra AT4',
+      }),
+    ).toBe(false);
+    expect(
+      canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.VEHICLE, {
+        ...baseSnapshot,
+        showSecondVehicle: true,
+        vehicleYear: '2021',
+        vehicleMake: 'GMC',
+        vehicleModel: 'Sierra AT4',
+        vehicle2Year: '2022',
+        vehicle2Make: 'GMC',
+        vehicle2Model: 'Yukon AT4',
+      }),
+    ).toBe(true);
+  });
+
   it('requires year, make, and model when any vehicle field is entered', () => {
     expect(
       canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.VEHICLE, {

@@ -110,7 +110,7 @@ export function useQuotesInbox() {
       }
       return data ?? [];
     },
-    enabled: hasBusinessRow,
+    enabled: Boolean(hasBusinessRow),
     staleTime: 45 * 1000,
     gcTime: 15 * 60 * 1000,
   });
@@ -127,7 +127,7 @@ export function useQuotesInbox() {
           const card =
             kind === QUOTE_DETAIL_KIND_REQUEST
               ? mapQuoteRequestCard(row, nowMs)
-              : mapSentQuoteCard(row);
+              : mapSentQuoteCard(row, nowMs);
           return { ...card, kind };
         }),
       ]),
@@ -147,7 +147,7 @@ export function useQuotesInbox() {
   const listError = listQ.isError ? (listQ.error?.message ?? 'Could not load quotes') : null;
 
   const isPendingBusiness = Boolean(userId) && businessQ.isPending;
-  const isPendingList = hasBusinessRow && listQ.isPending;
+  const isPendingList = Boolean(hasBusinessRow) && listQ.isPending;
   const isLoading = isPendingBusiness || isPendingList;
   const isFetching = businessQ.isFetching || listQ.isFetching;
 

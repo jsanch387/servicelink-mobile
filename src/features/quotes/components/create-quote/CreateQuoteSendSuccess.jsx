@@ -1,62 +1,33 @@
-import { AppText, SubmitOutcomeSuccess } from '../../../../components/ui';
-import { FONT_FAMILIES, useTheme } from '../../../../theme';
+import { StyleSheet, View } from 'react-native';
+import { SuccessMoment } from '../../../../components/ui';
 
 /**
+ * Same confirmation moment as create-appointment after send succeeds.
+ *
  * @param {object} props
  * @param {string} props.customerEmail
  */
 export function CreateQuoteSendSuccess({ customerEmail }) {
-  const { colors } = useTheme();
   const email = String(customerEmail ?? '').trim();
+  const body = email ? `We've sent the quote to ${email}.` : "We've sent the quote.";
 
   return (
-    <SubmitOutcomeSuccess
-      iconAccessibilityLabel="Quote sent successfully"
-      title="Quote sent"
-      variant="inline"
-      body={
-        email ? (
-          <AppText
-            style={{
-              alignSelf: 'stretch',
-              color: colors.textMuted,
-              fontFamily: FONT_FAMILIES.medium,
-              fontSize: 16,
-              fontWeight: '500',
-              letterSpacing: -0.15,
-              lineHeight: 24,
-              textAlign: 'center',
-            }}
-          >
-            We&apos;ve sent the quote to{' '}
-            <AppText
-              style={{
-                color: colors.text,
-                fontFamily: FONT_FAMILIES.semibold,
-                fontWeight: '600',
-              }}
-            >
-              {email}
-            </AppText>{' '}
-            so they can accept or decline.
-          </AppText>
-        ) : (
-          <AppText
-            style={{
-              alignSelf: 'stretch',
-              color: colors.textMuted,
-              fontFamily: FONT_FAMILIES.medium,
-              fontSize: 16,
-              fontWeight: '500',
-              letterSpacing: -0.15,
-              lineHeight: 24,
-              textAlign: 'center',
-            }}
-          >
-            We&apos;ve sent the quote to your customer so they can accept or decline.
-          </AppText>
-        )
-      }
-    />
+    <View style={styles.root}>
+      <SuccessMoment
+        body={body}
+        centered
+        iconAccessibilityLabel="Quote sent"
+        title="Quote sent"
+        variant="inline"
+      />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    alignSelf: 'stretch',
+    flex: 1,
+    width: '100%',
+  },
+});

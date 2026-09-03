@@ -4,9 +4,9 @@ import { quotesDebugError, quotesDebugWarn, quotesFormatSupabaseError } from '..
 /**
  * Owner-visible columns — align with prod `quotes` (not identical to `bookings`).
  * Quotes use `scheduled_start_time`, not `start_time`.
+ * `*` so we pick up note / viewed_at / assets / add-ons without a stale column list.
  */
-export const QUOTE_OWNER_LIST_COLUMNS =
-  'id, business_id, status, source, customer_name, customer_email, customer_phone, vehicle_year, vehicle_make, vehicle_model, request_message, service_name, price_cents, duration_minutes, scheduled_date, scheduled_start_time, updated_at, created_at';
+export const QUOTE_OWNER_LIST_COLUMNS = '*';
 
 /**
  * @param {string} businessId - `business_profiles.id`
@@ -86,8 +86,51 @@ export async function fetchActiveQuoteLinkExpiry(quoteId) {
 }
 
 /**
+ * Direct owner update (notes and similar). Send still goes through the web API.
+ *
+ * @param {string} businessId
+ * @param {string} quoteId
+ * @param {{ note?: string | null }} fields
+ * @returns {Promise<{ data: object | null; error: Error | null }>}
+ */
+export async function updateQuoteForBusiness(businessId, quoteId, fields) {
+  const id = String(quoteId ?? '').trim();
+  if (!id) {
+    return { data: null, error: new Error('Missing quote id') };
+  }
+
+  /** @type {Record<string, unknown>} */
+  const patch = {};
+  if (fields && Object.prototype.hasOwnProperty.call(fields, 'note')) {
+    const note = String(fields.note ?? '').trim();
+    patch.note = note || null;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return { data: null, error: new Error('Nothing to update') };
+  }
+
+  const { data, error } = await supabase
+    .from('quotes')
+    .update(patch)
+    .eq('id', id)
+    .eq('business_id', businessId)
+    .select(QUOTE_OWNER_LIST_COLUMNS)
+    .maybeSingle();
+
+  if (error) {
+    quotesDebugError('updateQuoteForBusiness:failed', error.message ?? 'unknown', {
+      formatted: quotesFormatSupabaseError(error),
+      businessId,
+      quoteId: id,
+    });
+  }
+
+  return { data, error };
+}
+
+/**
  * Owner delete — RLS must allow DELETE where `business_id` matches the signed-in business.
- * `quote_public_links` rows for this quote should CASCADE.
  *
  * @param {string} businessId
  * @param {string} quoteId

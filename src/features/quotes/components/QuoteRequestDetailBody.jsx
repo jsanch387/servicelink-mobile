@@ -4,30 +4,23 @@ import {
   AppText,
   DetailIconFieldRow,
   DetailsSectionCard,
-  Divider,
   InfoSection,
+  LocationSection,
 } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
+import { buildQuoteRequestActivityEvents } from '../utils/buildQuoteActivityEvents';
+import { resolveQuoteRequestBrief } from '../utils/resolveQuoteRequestBrief';
+import { QuoteActivityTimeline } from './QuoteActivityTimeline';
+import { QuoteRequestCustomerCard } from './QuoteRequestCustomerCard';
 
 /**
- * @param {string} message
- * @param {string} summary
- * @param {string} vehicle
- */
-function pickRequestDetailsBody(message, summary, vehicle) {
-  const m = String(message ?? '').trim();
-  const s = String(summary ?? '').trim();
-  const v = String(vehicle ?? '').trim();
-  if (m) return m;
-  if (s && s !== v && s.toLowerCase() !== 'quote request') return s;
-  return '';
-}
-
-/**
- * Request fields only — customer and activity are separate on the detail screen.
+ * Quote request — customer first, then the request, then facts.
  *
  * @param {object} props
  * @param {{
+ *   customerName?: string;
+ *   email?: string;
+ *   phone?: string;
  *   summary?: string;
  *   vehicle?: string;
  *   message?: string;
@@ -35,125 +28,139 @@ function pickRequestDetailsBody(message, summary, vehicle) {
  *   requestedDateLabel?: string | null;
  *   requestedTimeLabel?: string | null;
  *   serviceAddressLine?: string;
+ *   receivedAt?: string;
+ *   vehicles?: string[];
  * }} props.model
  */
 export function QuoteRequestDetailBody({ model }) {
   const { colors } = useTheme();
-
   const vehicleDisplay = String(model.vehicle ?? '').trim();
-  const serviceName = String(model.serviceName ?? '').trim();
-  const detailsBody = useMemo(
-    () => pickRequestDetailsBody(model.message, model.summary, vehicleDisplay),
-    [model.message, model.summary, vehicleDisplay],
+  const brief = useMemo(
+    () =>
+      resolveQuoteRequestBrief({
+        message: model.message,
+        serviceName: model.serviceName,
+        summary: model.summary,
+        vehicle: vehicleDisplay,
+      }),
+    [model.message, model.serviceName, model.summary, vehicleDisplay],
   );
 
-  const hasTopRows = serviceName.length > 0 || vehicleDisplay.length > 0;
   const requestedDateLabel = String(model.requestedDateLabel ?? '').trim();
   const requestedTimeLabel = String(model.requestedTimeLabel ?? '').trim();
-  const hasRequestedSchedule = requestedDateLabel.length > 0 || requestedTimeLabel.length > 0;
   const serviceAddressLine = String(model.serviceAddressLine ?? '').trim();
+  const receivedAt = String(model.receivedAt ?? '').trim();
+  const activityEvents = useMemo(
+    () => buildQuoteRequestActivityEvents({ receivedAt }),
+    [receivedAt],
+  );
+  const requestMessage = brief.body;
+  const catalogService = brief.headline;
+  const hasSchedule = Boolean(brief.preferredTiming || requestedDateLabel || requestedTimeLabel);
+  const vehicleRows = useMemo(() => {
+    const listed = Array.isArray(model.vehicles) ? model.vehicles : [];
+    const all = (listed.length > 0 ? listed : [vehicleDisplay]).map((v) => String(v ?? '').trim());
+    return all
+      .filter(Boolean)
+      .map((value, index) => ({ key: `vehicle-${index}`, icon: 'car-sport-outline', value }));
+  }, [model.vehicles, vehicleDisplay]);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        sectionsColumn: {
+        column: {
           gap: 22,
         },
-        requestStack: {
-          gap: 18,
+        requestText: {
+          color: colors.textSecondary,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 15,
+          lineHeight: 22,
           paddingVertical: 2,
         },
-        dividerWrap: {
-          marginTop: 2,
-        },
-        detailsBlock: {
-          paddingTop: 4,
-        },
-        detailsParagraph: {
-          color: colors.textSecondary,
-          fontSize: 15,
-          fontFamily: FONT_FAMILIES.medium,
-          fontWeight: '500',
-          letterSpacing: -0.1,
-          lineHeight: 22,
-        },
-        emptyNote: {
-          color: colors.textMuted,
-          fontSize: 15,
-          fontFamily: FONT_FAMILIES.medium,
-          fontWeight: '500',
-          letterSpacing: -0.1,
-          lineHeight: 22,
+        fieldsStack: {
+          gap: 18,
         },
       }),
     [colors],
   );
 
-  const detailsContent =
-    detailsBody.length > 0 ? (
-      <AppText style={styles.detailsParagraph}>{detailsBody}</AppText>
-    ) : (
-      <AppText style={styles.emptyNote}>No written details.</AppText>
-    );
+  const customerName = String(model.customerName ?? '').trim();
+  const customerEmail = String(model.email ?? '').trim();
+  const customerPhone = String(model.phone ?? '').trim();
+  const showCustomer = Boolean(customerName || customerEmail || customerPhone);
 
   return (
-    <View style={styles.sectionsColumn}>
-      <DetailsSectionCard title="Request">
-        <View style={styles.requestStack}>
-          {serviceName.length > 0 ? (
-            <DetailIconFieldRow icon="construct-outline" label="Service" value={serviceName} />
-          ) : null}
-          {vehicleDisplay.length > 0 ? (
-            <DetailIconFieldRow icon="car-sport-outline" label="Vehicle" value={vehicleDisplay} />
-          ) : null}
+    <View style={styles.column}>
+      {showCustomer ? (
+        <QuoteRequestCustomerCard
+          customerName={customerName}
+          email={customerEmail}
+          phone={customerPhone}
+        />
+      ) : null}
 
-          {hasTopRows ? (
-            <>
-              <View style={styles.dividerWrap}>
-                <Divider />
-              </View>
-              <View style={styles.detailsBlock}>{detailsContent}</View>
-            </>
-          ) : (
-            detailsContent
-          )}
-        </View>
-      </DetailsSectionCard>
+      {requestMessage ? (
+        <DetailsSectionCard bodyPadding="roomy" title="Request">
+          <AppText style={styles.requestText}>{requestMessage}</AppText>
+        </DetailsSectionCard>
+      ) : null}
 
-      {hasRequestedSchedule ? (
-        <DetailsSectionCard title="Requested schedule">
-          <View style={styles.requestStack}>
+      {vehicleRows.length > 0 ? (
+        <InfoSection
+          bodyPadding="roomy"
+          rowGap={14}
+          rows={vehicleRows}
+          title={vehicleRows.length > 1 ? 'Vehicles' : 'Vehicle'}
+        />
+      ) : null}
+
+      {catalogService ? (
+        <InfoSection
+          bodyPadding="roomy"
+          rowGap={14}
+          rows={[{ icon: 'construct-outline', value: catalogService }]}
+          title="Service"
+        />
+      ) : null}
+
+      {hasSchedule ? (
+        <DetailsSectionCard bodyPadding="roomy" title="Schedule">
+          <View style={styles.fieldsStack}>
+            {brief.preferredTiming ? (
+              <DetailIconFieldRow
+                centerIcon
+                icon="calendar-outline"
+                label="Preferred timing"
+                labelUppercase={false}
+                value={brief.preferredTiming}
+              />
+            ) : null}
             {requestedDateLabel ? (
-              <DetailIconFieldRow icon="calendar-outline" label="Date" value={requestedDateLabel} />
+              <DetailIconFieldRow
+                centerIcon
+                icon="calendar-outline"
+                label="Date"
+                labelUppercase={false}
+                value={requestedDateLabel}
+              />
             ) : null}
             {requestedTimeLabel ? (
-              <DetailIconFieldRow icon="time-outline" label="Time" value={requestedTimeLabel} />
+              <DetailIconFieldRow
+                centerIcon
+                icon="time-outline"
+                label="Time"
+                labelUppercase={false}
+                value={requestedTimeLabel}
+              />
             ) : null}
           </View>
         </DetailsSectionCard>
       ) : null}
 
-      {serviceAddressLine ? (
-        <InfoSection
-          rowGap={14}
-          rows={[{ icon: 'location-outline', value: serviceAddressLine }]}
-          title="Location"
-        />
-      ) : null}
-    </View>
-  );
-}
+      {serviceAddressLine ? <LocationSection address={serviceAddressLine} /> : null}
 
-/**
- * @param {object} props
- * @param {{ receivedAt?: string }} props.model
- */
-export function QuoteRequestActivitySection({ model }) {
-  return (
-    <DetailsSectionCard title="Activity">
-      <View style={{ gap: 14, paddingTop: 2 }}>
-        <DetailIconFieldRow icon="time-outline" label="Received" value={model.receivedAt ?? '—'} />
-      </View>
-    </DetailsSectionCard>
+      <QuoteActivityTimeline events={activityEvents} />
+    </View>
   );
 }

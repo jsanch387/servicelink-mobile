@@ -29,9 +29,11 @@ function SectionSkeleton({ rows, titleWidth }) {
 export function QuoteDetailSkeleton({ isRequest = false }) {
   return (
     <View accessibilityLabel="Loading quote details" style={styles.column}>
-      <SectionSkeleton rows={isRequest ? 3 : 2} titleWidth={isRequest ? '22%' : '24%'} />
+      <SectionSkeleton rows={isRequest ? 1 : 2} titleWidth={isRequest ? '20%' : '24%'} />
       <SectionSkeleton rows={isRequest ? 3 : 2} titleWidth="24%" />
-      <SectionSkeleton rows={1} titleWidth="20%" />
+      <SectionSkeleton rows={isRequest ? 1 : 1} titleWidth={isRequest ? '18%' : '20%'} />
+      {isRequest ? <SectionSkeleton rows={2} titleWidth="22%" /> : null}
+      {isRequest ? <SectionSkeleton rows={1} titleWidth="20%" /> : null}
       <View style={styles.actions}>
         {isRequest ? <SkeletonBox borderRadius={14} height={52} pulse width="100%" /> : null}
         <SkeletonBox borderRadius={14} height={52} pulse width="100%" />

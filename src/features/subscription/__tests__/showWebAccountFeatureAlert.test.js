@@ -35,4 +35,17 @@ describe('showWebAccountFeatureAlert', () => {
 
     expect(Linking.openURL).toHaveBeenCalledWith('https://myservicelink.app/login');
   });
+
+  it('uses a custom confirm label when provided', () => {
+    showWebAccountFeatureAlert({
+      title: 'Quote requests',
+      message: 'Subscribe on the website',
+      confirmText: 'Subscribe on the website',
+    });
+
+    expect(Alert.alert).toHaveBeenCalledWith('Quote requests', 'Subscribe on the website', [
+      { text: 'Not now', style: 'cancel' },
+      expect.objectContaining({ text: 'Subscribe on the website' }),
+    ]);
+  });
 });

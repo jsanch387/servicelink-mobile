@@ -1,11 +1,13 @@
 /**
- * App Store–safe copy when quote features need account changes on web.
+ * Copy when quote requests need Pro. Subscribe on the website — no in-app purchase.
  */
 export const quotesAcceptRequestsAccessCopy = {
+  cardTitle: 'Accept quote requests',
   cardSubtitle:
-    'To accept quote requests on your booking link, sign in on the ServiceLink website with the same email you use in this app.',
+    'Let customers ask for a price from your booking link. You send a quote, they accept, and it books on your calendar.',
+  cardHint: 'Subscribe on the ServiceLink website with the same email you use in this app.',
   alertTitle: 'Quote requests',
   alertMessage:
-    'To turn on quote requests from your booking link, sign in on the ServiceLink website with the same email you use in this app.',
-  inlineAction: 'Sign in on the web',
+    'Quote requests let customers ask for a price from your booking link. You send a quote, they accept, and it becomes a booking.\n\nSubscribe on the ServiceLink website with the same email you use in this app, then come back here to turn it on.',
+  inlineAction: 'Subscribe on the website',
 };
