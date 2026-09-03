@@ -25,20 +25,20 @@ import { QuotesHowItWorks } from '../components/QuotesHowItWorks';
 import {
   QUOTE_DETAIL_KIND_REQUEST,
   QUOTES_FILTER_APPROVED,
-  QUOTES_FILTER_NEEDS_ACTION,
   QUOTES_FILTER_OPTIONS,
-  QUOTES_FILTER_WAITING,
+  QUOTES_FILTER_REQUEST,
+  QUOTES_FILTER_SENT,
 } from '../constants';
 import { useQuotesInbox } from '../hooks/useQuotesInbox';
 import { groupApprovedQuotesByMonth } from '../utils/groupApprovedQuotesByMonth';
 
 const FILTER_EMPTY_COPY = {
-  [QUOTES_FILTER_NEEDS_ACTION]: {
-    title: 'Nothing needs attention',
+  [QUOTES_FILTER_REQUEST]: {
+    title: 'No quote requests',
     body: 'New requests and unfinished drafts will appear here.',
   },
-  [QUOTES_FILTER_WAITING]: {
-    title: 'No quotes awaiting a reply',
+  [QUOTES_FILTER_SENT]: {
+    title: 'No sent quotes',
     body: 'Quotes you send appear here while you wait for the customer.',
   },
   [QUOTES_FILTER_APPROVED]: {
@@ -51,10 +51,22 @@ function QuotesListSkeleton() {
   return (
     <View style={skeletonStyles.column}>
       {[0, 1, 2].map((k) => (
-        <SurfaceCard key={k} padding="md" style={skeletonStyles.card}>
-          <SkeletonBox borderRadius={8} height={18} pulse width="58%" />
-          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 12 }} width="36%" />
-          <SkeletonBox borderRadius={8} height={14} pulse style={{ marginTop: 14 }} width="72%" />
+        <SurfaceCard key={k} padding="none" style={skeletonStyles.card}>
+          <SkeletonBox borderRadius={8} height={18} pulse width="46%" />
+          <SkeletonBox
+            borderRadius={8}
+            height={13}
+            pulse
+            style={skeletonStyles.lineGap}
+            width="64%"
+          />
+          <SkeletonBox
+            borderRadius={8}
+            height={13}
+            pulse
+            style={skeletonStyles.footerGap}
+            width="32%"
+          />
         </SurfaceCard>
       ))}
     </View>
@@ -69,7 +81,7 @@ export function QuotesScreen() {
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
   const quotesList = useQuotesInbox();
-  const [activeFilter, setActiveFilter] = useState(QUOTES_FILTER_NEEDS_ACTION);
+  const [activeFilter, setActiveFilter] = useState(QUOTES_FILTER_REQUEST);
   const [visibleApprovedMonthCount, setVisibleApprovedMonthCount] = useState(1);
   /** Root stack can show Create quote (etc.) above tabs; this scene may stay mounted and steal touches from the native header. */
   const [rootTopRoute, setRootTopRoute] = useState(undefined);
@@ -101,6 +113,7 @@ export function QuotesScreen() {
     showWebAccountFeatureAlert({
       title: quotesAcceptRequestsAccessCopy.alertTitle,
       message: quotesAcceptRequestsAccessCopy.alertMessage,
+      confirmText: quotesAcceptRequestsAccessCopy.inlineAction,
     });
   }, []);
 
@@ -132,34 +145,22 @@ export function QuotesScreen() {
         content: {
           paddingBottom: 28 + Math.max(tabBarHeight, 72),
           paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: 20,
+          paddingTop: 16,
         },
         toggleBlock: {
           marginBottom: 20,
         },
-        sectionHeader: {
-          marginBottom: 14,
-        },
-        sectionLabel: {
-          color: colors.text,
-          fontSize: 18,
-          fontWeight: '700',
-          letterSpacing: -0.3,
-        },
-        sectionCaption: {
-          color: colors.textMuted,
-          fontSize: 13,
-          lineHeight: 18,
-          marginTop: 3,
+        toggleBlockSolo: {
+          marginBottom: 0,
         },
         pills: {
-          marginBottom: 16,
+          marginBottom: 14,
         },
         list: {
-          gap: 12,
+          gap: 10,
         },
         monthGroup: {
-          gap: 12,
+          gap: 10,
         },
         monthLabel: {
           color: colors.textMuted,
@@ -211,6 +212,7 @@ export function QuotesScreen() {
   const rootOverlayCoversTabs = rootTopRoute !== undefined && rootTopRoute !== ROUTES.MAIN_APP;
 
   const proLocked = Boolean(userId) && isOwnerProfileLoaded && !hasProAccess;
+  const showQuotesInbox = isOwnerProfileLoaded && hasProAccess;
   const filterQuotes = quotesList.quoteGroups[activeFilter] ?? [];
   const approvedMonthGroups = useMemo(
     () => groupApprovedQuotesByMonth(quotesList.quoteGroups[QUOTES_FILTER_APPROVED] ?? []),
@@ -231,31 +233,18 @@ export function QuotesScreen() {
     activeFilter === QUOTES_FILTER_APPROVED
       ? (approvedMonthGroups[visibleApprovedMonthCount] ?? null)
       : null;
-  const activeCount = filterQuotes.length;
   const hasNoQuotes = quotesList.totalQuotesCount === 0;
-  const sectionCaption = useMemo(() => {
-    if (activeCount === 0) return null;
-    if (activeFilter === QUOTES_FILTER_NEEDS_ACTION) {
-      return activeCount === 1 ? '1 quote needs attention' : `${activeCount} quotes need attention`;
-    }
-    if (activeFilter === QUOTES_FILTER_WAITING) {
-      return activeCount === 1
-        ? '1 quote awaiting a response'
-        : `${activeCount} quotes awaiting a response`;
-    }
-    return activeCount === 1 ? '1 approved quote' : `${activeCount} approved quotes`;
-  }, [activeCount, activeFilter]);
   const activeEmptyCopy = FILTER_EMPTY_COPY[activeFilter];
   const renderQuoteCard = (row) => (
     <QuoteInboxCard
       customerName={row.customerName}
       key={row.id}
-      summary={row.summary}
+      serviceLabel={row.serviceLabel}
       statusLabel={row.statusLabel}
       statusRaw={row.statusRaw}
-      timestampLabel={row.timestampLabel}
-      title={row.title}
+      timingLabel={row.timingLabel}
       variant={row.kind === QUOTE_DETAIL_KIND_REQUEST ? 'request' : 'sent'}
+      vehicleExtraLabel={row.vehicleExtraLabel}
       vehicleLabel={row.vehicleLabel}
       onPress={() => openQuoteDetail(row.id, row.kind)}
     />
@@ -278,7 +267,7 @@ export function QuotesScreen() {
           showsVerticalScrollIndicator={false}
           style={styles.scroll}
         >
-          <View style={styles.toggleBlock}>
+          <View style={[styles.toggleBlock, !showQuotesInbox && styles.toggleBlockSolo]}>
             <QuotesAcceptRequestsCard
               disabled={
                 !quotesList.business?.id ||
@@ -292,7 +281,7 @@ export function QuotesScreen() {
               onValueChange={handleAcceptQuoteRequestsChange}
             />
           </View>
-          {quotesList.acceptQuoteRequestsError ? (
+          {showQuotesInbox && quotesList.acceptQuoteRequestsError ? (
             <View style={styles.errorBlock}>
               <SurfaceCard padding="md">
                 <InlineCardError message={quotesList.acceptQuoteRequestsError} />
@@ -300,84 +289,82 @@ export function QuotesScreen() {
             </View>
           ) : null}
 
-          <View style={styles.sectionHeader}>
-            <AppText style={styles.sectionLabel}>Your quotes</AppText>
-            {sectionCaption ? (
-              <AppText style={styles.sectionCaption}>{sectionCaption}</AppText>
-            ) : null}
-          </View>
-          {!hasNoQuotes || quotesList.isLoading ? (
-            <View style={styles.pills}>
-              <FilterPills
-                onSelect={setActiveFilter}
-                options={QUOTES_FILTER_OPTIONS}
-                selectedKey={activeFilter}
-              />
-            </View>
-          ) : null}
-
-          {quotesList.businessError ? (
-            <View style={styles.errorBlock}>
-              <SurfaceCard padding="md">
-                <InlineCardError message={quotesList.businessError} />
-              </SurfaceCard>
-            </View>
-          ) : null}
-          {quotesList.listError ? (
-            <View style={styles.errorBlock}>
-              <SurfaceCard padding="md">
-                <InlineCardError message={quotesList.listError} />
-              </SurfaceCard>
-            </View>
-          ) : null}
-
-          {quotesList.isLoading ? (
-            <QuotesListSkeleton />
-          ) : showBusinessMissing ? (
-            <View style={styles.emptyWrap}>
-              <AppText style={styles.emptyTitle}>Business profile not found</AppText>
-              <AppText style={styles.emptyBody}>
-                Finish onboarding on this account so we can load quotes for your business.
-              </AppText>
-            </View>
-          ) : quotesList.listError ? null : hasNoQuotes ? (
-            <View style={[styles.emptyWrap, styles.emptyCenteredWrap]}>
-              <AppText style={styles.emptyTitle}>No quotes yet</AppText>
-              <AppText style={styles.emptyBody}>
-                Create a quote or accept customer requests.
-              </AppText>
-              <View style={styles.emptyHelp}>
-                <QuotesHowItWorks />
-              </View>
-            </View>
-          ) : (
-            <View style={styles.list}>
-              {activeQuotes.length === 0 ? (
-                <View style={[styles.emptyWrap, styles.emptyCenteredWrap]}>
-                  <AppText style={styles.emptyTitle}>{activeEmptyCopy.title}</AppText>
-                  <AppText style={styles.emptyBody}>{activeEmptyCopy.body}</AppText>
+          {showQuotesInbox ? (
+            <>
+              {!hasNoQuotes || quotesList.isLoading ? (
+                <View style={styles.pills}>
+                  <FilterPills
+                    onSelect={setActiveFilter}
+                    options={QUOTES_FILTER_OPTIONS}
+                    selectedKey={activeFilter}
+                  />
                 </View>
               ) : null}
-              {activeFilter === QUOTES_FILTER_APPROVED
-                ? visibleApprovedMonthGroups.map((group) => (
-                    <View key={group.key} style={styles.monthGroup}>
-                      <AppText style={styles.monthLabel}>{group.label}</AppText>
-                      {group.cards.map(renderQuoteCard)}
-                    </View>
-                  ))
-                : activeQuotes.map(renderQuoteCard)}
-              {nextApprovedMonth ? (
-                <LoadMoreLink
-                  accessibilityHint="Shows approved quotes from the next older month"
-                  label={`Load ${nextApprovedMonth.label}`}
-                  onPress={() => setVisibleApprovedMonthCount((count) => count + 1)}
-                />
+
+              {quotesList.businessError ? (
+                <View style={styles.errorBlock}>
+                  <SurfaceCard padding="md">
+                    <InlineCardError message={quotesList.businessError} />
+                  </SurfaceCard>
+                </View>
               ) : null}
-            </View>
-          )}
+              {quotesList.listError ? (
+                <View style={styles.errorBlock}>
+                  <SurfaceCard padding="md">
+                    <InlineCardError message={quotesList.listError} />
+                  </SurfaceCard>
+                </View>
+              ) : null}
+
+              {quotesList.isLoading ? (
+                <QuotesListSkeleton />
+              ) : showBusinessMissing ? (
+                <View style={styles.emptyWrap}>
+                  <AppText style={styles.emptyTitle}>Business profile not found</AppText>
+                  <AppText style={styles.emptyBody}>
+                    Finish onboarding on this account so we can load quotes for your business.
+                  </AppText>
+                </View>
+              ) : quotesList.listError ? null : hasNoQuotes ? (
+                <View style={[styles.emptyWrap, styles.emptyCenteredWrap]}>
+                  <AppText style={styles.emptyTitle}>No quotes yet</AppText>
+                  <AppText style={styles.emptyBody}>
+                    Create a quote or accept customer requests.
+                  </AppText>
+                  <View style={styles.emptyHelp}>
+                    <QuotesHowItWorks />
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.list}>
+                  {activeQuotes.length === 0 ? (
+                    <View style={[styles.emptyWrap, styles.emptyCenteredWrap]}>
+                      <AppText style={styles.emptyTitle}>{activeEmptyCopy.title}</AppText>
+                      <AppText style={styles.emptyBody}>{activeEmptyCopy.body}</AppText>
+                    </View>
+                  ) : null}
+                  {activeFilter === QUOTES_FILTER_APPROVED
+                    ? visibleApprovedMonthGroups.map((group) => (
+                        <View key={group.key} style={styles.monthGroup}>
+                          <AppText style={styles.monthLabel}>{group.label}</AppText>
+                          {group.cards.map(renderQuoteCard)}
+                        </View>
+                      ))
+                    : activeQuotes.map(renderQuoteCard)}
+                  {nextApprovedMonth ? (
+                    <LoadMoreLink
+                      accessibilityHint="Shows approved quotes from the next older month"
+                      label={`Load ${nextApprovedMonth.label}`}
+                      onPress={() => setVisibleApprovedMonthCount((count) => count + 1)}
+                    />
+                  ) : null}
+                </View>
+              )}
+            </>
+          ) : null}
         </ScrollView>
 
-        <AddQuoteFab bottom={30} onPress={handleCreateQuote} />
+        {showQuotesInbox ? <AddQuoteFab bottom={30} onPress={handleCreateQuote} /> : null}
       </View>
     </SafeAreaView>
   );
@@ -389,5 +376,13 @@ const skeletonStyles = StyleSheet.create({
   },
   card: {
     marginBottom: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  lineGap: {
+    marginTop: 8,
+  },
+  footerGap: {
+    marginTop: 24,
   },
 });

@@ -11,6 +11,7 @@ import {
 import { isValidEmailFormat } from '../../../utils/email';
 import { canonicalNanpDigits } from '../../../utils/phone';
 import { isOptionalVehicleComplete } from '../../../utils/vehicle';
+import { isQuoteVehicleFilled } from './quoteVehicles';
 
 /**
  * @param {string} display
@@ -76,6 +77,9 @@ function trimOrNull(s) {
  * @property {string} vehicleYear
  * @property {string} vehicleMake
  * @property {string} vehicleModel
+ * @property {string} [vehicle2Year]
+ * @property {string} [vehicle2Make]
+ * @property {string} [vehicle2Model]
  * @property {string} serviceName
  * @property {string} priceUsdText
  * @property {string} durationHhMm
@@ -208,16 +212,42 @@ export function validateSendQuotePayload(input) {
   if (vehicleModel && vehicleModel.length > QUOTE_VEHICLE_MODEL_MAX) {
     return { ok: false, message: 'Vehicle model is too long.' };
   }
-  if (
-    !isOptionalVehicleComplete({
-      year: vehicleYear,
-      make: vehicleMake,
-      model: vehicleModel,
-    })
-  ) {
+  const firstVehicle = {
+    year: vehicleYear,
+    make: vehicleMake,
+    model: vehicleModel,
+  };
+  if (!isOptionalVehicleComplete(firstVehicle)) {
     return {
       ok: false,
       message: 'Enter a valid vehicle year, make, and model, or leave all three blank.',
+    };
+  }
+
+  const secondVehicle = {
+    year: trimOrNull(input.vehicle2Year),
+    make: trimOrNull(input.vehicle2Make),
+    model: trimOrNull(input.vehicle2Model),
+  };
+  if (isQuoteVehicleFilled(secondVehicle) && !isQuoteVehicleFilled(firstVehicle)) {
+    return {
+      ok: false,
+      message: 'Add the first vehicle before the second one.',
+    };
+  }
+  if (secondVehicle.year && secondVehicle.year.length > QUOTE_VEHICLE_YEAR_MAX) {
+    return { ok: false, message: 'Second vehicle year is invalid.' };
+  }
+  if (secondVehicle.make && secondVehicle.make.length > QUOTE_VEHICLE_MAKE_MAX) {
+    return { ok: false, message: 'Second vehicle make is too long.' };
+  }
+  if (secondVehicle.model && secondVehicle.model.length > QUOTE_VEHICLE_MODEL_MAX) {
+    return { ok: false, message: 'Second vehicle model is too long.' };
+  }
+  if (!isOptionalVehicleComplete(secondVehicle)) {
+    return {
+      ok: false,
+      message: 'Enter a valid second vehicle year, make, and model, or remove it.',
     };
   }
 

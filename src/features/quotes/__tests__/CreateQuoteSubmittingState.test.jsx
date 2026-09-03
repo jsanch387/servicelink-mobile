@@ -14,7 +14,7 @@ function renderState(props) {
 
 describe('CreateQuoteSubmittingState', () => {
   it('shows only submission progress while sending', () => {
-    renderState({ error: null, onBackToReview: jest.fn() });
+    renderState({ active: true, error: null, onBackToReview: jest.fn() });
 
     expect(screen.getByLabelText('Sending quote')).toBeTruthy();
     expect(screen.getByText('Sending quote')).toBeTruthy();

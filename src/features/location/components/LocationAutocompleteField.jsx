@@ -122,14 +122,17 @@ export function LocationAutocompleteField({
     };
   }, [isFocused, mode, onProviderUnavailable, selectedLocation, trimmedValue]);
 
-  const pickLocation = useCallback((location) => {
-    suppressSearchUntilEditRef.current = true;
-    setSuggestions([]);
-    setProviderError('');
-    setHasCompletedSearch(false);
-    setIsFocused(false);
-    onSelect(location);
-  }, [onSelect]);
+  const pickLocation = useCallback(
+    (location) => {
+      suppressSearchUntilEditRef.current = true;
+      setSuggestions([]);
+      setProviderError('');
+      setHasCompletedSearch(false);
+      setIsFocused(false);
+      onSelect(location);
+    },
+    [onSelect],
+  );
 
   const pressedBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
   const iconBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
@@ -231,7 +234,9 @@ export function LocationAutocompleteField({
       <View style={styles.row}>
         <View style={styles.iconBadge}>{iconNode}</View>
         <View style={styles.textCol}>
-          <AppText style={[styles.title, titleColor ? { color: titleColor } : null]}>{title}</AppText>
+          <AppText style={[styles.title, titleColor ? { color: titleColor } : null]}>
+            {title}
+          </AppText>
           {subtitle ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
         </View>
       </View>
@@ -243,64 +248,64 @@ export function LocationAutocompleteField({
     if (!showSuggestions) return null;
 
     return (
-    <View style={styles.suggestions}>
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        nestedScrollEnabled
-        bounces={false}
-        style={styles.suggestionScroll}
-        contentContainerStyle={styles.suggestionScrollContent}
-      >
-        {isLoading && suggestions.length === 0
-          ? renderStatusRow(
-              <ActivityIndicator color={colors.textMuted} size="small" />,
-              'Finding locations',
-              'Searching nearby places…',
-            )
-          : providerError
+      <View style={styles.suggestions}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+          bounces={false}
+          style={styles.suggestionScroll}
+          contentContainerStyle={styles.suggestionScrollContent}
+        >
+          {isLoading && suggestions.length === 0
             ? renderStatusRow(
-                <Ionicons color={colors.danger} name="alert-circle-outline" size={16} />,
-                providerError,
-                null,
-                colors.danger,
+                <ActivityIndicator color={colors.textMuted} size="small" />,
+                'Finding locations',
+                'Searching nearby places…',
               )
-            : suggestions.length === 0
+            : providerError
               ? renderStatusRow(
-                  <Ionicons color={colors.textMuted} name="location-outline" size={16} />,
-                  'No locations found',
-                  'Check the spelling or try a nearby ZIP code.',
+                  <Ionicons color={colors.danger} name="alert-circle-outline" size={16} />,
+                  providerError,
+                  null,
+                  colors.danger,
                 )
-              : suggestions.map((location) => (
-                  <Pressable
-                    key={location.providerId}
-                    accessibilityRole="button"
-                    style={styles.rowPressable}
-                    onPress={() => pickLocation(location)}
-                  >
-                    {({ pressed }) => (
-                      <View style={[styles.row, pressed ? styles.rowPressed : null]}>
-                        <View style={styles.iconBadge}>
-                          <Ionicons color={colors.textMuted} name="location-outline" size={16} />
+              : suggestions.length === 0
+                ? renderStatusRow(
+                    <Ionicons color={colors.textMuted} name="location-outline" size={16} />,
+                    'No locations found',
+                    'Check the spelling or try a nearby ZIP code.',
+                  )
+                : suggestions.map((location) => (
+                    <Pressable
+                      key={location.providerId}
+                      accessibilityRole="button"
+                      style={styles.rowPressable}
+                      onPress={() => pickLocation(location)}
+                    >
+                      {({ pressed }) => (
+                        <View style={[styles.row, pressed ? styles.rowPressed : null]}>
+                          <View style={styles.iconBadge}>
+                            <Ionicons color={colors.textMuted} name="location-outline" size={16} />
+                          </View>
+                          <View style={styles.textCol}>
+                            <AppText numberOfLines={1} style={styles.title}>
+                              {formatLocationDisplay(location)}
+                            </AppText>
+                            <AppText numberOfLines={1} style={styles.subtitle}>
+                              {formatLocationSuggestionKind(location.placeType)}
+                            </AppText>
+                          </View>
                         </View>
-                        <View style={styles.textCol}>
-                          <AppText numberOfLines={1} style={styles.title}>
-                            {formatLocationDisplay(location)}
-                          </AppText>
-                          <AppText numberOfLines={1} style={styles.subtitle}>
-                            {formatLocationSuggestionKind(location.placeType)}
-                          </AppText>
-                        </View>
-                      </View>
-                    )}
-                  </Pressable>
-                ))}
-      </ScrollView>
-      {showProviderFooter ? (
-        <View style={styles.footer}>
-          <AppText style={styles.footerText}>US locations · Powered by MapTiler</AppText>
-        </View>
-      ) : null}
-    </View>
+                      )}
+                    </Pressable>
+                  ))}
+        </ScrollView>
+        {showProviderFooter ? (
+          <View style={styles.footer}>
+            <AppText style={styles.footerText}>US locations · Powered by MapTiler</AppText>
+          </View>
+        ) : null}
+      </View>
     );
   }, [
     colors.danger,

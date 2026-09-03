@@ -6,24 +6,14 @@ import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, View } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  AppText,
-  Button,
-  DeleteButton,
-  InfoSection,
-  InlineCardError,
-  SurfaceCard,
-} from '../../../components/ui';
+import { AppText, Button, InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { canonicalNanpDigits, formatPhoneWithCountryCode } from '../../../utils/phone';
 import { showUserFacingErrorAlert } from '../../../utils/safeUserFacingMessage';
 import { deleteQuoteForBusiness } from '../api/quotes';
-import {
-  QuoteRequestActivitySection,
-  QuoteRequestDetailBody,
-} from '../components/QuoteRequestDetailBody';
+import { QuoteRequestDetailBody } from '../components/QuoteRequestDetailBody';
 import { QuoteDetailSkeleton } from '../components/QuoteDetailSkeleton';
 import { SentQuoteDetailBody } from '../components/SentQuoteDetailBody';
 import { QUOTE_DETAIL_KIND_REQUEST } from '../constants';
@@ -51,8 +41,17 @@ export function QuoteDetailScreen() {
     return () => clearTimeout(t);
   }, [emailCopyFeedback]);
 
-  const { businessId, kind, model, isLoading, detailError, businessError, refetch, isFetching } =
-    useQuoteDetail(quoteId);
+  const {
+    businessId,
+    businessName,
+    kind,
+    model,
+    isLoading,
+    detailError,
+    businessError,
+    refetch,
+    isFetching,
+  } = useQuoteDetail(quoteId);
   const isRequest = kind === QUOTE_DETAIL_KIND_REQUEST;
   const isRequestRoute = route.params?.kind === QUOTE_DETAIL_KIND_REQUEST;
   const displayIsRequest = isRequest || (!kind && isRequestRoute);
@@ -73,6 +72,8 @@ export function QuoteDetailScreen() {
       vehicleYear: String(model.vehicleYear ?? '').trim(),
       vehicleMake: String(model.vehicleMake ?? '').trim(),
       vehicleModel: String(model.vehicleModel ?? '').trim(),
+      vehicles: Array.isArray(model.vehicles) ? model.vehicles : [],
+      assets: Array.isArray(model.assets) ? model.assets : [],
       serviceName: String(model.serviceName ?? '').trim(),
       customerRequestNotes: String(model.message ?? '').trim(),
       scheduledDateYyyyMmDd: String(model.scheduledDateYyyyMmDd ?? '').trim(),
@@ -345,20 +346,23 @@ export function QuoteDetailScreen() {
             betweenProposalAndActivity={
               <InfoSection rowGap={14} rows={customerRows} title="Customer" />
             }
+            businessName={businessName}
             model={model}
           />
         )}
-        {isRequest ? <InfoSection rowGap={14} rows={customerRows} title="Customer" /> : null}
-        {isRequest ? <QuoteRequestActivitySection model={model} /> : null}
 
         <View style={styles.actions}>
           {isRequest ? (
             <Button fullWidth title="Create quote" variant="primary" onPress={handleCreateQuote} />
           ) : null}
-          <DeleteButton
+          <Button
+            accessibilityLabel={isRequest ? 'Remove request' : 'Delete quote'}
             disabled={!businessId || deleting}
+            fullWidth
+            iconName="trash-outline"
             loading={deleting}
             title={isRequest ? 'Remove request' : 'Delete quote'}
+            variant="secondary"
             onPress={handleDeleteQuote}
           />
         </View>

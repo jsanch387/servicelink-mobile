@@ -1,4 +1,4 @@
-import { Alert, Linking, Platform } from 'react-native';
+import { openMapsToAddress as openMapsForAddress } from '../../../utils/openMapsToAddress';
 import { openNativeSms } from '../../../utils/openNativeSms';
 import { phoneForSmsUri } from '../../../utils/phone';
 import { formatBookingAddressForMaps } from './bookingAddress';
@@ -59,39 +59,12 @@ export async function openSmsServiceStarting(booking) {
 }
 
 /**
- * Opens directions in Maps (Apple Maps on iOS when available, else Google URL works everywhere).
  * @param {string | null | undefined} address
  */
 export async function openMapsToAddress(address) {
-  const a = typeof address === 'string' ? address.trim() : '';
-  if (!a) {
-    Alert.alert('No address provided', 'Add an address on this booking to get directions.');
-    return;
-  }
-
-  const encoded = encodeURIComponent(a);
-  const apple = `maps://?daddr=${encoded}`;
-  const google = `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
-
-  try {
-    if (Platform.OS === 'ios') {
-      const ok = await Linking.canOpenURL(apple);
-      if (ok) {
-        await Linking.openURL(apple);
-        return;
-      }
-    } else {
-      const geo = `geo:0,0?q=${encoded}`;
-      const okGeo = await Linking.canOpenURL(geo);
-      if (okGeo) {
-        await Linking.openURL(geo);
-        return;
-      }
-    }
-    await Linking.openURL(google);
-  } catch {
-    Alert.alert('Unable to open Maps', 'Try opening maps and searching for the address.');
-  }
+  await openMapsForAddress(address, {
+    noAddressMessage: 'Add an address on this booking to get directions.',
+  });
 }
 
 /**

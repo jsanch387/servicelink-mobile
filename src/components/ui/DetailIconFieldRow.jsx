@@ -15,6 +15,7 @@ import { FONT_FAMILIES, useTheme } from '../../theme';
  *   valueNode?: import('react').ReactNode;
  *   labelUppercase?: boolean;
  *   iconColor?: string;
+ *   centerIcon?: boolean;
  *   onPress?: () => void;
  *   accessibilityHint?: string;
  * }} props
@@ -26,6 +27,7 @@ export function DetailIconFieldRow({
   valueNode = null,
   labelUppercase = true,
   iconColor,
+  centerIcon = false,
   onPress,
   accessibilityHint,
 }) {
@@ -36,7 +38,7 @@ export function DetailIconFieldRow({
     () =>
       StyleSheet.create({
         row: {
-          alignItems: tappable ? 'center' : 'flex-start',
+          alignItems: tappable || centerIcon ? 'center' : 'flex-start',
           flexDirection: 'row',
           gap: 14,
           width: '100%',
@@ -45,7 +47,9 @@ export function DetailIconFieldRow({
           opacity: 0.72,
         },
         iconWrap: {
-          paddingTop: tappable ? 0 : 2,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingTop: tappable || centerIcon ? 0 : 2,
           width: 22,
         },
         label: {
@@ -76,7 +80,7 @@ export function DetailIconFieldRow({
           width: 22,
         },
       }),
-    [colors, labelUppercase, tappable],
+    [centerIcon, colors, labelUppercase, tappable],
   );
 
   const content = (

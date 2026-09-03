@@ -82,8 +82,11 @@ export function CreateQuoteStepCustomer({
       <SurfacePhoneField
         containerStyle={FIELD_SHELL}
         errorText={phoneError}
+        label="Phone"
         onBlur={() => setPhoneBlurred(true)}
         onChangeText={onCustomerPhoneChange}
+        placeholder="(555) 123-4567"
+        prefixText="+1"
         value={customerPhoneDisplay}
       />
     </CreateQuoteFieldStack>

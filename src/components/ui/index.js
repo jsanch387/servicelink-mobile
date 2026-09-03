@@ -23,6 +23,7 @@ export { DetailIconFieldRow } from './DetailIconFieldRow';
 export { MembershipMark } from './MembershipMark';
 export { DetailsSectionCard } from './DetailsSectionCard';
 export { InfoSection } from './InfoSection';
+export { LocationSection } from './LocationSection';
 export { LabelValueRow } from './LabelValueRow';
 export { LoadMoreLink } from './LoadMoreLink';
 export { AppVersionFootnote } from './AppVersionFootnote';

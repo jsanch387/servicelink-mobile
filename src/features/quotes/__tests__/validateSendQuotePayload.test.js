@@ -147,6 +147,38 @@ describe('validateSendQuotePayload', () => {
         vehicleModel: 'Camry',
       }),
     );
+    expect(complete.body.vehicles).toBeUndefined();
+    expect(complete.body.assets).toBeUndefined();
+  });
+
+  it('does not post a second vehicle or assets array', () => {
+    const r = validateSendQuotePayload(
+      validBase({
+        vehicleYear: '2021',
+        vehicleMake: 'GMC',
+        vehicleModel: 'Sierra AT4',
+        vehicle2Year: '2022',
+        vehicle2Make: 'GMC',
+        vehicle2Model: 'Yukon AT4',
+      }),
+    );
+    expect(r.ok).toBe(true);
+    expect(r.body.vehicleYear).toBe('2021');
+    expect(r.body.vehicles).toBeUndefined();
+    expect(r.body.assets).toBeUndefined();
+  });
+
+  it('rejects a partial second vehicle', () => {
+    const r = validateSendQuotePayload(
+      validBase({
+        vehicleYear: '2021',
+        vehicleMake: 'GMC',
+        vehicleModel: 'Sierra AT4',
+        vehicle2Year: '2022',
+      }),
+    );
+    expect(r.ok).toBe(false);
+    expect(r.message).toMatch(/second vehicle/i);
   });
 });
 

@@ -21,8 +21,9 @@ const inputSurfacePad = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 18,
   },
-  sections: {
+  vehicleStep: {
     gap: 16,
+    width: '100%',
   },
 });
 
@@ -59,15 +60,33 @@ export function CreateQuoteStepContent({ stepIndex, form }) {
         />,
       );
     case CREATE_QUOTE_STEP.VEHICLE:
-      return wrapInputStepSurface(
-        <CreateQuoteStepVehicle
-          vehicleMake={form.vehicleMake}
-          vehicleModel={form.vehicleModel}
-          vehicleYear={form.vehicleYear}
-          onVehicleMakeChange={form.setVehicleMake}
-          onVehicleModelChange={form.setVehicleModel}
-          onVehicleYearChange={form.setVehicleYear}
-        />,
+      return (
+        <View style={inputSurfacePad.vehicleStep}>
+          {wrapInputStepSurface(
+            <CreateQuoteStepVehicle
+              showSecondVehicle={form.showSecondVehicle}
+              vehicle2Make={form.vehicle2Make}
+              vehicle2Model={form.vehicle2Model}
+              vehicle2Year={form.vehicle2Year}
+              vehicleMake={form.vehicleMake}
+              vehicleModel={form.vehicleModel}
+              vehicleYear={form.vehicleYear}
+              onAddSecondVehicle={form.onAddSecondVehicle}
+              onRemoveCommittedVehicle={form.onRemoveCommittedVehicle}
+              onVehicle2MakeChange={form.setVehicle2Make}
+              onVehicle2ModelChange={form.setVehicle2Model}
+              onVehicle2YearChange={form.setVehicle2Year}
+              onVehicleMakeChange={form.setVehicleMake}
+              onVehicleModelChange={form.setVehicleModel}
+              onVehicleYearChange={form.setVehicleYear}
+            />,
+          )}
+          <CreateQuoteStepNote
+            note={form.businessNote}
+            onFocus={form.onBusinessNoteFocus}
+            onNoteChange={form.setBusinessNote}
+          />
+        </View>
       );
     case CREATE_QUOTE_STEP.SERVICE:
       return (
@@ -85,24 +104,15 @@ export function CreateQuoteStepContent({ stepIndex, form }) {
       );
     case CREATE_QUOTE_STEP.DETAILS:
       if (form.isCustomJob) {
-        return (
-          <View style={inputSurfacePad.sections}>
-            {wrapInputStepSurface(
-              <CreateQuoteStepService
-                durationHhMm={form.durationHhMm}
-                priceUsdText={form.priceUsdText}
-                serviceName={form.serviceName}
-                onDurationHhMmChange={form.setDurationHhMm}
-                onPriceUsdTextChange={form.setPriceUsdText}
-                onServiceNameChange={form.setServiceName}
-              />,
-            )}
-            <CreateQuoteStepNote
-              note={form.businessNote}
-              onNoteChange={form.setBusinessNote}
-              onFocus={form.onBusinessNoteFocus}
-            />
-          </View>
+        return wrapInputStepSurface(
+          <CreateQuoteStepService
+            durationHhMm={form.durationHhMm}
+            priceUsdText={form.priceUsdText}
+            serviceName={form.serviceName}
+            onDurationHhMmChange={form.setDurationHhMm}
+            onPriceUsdTextChange={form.setPriceUsdText}
+            onServiceNameChange={form.setServiceName}
+          />,
         );
       }
       return (
@@ -155,10 +165,12 @@ export function CreateQuoteStepContent({ stepIndex, form }) {
           scheduledDateYyyyMmDd={form.scheduledDateYyyyMmDd}
           scheduledStartTime12h={form.scheduledStartTime12h}
           serviceName={form.serviceName}
+          vehicle2Make={form.vehicle2Make}
+          vehicle2Model={form.vehicle2Model}
+          vehicle2Year={form.vehicle2Year}
           vehicleMake={form.vehicleMake}
           vehicleModel={form.vehicleModel}
           vehicleYear={form.vehicleYear}
-          onBusinessNoteChange={form.setBusinessNote}
         />
       );
     default:

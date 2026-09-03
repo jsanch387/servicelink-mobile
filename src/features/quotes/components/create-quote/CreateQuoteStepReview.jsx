@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 import {
   AppText,
-  AppTextInput,
+  DetailIconFieldRow,
   DetailsSectionCard,
   Divider,
   InfoSection,
@@ -12,7 +12,6 @@ import {
   formatServiceDurationSelectLabel,
   isValidServiceDurationHHmm,
 } from '../../../../components/ui/durationTime';
-import { QUOTE_NOTE_MAX } from '../../constants/createQuoteFieldLimits';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
 import { canonicalNanpDigits, formatPhoneWithCountryCode } from '../../../../utils/phone';
 import { splitBookingServiceName } from '../../../../utils/splitBookingServiceName';
@@ -20,6 +19,7 @@ import {
   formatScheduledDateUserFacing,
   isValidCalendarYyyyMmDd,
 } from '../../utils/formatScheduledDateDisplay';
+import { resolveQuoteRequestBrief } from '../../utils/resolveQuoteRequestBrief';
 
 /**
  * Review step for create-quote: proposal, schedule, customer, vehicle, notes.
@@ -31,6 +31,9 @@ import {
  * @param {string} props.vehicleYear
  * @param {string} props.vehicleMake
  * @param {string} props.vehicleModel
+ * @param {string} [props.vehicle2Year]
+ * @param {string} [props.vehicle2Make]
+ * @param {string} [props.vehicle2Model]
  * @param {string} props.serviceName
  * @param {string} props.priceUsdText
  * @param {string} props.durationHhMm
@@ -40,8 +43,7 @@ import {
  * @param {string} props.scheduledDateYyyyMmDd
  * @param {string} props.scheduledStartTime12h
  * @param {string} props.customerRequestNotes From the quote request (read-only).
- * @param {string} props.businessNote Shown on the sent quote (`body.note`).
- * @param {(t: string) => void} props.onBusinessNoteChange
+ * @param {string} props.businessNote From the vehicle step (`body.note`).
  */
 export function CreateQuoteStepReview({
   customerName,
@@ -50,6 +52,9 @@ export function CreateQuoteStepReview({
   vehicleYear,
   vehicleMake,
   vehicleModel,
+  vehicle2Year = '',
+  vehicle2Make = '',
+  vehicle2Model = '',
   serviceName,
   priceUsdText,
   durationHhMm,
@@ -60,7 +65,6 @@ export function CreateQuoteStepReview({
   scheduledStartTime12h,
   customerRequestNotes,
   businessNote,
-  onBusinessNoteChange,
 }) {
   const { colors } = useTheme();
 
@@ -89,14 +93,21 @@ export function CreateQuoteStepReview({
     [phoneDigits10],
   );
 
-  const vehicleLine = useMemo(() => {
-    const parts = [vehicleYear, vehicleMake, vehicleModel]
-      .map((x) => String(x ?? '').trim())
+  const vehicleLines = useMemo(() => {
+    return [
+      [vehicleYear, vehicleMake, vehicleModel],
+      [vehicle2Year, vehicle2Make, vehicle2Model],
+    ]
+      .map((parts) =>
+        parts
+          .map((x) => String(x ?? '').trim())
+          .filter(Boolean)
+          .join(' '),
+      )
       .filter(Boolean);
-    return parts.length ? parts.join(' ') : '';
-  }, [vehicleMake, vehicleModel, vehicleYear]);
+  }, [vehicle2Make, vehicle2Model, vehicle2Year, vehicleMake, vehicleModel, vehicleYear]);
 
-  const hasVehicle = vehicleLine.length > 0;
+  const hasVehicle = vehicleLines.length > 0;
 
   const scheduleDateDisplay = useMemo(() => {
     const raw = String(scheduledDateYyyyMmDd ?? '').trim();
@@ -143,7 +154,15 @@ export function CreateQuoteStepReview({
   }, [customerEmail, customerName, phoneDigits10, phoneLine]);
 
   const showCustomerSection = customerRows.length > 0;
-  const customerRequestNotesTrimmed = String(customerRequestNotes ?? '').trim();
+  const customerRequestNotesTrimmed = useMemo(() => {
+    const brief = resolveQuoteRequestBrief({
+      message: customerRequestNotes,
+      vehicle: vehicleLines[0] || '',
+    });
+    return String(brief.body ?? '').trim();
+  }, [customerRequestNotes, vehicleLines]);
+  const businessNoteTrimmed = String(businessNote ?? '').trim();
+  const hasNotes = Boolean(customerRequestNotesTrimmed || businessNoteTrimmed);
   const optionLine = String(pricingOptionLabel ?? '').trim();
   const serviceNameTrimmed = serviceName.trim() || 'Quoted service';
   const serviceHeadline = optionLine
@@ -251,34 +270,13 @@ export function CreateQuoteStepReview({
           lineHeight: 34,
           marginTop: 10,
         },
-        activityStack: {
-          gap: 16,
-          paddingTop: 2,
-        },
-        activityRow: {
-          flexDirection: 'row',
-          gap: 14,
+        scheduleFieldsStack: {
+          gap: 18,
+          paddingVertical: 2,
         },
         activityIconWrap: {
           paddingTop: 2,
           width: 22,
-        },
-        activityLabel: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 12,
-          fontWeight: '600',
-          letterSpacing: 0.2,
-          marginBottom: 4,
-          textTransform: 'uppercase',
-        },
-        activityValue: {
-          color: colors.textSecondary,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 15,
-          fontWeight: '500',
-          letterSpacing: -0.15,
-          lineHeight: 22,
         },
         vehicleRow: {
           flexDirection: 'row',
@@ -297,40 +295,28 @@ export function CreateQuoteStepReview({
           letterSpacing: -0.15,
           lineHeight: 22,
         },
-        noteInput: {
-          color: colors.textSecondary,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 16,
-          fontWeight: '400',
-          letterSpacing: -0.15,
-          lineHeight: 24,
-          minHeight: 132,
-          paddingBottom: 4,
-          paddingTop: 4,
-          textAlignVertical: 'top',
-        },
         notesStack: {
-          gap: 0,
-          paddingVertical: 2,
+          gap: 16,
+          paddingTop: 2,
         },
-        noteSectionLabel: {
+        noteBlock: {
+          gap: 4,
+        },
+        noteLabel: {
           color: colors.textMuted,
           fontFamily: FONT_FAMILIES.semibold,
           fontSize: 12,
           fontWeight: '600',
           letterSpacing: 0.2,
-          marginBottom: 8,
+          textTransform: 'uppercase',
         },
-        noteReadonlyBody: {
+        noteBody: {
           color: colors.textSecondary,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 15,
           fontWeight: '500',
-          letterSpacing: -0.1,
+          letterSpacing: -0.15,
           lineHeight: 22,
-        },
-        notesDividerWrap: {
-          marginVertical: 16,
         },
       }),
     [colors],
@@ -382,54 +368,42 @@ export function CreateQuoteStepReview({
       </DetailsSectionCard>
 
       {showScheduleSection ? (
-        <DetailsSectionCard title="Schedule">
-          <View style={styles.activityStack}>
+        <DetailsSectionCard bodyPadding="roomy" title="Schedule">
+          <View style={styles.scheduleFieldsStack}>
             {scheduleMode === 'customer' ? (
-              <View style={styles.activityRow}>
-                <View style={styles.activityIconWrap}>
-                  <Ionicons color={colors.accentMuted} name="calendar-outline" size={19} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.activityLabel}>Date & time</AppText>
-                  <AppText style={styles.activityValue}>Customer will choose</AppText>
-                </View>
-              </View>
+              <DetailIconFieldRow
+                icon="calendar-outline"
+                label="Date & time"
+                labelUppercase={false}
+                value="Customer will choose"
+              />
             ) : (
               <>
                 {scheduleDateDisplay ? (
-                  <View style={styles.activityRow}>
-                    <View style={styles.activityIconWrap}>
-                      <Ionicons color={colors.accentMuted} name="calendar-outline" size={19} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <AppText style={styles.activityLabel}>Date</AppText>
-                      <AppText style={styles.activityValue}>{scheduleDateDisplay}</AppText>
-                    </View>
-                  </View>
+                  <DetailIconFieldRow
+                    icon="calendar-outline"
+                    label="Date"
+                    labelUppercase={false}
+                    value={scheduleDateDisplay}
+                  />
                 ) : null}
                 {scheduleTimeDisplay ? (
-                  <View style={styles.activityRow}>
-                    <View style={styles.activityIconWrap}>
-                      <Ionicons color={colors.accentMuted} name="time-outline" size={19} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <AppText style={styles.activityLabel}>Time</AppText>
-                      <AppText style={styles.activityValue}>{scheduleTimeDisplay}</AppText>
-                    </View>
-                  </View>
+                  <DetailIconFieldRow
+                    icon="time-outline"
+                    label="Time"
+                    labelUppercase={false}
+                    value={scheduleTimeDisplay}
+                  />
                 ) : null}
               </>
             )}
             {durationLabel ? (
-              <View style={styles.activityRow}>
-                <View style={styles.activityIconWrap}>
-                  <Ionicons color={colors.accentMuted} name="hourglass-outline" size={19} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.activityLabel}>Duration</AppText>
-                  <AppText style={styles.activityValue}>{durationLabel}</AppText>
-                </View>
-              </View>
+              <DetailIconFieldRow
+                icon="hourglass-outline"
+                label="Duration"
+                labelUppercase={false}
+                value={durationLabel}
+              />
             ) : null}
           </View>
         </DetailsSectionCard>
@@ -440,47 +414,37 @@ export function CreateQuoteStepReview({
       ) : null}
 
       {hasVehicle ? (
-        <DetailsSectionCard title="Vehicle">
-          <View style={styles.vehicleRow}>
-            <View style={styles.activityIconWrap}>
-              <Ionicons color={colors.accentMuted} name="car-sport" size={21} />
-            </View>
-            <View style={styles.vehicleTextWrap}>
-              <AppText style={styles.vehicleBody}>{vehicleLine}</AppText>
-            </View>
+        <DetailsSectionCard title={vehicleLines.length > 1 ? 'Vehicles' : 'Vehicle'}>
+          <View style={{ gap: 14 }}>
+            {vehicleLines.map((line) => (
+              <View key={line} style={styles.vehicleRow}>
+                <View style={styles.activityIconWrap}>
+                  <Ionicons color={colors.accentMuted} name="car-sport" size={21} />
+                </View>
+                <View style={styles.vehicleTextWrap}>
+                  <AppText style={styles.vehicleBody}>{line}</AppText>
+                </View>
+              </View>
+            ))}
           </View>
         </DetailsSectionCard>
       ) : null}
 
-      <DetailsSectionCard title="Notes">
-        <View style={styles.notesStack}>
-          {customerRequestNotesTrimmed ? (
-            <>
-              <View>
-                <AppText style={styles.noteSectionLabel}>Customer notes</AppText>
-                <AppText style={styles.noteReadonlyBody}>{customerRequestNotesTrimmed}</AppText>
+      {hasNotes ? (
+        <DetailsSectionCard title="Notes">
+          <View style={styles.notesStack}>
+            {customerRequestNotesTrimmed ? (
+              <View style={styles.noteBlock}>
+                <AppText style={styles.noteLabel}>Request</AppText>
+                <AppText style={styles.noteBody}>{customerRequestNotesTrimmed}</AppText>
               </View>
-              <View style={styles.notesDividerWrap}>
-                <Divider />
-              </View>
-            </>
-          ) : null}
-          <View>
-            <AppText style={styles.noteSectionLabel}>Business notes</AppText>
-            <AppTextInput
-              autoCapitalize="sentences"
-              maxLength={QUOTE_NOTE_MAX}
-              multiline
-              onChangeText={onBusinessNoteChange}
-              placeholder="Optional — appears on the quote you send…"
-              placeholderTextColor={colors.placeholder}
-              style={styles.noteInput}
-              textAlignVertical="top"
-              value={businessNote}
-            />
+            ) : null}
+            {businessNoteTrimmed ? (
+              <AppText style={styles.noteBody}>{businessNoteTrimmed}</AppText>
+            ) : null}
           </View>
-        </View>
-      </DetailsSectionCard>
+        </DetailsSectionCard>
+      ) : null}
     </View>
   );
 }

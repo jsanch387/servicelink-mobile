@@ -4,22 +4,25 @@ import { useCallback, useMemo } from 'react';
 import { useAuth } from '../../auth';
 import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
-import { fetchOwnerQuoteDetail } from '../api/fetchOwnerQuoteDetail';
+import {
+  fetchActiveQuoteLinkExpiry,
+  fetchQuoteByIdForBusiness,
+  fetchQuotesForBusiness,
+} from '../api/quotes';
 import {
   QUOTE_DETAIL_LOAD_FAILED_USER_MESSAGE,
   QUOTE_DETAIL_NOT_FOUND_USER_MESSAGE,
 } from '../constants';
-import { QUOTES_QUERY_ROOT, quoteDetailQueryKey } from '../queryKeys';
+import { QUOTES_QUERY_ROOT, quoteDetailQueryKey, quotesListQueryKey } from '../queryKeys';
 import { deriveQuoteDetailKind, mapQuoteDetailModel } from '../utils/quotePresentation';
-import { quotesDebugError } from '../utils/quotesDebug';
+import { quotesDebugError, quotesFormatSupabaseError } from '../utils/quotesDebug';
 
 /**
  * @param {string | undefined} quoteId
  */
 export function useQuoteDetail(quoteId) {
-  const { session, user } = useAuth();
+  const { user } = useAuth();
   const userId = user?.id;
-  const accessToken = session?.access_token;
   const queryClient = useQueryClient();
 
   useFocusEffect(
@@ -59,7 +62,7 @@ export function useQuoteDetail(quoteId) {
     queryFn: async () => {
       const idNorm = String(quoteId ?? '').trim();
 
-      const { data: row, error } = await fetchOwnerQuoteDetail(accessToken, idNorm);
+      const { data: row, error } = await fetchQuoteByIdForBusiness(businessId, idNorm);
       if (error) {
         quotesDebugError(
           'useQuoteDetail:detailQuery:quote-fetch-throw',
@@ -67,12 +70,28 @@ export function useQuoteDetail(quoteId) {
           {
             businessId,
             quoteId: idNorm,
+            formatted: quotesFormatSupabaseError(error),
           },
         );
         throw new Error(QUOTE_DETAIL_LOAD_FAILED_USER_MESSAGE);
       }
 
-      if (!row) {
+      let resolvedRow = row;
+      if (!resolvedRow) {
+        const listRows = await queryClient.fetchQuery({
+          queryKey: quotesListQueryKey(businessId),
+          queryFn: async () => {
+            const res = await fetchQuotesForBusiness(businessId);
+            if (res.error) {
+              throw new Error(QUOTE_DETAIL_LOAD_FAILED_USER_MESSAGE);
+            }
+            return res.data ?? [];
+          },
+        });
+        resolvedRow = listRows.find((r) => String(r?.id) === idNorm) ?? null;
+      }
+
+      if (!resolvedRow) {
         quotesDebugError('useQuoteDetail:detailQuery:not-found', 'Quote not found', {
           businessId,
           quoteId: idNorm,
@@ -80,12 +99,20 @@ export function useQuoteDetail(quoteId) {
         throw new Error(QUOTE_DETAIL_NOT_FOUND_USER_MESSAGE);
       }
 
-      const kind = deriveQuoteDetailKind(row);
-      const model = mapQuoteDetailModel(row, kind);
+      const linkResult = await fetchActiveQuoteLinkExpiry(idNorm);
+      const activeLinkExpiresAt =
+        !linkResult.error && linkResult.data?.expires_at != null
+          ? linkResult.data.expires_at
+          : null;
 
-      return { row, kind, model };
+      const kind = deriveQuoteDetailKind(resolvedRow);
+      const model = mapQuoteDetailModel(resolvedRow, kind, {
+        activeLinkExpiresAt,
+      });
+
+      return { row: resolvedRow, kind, model };
     },
-    enabled: Boolean(quoteId && hasBusinessRow && accessToken),
+    enabled: Boolean(quoteId && hasBusinessRow),
     staleTime: 30 * 1000,
     gcTime: 15 * 60 * 1000,
   });
@@ -98,7 +125,7 @@ export function useQuoteDetail(quoteId) {
   const detailError = detailQ.isError ? (detailQ.error?.message ?? 'Could not load quote') : null;
 
   const isPendingBusiness = Boolean(userId) && businessQ.isPending;
-  const isPendingDetail = Boolean(quoteId && hasBusinessRow && accessToken) && detailQ.isPending;
+  const isPendingDetail = Boolean(quoteId && hasBusinessRow) && detailQ.isPending;
   const isLoading = isPendingBusiness || isPendingDetail;
 
   const refetch = useCallback(async () => {
@@ -116,6 +143,7 @@ export function useQuoteDetail(quoteId) {
   return useMemo(
     () => ({
       businessId: businessId ?? null,
+      businessName: String(businessQ.data?.business_name ?? '').trim(),
       kind: payload?.kind ?? null,
       model: payload?.model ?? null,
       businessError,
@@ -126,6 +154,7 @@ export function useQuoteDetail(quoteId) {
     }),
     [
       businessId,
+      businessQ.data?.business_name,
       payload?.kind,
       payload?.model,
       businessError,
