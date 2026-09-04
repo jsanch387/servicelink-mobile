@@ -20,4 +20,14 @@ export const SUBSCRIPTIONS_FEATURE_ENABLED = true;
  *
  * @type {readonly string[]}
  */
-export const SUBSCRIPTIONS_EARLY_ACCESS_EMAILS = ['urbanink.help@gmail.com', 'jesuss387@gmail.com'];
+export const SUBSCRIPTIONS_EARLY_ACCESS_EMAILS = [
+  'urbanink.help@gmail.com',
+  'jesuss387@gmail.com',
+  'josesdetailingbusiness@gmail.com',
+  'bermejojoshua183@gmail.com',
+  'amluxedetailing@gmail.com',
+  'mobilecardetailinggr@gmail.com',
+  'elev8tedetailing@icloud.com',
+  'dav414@icloud.com',
+  'archivedetail@gmail.com',
+];

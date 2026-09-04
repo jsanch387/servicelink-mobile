@@ -5,9 +5,16 @@ import {
 } from '../utils/resolveSubscriptionsAccess';
 
 describe('closed-testing allowlist', () => {
-  it('includes only the two owner emails', () => {
+  it('includes the closed-testing owner emails', () => {
     expect([...SUBSCRIPTIONS_EARLY_ACCESS_EMAILS].map((e) => e.toLowerCase()).sort()).toEqual([
+      'amluxedetailing@gmail.com',
+      'archivedetail@gmail.com',
+      'bermejojoshua183@gmail.com',
+      'dav414@icloud.com',
+      'elev8tedetailing@icloud.com',
       'jesuss387@gmail.com',
+      'josesdetailingbusiness@gmail.com',
+      'mobilecardetailinggr@gmail.com',
       'urbanink.help@gmail.com',
     ]);
   });
