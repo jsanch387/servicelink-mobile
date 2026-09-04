@@ -12,6 +12,7 @@ describe('closed-testing allowlist', () => {
       'bermejojoshua183@gmail.com',
       'dav414@icloud.com',
       'elev8tedetailing@icloud.com',
+      'erickjavier1355@icloud.com',
       'jesuss387@gmail.com',
       'josesdetailingbusiness@gmail.com',
       'mobilecardetailinggr@gmail.com',

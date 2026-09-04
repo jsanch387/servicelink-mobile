@@ -30,4 +30,5 @@ export const SUBSCRIPTIONS_EARLY_ACCESS_EMAILS = [
   'elev8tedetailing@icloud.com',
   'dav414@icloud.com',
   'archivedetail@gmail.com',
+  'erickjavier1355@icloud.com',
 ];
