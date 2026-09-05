@@ -151,6 +151,55 @@ export async function fetchCustomerForBusiness(businessId, customerId) {
 }
 
 /**
+ * Resolves an existing CRM customer for this business by phone, then email.
+ * Phone and email are unique per business when normalized.
+ *
+ * @param {string} businessId
+ * @param {{ phone?: string | null; email?: string | null }} contact
+ * @returns {Promise<{ customerId: string | null; error: Error | null }>}
+ */
+export async function findCustomerIdByContact(businessId, contact = {}) {
+  const bid = String(businessId ?? '').trim();
+  if (!bid) {
+    return { customerId: null, error: null };
+  }
+
+  const phone = normalizePhoneForDatabase(contact.phone ?? '');
+  if (phone) {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('business_id', bid)
+      .eq('phone_normalized', phone)
+      .maybeSingle();
+    if (error) {
+      return { customerId: null, error };
+    }
+    if (data?.id) {
+      return { customerId: String(data.id), error: null };
+    }
+  }
+
+  const email = normalizeEmailForDedupe(contact.email ?? '');
+  if (email) {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('business_id', bid)
+      .eq('email_normalized', email)
+      .maybeSingle();
+    if (error) {
+      return { customerId: null, error };
+    }
+    if (data?.id) {
+      return { customerId: String(data.id), error: null };
+    }
+  }
+
+  return { customerId: null, error: null };
+}
+
+/**
  * CRM SMS consent for receipt / review-link copy.
  * `sms_opt_in === false` means the customer opted out; null/true allow SMS when phone exists.
  *

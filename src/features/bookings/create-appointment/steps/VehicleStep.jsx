@@ -1,5 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
+import { pastVehiclesMatch } from '../../../customers/utils/mapCustomerAssetToVehicle';
 import { useTheme } from '../../../../theme';
 import {
   BOOKING_VEHICLE_MAKE_MAX,
@@ -9,6 +12,7 @@ import {
 } from '../../../../utils/vehicle';
 import { AddAnotherJobCard } from '../components/AddAnotherJobCard';
 import { AppointmentNotesCard } from '../components/AppointmentNotesCard';
+import { ChoiceRow } from '../components/ChoiceRow';
 import { isVehicleStepComplete } from '../utils/createAppointmentValidators';
 
 const FIELD_SHELL = { marginBottom: 0 };
@@ -23,6 +27,7 @@ const FIELD_SHELL = { marginBottom: 0 };
  *   canAddAnotherJob?: boolean;
  *   onAddAnotherJob?: () => void;
  *   addAnotherJobDisabled?: boolean;
+ *   pastVehicles?: Array<{ id: string; label: string; year: string; make: string; model: string }>;
  * }} props
  */
 export function VehicleStep({
@@ -34,6 +39,7 @@ export function VehicleStep({
   canAddAnotherJob = false,
   onAddAnotherJob,
   addAnotherJobDisabled = false,
+  pastVehicles = [],
 }) {
   const { colors } = useTheme();
   const hasAnyVehicleField = [vehicle.year, vehicle.make, vehicle.model].some((value) =>
@@ -43,11 +49,87 @@ export function VehicleStep({
     hasAnyVehicleField && !isVehicleStepComplete(vehicle)
       ? 'Please enter year, make, and model.'
       : null;
+  const savedVehicles = Array.isArray(pastVehicles) ? pastVehicles : [];
+  const hasPastVehicles = savedVehicles.length > 0;
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: {
+          gap: 18,
+        },
+        card: {
+          paddingHorizontal: 16,
+          paddingVertical: 16,
+        },
+        fieldStack: {
+          gap: 18,
+        },
+        error: {
+          fontSize: 12,
+          fontWeight: '500',
+          lineHeight: 17,
+        },
+        pastBlock: {
+          gap: 10,
+        },
+        returningBanner: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 6,
+          paddingHorizontal: 2,
+        },
+        returningBannerText: {
+          color: colors.accent,
+          fontSize: 13,
+          fontWeight: '600',
+        },
+        enterLabel: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '600',
+        },
+      }),
+    [colors],
+  );
 
   return (
     <View style={styles.root}>
+      {hasPastVehicles ? (
+        <View style={styles.pastBlock}>
+          <View style={styles.returningBanner}>
+            <Ionicons color={colors.accent} name="repeat-outline" size={15} />
+            <AppText style={styles.returningBannerText}>Choose from their past vehicles</AppText>
+          </View>
+          {savedVehicles.map((past) => {
+            const selected = pastVehiclesMatch(vehicle, past);
+            return (
+              <ChoiceRow
+                key={past.id}
+                selected={selected}
+                title={past.label}
+                onPress={() => {
+                  if (selected) {
+                    onChangeVehicle({ year: '', make: '', model: '' });
+                    return;
+                  }
+                  onChangeVehicle({
+                    year: past.year,
+                    make: past.make,
+                    model: past.model,
+                  });
+                }}
+              />
+            );
+          })}
+        </View>
+      ) : null}
+
       <SurfaceCard padding="none" style={styles.card}>
         <View style={styles.fieldStack}>
+          {hasPastVehicles ? (
+            <AppText style={styles.enterLabel}>Or enter a different vehicle</AppText>
+          ) : null}
           <SurfaceTextField
             autoCapitalize="none"
             autoCorrect={false}
@@ -104,21 +186,3 @@ export function VehicleStep({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    gap: 18,
-  },
-  card: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  fieldStack: {
-    gap: 18,
-  },
-  error: {
-    fontSize: 12,
-    fontWeight: '500',
-    lineHeight: 17,
-  },
-});

@@ -1,9 +1,8 @@
 import { Button } from './Button';
-import { useTheme } from '../../theme';
 
 /**
- * Destructive outline action — matches booking details “Delete booking”
- * (`variant="outline"`, thin danger border, trash icon, danger label).
+ * Quiet destructive action — same gray secondary + trash treatment as quote detail
+ * (“Delete quote”). Use this for entity deletes so they do not shout in red.
  */
 export function DeleteButton({
   title,
@@ -17,20 +16,16 @@ export function DeleteButton({
   style,
   ...rest
 }) {
-  const { colors } = useTheme();
-
   return (
     <Button
       disabled={disabled}
       fullWidth={fullWidth}
       iconName={showIcon ? iconName : undefined}
       loading={loading}
-      outlineColor={colors.danger}
-      outlineThin
       squared={squared}
       style={style}
       title={title}
-      variant="outline"
+      variant="secondary"
       onPress={onPress}
       {...rest}
     />

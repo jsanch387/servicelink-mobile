@@ -6,7 +6,14 @@ import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, View } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
-import { AppText, Button, InfoSection, InlineCardError, SurfaceCard } from '../../../components/ui';
+import {
+  AppText,
+  Button,
+  DeleteButton,
+  InfoSection,
+  InlineCardError,
+  SurfaceCard,
+} from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
@@ -355,14 +362,11 @@ export function QuoteDetailScreen() {
           {isRequest ? (
             <Button fullWidth title="Create quote" variant="primary" onPress={handleCreateQuote} />
           ) : null}
-          <Button
+          <DeleteButton
             accessibilityLabel={isRequest ? 'Remove request' : 'Delete quote'}
             disabled={!businessId || deleting}
-            fullWidth
-            iconName="trash-outline"
             loading={deleting}
             title={isRequest ? 'Remove request' : 'Delete quote'}
-            variant="secondary"
             onPress={handleDeleteQuote}
           />
         </View>

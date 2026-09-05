@@ -3,7 +3,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useLayoutEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, Button, InfoSection, SurfaceCard } from '../../../components/ui';
+import { AppText, Button, DeleteButton, InfoSection, SurfaceCard } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { CreateSaleSheet } from '../components/CreateSaleSheet';
@@ -142,7 +142,7 @@ export function SaleDetailScreen() {
             onPress={() => setEditVisible(true)}
           />
           <View style={styles.danger}>
-            <Button fullWidth title="Delete sale" variant="danger" onPress={handleDelete} />
+            <DeleteButton title="Delete sale" onPress={handleDelete} />
           </View>
         </View>
       </ScrollView>

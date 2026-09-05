@@ -3,7 +3,7 @@ import { DeleteButton } from '../DeleteButton';
 import { renderWithProviders } from '../../../features/home/__tests__/testUtils';
 
 describe('DeleteButton', () => {
-  it('renders outline danger delete action with trash icon', () => {
+  it('renders a quiet secondary delete action with a trash icon', () => {
     renderWithProviders(<DeleteButton title="Delete booking" onPress={() => {}} />);
     expect(screen.getByText('Delete booking')).toBeTruthy();
   });

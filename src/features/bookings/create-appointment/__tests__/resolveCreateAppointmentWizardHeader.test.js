@@ -52,6 +52,20 @@ describe('resolveCreateAppointmentWizardHeader', () => {
     });
   });
 
+  it('recommends past vehicles on the vehicle step when they exist', () => {
+    expect(
+      resolveCreateAppointmentWizardHeader(
+        CREATE_APPOINTMENT_STEP.VEHICLE,
+        { title: "What's the vehicle?", subtitle: 'Add vehicle details — or leave blank.' },
+        null,
+        { hasPastVehicles: true },
+      ),
+    ).toEqual({
+      title: "What's the vehicle?",
+      subtitle: "Choose one they've used before — or enter a new one.",
+    });
+  });
+
   it('uses custom job copy for custom details', () => {
     expect(
       resolveCreateAppointmentWizardHeader(

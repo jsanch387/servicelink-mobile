@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
-import { useTheme } from '../../../theme';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import { useTheme } from '../../../theme';
 import { useCreatePaymentHighlight } from '../../payments/create-payment/hooks/useCreatePaymentHighlight';
 import { CreateMenuFabGlow } from './CreateMenuFabGlow';
 
 const FAB_SIZE = 56;
+const FAB_RADIUS = 18;
 const ACTION_GAP = 10;
 const ROW_GAP = 12;
 const GLOW_PAD = 28;
@@ -15,8 +17,6 @@ const GLOW_PAD = 28;
 /** Extra inset from screen right so speed-dial rows sit closer to the main FAB center. */
 const ACTION_MENU_RIGHT_NUDGE = Math.round(FAB_SIZE * 0.05);
 
-/** Close FAB fill — dark-theme error coral (reads pink-red on dark). */
-const FAB_CLOSE_RED = '#f87171';
 const MOTION_ENABLED = typeof process === 'undefined' || process.env.NODE_ENV !== 'test';
 
 const MENU_ITEMS = [
@@ -50,6 +50,7 @@ export function FloatingCreateMenu({
   const { colors, isDark } = useTheme();
   const [open, setOpen] = useState(false);
   const progress = useRef(new Animated.Value(0)).current;
+  const pressScale = useRef(new Animated.Value(1)).current;
   const paymentPulse = useRef(new Animated.Value(MOTION_ENABLED ? 0 : 1)).current;
   const paymentGreen = colors.moneyPositive;
   const { showHighlight, markSeen } = useCreatePaymentHighlight({
@@ -103,6 +104,15 @@ export function FloatingCreateMenu({
       void markSeen();
     }
   }, [markSeen, showHighlight]);
+
+  const animatePress = useCallback((value) => {
+    Animated.spring(pressScale, {
+      bounciness: 7,
+      speed: 22,
+      toValue: value,
+      useNativeDriver: true,
+    }).start();
+  }, [pressScale]);
 
   const toggleMenu = useCallback(() => {
     vibrateSoft();
@@ -244,25 +254,54 @@ export function FloatingCreateMenu({
           width: FAB_SIZE + GLOW_PAD,
           zIndex: 30,
         },
-        fab: {
+        fabLift: {
+          borderRadius: FAB_RADIUS,
+          elevation: 14,
+          height: FAB_SIZE,
+          shadowColor: highlightPayment ? paymentGreen : '#000',
+          shadowOffset: { width: 0, height: highlightPayment ? 0 : 10 },
+          shadowOpacity: highlightPayment ? 0.5 : isDark ? 0.45 : 0.22,
+          shadowRadius: highlightPayment ? 16 : 18,
+          width: FAB_SIZE,
+        },
+        fabFace: {
           alignItems: 'center',
-          backgroundColor: colors.accent,
-          borderRadius: 28,
-          elevation: 10,
+          borderRadius: FAB_RADIUS,
           height: FAB_SIZE,
           justifyContent: 'center',
-          shadowColor: highlightPayment ? paymentGreen : '#000',
-          shadowOffset: { width: 0, height: highlightPayment ? 0 : 4 },
-          shadowOpacity: highlightPayment ? 0.55 : 0.2,
-          shadowRadius: highlightPayment ? 16 : 8,
+          overflow: 'hidden',
           width: FAB_SIZE,
+        },
+        fabRim: {
+          ...StyleSheet.absoluteFillObject,
+          borderColor: isDark ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.16)',
+          borderRadius: FAB_RADIUS,
+          borderWidth: StyleSheet.hairlineWidth,
         },
         fabPress: {
           alignItems: 'center',
-          borderRadius: 28,
           height: FAB_SIZE,
           justifyContent: 'center',
           width: FAB_SIZE,
+        },
+        plus: {
+          alignItems: 'center',
+          height: 22,
+          justifyContent: 'center',
+          width: 22,
+        },
+        plusBar: {
+          backgroundColor: colors.buttonPrimaryText,
+          borderRadius: 2,
+          position: 'absolute',
+        },
+        plusBarH: {
+          height: 2.5,
+          width: 18,
+        },
+        plusBarV: {
+          height: 18,
+          width: 2.5,
         },
       }),
     [bottom, colors, highlightPayment, isDark, paymentGreen],
@@ -287,7 +326,7 @@ export function FloatingCreateMenu({
   });
   const fabScale = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 0.98],
+    outputRange: [1, 0.96],
   });
   const fabIconRotate = progress.interpolate({
     inputRange: [0, 1],
@@ -414,27 +453,36 @@ export function FloatingCreateMenu({
         />
         <Animated.View
           style={[
-            styles.fab,
-            open && {
-              backgroundColor: FAB_CLOSE_RED,
-              shadowColor: '#000',
-              shadowOpacity: 0.2,
-              shadowRadius: 8,
-            },
-            { transform: [{ scale: fabScale }] },
+            styles.fabLift,
+            { transform: [{ scale: Animated.multiply(fabScale, pressScale) }] },
           ]}
         >
-          <Pressable
-            accessibilityLabel={open ? 'Close create menu' : 'Open create menu'}
-            accessibilityRole="button"
-            style={styles.fabPress}
-            testID="create-menu-fab"
-            onPress={toggleMenu}
+          <LinearGradient
+            colors={
+              isDark ? ['#ffffff', '#f3f3f3', '#e6e6e6'] : ['#2c2c2c', '#0a0a0a', '#050505']
+            }
+            end={{ x: 0.85, y: 1 }}
+            start={{ x: 0.15, y: 0 }}
+            style={styles.fabFace}
           >
-            <Animated.View style={{ transform: [{ rotate: fabIconRotate }] }}>
-              <Ionicons color={open ? '#0a0a0a' : colors.surface} name="add" size={28} />
-            </Animated.View>
-          </Pressable>
+            <View pointerEvents="none" style={styles.fabRim} />
+            <Pressable
+              accessibilityLabel={open ? 'Close create menu' : 'Open create menu'}
+              accessibilityRole="button"
+              style={styles.fabPress}
+              testID="create-menu-fab"
+              onPress={toggleMenu}
+              onPressIn={() => animatePress(0.94)}
+              onPressOut={() => animatePress(1)}
+            >
+              <Animated.View style={{ transform: [{ rotate: fabIconRotate }] }}>
+                <View style={styles.plus}>
+                  <View style={[styles.plusBar, styles.plusBarH]} />
+                  <View style={[styles.plusBar, styles.plusBarV]} />
+                </View>
+              </Animated.View>
+            </Pressable>
+          </LinearGradient>
         </Animated.View>
       </View>
     </>

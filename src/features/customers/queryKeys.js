@@ -12,3 +12,11 @@ export function customerDetailsQueryKey(businessId, customerId) {
 export function customersApiQueryKey(businessId) {
   return [...CUSTOMERS_QUERY_ROOT, 'api', businessId ?? 'none'];
 }
+
+export function customerLookupQueryKey(businessId, phone, email) {
+  return [...CUSTOMERS_QUERY_ROOT, 'lookup', businessId ?? 'none', phone ?? '', email ?? ''];
+}
+
+export function customerAssetsQueryKey(businessId, customerId) {
+  return [...CUSTOMERS_QUERY_ROOT, 'assets', businessId ?? 'none', customerId ?? 'none'];
+}

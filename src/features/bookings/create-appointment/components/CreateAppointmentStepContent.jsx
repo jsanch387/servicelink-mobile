@@ -70,6 +70,7 @@ export function CreateAppointmentStepContent(p) {
     onChangeAddress,
     shopAddressMissing,
     vehicle,
+    pastVehicles = [],
     notes,
     onChangeVehicle,
     onChangeNotes,
@@ -176,6 +177,7 @@ export function CreateAppointmentStepContent(p) {
           addAnotherJobDisabled={addAnotherJobDisabled}
           canAddAnotherJob={canAddAnotherJob}
           notes={notes}
+          pastVehicles={pastVehicles}
           showNotes={showVisitNotes && !isCustomJob}
           vehicle={vehicle}
           onAddAnotherJob={onAddAnotherJob}

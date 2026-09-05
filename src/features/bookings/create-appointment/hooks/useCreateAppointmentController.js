@@ -21,7 +21,7 @@ import {
   customerFormFromPrefilledCustomer,
 } from '../constants';
 import { serviceDurationHHmmToMinutes } from '../../../../components/ui/durationTime';
-import { formatPhoneInputAsYouType } from '../../../../utils/phone';
+import { formatPhoneInputAsYouType, normalizePhoneForDatabase } from '../../../../utils/phone';
 import {
   isAddressStepComplete,
   parseRequiredCustomJobPriceCents,
@@ -76,6 +76,7 @@ import { membershipVisitCustomDurationHhMm } from '../utils/membershipVisitPrefi
 import { membershipCatalogQueryKey } from '../../../subscriptions/queryKeys';
 import { useCreateAppointmentServerData } from './useCreateAppointmentServerData';
 import { useCreateAppointmentSubmitPanel } from './useCreateAppointmentSubmitPanel';
+import { usePastCustomerVehicles } from './usePastCustomerVehicles';
 
 function centsToUsdText(cents) {
   const n = Math.max(0, Math.round(Number(cents) || 0)) / 100;
@@ -231,6 +232,24 @@ export function useCreateAppointmentController({
     () => catalog.services.filter((s) => s.isEnabled !== false),
     [catalog.services],
   );
+
+  const seededCustomerId = String(
+    prefilledCustomer?.customerId ?? membershipVisitPrefill?.customerId ?? '',
+  ).trim();
+  const seededCustomerPhone = normalizePhoneForDatabase(
+    prefilledCustomer?.phone ?? membershipVisitPrefill?.customerPhone ?? '',
+  );
+  const currentCustomerPhone = normalizePhoneForDatabase(customer.phone);
+  const customerIdForAssets =
+    seededCustomerId && (!currentCustomerPhone || currentCustomerPhone === seededCustomerPhone)
+      ? seededCustomerId
+      : null;
+  const { pastVehicles } = usePastCustomerVehicles({
+    businessId: catalog.businessId,
+    customerId: customerIdForAssets,
+    phone: customer.phone,
+    email: customer.email,
+  });
 
   useEffect(() => {
     setSelectedPricingId(null);
@@ -879,6 +898,7 @@ export function useCreateAppointmentController({
       servicePickPhase,
       isCustomJob,
       jobNumber: jobIndex + 1,
+      hasPastVehicles: pastVehicles.length > 0,
     });
     return {
       stepIndex,
@@ -894,6 +914,7 @@ export function useCreateAppointmentController({
     jobIndex,
     meta,
     navArgs,
+    pastVehicles.length,
     servicePickPhase,
     step,
   ]);
@@ -1164,6 +1185,7 @@ export function useCreateAppointmentController({
       isReturningCustomerAddress: hasSeededCustomerAddress,
       onChangeAddress: setAddress,
       vehicle,
+      pastVehicles,
       notes,
       totalDurationMinutes: visitDurationMinutes,
       onChangeVehicle: setVehicle,
@@ -1240,6 +1262,7 @@ export function useCreateAppointmentController({
       address,
       shopAddressMissing,
       vehicle,
+      pastVehicles,
       notes,
       visitDurationMinutes,
       availableSaleDiscount,

@@ -4,7 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useLayoutEffect, useMemo, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, Button, InfoSection, SurfaceCard } from '../../../components/ui';
+import { AppText, Button, DeleteButton, InfoSection, SurfaceCard } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { CreatePromoCodeSheet } from '../components/CreatePromoCodeSheet';
@@ -171,7 +171,7 @@ export function PromoCodeDetailScreen() {
             onPress={() => setEditVisible(true)}
           />
           <View style={styles.danger}>
-            <Button fullWidth title="Delete code" variant="danger" onPress={handleDelete} />
+            <DeleteButton title="Delete code" onPress={handleDelete} />
           </View>
         </View>
       </ScrollView>
