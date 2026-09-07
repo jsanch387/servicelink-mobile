@@ -17,6 +17,7 @@ import { patchBookingJobStatusInDetailsCache } from '../utils/patchBookingJobSta
 import { patchBookingJobStatusInHomeCache } from '../utils/patchBookingJobStatusInHomeCache';
 import { isBookingActionConflictError } from '../utils/bookingActionErrors';
 import { showBookingActionToasts } from '../utils/bookingActionFeedback';
+import { startJobLiveActivity } from '../live-activity/jobLiveActivity';
 
 const FALLBACK_ERROR = 'Couldn’t update the appointment. Try again.';
 
@@ -26,6 +27,20 @@ const FALLBACK_ERROR = 'Couldn’t update the appointment. Try again.';
  * @param {string} bookingId
  * @returns {string | null}
  */
+function readBookingFromCaches(queryClient, businessId, bookingId) {
+  const details = queryClient.getQueryData?.(bookingsDetailsQueryKey(bookingId));
+  if (details && typeof details === 'object' && details.id) {
+    return details;
+  }
+  if (businessId) {
+    const home = queryClient.getQueryData?.(homeBookingsUpcomingQueryKey(businessId));
+    if (home?.next?.id === bookingId) {
+      return home.next;
+    }
+  }
+  return { id: bookingId };
+}
+
 function readJobStatusFromCaches(queryClient, businessId, bookingId) {
   const details = queryClient.getQueryData(bookingsDetailsQueryKey(bookingId));
   if (details && typeof details === 'object' && 'job_status' in details) {
@@ -144,6 +159,9 @@ export function useBookingAction(businessId) {
     onSuccess: async (res, { bookingId, action, notify, suppressUiFeedback }) => {
       if (res.ok) {
         patchJobStatusInCache(bookingId, res.jobStatus, res.bookingStatus, res.workHandoffStatus);
+        if (action === BOOKING_ACTION.JOB_STARTED) {
+          void startJobLiveActivity(readBookingFromCaches(queryClient, businessId, bookingId));
+        }
         void invalidateBookingCachesAfterAction(queryClient, bookingId);
         if (suppressUiFeedback) {
           return;

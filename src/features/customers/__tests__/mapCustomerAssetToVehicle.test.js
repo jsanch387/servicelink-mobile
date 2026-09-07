@@ -39,9 +39,9 @@ describe('pastVehiclesMatch', () => {
   });
 
   it('does not match empty vehicles', () => {
-    expect(pastVehiclesMatch({ year: '', make: '', model: '' }, { year: '', make: '', model: '' })).toBe(
-      false,
-    );
+    expect(
+      pastVehiclesMatch({ year: '', make: '', model: '' }, { year: '', make: '', model: '' }),
+    ).toBe(false);
   });
 });
 

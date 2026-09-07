@@ -1,0 +1,10 @@
+{
+  "name": "servicelink-job-live-activity",
+  "version": "1.0.0",
+  "description": "ActivityKit Live Activity for an in-progress ServiceLink job",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "expo": "*",
+    "react-native": "*"
+  }
+}

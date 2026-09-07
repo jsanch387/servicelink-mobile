@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabase';
 
-const CUSTOMER_ASSET_SELECT = 'id, asset_type, label, attributes, fingerprint, updated_at, created_at';
+const CUSTOMER_ASSET_SELECT =
+  'id, asset_type, label, attributes, fingerprint, updated_at, created_at';
 
 /**
  * @typedef {object} CustomerAssetRow

@@ -12,6 +12,7 @@ import { useCustomerSmsAccess } from '../../../sms/hooks/useCustomerSmsAccess';
 import { postBookingAction } from '../../api/postBookingAction';
 import { BOOKING_ACTION } from '../../constants/jobStatus';
 import { bookingsDetailsQueryKey } from '../../queryKeys';
+import { endJobLiveActivity } from '../../live-activity/jobLiveActivity';
 import { showBookingActionToasts } from '../../utils/bookingActionFeedback';
 import { patchBookingJobStatusInDetailsCache } from '../../utils/patchBookingJobStatusInDetailsCache';
 import { patchBookingCheckoutInDetailsCache } from '../../utils/patchBookingCheckoutInDetailsCache';
@@ -350,6 +351,9 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
         if (id && checkout) {
           patchBookingCheckoutInDetailsCache(queryClient, id, checkout);
           void saveBookingCheckoutSnapshot(id, checkout);
+        }
+        if (id) {
+          void endJobLiveActivity(id);
         }
         if (id && result.jobStatus) {
           patchBookingJobStatusInHomeCache(

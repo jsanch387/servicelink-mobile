@@ -14,6 +14,8 @@ export const ROUTES = {
   FORGOT_PASSWORD: 'ForgotPassword',
   /** First-time signup — blocks main tabs until finished */
   ONBOARDING: 'Onboarding',
+  /** After sign-in — notification primer before the system permission prompt */
+  NOTIFICATION_PERMISSION: 'NotificationPermission',
   /** Stack screen that hosts the bottom tab navigator */
   MAIN_APP: 'MainApp',
   HOME: 'Home',

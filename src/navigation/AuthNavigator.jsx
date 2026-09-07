@@ -20,6 +20,8 @@ import { consumePendingPushNavigation } from '../features/notifications/constant
 import { attemptPushNavigation } from '../features/notifications/utils/attemptPushNavigation';
 import { CreateAppointmentScreen } from '../features/bookings';
 import { EditBookingScreen } from '../features/bookings/screens/EditBookingScreen';
+import { useNotificationPermissionPrimerGate } from '../features/notifications/context/NotificationPermissionPrimerGateContext';
+import { NotificationPermissionGateScreen } from '../features/notifications/screens/NotificationPermissionGateScreen';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
 import { CreatePaymentScreen } from '../features/payments';
 import { CreateQuoteScreen } from '../features/quotes/screens/CreateQuoteScreen';
@@ -54,12 +56,17 @@ export function AuthNavigator() {
   const { session, isReady, user } = useAuth();
   const { needsOnboarding, isGateReady, postActivationHandoff, endPostActivationHandoff } =
     useOnboardingGate();
+  const { needsPrimer, isPrimerReady } = useNotificationPermissionPrimerGate();
   const { isLoading } = useSubscription();
 
   const mainAppSubscriptionBooting = Boolean(session && !needsOnboarding && user?.id) && isLoading;
-
-  const mainTabsInteractive =
-    Boolean(session && user?.id) && !needsOnboarding && !mainAppSubscriptionBooting;
+  const mainAppSettled =
+    Boolean(session && user?.id) &&
+    !needsOnboarding &&
+    !mainAppSubscriptionBooting &&
+    isPrimerReady;
+  const showNotificationPrimer = mainAppSettled && needsPrimer;
+  const mainTabsInteractive = mainAppSettled && !needsPrimer;
 
   const handoffOverlayOpacity = useRef(new Animated.Value(1)).current;
   const handoffDismissStartedRef = useRef(false);
@@ -107,7 +114,7 @@ export function AuthNavigator() {
       }, delayMs);
     };
 
-    if (mainTabsInteractive) {
+    if (mainAppSettled) {
       // Pending booking-link nav retries at 120 / 450 / 900 ms — stay covered through the 450 ms pass.
       settleTimerId = scheduleDismiss(520);
     } else {
@@ -131,7 +138,7 @@ export function AuthNavigator() {
     session,
     postActivationHandoff,
     needsOnboarding,
-    mainTabsInteractive,
+    mainAppSettled,
     endPostActivationHandoff,
     handoffOverlayOpacity,
   ]);
@@ -227,7 +234,8 @@ export function AuthNavigator() {
     },
   };
 
-  const boot = !isReady || (session && !isGateReady);
+  const boot =
+    !isReady || (session && !isGateReady) || (session && !needsOnboarding && !isPrimerReady);
 
   useEffect(() => {
     if (boot) {
@@ -241,7 +249,9 @@ export function AuthNavigator() {
       ? 'onboarding'
       : mainAppSubscriptionBooting
         ? 'main-subscription-boot'
-        : 'main'
+        : showNotificationPrimer
+          ? 'notification-primer'
+          : 'main'
     : 'auth';
 
   if (boot) {
@@ -276,7 +286,14 @@ export function AuthNavigator() {
               name="MainAppSubscriptionBoot"
             />
           ) : null}
-          {session && !needsOnboarding && !mainAppSubscriptionBooting ? (
+          {session && !needsOnboarding && !mainAppSubscriptionBooting && showNotificationPrimer ? (
+            <Stack.Screen
+              component={NotificationPermissionGateScreen}
+              name={ROUTES.NOTIFICATION_PERMISSION}
+              options={{ gestureEnabled: false }}
+            />
+          ) : null}
+          {session && !needsOnboarding && !mainAppSubscriptionBooting && !showNotificationPrimer ? (
             <>
               <Stack.Screen component={MainTabNavigator} name={ROUTES.MAIN_APP} />
               <Stack.Screen

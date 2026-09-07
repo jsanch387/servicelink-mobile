@@ -31,6 +31,11 @@ jest.mock('../utils/invalidateBookingCachesAfterAction', () => ({
   invalidateBookingCachesAfterAction: jest.fn(),
 }));
 
+jest.mock('../live-activity/jobLiveActivity', () => ({
+  startJobLiveActivity: jest.fn(() => Promise.resolve()),
+  endJobLiveActivity: jest.fn(() => Promise.resolve()),
+}));
+
 jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(() => Promise.resolve()),
   NotificationFeedbackType: { Success: 'success', Error: 'error' },
@@ -47,6 +52,7 @@ import { showBookingActionToasts } from '../utils/bookingActionFeedback';
 import { patchBookingJobStatusInDetailsCache } from '../utils/patchBookingJobStatusInDetailsCache';
 import { patchBookingJobStatusInHomeCache } from '../utils/patchBookingJobStatusInHomeCache';
 import { invalidateBookingCachesAfterAction } from '../utils/invalidateBookingCachesAfterAction';
+import { startJobLiveActivity } from '../live-activity/jobLiveActivity';
 
 describe('useBookingAction work_finished', () => {
   /** @type {import('@tanstack/react-query').UseMutationOptions | undefined} */
@@ -118,6 +124,34 @@ describe('useBookingAction work_finished', () => {
     );
     expect(invalidateBookingCachesAfterAction).toHaveBeenCalledWith(queryClient, 'book-1');
     expect(showBookingActionToasts).toHaveBeenCalledWith(toast, BOOKING_ACTION.WORK_FINISHED, res);
+    expect(startJobLiveActivity).not.toHaveBeenCalled();
+  });
+
+  it('starts a Live Activity after job_started succeeds', async () => {
+    const config = renderActionHook();
+    const booking = {
+      id: 'book-1',
+      customer_name: 'Ana',
+      service_name: 'Interior',
+    };
+    queryClient.getQueryData = jest.fn(() => booking);
+
+    await act(async () => {
+      await config.onSuccess(
+        {
+          ok: true,
+          jobStatus: 'in_progress',
+          bookingStatus: null,
+          workHandoffStatus: undefined,
+        },
+        {
+          bookingId: 'book-1',
+          action: BOOKING_ACTION.JOB_STARTED,
+        },
+      );
+    });
+
+    expect(startJobLiveActivity).toHaveBeenCalledWith(booking);
   });
 
   it('patches caches without toast on Skip success', async () => {

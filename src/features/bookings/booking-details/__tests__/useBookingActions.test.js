@@ -20,6 +20,10 @@ jest.mock('../utils/invalidateBookingCachesAfterMutation', () => ({
   invalidateBookingCachesAfterMutation: jest.fn(),
 }));
 
+jest.mock('../../live-activity/jobLiveActivity', () => ({
+  endJobLiveActivity: jest.fn(() => Promise.resolve()),
+}));
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react-native';
 import { useAuth } from '../../../auth';
@@ -27,6 +31,7 @@ import { patchCancelAvailabilityBooking } from '../../api/patchCancelAvailabilit
 import { deleteBookingById, rescheduleBookingById } from '../api/bookingDetails';
 import { useBookingActions } from '../hooks/useBookingActions';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
+import { endJobLiveActivity } from '../../live-activity/jobLiveActivity';
 
 /** Picks the mutation whose `mutationFn` calls `rescheduleBookingById`. */
 async function findRescheduleMutationConfig(mutationConfigs) {
@@ -42,6 +47,22 @@ async function findRescheduleMutationConfig(mutationConfigs) {
     }
   }
   throw new Error('Expected a reschedule useMutation config');
+}
+
+/** Picks the mutation whose `mutationFn` calls `deleteBookingById`. */
+async function findDeleteMutationConfig(mutationConfigs) {
+  for (const config of mutationConfigs) {
+    deleteBookingById.mockClear();
+    try {
+      await config.mutationFn();
+    } catch {
+      // wrong mutationFn shape or API throw — try next
+    }
+    if (deleteBookingById.mock.calls.length > 0) {
+      return config;
+    }
+  }
+  throw new Error('Expected a delete useMutation config');
 }
 
 /** Picks the mutation whose `mutationFn` calls `patchCancelAvailabilityBooking`. */
@@ -103,6 +124,7 @@ describe('useBookingActions', () => {
     expect(booking).toEqual({ id: 'book-1', status: 'cancelled' });
 
     await cancelMutation.onSuccess(booking);
+    expect(endJobLiveActivity).toHaveBeenCalledWith('book-1');
     expect(queryClient.setQueryData).toHaveBeenCalled();
     expect(invalidateBookingCachesAfterMutation).toHaveBeenCalledWith(queryClient, 'book-1');
   });
@@ -161,6 +183,20 @@ describe('useBookingActions', () => {
         startTime: '14:00:00',
       }),
     ).rejects.toThrow('Update denied');
+  });
+
+  it('ends the Live Activity after a successful delete', async () => {
+    const mutationConfigs = renderUseBookingActions();
+    const deleteMutation = await findDeleteMutationConfig(mutationConfigs);
+    deleteBookingById.mockClear();
+
+    await deleteMutation.mutationFn();
+    expect(deleteBookingById).toHaveBeenCalledWith('book-1');
+
+    await deleteMutation.onSuccess();
+    expect(endJobLiveActivity).toHaveBeenCalledWith('book-1');
+    expect(invalidateBookingCachesAfterMutation).toHaveBeenCalledWith(queryClient, 'book-1');
+    expect(queryClient.removeQueries).toHaveBeenCalled();
   });
 
   it('registers cancel, reschedule, and delete mutations without calling APIs on mount', () => {

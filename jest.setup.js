@@ -93,6 +93,13 @@ jest.mock('expo-symbols', () => ({
   SymbolView: () => null,
 }));
 
+jest.mock('servicelink-job-live-activity', () => ({
+  isJobLiveActivityAvailable: jest.fn(() => false),
+  isJobLiveActivityNativeModuleLinked: jest.fn(() => false),
+  startJobLiveActivityNative: jest.fn(() => Promise.resolve()),
+  endJobLiveActivityNative: jest.fn(() => Promise.resolve()),
+}));
+
 jest.mock('servicelink-tap-to-pay-education', () => ({
   isTapToPayEducationNativeAvailable: jest.fn(() => false),
   isTapToPayEducationNativeModuleLinked: jest.fn(() => false),

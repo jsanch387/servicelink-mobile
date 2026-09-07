@@ -20,6 +20,14 @@ jest.mock('../../features/subscription', () => ({
   useSubscription: jest.fn(),
 }));
 
+jest.mock('../../features/notifications/context/NotificationPermissionPrimerGateContext', () => ({
+  useNotificationPermissionPrimerGate: jest.fn(() => ({
+    needsPrimer: false,
+    isPrimerReady: true,
+    completePrimer: jest.fn(),
+  })),
+}));
+
 jest.mock('../MainTabNavigator', () => ({
   MainTabNavigator: function MockMainTabNavigator() {
     const React = require('react');

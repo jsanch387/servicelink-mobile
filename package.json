@@ -75,6 +75,7 @@
     "react-native-url-polyfill": "^3.0.0",
     "react-native-view-shot": "4.0.3",
     "react-native-worklets": "0.5.1",
+    "servicelink-job-live-activity": "file:./modules/servicelink-job-live-activity",
     "servicelink-tap-to-pay-education": "file:./modules/servicelink-tap-to-pay-education",
     "tailwindcss": "^3.4.19"
   },

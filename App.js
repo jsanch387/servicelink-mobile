@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider, KeyboardDoneAccessory } from './src/components/ui';
 import { AuthProvider } from './src/features/auth';
+import { NotificationPermissionPrimerGateProvider } from './src/features/notifications/context/NotificationPermissionPrimerGateContext';
 import { OnboardingGateProvider } from './src/features/onboarding';
 import { SubscriptionProvider } from './src/features/subscription';
 import { LocationPromptProvider } from './src/features/location';
@@ -23,9 +24,11 @@ function AppShell() {
           <AuthProvider>
             <SubscriptionProvider>
               <OnboardingGateProvider>
-                <LocationPromptProvider>
-                  <AuthNavigator />
-                </LocationPromptProvider>
+                <NotificationPermissionPrimerGateProvider>
+                  <LocationPromptProvider>
+                    <AuthNavigator />
+                  </LocationPromptProvider>
+                </NotificationPermissionPrimerGateProvider>
               </OnboardingGateProvider>
             </SubscriptionProvider>
           </AuthProvider>

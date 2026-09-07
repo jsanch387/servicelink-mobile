@@ -2350,6 +2350,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - ServicelinkJobLiveActivity (1.0.0):
+    - ExpoModulesCore
   - ServicelinkTapToPayEducation (1.0.0):
     - ExpoModulesCore
   - stripe-terminal-react-native (0.0.1-beta.31):
@@ -2490,6 +2492,7 @@ DEPENDENCIES:
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
+  - ServicelinkJobLiveActivity (from `../modules/servicelink-job-live-activity/ios`)
   - ServicelinkTapToPayEducation (from `../modules/servicelink-tap-to-pay-education/ios`)
   - "stripe-terminal-react-native (from `../node_modules/@stripe/stripe-terminal-react-native`)"
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
@@ -2721,6 +2724,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-svg"
   RNWorklets:
     :path: "../node_modules/react-native-worklets"
+  ServicelinkJobLiveActivity:
+    :path: "../modules/servicelink-job-live-activity/ios"
   ServicelinkTapToPayEducation:
     :path: "../modules/servicelink-tap-to-pay-education/ios"
   stripe-terminal-react-native:
@@ -2840,6 +2845,7 @@ SPEC CHECKSUMS:
   RNScreens: d8d6f1792f6e7ac12b0190d33d8d390efc0c1845
   RNSVG: 31d6639663c249b7d5abc9728dde2041eb2a3c34
   RNWorklets: 76fce72926e28e304afb44f0da23b2d24f2c1fa0
+  ServicelinkJobLiveActivity: 796b8b53df8858d0b74fc4008e3f5d4876d873c5
   ServicelinkTapToPayEducation: 6e95b34be03851033b5e3ed176912402f94ad365
   stripe-terminal-react-native: 9185ab5c829317d7d3a38536c863ffeac6903e30
   StripeTerminal: e9c7e64089beeed2188e6e6afe8779c01945d13c

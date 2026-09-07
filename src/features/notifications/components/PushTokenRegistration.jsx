@@ -1,59 +1,21 @@
-import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
 import { useAuth } from '../../auth';
-import { upsertPushDeviceToken } from '../api/upsertPushDeviceToken';
-import { PUSH_PERMISSION_REQUEST } from '../constants/pushAlertSetup';
-import { ensureAndroidDefaultNotificationChannel } from '../utils/ensureAndroidDefaultNotificationChannel';
-
-function resolveExpoProjectId() {
-  return Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId ?? undefined;
-}
+import { registerPushDeviceTokenIfGranted } from '../utils/registerPushDeviceToken';
 
 /**
- * Registers for remote notifications after sign-in (main tabs) and saves the Expo token to Supabase.
+ * Registers the Expo push token after sign-in when permission is already granted.
+ * Does not present the system prompt — that happens from the first-run primer or Settings.
  */
 export function PushTokenRegistration() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
-  const lastRegisteredToken = useRef(/** @type {string | null} */ (null));
 
   const tryRegister = useCallback(async () => {
     if (Platform.OS === 'web' || !userId) {
       return;
     }
-    try {
-      await ensureAndroidDefaultNotificationChannel();
-
-      const { status: existing } = await Notifications.getPermissionsAsync();
-      let nextStatus = existing;
-      if (existing !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync(PUSH_PERMISSION_REQUEST);
-        nextStatus = status;
-      }
-      if (nextStatus !== 'granted') {
-        return;
-      }
-
-      const projectId = resolveExpoProjectId();
-      const tokenResult = await Notifications.getExpoPushTokenAsync(
-        projectId ? { projectId } : undefined,
-      );
-      const token = tokenResult.data;
-      if (!token) {
-        return;
-      }
-
-      if (lastRegisteredToken.current === token) {
-        return;
-      }
-      lastRegisteredToken.current = token;
-
-      await upsertPushDeviceToken(userId, token, Platform.OS === 'ios' ? 'ios' : 'android');
-    } catch {
-      // Simulator / Expo Go limits / missing EAS projectId / Supabase RLS — non-fatal.
-    }
+    await registerPushDeviceTokenIfGranted(userId);
   }, [userId]);
 
   useEffect(() => {

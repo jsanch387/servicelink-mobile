@@ -68,6 +68,7 @@
     },
     "owner": "jsanch-dev",
     "ios": {
+      "appleTeamId": "68X9PNRM6Z",
       "bundleIdentifier": "com.jsanchdev.servicelinkmobile",
       "buildNumber": "17",
       "supportsTablet": true,
@@ -77,7 +78,8 @@
       },
       "infoPlist": {
         "CFBundleDisplayName": "ServiceLink",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSSupportsLiveActivities": true
       }
     },
     "android": {

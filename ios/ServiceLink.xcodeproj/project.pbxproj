@@ -12,16 +12,55 @@
 		46BB278F8960D092B57B2452 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E762D07DBECDAF50C74AEA45 /* PrivacyInfo.xcprivacy */; };
 		552AB72972FF2B3784F90576 /* libPods-ServiceLink.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED71D69794FC3C14DF924E54 /* libPods-ServiceLink.a */; };
 		83A2E932B6464495AD914C84 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDE630207BF243B68E57D1D6 /* noop-file.swift */; };
+		A1B2C3D40200000000000001 /* JobActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40100000000000001 /* JobActivityAttributes.swift */; };
+		A1B2C3D40200000000000002 /* JobLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40100000000000002 /* JobLiveActivityWidget.swift */; };
+		A1B2C3D40200000000000003 /* ServiceLinkJobActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40100000000000003 /* ServiceLinkJobActivityBundle.swift */; };
+		A1B2C3D40200000000000004 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D40100000000000006 /* WidgetKit.framework */; };
+		A1B2C3D40200000000000005 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D40100000000000007 /* SwiftUI.framework */; };
+		A1B2C3D40200000000000006 /* ServiceLinkJobActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A1B2C3D40100000000000005 /* ServiceLinkJobActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A1B2C3D40200000000000007 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40100000000000008 /* PrivacyInfo.xcprivacy */; };
 		A8876294EB982AF47E88F63C /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DBB5725B54E287EE81C14DC /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A1B2C3D40300000000000008 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1B2C3D40300000000000005;
+			remoteInfo = ServiceLinkJobActivity;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A1B2C3D40300000000000006 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1B2C3D40200000000000006 /* ServiceLinkJobActivity.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		13B07F961A680F5B00A75B9A /* ServiceLink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ServiceLink.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = ServiceLink/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ServiceLink/Info.plist; sourceTree = "<group>"; };
 		4DBB5725B54E287EE81C14DC /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-ServiceLink/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		A1B2C3D40100000000000001 /* JobActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobActivityAttributes.swift; sourceTree = "<group>"; };
+		A1B2C3D40100000000000002 /* JobLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobLiveActivityWidget.swift; sourceTree = "<group>"; };
+		A1B2C3D40100000000000003 /* ServiceLinkJobActivityBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceLinkJobActivityBundle.swift; sourceTree = "<group>"; };
+		A1B2C3D40100000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1B2C3D40100000000000005 /* ServiceLinkJobActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ServiceLinkJobActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D40100000000000006 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		A1B2C3D40100000000000007 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		A1B2C3D40100000000000008 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = ServiceLink/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		BDE630207BF243B68E57D1D6 /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "ServiceLink/noop-file.swift"; sourceTree = "<group>"; };
@@ -40,6 +79,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				552AB72972FF2B3784F90576 /* libPods-ServiceLink.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D40300000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D40200000000000004 /* WidgetKit.framework in Frameworks */,
+				A1B2C3D40200000000000005 /* SwiftUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -66,6 +114,8 @@
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				ED71D69794FC3C14DF924E54 /* libPods-ServiceLink.a */,
+				A1B2C3D40100000000000006 /* WidgetKit.framework */,
+				A1B2C3D40100000000000007 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -89,6 +139,7 @@
 			isa = PBXGroup;
 			children = (
 				13B07FAE1A68108700A75B9A /* ServiceLink */,
+				A1B2C3D40300000000000001 /* ServiceLinkJobActivity */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
@@ -104,6 +155,7 @@
 			isa = PBXGroup;
 			children = (
 				13B07F961A680F5B00A75B9A /* ServiceLink.app */,
+				A1B2C3D40100000000000005 /* ServiceLinkJobActivity.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -115,6 +167,18 @@
 				F73F1E048FD6AFA04ADF63E8 /* Pods-ServiceLink.release.xcconfig */,
 			);
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		A1B2C3D40300000000000001 /* ServiceLinkJobActivity */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D40100000000000001 /* JobActivityAttributes.swift */,
+				A1B2C3D40100000000000002 /* JobLiveActivityWidget.swift */,
+				A1B2C3D40100000000000003 /* ServiceLinkJobActivityBundle.swift */,
+				A1B2C3D40100000000000004 /* Info.plist */,
+				A1B2C3D40100000000000008 /* PrivacyInfo.xcprivacy */,
+			);
+			path = ServiceLinkJobActivity;
 			sourceTree = "<group>";
 		};
 		B12FF76354CBAF9F5D868191 /* ExpoModulesProviders */ = {
@@ -149,15 +213,34 @@
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
 				D71983EC1028485636DE0842 /* [CP] Embed Pods Frameworks */,
+				A1B2C3D40300000000000006 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A1B2C3D40300000000000007 /* PBXTargetDependency */,
 			);
 			name = ServiceLink;
 			productName = ServiceLink;
 			productReference = 13B07F961A680F5B00A75B9A /* ServiceLink.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A1B2C3D40300000000000005 /* ServiceLinkJobActivity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4030000000000000B /* Build configuration list for PBXNativeTarget "ServiceLinkJobActivity" */;
+			buildPhases = (
+				A1B2C3D40300000000000003 /* Sources */,
+				A1B2C3D40300000000000002 /* Frameworks */,
+				A1B2C3D40300000000000004 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ServiceLinkJobActivity;
+			productName = ServiceLinkJobActivity;
+			productReference = A1B2C3D40100000000000005 /* ServiceLinkJobActivity.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -169,6 +252,11 @@
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
 						LastSwiftMigration = 1250;
+					};
+					A1B2C3D40300000000000005 = {
+						CreatedOnToolsVersion = 16.0;
+						DevelopmentTeam = 68X9PNRM6Z;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -186,6 +274,7 @@
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* ServiceLink */,
+				A1B2C3D40300000000000005 /* ServiceLinkJobActivity */,
 			);
 		};
 /* End PBXProject section */
@@ -199,6 +288,14 @@
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
 				46BB278F8960D092B57B2452 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D40300000000000004 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D40200000000000007 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -349,7 +446,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B2C3D40300000000000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D40200000000000001 /* JobActivityAttributes.swift in Sources */,
+				A1B2C3D40200000000000002 /* JobLiveActivityWidget.swift in Sources */,
+				A1B2C3D40200000000000003 /* ServiceLinkJobActivityBundle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1B2C3D40300000000000007 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1B2C3D40300000000000005 /* ServiceLinkJobActivity */;
+			targetProxy = A1B2C3D40300000000000008 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
@@ -544,6 +659,63 @@
 			};
 			name = Release;
 		};
+		A1B2C3D40300000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 17;
+				DEVELOPMENT_TEAM = 68X9PNRM6Z;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ServiceLinkJobActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.10;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jsanchdev.servicelinkmobile.JobActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1B2C3D4030000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 17;
+				DEVELOPMENT_TEAM = 68X9PNRM6Z;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ServiceLinkJobActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.10;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jsanchdev.servicelinkmobile.JobActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -561,6 +733,15 @@
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
 				83CBBA211A601CBA00E9B192 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D4030000000000000B /* Build configuration list for PBXNativeTarget "ServiceLinkJobActivity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D40300000000000009 /* Debug */,
+				A1B2C3D4030000000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

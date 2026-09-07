@@ -105,14 +105,17 @@ export function FloatingCreateMenu({
     }
   }, [markSeen, showHighlight]);
 
-  const animatePress = useCallback((value) => {
-    Animated.spring(pressScale, {
-      bounciness: 7,
-      speed: 22,
-      toValue: value,
-      useNativeDriver: true,
-    }).start();
-  }, [pressScale]);
+  const animatePress = useCallback(
+    (value) => {
+      Animated.spring(pressScale, {
+        bounciness: 7,
+        speed: 22,
+        toValue: value,
+        useNativeDriver: true,
+      }).start();
+    },
+    [pressScale],
+  );
 
   const toggleMenu = useCallback(() => {
     vibrateSoft();
@@ -458,9 +461,7 @@ export function FloatingCreateMenu({
           ]}
         >
           <LinearGradient
-            colors={
-              isDark ? ['#ffffff', '#f3f3f3', '#e6e6e6'] : ['#2c2c2c', '#0a0a0a', '#050505']
-            }
+            colors={isDark ? ['#ffffff', '#f3f3f3', '#e6e6e6'] : ['#2c2c2c', '#0a0a0a', '#050505']}
             end={{ x: 0.85, y: 1 }}
             start={{ x: 0.15, y: 0 }}
             style={styles.fabFace}

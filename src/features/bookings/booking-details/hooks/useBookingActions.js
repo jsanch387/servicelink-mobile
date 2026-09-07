@@ -3,6 +3,7 @@ import { useAuth } from '../../../auth';
 import { patchCancelAvailabilityBooking } from '../../api/patchCancelAvailabilityBooking';
 import { deleteBookingById, rescheduleBookingById } from '../api/bookingDetails';
 import { bookingsDetailsQueryKey } from '../../queryKeys';
+import { endJobLiveActivity } from '../../live-activity/jobLiveActivity';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
 
 export function useBookingActions(bookingId) {
@@ -20,6 +21,7 @@ export function useBookingActions(bookingId) {
     },
     onSuccess: async (booking) => {
       const id = String(booking?.id ?? bookingId ?? '').trim();
+      void endJobLiveActivity(id);
       if (id && booking?.status) {
         queryClient.setQueryData(bookingsDetailsQueryKey(id), (prev) => {
           if (!prev || typeof prev !== 'object') return prev;
@@ -55,6 +57,7 @@ export function useBookingActions(bookingId) {
       return data;
     },
     onSuccess: async () => {
+      void endJobLiveActivity(bookingId);
       await invalidateBookingCachesAfterMutation(queryClient, bookingId);
       queryClient.removeQueries({ queryKey: bookingsDetailsQueryKey(bookingId) });
     },

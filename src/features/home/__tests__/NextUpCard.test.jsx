@@ -110,7 +110,7 @@ describe('NextUpCard', () => {
       />,
     );
     expect(screen.getByTestId('next-up-live-pulse')).toBeTruthy();
-    expect(screen.getByText('Started at 2:00 PM')).toBeTruthy();
+    expect(screen.getByText('In progress')).toBeTruthy();
     expect(screen.getByText('Alex')).toBeTruthy();
     expect(screen.getByLabelText('Mark complete')).toBeTruthy();
     expect(screen.queryByLabelText('Text customer')).toBeNull();

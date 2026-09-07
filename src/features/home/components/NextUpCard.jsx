@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 import {
   AppText,
   Button,
@@ -12,6 +12,8 @@ import {
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { phoneForSmsUri } from '../../../utils/phone';
+import { ElapsedJobTimer } from '../../bookings/live-activity/ElapsedJobTimer';
+import { useJobLiveActivityStartedAt } from '../../bookings/live-activity/useJobLiveActivityStartedAt';
 import { useBookingAction } from '../../bookings/hooks/useBookingAction';
 import {
   NEXT_UP_ON_MY_WAY_TRY_IT_BADGE,
@@ -38,6 +40,7 @@ import {
   resolveNextUpWorkingPhase,
   shouldShowNextUpLivePulse,
 } from '../utils/resolveNextUpCardActions';
+import { NextUpLivePulse } from './NextUpLivePulse';
 import { NextUpCoachTargetGlow } from './NextUpCoachTargetGlow';
 import { NextUpCoachTip } from './NextUpCoachTip';
 import { NextUpCoachWinFlash } from './NextUpCoachWinFlash';
@@ -51,36 +54,6 @@ import { SkipWorkNotifyConfirmModal } from './SkipWorkNotifyConfirmModal';
  * Keeps the spotlight card from shrinking when there is no booking.
  */
 const NEXT_UP_CARD_BODY_MIN_HEIGHT = 183;
-
-const enableMotion = typeof process !== 'undefined' && process.env.NODE_ENV !== 'test';
-
-function LivePulseIndicator({ color, opacityAnim, ringScaleAnim, ringOpacityAnim }) {
-  return (
-    <View style={styles.livePulseHost} testID="next-up-live-pulse">
-      <Animated.View
-        accessible={false}
-        style={[
-          styles.livePulseRing,
-          {
-            borderColor: color,
-            opacity: ringOpacityAnim,
-            transform: [{ scale: ringScaleAnim }],
-          },
-        ]}
-      />
-      <Animated.View
-        accessible={false}
-        style={[
-          styles.livePulseDot,
-          {
-            backgroundColor: color,
-            opacity: opacityAnim,
-          },
-        ]}
-      />
-    </View>
-  );
-}
 
 function NextUpSkeleton() {
   const { colors } = useTheme();
@@ -157,6 +130,7 @@ export function NextUpCard({
 }) {
   const { colors } = useTheme();
   const bookingAction = useBookingAction(businessId);
+  const jobStartedAtMs = useJobLiveActivityStartedAt(nextBooking?.id);
   const scheduleError = businessError || bookingsError || null;
   const empty = !isLoading && !scheduleError && !nextBooking;
 
@@ -233,63 +207,6 @@ export function NextUpCard({
     const lightFace = String(colors.nextUpSurface ?? '').toLowerCase() === '#ffffff';
     return lightFace ? '#0a0a0a' : '#fafafa';
   }, [colors.nextUpSurface]);
-
-  const livePulseOpacity = useRef(new Animated.Value(1)).current;
-  const livePulseRingScale = useRef(new Animated.Value(1)).current;
-  const livePulseRingOpacity = useRef(new Animated.Value(0.42)).current;
-
-  useEffect(() => {
-    if (!showLivePulse || !enableMotion) {
-      livePulseOpacity.setValue(1);
-      livePulseRingScale.setValue(1);
-      livePulseRingOpacity.setValue(showLivePulse ? 0.42 : 0);
-      return undefined;
-    }
-    const loop = Animated.loop(
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(livePulseOpacity, {
-            toValue: 0.45,
-            duration: 680,
-            useNativeDriver: true,
-          }),
-          Animated.timing(livePulseOpacity, {
-            toValue: 1,
-            duration: 680,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.timing(livePulseRingScale, {
-            toValue: 2.15,
-            duration: 680,
-            useNativeDriver: true,
-          }),
-          Animated.timing(livePulseRingScale, {
-            toValue: 1,
-            duration: 680,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.timing(livePulseRingOpacity, {
-            toValue: 0,
-            duration: 680,
-            useNativeDriver: true,
-          }),
-          Animated.timing(livePulseRingOpacity, {
-            toValue: 0.42,
-            duration: 680,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]),
-    );
-    loop.start();
-    return () => {
-      loop.stop();
-    };
-  }, [showLivePulse, livePulseOpacity, livePulseRingOpacity, livePulseRingScale]);
 
   const a11ySummary = useMemo(() => {
     if (!headlines) return undefined;
@@ -537,20 +454,34 @@ export function NextUpCard({
               </View>
             ) : null}
             {actionMode === 'working' ? (
-              <View style={styles.nameRow}>
-                <AppText
-                  ellipsizeMode="tail"
-                  numberOfLines={2}
-                  style={[styles.customerNameInRow, { color: colors.nextUpText }]}
-                >
-                  {headlines?.customerName}
-                </AppText>
-                <LivePulseIndicator
-                  color={livePulseDotColor}
-                  opacityAnim={livePulseOpacity}
-                  ringOpacityAnim={livePulseRingOpacity}
-                  ringScaleAnim={livePulseRingScale}
-                />
+              <View style={styles.inProgressHeader}>
+                <View style={styles.nameRow}>
+                  <View style={styles.nameCol}>
+                    <AppText
+                      ellipsizeMode="tail"
+                      numberOfLines={2}
+                      style={[styles.customerNameInRow, { color: colors.nextUpText }]}
+                    >
+                      {headlines?.customerName}
+                    </AppText>
+                  </View>
+                  <View style={styles.inProgressMetaCol}>
+                    <NextUpLivePulse stacked active={showLivePulse} color={livePulseDotColor} />
+                  </View>
+                </View>
+                <View style={styles.statusRow}>
+                  <View style={styles.statusLabelCol}>
+                    <AppText
+                      numberOfLines={1}
+                      style={[styles.statusLabel, { color: colors.nextUpTextMuted }]}
+                    >
+                      In progress
+                    </AppText>
+                  </View>
+                  <View style={styles.inProgressMetaCol}>
+                    <ElapsedJobTimer color={colors.nextUpTextMuted} startedAtMs={jobStartedAtMs} />
+                  </View>
+                </View>
               </View>
             ) : (
               <AppText
@@ -565,7 +496,7 @@ export function NextUpCard({
                 {headlines?.customerName}
               </AppText>
             )}
-            {subtitle ? (
+            {subtitle && actionMode !== 'working' ? (
               <AppText
                 ellipsizeMode="tail"
                 numberOfLines={2}
@@ -869,40 +800,50 @@ const styles = StyleSheet.create({
   customerNameWithNavigateOverlay: {
     paddingRight: 56,
   },
+  inProgressHeader: {
+    alignSelf: 'stretch',
+    width: '100%',
+  },
   nameRow: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
     width: '100%',
   },
-  customerNameInRow: {
+  nameCol: {
     flex: 1,
-    flexShrink: 1,
+    minWidth: 0,
+  },
+  statusRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 3,
+    width: '100%',
+  },
+  statusLabelCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  statusLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    letterSpacing: 0.02,
+    lineHeight: 19,
+    opacity: 0.9,
+  },
+  inProgressMetaCol: {
+    alignItems: 'center',
+    flexShrink: 0,
+    minWidth: 40,
+    overflow: 'visible',
+  },
+  customerNameInRow: {
     fontSize: 24,
     fontWeight: '600',
     letterSpacing: -0.55,
     lineHeight: 29,
-    minWidth: 0,
-  },
-  livePulseHost: {
-    alignItems: 'center',
-    height: 24,
-    justifyContent: 'center',
-    marginTop: 8,
-    width: 24,
-  },
-  livePulseRing: {
-    borderRadius: 99,
-    borderWidth: 2,
-    height: 12,
-    position: 'absolute',
-    width: 12,
-  },
-  livePulseDot: {
-    borderRadius: 99,
-    height: 12,
-    width: 12,
   },
   customerName: {
     fontSize: 24,

@@ -12,6 +12,7 @@ import { BookingCompleteVisitSheet } from '../../bookings/booking-details/compon
 import { MARK_COMPLETE_SHOW_COMPLETE_VISIT_DESIGN_PREVIEW } from '../../bookings/booking-details/constants/markCompleteFeatureFlags';
 import { BookingMarkCompleteSheet } from '../../bookings/booking-details/components/BookingMarkCompleteSheet';
 import { useMarkBookingCompleteFlow } from '../../bookings/booking-details/hooks/useMarkBookingCompleteFlow';
+import { useSyncInProgressJobLiveActivity } from '../../bookings/live-activity/useSyncInProgressJobLiveActivity';
 import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
 import { OwnerSubscriptionPaymentFailedBanner } from '../../subscription/components/OwnerSubscriptionPaymentFailedBanner';
 import { useOwnerSubscriptionPaymentFailedNotice } from '../../subscription/hooks/useOwnerSubscriptionPaymentFailedNotice';
@@ -20,9 +21,11 @@ import { FloatingCreateMenu } from '../components/FloatingCreateMenu';
 import { HomeFreeBookingsUsageCard } from '../components/HomeFreeBookingsUsageCard';
 import { HomeErrorBanner } from '../components/HomeErrorBanner';
 import { LinkStatsSection } from '../components/LinkStatsSection';
+import { LiveActivityHomeTestCard } from '../components/LiveActivityHomeTestCard';
 import { NextUpCard } from '../components/NextUpCard';
 import { RestOfTodayCard } from '../components/restOfToday';
 import { TodaysPotentialCard } from '../components/TodaysPotentialCard';
+import { SHOW_LIVE_ACTIVITY_HOME_TEST_CARD } from '../constants/liveActivityHomeTestFlags';
 import { NEXT_UP_LIFECYCLE_DESIGN_PREVIEW } from '../constants/nextUpDesignFlags';
 import { useNextUpLifecycleDesignPreview } from '../hooks/useNextUpLifecycleDesignPreview';
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
@@ -65,6 +68,7 @@ export function HomeScreen() {
   const smsAccess = useCustomerSmsAccess();
   const useNextUpLifecycle = smsAccess.canUseSms;
   const dashboard = useHomeDashboard();
+  useSyncInProgressJobLiveActivity(dashboard.nextBooking);
   const nextBookingId = dashboard.nextBooking?.id ?? null;
   const markCompleteFlow = useMarkBookingCompleteFlow(nextBookingId, {
     booking: dashboard.nextBooking
@@ -116,6 +120,8 @@ export function HomeScreen() {
     typeof __DEV__ !== 'undefined' && __DEV__ && MARK_COMPLETE_SHOW_COMPLETE_VISIT_DESIGN_PREVIEW;
   const showLifecycleDesignPreview =
     typeof __DEV__ !== 'undefined' && __DEV__ && NEXT_UP_LIFECYCLE_DESIGN_PREVIEW;
+  const showLiveActivityHomeTestCard =
+    typeof __DEV__ !== 'undefined' && __DEV__ && SHOW_LIVE_ACTIVITY_HOME_TEST_CARD;
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -628,7 +634,18 @@ export function HomeScreen() {
           />
         ) : null}
         {homeErrors.bannerError ? <HomeErrorBanner message={homeErrors.bannerError} /> : null}
-        <AppText style={[styles.sectionLabel, styles.sectionLabelFirst]}>
+        {showLiveActivityHomeTestCard ? (
+          <>
+            <AppText style={[styles.sectionLabel, styles.sectionLabelFirst]}>Island test</AppText>
+            <LiveActivityHomeTestCard />
+          </>
+        ) : null}
+        <AppText
+          style={[
+            styles.sectionLabel,
+            showLiveActivityHomeTestCard ? styles.secondarySectionLabel : styles.sectionLabelFirst,
+          ]}
+        >
           {nextUpSectionTitle}
         </AppText>
         <NextUpCard

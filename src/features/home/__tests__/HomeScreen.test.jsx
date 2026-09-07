@@ -23,6 +23,10 @@ jest.mock('@react-navigation/native', () => {
   };
 });
 
+jest.mock('../constants/liveActivityHomeTestFlags', () => ({
+  SHOW_LIVE_ACTIVITY_HOME_TEST_CARD: false,
+}));
+
 jest.mock('../hooks/useHomeDashboard', () => ({
   useHomeDashboard: jest.fn(),
 }));
@@ -123,6 +127,10 @@ const mockMarkCompleteFlow = {
 
 jest.mock('../../bookings/booking-details/hooks/useMarkBookingCompleteFlow', () => ({
   useMarkBookingCompleteFlow: jest.fn(() => mockMarkCompleteFlow),
+}));
+
+jest.mock('../../bookings/live-activity/useSyncInProgressJobLiveActivity', () => ({
+  useSyncInProgressJobLiveActivity: jest.fn(),
 }));
 
 jest.mock('../../bookings/booking-details/components/BookingCompleteInvoiceDesignSheet', () => ({
@@ -344,7 +352,7 @@ describe('HomeScreen', () => {
       }),
     );
     renderWithProviders(<HomeScreen />);
-    expect(screen.getByText('In progress')).toBeTruthy();
+    expect(screen.getAllByText('In progress').length).toBeGreaterThan(0);
     expect(screen.getByLabelText(/In progress.*Alex/i)).toBeTruthy();
   });
 

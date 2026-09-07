@@ -61,6 +61,8 @@
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Allow Servicelink to access your photos so you can choose a cover image.</string>
+    <key>NSSupportsLiveActivities</key>
+    <true/>
     <key>RCTNewArchEnabled</key>
     <true/>
     <key>UIBackgroundModes</key>

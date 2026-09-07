@@ -48,6 +48,10 @@ jest.mock('../utils/invalidateBookingCachesAfterMutation', () => ({
   invalidateBookingCachesAfterMutation: jest.fn(),
 }));
 
+jest.mock('../../live-activity/jobLiveActivity', () => ({
+  endJobLiveActivity: jest.fn(() => Promise.resolve()),
+}));
+
 jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(() => Promise.resolve()),
   NotificationFeedbackType: { Success: 'success' },
@@ -65,6 +69,7 @@ import { patchBookingJobStatusInDetailsCache } from '../../utils/patchBookingJob
 import { patchBookingJobStatusInHomeCache } from '../../utils/patchBookingJobStatusInHomeCache';
 import { useMarkBookingCompleteFlow } from '../hooks/useMarkBookingCompleteFlow';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
+import { endJobLiveActivity } from '../../live-activity/jobLiveActivity';
 
 describe('useMarkBookingCompleteFlow', () => {
   /** @type {import('@tanstack/react-query').UseMutationOptions | undefined} */
@@ -170,6 +175,7 @@ describe('useMarkBookingCompleteFlow', () => {
       'completed',
     );
     expect(invalidateBookingCachesAfterMutation).toHaveBeenCalledWith(queryClient, 'booking-1');
+    expect(endJobLiveActivity).toHaveBeenCalledWith('booking-1');
     expect(showBookingActionToasts).not.toHaveBeenCalled();
     expect(maybeRequestAppReview).toHaveBeenCalledWith({ businessId: 'biz-1' });
   });
