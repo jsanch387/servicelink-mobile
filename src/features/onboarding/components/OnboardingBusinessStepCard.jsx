@@ -5,6 +5,8 @@ import { getSpecialtiesForBusinessType } from '../../../constants/businessSpecia
 import { getBusinessTypeSelectOptions } from '../../../constants/businessTypes';
 import { MAX_ONBOARDING_BUSINESS_NAME_LENGTH } from '../constants/onboardingInputLimits';
 
+const FIELD_GAP = 20;
+
 /**
  * Step 1: business name, industry, and niches.
  */
@@ -22,16 +24,11 @@ export function OnboardingBusinessStepCard({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        nameField: {
-          marginBottom: 4,
+        stack: {
+          gap: FIELD_GAP,
         },
-        typeWrap: {
-          marginTop: 0,
-        },
-        selectFlushTop: {
-          marginTop: 0,
-        },
-        chipsWrap: {
+        flush: {
+          marginBottom: 0,
           marginTop: 0,
         },
       }),
@@ -40,39 +37,38 @@ export function OnboardingBusinessStepCard({
 
   return (
     <SurfaceCard>
-      <SurfaceTextField
-        autoCapitalize="words"
-        containerStyle={styles.nameField}
-        label="Business name"
-        maxLength={MAX_ONBOARDING_BUSINESS_NAME_LENGTH}
-        onChangeText={onBusinessNameChange}
-        placeholder="e.g. your business name"
-        value={businessName}
-      />
+      <View style={styles.stack}>
+        <SurfaceTextField
+          autoCapitalize="words"
+          containerStyle={styles.flush}
+          label="Business name"
+          maxLength={MAX_ONBOARDING_BUSINESS_NAME_LENGTH}
+          onChangeText={onBusinessNameChange}
+          placeholder="Your business name"
+          value={businessName}
+        />
 
-      <View style={styles.typeWrap}>
         <SelectField
-          fieldStyle={styles.selectFlushTop}
-          label="Business type"
+          fieldStyle={styles.flush}
+          label="Industry"
           options={getBusinessTypeSelectOptions(businessType)}
           placeholder="Pick one"
           presentation="wheel"
-          title="Business type"
+          title="Industry"
           value={businessType || null}
           onValueChange={onBusinessTypeChange}
         />
-      </View>
 
-      {specialtyOptions.length > 0 ? (
-        <View style={styles.chipsWrap}>
+        {specialtyOptions.length > 0 ? (
           <SpecialtyChips
             error={specialtyError}
+            fieldStyle={styles.flush}
             options={specialtyOptions}
             value={specialties}
             onChange={onSpecialtiesChange}
           />
-        </View>
-      ) : null}
+        ) : null}
+      </View>
     </SurfaceCard>
   );
 }

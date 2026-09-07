@@ -5,7 +5,7 @@ import { SUBSCRIPTIONS_FEATURE_ENABLED } from '../constants/subscriptionsFeature
 import { resolveSubscriptionsAccess } from '../utils/resolveSubscriptionsAccess';
 
 /**
- * Runtime subscriptions access for this signed-in owner (kill switch + early access + Pro).
+ * Runtime subscriptions access for this signed-in owner (kill switch + open rollout + Pro).
  */
 export function useSubscriptionsAccess() {
   const { user } = useAuth();

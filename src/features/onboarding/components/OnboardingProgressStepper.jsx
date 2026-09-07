@@ -2,13 +2,12 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '../../../components/ui';
 import { useTheme } from '../../../theme';
-import { ONBOARDING_STEP_LABELS } from '../constants/onboardingStepLabels';
 
 const BAR_HEIGHT = 4;
 const BAR_GAP = 6;
 
 /**
- * Top onboarding stepper: “Step n of m”, five pill segments (current only highlighted), step label.
+ * Top onboarding stepper: “Step n of m” and five pill segments (current only highlighted).
  */
 export function OnboardingProgressStepper({ currentIndex, totalSteps = 5 }) {
   const { colors, isDark } = useTheme();
@@ -19,7 +18,7 @@ export function OnboardingProgressStepper({ currentIndex, totalSteps = 5 }) {
     return StyleSheet.create({
       root: {
         alignSelf: 'stretch',
-        marginBottom: 22,
+        marginBottom: 16,
       },
       stepOf: {
         color: colors.textMuted,
@@ -32,7 +31,6 @@ export function OnboardingProgressStepper({ currentIndex, totalSteps = 5 }) {
       barsRow: {
         flexDirection: 'row',
         gap: BAR_GAP,
-        marginBottom: 8,
       },
       segment: {
         borderRadius: 999,
@@ -45,17 +43,8 @@ export function OnboardingProgressStepper({ currentIndex, totalSteps = 5 }) {
       segmentInactive: {
         backgroundColor: inactiveBar,
       },
-      stepLabel: {
-        color: colors.accentMuted,
-        fontSize: 13,
-        fontWeight: '500',
-        letterSpacing: 0.2,
-        textAlign: 'left',
-      },
     });
   }, [colors, isDark]);
-
-  const stepLabel = ONBOARDING_STEP_LABELS[currentIndex] ?? `Step ${currentIndex + 1}`;
 
   return (
     <View style={styles.root}>
@@ -73,7 +62,6 @@ export function OnboardingProgressStepper({ currentIndex, totalSteps = 5 }) {
           />
         ))}
       </View>
-      <AppText style={styles.stepLabel}>{stepLabel}</AppText>
     </View>
   );
 }

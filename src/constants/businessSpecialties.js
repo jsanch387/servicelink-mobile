@@ -80,6 +80,10 @@ export function specialtiesFingerprint(values) {
   return sanitizeBusinessSpecialties(values).slice().sort().join('\u0001');
 }
 
+export function getSpecialtyLabel(slug) {
+  return SPECIALTY_LABELS[slug] ?? 'Service';
+}
+
 export function getSpecialtiesForBusinessType(businessType) {
   const template = resolveBusinessIndustry(businessType).template;
   return SPECIALTIES_BY_TEMPLATE[template].map((slug) => ({

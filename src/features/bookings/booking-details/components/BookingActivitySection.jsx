@@ -1,7 +1,8 @@
 import { DetailIconFieldRow, DetailsSectionCard } from '../../../../components/ui';
 
 /**
- * Entry to customer updates. Same titled field-row pattern as Schedule / Location.
+ * Tappable entry to the customer-updates list. Copy invites them in;
+ * the list itself shows each confirmation, reminder, and status.
  *
  * @param {object} props
  * @param {() => void} props.onPress
@@ -12,9 +13,9 @@ export function BookingActivitySection({ onPress }) {
       <DetailIconFieldRow
         accessibilityHint="See texts and emails we sent your customer"
         icon="chatbubble-ellipses-outline"
-        label="What we sent"
+        label="See what we sent"
         labelUppercase={false}
-        value="Texts and emails, and when"
+        value="Confirmations, reminders, and more"
         onPress={onPress}
       />
     </DetailsSectionCard>

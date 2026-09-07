@@ -1,9 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useMemo, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import {
   AppText,
-  Button,
   DurationSelectField,
   SurfaceCard,
   SurfaceTextField,
@@ -15,10 +14,12 @@ import {
 } from '../../../components/ui/durationTime';
 import { useTheme } from '../../../theme';
 import {
-  MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH,
   MAX_ONBOARDING_SERVICE_NAME_LENGTH,
   MAX_ONBOARDING_SERVICE_PRICE_INPUT_LENGTH,
 } from '../constants/onboardingInputLimits';
+import { buildOnboardingServiceDraft } from '../utils/buildOnboardingServiceDraft';
+
+const FIELD_GAP = 20;
 
 function normalizePriceInput(rawText) {
   const input = String(rawText ?? '').replace(/\$/g, '');
@@ -47,68 +48,69 @@ function createLocalId() {
   return `svc-${Date.now()}`;
 }
 
-function RequiredLabel({ children, colors }) {
-  return (
-    <View style={stylesInline.requiredRow}>
-      <AppText style={[stylesInline.requiredBase, { color: colors.textMuted }]}>{children}</AppText>
-      <AppText style={[stylesInline.requiredBase, { color: colors.danger }]}> *</AppText>
-    </View>
-  );
-}
-
-const stylesInline = StyleSheet.create({
-  requiredRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  requiredBase: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-});
-
 /**
- * @param {{ services: Array<{ id: string; name: string; description: string; priceInput: string; durationMinutes: number }>; onServicesChange: (next: unknown[]) => void }} props
+ * @param {{
+ *   services: Array<{ id: string; name: string; description: string; priceInput: string; durationMinutes: number }>;
+ *   onServicesChange: (next: unknown[]) => void;
+ *   suggestedName?: string;
+ * }} props
  */
-export function OnboardingServicesStep({ services, onServicesChange }) {
+export const OnboardingServicesStep = forwardRef(function OnboardingServicesStep(
+  { services, onServicesChange, suggestedName = '' },
+  ref,
+) {
   const { colors } = useTheme();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState(() => String(suggestedName ?? '').trim());
   const [price, setPrice] = useState('');
   const [durationHHmm, setDurationHHmm] = useState('01:00');
+
+  useEffect(() => {
+    if (services.length > 0) {
+      return;
+    }
+    const next = String(suggestedName ?? '').trim();
+    if (!next) {
+      return;
+    }
+    setName((prev) => (String(prev ?? '').trim() ? prev : next));
+  }, [suggestedName, services.length]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      commitDraftIfNeeded() {
+        if (services.length > 0) {
+          return services;
+        }
+        const draft = buildOnboardingServiceDraft({
+          id: createLocalId(),
+          name,
+          priceInput: price,
+          durationMinutes: serviceDurationHHmmToMinutes(durationHHmm),
+        });
+        if (!draft) {
+          return [];
+        }
+        const next = [draft];
+        onServicesChange(next);
+        return next;
+      },
+    }),
+    [durationHHmm, name, onServicesChange, price, services],
+  );
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        addServiceTitle: {
-          alignSelf: 'stretch',
-          color: colors.text,
-          fontSize: 17,
-          fontWeight: '700',
-          letterSpacing: -0.2,
-          marginBottom: 10,
+        stack: {
+          gap: FIELD_GAP,
         },
-        /** Same vertical gap after each logical group (name / description / price+time). */
-        formSection: {
-          marginBottom: 16,
-        },
-        fieldFlush: {
+        flush: {
           marginBottom: 0,
-        },
-        descriptionToolbar: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginBottom: 0,
-          marginTop: 8,
-        },
-        charCount: {
-          fontSize: 13,
-          fontWeight: '500',
+          marginTop: 0,
         },
         listCard: {
-          marginTop: 18,
+          marginTop: services.length > 0 ? 0 : 18,
           paddingBottom: 8,
           paddingHorizontal: 16,
           paddingTop: 14,
@@ -152,53 +154,9 @@ export function OnboardingServicesStep({ services, onServicesChange }) {
           justifyContent: 'center',
           width: 36,
         },
-        /** Space between price row and duration row inside the same section. */
-        priceFieldContainer: {
-          marginBottom: 12,
-        },
-        durationFieldContainer: {
-          marginBottom: 0,
-          marginTop: 0,
-        },
       }),
-    [colors],
+    [colors, services.length],
   );
-
-  const canAdd =
-    name.trim().length > 0 &&
-    description.trim().length > 0 &&
-    price.trim().length > 0 &&
-    String(durationHHmm ?? '').trim().length > 0;
-
-  function insertBulletPoint() {
-    setDescription((current) => {
-      const text = String(current ?? '');
-      if (text.trim().length === 0) {
-        return '• ';
-      }
-      const needsLineBreak = !text.endsWith('\n');
-      return `${text}${needsLineBreak ? '\n' : ''}• `;
-    });
-  }
-
-  function handleAdd() {
-    if (!canAdd) return;
-    const durationMinutes = serviceDurationHHmmToMinutes(durationHHmm);
-    onServicesChange([
-      ...services,
-      {
-        id: createLocalId(),
-        name: name.trim(),
-        description: description.trim(),
-        priceInput: price.trim(),
-        durationMinutes,
-      },
-    ]);
-    setName('');
-    setDescription('');
-    setPrice('');
-    setDurationHHmm('01:00');
-  }
 
   function handleRemove(id) {
     onServicesChange(services.filter((s) => s.id !== id));
@@ -213,79 +171,38 @@ export function OnboardingServicesStep({ services, onServicesChange }) {
 
   return (
     <>
-      <AppText style={styles.addServiceTitle}>Service details</AppText>
-      <SurfaceCard>
-        <View style={styles.formSection}>
-          <RequiredLabel colors={colors}>Service name</RequiredLabel>
-          <SurfaceTextField
-            containerStyle={styles.fieldFlush}
-            label={null}
-            maxLength={MAX_ONBOARDING_SERVICE_NAME_LENGTH}
-            placeholder="e.g. Full detail, Lawn mowing"
-            value={name}
-            onChangeText={setName}
-          />
-        </View>
-
-        <View style={styles.formSection}>
-          <RequiredLabel colors={colors}>Description</RequiredLabel>
-          <SurfaceTextField
-            containerStyle={styles.fieldFlush}
-            label={null}
-            maxLength={MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH}
-            multiline
-            placeholder="Tell customers what they get."
-            style={{ minHeight: 100 }}
-            textAlignVertical="top"
-            value={description}
-            onChangeText={setDescription}
-          />
-          <View style={styles.descriptionToolbar}>
-            <Pressable
-              accessibilityLabel="Insert bullet point"
-              accessibilityRole="button"
-              hitSlop={8}
-              onPress={insertBulletPoint}
-            >
-              <Ionicons color={colors.textMuted} name="list-outline" size={18} />
-            </Pressable>
-            <AppText style={[styles.charCount, { color: colors.textMuted }]}>
-              {description.length}/{MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH}
-            </AppText>
+      {services.length === 0 ? (
+        <SurfaceCard>
+          <View style={styles.stack}>
+            <SurfaceTextField
+              autoCapitalize="words"
+              containerStyle={styles.flush}
+              label="Service name"
+              maxLength={MAX_ONBOARDING_SERVICE_NAME_LENGTH}
+              placeholder="e.g. Full detail"
+              value={name}
+              onChangeText={setName}
+            />
+            <SurfaceTextField
+              containerStyle={styles.flush}
+              keyboardType="decimal-pad"
+              label="Price"
+              maxLength={MAX_ONBOARDING_SERVICE_PRICE_INPUT_LENGTH + 1}
+              placeholder="$0"
+              value={price ? `$${price}` : ''}
+              onChangeText={(text) => setPrice(normalizePriceInput(text))}
+            />
+            <DurationSelectField
+              compact
+              containerStyle={styles.flush}
+              label="Duration"
+              placeholder="How long does it take?"
+              value={durationHHmm}
+              onValueChange={setDurationHHmm}
+            />
           </View>
-        </View>
-
-        <View style={styles.formSection}>
-          <RequiredLabel colors={colors}>Price</RequiredLabel>
-          <SurfaceTextField
-            containerStyle={[styles.fieldFlush, styles.priceFieldContainer]}
-            keyboardType="decimal-pad"
-            label={null}
-            maxLength={MAX_ONBOARDING_SERVICE_PRICE_INPUT_LENGTH + 1}
-            placeholder="$0"
-            value={price ? `$${price}` : ''}
-            onChangeText={(text) => setPrice(normalizePriceInput(text))}
-          />
-          <RequiredLabel colors={colors}>Duration</RequiredLabel>
-          <DurationSelectField
-            containerStyle={styles.durationFieldContainer}
-            label={null}
-            placeholder="How long does it take?"
-            value={durationHHmm}
-            onValueChange={setDurationHHmm}
-          />
-        </View>
-
-        <Button
-          disabled={!canAdd}
-          fullWidth
-          title="+ Add this service"
-          variant="surfaceLight"
-          onPress={handleAdd}
-        />
-      </SurfaceCard>
-
-      {services.length > 0 ? (
+        </SurfaceCard>
+      ) : (
         <SurfaceCard style={styles.listCard}>
           <AppText style={styles.listTitle}>Your services ({services.length})</AppText>
           {services.map((s, index) => (
@@ -307,7 +224,7 @@ export function OnboardingServicesStep({ services, onServicesChange }) {
             </View>
           ))}
         </SurfaceCard>
-      ) : null}
+      )}
     </>
   );
-}
+});

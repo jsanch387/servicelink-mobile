@@ -20,16 +20,20 @@ export function frostedSurfaceColors(isDark) {
  *   color?: string;
  *   iconSize?: number;
  *   iconLibrary?: 'ionicons' | 'material-community';
+ *   size?: number;
  * }} props
  */
 export function FrostedIconWell({
   icon,
   color = '#ffffff',
-  iconSize = 20,
+  iconSize,
   iconLibrary = 'ionicons',
+  size = FROSTED_ICON_WELL_SIZE,
 }) {
   const { isDark } = useTheme();
   const Icon = iconLibrary === 'material-community' ? MaterialCommunityIcons : Ionicons;
+  const glyphSize = iconSize ?? Math.round(size * (20 / FROSTED_ICON_WELL_SIZE));
+  const radius = Math.max(8, Math.round(size * (10 / FROSTED_ICON_WELL_SIZE)));
 
   const styles = useMemo(
     () =>
@@ -37,19 +41,19 @@ export function FrostedIconWell({
         well: {
           alignItems: 'center',
           ...frostedSurfaceColors(isDark),
-          borderRadius: 10,
+          borderRadius: radius,
           borderWidth: StyleSheet.hairlineWidth,
-          height: FROSTED_ICON_WELL_SIZE,
+          height: size,
           justifyContent: 'center',
-          width: FROSTED_ICON_WELL_SIZE,
+          width: size,
         },
       }),
-    [isDark],
+    [isDark, radius, size],
   );
 
   return (
     <View style={styles.well}>
-      <Icon color={color} name={icon} size={iconSize} />
+      <Icon color={color} name={icon} size={glyphSize} />
     </View>
   );
 }

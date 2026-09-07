@@ -1,19 +1,17 @@
 import Constants from 'expo-constants';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError } from '../../../components/ui';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import {
+  getSpecialtyLabel,
   sanitizeBusinessSpecialties,
   specialtiesAllowedForBusinessType,
   resolveBusinessSpecialties,
   SPECIALTIES_REQUIRED_ERROR,
 } from '../../../constants/businessSpecialties';
-import {
-  getIndustryOnboardingCopy,
-  isAllowedBusinessTypeValue,
-} from '../../../constants/businessTypes';
+import { isAllowedBusinessTypeValue } from '../../../constants/businessTypes';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
 import { useBusinessAvailability } from '../../availability/hooks/useBusinessAvailability';
@@ -43,6 +41,8 @@ import {
   saveOnboardingStep3Availability,
   saveOnboardingStep4Slug,
 } from '../api/onboardingV2Api';
+import { fillOnboardingServiceDescription } from '../utils/buildOnboardingServiceDraft';
+import { shouldShowOnboardingWelcome } from '../utils/shouldShowOnboardingWelcome';
 import { refetchOnboardingAfterActivation } from '../utils/refetchOnboardingAfterActivation';
 import { WeeklyScheduleSection } from '../../availability/components/WeeklyScheduleSection';
 import { OnboardingBusinessStepCard } from '../components/OnboardingBusinessStepCard';
@@ -50,6 +50,7 @@ import { OnboardingProgressStepper } from '../components/OnboardingProgressStepp
 import { OnboardingServicesStep } from '../components/OnboardingServicesStep';
 import { OnboardingSlugStep } from '../components/OnboardingSlugStep';
 import { OnboardingTrialStep } from '../components/OnboardingTrialStep';
+import { OnboardingWelcomeView } from '../components/OnboardingWelcomeView';
 import { useOnboardingGate } from '../context/OnboardingGateContext';
 
 const STEP_COUNT = 5;
@@ -57,7 +58,7 @@ const STEP_COUNT = 5;
 const STEP_TITLES = [
   'Business details',
   'Add a service',
-  'When do you work?',
+  'Set your schedule',
   'Claim your link',
   'Go live',
 ];
@@ -65,7 +66,7 @@ const STEP_TITLES = [
 const STEP_SUBTITLES = [
   '',
   'Add at least one service — you can add the rest later.',
-  'Pick your usual hours. Customers will only see times when you are free.',
+  'Set your hours so customers can book when you are free.',
   'This will be the booking link you share with customers.',
   'Go live, share your link, get bookings.',
 ];
@@ -110,12 +111,14 @@ export function OnboardingScreen() {
   const [dayEnabledMap, setDayEnabledMap] = useState(() => ({ ...monFriPreset.dayEnabledMap }));
   const [dayTimeRanges, setDayTimeRanges] = useState(() => ({ ...monFriPreset.dayTimeRanges }));
   const [linkSlugDraft, setLinkSlugDraft] = useState('');
+  const [showWelcome, setShowWelcome] = useState(false);
 
   const seededAvailRef = useRef(false);
   const slugSeededRef = useRef(false);
   const prevStepIndexRef = useRef(0);
   const didHydrateStepFromServerRef = useRef(false);
   const scrollViewRef = useRef(null);
+  const servicesStepRef = useRef(null);
 
   /** One ScrollView for all steps — reset offset on step change so each step starts at the top. */
   useEffect(() => {
@@ -127,6 +130,7 @@ export function OnboardingScreen() {
 
   useEffect(() => {
     didHydrateStepFromServerRef.current = false;
+    setShowWelcome(false);
   }, [userId]);
 
   /**
@@ -144,6 +148,7 @@ export function OnboardingScreen() {
     didHydrateStepFromServerRef.current = true;
     const target = Math.min(STEP_COUNT - 1, Math.max(0, onboardingStep - 1));
     setStepIndex(target);
+    setShowWelcome(shouldShowOnboardingWelcome(onboardingStep));
   }, [profileLoadError, isOnboardingProfileLoaded, onboardingStep]);
 
   /** Whenever we land on Services, reload from the server so Back / reload shows saved rows. */
@@ -270,9 +275,6 @@ export function OnboardingScreen() {
           flex: 1,
           backgroundColor: colors.shell,
         },
-        keyboard: {
-          flex: 1,
-        },
         stepperHeader: {
           paddingBottom: 4,
           paddingHorizontal: 16,
@@ -305,19 +307,21 @@ export function OnboardingScreen() {
         loadErrorRetry: {
           marginTop: 12,
         },
+        headingGroup: {
+          marginBottom: 20,
+        },
         title: {
           color: colors.text,
           fontSize: 22,
           fontWeight: '700',
           letterSpacing: -0.3,
-          marginBottom: 8,
           textAlign: 'left',
         },
         subtitle: {
           color: colors.textMuted,
           fontSize: 15,
-          lineHeight: 22,
-          marginBottom: 20,
+          lineHeight: 21,
+          marginTop: 4,
           textAlign: 'left',
         },
         /** Same size as `title`; one weight step heavier (800 vs 700). */
@@ -344,13 +348,6 @@ export function OnboardingScreen() {
         flex: {
           flex: 1,
         },
-        businessTypeHint: {
-          color: colors.textMuted,
-          fontSize: 13,
-          fontWeight: '500',
-          lineHeight: 18,
-          marginTop: 12,
-        },
       }),
     [colors],
   );
@@ -369,7 +366,7 @@ export function OnboardingScreen() {
         return;
       }
       if (!isValidBusinessType(businessType)) {
-        setStepError('Choose a business type.');
+        setStepError('Choose your industry.');
         return;
       }
       if (sanitizeBusinessSpecialties(specialties).length === 0) {
@@ -394,11 +391,14 @@ export function OnboardingScreen() {
     }
 
     if (stepIndex === 1) {
-      if (servicesList.length === 0) {
+      const list = (servicesStepRef.current?.commitDraftIfNeeded() ?? servicesList).map(
+        fillOnboardingServiceDescription,
+      );
+      if (list.length === 0) {
         setStepError('Add at least one service to continue.');
         return;
       }
-      for (const s of servicesList) {
+      for (const s of list) {
         const n = String(s?.name ?? '').trim();
         const d = String(s?.description ?? '').trim();
         const p = String(s?.priceInput ?? '')
@@ -424,7 +424,7 @@ export function OnboardingScreen() {
       setStepError('');
       setRemoteStepSaving(true);
       const res = await saveOnboardingStep2Services({
-        services: servicesList.map((s) => ({
+        services: list.map((s) => ({
           name: s.name,
           description: s.description,
           priceInput: s.priceInput,
@@ -598,148 +598,143 @@ export function OnboardingScreen() {
     (stepIndex === 0 && step1Submitting) ||
     ((stepIndex === 1 || stepIndex === 2 || stepIndex === 3) && remoteStepSaving);
 
-  const nextDisabled = stepIndex === 1 && servicesList.length === 0;
+  if (showWelcome) {
+    return <OnboardingWelcomeView onGetStarted={() => setShowWelcome(false)} />;
+  }
 
   return (
     <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={styles.safe}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-        style={styles.keyboard}
-      >
-        <View style={styles.stepperHeader}>
-          <OnboardingProgressStepper currentIndex={stepIndex} totalSteps={STEP_COUNT} />
-        </View>
-        <View style={styles.mainBody}>
-          <ScrollView
-            ref={scrollViewRef}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            style={styles.scroll}
-          >
-            {profileLoadError ? (
-              <View style={styles.loadErrorBox}>
-                <InlineCardError
-                  message={safeUserFacingMessage(profileLoadError, {
-                    fallback: 'Could not load your onboarding status.',
-                  })}
-                />
-                <Button
-                  style={styles.loadErrorRetry}
-                  title="Try again"
-                  variant="secondary"
-                  onPress={() => refetchOnboarding()}
-                />
-              </View>
-            ) : null}
-
-            {stepIndex === 4 ? (
-              <>
-                <AppText style={[styles.title, styles.goLiveTitle]}>Go live</AppText>
-                <AppText style={styles.subtitle}>
-                  Your link goes live next.{' '}
-                  <AppText style={styles.goLiveInlineEmph}>Share it. Get booked.</AppText>
-                </AppText>
-              </>
-            ) : (
-              <>
-                <AppText style={styles.title}>{STEP_TITLES[stepIndex]}</AppText>
-                {STEP_SUBTITLES[stepIndex] ? (
-                  <AppText style={styles.subtitle}>{STEP_SUBTITLES[stepIndex]}</AppText>
-                ) : null}
-              </>
-            )}
-            {stepError ? (
-              <View style={styles.stepErrorWrap}>
-                <InlineCardError message={stepError} />
-              </View>
-            ) : null}
-
-            {stepIndex === 0 ? (
-              <View>
-                <OnboardingBusinessStepCard
-                  businessName={businessName}
-                  businessType={businessType}
-                  specialties={specialties}
-                  onBusinessNameChange={onBusinessNameChange}
-                  onBusinessTypeChange={onBusinessTypeChange}
-                  onSpecialtiesChange={onSpecialtiesChange}
-                />
-                <AppText style={styles.businessTypeHint}>
-                  {getIndustryOnboardingCopy(businessType).typeHelper} You can change this later.
-                </AppText>
-              </View>
-            ) : null}
-
-            {stepIndex === 1 ? (
-              <OnboardingServicesStep services={servicesList} onServicesChange={setServicesList} />
-            ) : null}
-
-            {stepIndex === 2 ? (
-              <WeeklyScheduleSection
-                dayEnabledMap={dayEnabledMap}
-                dayTimeRanges={dayTimeRanges}
-                style={{ marginBottom: 14 }}
-                onDayTimeChange={(day, key, val) => {
-                  setSchedulePreset('custom');
-                  setDayTimeRanges((prev) => ({
-                    ...prev,
-                    [day]: { ...prev[day], [key]: val },
-                  }));
-                }}
-                onDayToggle={(day, next) => {
-                  setSchedulePreset('custom');
-                  setDayEnabledMap((prev) => ({ ...prev, [day]: next }));
-                }}
+      <View style={styles.stepperHeader}>
+        <OnboardingProgressStepper currentIndex={stepIndex} totalSteps={STEP_COUNT} />
+      </View>
+      <View style={styles.mainBody}>
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          {profileLoadError ? (
+            <View style={styles.loadErrorBox}>
+              <InlineCardError
+                message={safeUserFacingMessage(profileLoadError, {
+                  fallback: 'Could not load your onboarding status.',
+                })}
               />
-            ) : null}
-
-            {stepIndex === 3 ? (
-              <OnboardingSlugStep value={linkSlugDraft} onChangeValue={setLinkSlugDraft} />
-            ) : null}
-
-            {stepIndex === 4 ? (
-              <OnboardingTrialStep
-                activateSubmitting={activateSubmitting}
-                activationLink={getBookingLinkDisplay(linkSlugDraft)}
-                onActivatePress={() => void onActivateLinkPress()}
-              />
-            ) : null}
-          </ScrollView>
-          <View style={styles.actionsBar}>
-            {stepIndex === 4 ? (
-              <Button fullWidth title="Back" variant="secondary" onPress={goBack} />
-            ) : stepIndex > 0 ? (
-              <View style={styles.row}>
-                <Button
-                  fullWidth
-                  onPress={goBack}
-                  style={styles.flex}
-                  title="Back"
-                  variant="secondary"
-                />
-                <Button
-                  disabled={nextDisabled}
-                  fullWidth
-                  loading={nextButtonLoading}
-                  onPress={() => void goNext()}
-                  style={styles.flex}
-                  title="Next"
-                />
-              </View>
-            ) : (
               <Button
-                disabled={nextDisabled}
+                style={styles.loadErrorRetry}
+                title="Try again"
+                variant="secondary"
+                onPress={() => refetchOnboarding()}
+              />
+            </View>
+          ) : null}
+
+          {stepIndex === 4 ? (
+            <View style={styles.headingGroup}>
+              <AppText style={[styles.title, styles.goLiveTitle]}>Go live</AppText>
+              <AppText style={styles.subtitle}>
+                Your link goes live next.{' '}
+                <AppText style={styles.goLiveInlineEmph}>Share it. Get booked.</AppText>
+              </AppText>
+            </View>
+          ) : (
+            <View style={styles.headingGroup}>
+              <AppText style={styles.title}>{STEP_TITLES[stepIndex]}</AppText>
+              {STEP_SUBTITLES[stepIndex] ? (
+                <AppText style={styles.subtitle}>{STEP_SUBTITLES[stepIndex]}</AppText>
+              ) : null}
+            </View>
+          )}
+          {stepError ? (
+            <View style={styles.stepErrorWrap}>
+              <InlineCardError message={stepError} />
+            </View>
+          ) : null}
+
+          {stepIndex === 0 ? (
+            <OnboardingBusinessStepCard
+              businessName={businessName}
+              businessType={businessType}
+              specialties={specialties}
+              onBusinessNameChange={onBusinessNameChange}
+              onBusinessTypeChange={onBusinessTypeChange}
+              onSpecialtiesChange={onSpecialtiesChange}
+            />
+          ) : null}
+
+          {stepIndex === 1 ? (
+            <OnboardingServicesStep
+              ref={servicesStepRef}
+              services={servicesList}
+              suggestedName={specialties[0] ? getSpecialtyLabel(specialties[0]) : ''}
+              onServicesChange={setServicesList}
+            />
+          ) : null}
+
+          {stepIndex === 2 ? (
+            <WeeklyScheduleSection
+              dayEnabledMap={dayEnabledMap}
+              dayTimeRanges={dayTimeRanges}
+              showTitle={false}
+              style={{ marginBottom: 14 }}
+              onDayTimeChange={(day, key, val) => {
+                setSchedulePreset('custom');
+                setDayTimeRanges((prev) => ({
+                  ...prev,
+                  [day]: { ...prev[day], [key]: val },
+                }));
+              }}
+              onDayToggle={(day, next) => {
+                setSchedulePreset('custom');
+                setDayEnabledMap((prev) => ({ ...prev, [day]: next }));
+              }}
+            />
+          ) : null}
+
+          {stepIndex === 3 ? (
+            <OnboardingSlugStep value={linkSlugDraft} onChangeValue={setLinkSlugDraft} />
+          ) : null}
+
+          {stepIndex === 4 ? (
+            <OnboardingTrialStep
+              activateSubmitting={activateSubmitting}
+              activationLink={getBookingLinkDisplay(linkSlugDraft)}
+              onActivatePress={() => void onActivateLinkPress()}
+            />
+          ) : null}
+        </ScrollView>
+        <View style={styles.actionsBar}>
+          {stepIndex === 4 ? (
+            <Button fullWidth title="Back" variant="secondary" onPress={goBack} />
+          ) : stepIndex > 0 ? (
+            <View style={styles.row}>
+              <Button
+                fullWidth
+                onPress={goBack}
+                style={styles.flex}
+                title="Back"
+                variant="secondary"
+              />
+              <Button
                 fullWidth
                 loading={nextButtonLoading}
                 onPress={() => void goNext()}
+                style={styles.flex}
                 title="Next"
               />
-            )}
-          </View>
+            </View>
+          ) : (
+            <Button
+              fullWidth
+              loading={nextButtonLoading}
+              onPress={() => void goNext()}
+              title="Next"
+            />
+          )}
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

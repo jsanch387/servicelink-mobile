@@ -110,6 +110,24 @@ describe('buildBookingActivityModel', () => {
     expect(events.map((event) => event.key)).toEqual(['reminder-sms']);
   });
 
+  it('shows reminder email next to reminder text when the customer has an email', () => {
+    const events = buildBookingActivityModel({
+      customerEmail: 'jordan@email.com',
+      smsRows: [{ type: 'booking_reminder', status: 'sent', sent_at: '2026-08-02T09:00:00Z' }],
+    });
+    expect(events.map((event) => `${event.title}:${event.channel}`)).toEqual([
+      'Reminder:text',
+      'Reminder:email',
+      'Confirmation:email',
+    ]);
+    expect(events.find((event) => event.key === 'reminder-email')?.outcome).toBe('sent');
+  });
+
+  it('does not invent a reminder email without a reminder text', () => {
+    const events = buildBookingActivityModel({ customerEmail: 'jordan@email.com' });
+    expect(events.some((event) => event.key === 'reminder-email')).toBe(false);
+  });
+
   it('lists visit texts newest first', () => {
     const events = buildBookingActivityModel({
       smsRows: [

@@ -29,12 +29,6 @@ export function OnboardingSlugStep({ value, onChangeValue }) {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        cardTitle: {
-          color: colors.text,
-          fontSize: 15,
-          fontWeight: '600',
-          marginBottom: 12,
-        },
         slugShell: {
           backgroundColor: colors.cardSurface,
           borderColor: colors.inputBorder,
@@ -67,23 +61,11 @@ export function OnboardingSlugStep({ value, onChangeValue }) {
           minHeight: 44,
           paddingVertical: Platform.select({ android: 6, default: 10 }),
         },
-        footerRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginTop: 10,
-        },
         hint: {
           color: colors.textMuted,
-          flex: 1,
           fontSize: 13,
           lineHeight: 18,
-          marginRight: 12,
-        },
-        counter: {
-          color: colors.textMuted,
-          fontSize: 13,
-          fontWeight: '600',
+          marginTop: 10,
         },
       }),
     [colors],
@@ -91,7 +73,6 @@ export function OnboardingSlugStep({ value, onChangeValue }) {
 
   return (
     <SurfaceCard>
-      <AppText style={styles.cardTitle}>Your path</AppText>
       <View style={styles.slugShell}>
         <View style={styles.prefixRow}>
           <AppText style={styles.prefixText}>{BOOKING_LINK_HOST}/</AppText>
@@ -108,14 +89,7 @@ export function OnboardingSlugStep({ value, onChangeValue }) {
           />
         </View>
       </View>
-      <View style={styles.footerRow}>
-        <AppText style={styles.hint}>
-          Use letters, numbers, and hyphens only (e.g. elite-detail).
-        </AppText>
-        <AppText style={styles.counter}>
-          {value.length}/{MAX_BUSINESS_SLUG_LEN}
-        </AppText>
-      </View>
+      <AppText style={styles.hint}>Use letters, numbers, and hyphens only.</AppText>
     </SurfaceCard>
   );
 }

@@ -1,5 +1,4 @@
 import { ROUTES } from '../../../routes/routes';
-import { PAYMENTS_SCREEN_TAB } from '../../payments/constants/paymentsScreenTabs';
 
 /**
  * In-app feature announcements — one modal at a time. Each `id` is shown at most once per device.
@@ -28,21 +27,20 @@ import { PAYMENTS_SCREEN_TAB } from '../../payments/constants/paymentsScreenTabs
 /** @type {WhatsNewAnnouncement[]} */
 export const APP_UPDATE_ANNOUNCEMENTS = [
   {
-    id: 'transactions-v1',
+    id: 'subscriptions-v1',
     badge: "What's new",
-    icon: 'receipt-outline',
-    title: 'See your transactions',
+    icon: 'layers-outline',
+    title: 'Subscriptions for recurring work',
     bullets: [
-      'Every payment, payout, and refund in one list',
-      'Check what’s available and what’s still on the way',
-      'Open Payments anytime to review your money',
+      'Create a plan with price and how often you visit',
+      'Customers subscribe from your link',
+      'Track who’s due, past due, or canceled',
     ],
-    primaryLabel: 'View transactions',
+    primaryLabel: 'View subscriptions',
     secondaryLabel: 'Got it',
     cta: {
       tab: ROUTES.MORE,
-      screen: ROUTES.MORE_PAYMENTS,
-      params: { initialTab: PAYMENTS_SCREEN_TAB.TRANSACTIONS },
+      screen: ROUTES.SUBSCRIPTIONS,
     },
   },
 ];

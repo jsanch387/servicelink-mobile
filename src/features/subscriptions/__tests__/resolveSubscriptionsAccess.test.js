@@ -4,20 +4,9 @@ import {
   resolveSubscriptionsAccess,
 } from '../utils/resolveSubscriptionsAccess';
 
-describe('closed-testing allowlist', () => {
-  it('includes the closed-testing owner emails', () => {
-    expect([...SUBSCRIPTIONS_EARLY_ACCESS_EMAILS].map((e) => e.toLowerCase()).sort()).toEqual([
-      'amluxedetailing@gmail.com',
-      'archivedetail@gmail.com',
-      'bermejojoshua183@gmail.com',
-      'dav414@icloud.com',
-      'elev8tedetailing@icloud.com',
-      'erickjavier1355@icloud.com',
-      'jesuss387@gmail.com',
-      'josesdetailingbusiness@gmail.com',
-      'mobilecardetailinggr@gmail.com',
-      'urbanink.help@gmail.com',
-    ]);
+describe('rollout allowlist', () => {
+  it('is empty so Subscriptions is open to every login', () => {
+    expect(SUBSCRIPTIONS_EARLY_ACCESS_EMAILS).toEqual([]);
   });
 });
 
@@ -27,7 +16,7 @@ describe('resolveSubscriptionsAccess', () => {
       resolveSubscriptionsAccess({
         enabled: false,
         hasProAccess: true,
-        email: 'urbanink.help@gmail.com',
+        email: 'owner@example.com',
         profileLoaded: true,
       }),
     ).toEqual({
@@ -38,57 +27,7 @@ describe('resolveSubscriptionsAccess', () => {
     });
   });
 
-  it('allows early-access email without Pro', () => {
-    expect(
-      resolveSubscriptionsAccess({
-        enabled: true,
-        hasProAccess: false,
-        email: 'UrbanInk.Help@gmail.com',
-        profileLoaded: true,
-      }),
-    ).toEqual({
-      featureEnabled: true,
-      canUseSubscriptions: true,
-      showUpsell: false,
-      isReady: true,
-    });
-  });
-
-  describe('phase 1 — allowlist populated (defaults to restrictToEarlyAccess)', () => {
-    it('hides the feature from Pro subscribers not on the allowlist', () => {
-      expect(
-        resolveSubscriptionsAccess({
-          enabled: true,
-          hasProAccess: true,
-          email: 'owner@example.com',
-          profileLoaded: true,
-        }),
-      ).toEqual({
-        featureEnabled: false,
-        canUseSubscriptions: false,
-        showUpsell: false,
-        isReady: true,
-      });
-    });
-
-    it('hides the upsell from non-Pro users not on the allowlist', () => {
-      expect(
-        resolveSubscriptionsAccess({
-          enabled: true,
-          hasProAccess: false,
-          email: 'free@example.com',
-          profileLoaded: true,
-        }),
-      ).toEqual({
-        featureEnabled: false,
-        canUseSubscriptions: false,
-        showUpsell: false,
-        isReady: true,
-      });
-    });
-  });
-
-  describe('phase 2 — allowlist cleared (restrictToEarlyAccess: false)', () => {
+  describe('open rollout (default — allowlist empty)', () => {
     it('allows Pro when profile is loaded', () => {
       expect(
         resolveSubscriptionsAccess({
@@ -96,7 +35,6 @@ describe('resolveSubscriptionsAccess', () => {
           hasProAccess: true,
           email: 'owner@example.com',
           profileLoaded: true,
-          restrictToEarlyAccess: false,
         }),
       ).toEqual({
         featureEnabled: true,
@@ -113,7 +51,6 @@ describe('resolveSubscriptionsAccess', () => {
           hasProAccess: false,
           email: 'free@example.com',
           profileLoaded: true,
-          restrictToEarlyAccess: false,
         }),
       ).toEqual({
         featureEnabled: true,
@@ -122,13 +59,47 @@ describe('resolveSubscriptionsAccess', () => {
         isReady: true,
       });
     });
+
+    it('waits for profile before showing Pro or upsell', () => {
+      expect(
+        resolveSubscriptionsAccess({
+          enabled: true,
+          hasProAccess: false,
+          email: 'owner@example.com',
+          profileLoaded: false,
+        }),
+      ).toEqual({
+        featureEnabled: true,
+        canUseSubscriptions: false,
+        showUpsell: false,
+        isReady: false,
+      });
+    });
+  });
+
+  describe('restrictToEarlyAccess override', () => {
+    it('hides the feature when restrict is on and the allowlist is empty', () => {
+      expect(
+        resolveSubscriptionsAccess({
+          enabled: true,
+          hasProAccess: true,
+          email: 'owner@example.com',
+          profileLoaded: true,
+          restrictToEarlyAccess: true,
+        }),
+      ).toEqual({
+        featureEnabled: false,
+        canUseSubscriptions: false,
+        showUpsell: false,
+        isReady: true,
+      });
+    });
   });
 });
 
 describe('isSubscriptionsEarlyAccessEmail', () => {
-  it('matches allowlisted emails case-insensitively', () => {
-    expect(isSubscriptionsEarlyAccessEmail('jesuss387@gmail.com')).toBe(true);
-    expect(isSubscriptionsEarlyAccessEmail('Jesuss387@Gmail.com')).toBe(true);
-    expect(isSubscriptionsEarlyAccessEmail('other@example.com')).toBe(false);
+  it('matches nobody while the allowlist is empty', () => {
+    expect(isSubscriptionsEarlyAccessEmail('owner@example.com')).toBe(false);
+    expect(isSubscriptionsEarlyAccessEmail('jesuss387@gmail.com')).toBe(false);
   });
 });

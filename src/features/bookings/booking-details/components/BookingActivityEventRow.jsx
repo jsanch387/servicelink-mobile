@@ -1,16 +1,14 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, FrostedIconWell, FROSTED_ICON_WELL_SIZE } from '../../../../components/ui';
+import { AppText, FrostedIconWell } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
-import { formatActivityMetaLine } from '../utils/buildBookingActivityModel';
+import { formatActivityChannelLabel } from '../utils/buildBookingActivityModel';
 
-const WELL = FROSTED_ICON_WELL_SIZE;
-const ROW_GAP = 44;
-const CHANNEL_ICON = {
-  email: 'mail',
-  text: 'chatbubble',
-};
+const WELL = 30;
+const ROW_PAD_H = 16;
+const ICON_GAP = 12;
+const RAIL_H = 34;
+const CARD_PAD_V = 18;
 
 function outcomeCopy(event) {
   if (event.outcome === 'failed') {
@@ -22,59 +20,59 @@ function outcomeCopy(event) {
   return 'Sent';
 }
 
-function metaCopy(event) {
-  return formatActivityMetaLine(event.channel, event.whenLabel ?? '', {
-    optedOut: event.optedOut,
-  });
+function channelCopy(event) {
+  const channel = formatActivityChannelLabel(event.channel);
+  if (event.optedOut) {
+    return `${channel} · opted out`;
+  }
+  return channel;
 }
 
 /**
- * Action row: icon for what we sent, channel + time, and whether it went through.
+ * Card row: type + status, then channel + time. Icons connect on a timeline.
  *
  * @param {object} props
  * @param {import('../constants/bookingActivityEvents').BookingActivityEvent} props.event
+ * @param {boolean} [props.isFirst]
  * @param {boolean} [props.isLast]
  */
-export function BookingActivityEventRow({ event, isLast = false }) {
+export function BookingActivityEventRow({ event, isFirst = false, isLast = false }) {
   const { colors } = useTheme();
   const failed = event.outcome === 'failed';
   const sending = event.outcome === 'sending';
   const outcomeColor = failed ? colors.danger : sending ? colors.textMuted : colors.moneyPositive;
   const iconColor = failed ? colors.danger : '#ffffff';
-  const meta = metaCopy(event);
-  const channelIcon = CHANNEL_ICON[event.channel] ?? CHANNEL_ICON.text;
+  const channel = channelCopy(event);
+  const when = String(event.whenLabel ?? '').trim();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        block: {
+        root: {
           width: '100%',
         },
-        head: {
+        row: {
           alignItems: 'center',
           flexDirection: 'row',
+          paddingBottom: isLast ? CARD_PAD_V : 0,
+          paddingHorizontal: ROW_PAD_H,
+          paddingTop: isFirst ? CARD_PAD_V : 0,
           width: '100%',
         },
-        railWrap: {
+        iconCol: {
           alignItems: 'center',
-          height: ROW_GAP,
+          justifyContent: 'center',
           width: WELL,
-        },
-        rail: {
-          backgroundColor: colors.border,
-          flex: 1,
-          marginVertical: 8,
-          width: 2,
         },
         body: {
           flex: 1,
           minWidth: 0,
-          paddingLeft: 16,
+          paddingLeft: ICON_GAP,
         },
         top: {
           alignItems: 'center',
           flexDirection: 'row',
-          gap: 12,
+          width: '100%',
         },
         titleCol: {
           flex: 1,
@@ -83,76 +81,97 @@ export function BookingActivityEventRow({ event, isLast = false }) {
         title: {
           color: colors.text,
           fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 16,
-          letterSpacing: -0.3,
-          lineHeight: 21,
-        },
-        metaRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          gap: 6,
-          marginTop: 4,
-        },
-        channelMark: {
-          alignItems: 'center',
-          height: 16,
-          justifyContent: 'center',
-          width: 16,
-        },
-        metaCopy: {
-          flex: 1,
-          minWidth: 0,
-        },
-        when: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 13,
-          lineHeight: 18,
+          fontSize: 12,
+          letterSpacing: -0.1,
+          lineHeight: 16,
         },
         outcomeCol: {
           flexShrink: 0,
+          marginLeft: 12,
         },
         outcome: {
           color: outcomeColor,
           fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 13,
+          fontSize: 12,
           letterSpacing: -0.1,
-          lineHeight: 18,
+          lineHeight: 16,
+        },
+        meta: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          marginTop: 5,
+          width: '100%',
+        },
+        channelCol: {
+          flex: 1,
+          minWidth: 0,
+        },
+        whenCol: {
+          flexShrink: 0,
+          marginLeft: 12,
+        },
+        metaText: {
+          color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 12,
+          lineHeight: 16,
+        },
+        whenText: {
+          color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 11,
+          lineHeight: 14,
+          textAlign: 'right',
+        },
+        railWrap: {
+          alignItems: 'center',
+          height: RAIL_H,
+          marginLeft: ROW_PAD_H,
+          width: WELL,
+        },
+        rail: {
+          backgroundColor: colors.border,
+          flex: 1,
+          width: 2,
         },
       }),
-    [colors, outcomeColor],
+    [colors, isFirst, isLast, outcomeColor],
   );
 
   return (
     <View
-      accessibilityLabel={`${event.title}. ${meta}. ${event.statusLine}`}
+      accessibilityLabel={`${event.title}. ${channel}. ${event.statusLine}`}
       accessible
-      style={styles.block}
+      style={styles.root}
     >
-      <View style={styles.head}>
-        <FrostedIconWell color={iconColor} icon={event.icon} />
+      <View style={styles.row}>
+        <View style={styles.iconCol}>
+          <FrostedIconWell color={iconColor} icon={event.icon} iconSize={16} size={WELL} />
+        </View>
         <View style={styles.body}>
           <View style={styles.top}>
             <View style={styles.titleCol}>
               <AppText numberOfLines={1} style={styles.title}>
                 {event.title}
               </AppText>
-              {meta ? (
-                <View style={styles.metaRow}>
-                  <View style={styles.channelMark}>
-                    <Ionicons color={colors.textMuted} name={channelIcon} size={12} />
-                  </View>
-                  <View style={styles.metaCopy}>
-                    <AppText numberOfLines={2} style={styles.when}>
-                      {meta}
-                    </AppText>
-                  </View>
-                </View>
-              ) : null}
             </View>
             <View style={styles.outcomeCol}>
               <AppText style={styles.outcome}>{outcomeCopy(event)}</AppText>
             </View>
+          </View>
+          <View style={styles.meta}>
+            <View style={styles.channelCol}>
+              <AppText numberOfLines={1} style={styles.metaText}>
+                {channel}
+              </AppText>
+            </View>
+            {when ? (
+              <View style={styles.whenCol}>
+                <AppText numberOfLines={1} style={styles.whenText}>
+                  {when}
+                </AppText>
+              </View>
+            ) : null}
           </View>
         </View>
       </View>

@@ -1,21 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Animated,
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
-import {
-  scheduleSheetOpen,
-  useModalFadeBackdropSlideSheet,
-} from './useModalFadeBackdropSlideSheet';
+import { BottomSheetModal } from './BottomSheetModal';
+import { Button } from './Button';
 import { triggerWheelSelectionHaptic } from './wheelHaptics';
 
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1));
@@ -150,19 +139,11 @@ export function TimeSelectField({
   triggerStyle,
 }) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
-  const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
-    useModalFadeBackdropSlideSheet();
 
   const close = useCallback(() => {
-    runClose(() => setOpen(false));
-  }, [runClose]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    return scheduleSheetOpen(runOpen);
-  }, [open, runOpen]);
+    setOpen(false);
+  }, []);
 
   const hoursRef = useRef(null);
   const minutesRef = useRef(null);
@@ -203,13 +184,12 @@ export function TimeSelectField({
     setDraftHour(parsed.hour);
     setDraftMinute(parsed.minute);
     setDraftPeriod(parsed.period);
-    prepareOpen();
     setOpen(true);
   }
 
   function applySelection() {
     onValueChange(formatTime(draftHour, draftMinute, draftPeriod));
-    runClose(() => setOpen(false));
+    setOpen(false);
   }
 
   return (
@@ -237,70 +217,41 @@ export function TimeSelectField({
         <Ionicons color={colors.textMuted} name="chevron-down" size={20} />
       </TouchableOpacity>
 
-      <Modal animationType="none" onRequestClose={close} transparent visible={open}>
-        <View style={styles.modalRoot}>
-          <Animated.View
-            pointerEvents="box-none"
-            style={[StyleSheet.absoluteFillObject, backdropStyle, styles.backdropFill]}
-          >
-            <Pressable
-              accessibilityRole="button"
-              onPress={close}
-              style={StyleSheet.absoluteFillObject}
-            />
-          </Animated.View>
-          <Animated.View
-            style={[
-              styles.sheetWrap,
-              sheetStyle,
-              {
-                backgroundColor: colors.shellElevated,
-                borderTopColor: colors.borderStrong,
-                paddingBottom: Math.max(insets.bottom, 14) + 8,
-              },
-            ]}
-          >
-            <View style={styles.sheet}>
-              <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
-                <AppText style={[styles.sheetTitle, { color: colors.textMuted }]}>{title}</AppText>
-                <TouchableOpacity hitSlop={8} onPress={close}>
-                  <Ionicons color={colors.textMuted} name="close" size={20} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.dialsRow}>
-                <TimeWheelColumn
-                  listRef={hoursRef}
-                  selected={draftHour}
-                  values={HOURS}
-                  width={72}
-                  onSelectedChange={setDraftHour}
-                />
-                <AppText style={[styles.colon, { color: colors.textMuted }]}>:</AppText>
-                <TimeWheelColumn
-                  listRef={minutesRef}
-                  selected={draftMinute}
-                  values={MINUTES}
-                  width={72}
-                  onSelectedChange={setDraftMinute}
-                />
-                <View style={styles.minuteToPeriodGap} />
-                <TimeWheelColumn
-                  listRef={periodsRef}
-                  selected={draftPeriod}
-                  values={PERIODS}
-                  width={84}
-                  onSelectedChange={setDraftPeriod}
-                />
-              </View>
-
-              <TouchableOpacity activeOpacity={0.9} onPress={applySelection} style={styles.cta}>
-                <AppText style={styles.ctaText}>Set time</AppText>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
+      <BottomSheetModal
+        allowBackdropClose
+        fitContent
+        footer={<Button fullWidth title="Set time" onPress={applySelection} />}
+        showCloseButton={false}
+        title={title}
+        visible={open}
+        onRequestClose={close}
+      >
+        <View style={styles.dialsRow}>
+          <TimeWheelColumn
+            listRef={hoursRef}
+            selected={draftHour}
+            values={HOURS}
+            width={72}
+            onSelectedChange={setDraftHour}
+          />
+          <AppText style={[styles.colon, { color: colors.textMuted }]}>:</AppText>
+          <TimeWheelColumn
+            listRef={minutesRef}
+            selected={draftMinute}
+            values={MINUTES}
+            width={72}
+            onSelectedChange={setDraftMinute}
+          />
+          <View style={styles.minuteToPeriodGap} />
+          <TimeWheelColumn
+            listRef={periodsRef}
+            selected={draftPeriod}
+            values={PERIODS}
+            width={84}
+            onSelectedChange={setDraftPeriod}
+          />
         </View>
-      </Modal>
+      </BottomSheetModal>
     </View>
   );
 }
@@ -324,33 +275,6 @@ const styles = StyleSheet.create({
     paddingRight: 10,
     paddingVertical: 8,
   },
-  modalRoot: {
-    flex: 1,
-  },
-  backdropFill: {
-    backgroundColor: 'rgba(0,0,0,0.60)',
-  },
-  sheetWrap: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderTopWidth: 1,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-  },
-  sheet: {
-    paddingBottom: 16,
-  },
-  sheetHeader: {
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  sheetTitle: { fontSize: 14, fontWeight: '500' },
   dialsRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -376,14 +300,4 @@ const styles = StyleSheet.create({
   dialItemText: { fontSize: 18, fontWeight: '500' },
   colon: { fontSize: 20, fontWeight: '500', textAlign: 'center', width: 16 },
   minuteToPeriodGap: { width: 10 },
-  cta: {
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    height: 48,
-    justifyContent: 'center',
-    marginHorizontal: 16,
-    marginTop: 4,
-  },
-  ctaText: { color: '#000000', fontSize: 16, fontWeight: '600' },
 });

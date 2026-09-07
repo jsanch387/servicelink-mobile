@@ -8,6 +8,7 @@ import {
   isAllowedBusinessTypeValue,
 } from '../../../constants/businessTypes';
 import { getSession } from '../../auth/api/auth';
+import { fillOnboardingServiceDescription } from '../utils/buildOnboardingServiceDraft';
 import {
   MAX_ONBOARDING_BUSINESS_NAME_LENGTH,
   MAX_ONBOARDING_SERVICE_DESCRIPTION_LENGTH,
@@ -259,7 +260,7 @@ export async function saveOnboardingStep2Services({ services }) {
     return { ok: false, error: new Error('Not signed in') };
   }
 
-  const list = Array.isArray(services) ? services : [];
+  const list = (Array.isArray(services) ? services : []).map(fillOnboardingServiceDescription);
   if (!list.length) {
     return { ok: false, error: new Error('Add at least one service.') };
   }

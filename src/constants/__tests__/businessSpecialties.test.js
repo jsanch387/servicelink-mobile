@@ -1,6 +1,7 @@
 import {
   deriveSpecialtiesFromBusinessType,
   getSpecialtiesForBusinessType,
+  getSpecialtyLabel,
   hasDetailingMarketplaceListing,
   resolveBusinessSpecialties,
   sanitizeBusinessSpecialties,
@@ -47,6 +48,11 @@ describe('business specialties', () => {
       specialtiesAllowedForBusinessType('Pet Services', ['detailing', 'pet_grooming']),
     ).toEqual(['pet_grooming']);
     expect(specialtiesAllowedForBusinessType('Other', ['detailing'])).toEqual(['other']);
+  });
+
+  it('maps specialty slugs to labels', () => {
+    expect(getSpecialtyLabel('detailing')).toBe('Auto detailing');
+    expect(getSpecialtyLabel('unknown')).toBe('Service');
   });
 
   it('drops unknown specialty slugs', () => {

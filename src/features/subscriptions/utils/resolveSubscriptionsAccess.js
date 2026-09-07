@@ -26,8 +26,8 @@ export function isSubscriptionsEarlyAccessEmail(email) {
  * 1. **Email-only** — `SUBSCRIPTIONS_EARLY_ACCESS_EMAILS` is non-empty. Only those
  *    exact logins get `canUseSubscriptions`; everyone else (including existing Pro
  *    subscribers) sees the app as if the flag were off.
- * 2. **Pro-gated** — clear the allowlist. Pro subscribers get the hub; non-Pro
- *    see the upsell inside Subscriptions.
+ * 2. **Open / Pro-gated (current)** — allowlist empty. Pro subscribers get the
+ *    hub; non-Pro see the upsell inside Subscriptions.
  *
  * @param {{
  *   enabled?: boolean;

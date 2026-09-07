@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, Button, DetailsSectionCard, InlineCardError } from '../../../components/ui';
+import { AppText, Button, InlineCardError, SettingsSection } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { BookingActivityEventRow } from '../booking-details/components/BookingActivityEventRow';
@@ -25,18 +25,13 @@ export function BookingActivityScreen({ route }) {
         },
         content: {
           flexGrow: 1,
-          gap: 22,
           paddingBottom: 36,
           paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: 16,
+          paddingTop: 12,
         },
-        heading: {
-          color: colors.text,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 20,
-          letterSpacing: -0.4,
-          lineHeight: 26,
-          marginBottom: 12,
+        padded: {
+          paddingHorizontal: 16,
+          paddingVertical: 16,
         },
         errorRetry: {
           marginTop: 12,
@@ -79,19 +74,15 @@ export function BookingActivityScreen({ route }) {
         refreshControl={refreshControl}
         showsVerticalScrollIndicator={false}
       >
-        <View>
-          <AppText accessibilityRole="header" style={styles.heading}>
-            Updates sent to your customer
-          </AppText>
+        {activity.isLoading ? (
+          <SettingsSection first>
+            <BookingActivitySkeleton />
+          </SettingsSection>
+        ) : null}
 
-          {activity.isLoading ? (
-            <DetailsSectionCard bodyPadding="roomy">
-              <BookingActivitySkeleton />
-            </DetailsSectionCard>
-          ) : null}
-
-          {activity.errorMessage && !activity.isLoading ? (
-            <DetailsSectionCard bodyPadding="roomy">
+        {activity.errorMessage && !activity.isLoading ? (
+          <SettingsSection first>
+            <View style={styles.padded}>
               <InlineCardError message={activity.errorMessage} />
               <Button
                 accessibilityHint="Attempts to load customer updates again"
@@ -103,32 +94,33 @@ export function BookingActivityScreen({ route }) {
                 variant="secondary"
                 onPress={() => void activity.refetch()}
               />
-            </DetailsSectionCard>
-          ) : null}
+            </View>
+          </SettingsSection>
+        ) : null}
 
-          {!activity.isLoading && !activity.errorMessage ? (
-            <DetailsSectionCard bodyPadding="roomy">
-              {activity.events.length === 0 ? (
-                <View>
-                  <AppText style={styles.emptyTitle}>Nothing sent yet</AppText>
-                  <AppText style={styles.emptyBody}>
-                    Texts and emails about this visit show up here.
-                  </AppText>
-                </View>
-              ) : (
-                <View>
-                  {activity.events.map((event, index) => (
-                    <BookingActivityEventRow
-                      key={event.key}
-                      event={event}
-                      isLast={index === activity.events.length - 1}
-                    />
-                  ))}
-                </View>
-              )}
-            </DetailsSectionCard>
-          ) : null}
-        </View>
+        {!activity.isLoading && !activity.errorMessage && activity.events.length === 0 ? (
+          <SettingsSection first>
+            <View style={styles.padded}>
+              <AppText style={styles.emptyTitle}>Nothing sent yet</AppText>
+              <AppText style={styles.emptyBody}>
+                Texts and emails about this visit show up here.
+              </AppText>
+            </View>
+          </SettingsSection>
+        ) : null}
+
+        {!activity.isLoading && !activity.errorMessage && activity.events.length > 0 ? (
+          <SettingsSection first>
+            {activity.events.map((event, index) => (
+              <BookingActivityEventRow
+                key={event.key}
+                event={event}
+                isFirst={index === 0}
+                isLast={index === activity.events.length - 1}
+              />
+            ))}
+          </SettingsSection>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

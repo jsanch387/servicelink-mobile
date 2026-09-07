@@ -187,6 +187,15 @@ export function buildBookingActivityModel({
   if (smsByKey.has('reminder-sms')) {
     selected.push({ key: 'reminder-sms', ...smsByKey.get('reminder-sms') });
   }
+  // Reminder emails are not logged like SMS. When a reminder text exists and the
+  // customer has an email, the same cron usually sends both — show the email row.
+  if (hasCustomerEmail && smsByKey.has('reminder-sms')) {
+    selected.push({
+      key: 'reminder-email',
+      outcome: 'sent',
+      at: smsByKey.get('reminder-sms')?.at ?? '',
+    });
+  }
   if (smsByKey.has('on-the-way')) {
     selected.push({ key: 'on-the-way', ...smsByKey.get('on-the-way') });
   }
