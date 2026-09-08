@@ -1,6 +1,11 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { FROSTED_ICON_WELL_SIZE, SkeletonBox, frostedSurfaceColors } from '../../../components/ui';
+import {
+  FROSTED_ICON_WELL_SIZE,
+  FrostedCard,
+  SkeletonBox,
+  frostedSurfaceColors,
+} from '../../../components/ui';
 import { useTheme } from '../../../theme';
 
 const ROW_WIDTHS = [
@@ -23,14 +28,6 @@ export function PaymentsTransactionsSkeleton() {
         stack: {
           gap: 16,
         },
-        balanceCard: {
-          backgroundColor: frost.backgroundColor,
-          borderColor: frost.borderColor,
-          borderRadius: 16,
-          borderWidth: StyleSheet.hairlineWidth,
-          paddingHorizontal: 20,
-          paddingVertical: 20,
-        },
         pendingRow: {
           alignItems: 'center',
           borderTopColor: frost.borderColor,
@@ -52,7 +49,7 @@ export function PaymentsTransactionsSkeleton() {
           paddingTop: 4,
         },
       }),
-    [frost.backgroundColor, frost.borderColor],
+    [frost.borderColor],
   );
 
   return (
@@ -63,7 +60,7 @@ export function PaymentsTransactionsSkeleton() {
       style={stylesLocal.stack}
       testID="payments-transactions"
     >
-      <View style={stylesLocal.balanceCard}>
+      <FrostedCard>
         <SkeletonBox borderRadius={6} height={13} pulse width={72} />
         <SkeletonBox borderRadius={10} height={34} pulse style={{ marginTop: 10 }} width={168} />
         <View style={stylesLocal.pendingRow}>
@@ -72,7 +69,7 @@ export function PaymentsTransactionsSkeleton() {
           </View>
           <SkeletonBox borderRadius={6} height={14} pulse width={64} />
         </View>
-      </View>
+      </FrostedCard>
 
       <View style={stylesLocal.list}>
         <View style={stylesLocal.dayHead}>

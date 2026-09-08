@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, frostedSurfaceColors } from '../../../components/ui';
+import { AppText, FrostedCard, frostedSurfaceColors } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 
 /**
@@ -26,14 +26,6 @@ export function PaymentsTransactionsBalance({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        card: {
-          backgroundColor: frost.backgroundColor,
-          borderColor: frost.borderColor,
-          borderRadius: 16,
-          borderWidth: StyleSheet.hairlineWidth,
-          paddingHorizontal: 20,
-          paddingVertical: 20,
-        },
         hero: {
           gap: 6,
         },
@@ -82,11 +74,11 @@ export function PaymentsTransactionsBalance({
           letterSpacing: -0.2,
         },
       }),
-    [colors, frost.backgroundColor, frost.borderColor],
+    [colors, frost.borderColor],
   );
 
   return (
-    <View style={styles.card}>
+    <FrostedCard>
       <View style={styles.hero}>
         <AppText style={styles.caption}>{availableCaption}</AppText>
         <AppText style={styles.available}>{availableLabel}</AppText>
@@ -99,6 +91,6 @@ export function PaymentsTransactionsBalance({
           <AppText style={styles.pendingValue}>{pendingLabel}</AppText>
         </View>
       </View>
-    </View>
+    </FrostedCard>
   );
 }

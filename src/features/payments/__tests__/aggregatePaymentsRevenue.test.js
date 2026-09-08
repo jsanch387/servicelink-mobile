@@ -283,7 +283,8 @@ describe('aggregatePaymentsRevenue', () => {
     });
 
     expect(summary.bucketKind).toBe('monthly');
-    expect(summary.bars[0].label).toBe('Jan 25');
+    expect(summary.bars[0].label).toBe('Jan');
+    expect(summary.bars[0].fullLabel).toBe('Jan 2025');
     expect(summary.bars.some((b) => b.cents === 1000)).toBe(true);
     expect(summary.bars.some((b) => b.cents === 4000)).toBe(true);
     expect(summary.collectedCents).toBe(5000);

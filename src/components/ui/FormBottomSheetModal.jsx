@@ -7,6 +7,7 @@ import { Button } from './Button';
  * Use for add-on, add-service style flows; feature screens pass fields as `children`.
  * Footer pins to the bottom of the sheet (`stickyFooter`) and stays under the
  * keyboard while typing (`liftFooterWithKeyboard={false}`).
+ * `onSecondaryPress` overrides the left button (e.g. Back in a stepper).
  */
 export function FormBottomSheetModal({
   visible,
@@ -19,6 +20,8 @@ export function FormBottomSheetModal({
   primaryDisabled = false,
   primaryLoading = false,
   onPrimaryPress,
+  onSecondaryPress,
+  showHeaderDivider = true,
   children,
 }) {
   return (
@@ -32,7 +35,7 @@ export function FormBottomSheetModal({
             style={styles.actionBtn}
             title={cancelTitle}
             variant="secondary"
-            onPress={onRequestClose}
+            onPress={onSecondaryPress ?? onRequestClose}
           />
           <Button
             disabled={primaryDisabled}
@@ -49,6 +52,7 @@ export function FormBottomSheetModal({
       }
       liftFooterWithKeyboard={false}
       sheetHeightPercent={sheetHeightPercent}
+      showHeaderDivider={showHeaderDivider}
       stickyFooter
       title={title}
       visible={visible}

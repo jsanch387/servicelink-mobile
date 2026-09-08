@@ -135,8 +135,13 @@ export function MoreScreen() {
           <SettingsNavRow
             icon="card-outline"
             label="Payments"
-            showDividerBelow={false}
             onPress={() => navigation.navigate(ROUTES.MORE_PAYMENTS)}
+          />
+          <SettingsNavRow
+            icon="receipt-outline"
+            label="Expenses"
+            showDividerBelow={false}
+            onPress={() => navigation.navigate(ROUTES.EXPENSES)}
           />
         </SettingsSection>
 

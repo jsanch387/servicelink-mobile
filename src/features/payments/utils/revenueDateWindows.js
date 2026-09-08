@@ -1,5 +1,16 @@
+import {
+  customDateWindow,
+  formatCustomDateRangeLabel,
+  inclusiveDayCount as sharedInclusiveDayCount,
+  isCompleteCustomDateRange,
+} from '../../../components/ui';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { REVENUE_RANGE } from '../constants/paymentsRevenueRanges';
+
+export const inclusiveDayCount = sharedInclusiveDayCount;
+export const revenueCustomDateWindow = customDateWindow;
+export const isCompleteCustomRevenueRange = isCompleteCustomDateRange;
+export const formatRevenueCustomRangeLabel = formatCustomDateRangeLabel;
 
 /**
  * @param {Date} d
@@ -91,57 +102,6 @@ export function revenueDateWindow(range, now = new Date()) {
   };
 }
 
-const EMPTY_WINDOW = Object.freeze({
-  fromYmd: null,
-  toYmd: null,
-  prevFromYmd: null,
-  prevToYmd: null,
-});
-
-/**
- * Inclusive day count between two local `YYYY-MM-DD` keys (DST-safe).
- * @param {string} fromYmd
- * @param {string} toYmd
- * @returns {number}
- */
-export function inclusiveDayCount(fromYmd, toYmd) {
-  const from = parseLocalYmd(fromYmd);
-  const to = parseLocalYmd(toYmd);
-  const a = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
-  const b = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate());
-  return Math.round((b - a) / 86400000) + 1;
-}
-
-/**
- * Inclusive custom window plus the same-length period immediately before.
- * Swaps bounds when `to` is before `from`.
- *
- * @param {string | null | undefined} fromYmd
- * @param {string | null | undefined} toYmd
- * @returns {{ fromYmd: string | null; toYmd: string | null; prevFromYmd: string | null; prevToYmd: string | null }}
- */
-export function revenueCustomDateWindow(fromYmd, toYmd) {
-  let from = String(fromYmd ?? '').trim();
-  let to = String(toYmd ?? '').trim();
-  if (!from || !to) return { ...EMPTY_WINDOW };
-  if (to < from) {
-    const swap = from;
-    from = to;
-    to = swap;
-  }
-
-  const fromDate = parseLocalYmd(from);
-  const days = inclusiveDayCount(from, to);
-  const prevTo = addDays(fromDate, -1);
-  const prevFrom = addDays(prevTo, -(days - 1));
-  return {
-    fromYmd: from,
-    toYmd: to,
-    prevFromYmd: localYyyyMmDd(prevFrom),
-    prevToYmd: localYyyyMmDd(prevTo),
-  };
-}
-
 const MONTH_SHORT = [
   'Jan',
   'Feb',
@@ -156,43 +116,6 @@ const MONTH_SHORT = [
   'Nov',
   'Dec',
 ];
-
-/**
- * Compact trigger label for a custom revenue window.
- * @param {string | null | undefined} fromYmd
- * @param {string | null | undefined} toYmd
- * @returns {string}
- */
-/**
- * Custom revenue UI requires two different local dates.
- * @param {string | null | undefined} fromYmd
- * @param {string | null | undefined} toYmd
- * @returns {boolean}
- */
-export function isCompleteCustomRevenueRange(fromYmd, toYmd) {
-  const from = String(fromYmd ?? '').trim();
-  const to = String(toYmd ?? '').trim();
-  return Boolean(from && to && from !== to);
-}
-
-export function formatRevenueCustomRangeLabel(fromYmd, toYmd) {
-  const window = revenueCustomDateWindow(fromYmd, toYmd);
-  if (!window.fromYmd || !window.toYmd) return 'Custom';
-
-  const from = parseLocalYmd(window.fromYmd);
-  const to = parseLocalYmd(window.toYmd);
-  const sameDay = window.fromYmd === window.toYmd;
-  const sameYear = from.getFullYear() === to.getFullYear();
-  const sameMonth = sameYear && from.getMonth() === to.getMonth();
-
-  const monthDay = (d) => `${MONTH_SHORT[d.getMonth()]} ${d.getDate()}`;
-  const withYear = (d) => `${monthDay(d)}, ${d.getFullYear()}`;
-
-  if (sameDay) return monthDay(from);
-  if (sameMonth) return `${monthDay(from)}–${to.getDate()}`;
-  if (sameYear) return `${monthDay(from)}–${monthDay(to)}`;
-  return `${withYear(from)}–${withYear(to)}`;
-}
 
 /**
  * Caption under the range picker: "Aug 1 – Aug 31".

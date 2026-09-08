@@ -1,20 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
-import { AppText, InlineCardError, SurfaceCard } from '../../../components/ui';
+import { useMemo } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { AppText, InlineCardError, SurfaceCard, TrendAreaChart } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { REVENUE_RANGE, REVENUE_EMPTY_CAPTION } from '../constants/paymentsRevenueRanges';
 import { usePaymentsRevenue } from '../hooks/usePaymentsRevenue';
 import { formatRevenueWindowCaption } from '../utils/revenueDateWindows';
 import { PaymentsRevenueRangePicker } from './PaymentsRevenueRangePicker';
-
-const CHART_H = 200;
-const CHART_PAD_X = 10;
-const CHART_PAD_TOP = 32;
-const CHART_PAD_BOTTOM = 10;
-/** Width used to pin axis labels to the same x as chart dots. */
-const CHART_LABEL_W = 44;
 
 function formatUsd(cents, { compact = false } = {}) {
   const dollars = cents / 100;
@@ -47,61 +39,10 @@ function bestPeriodTitle(range, bucketKind) {
   return 'Best year';
 }
 
-function buildAreaPaths(points, width) {
-  const w = Math.max(width, 1);
-  if (!points.length) return { line: '', area: '', coords: [] };
-  const max = Math.max(...points.map((p) => p.cents), 1);
-  const innerW = w - CHART_PAD_X * 2;
-  const innerH = CHART_H - CHART_PAD_TOP - CHART_PAD_BOTTOM;
-  const coords = points.map((p, i) => {
-    const x =
-      points.length === 1
-        ? CHART_PAD_X + innerW / 2
-        : CHART_PAD_X + (i / (points.length - 1)) * innerW;
-    const y = CHART_PAD_TOP + innerH - (p.cents / max) * innerH;
-    return { x, y };
-  });
-
-  let line = `M ${coords[0].x} ${coords[0].y}`;
-  for (let i = 1; i < coords.length; i += 1) {
-    const prev = coords[i - 1];
-    const curr = coords[i];
-    const cx = (prev.x + curr.x) / 2;
-    line += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
-  }
-
-  const last = coords[coords.length - 1];
-  const first = coords[0];
-  const baseline = CHART_H - CHART_PAD_BOTTOM;
-  const area = `${line} L ${last.x} ${baseline} L ${first.x} ${baseline} Z`;
-
-  return { line, area, coords };
-}
-
 function pickBest(bars) {
   if (!Array.isArray(bars) || bars.length === 0) return null;
   const best = bars.reduce((acc, row) => (row.cents > acc.cents ? row : acc), bars[0]);
   return best.cents > 0 ? best : null;
-}
-
-function indexFromTouchX(locationX, width, count) {
-  if (count <= 1) return 0;
-  const innerW = Math.max(width - CHART_PAD_X * 2, 1);
-  const clamped = Math.max(0, Math.min(innerW, locationX - CHART_PAD_X));
-  return Math.round((clamped / innerW) * (count - 1));
-}
-
-/**
- * Place an axis label under a chart dot: first flush left, last flush right, others centered.
- * @param {number} x
- * @param {number} index
- * @param {number} count
- */
-function chartLabelLeft(x, index, count) {
-  if (count <= 1) return Math.max(0, x - CHART_LABEL_W / 2);
-  if (index === 0) return x;
-  if (index === count - 1) return x - CHART_LABEL_W;
-  return x - CHART_LABEL_W / 2;
 }
 
 /**
@@ -131,24 +72,16 @@ export function PaymentsRevenueSection({ businessId }) {
 
   const bars = summary.bars;
   const best = pickBest(bars);
-  const [chartWidth, setChartWidth] = useState(0);
-  const [selectedIndex, setSelectedIndex] = useState(() => Math.max(0, bars.length - 1));
-
-  useEffect(() => {
-    setSelectedIndex(Math.max(0, bars.length - 1));
-  }, [range, customFromYmd, customToYmd, bars.length]);
-
-  const plotWidth = chartWidth > 0 ? chartWidth : 320;
-  const chart = useMemo(() => buildAreaPaths(bars, plotWidth), [bars, plotWidth]);
-
-  const activeIndex = Math.min(selectedIndex, Math.max(0, bars.length - 1));
-  const activeBar = bars[activeIndex] ?? null;
-  const activeCoord = chart.coords[activeIndex] ?? null;
-
-  const selectFromTouch = (locationX) => {
-    const width = chartWidth > 0 ? chartWidth : 1;
-    setSelectedIndex(indexFromTouchX(locationX, width, bars.length));
-  };
+  const chartPoints = useMemo(
+    () =>
+      bars.map((bar) => ({
+        key: bar.key,
+        label: bar.label,
+        fullLabel: bar.fullLabel,
+        value: bar.cents,
+      })),
+    [bars],
+  );
 
   const miniBars = useMemo(() => {
     const max = Math.max(...bars.map((b) => b.cents), 1);
@@ -250,70 +183,6 @@ export function PaymentsRevenueSection({ businessId }) {
           marginTop: 8,
           width: '100%',
         },
-        chartTouch: {
-          alignSelf: 'stretch',
-          height: CHART_H,
-          position: 'relative',
-          width: '100%',
-        },
-        chartLabels: {
-          height: 20,
-          marginTop: 8,
-          position: 'relative',
-          width: '100%',
-        },
-        chartLabelHit: {
-          position: 'absolute',
-          top: 0,
-          width: CHART_LABEL_W,
-        },
-        chartLabelName: {
-          color: colors.textMuted,
-          fontSize: 11,
-          fontWeight: '500',
-        },
-        chartLabelNameActive: {
-          color: colors.text,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontWeight: '600',
-        },
-        chartLabelAlignStart: {
-          textAlign: 'left',
-        },
-        chartLabelAlignCenter: {
-          textAlign: 'center',
-        },
-        chartLabelAlignEnd: {
-          textAlign: 'right',
-        },
-        tooltip: {
-          alignItems: 'center',
-          left: 0,
-          position: 'absolute',
-          top: 0,
-          width: 92,
-          zIndex: 2,
-        },
-        tooltipBubble: {
-          backgroundColor: isDark ? '#fafafa' : colors.text,
-          borderRadius: 10,
-          paddingHorizontal: 10,
-          paddingVertical: 6,
-        },
-        tooltipAmount: {
-          color: isDark ? '#0a0a0a' : colors.shell,
-          fontFamily: FONT_FAMILIES.bold,
-          fontSize: 13,
-          fontWeight: '700',
-          textAlign: 'center',
-        },
-        tooltipName: {
-          color: isDark ? '#525252' : 'rgba(255,255,255,0.72)',
-          fontSize: 11,
-          fontWeight: '500',
-          marginTop: 1,
-          textAlign: 'center',
-        },
         twinRow: {
           flexDirection: 'row',
           gap: 10,
@@ -395,10 +264,6 @@ export function PaymentsRevenueSection({ businessId }) {
     [colors, isDark],
   );
 
-  const tooltipLeft = activeCoord
-    ? Math.min(Math.max(activeCoord.x - 46, 0), Math.max(plotWidth - 92, 0))
-    : 0;
-
   const isEmpty = !isPending && !isError && summary.jobsPaid === 0;
 
   if (!businessId) {
@@ -468,125 +333,18 @@ export function PaymentsRevenueSection({ businessId }) {
         </View>
 
         <View style={styles.chartWrap}>
-          <View
-            accessible
-            accessibilityHint="Touch and drag to see each period"
-            accessibilityLabel={
-              activeBar ? `${activeBar.fullLabel}, ${formatUsd(activeBar.cents)}` : 'Revenue chart'
-            }
-            accessibilityRole="adjustable"
-            style={styles.chartTouch}
-            onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}
-            onMoveShouldSetResponder={() => true}
-            onResponderGrant={(e) => selectFromTouch(e.nativeEvent.locationX)}
-            onResponderMove={(e) => selectFromTouch(e.nativeEvent.locationX)}
-            onStartShouldSetResponder={() => true}
-          >
-            {activeBar && activeCoord ? (
-              <View pointerEvents="none" style={[styles.tooltip, { left: tooltipLeft }]}>
-                <View style={styles.tooltipBubble}>
-                  <AppText style={styles.tooltipAmount}>{formatUsd(activeBar.cents)}</AppText>
-                  <AppText style={styles.tooltipName}>{activeBar.fullLabel}</AppText>
-                </View>
-              </View>
-            ) : null}
-
-            <Svg
-              height={CHART_H}
-              pointerEvents="none"
-              preserveAspectRatio="none"
-              viewBox={`0 0 ${plotWidth} ${CHART_H}`}
-              width={plotWidth}
-            >
-              <Defs>
-                <LinearGradient id="revenueFill" x1="0" x2="0" y1="0" y2="1">
-                  <Stop
-                    offset="0"
-                    stopColor={colors.moneyPositive}
-                    stopOpacity={isDark ? 0.34 : 0.26}
-                  />
-                  <Stop offset="1" stopColor={colors.moneyPositive} stopOpacity={0} />
-                </LinearGradient>
-              </Defs>
-              <Path d={chart.area} fill="url(#revenueFill)" />
-              <Path
-                d={chart.line}
-                fill="none"
-                stroke={colors.moneyPositive}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={3.25}
-              />
-              {activeCoord ? (
-                <Line
-                  stroke={isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)'}
-                  strokeDasharray="4 4"
-                  strokeWidth={1.5}
-                  x1={activeCoord.x}
-                  x2={activeCoord.x}
-                  y1={CHART_PAD_TOP}
-                  y2={CHART_H - CHART_PAD_BOTTOM}
-                />
-              ) : null}
-              {chart.coords.map((coord, index) => {
-                const selected = index === activeIndex;
-                return (
-                  <Circle
-                    key={`pt-${index}`}
-                    cx={coord.x}
-                    cy={coord.y}
-                    fill={selected ? colors.moneyPositive : colors.shell}
-                    r={selected ? 6 : 3.5}
-                    stroke={colors.moneyPositive}
-                    strokeWidth={selected ? 3 : 2}
-                  />
-                );
-              })}
-            </Svg>
-          </View>
-
-          <View style={styles.chartLabels}>
-            {bars.map((bar, index) => {
-              const dense = bars.length > 7;
-              const showName =
-                !dense ||
-                index === 0 ||
-                index === bars.length - 1 ||
-                index % 2 === 0 ||
-                index === activeIndex;
-              const isActive = index === activeIndex;
-              const isFirst = index === 0;
-              const isLast = index === bars.length - 1;
-              const x = chart.coords[index]?.x ?? 0;
-              return (
-                <Pressable
-                  key={bar.key}
-                  accessibilityRole="button"
-                  style={[styles.chartLabelHit, { left: chartLabelLeft(x, index, bars.length) }]}
-                  onPress={() => setSelectedIndex(index)}
-                >
-                  <AppText
-                    style={[
-                      styles.chartLabelName,
-                      isActive && styles.chartLabelNameActive,
-                      isFirst
-                        ? styles.chartLabelAlignStart
-                        : isLast
-                          ? styles.chartLabelAlignEnd
-                          : styles.chartLabelAlignCenter,
-                    ]}
-                  >
-                    {showName ? bar.label : ' '}
-                  </AppText>
-                </Pressable>
-              );
-            })}
-          </View>
+          <TrendAreaChart
+            color={colors.moneyPositive}
+            fallbackAccessibilityLabel="Revenue chart"
+            formatValue={formatUsd}
+            gradientId="revenueFill"
+            points={chartPoints}
+          />
         </View>
       </View>
 
       <View style={styles.twinRow}>
-        <SurfaceCard style={styles.twinCard}>
+        <SurfaceCard outlined={false} style={styles.twinCard}>
           <View style={styles.twinHeader}>
             <View style={styles.twinIcon}>
               <Ionicons color={colors.textMuted} name="briefcase-outline" size={16} />
@@ -609,7 +367,7 @@ export function PaymentsRevenueSection({ businessId }) {
           </View>
         </SurfaceCard>
 
-        <SurfaceCard style={styles.twinCard}>
+        <SurfaceCard outlined={false} style={styles.twinCard}>
           <View style={styles.twinHeader}>
             <View style={styles.twinIcon}>
               <Ionicons color={colors.textMuted} name="sunny-outline" size={16} />

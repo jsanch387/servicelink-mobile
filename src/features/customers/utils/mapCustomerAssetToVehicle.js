@@ -108,7 +108,9 @@ export function mapCustomerAssetsToPastVehicles(assets) {
     if (!vehicle) {
       continue;
     }
-    const key = [vehicle.year, vehicle.make, vehicle.model].map((part) => part.toLowerCase()).join('|');
+    const key = [vehicle.year, vehicle.make, vehicle.model]
+      .map((part) => part.toLowerCase())
+      .join('|');
     if (seen.has(key)) {
       continue;
     }

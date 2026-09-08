@@ -60,6 +60,8 @@ export const ROUTES = {
   MARKETING_SALE_DETAIL: 'MarketingSaleDetail',
   MORE_PAYMENTS: 'MorePayments',
   PAYMENTS: 'Payments',
+  /** More stack — business expenses list. */
+  EXPENSES: 'Expenses',
   /** Bottom tab: More (settings, business tools, support) */
   MORE: 'More',
   MORE_HOME: 'MoreHome',
@@ -122,6 +124,7 @@ export const PATHS = {
   MARKETING_SALE_DETAIL: '/marketing/sales/:campaignId',
   MORE_PAYMENTS: '/more/payments',
   PAYMENTS: '/payments',
+  EXPENSES: '/more/expenses',
   MORE: '/more',
   MORE_HOME: '/more/home',
   ACCOUNT_SETTINGS: '/more/account',
