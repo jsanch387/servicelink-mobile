@@ -5,23 +5,68 @@ export const PRESET_OPTIONS = [
   { value: 'custom', label: 'Custom' },
 ];
 
+/**
+ * Compact duration label for pickers and booking-timing cards.
+ * @param {unknown} raw
+ * @returns {string}
+ */
+export function formatDurationLabel(raw) {
+  const value = String(raw ?? '').trim();
+  if (!value || value === 'none') return 'None';
+  if (value === '90m') return '1 hr 30 min';
+  if (value === '24h') return '1 day';
+  if (value === '48h') return '2 days';
+  if (value === '72h') return '3 days';
+
+  const match = value.match(/^(\d+)([mhw])$/);
+  if (!match) return 'None';
+  const amount = Number(match[1]);
+  const unit = match[2];
+  if (unit === 'm') return `${amount} min`;
+  if (unit === 'h') return `${amount} hr`;
+  return amount === 1 ? '1 wk' : `${amount} wk`;
+}
+
 /** Allowed `business_availability.minimum_notice` values (DB check constraint). */
 export const MINIMUM_NOTICE_OPTIONS = [
-  { value: 'none', label: 'None' },
-  { value: '30m', label: '30 minutes' },
-  { value: '1h', label: '1 hour' },
-  { value: '2h', label: '2 hours' },
-  { value: '3h', label: '3 hours' },
-  { value: '4h', label: '4 hours' },
-  { value: '8h', label: '8 hours' },
-  { value: '12h', label: '12 hours' },
-  { value: '24h', label: '1 day' },
-  { value: '48h', label: '2 days' },
-  { value: '72h', label: '3 days' },
-  { value: '1w', label: '1 week' },
+  { value: 'none', label: formatDurationLabel('none') },
+  { value: '30m', label: formatDurationLabel('30m') },
+  { value: '1h', label: formatDurationLabel('1h') },
+  { value: '2h', label: formatDurationLabel('2h') },
+  { value: '3h', label: formatDurationLabel('3h') },
+  { value: '4h', label: formatDurationLabel('4h') },
+  { value: '8h', label: formatDurationLabel('8h') },
+  { value: '12h', label: formatDurationLabel('12h') },
+  { value: '24h', label: formatDurationLabel('24h') },
+  { value: '48h', label: formatDurationLabel('48h') },
+  { value: '72h', label: formatDurationLabel('72h') },
+  { value: '1w', label: formatDurationLabel('1w') },
 ];
 
 const MINIMUM_NOTICE_VALUES = new Set(MINIMUM_NOTICE_OPTIONS.map((o) => o.value));
+
+/** Allowed `business_availability.buffer_time` values (DB check constraint). */
+export const BUFFER_TIME_OPTIONS = [
+  { value: 'none', label: formatDurationLabel('none') },
+  { value: '15m', label: formatDurationLabel('15m') },
+  { value: '30m', label: formatDurationLabel('30m') },
+  { value: '45m', label: formatDurationLabel('45m') },
+  { value: '1h', label: formatDurationLabel('1h') },
+  { value: '90m', label: formatDurationLabel('90m') },
+  { value: '2h', label: formatDurationLabel('2h') },
+];
+
+const BUFFER_TIME_VALUES = new Set(BUFFER_TIME_OPTIONS.map((o) => o.value));
+
+/**
+ * @param {unknown} raw
+ * @returns {string} canonical buffer_time value
+ */
+export function normalizeBufferTime(raw) {
+  const value = String(raw ?? '').trim();
+  if (BUFFER_TIME_VALUES.has(value)) return value;
+  return 'none';
+}
 
 /**
  * @param {unknown} raw
@@ -200,6 +245,7 @@ export function buildDefaultAvailabilityUiModel() {
     ),
     timeOffBlocks: [],
     minimumNotice: 'none',
+    bufferTime: 'none',
   };
 }
 
@@ -228,6 +274,7 @@ export function buildAvailabilityUiModel(row) {
     ),
     timeOffBlocks: Array.isArray(row.time_off_blocks) ? row.time_off_blocks : [],
     minimumNotice: normalizeMinimumNotice(row.minimum_notice),
+    bufferTime: normalizeBufferTime(row.buffer_time),
   };
 }
 

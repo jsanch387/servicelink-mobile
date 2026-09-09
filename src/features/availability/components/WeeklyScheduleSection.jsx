@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, SurfaceCard } from '../../../components/ui';
+import { AppText } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { WeeklyScheduleCard } from './WeeklyScheduleCard';
 
 /**
- * “Weekly schedule” heading + card-wrapped day toggles (same layout as the main Availability screen).
+ * “Weekly schedule” heading + per-day cards (same layout as the main Availability screen).
  */
 export function WeeklyScheduleSection({
   dayEnabledMap,
@@ -27,11 +27,6 @@ export function WeeklyScheduleSection({
           marginBottom: 8,
           marginTop: 4,
         },
-        scheduleCard: {
-          borderRadius: 16,
-          paddingHorizontal: 0,
-          paddingVertical: 0,
-        },
       }),
     [colors],
   );
@@ -39,14 +34,12 @@ export function WeeklyScheduleSection({
   return (
     <View style={style}>
       {showTitle ? <AppText style={styles.sectionTitle}>Weekly schedule</AppText> : null}
-      <SurfaceCard style={styles.scheduleCard}>
-        <WeeklyScheduleCard
-          dayEnabledMap={dayEnabledMap}
-          dayTimeRanges={dayTimeRanges}
-          onDayTimeChange={onDayTimeChange}
-          onDayToggle={onDayToggle}
-        />
-      </SurfaceCard>
+      <WeeklyScheduleCard
+        dayEnabledMap={dayEnabledMap}
+        dayTimeRanges={dayTimeRanges}
+        onDayTimeChange={onDayTimeChange}
+        onDayToggle={onDayToggle}
+      />
     </View>
   );
 }

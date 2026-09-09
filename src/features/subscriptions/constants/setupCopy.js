@@ -59,6 +59,5 @@ export const SUBSCRIPTIONS_MEMBERS_EMPTY_AFTER_SETUP = {
 
 export const SUBSCRIPTIONS_BETA_BANNER_TITLE = 'Beta feature';
 export const SUBSCRIPTIONS_BETA_BANNER_BODY = 'Tap to request improvements';
-export const SUBSCRIPTIONS_BETA_BANNER_A11Y_LABEL =
-  'Beta feature. Tap to request improvements.';
+export const SUBSCRIPTIONS_BETA_BANNER_A11Y_LABEL = 'Beta feature. Tap to request improvements.';
 export const SUBSCRIPTIONS_BETA_BANNER_A11Y_HINT = 'Opens Contact us';

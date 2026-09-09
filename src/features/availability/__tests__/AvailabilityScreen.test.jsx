@@ -41,7 +41,12 @@ const BASE_MODEL = {
   },
   timeOffBlocks: [],
   minimumNotice: 'none',
+  bufferTime: 'none',
 };
+
+function openSettings() {
+  fireEvent.press(screen.getByText('Settings'));
+}
 
 describe('AvailabilityScreen', () => {
   beforeEach(() => {
@@ -64,14 +69,32 @@ describe('AvailabilityScreen', () => {
     });
   });
 
+  it('shows the weekly schedule on the default tab', () => {
+    renderWithProviders(<AvailabilityScreen />);
+    expect(screen.getByText('Your schedule')).toBeTruthy();
+    expect(screen.getAllByText('Unavailable').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Buffer time')).toBeNull();
+    expect(screen.queryByLabelText('Accept booking requests')).toBeNull();
+  });
+
+  it('shows settings controls on the settings tab', () => {
+    renderWithProviders(<AvailabilityScreen />);
+    openSettings();
+    expect(screen.getByLabelText('Accept booking requests')).toBeTruthy();
+    expect(screen.getByText('Time off')).toBeTruthy();
+    expect(screen.getByText('Lead time')).toBeTruthy();
+    expect(screen.getByText('Buffer time')).toBeTruthy();
+    expect(screen.queryByText('Unavailable')).toBeNull();
+  });
+
   it('disables save initially and enables after toggling availability', async () => {
     renderWithProviders(<AvailabilityScreen />);
 
     const saveBtn = screen.getByRole('button', { name: 'Save changes' });
     expect(saveBtn.props.accessibilityState?.disabled).toBe(true);
 
-    const switches = screen.UNSAFE_getAllByType(require('react-native').Switch);
-    fireEvent(switches[0], 'valueChange', true);
+    openSettings();
+    fireEvent(screen.getByLabelText('Accept booking requests'), 'valueChange', true);
 
     await waitFor(() => {
       expect(
@@ -87,8 +110,8 @@ describe('AvailabilityScreen', () => {
 
   it('calls save with custom preset and weekly payload', async () => {
     renderWithProviders(<AvailabilityScreen />);
-    const switches = screen.UNSAFE_getAllByType(require('react-native').Switch);
-    fireEvent(switches[0], 'valueChange', true);
+    openSettings();
+    fireEvent(screen.getByLabelText('Accept booking requests'), 'valueChange', true);
 
     fireEvent.press(screen.getByText('Save changes'));
 
@@ -96,8 +119,31 @@ describe('AvailabilityScreen', () => {
     const payload = mockSaveAvailability.mock.calls[0][0];
     expect(payload.selectedPreset).toBe('custom');
     expect(payload.minimumNotice).toBe('none');
+    expect(payload.bufferTime).toBe('none');
     expect(payload.weeklySchedule.monday).toBeDefined();
     expect(Array.isArray(payload.timeOffBlocks)).toBe(true);
+  });
+
+  it('shows a loaded buffer time and includes it on save', async () => {
+    mockUseBusinessAvailability.mockReturnValue({
+      businessId: 'biz-1',
+      isLoading: false,
+      isFetching: false,
+      businessError: null,
+      availabilityError: null,
+      refetch: jest.fn(),
+      row: { minimum_notice: 'none', buffer_time: '30m' },
+      model: { ...BASE_MODEL, bufferTime: '30m' },
+    });
+    renderWithProviders(<AvailabilityScreen />);
+    openSettings();
+    expect(screen.getByText('30 min')).toBeTruthy();
+
+    fireEvent(screen.getByLabelText('Accept booking requests'), 'valueChange', true);
+    fireEvent.press(screen.getByText('Save changes'));
+
+    await waitFor(() => expect(mockSaveAvailability).toHaveBeenCalledTimes(1));
+    expect(mockSaveAvailability.mock.calls[0][0].bufferTime).toBe('30m');
   });
 
   it('disables accept switch when no day is enabled', () => {
@@ -124,6 +170,7 @@ describe('AvailabilityScreen', () => {
       },
     });
     renderWithProviders(<AvailabilityScreen />);
+    openSettings();
     const acceptSwitch = screen.getByLabelText('Accept booking requests');
     expect(acceptSwitch.props.disabled).toBe(true);
   });
@@ -153,11 +200,10 @@ describe('AvailabilityScreen', () => {
     });
     renderWithProviders(<AvailabilityScreen />);
     const switches = screen.UNSAFE_getAllByType(require('react-native').Switch);
-    expect(switches[0].props.value).toBe(true);
-    fireEvent(switches[1], 'valueChange', false);
+    fireEvent(switches[0], 'valueChange', false);
+    openSettings();
     await waitFor(() => {
-      const next = screen.UNSAFE_getAllByType(require('react-native').Switch);
-      expect(next[0].props.value).toBe(false);
+      expect(screen.getByLabelText('Accept booking requests').props.value).toBe(false);
     });
   });
 });

@@ -5,7 +5,9 @@ import {
   buildWeeklySchedulePayloadFromUi,
   dayEnabledMapHasAtLeastOneEnabled,
   format24HourTo12Hour,
+  formatDurationLabel,
   minimumNoticeToMinutes,
+  normalizeBufferTime,
   normalizeMinimumNotice,
   normalizeTimeOffBlocksForSave,
   to24Hour,
@@ -90,6 +92,7 @@ describe('availabilityModel', () => {
         },
         time_off_blocks: [{ id: 'a', date: '2026-04-27', start_time: '09:00', end_time: '10:00' }],
         minimum_notice: '2h',
+        buffer_time: '30m',
       });
 
       expect(model.acceptBookings).toBe(true);
@@ -99,6 +102,13 @@ describe('availabilityModel', () => {
       expect(model.dayTimeRanges.Monday).toEqual({ start: '8:00 AM', end: '4:30 PM' });
       expect(model.timeOffBlocks).toHaveLength(1);
       expect(model.minimumNotice).toBe('2h');
+      expect(model.bufferTime).toBe('30m');
+    });
+
+    it('treats missing or invalid buffer_time as none', () => {
+      expect(buildAvailabilityUiModel({}).bufferTime).toBe('none');
+      expect(buildAvailabilityUiModel({ buffer_time: '5m' }).bufferTime).toBe('none');
+      expect(buildAvailabilityUiModel({ buffer_time: '60m' }).bufferTime).toBe('none');
     });
   });
 
@@ -108,6 +118,25 @@ describe('availabilityModel', () => {
       expect(normalizeMinimumNotice('1w')).toBe('1w');
       expect(normalizeMinimumNotice('nope')).toBe('none');
       expect(normalizeMinimumNotice(null)).toBe('none');
+    });
+
+    it('normalizes known and unknown buffer time values', () => {
+      expect(normalizeBufferTime('15m')).toBe('15m');
+      expect(normalizeBufferTime('90m')).toBe('90m');
+      expect(normalizeBufferTime('5m')).toBe('none');
+      expect(normalizeBufferTime('1.5h')).toBe('none');
+      expect(normalizeBufferTime(null)).toBe('none');
+    });
+
+    it('formats compact duration labels', () => {
+      expect(formatDurationLabel('none')).toBe('None');
+      expect(formatDurationLabel('5m')).toBe('5 min');
+      expect(formatDurationLabel('30m')).toBe('30 min');
+      expect(formatDurationLabel('1h')).toBe('1 hr');
+      expect(formatDurationLabel('2h')).toBe('2 hr');
+      expect(formatDurationLabel('90m')).toBe('1 hr 30 min');
+      expect(formatDurationLabel('24h')).toBe('1 day');
+      expect(formatDurationLabel('1w')).toBe('1 wk');
     });
 
     it('converts values to minutes', () => {

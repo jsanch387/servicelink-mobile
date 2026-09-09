@@ -221,7 +221,7 @@ export function TimeSelectField({
         allowBackdropClose
         fitContent
         footer={<Button fullWidth title="Set time" onPress={applySelection} />}
-        showCloseButton={false}
+        showCloseButton
         title={title}
         visible={open}
         onRequestClose={close}

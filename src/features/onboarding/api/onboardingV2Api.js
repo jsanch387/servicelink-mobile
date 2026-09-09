@@ -21,6 +21,7 @@ import {
 } from '../../availability/api/availability';
 import {
   buildWeeklySchedulePayloadFromUi,
+  normalizeBufferTime,
   normalizeTimeOffBlocksForSave,
 } from '../../availability/utils/availabilityModel';
 import { updateBusinessSlug } from '../../more/api/updateBusinessSlug';
@@ -374,6 +375,7 @@ export async function saveOnboardingStep3Availability({
 
   const prev = availRes.data;
   const minimumNotice = prev?.minimum_notice ?? 'none';
+  const bufferTime = normalizeBufferTime(prev?.buffer_time);
   const timeOffBlocks = normalizeTimeOffBlocksForSave(prev?.time_off_blocks ?? []);
   const preset = String(selectedPreset ?? 'custom').trim() || 'custom';
   const weeklySchedule = buildWeeklySchedulePayloadFromUi(dayEnabledMap, dayTimeRanges);
@@ -385,6 +387,7 @@ export async function saveOnboardingStep3Availability({
     weeklySchedule,
     timeOffBlocks,
     minimumNotice,
+    bufferTime,
   });
 
   if (saveRes.error) {

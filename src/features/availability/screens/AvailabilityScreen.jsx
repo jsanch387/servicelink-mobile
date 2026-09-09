@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
+import {
+  AppText,
+  Button,
+  InlineCardError,
+  SegmentedToggle,
+  SurfaceCard,
+} from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { AvailabilityScreenSkeleton } from '../components/AvailabilityScreenSkeleton';
-import { LeadTimeSection } from '../components/LeadTimeSection';
-import { TimeOffSection } from '../components/TimeOffSection';
+import { AvailabilitySettingsView } from '../components/AvailabilitySettingsView';
 import { TimeOffSheet } from '../components/TimeOffSheet';
 import { WeeklyScheduleSection } from '../components/WeeklyScheduleSection';
 import { useBusinessAvailability } from '../hooks/useBusinessAvailability';
@@ -14,11 +19,22 @@ import { useSaveBusinessAvailability } from '../hooks/useSaveBusinessAvailabilit
 import {
   buildWeeklySchedulePayloadFromUi,
   dayEnabledMapHasAtLeastOneEnabled,
+  normalizeBufferTime,
   normalizeMinimumNotice,
   normalizeTimeOffBlocksForSave,
   to24Hour,
   validateTimeOffBlocks,
 } from '../utils/availabilityModel';
+
+const AVAILABILITY_TAB = {
+  SCHEDULE: 'schedule',
+  SETTINGS: 'settings',
+};
+
+const AVAILABILITY_TAB_OPTIONS = [
+  { key: AVAILABILITY_TAB.SCHEDULE, label: 'Your schedule' },
+  { key: AVAILABILITY_TAB.SETTINGS, label: 'Settings' },
+];
 
 function createTimeOffId() {
   if (globalThis.crypto?.randomUUID) {
@@ -60,6 +76,7 @@ export function AvailabilityScreen() {
   const { saveAvailability, isSaving, saveError } = useSaveBusinessAvailability({
     businessId: availability.businessId,
   });
+  const [activeTab, setActiveTab] = useState(AVAILABILITY_TAB.SCHEDULE);
   const [isAcceptingRequests, setIsAcceptingRequests] = useState(false);
   const [isTimeOffSheetOpen, setIsTimeOffSheetOpen] = useState(false);
   const [dayTimeRanges, setDayTimeRanges] = useState(() => ({}));
@@ -67,6 +84,7 @@ export function AvailabilityScreen() {
   const [timeOffBlocks, setTimeOffBlocks] = useState([]);
   const [schedulePreset, setSchedulePreset] = useState('mon_fri_9_5');
   const [minimumNotice, setMinimumNotice] = useState('none');
+  const [bufferTime, setBufferTime] = useState('none');
 
   useEffect(() => {
     const model = availability.model;
@@ -77,6 +95,7 @@ export function AvailabilityScreen() {
     setTimeOffBlocks(Array.isArray(model.timeOffBlocks) ? model.timeOffBlocks : []);
     setSchedulePreset(model.selectedPreset ?? 'mon_fri_9_5');
     setMinimumNotice(normalizeMinimumNotice(model.minimumNotice));
+    setBufferTime(normalizeBufferTime(model.bufferTime));
   }, [availability.model]);
 
   const hasActiveDay = useMemo(
@@ -106,6 +125,11 @@ export function AvailabilityScreen() {
     }));
   }
 
+  function handleAcceptingChange(next) {
+    if (next && !dayEnabledMapHasAtLeastOneEnabled(dayEnabledMap)) return;
+    setIsAcceptingRequests(next);
+  }
+
   const stickyBarHeight = 56;
   const scrollBottomPad = Math.max(insets.bottom, 16) + stickyBarHeight + 20;
   const hasChanges = useMemo(() => {
@@ -121,9 +145,20 @@ export function AvailabilityScreen() {
     const sameNotice =
       normalizeMinimumNotice(minimumNotice) ===
       normalizeMinimumNotice(baseline.minimumNotice ?? 'none');
-    return !(sameAccept && samePreset && sameEnabledMap && sameRanges && sameTimeOff && sameNotice);
+    const sameBuffer =
+      normalizeBufferTime(bufferTime) === normalizeBufferTime(baseline.bufferTime ?? 'none');
+    return !(
+      sameAccept &&
+      samePreset &&
+      sameEnabledMap &&
+      sameRanges &&
+      sameTimeOff &&
+      sameNotice &&
+      sameBuffer
+    );
   }, [
     availability.model,
+    bufferTime,
     dayEnabledMap,
     dayTimeRanges,
     isAcceptingRequests,
@@ -146,6 +181,7 @@ export function AvailabilityScreen() {
       weeklySchedule: buildWeeklySchedulePayloadFromUi(dayEnabledMap, dayTimeRanges),
       timeOffBlocks: normalizedTimeOff,
       minimumNotice: normalizeMinimumNotice(minimumNotice),
+      bufferTime: normalizeBufferTime(bufferTime),
     });
   }
 
@@ -156,36 +192,14 @@ export function AvailabilityScreen() {
           backgroundColor: colors.shell,
           flex: 1,
         },
+        tabs: {
+          paddingHorizontal: 16,
+          paddingTop: 16,
+        },
         content: {
           paddingBottom: scrollBottomPad,
           paddingHorizontal: 16,
-          paddingTop: 18,
-        },
-        toggleCard: {
-          borderRadius: 16,
-          marginBottom: 14,
-          paddingHorizontal: 14,
-          paddingVertical: 14,
-        },
-        toggleRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-        },
-        toggleTextWrap: {
-          flex: 1,
-          paddingRight: 12,
-        },
-        toggleTitle: {
-          color: colors.text,
-          fontSize: 15,
-          fontWeight: '700',
-          marginBottom: 6,
-        },
-        toggleHint: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontWeight: '500',
+          paddingTop: 4,
         },
         saveBar: {
           bottom: Math.max(insets.bottom - 12, 0),
@@ -199,6 +213,13 @@ export function AvailabilityScreen() {
 
   return (
     <View style={styles.root}>
+      <View style={styles.tabs}>
+        <SegmentedToggle
+          options={AVAILABILITY_TAB_OPTIONS}
+          selected={activeTab}
+          onSelect={setActiveTab}
+        />
+      </View>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={availabilityRefreshControl}
@@ -228,52 +249,30 @@ export function AvailabilityScreen() {
         ) : null}
         {availability.isLoading ? (
           <AvailabilityScreenSkeleton />
+        ) : activeTab === AVAILABILITY_TAB.SETTINGS ? (
+          <AvailabilitySettingsView
+            hasActiveDay={hasActiveDay}
+            isAcceptingRequests={isAcceptingRequests}
+            bufferTime={bufferTime}
+            minimumNotice={minimumNotice}
+            timeOffBlocks={timeOffBlocks}
+            onAcceptingChange={handleAcceptingChange}
+            onAddTimeOff={() => setIsTimeOffSheetOpen(true)}
+            onBufferTimeChange={setBufferTime}
+            onDeleteTimeOff={(index) =>
+              setTimeOffBlocks((prev) => prev.filter((_, itemIdx) => itemIdx !== index))
+            }
+            onMinimumNoticeChange={setMinimumNotice}
+          />
         ) : (
-          <>
-            <SurfaceCard style={styles.toggleCard}>
-              <View style={styles.toggleRow}>
-                <View style={styles.toggleTextWrap}>
-                  <AppText style={styles.toggleTitle}>Accept booking requests</AppText>
-                  <AppText style={styles.toggleHint}>
-                    {!hasActiveDay
-                      ? 'Turn on at least one day below before you can accept booking requests.'
-                      : isAcceptingRequests
-                        ? 'Turn this off to stop accepting appointments.'
-                        : 'Turn this on to start accepting appointments.'}
-                  </AppText>
-                </View>
-                <Switch
-                  accessibilityLabel="Accept booking requests"
-                  disabled={!hasActiveDay && !isAcceptingRequests}
-                  onValueChange={(next) => {
-                    if (next && !dayEnabledMapHasAtLeastOneEnabled(dayEnabledMap)) return;
-                    setIsAcceptingRequests(next);
-                  }}
-                  thumbColor={isAcceptingRequests ? '#f8fafc' : '#f4f4f5'}
-                  trackColor={{ false: colors.borderStrong, true: '#10b981' }}
-                  value={isAcceptingRequests}
-                />
-              </View>
-            </SurfaceCard>
-
-            <WeeklyScheduleSection
-              dayEnabledMap={dayEnabledMap}
-              dayTimeRanges={dayTimeRanges}
-              style={{ marginBottom: 0 }}
-              onDayTimeChange={handleDayTimeChange}
-              onDayToggle={handleDayToggle}
-            />
-
-            <TimeOffSection
-              blocks={timeOffBlocks}
-              onAddPress={() => setIsTimeOffSheetOpen(true)}
-              onDeletePress={(index) =>
-                setTimeOffBlocks((prev) => prev.filter((_, itemIdx) => itemIdx !== index))
-              }
-            />
-
-            <LeadTimeSection value={minimumNotice} onValueChange={setMinimumNotice} />
-          </>
+          <WeeklyScheduleSection
+            dayEnabledMap={dayEnabledMap}
+            dayTimeRanges={dayTimeRanges}
+            showTitle={false}
+            style={{ marginBottom: 0 }}
+            onDayTimeChange={handleDayTimeChange}
+            onDayToggle={handleDayToggle}
+          />
         )}
         <TimeOffSheet
           visible={isTimeOffSheetOpen}

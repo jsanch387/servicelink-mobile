@@ -1,11 +1,11 @@
 import { StyleSheet, Switch, View } from 'react-native';
 import { useMemo } from 'react';
-import { AppText, TimeSelectField } from '../../../components/ui';
+import { AppText, SurfaceCard, TimeSelectField } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { DAY_DEFINITIONS } from '../utils/availabilityModel';
 
 /**
- * Weekly day toggles + start/end time pickers (same behavior as the main Availability screen).
+ * Weekly day toggles + start/end time pickers, one card per day.
  */
 export function WeeklyScheduleCard({
   dayEnabledMap,
@@ -21,16 +21,12 @@ export function WeeklyScheduleCard({
       StyleSheet.create({
         root: {
           alignSelf: 'stretch',
-          overflow: 'hidden',
+          gap: 10,
         },
-        dayRow: {
-          borderBottomColor: colors.border,
-          borderBottomWidth: 1,
+        dayCard: {
+          borderRadius: 16,
           paddingHorizontal: 14,
-          paddingVertical: 10,
-        },
-        dayRowLast: {
-          borderBottomWidth: 0,
+          paddingVertical: 14,
         },
         dayHeaderRow: {
           alignItems: 'center',
@@ -79,11 +75,8 @@ export function WeeklyScheduleCard({
 
   return (
     <View style={[styles.root, style]}>
-      {DAY_DEFINITIONS.map((entry, index) => (
-        <View
-          key={entry.key}
-          style={[styles.dayRow, index === DAY_DEFINITIONS.length - 1 && styles.dayRowLast]}
-        >
+      {DAY_DEFINITIONS.map((entry) => (
+        <SurfaceCard key={entry.key} outlined={false} padding="none" style={styles.dayCard}>
           <View style={styles.dayHeaderRow}>
             <AppText style={styles.dayShort}>{entry.label}</AppText>
             <Switch
@@ -120,7 +113,7 @@ export function WeeklyScheduleCard({
               <AppText style={styles.unavailableText}>Unavailable</AppText>
             )}
           </View>
-        </View>
+        </SurfaceCard>
       ))}
     </View>
   );
