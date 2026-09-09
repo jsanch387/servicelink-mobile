@@ -20,6 +20,12 @@ export function createAppointmentFlowStyles() {
       justifyContent: 'center',
       paddingBottom: 16,
     },
+    contentWithVoiceOrb: {
+      paddingBottom: 88,
+    },
+    footerStack: {
+      overflow: 'visible',
+    },
     contentSubmitting: {
       flexGrow: 1,
       justifyContent: 'center',

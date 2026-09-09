@@ -7,6 +7,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WizardStepHeader } from '../../../components/ui';
@@ -17,6 +18,7 @@ import { useSubscriptionsAccess } from '../../subscriptions/hooks/useSubscriptio
 import { CreateAppointmentStepContent } from './components/CreateAppointmentStepContent';
 import { CreateAppointmentSubmittingState } from './components/CreateAppointmentSubmittingState';
 import { CreateFlowFooter } from './components/CreateFlowFooter';
+import { AppointmentVoiceHost } from './voice/AppointmentVoiceHost';
 import { useCreateAppointmentController } from './hooks/useCreateAppointmentController';
 import { parseMembershipVisitRouteParams } from './utils/membershipVisitPrefill';
 
@@ -98,6 +100,7 @@ export function CreateAppointmentFlow({ onImmersiveSubmitChange, prefilledCustom
           contentContainerStyle={[
             flow.styles.content,
             flow.appointmentConfirmed && flow.styles.contentConfirmed,
+            !flow.appointmentConfirmed && !flow.showSubmitPanel && flow.styles.contentWithVoiceOrb,
           ]}
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           keyboardShouldPersistTaps="handled"
@@ -112,7 +115,10 @@ export function CreateAppointmentFlow({ onImmersiveSubmitChange, prefilledCustom
           </Pressable>
         </ScrollView>
         {!flow.showSubmitPanel ? (
-          <CreateFlowFooter {...flow.footer} paddingBottom={12 + insets.bottom} />
+          <View style={flow.styles.footerStack}>
+            <AppointmentVoiceHost visible={!flow.appointmentConfirmed} />
+            <CreateFlowFooter {...flow.footer} paddingBottom={12 + insets.bottom} />
+          </View>
         ) : null}
       </KeyboardAvoidingView>
 
