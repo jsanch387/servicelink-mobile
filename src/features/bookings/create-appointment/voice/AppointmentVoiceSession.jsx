@@ -1,91 +1,39 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Modal, StyleSheet, View } from 'react-native';
+import { Pressable, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, BetaLabel, Button, SurfaceCard } from '../../../../components/ui';
+import { AppText, BetaLabel } from '../../../../components/ui';
 import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { useTheme } from '../../../../theme';
 import { AppointmentVoiceOrb } from './AppointmentVoiceOrb';
+import { AppointmentVoiceReview } from './AppointmentVoiceReview';
 import {
-  APPOINTMENT_VOICE_SLOTS,
+  VOICE_HOLD_MS,
   VOICE_LISTEN_MS,
+  emptyVoiceReviewDraft,
   isVoiceDemoReady,
   nextVoiceTurnIndex,
   voiceTurnAt,
 } from './appointmentVoiceDemo';
 
-function sessionHint({ listening, ready }) {
-  if (listening) {
-    return 'Listening…';
-  }
-  if (ready) {
-    return 'Looks good';
-  }
-  return 'Tap to talk';
-}
-
-function SlotRow({ label, value, isLast }) {
-  const { colors } = useTheme();
-  const filled = Boolean(value);
-
-  return (
-    <View style={[slotStyles.row, !isLast && slotStyles.rowRule, { borderBottomColor: colors.border }]}>
-      <View style={slotStyles.labelCol}>
-        <AppText style={[slotStyles.label, { color: colors.textMuted }]}>{label}</AppText>
-      </View>
-      <View style={slotStyles.valueCol}>
-        <AppText
-          numberOfLines={1}
-          style={[slotStyles.value, { color: filled ? colors.text : colors.placeholder ?? colors.textMuted }]}
-        >
-          {value || '—'}
-        </AppText>
-      </View>
-    </View>
-  );
-}
-
-const slotStyles = StyleSheet.create({
-  row: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    paddingVertical: 10,
-  },
-  rowRule: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  labelCol: {
-    width: 84,
-  },
-  valueCol: {
-    flex: 1,
-    minWidth: 0,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  value: {
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-    textAlign: 'right',
-  },
-});
-
 /**
- * Immersive voice window — grouped header, talk orb, then a single details card.
- * Demo-only: tapping the orb walks a scripted appointment conversation.
+ * Talk first with no live fields. When the script finishes, switch to review → edit → submit.
  */
-export function AppointmentVoiceSession({ visible, onRequestClose, onUseDetails }) {
-  const { colors, isDark } = useTheme();
+export function AppointmentVoiceSession({ visible, onRequestClose, onSubmit }) {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [turnIndex, setTurnIndex] = useState(0);
   const [listening, setListening] = useState(false);
+  const [latched, setLatched] = useState(false);
+  const [mode, setMode] = useState('talk');
+  const [draft, setDraft] = useState(emptyVoiceReviewDraft);
   const listenTimer = useRef(null);
+  const holdTimer = useRef(null);
+  const heldRef = useRef(false);
+  const latchedRef = useRef(false);
 
   const turn = voiceTurnAt(turnIndex);
   const ready = isVoiceDemoReady(turn);
+  const showAsk = mode === 'talk' && Boolean(turn.user) && !ready;
 
   const clearListenTimer = useCallback(() => {
     if (listenTimer.current) {
@@ -94,49 +42,138 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onUseDetails 
     }
   }, []);
 
+  const clearHoldTimer = useCallback(() => {
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+  }, []);
+
+  const resetSession = useCallback(() => {
+    clearListenTimer();
+    clearHoldTimer();
+    heldRef.current = false;
+    latchedRef.current = false;
+    setTurnIndex(0);
+    setListening(false);
+    setLatched(false);
+    setMode('talk');
+    setDraft(emptyVoiceReviewDraft());
+  }, [clearHoldTimer, clearListenTimer]);
+
   useEffect(() => {
     if (!visible) {
-      clearListenTimer();
-      setTurnIndex(0);
+      resetSession();
+    }
+  }, [resetSession, visible]);
+
+  useEffect(() => () => {
+    clearListenTimer();
+    clearHoldTimer();
+  }, [clearHoldTimer, clearListenTimer]);
+
+  useEffect(() => {
+    if (ready && mode === 'talk') {
+      latchedRef.current = false;
+      setLatched(false);
       setListening(false);
+      setDraft({ ...emptyVoiceReviewDraft(), ...turn.slots });
+      setMode('review');
     }
-  }, [clearListenTimer, visible]);
+  }, [mode, ready, turn.slots]);
 
-  useEffect(() => () => clearListenTimer(), [clearListenTimer]);
-
-  const handleTalk = useCallback(() => {
-    if (listening || ready) {
-      return;
+  useEffect(() => {
+    if (mode !== 'talk' || !latched || ready) {
+      return undefined;
     }
-    setListening(true);
     clearListenTimer();
     listenTimer.current = setTimeout(() => {
       setTurnIndex((current) => nextVoiceTurnIndex(current));
-      setListening(false);
       listenTimer.current = null;
     }, VOICE_LISTEN_MS);
-  }, [clearListenTimer, listening, ready]);
+    return () => clearListenTimer();
+  }, [clearListenTimer, latched, mode, ready, turnIndex]);
 
-  const handleUseDetails = useCallback(() => {
-    onUseDetails?.();
+  const handlePressIn = useCallback(() => {
+    if (mode !== 'talk') {
+      return;
+    }
+    heldRef.current = false;
+    setListening(true);
+    clearHoldTimer();
+    holdTimer.current = setTimeout(() => {
+      heldRef.current = true;
+      holdTimer.current = null;
+    }, VOICE_HOLD_MS);
+  }, [clearHoldTimer, mode]);
+
+  const handlePressOut = useCallback(() => {
+    clearHoldTimer();
+    if (mode !== 'talk' || !heldRef.current) {
+      return;
+    }
+    latchedRef.current = false;
+    setLatched(false);
+    setListening(false);
+    setTurnIndex((current) => nextVoiceTurnIndex(current));
+  }, [clearHoldTimer, mode]);
+
+  const handleTalk = useCallback(() => {
+    if (mode !== 'talk' || heldRef.current) {
+      return;
+    }
+    if (latchedRef.current) {
+      latchedRef.current = false;
+      setLatched(false);
+      setListening(false);
+      clearListenTimer();
+      return;
+    }
+    clearHoldTimer();
+    heldRef.current = false;
+    latchedRef.current = true;
+    setLatched(true);
+    setListening(true);
+  }, [clearHoldTimer, clearListenTimer, mode]);
+
+  const handleChangeField = useCallback((key, value) => {
+    setDraft((current) => ({ ...current, [key]: value }));
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    onSubmit?.(draft);
     onRequestClose?.();
-  }, [onRequestClose, onUseDetails]);
+  }, [draft, onRequestClose, onSubmit]);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         safe: {
+          backgroundColor: colors.shell,
           flex: 1,
         },
         header: {
           paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: insets.top + 20,
+          paddingTop: insets.top + 16,
+        },
+        headerOverlay: {
+          left: 0,
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          zIndex: 2,
+        },
+        talkStage: {
+          alignItems: 'center',
+          flex: 1,
+          gap: 28,
+          justifyContent: 'center',
+          paddingHorizontal: SCREEN_GUTTER,
         },
         headerTop: {
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'space-between',
-          marginBottom: 18,
         },
         closeHit: {
           marginLeft: -12,
@@ -152,48 +189,24 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onUseDetails 
           fontSize: 17,
           fontWeight: '500',
         },
-        heading: {
-          gap: 6,
-          paddingBottom: 8,
-        },
-        titleRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          gap: 8,
-        },
-        title: {
-          color: colors.text,
-          fontSize: 28,
-          fontWeight: '700',
-          letterSpacing: -0.6,
-        },
-        subtitle: {
-          color: colors.textMuted,
-          fontSize: 16,
-          fontWeight: '500',
-          letterSpacing: -0.2,
-          lineHeight: 22,
+        scroll: {
+          flex: 1,
         },
         body: {
-          flex: 1,
-          gap: 20,
+          flexGrow: 1,
+          gap: 28,
+          justifyContent: mode === 'talk' ? 'center' : 'flex-start',
+          paddingBottom: 24,
           paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: 22,
+          paddingTop: mode === 'talk' ? 8 : 16,
         },
-        prompt: {
+        ask: {
           color: colors.text,
           fontSize: 22,
           fontWeight: '600',
           letterSpacing: -0.4,
           lineHeight: 28,
-        },
-        heard: {
-          color: colors.textSecondary,
-          fontSize: 15,
-          fontWeight: '500',
-          letterSpacing: -0.15,
-          lineHeight: 21,
-          marginTop: 8,
+          textAlign: 'center',
         },
         orbBlock: {
           alignItems: 'center',
@@ -202,25 +215,11 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onUseDetails 
           color: colors.textMuted,
           fontSize: 14,
           fontWeight: '600',
-          marginTop: 4,
-        },
-        detailsTitle: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontWeight: '700',
-          letterSpacing: 0.6,
-          marginBottom: 6,
-          textTransform: 'uppercase',
-        },
-        detailsCard: {
-          paddingHorizontal: 16,
-          paddingVertical: 4,
-        },
-        footer: {
-          paddingTop: 4,
+          marginTop: 2,
+          textAlign: 'center',
         },
       }),
-    [colors, insets.top],
+    [colors, insets.top, mode],
   );
 
   return (
@@ -231,86 +230,63 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onUseDetails 
       visible={visible}
       onRequestClose={onRequestClose}
     >
-      <LinearGradient
-        colors={
-          isDark ? ['#120f1c', '#0a0a0a', '#0a0a0a'] : ['#ece8f7', '#f5f5f5', '#f5f5f5']
-        }
-        style={styles.safe}
-      >
-        <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
-          <View style={styles.header}>
-            <View style={styles.headerTop}>
-              <Pressable
-                accessibilityLabel="Close voice booking"
-                accessibilityRole="button"
-                style={styles.closeHit}
-                testID="appointment-voice-close"
-                onPress={onRequestClose}
-              >
-                {({ pressed }) => (
-                  <View style={[styles.closeFace, pressed && { opacity: 0.55 }]}>
-                    <AppText style={styles.closeLabel}>Close</AppText>
-                  </View>
-                )}
-              </Pressable>
-              <BetaLabel />
-            </View>
-            <View style={styles.heading}>
-              <View style={styles.titleRow}>
-                <AppText style={styles.title}>Talk to book</AppText>
-              </View>
-              <AppText style={styles.subtitle}>
-                Just say the appointment. I’ll ask if anything’s missing.
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
+        <View style={[styles.header, mode === 'talk' && styles.headerOverlay]}>
+          <View style={styles.headerTop}>
+            <Pressable
+              accessibilityLabel="Close voice booking"
+              accessibilityRole="button"
+              style={styles.closeHit}
+              testID="appointment-voice-close"
+              onPress={onRequestClose}
+            >
+              {({ pressed }) => (
+                <View style={[styles.closeFace, pressed && { opacity: 0.55 }]}>
+                  <AppText style={styles.closeLabel}>Close</AppText>
+                </View>
+              )}
+            </Pressable>
+            <BetaLabel />
+          </View>
+        </View>
+
+        {mode === 'review' ? (
+          <ScrollView
+            contentContainerStyle={styles.body}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            style={styles.scroll}
+          >
+            <AppointmentVoiceReview
+              draft={draft}
+              onChangeField={handleChangeField}
+              onSubmit={handleSubmit}
+            />
+          </ScrollView>
+        ) : (
+          <View style={styles.talkStage}>
+            {showAsk ? <AppText style={styles.ask}>{turn.ai}</AppText> : null}
+            <View style={styles.orbBlock}>
+              <AppointmentVoiceOrb
+                accessibilityLabel="Tap to keep listening, or hold to talk"
+                listening={listening}
+                size={200}
+                testID="appointment-voice-talk"
+                onPress={handleTalk}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+              />
+              <AppText style={styles.talkHint}>
+                {listening
+                  ? latched
+                    ? 'Listening… Tap to stop'
+                    : 'Listening… Release to send'
+                  : 'Tap to keep listening · Hold to talk'}
               </AppText>
             </View>
           </View>
-
-          <View style={styles.body}>
-            <View>
-              <AppText style={styles.prompt}>{turn.ai}</AppText>
-              {turn.user ? <AppText style={styles.heard}>You said “{turn.user}”</AppText> : null}
-            </View>
-
-            <View style={styles.orbBlock}>
-              <AppointmentVoiceOrb
-                accessibilityLabel={ready ? 'Appointment details ready' : 'Tap to talk'}
-                disabled={ready}
-                listening={listening}
-                ready={ready}
-                size={132}
-                testID="appointment-voice-talk"
-                onPress={handleTalk}
-              />
-              <AppText style={styles.talkHint}>{sessionHint({ listening, ready })}</AppText>
-            </View>
-
-            <View>
-              <AppText style={styles.detailsTitle}>So far</AppText>
-              <SurfaceCard padding="none" style={styles.detailsCard}>
-                {APPOINTMENT_VOICE_SLOTS.map((slot, index) => (
-                  <SlotRow
-                    key={slot.key}
-                    isLast={index === APPOINTMENT_VOICE_SLOTS.length - 1}
-                    label={slot.label}
-                    value={turn.slots[slot.key]}
-                  />
-                ))}
-              </SurfaceCard>
-              {ready ? (
-                <View style={styles.footer}>
-                  <Button
-                    fullWidth
-                    testID="appointment-voice-use-details"
-                    title="Use these details"
-                    variant="primary"
-                    onPress={handleUseDetails}
-                  />
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
+        )}
+      </SafeAreaView>
     </Modal>
   );
 }

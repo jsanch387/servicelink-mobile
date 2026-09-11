@@ -15,6 +15,7 @@ function InfoRow({
   /** `'underline'` when tappable (default). Use `'none'` for e.g. copy rows with a trailing icon. */
   interactionStyle,
   trailing = null,
+  testID,
 }) {
   const { colors } = useTheme();
   const interactive = typeof onPress === 'function';
@@ -88,6 +89,7 @@ function InfoRow({
     <Pressable
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
+      testID={testID}
       onPress={onPress}
       style={styles.rowPressable}
     >
@@ -100,10 +102,12 @@ function InfoRow({
  * @param {object} props
  * @param {'default' | 'overline'} [props.titleTone] — forwarded to `DetailsSectionCard`.
  * @param {'default' | 'roomy'} [props.bodyPadding] — forwarded to `DetailsSectionCard`.
+ * @param {import('react').ReactNode} [props.titleRight] — forwarded to `DetailsSectionCard`.
  * @param {import('react-native').StyleProp<import('react-native').ViewStyle>} [props.cardStyle]
  */
 export function InfoSection({
   title,
+  titleRight = null,
   rows,
   hideIcons = false,
   footer = null,
@@ -130,6 +134,7 @@ export function InfoSection({
       bodyPadding={bodyPadding}
       cardStyle={cardStyle}
       title={title}
+      titleRight={titleRight}
       titleTone={titleTone}
     >
       <View style={styles.rowsWrap}>
@@ -144,6 +149,7 @@ export function InfoSection({
             value={row.value}
             onPress={row.onPress}
             accessibilityLabel={row.accessibilityLabel}
+            testID={row.testID}
           />
         ))}
       </View>

@@ -18,6 +18,8 @@ import { FONT_FAMILIES, useTheme } from '../../theme';
  *   centerIcon?: boolean;
  *   onPress?: () => void;
  *   accessibilityHint?: string;
+ *   testID?: string;
+ *   showChevron?: boolean;
  * }} props
  */
 export function DetailIconFieldRow({
@@ -30,6 +32,8 @@ export function DetailIconFieldRow({
   centerIcon = false,
   onPress,
   accessibilityHint,
+  testID,
+  showChevron = true,
 }) {
   const { colors } = useTheme();
   const tappable = typeof onPress === 'function';
@@ -92,7 +96,7 @@ export function DetailIconFieldRow({
         <AppText style={styles.label}>{label}</AppText>
         {valueNode ?? <AppText style={styles.value}>{value}</AppText>}
       </View>
-      {tappable ? (
+      {tappable && showChevron ? (
         <View style={styles.chevronCol}>
           <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />
         </View>
@@ -103,7 +107,12 @@ export function DetailIconFieldRow({
   if (!tappable) return content;
 
   return (
-    <Pressable accessibilityHint={accessibilityHint} accessibilityRole="button" onPress={onPress}>
+    <Pressable
+      accessibilityHint={accessibilityHint}
+      accessibilityRole="button"
+      testID={testID}
+      onPress={onPress}
+    >
       {({ pressed }) => <View style={pressed ? styles.pressed : null}>{content}</View>}
     </Pressable>
   );

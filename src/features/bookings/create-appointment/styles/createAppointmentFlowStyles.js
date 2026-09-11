@@ -21,7 +21,7 @@ export function createAppointmentFlowStyles() {
       paddingBottom: 16,
     },
     contentWithVoiceOrb: {
-      paddingBottom: 88,
+      paddingBottom: 168,
     },
     footerStack: {
       overflow: 'visible',

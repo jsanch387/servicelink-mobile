@@ -42,6 +42,34 @@ function formatFullServiceAddress(address) {
   return formatAppointmentAddressSingleLine(address);
 }
 
+function ReviewEditAffordance({ colors, onPress, testID, done = false }) {
+  const label = done ? 'Done' : 'Edit';
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      testID={testID}
+      onPress={onPress}
+    >
+      {({ pressed }) => (
+        <AppText
+          style={[stylesEditAffordance.label, { color: colors.textMuted }, pressed && { opacity: 0.65 }]}
+        >
+          {label}
+        </AppText>
+      )}
+    </Pressable>
+  );
+}
+
+const stylesEditAffordance = StyleSheet.create({
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+  },
+});
+
 /**
  * @param {{
  *   jobs?: Array<{
@@ -83,6 +111,13 @@ function formatFullServiceAddress(address) {
  *   onAddAnotherJob?: () => void;
  *   addAnotherJobDisabled?: boolean;
  *   onRemoveJob?: (localId: string) => void;
+ *   onEditField?: (key: string) => void;
+ *   onEndEdit?: () => void;
+ *   editingField?: string | null;
+ *   renderEditor?: (key: string) => import('react').ReactNode;
+ *   editTestIDPrefix?: string;
+ *   showNotes?: boolean;
+ *   hideJobVehicleLine?: boolean;
  * }} props
  */
 export function ReviewStep({
@@ -108,6 +143,13 @@ export function ReviewStep({
   addAnotherJobDisabled = false,
   onRemoveJob,
   isMembershipVisit = false,
+  onEditField,
+  onEndEdit,
+  editingField = null,
+  renderEditor,
+  editTestIDPrefix,
+  showNotes = true,
+  hideJobVehicleLine = false,
 }) {
   const { colors } = useTheme();
   const [swipeTipVisible, setSwipeTipVisible] = useState(false);
@@ -222,21 +264,54 @@ export function ReviewStep({
     return t.length > 0 ? t : null;
   }, [selectedTime]);
 
-  const durationDisplay = formatBookingDurationMinutes(totalDurationMinutes);
+  const durationMinutes = Number(totalDurationMinutes);
+  const showDuration = Number.isFinite(durationMinutes) && durationMinutes > 0;
+  const durationDisplay = showDuration ? formatBookingDurationMinutes(durationMinutes) : '';
+  const editable = typeof onEditField === 'function';
 
   const showScheduleSection = Boolean(
-    scheduleDateDisplay || scheduleTimeDisplay || durationDisplay,
+    scheduleDateDisplay ||
+      scheduleTimeDisplay ||
+      showDuration ||
+      editingField === 'date' ||
+      editingField === 'time',
   );
+
+  function editTestID(key) {
+    return editTestIDPrefix ? `${editTestIDPrefix}-${key}` : undefined;
+  }
+
+  function editorFor(key) {
+    return renderEditor?.(key) ?? null;
+  }
+
+  function sectionAffordance(keys, defaultKey, testIDKey) {
+    if (!editable) return null;
+    const done = keys.includes(editingField);
+    return (
+      <ReviewEditAffordance
+        colors={colors}
+        done={done}
+        testID={editTestID(testIDKey)}
+        onPress={() => (done ? onEndEdit?.() : onEditField(defaultKey))}
+      />
+    );
+  }
 
   const phoneDigits10 = useMemo(() => {
     const d = canonicalNanpDigits(customer.phone);
-    return isValidUsNanpTenDigits(d) ? d : null;
+    return d.length === 10 ? d : '';
   }, [customer.phone]);
 
-  const phoneLine = useMemo(
-    () => (phoneDigits10 ? formatPhoneWithCountryCode(phoneDigits10) : null),
-    [phoneDigits10],
-  );
+  const phoneLine = useMemo(() => {
+    if (phoneDigits10) {
+      return formatPhoneWithCountryCode(phoneDigits10);
+    }
+    const raw = String(customer.phone ?? '').trim();
+    return raw || (editable ? 'Required' : '');
+  }, [customer.phone, editable, phoneDigits10]);
+
+  const canCallPhone = isValidUsNanpTenDigits(phoneDigits10);
 
   const customerRows = useMemo(() => {
     const rows = [];
@@ -247,17 +322,27 @@ export function ReviewStep({
         icon: 'person-outline',
         value: name,
         emphasize: true,
+        testID: editTestID('customer'),
+        accessibilityLabel: editable ? 'Edit customer' : undefined,
+        interactionStyle: editable ? 'none' : undefined,
+        onPress: editable ? () => onEditField('customer') : undefined,
       });
     }
-    if (phoneLine && phoneDigits10) {
+    if (phoneLine) {
       rows.push({
         key: 'phone',
         icon: 'call-outline',
         value: phoneLine,
-        accessibilityLabel: `Call ${phoneLine}`,
-        onPress: () => {
-          void Linking.openURL(`tel:+1${phoneDigits10}`);
-        },
+        testID: editTestID('phone'),
+        accessibilityLabel: editable ? 'Edit phone' : canCallPhone ? `Call ${phoneLine}` : undefined,
+        interactionStyle: editable ? 'none' : undefined,
+        onPress: editable
+          ? () => onEditField('phone')
+          : canCallPhone
+            ? () => {
+                void Linking.openURL(`tel:+1${phoneDigits10}`);
+              }
+            : undefined,
       });
     }
     const email = String(customer.email ?? '').trim();
@@ -265,7 +350,16 @@ export function ReviewStep({
       rows.push({ key: 'email', icon: 'mail-outline', value: email });
     }
     return rows;
-  }, [customer.email, customer.fullName, phoneDigits10, phoneLine]);
+  }, [
+    canCallPhone,
+    customer.email,
+    customer.fullName,
+    editTestIDPrefix,
+    editable,
+    onEditField,
+    phoneDigits10,
+    phoneLine,
+  ]);
 
   const showCustomerSection = customerRows.length > 0;
 
@@ -277,6 +371,11 @@ export function ReviewStep({
         },
         section: {
           rowGap: 8,
+        },
+        sectionTitleRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
         },
         sectionTitle: {
           color: colors.textSecondary,
@@ -469,6 +568,9 @@ export function ReviewStep({
           letterSpacing: -0.15,
           lineHeight: 22,
         },
+        pressed: {
+          opacity: 0.7,
+        },
         jobCard: {
           backgroundColor: colors.cardSurface,
           borderColor: colors.border,
@@ -497,12 +599,17 @@ export function ReviewStep({
     <>
       <View style={styles.reviewRoot}>
         <View style={styles.section}>
-          <AppText style={styles.sectionTitle}>Summary</AppText>
+          <View style={styles.sectionTitleRow}>
+            <AppText style={styles.sectionTitle}>Summary</AppText>
+            {sectionAffordance(['service', 'pricing', 'addons'], 'service', 'service-edit')}
+          </View>
           <View style={styles.jobsStack}>
             {jobs.map((job, index) => {
               const addonRows = job.addonRows ?? [];
               const optionLabel = String(job.optionLabel ?? '').trim();
-              const vehicleLine = String(job.vehicleLine ?? '').trim();
+              const vehicleLine = hideJobVehicleLine
+                ? ''
+                : String(job.vehicleLine ?? '').trim();
               const jobKey = `${job.localId ?? 'job'}-${index}`;
               return (
                 <SwipeToDeleteRow
@@ -512,43 +619,106 @@ export function ReviewStep({
                   onDeletePress={({ close }) => confirmRemoveJob(job, index, close)}
                 >
                   <View style={styles.jobCard}>
-                    <View style={styles.jobTopRow}>
-                      <View style={styles.jobMainCol}>
-                        <AppText numberOfLines={3} style={styles.serviceName}>
-                          {job.serviceName || '—'}
-                        </AppText>
-                        {optionLabel ? (
-                          <AppText style={styles.optionMetaLine}>{optionLabel}</AppText>
-                        ) : null}
-                        {vehicleLine ? (
-                          <AppText numberOfLines={1} style={styles.vehicleMetaTextSolo}>
-                            {vehicleLine}
-                          </AppText>
-                        ) : null}
+                    {editingField === 'service' ||
+                    editingField === 'pricing' ||
+                    editingField === 'addons' ? (
+                      editorFor(editingField)
+                    ) : (
+                      <View style={styles.jobTopRow}>
+                        <View style={styles.jobMainCol}>
+                          <Pressable
+                            accessibilityLabel="Edit service"
+                            accessibilityRole={editable ? 'button' : undefined}
+                            disabled={!editable}
+                            testID={editTestID('service')}
+                            onPress={editable ? () => onEditField('service') : undefined}
+                          >
+                            {({ pressed }) => (
+                              <View style={editable && pressed ? styles.pressed : null}>
+                                <AppText numberOfLines={3} style={styles.serviceName}>
+                                  {job.serviceName || '—'}
+                                </AppText>
+                                {optionLabel ? (
+                                  <AppText style={styles.optionMetaLine}>{optionLabel}</AppText>
+                                ) : null}
+                              </View>
+                            )}
+                          </Pressable>
+                          {vehicleLine ? (
+                            <Pressable
+                              accessibilityLabel="Edit vehicle"
+                              disabled={!editable}
+                              testID={editTestID('job-vehicle')}
+                              onPress={editable ? () => onEditField('vehicle') : undefined}
+                            >
+                              {({ pressed }) => (
+                                <View style={editable && pressed ? styles.pressed : null}>
+                                  <AppText numberOfLines={1} style={styles.vehicleMetaTextSolo}>
+                                    {vehicleLine}
+                                  </AppText>
+                                </View>
+                              )}
+                            </Pressable>
+                          ) : null}
+                        </View>
+                        <View style={styles.jobPriceCol}>
+                          <Pressable
+                            accessibilityLabel="Edit price"
+                            disabled={!editable}
+                            testID={editTestID('pricing')}
+                            onPress={editable ? () => onEditField('pricing') : undefined}
+                          >
+                            {({ pressed }) => (
+                              <View style={editable && pressed ? styles.pressed : null}>
+                                <AppText style={styles.servicePrice}>
+                                  {job.priceLabel || '—'}
+                                </AppText>
+                              </View>
+                            )}
+                          </Pressable>
+                        </View>
                       </View>
-                      <View style={styles.jobPriceCol}>
-                        <AppText style={styles.servicePrice}>{job.priceLabel || '—'}</AppText>
-                      </View>
-                    </View>
-                    {addonRows.length > 0 ? (
+                    )}
+                    {addonRows.length > 0 &&
+                    editingField !== 'service' &&
+                    editingField !== 'pricing' &&
+                    editingField !== 'addons' ? (
                       <>
                         <Divider style={styles.serviceDivider} />
-                        {addonRows.map((a, addonIndex) => (
-                          <View
-                            key={String(a.id ?? `${index}-${addonIndex}`)}
-                            style={[
-                              styles.addonRow,
-                              addonIndex === addonRows.length - 1 ? styles.addonRowLast : null,
-                            ]}
-                          >
-                            <AppText numberOfLines={2} style={styles.addonName}>
-                              {a.name}
-                            </AppText>
-                            <AppText style={styles.addonPrice}>
-                              {formatUsdFromNumber(parsePriceLabelToUsd(a.priceLabel ?? a.price))}
-                            </AppText>
-                          </View>
-                        ))}
+                        {addonRows.map((a, addonIndex) => {
+                            const addonPriceRaw = a.priceLabel ?? a.price;
+                            const showAddonPrice = String(addonPriceRaw ?? '').trim().length > 0;
+                            return (
+                              <Pressable
+                                key={String(a.id ?? `${index}-${addonIndex}`)}
+                                accessibilityLabel="Edit add-ons"
+                                disabled={!editable}
+                                testID={addonIndex === 0 ? editTestID('addons') : undefined}
+                                onPress={editable ? () => onEditField('addons') : undefined}
+                              >
+                                {({ pressed }) => (
+                                  <View
+                                    style={[
+                                      styles.addonRow,
+                                      addonIndex === addonRows.length - 1
+                                        ? styles.addonRowLast
+                                        : null,
+                                      editable && pressed ? styles.pressed : null,
+                                    ]}
+                                  >
+                                    <AppText numberOfLines={2} style={styles.addonName}>
+                                      {a.name}
+                                    </AppText>
+                                    {showAddonPrice ? (
+                                      <AppText style={styles.addonPrice}>
+                                        {formatUsdFromNumber(parsePriceLabelToUsd(addonPriceRaw))}
+                                      </AppText>
+                                    ) : null}
+                                  </View>
+                                )}
+                              </Pressable>
+                            );
+                          })}
                       </>
                     ) : null}
                   </View>
@@ -622,76 +792,148 @@ export function ReviewStep({
         */}
 
         {showScheduleSection ? (
-          <DetailsSectionCard bodyPadding="roomy" title="Schedule">
+          <DetailsSectionCard
+            bodyPadding="roomy"
+            title="Schedule"
+            titleRight={sectionAffordance(['date', 'time'], 'date', 'date-edit')}
+          >
             <View style={styles.scheduleFieldsStack}>
-              {scheduleDateDisplay ? (
+              {editingField === 'date' || editingField === 'time' ? (
+                editorFor(editingField)
+              ) : (
+                <>
+                  {scheduleDateDisplay ? (
+                    <DetailIconFieldRow
+                      icon="calendar-outline"
+                      label="Date"
+                      labelUppercase={false}
+                      showChevron={false}
+                      testID={editTestID('date')}
+                      value={scheduleDateDisplay}
+                      onPress={editable ? () => onEditField('date') : undefined}
+                    />
+                  ) : null}
+                  {scheduleTimeDisplay ? (
+                    <DetailIconFieldRow
+                      icon="time-outline"
+                      label="Time"
+                      labelUppercase={false}
+                      showChevron={false}
+                      testID={editTestID('time')}
+                      value={scheduleTimeDisplay}
+                      onPress={editable ? () => onEditField('time') : undefined}
+                    />
+                  ) : null}
+                </>
+              )}
+              {showDuration ? (
                 <DetailIconFieldRow
-                  icon="calendar-outline"
-                  label="Date"
+                  icon="hourglass-outline"
+                  label="Duration"
                   labelUppercase={false}
-                  value={scheduleDateDisplay}
+                  value={durationDisplay}
                 />
               ) : null}
-              {scheduleTimeDisplay ? (
-                <DetailIconFieldRow
-                  icon="time-outline"
-                  label="Time"
-                  labelUppercase={false}
-                  value={scheduleTimeDisplay}
-                />
-              ) : null}
-              <DetailIconFieldRow
-                icon="hourglass-outline"
-                label="Duration"
-                labelUppercase={false}
-                value={durationDisplay}
-              />
             </View>
           </DetailsSectionCard>
         ) : null}
 
-        {showCustomerSection ? (
-          <InfoSection bodyPadding="roomy" rowGap={14} rows={customerRows} title="Customer" />
+        {editingField === 'customer' || editingField === 'phone' ? (
+          <DetailsSectionCard
+            bodyPadding="roomy"
+            title="Customer"
+            titleRight={sectionAffordance(['customer', 'phone'], 'customer', 'customer-edit')}
+          >
+            {editorFor(editingField)}
+          </DetailsSectionCard>
+        ) : showCustomerSection ? (
+          <InfoSection
+            bodyPadding="roomy"
+            rowGap={14}
+            rows={customerRows}
+            title="Customer"
+            titleRight={sectionAffordance(['customer', 'phone'], 'customer', 'customer-edit')}
+          />
         ) : null}
 
-        {showAddressSection ? (
-          <DetailsSectionCard bodyPadding="roomy" title="Service address">
-            <View style={styles.addressRow}>
-              <View style={styles.activityIconWrap}>
-                <Ionicons color={colors.accentMuted} name="location-outline" size={21} />
-              </View>
-              <View style={styles.addressTextWrap}>
-                <AppText style={styles.addressBody}>{fullAddress}</AppText>
-              </View>
-            </View>
+        {showAddressSection || editingField === 'address' ? (
+          <DetailsSectionCard
+            bodyPadding="roomy"
+            title="Service address"
+            titleRight={sectionAffordance(['address'], 'address', 'address-edit')}
+          >
+            {editingField === 'address' ? (
+              editorFor('address')
+            ) : (
+              <Pressable
+                accessibilityLabel="Edit address"
+                disabled={!editable}
+                testID={editTestID('address')}
+                onPress={editable ? () => onEditField('address') : undefined}
+              >
+                {({ pressed }) => (
+                  <View style={[styles.addressRow, editable && pressed ? styles.pressed : null]}>
+                    <View style={styles.activityIconWrap}>
+                      <Ionicons color={colors.accentMuted} name="location-outline" size={21} />
+                    </View>
+                    <View style={styles.addressTextWrap}>
+                      <AppText style={styles.addressBody}>{fullAddress}</AppText>
+                    </View>
+                  </View>
+                )}
+              </Pressable>
+            )}
           </DetailsSectionCard>
         ) : null}
 
-        {!multiJob && fallbackVehicleLine ? (
-          <DetailsSectionCard bodyPadding="roomy" title="Vehicle">
-            <View style={styles.vehicleRow}>
-              <View style={styles.activityIconWrap}>
-                <Ionicons color={colors.accentMuted} name="car-sport" size={21} />
-              </View>
-              <View style={styles.vehicleTextWrap}>
-                <AppText style={styles.vehicleBody}>{fallbackVehicleLine}</AppText>
-              </View>
-            </View>
+        {!multiJob && (fallbackVehicleLine || editingField === 'vehicle') ? (
+          <DetailsSectionCard
+            bodyPadding="roomy"
+            title="Vehicle"
+            titleRight={sectionAffordance(['vehicle'], 'vehicle', 'vehicle-edit')}
+          >
+            {editingField === 'vehicle' ? (
+              editorFor('vehicle')
+            ) : (
+              <Pressable
+                accessibilityLabel="Edit vehicle"
+                disabled={!editable}
+                testID={editTestID('vehicle')}
+                onPress={editable ? () => onEditField('vehicle') : undefined}
+              >
+                {({ pressed }) => (
+                  <View style={[styles.vehicleRow, editable && pressed ? styles.pressed : null]}>
+                    <View style={styles.activityIconWrap}>
+                      <Ionicons color={colors.accentMuted} name="car-sport" size={21} />
+                    </View>
+                    <View style={styles.vehicleTextWrap}>
+                      <AppText style={styles.vehicleBody}>{fallbackVehicleLine}</AppText>
+                    </View>
+                  </View>
+                )}
+              </Pressable>
+            )}
           </DetailsSectionCard>
         ) : null}
 
-        <DetailsSectionCard bodyPadding="roomy" title="Notes">
-          <View style={styles.notesStack}>
-            <AppText
-              style={[
-                styles.noteReadonlyBody,
-                !notesTrimmed && { color: colors.textMuted, fontStyle: 'italic' },
-              ]}
-            >
-              {notesTrimmed || 'None'}
-            </AppText>
-          </View>
-        </DetailsSectionCard>
+        {showNotes ? (
+          <DetailsSectionCard bodyPadding="roomy" title="Notes">
+            {editingField === 'notes' ? (
+              editorFor('notes')
+            ) : (
+              <View style={styles.notesStack}>
+                <AppText
+                  style={[
+                    styles.noteReadonlyBody,
+                    !notesTrimmed && { color: colors.textMuted, fontStyle: 'italic' },
+                  ]}
+                >
+                  {notesTrimmed || 'None'}
+                </AppText>
+              </View>
+            )}
+          </DetailsSectionCard>
+        ) : null}
 
         {canAddAnotherJob && onAddAnotherJob ? (
           <AddAnotherJobCard disabled={addAnotherJobDisabled} onPress={onAddAnotherJob} />
