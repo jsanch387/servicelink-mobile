@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 import { useToast } from '../../../../components/ui';
 import { safeUserFacingMessage } from '../../../../utils/safeUserFacingMessage';
 import { useTheme } from '../../../../theme';
@@ -20,10 +21,6 @@ import {
   baseServiceDurationMinutes,
   totalBookingDurationMinutes,
 } from '../../create-appointment/utils/createFlowDuration';
-import {
-  getCreateAppointmentProgressFraction,
-  isAddonsStepSkipped,
-} from '../../create-appointment/utils/createFlowNavigation';
 import {
   buildCreateFlowPricingOptions,
   getSelectedCreateFlowPricingOption,
@@ -48,8 +45,20 @@ import {
   isCreateAppointmentLocationStepSkipped,
 } from '../../create-appointment/utils/createAppointmentServiceLocation';
 import { useBookingCalendar } from '../../../availability/booking';
-import { CREATE_APPOINTMENT_CUSTOM_JOB_ID } from '../../create-appointment/constants';
+import {
+  CREATE_APPOINTMENT_CUSTOM_JOB_ID,
+  CREATE_APPOINTMENT_MAX_JOBS,
+} from '../../create-appointment/constants';
 import { serviceDurationHHmmToMinutes } from '../../../../components/ui/durationTime';
+import { canContinueCreateAppointmentStep } from '../../create-appointment/utils/createFlowContinueGate';
+import {
+  getCreateAppointmentProgressFraction,
+  getNextStepOnContinue,
+  getPreviousStepOnBack,
+  isAddonsStepSkipped,
+} from '../../create-appointment/utils/createFlowNavigation';
+import { createEmptyJobDraft } from '../../create-appointment/utils/createAppointmentJobs';
+import { resolveCreateAppointmentWizardHeader } from '../../create-appointment/utils/resolveCreateAppointmentWizardHeader';
 import {
   EDIT_APPOINTMENT_ADDONS_ENTRY,
   EDIT_APPOINTMENT_ADDONS_JOBS_LIST,
@@ -74,6 +83,11 @@ import {
   mergeActiveJobIntoJobs,
   resolvePricingIdFromLabelHint,
 } from '../utils/editJobDraft';
+import {
+  appendAddedEditJob,
+  removeEditJobAtIndex,
+  visitGrossCentsFromEditJobs,
+} from '../utils/commitAddedEditJob';
 import {
   isMultiJobEdit,
   mapBookingJobsForEdit,
@@ -122,8 +136,12 @@ export function useEditAppointmentController({
   const schedulePrefillSyncedRef = useRef(false);
   const pricingPrefillSyncedRef = useRef(false);
   const addonsPrefillSyncedRef = useRef(false);
-  /** @type {React.MutableRefObject<'hub' | 'addons_list'>} */
+  /** @type {React.MutableRefObject<'hub' | 'addons_list' | 'job_hub'>} */
   const addonsReturnTargetRef = useRef('hub');
+  /** @type {React.MutableRefObject<'hub' | 'jobs_list' | 'job_hub'>} */
+  const saveReturnTargetRef = useRef('hub');
+  const saveReturnJobIndexRef = useRef(/** @type {number | null} */ (null));
+  const saveSuccessMessageRef = useRef('Changes saved');
   const [prefillReady, setPrefillReady] = useState(false);
 
   const [step, setStep] = useState(EDIT_APPOINTMENT_HUB);
@@ -144,6 +162,10 @@ export function useEditAppointmentController({
     /** @type {import('../utils/mapBookingJobsForEdit').EditJobSnapshot[]} */ ([]),
   );
   const [activeJobIndex, setActiveJobIndex] = useState(/** @type {number | null} */ (null));
+  const [isAddingJob, setIsAddingJob] = useState(false);
+  const [servicePickPhase, setServicePickPhase] = useState(
+    /** @type {'chooser' | 'catalog'} */ ('catalog'),
+  );
   const [customServiceName, setCustomServiceName] = useState('');
   const [customPriceUsdText, setCustomPriceUsdText] = useState('');
   const [customDurationHhMm, setCustomDurationHhMm] = useState('01:00');
@@ -171,6 +193,11 @@ export function useEditAppointmentController({
     setPinnedSchedule(null);
     setJobs([]);
     setActiveJobIndex(null);
+    setIsAddingJob(false);
+    setServicePickPhase('catalog');
+    saveReturnTargetRef.current = 'hub';
+    saveReturnJobIndexRef.current = null;
+    saveSuccessMessageRef.current = 'Changes saved';
     setPricingLabelHint(null);
   }, [bookingId]);
 
@@ -765,25 +792,37 @@ export function useEditAppointmentController({
   useEffect(() => {
     if (!addonCatalogKnown) return;
     if (step !== EDIT_APPOINTMENT_STEP.ADDONS || !addonsSkipped) return;
+    if (isAddingJob) {
+      setStep(EDIT_APPOINTMENT_STEP.VEHICLE);
+      return;
+    }
     const returnTo = addonsReturnTargetRef.current;
     addonsReturnTargetRef.current = 'hub';
+    if (returnTo === 'job_hub') {
+      setStep(EDIT_APPOINTMENT_JOB_HUB);
+      return;
+    }
     setActiveJobIndex(null);
     if (returnTo === 'addons_list') {
       setStep(EDIT_APPOINTMENT_ADDONS_JOBS_LIST);
       return;
     }
     setStep(EDIT_APPOINTMENT_HUB);
-  }, [addonCatalogKnown, addonsSkipped, step]);
+  }, [addonCatalogKnown, addonsSkipped, isAddingJob, step]);
 
   useEffect(() => {
     if (step !== EDIT_APPOINTMENT_STEP.PRICING || !pricingSkipped) return;
     if (isCustomJob) return;
+    if (isAddingJob) {
+      setStep(addonsSkipped ? EDIT_APPOINTMENT_STEP.VEHICLE : EDIT_APPOINTMENT_STEP.ADDONS);
+      return;
+    }
     if (activeJobIndex != null) {
       setStep(EDIT_APPOINTMENT_JOB_HUB);
       return;
     }
     setStep(EDIT_APPOINTMENT_HUB);
-  }, [step, pricingSkipped, activeJobIndex, isCustomJob]);
+  }, [step, pricingSkipped, activeJobIndex, isAddingJob, isCustomJob, addonsSkipped]);
 
   /**
    * Service & pricing are one path: picking a multi-tier service advances to pricing
@@ -833,6 +872,11 @@ export function useEditAppointmentController({
       customDurationHhMm,
     });
 
+    // Adding a job is UI-only — never merge the empty/new draft into save.
+    if (isAddingJob) {
+      return jobs;
+    }
+
     // Merge open job draft into the jobs array (single- or multi-job).
     if (activeJobIndex != null) {
       return mergeActiveJobIntoJobs(jobs, activeJobIndex, draftSnapshot);
@@ -847,6 +891,7 @@ export function useEditAppointmentController({
     return jobs;
   }, [
     jobs,
+    isAddingJob,
     activeJobIndex,
     isCustomJob,
     selectedServiceId,
@@ -948,10 +993,12 @@ export function useEditAppointmentController({
       step === EDIT_APPOINTMENT_STEP.ADDONS ||
       step === EDIT_APPOINTMENT_STEP.VEHICLE);
 
-  const showAddonsSection = useMemo(
-    () => (jobs ?? []).some((job) => !isEditJobCustom(job)),
-    [jobs],
-  );
+  const serviceHasAddons = addonCatalogKnown && addonsCount > 0;
+  const showAddonsSection = useMemo(() => {
+    const list = jobs ?? [];
+    return list.length === 1 && !isEditJobCustom(list[0]) && serviceHasAddons;
+  }, [jobs, serviceHasAddons]);
+  const showJobAddonsSection = !isCustomJob && (jobs?.length ?? 0) > 1 && serviceHasAddons;
 
   const hubSections = useMemo(
     () =>
@@ -995,8 +1042,19 @@ export function useEditAppointmentController({
         selectedServiceId,
         selectedService,
         vehicle,
+        showAddonsSection: showJobAddonsSection,
+        selectedAddonRows,
       }),
-    [activeJobTitle, isCustomJob, pricingSkipped, selectedServiceId, selectedService, vehicle],
+    [
+      activeJobTitle,
+      isCustomJob,
+      pricingSkipped,
+      selectedServiceId,
+      selectedService,
+      vehicle,
+      showJobAddonsSection,
+      selectedAddonRows,
+    ],
   );
 
   const applyJobDraftFields = useCallback((job) => {
@@ -1019,6 +1077,126 @@ export function useEditAppointmentController({
     if (activeJobIndex == null) return;
     applyJobDraftFields(jobs[activeJobIndex]);
   }, [activeJobIndex, jobs, applyJobDraftFields]);
+
+  const resetNewJobDraft = useCallback(() => {
+    const empty = createEmptyJobDraft();
+    skipServiceResetRef.current = true;
+    jobPricingHydrateRef.current = false;
+    advanceToPricingAfterServiceRef.current = false;
+    pricingEnteredFromServiceRef.current = false;
+    setSelectedServiceId(empty.selectedServiceId);
+    setSelectedPricingId(empty.selectedPricingId);
+    setSelectedAddonIds(empty.selectedAddonIds);
+    setVehicle(empty.vehicle);
+    setCatalogPriceUsdText(empty.catalogPriceUsdText);
+    setCustomServiceName(empty.customServiceName);
+    setCustomPriceUsdText(empty.customPriceUsdText);
+    setCustomDurationHhMm(empty.customDurationHhMm);
+    setPricingLabelHint(null);
+  }, []);
+
+  /** Cancel add-job without committing. */
+  const leaveAddJobFlow = useCallback(() => {
+    setIsAddingJob(false);
+    setServicePickPhase('catalog');
+    setActiveJobIndex(null);
+    if (jobs.length === 1) {
+      applyJobDraftFields(jobs[0]);
+    }
+    setStep(EDIT_APPOINTMENT_JOBS_LIST);
+  }, [jobs, applyJobDraftFields]);
+
+  const handleStartAddJob = useCallback(() => {
+    if ((jobs?.length ?? 0) >= CREATE_APPOINTMENT_MAX_JOBS) {
+      toast.info(`You can add up to ${CREATE_APPOINTMENT_MAX_JOBS} jobs on one visit.`);
+      return;
+    }
+    resetNewJobDraft();
+    setActiveJobIndex(null);
+    setIsAddingJob(true);
+    setServicePickPhase('chooser');
+    setStep(EDIT_APPOINTMENT_STEP.SERVICE);
+  }, [jobs?.length, resetNewJobDraft, toast]);
+
+  const handleChooseServices = useCallback(() => {
+    if (isCustomJob) {
+      setSelectedServiceId(null);
+    }
+    setServicePickPhase('catalog');
+  }, [isCustomJob]);
+
+  const handleChooseCustomJob = useCallback(() => {
+    setSelectedServiceId(CREATE_APPOINTMENT_CUSTOM_JOB_ID);
+    setSelectedPricingId(null);
+    setSelectedAddonIds([]);
+    setCatalogPriceUsdText('');
+    setServicePickPhase('catalog');
+    setStep(EDIT_APPOINTMENT_STEP.PRICING);
+  }, []);
+
+  const addJobNavArgs = useMemo(
+    () => ({
+      pricingSkipped,
+      addonsSkipped,
+      locationSkipped: true,
+      addressSkipped: true,
+      jobIndex: 1,
+    }),
+    [pricingSkipped, addonsSkipped],
+  );
+
+  const canContinueAddJob = useMemo(
+    () =>
+      canContinueCreateAppointmentStep({
+        appointmentConfirmed: false,
+        step,
+        selectedServiceId,
+        selectedPricingId,
+        servicePickPhase,
+        isCustomJob,
+        customJobComplete,
+        pricingSkipped,
+        locationSkipped: true,
+        addressSkipped: true,
+        businessServiceLocationLoading: false,
+        pricingOptions: pricingPayload.options,
+        priceOptionsLoading: server.priceOptionsLoading,
+        priceOptionsEnabled,
+        acceptBookings: true,
+        scheduleLoading: false,
+        selectedDateKey,
+        selectedTime,
+        timeSlots: selectedTime ? [selectedTime] : [],
+        customer,
+        appointmentLocationType,
+        shopAddressMissing: false,
+        address,
+        vehicle,
+        catalogPriceComplete: Boolean(
+          isCustomJob || (catalogPriceRaw.length > 0 && parsedCatalogPriceCents != null),
+        ),
+      }),
+    [
+      step,
+      selectedServiceId,
+      selectedPricingId,
+      servicePickPhase,
+      isCustomJob,
+      customJobComplete,
+      pricingSkipped,
+      pricingPayload.options,
+      server.priceOptionsLoading,
+      priceOptionsEnabled,
+      selectedDateKey,
+      selectedTime,
+      customer,
+      appointmentLocationType,
+      address,
+      vehicle,
+      catalogPriceRaw.length,
+      parsedCatalogPriceCents,
+    ],
+  );
 
   const sectionSnapshotRef = useRef(
     /** @type {null | {
@@ -1061,6 +1239,18 @@ export function useEditAppointmentController({
     (targetStep) => {
       if (step === EDIT_APPOINTMENT_HUB) {
         captureVisitSectionSnapshot();
+        saveReturnTargetRef.current = 'hub';
+        saveReturnJobIndexRef.current = null;
+      }
+      if (step === EDIT_APPOINTMENT_JOB_HUB) {
+        saveReturnTargetRef.current = 'job_hub';
+        saveReturnJobIndexRef.current = activeJobIndex;
+      }
+
+      if (targetStep === EDIT_APPOINTMENT_STEP.ADDONS && step === EDIT_APPOINTMENT_JOB_HUB) {
+        addonsReturnTargetRef.current = 'job_hub';
+        setStep(EDIT_APPOINTMENT_STEP.ADDONS);
+        return;
       }
 
       if (targetStep === EDIT_APPOINTMENT_ADDONS_ENTRY) {
@@ -1137,6 +1327,10 @@ export function useEditAppointmentController({
     restoreActiveJobDraft();
     const returnTo = addonsReturnTargetRef.current;
     addonsReturnTargetRef.current = 'hub';
+    if (returnTo === 'job_hub') {
+      setStep(EDIT_APPOINTMENT_JOB_HUB);
+      return;
+    }
     setActiveJobIndex(null);
     if (returnTo === 'addons_list') {
       setStep(EDIT_APPOINTMENT_ADDONS_JOBS_LIST);
@@ -1153,8 +1347,9 @@ export function useEditAppointmentController({
             appointmentConfirmed: false,
             pricingSkipped,
             addonsSkipped,
-            locationSkipped,
-            addressSkipped,
+            locationSkipped: isAddingJob ? true : locationSkipped,
+            addressSkipped: isAddingJob ? true : addressSkipped,
+            jobIndex: isAddingJob ? 1 : 0,
           }) * 100,
     [
       isHubView,
@@ -1162,6 +1357,7 @@ export function useEditAppointmentController({
       isAddonsJobsListView,
       isJobHubView,
       isNotesView,
+      isAddingJob,
       step,
       pricingSkipped,
       addonsSkipped,
@@ -1178,36 +1374,51 @@ export function useEditAppointmentController({
     () => getCreateAppointmentAddressStepCopy(appointmentLocationType),
     [appointmentLocationType],
   );
+  const addJobHeader = useMemo(() => {
+    if (!isAddingJob) return null;
+    return resolveCreateAppointmentWizardHeader(step, meta, addressStepCopy, {
+      servicePickPhase,
+      isCustomJob,
+      jobNumber: Math.max(2, (jobs?.length ?? 0) + 1),
+    });
+  }, [isAddingJob, step, meta, addressStepCopy, servicePickPhase, isCustomJob, jobs?.length]);
+
   const mainTitle = useMemo(() => {
     if (isNotesView) return 'Notes';
+    if (addJobHeader) return addJobHeader.title;
     if (step === EDIT_APPOINTMENT_STEP.ADDRESS) return addressStepCopy.title;
     if (isJobScopedStep && step === EDIT_APPOINTMENT_STEP.VEHICLE) return 'Vehicle';
     return meta?.title ?? '';
-  }, [isNotesView, step, addressStepCopy.title, isJobScopedStep, meta?.title]);
+  }, [isNotesView, addJobHeader, step, addressStepCopy.title, isJobScopedStep, meta?.title]);
   const mainSubtitle = useMemo(() => {
     if (isNotesView) return 'Visit notes for this appointment.';
+    if (addJobHeader) return addJobHeader.subtitle;
     if (step === EDIT_APPOINTMENT_STEP.ADDRESS) return addressStepCopy.subtitle;
     if (isJobScopedStep && step === EDIT_APPOINTMENT_STEP.VEHICLE) {
       return 'Vehicle for this job — or leave blank.';
     }
     return meta?.subtitle ?? '';
-  }, [isNotesView, step, addressStepCopy.subtitle, isJobScopedStep, meta?.subtitle]);
+  }, [isNotesView, addJobHeader, step, addressStepCopy.subtitle, isJobScopedStep, meta?.subtitle]);
 
   const updateBookingMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (jobsOverride) => {
       if (!bookingId) {
         throw new Error('Missing booking');
       }
       const jobsSnapshot =
-        Array.isArray(jobsForSave) && jobsForSave.length > 0 ? jobsForSave : null;
+        Array.isArray(jobsOverride) && jobsOverride.length > 0
+          ? jobsOverride
+          : Array.isArray(jobsForSave) && jobsForSave.length > 0
+            ? jobsForSave
+            : null;
       const payload = buildEditBookingUpdatePayload({
         selectedService,
         selectedServiceId: isCustomJob ? null : selectedServiceId,
         selectedPricingOption,
         selectedAddonRows,
         totalDurationMinutes:
-          Array.isArray(jobsForSave) && jobsForSave.length > 0
-            ? sumEditJobsDurationMinutes(jobsForSave)
+          Array.isArray(jobsSnapshot) && jobsSnapshot.length > 0
+            ? sumEditJobsDurationMinutes(jobsSnapshot)
             : currentJobDurationMinutes,
         selectedDateKey,
         selectedTime,
@@ -1228,20 +1439,8 @@ export function useEditAppointmentController({
       }
 
       const visitGrossCents =
-        Array.isArray(jobsForSave) && jobsForSave.length > 0
-          ? jobsForSave.reduce((sum, job) => {
-              const serviceCents = Math.max(
-                0,
-                Math.round(Number(job.selectedPricingOption?.priceCents) || 0),
-              );
-              const addonCents = (job.selectedAddonRows ?? []).reduce((addonSum, addon) => {
-                if (addon?.priceCents != null && Number.isFinite(Number(addon.priceCents))) {
-                  return addonSum + Math.max(0, Math.round(Number(addon.priceCents)));
-                }
-                return addonSum + Math.round(parsePriceLabelToUsd(addon?.priceLabel) * 100);
-              }, 0);
-              return sum + serviceCents + addonCents;
-            }, 0)
+        Array.isArray(jobsSnapshot) && jobsSnapshot.length > 0
+          ? visitGrossCentsFromEditJobs(jobsSnapshot)
           : Math.max(0, Math.round(Number(selectedPricingOption?.priceCents) || 0)) +
             (selectedAddonRows ?? []).reduce((addonSum, addon) => {
               if (addon?.priceCents != null && Number.isFinite(Number(addon.priceCents))) {
@@ -1265,14 +1464,36 @@ export function useEditAppointmentController({
     },
     onSuccess: async (result) => {
       sectionSnapshotRef.current = null;
-      if (result?.jobsSnapshot) {
-        setJobs(result.jobsSnapshot);
+      const nextJobs = result?.jobsSnapshot;
+      if (nextJobs) {
+        setJobs(nextJobs);
       }
-      setActiveJobIndex(null);
-      // Stay in edit — hub so they can change another section without re-opening.
-      setStep(EDIT_APPOINTMENT_HUB);
+      setIsAddingJob(false);
+      setServicePickPhase('catalog');
+      const returnTo = saveReturnTargetRef.current;
+      const returnJobIndex = saveReturnJobIndexRef.current;
+      saveReturnTargetRef.current = 'hub';
+      saveReturnJobIndexRef.current = null;
+      const successMessage = saveSuccessMessageRef.current || 'Changes saved';
+      saveSuccessMessageRef.current = 'Changes saved';
+      if (returnTo === 'jobs_list') {
+        setActiveJobIndex(null);
+        setStep(EDIT_APPOINTMENT_JOBS_LIST);
+        toast.success(successMessage);
+      } else if (returnTo === 'job_hub' && returnJobIndex != null) {
+        const job = nextJobs?.[returnJobIndex];
+        setActiveJobIndex(returnJobIndex);
+        if (job) {
+          applyJobDraftFields(job);
+        }
+        setStep(EDIT_APPOINTMENT_JOB_HUB);
+        toast.success(successMessage);
+      } else {
+        setActiveJobIndex(null);
+        setStep(EDIT_APPOINTMENT_HUB);
+        toast.success(successMessage);
+      }
       await invalidateBookingCachesAfterMutation(queryClient, bookingId);
-      toast.success('Changes saved');
     },
     onError: (e) => {
       toast.error(safeUserFacingMessage(e, { fallback: 'Could not save changes. Try again.' }));
@@ -1282,6 +1503,25 @@ export function useEditAppointmentController({
   const handleBack = useCallback(() => {
     if (isHubView) {
       navigation.goBack();
+      return;
+    }
+    if (isAddingJob) {
+      if (updateBookingMutation.isPending) return;
+      if (step === EDIT_APPOINTMENT_STEP.SERVICE && servicePickPhase === 'catalog') {
+        setServicePickPhase('chooser');
+        return;
+      }
+      if (step === EDIT_APPOINTMENT_STEP.SERVICE) {
+        leaveAddJobFlow();
+        return;
+      }
+      if (step === EDIT_APPOINTMENT_STEP.PRICING && isCustomJob) {
+        setSelectedServiceId(null);
+        setServicePickPhase('chooser');
+        setStep(EDIT_APPOINTMENT_STEP.SERVICE);
+        return;
+      }
+      setStep(getPreviousStepOnBack({ step, ...addJobNavArgs }));
       return;
     }
     if (isJobsListView || isAddonsJobsListView) {
@@ -1318,15 +1558,20 @@ export function useEditAppointmentController({
     returnToHub();
   }, [
     isHubView,
+    isAddingJob,
     isJobsListView,
     isAddonsJobsListView,
     isJobHubView,
     isNotesView,
     isJobScopedStep,
     step,
+    servicePickPhase,
     isCustomJob,
     activeJobIndex,
+    addJobNavArgs,
+    updateBookingMutation.isPending,
     navigation,
+    leaveAddJobFlow,
     returnToJobsList,
     returnToJobHub,
     returnToHub,
@@ -1338,14 +1583,105 @@ export function useEditAppointmentController({
     updateBookingMutation.mutate();
   }, [canSave, updateBookingMutation]);
 
+  const handleCommitAddJob = useCallback(() => {
+    if (!canContinueAddJob || updateBookingMutation.isPending) return;
+    if ((jobs?.length ?? 0) >= CREATE_APPOINTMENT_MAX_JOBS) {
+      toast.info(`You can add up to ${CREATE_APPOINTMENT_MAX_JOBS} jobs on one visit.`);
+      return;
+    }
+    const snapshot = flushEditDraftToJobSnapshot({
+      isCustomJob,
+      selectedServiceId,
+      selectedService,
+      selectedPricingOption,
+      selectedAddonRows,
+      totalDurationMinutes: currentJobDurationMinutes,
+      vehicle,
+      selectedPricingId,
+      selectedAddonIds,
+      catalogPriceUsdText,
+      customServiceName,
+      customPriceUsdText,
+      customDurationHhMm,
+    });
+    const nextJobs = appendAddedEditJob(jobs, snapshot);
+    if (nextJobs.length === (jobs?.length ?? 0)) return;
+    saveReturnTargetRef.current = 'jobs_list';
+    saveSuccessMessageRef.current = 'Job added';
+    updateBookingMutation.mutate(nextJobs);
+  }, [
+    canContinueAddJob,
+    updateBookingMutation,
+    jobs,
+    toast,
+    isCustomJob,
+    selectedServiceId,
+    selectedService,
+    selectedPricingOption,
+    selectedAddonRows,
+    currentJobDurationMinutes,
+    vehicle,
+    selectedPricingId,
+    selectedAddonIds,
+    catalogPriceUsdText,
+    customServiceName,
+    customPriceUsdText,
+    customDurationHhMm,
+  ]);
+
+  const commitRemoveJob = useCallback(() => {
+    if (updateBookingMutation.isPending) return;
+    if ((jobs?.length ?? 0) <= 1 || activeJobIndex == null) {
+      toast.info('Keep at least one job on this visit.');
+      return;
+    }
+    const nextJobs = removeEditJobAtIndex(jobs, activeJobIndex);
+    if (nextJobs.length === (jobs?.length ?? 0)) return;
+    saveReturnTargetRef.current = 'jobs_list';
+    saveSuccessMessageRef.current = 'Job removed';
+    updateBookingMutation.mutate(nextJobs);
+  }, [activeJobIndex, jobs, toast, updateBookingMutation]);
+
+  const handleRemoveJob = useCallback(() => {
+    if ((jobs?.length ?? 0) <= 1 || activeJobIndex == null) {
+      toast.info('Keep at least one job on this visit.');
+      return;
+    }
+    if (updateBookingMutation.isPending) return;
+    const job = jobs[activeJobIndex];
+    const name = String(job?.serviceName ?? '').trim() || `Job ${activeJobIndex + 1}`;
+    Alert.alert('Remove this job?', `Remove ${name} from this visit?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: commitRemoveJob },
+    ]);
+  }, [activeJobIndex, commitRemoveJob, jobs, toast, updateBookingMutation.isPending]);
+
   const handleContinue = useCallback(() => {
+    if (isAddingJob) {
+      if (!canContinueAddJob) return;
+      if (step === EDIT_APPOINTMENT_STEP.VEHICLE) {
+        handleCommitAddJob();
+        return;
+      }
+      setStep(getNextStepOnContinue({ step, ...addJobNavArgs }));
+      return;
+    }
     // Jobs / add-ons job lists are navigation-only (Done → hub).
     if (isJobsListView || isAddonsJobsListView) {
       setStep(EDIT_APPOINTMENT_HUB);
       return;
     }
     handleSave();
-  }, [handleSave, isJobsListView, isAddonsJobsListView]);
+  }, [
+    isAddingJob,
+    canContinueAddJob,
+    step,
+    addJobNavArgs,
+    handleCommitAddJob,
+    handleSave,
+    isJobsListView,
+    isAddonsJobsListView,
+  ]);
 
   const toggleAddon = useCallback((id) => {
     setSelectedAddonIds((prev) =>
@@ -1363,12 +1699,12 @@ export function useEditAppointmentController({
       catalogIsLoading: catalog.isLoading,
       enabledServices,
       categories: catalog.categories,
-      servicePickPhase: 'catalog',
+      servicePickPhase,
       isCustomJob,
       selectedServiceId,
       onSelectServiceId: handleSelectServiceId,
-      onChooseServices: () => {},
-      onChooseCustomJob: () => {},
+      onChooseServices: handleChooseServices,
+      onChooseCustomJob: handleChooseCustomJob,
       customServiceName,
       customPriceUsdText,
       customDurationHhMm,
@@ -1409,8 +1745,12 @@ export function useEditAppointmentController({
       totalDurationMinutes,
       onChangeVehicle: setVehicle,
       onChangeNotes: setNotes,
-      jobNumber: isJobScopedStep ? Math.max(1, (activeJobIndex ?? 0) + 1) : 1,
-      showVisitNotes: !isJobScopedStep,
+      jobNumber: isAddingJob
+        ? Math.max(2, (jobs?.length ?? 0) + 1)
+        : isJobScopedStep
+          ? Math.max(1, (activeJobIndex ?? 0) + 1)
+          : 1,
+      showVisitNotes: !isJobScopedStep && !isAddingJob,
       canAddAnotherJob: false,
     }),
     [
@@ -1419,6 +1759,9 @@ export function useEditAppointmentController({
       catalog.isLoading,
       enabledServices,
       catalog.categories,
+      servicePickPhase,
+      handleChooseServices,
+      handleChooseCustomJob,
       isCustomJob,
       selectedServiceId,
       handleSelectServiceId,
@@ -1454,6 +1797,8 @@ export function useEditAppointmentController({
       notes,
       totalDurationMinutes,
       isJobScopedStep,
+      isAddingJob,
+      jobs?.length,
       activeJobIndex,
     ],
   );
@@ -1465,8 +1810,10 @@ export function useEditAppointmentController({
     !isJobHubView &&
     (isNotesView || editAppointmentStepShowsMainTitle(step));
 
-  /** Save from every edit screen except job lists (Done returns to the hub). */
-  const primarySaves = !isJobsListView && !isAddonsJobsListView;
+  /** Save from every edit screen except job lists and the add-job wizard. */
+  const primarySaves = !isJobsListView && !isAddonsJobsListView && !isAddingJob;
+  const canAddAnotherJob = (jobs?.length ?? 0) < CREATE_APPOINTMENT_MAX_JOBS;
+  const canRemoveJob = (jobs?.length ?? 0) > 1;
 
   const addonsJobsList = useMemo(
     () =>
@@ -1489,7 +1836,13 @@ export function useEditAppointmentController({
     isMultiJob,
     hubSections,
     jobHubSections,
+    showJobAddonsSection,
     jobs,
+    canAddAnotherJob,
+    canRemoveJob,
+    handleStartAddJob,
+    handleRemoveJob,
+    isRemovingJob: updateBookingMutation.isPending && saveReturnTargetRef.current === 'jobs_list',
     addonsJobsList,
     notes,
     onChangeNotes: setNotes,
@@ -1500,14 +1853,22 @@ export function useEditAppointmentController({
     bookingErrorMessage,
     footer: {
       appointmentConfirmed: false,
-      canContinue: primarySaves ? canSave && !updateBookingMutation.isPending : true,
+      canContinue: isAddingJob
+        ? canContinueAddJob
+        : primarySaves
+          ? canSave && !updateBookingMutation.isPending
+          : true,
       confirmLoading: updateBookingMutation.isPending,
       editHubMode: isHubView,
-      editSectionMode: !isHubView,
-      lastStepIndex: EDIT_APPOINTMENT_LAST_STEP,
-      lastStepPrimaryTitle: 'Save changes',
-      lastStepAccessibilityLabel: 'Save appointment changes',
+      editSectionMode: !isHubView && !isAddingJob,
+      lastStepIndex: isAddingJob ? EDIT_APPOINTMENT_STEP.VEHICLE : EDIT_APPOINTMENT_LAST_STEP,
+      lastStepPrimaryTitle: isAddingJob ? 'Done' : 'Save changes',
+      lastStepAccessibilityLabel: isAddingJob ? 'Done adding job' : 'Save appointment changes',
       sectionPrimaryTitle: primarySaves ? 'Save changes' : 'Done',
+      backTitle:
+        isAddingJob && step === EDIT_APPOINTMENT_STEP.SERVICE && servicePickPhase === 'catalog'
+          ? 'Back'
+          : undefined,
       step,
       onBack: handleBack,
       onContinue: handleContinue,

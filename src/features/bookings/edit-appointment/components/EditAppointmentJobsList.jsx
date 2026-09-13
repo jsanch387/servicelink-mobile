@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
+import { AddAnotherJobCard } from '../../create-appointment/components/AddAnotherJobCard';
 import { formatUsdFromNumber } from '../../create-appointment/utils/priceLabelMath';
 
 /**
@@ -18,6 +19,8 @@ import { formatUsdFromNumber } from '../../create-appointment/utils/priceLabelMa
  *   heading?: string;
  *   subtext?: string;
  *   jobIndexes?: Array<number | { index: number; job?: object }> | null;
+ *   canAddAnotherJob?: boolean;
+ *   onAddAnotherJob?: () => void;
  * }} props
  */
 export function EditAppointmentJobsList({
@@ -27,6 +30,8 @@ export function EditAppointmentJobsList({
   subtext = 'Tap a job to change its service, price, or vehicle.',
   jobIndexes = null,
   preferAddonSummary = false,
+  canAddAnotherJob = false,
+  onAddAnotherJob,
 }) {
   const { colors } = useTheme();
   const source = Array.isArray(jobs) ? jobs : [];
@@ -213,6 +218,9 @@ export function EditAppointmentJobsList({
             </SurfaceCard>
           );
         })}
+        {canAddAnotherJob && onAddAnotherJob ? (
+          <AddAnotherJobCard onPress={onAddAnotherJob} />
+        ) : null}
       </View>
     </View>
   );

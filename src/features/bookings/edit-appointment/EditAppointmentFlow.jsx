@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, InlineCardError, WizardStepHeader } from '../../../components/ui';
+import { Button, DeleteButton, InlineCardError, WizardStepHeader } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useAuth } from '../../auth';
 import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
@@ -129,7 +129,15 @@ export function EditAppointmentFlow({ bookingId }) {
   if (flow.isHubView) {
     body = <EditAppointmentHub sections={flow.hubSections} onOpenSection={flow.openEditSection} />;
   } else if (flow.isJobsListView) {
-    body = <EditAppointmentJobsList jobs={flow.jobs} onSelectJob={flow.openJobForEdit} />;
+    body = (
+      <EditAppointmentJobsList
+        canAddAnotherJob={flow.canAddAnotherJob}
+        jobs={flow.jobs}
+        subtext="Tap a job to change it, or add another."
+        onAddAnotherJob={flow.handleStartAddJob}
+        onSelectJob={flow.openJobForEdit}
+      />
+    );
   } else if (flow.isAddonsJobsListView) {
     body = (
       <EditAppointmentJobsList
@@ -144,9 +152,20 @@ export function EditAppointmentFlow({ bookingId }) {
   } else if (flow.isJobHubView) {
     body = (
       <EditAppointmentHub
+        footer={
+          flow.canRemoveJob ? (
+            <DeleteButton
+              accessibilityLabel="Remove this job"
+              disabled={flow.footer.confirmLoading}
+              loading={flow.isRemovingJob}
+              title="Remove this job"
+              onPress={flow.handleRemoveJob}
+            />
+          ) : null
+        }
         heading="Edit job"
         sections={flow.jobHubSections}
-        subtext="Change this job’s service, price, or vehicle."
+        subtext="Make changes to this job."
         onOpenSection={flow.openEditSection}
       />
     );

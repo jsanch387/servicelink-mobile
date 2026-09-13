@@ -12,6 +12,7 @@ const ICON_GAP = 12;
  * @param {object} props
  * @param {string} props.title
  * @param {string} props.summary
+ * @param {string} [props.summarySuffix]
  * @param {number} [props.summaryMaxLines]
  * @param {keyof typeof Ionicons.glyphMap} props.icon
  * @param {boolean} props.showDividerBelow
@@ -20,6 +21,7 @@ const ICON_GAP = 12;
 function EditHubRow({
   title,
   summary,
+  summarySuffix = '',
   summaryMaxLines = 2,
   icon,
   showDividerBelow = true,
@@ -73,6 +75,33 @@ function EditHubRow({
           letterSpacing: -0.05,
           lineHeight: 18,
         },
+        summaryRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          minWidth: 0,
+          width: '100%',
+        },
+        summaryNameCol: {
+          flexGrow: 0,
+          flexShrink: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+          overflow: 'hidden',
+        },
+        summaryMoreCol: {
+          flexGrow: 0,
+          flexShrink: 0,
+          justifyContent: 'center',
+          marginLeft: 4,
+        },
+        summaryMore: {
+          color: colors.text,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 11,
+          fontWeight: '600',
+          letterSpacing: 0.15,
+          lineHeight: 16,
+        },
         chevronCol: {
           alignItems: 'center',
           height: 22,
@@ -97,7 +126,11 @@ function EditHubRow({
 
   return (
     <View style={styles.root}>
-      <Pressable accessibilityRole="button" onPress={onPress}>
+      <Pressable
+        accessibilityLabel={[title, summary, summarySuffix].filter(Boolean).join(', ')}
+        accessibilityRole="button"
+        onPress={onPress}
+      >
         {({ pressed }) => (
           <View style={[styles.row, pressed && styles.pressed]}>
             <View style={styles.iconWrap}>
@@ -107,9 +140,24 @@ function EditHubRow({
               <AppText numberOfLines={1} style={styles.title}>
                 {title}
               </AppText>
-              <AppText ellipsizeMode="tail" numberOfLines={summaryMaxLines} style={styles.summary}>
-                {summary}
-              </AppText>
+              {String(summary ?? '').trim() ? (
+                <View style={styles.summaryRow}>
+                  <View style={styles.summaryNameCol}>
+                    <AppText
+                      ellipsizeMode="tail"
+                      numberOfLines={summaryMaxLines}
+                      style={styles.summary}
+                    >
+                      {summary}
+                    </AppText>
+                  </View>
+                  {String(summarySuffix ?? '').trim() ? (
+                    <View style={styles.summaryMoreCol}>
+                      <AppText style={styles.summaryMore}>{summarySuffix}</AppText>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
             </View>
             <View style={styles.chevronCol}>
               <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />
@@ -134,12 +182,14 @@ function EditHubRow({
  * @param {(step: number) => void} props.onOpenSection
  * @param {string} [props.heading]
  * @param {string} [props.subtext]
+ * @param {import('react').ReactNode} [props.footer]
  */
 export function EditAppointmentHub({
   sections,
   onOpenSection,
   heading = 'What do you want to change?',
   subtext = 'Tap a section to make a change.',
+  footer = null,
 }) {
   const { colors } = useTheme();
 
@@ -172,6 +222,9 @@ export function EditAppointmentHub({
         card: {
           overflow: 'hidden',
         },
+        footer: {
+          paddingTop: 4,
+        },
       }),
     [colors],
   );
@@ -190,11 +243,13 @@ export function EditAppointmentHub({
             showDividerBelow={index < sections.length - 1}
             summary={section.summary}
             summaryMaxLines={section.summaryMaxLines ?? 2}
+            summarySuffix={section.summarySuffix}
             title={section.title}
             onPress={() => onOpenSection(section.step)}
           />
         ))}
       </SurfaceCard>
+      {footer ? <View style={styles.footer}>{footer}</View> : null}
     </View>
   );
 }

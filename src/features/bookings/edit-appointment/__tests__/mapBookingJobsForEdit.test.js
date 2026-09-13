@@ -6,6 +6,7 @@ import {
   resolvePricingIdFromLabelHint,
 } from '../utils/editJobDraft';
 import {
+  formatEditJobsHubMoreLabel,
   formatEditJobsHubSummary,
   isMultiJobEdit,
   mapBookingJobsForEdit,
@@ -39,7 +40,8 @@ describe('mapBookingJobsForEdit', () => {
 
     expect(jobs).toHaveLength(2);
     expect(isMultiJobEdit(jobs)).toBe(true);
-    expect(formatEditJobsHubSummary(jobs)).toBe('Signature Shine +1 more');
+    expect(formatEditJobsHubSummary(jobs)).toBe('Signature Shine');
+    expect(formatEditJobsHubMoreLabel(jobs)).toBe('+1 more');
     expect(sumEditJobsDurationMinutes(jobs)).toBe(165);
     expect(jobs[0]).toMatchObject({
       localId: 'j1',

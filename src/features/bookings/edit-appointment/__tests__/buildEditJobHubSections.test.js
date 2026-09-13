@@ -9,7 +9,7 @@ describe('buildEditJobHubSections', () => {
     vehicle: { year: '2017', make: 'Toyota', model: 'Tacoma' },
   };
 
-  it('keeps Service & pricing and Vehicle only (Add-ons live on visit hub)', () => {
+  it('keeps Service & pricing and Vehicle only for a single-job visit', () => {
     const sections = buildEditJobHubSections(base);
     const ids = sections.map((s) => s.id);
 
@@ -19,6 +19,40 @@ describe('buildEditJobHubSections', () => {
       summary: 'Full Detail',
       step: CREATE_APPOINTMENT_STEP.PRICING,
     });
+  });
+
+  it('puts Add-ons on the job hub when the visit has multiple jobs', () => {
+    const sections = buildEditJobHubSections({
+      ...base,
+      showAddonsSection: true,
+      selectedAddonRows: [{ name: 'Pet hair' }],
+    });
+    expect(sections.map((s) => s.id)).toEqual(['job-service', 'job-addons', 'job-vehicle']);
+    expect(sections.find((s) => s.id === 'job-addons')).toMatchObject({
+      title: 'Add-ons',
+      summary: 'Pet hair',
+      step: CREATE_APPOINTMENT_STEP.ADDONS,
+    });
+  });
+
+  it('hides Add-ons when the service has none', () => {
+    const sections = buildEditJobHubSections({
+      ...base,
+      showAddonsSection: false,
+      selectedAddonRows: [],
+    });
+    expect(sections.map((s) => s.id)).toEqual(['job-service', 'job-vehicle']);
+  });
+
+  it('does not put Add-ons on a custom job', () => {
+    const sections = buildEditJobHubSections({
+      ...base,
+      isCustomJob: true,
+      selectedServiceId: null,
+      showAddonsSection: true,
+      selectedAddonRows: [{ name: 'Pet hair' }],
+    });
+    expect(sections.map((s) => s.id)).toEqual(['job-service', 'job-vehicle']);
   });
 
   it('opens Service list when pricing is skipped', () => {
