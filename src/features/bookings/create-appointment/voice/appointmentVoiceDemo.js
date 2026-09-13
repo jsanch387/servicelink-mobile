@@ -5,6 +5,12 @@ import { normalizePhoneForDatabase } from '../../../../utils/phone';
 export const VOICE_LISTEN_MS = 420;
 /** Press longer than this is hold-to-talk; shorter is tap-to-keep-listening. */
 export const VOICE_HOLD_MS = 200;
+/** After speech, this much quiet ends a latched listen. */
+export const VOICE_SILENCE_MS = 2000;
+/** Hard cap so an open latch cannot record forever. */
+export const VOICE_MAX_CLIP_MS = 90_000;
+/** expo-audio metering (dB). Above this once = we heard speech. */
+export const VOICE_SPEECH_METERING_DB = -35;
 
 export const APPOINTMENT_VOICE_GROUPS = Object.freeze([
   {

@@ -58,7 +58,7 @@
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Location access is required to accept in-person Tap to Pay payments.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <string>Allow Servicelink to use your microphone so you can book appointments by voice.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Allow Servicelink to access your photos so you can choose a cover image.</string>
     <key>RCTNewArchEnabled</key>

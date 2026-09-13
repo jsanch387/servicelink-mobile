@@ -17,7 +17,7 @@ If that loop feels right, we wire live catalog, slots, credits, and owner-manual
 1. Owner taps the orb on Create appointment.
 2. Hold or latch records real microphone audio.
 3. A caption shows what they said.
-4. The app speaks a short next question (`expo-speech` is enough).
+4. The app plays `speakAudio` (server MP3) when present, otherwise device TTS on `speak`.
 5. The draft grows (name, phone, service, price, add-ons, vehicle, address, date, time).
 6. When required fields are present, **Review** opens with those values (edit still works).
 7. Submit may close the sheet only. It must **not** create a booking in this round.
@@ -36,36 +36,32 @@ Replace the scripted `turnIndex` driver. Keep the shell.
 
 Do these while the server stub is built. Mobile can compile against the contract with a local Next origin (`EXPO_PUBLIC_WEB_APP_URL`).
 
-### 1. Mic + talk packages
+### 1. Mic + talk packages — done
 
-- Add `expo-audio` (record) and `expo-speech` (read `speak` back).
-- iOS: `NSMicrophoneUsageDescription` in `app.json` / `app.config.js`.
-- Android: `RECORD_AUDIO`.
-- Rebuild the native client after permission strings change.
+- `expo-audio` (~1.1.1) and `expo-speech` (~14.0.8) installed.
+- iOS: `NSMicrophoneUsageDescription` via the `expo-audio` plugin + `app.json` / `Info.plist`.
+- Android: `RECORD_AUDIO` in `app.json` (already in the manifest).
+- Native iOS client rebuilt so the new modules are in the binary.
 
-### 2. Record on the gestures we already have
+### 2. Record on the gestures we already have — done
 
-In [`AppointmentVoiceSession.jsx`](../voice/AppointmentVoiceSession.jsx):
+In [`AppointmentVoiceSession.jsx`](../voice/AppointmentVoiceSession.jsx) + [`useAppointmentVoiceRecorder.js`](../voice/useAppointmentVoiceRecorder.js):
 
-- **Hold** → record while pressed → on release, send the clip.
-- **Tap / latch** → keep recording until tap-to-stop or ~2s silence, then send.
-- Remove `VOICE_LISTEN_MS` advancing `turnIndex`. That timer is the fake listener.
+- **Hold** → record while pressed → clip on release (`Recorded 1.4s`).
+- **Tap / latch** → keep recording until tap-to-stop, ~2s silence after speech, or 90s max.
+- Scripted `VOICE_LISTEN_MS` turns are gone. Clips are not uploaded yet.
 
-### 3. Thin HTTP client
+### 3. Thin HTTP client — done (echo)
 
-New: `voice/api/postVoiceTurn.js`
+[`voice/api/postVoiceTurn.js`](../voice/api/postVoiceTurn.js) POSTs the clip + draft. Session shows `ask` / `transcript` and plays `speakAudio` (MP3) or falls back to `expo-speech` on `speak`. `ready` is still false on the stub.
 
-- Same origin + Bearer JWT as [`postOwnerManualPublicBooking.js`](../api/postOwnerManualPublicBooking.js).
-- `POST /api/voice/turn` multipart: `audio` + `draft` (JSON string).
-- Apply `{ transcript, draft, ask, speak, ready }` into session state.
-- Show `transcript` as a caption. Show `ask` where we show `turn.ai` today.
-- If `ready === true`, `setMode('review')` (same as today’s scripted ready).
-
-No `GET /api/voice/allowance`. No `source: "voice"` on create.
+No `GET /api/voice/allowance`. No booking create.
 
 ### 4. Keep Review, skip create
 
 Leave Submit as close-only (or a no-op). Do **not** hook `useCreateAppointmentController` / `postOwnerManualPublicBooking` in this round.
+
+Scratch handoff for the web repo (delete as work ships): [`VOICE_TURN_SERVER_CONTEXT.md`](./VOICE_TURN_SERVER_CONTEXT.md).
 
 ## Server work (minimal, no DB)
 
@@ -98,6 +94,7 @@ Suggested response (POC):
   "missing": ["phone"],
   "ask": "What’s the phone number?",
   "speak": "What’s the phone number?",
+  "speakAudio": { "base64": "<mp3 bytes>", "mimeType": "audio/mpeg" },
   "ready": false
 }
 ```
@@ -114,14 +111,14 @@ Ask **one** missing field at a time so the owner is not dumping a whole booking 
 - Credits (5 beta), lock orb, feedback sheet
 - Creating the appointment
 - Business advisor
-- Realtime / barge-in / cloud TTS
+- Realtime / barge-in / streaming TTS
 - Public booking-link voice
 
 ## Order on mobile
 
 1. Permissions + `expo-audio` / `expo-speech`.
 2. Record clip on hold/latch; log file length locally.
-3. `postVoiceTurn` + caption + `ask` + `expo-speech`.
+3. `postVoiceTurn` + caption + `ask` + play `speakAudio` (fallback `expo-speech`).
 4. Apply `draft`; open Review on `ready`.
 5. Stop. Demo the loop. Do not start credits or submit.
 

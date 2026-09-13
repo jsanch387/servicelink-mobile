@@ -6,41 +6,76 @@ import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { useTheme } from '../../../../theme';
 import { AppointmentVoiceOrb } from './AppointmentVoiceOrb';
 import { AppointmentVoiceReview } from './AppointmentVoiceReview';
-import {
-  VOICE_HOLD_MS,
-  VOICE_LISTEN_MS,
-  emptyVoiceReviewDraft,
-  isVoiceDemoReady,
-  nextVoiceTurnIndex,
-  voiceTurnAt,
-} from './appointmentVoiceDemo';
+import { postVoiceTurn } from './api/postVoiceTurn';
+import { VOICE_HOLD_MS, emptyVoiceReviewDraft } from './appointmentVoiceDemo';
+import { playVoiceReply, stopVoiceReply } from './playVoiceReply';
+import { useAppointmentVoiceRecorder } from './useAppointmentVoiceRecorder';
 
 /**
- * Talk first with no live fields. When the script finishes, switch to review → edit → submit.
+ * Talk with the mic. Hold/latch records a clip, then POSTs `/api/voice/turn`.
+ * Review opens only when the server returns `ready` — this stub does not.
  */
-export function AppointmentVoiceSession({ visible, onRequestClose, onSubmit }) {
+export function AppointmentVoiceSession({
+  visible,
+  accessToken,
+  onRequestClose,
+  onSubmit,
+  onClip,
+}) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const [turnIndex, setTurnIndex] = useState(0);
   const [listening, setListening] = useState(false);
   const [latched, setLatched] = useState(false);
   const [mode, setMode] = useState('talk');
   const [draft, setDraft] = useState(emptyVoiceReviewDraft);
-  const listenTimer = useRef(null);
+  const [sending, setSending] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [ask, setAsk] = useState('');
+  const [turnError, setTurnError] = useState(null);
   const holdTimer = useRef(null);
   const heldRef = useRef(false);
   const latchedRef = useRef(false);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
-  const turn = voiceTurnAt(turnIndex);
-  const ready = isVoiceDemoReady(turn);
-  const showAsk = mode === 'talk' && Boolean(turn.user) && !ready;
+  const handleClip = useCallback(
+    (clip) => {
+      latchedRef.current = false;
+      heldRef.current = false;
+      setLatched(false);
+      setListening(false);
+      onClip?.(clip);
+      if (!clip?.uri) {
+        return;
+      }
+      setSending(true);
+      setTurnError(null);
+      void postVoiceTurn(accessToken, { uri: clip.uri, draft: draftRef.current }).then((result) => {
+        setSending(false);
+        if (!result.ok) {
+          setTurnError(result.error.message);
+          return;
+        }
+        setTranscript(result.data.transcript);
+        setAsk(result.data.ask);
+        setDraft(result.data.draft);
+        if (result.data.ready) {
+          setMode('review');
+        }
+        void playVoiceReply({
+          speak: result.data.speak,
+          speakAudio: result.data.speakAudio,
+        });
+      });
+    },
+    [accessToken, onClip],
+  );
 
-  const clearListenTimer = useCallback(() => {
-    if (listenTimer.current) {
-      clearTimeout(listenTimer.current);
-      listenTimer.current = null;
-    }
-  }, []);
+  const { caption, finishClip, startListen } = useAppointmentVoiceRecorder({
+    active: visible && mode === 'talk',
+    latched,
+    onClip: handleClip,
+  });
 
   const clearHoldTimer = useCallback(() => {
     if (holdTimer.current) {
@@ -50,16 +85,19 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onSubmit }) {
   }, []);
 
   const resetSession = useCallback(() => {
-    clearListenTimer();
     clearHoldTimer();
     heldRef.current = false;
     latchedRef.current = false;
-    setTurnIndex(0);
     setListening(false);
     setLatched(false);
+    setSending(false);
+    setTranscript('');
+    setAsk('');
+    setTurnError(null);
     setMode('talk');
     setDraft(emptyVoiceReviewDraft());
-  }, [clearHoldTimer, clearListenTimer]);
+    stopVoiceReply();
+  }, [clearHoldTimer]);
 
   useEffect(() => {
     if (!visible) {
@@ -67,35 +105,15 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onSubmit }) {
     }
   }, [resetSession, visible]);
 
-  useEffect(() => () => {
-    clearListenTimer();
-    clearHoldTimer();
-  }, [clearHoldTimer, clearListenTimer]);
-
-  useEffect(() => {
-    if (ready && mode === 'talk') {
-      latchedRef.current = false;
-      setLatched(false);
-      setListening(false);
-      setDraft({ ...emptyVoiceReviewDraft(), ...turn.slots });
-      setMode('review');
-    }
-  }, [mode, ready, turn.slots]);
-
-  useEffect(() => {
-    if (mode !== 'talk' || !latched || ready) {
-      return undefined;
-    }
-    clearListenTimer();
-    listenTimer.current = setTimeout(() => {
-      setTurnIndex((current) => nextVoiceTurnIndex(current));
-      listenTimer.current = null;
-    }, VOICE_LISTEN_MS);
-    return () => clearListenTimer();
-  }, [clearListenTimer, latched, mode, ready, turnIndex]);
+  useEffect(
+    () => () => {
+      clearHoldTimer();
+    },
+    [clearHoldTimer],
+  );
 
   const handlePressIn = useCallback(() => {
-    if (mode !== 'talk') {
+    if (mode !== 'talk' || sending) {
       return;
     }
     heldRef.current = false;
@@ -105,7 +123,12 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onSubmit }) {
       heldRef.current = true;
       holdTimer.current = null;
     }, VOICE_HOLD_MS);
-  }, [clearHoldTimer, mode]);
+    void startListen().then((started) => {
+      if (!started && !latchedRef.current) {
+        setListening(false);
+      }
+    });
+  }, [clearHoldTimer, mode, sending, startListen]);
 
   const handlePressOut = useCallback(() => {
     clearHoldTimer();
@@ -114,19 +137,17 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onSubmit }) {
     }
     latchedRef.current = false;
     setLatched(false);
-    setListening(false);
-    setTurnIndex((current) => nextVoiceTurnIndex(current));
-  }, [clearHoldTimer, mode]);
+    void finishClip();
+  }, [clearHoldTimer, finishClip, mode]);
 
   const handleTalk = useCallback(() => {
-    if (mode !== 'talk' || heldRef.current) {
+    if (mode !== 'talk' || heldRef.current || sending) {
       return;
     }
     if (latchedRef.current) {
       latchedRef.current = false;
       setLatched(false);
-      setListening(false);
-      clearListenTimer();
+      void finishClip();
       return;
     }
     clearHoldTimer();
@@ -134,7 +155,8 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onSubmit }) {
     latchedRef.current = true;
     setLatched(true);
     setListening(true);
-  }, [clearHoldTimer, clearListenTimer, mode]);
+    void startListen();
+  }, [clearHoldTimer, finishClip, mode, sending, startListen]);
 
   const handleChangeField = useCallback((key, value) => {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -144,6 +166,15 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onSubmit }) {
     onSubmit?.(draft);
     onRequestClose?.();
   }, [draft, onRequestClose, onSubmit]);
+
+  const headline = listening ? null : turnError || ask || caption;
+  const talkHint = sending
+    ? 'Sending…'
+    : listening
+      ? latched
+        ? 'Listening… Tap to stop'
+        : 'Listening… Release to send'
+      : 'Tap to keep listening · Hold to talk';
 
   const styles = useMemo(
     () =>
@@ -218,6 +249,14 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onSubmit }) {
           marginTop: 2,
           textAlign: 'center',
         },
+        transcript: {
+          color: colors.textMuted,
+          fontSize: 15,
+          fontWeight: '500',
+          letterSpacing: -0.2,
+          lineHeight: 20,
+          textAlign: 'center',
+        },
       }),
     [colors, insets.top, mode],
   );
@@ -265,10 +304,20 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onSubmit }) {
           </ScrollView>
         ) : (
           <View style={styles.talkStage}>
-            {showAsk ? <AppText style={styles.ask}>{turn.ai}</AppText> : null}
+            {headline ? (
+              <AppText style={styles.ask} testID="appointment-voice-caption">
+                {headline}
+              </AppText>
+            ) : null}
+            {!listening && !turnError && transcript ? (
+              <AppText style={styles.transcript} testID="appointment-voice-transcript">
+                {transcript}
+              </AppText>
+            ) : null}
             <View style={styles.orbBlock}>
               <AppointmentVoiceOrb
                 accessibilityLabel="Tap to keep listening, or hold to talk"
+                disabled={sending}
                 listening={listening}
                 size={200}
                 testID="appointment-voice-talk"
@@ -276,13 +325,7 @@ export function AppointmentVoiceSession({ visible, onRequestClose, onSubmit }) {
                 onPressIn={handlePressIn}
                 onPressOut={handlePressOut}
               />
-              <AppText style={styles.talkHint}>
-                {listening
-                  ? latched
-                    ? 'Listening… Tap to stop'
-                    : 'Listening… Release to send'
-                  : 'Tap to keep listening · Hold to talk'}
-              </AppText>
+              <AppText style={styles.talkHint}>{talkHint}</AppText>
             </View>
           </View>
         )}

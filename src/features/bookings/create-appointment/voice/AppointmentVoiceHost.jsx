@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '../../../../components/ui';
+import { useAuth } from '../../../auth';
 import { useTheme } from '../../../../theme';
 import { AppointmentVoiceOrb, VOICE_ORB_SIZE, voiceOrbHostPad } from './AppointmentVoiceOrb';
 import { AppointmentVoiceSession } from './AppointmentVoiceSession';
@@ -14,6 +15,7 @@ const ORB_LIFT = VOICE_ORB_SIZE + voiceOrbHostPad() / 2 + LABEL_BLOCK + ORB_GAP_
  */
 export function AppointmentVoiceHost({ visible = true }) {
   const { colors } = useTheme();
+  const { session } = useAuth();
   const [sessionOpen, setSessionOpen] = useState(false);
 
   const openSession = useCallback(() => {
@@ -56,7 +58,11 @@ export function AppointmentVoiceHost({ visible = true }) {
         <AppointmentVoiceOrb onPress={openSession} />
         <AppText style={styles.label}>Tap to speak</AppText>
       </View>
-      <AppointmentVoiceSession visible={sessionOpen} onRequestClose={closeSession} />
+      <AppointmentVoiceSession
+        accessToken={session?.access_token}
+        visible={sessionOpen}
+        onRequestClose={closeSession}
+      />
     </>
   );
 }

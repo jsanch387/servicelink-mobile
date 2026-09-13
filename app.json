@@ -33,6 +33,14 @@
       ],
       "expo-web-browser",
       [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Servicelink to use your microphone so you can book appointments by voice.",
+          "recordAudioAndroid": true,
+          "enableBackgroundRecording": false
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Allow Servicelink to access your photos so you can choose a cover image.",
@@ -77,13 +85,17 @@
       },
       "infoPlist": {
         "CFBundleDisplayName": "ServiceLink",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "Allow Servicelink to use your microphone so you can book appointments by voice."
       }
     },
     "android": {
       "package": "com.myservicelink.app",
       "versionCode": 17,
-      "permissions": ["android.permission.POST_NOTIFICATIONS"],
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/servicelink-logo.png",
         "backgroundColor": "#0a0a0a"

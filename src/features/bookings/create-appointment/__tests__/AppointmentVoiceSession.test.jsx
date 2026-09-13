@@ -3,12 +3,65 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, TypographyProvider } from '../../../../theme';
 import { AppointmentVoiceHost } from '../voice/AppointmentVoiceHost';
 import { AppointmentVoiceSession } from '../voice/AppointmentVoiceSession';
-import { formatScheduledDateUserFacing } from '../../../quotes/utils/formatScheduledDateDisplay';
-import {
-  LAST_VOICE_TURN_INDEX,
-  VOICE_HOLD_MS,
-  VOICE_LISTEN_MS,
-} from '../voice/appointmentVoiceDemo';
+import { VOICE_HOLD_MS } from '../voice/appointmentVoiceDemo';
+import { postVoiceTurn } from '../voice/api/postVoiceTurn';
+import { playVoiceReply } from '../voice/playVoiceReply';
+
+jest.mock('../../../auth', () => ({
+  useAuth: () => ({ session: { access_token: 'test-token' } }),
+}));
+
+jest.mock('../voice/playVoiceReply', () => ({
+  playVoiceReply: jest.fn(async () => 'device'),
+  stopVoiceReply: jest.fn(),
+}));
+
+jest.mock('../voice/api/postVoiceTurn', () => ({
+  postVoiceTurn: jest.fn(async () => ({
+    ok: true,
+    data: {
+      transcript: '(server got the clip)',
+      draft: {},
+      ask: 'Got the audio. AI comes next.',
+      speak: 'Got the audio. AI comes next.',
+      speakAudio: null,
+      ready: false,
+    },
+  })),
+}));
+
+jest.mock('expo-audio', () => {
+  const recorder = {
+    isRecording: false,
+    uri: 'file:///tmp/voice-clip.m4a',
+    currentTime: 1.4,
+    prepareToRecordAsync: jest.fn(async () => {}),
+    record: jest.fn(() => {
+      recorder.isRecording = true;
+    }),
+    stop: jest.fn(async () => {
+      recorder.isRecording = false;
+    }),
+    getStatus: jest.fn(() => ({ durationMillis: 1400, isRecording: false })),
+  };
+  return {
+    __recorder: recorder,
+    RecordingPresets: { HIGH_QUALITY: { extension: '.m4a' } },
+    useAudioRecorder: () => recorder,
+    useAudioRecorderState: () => ({
+      isRecording: recorder.isRecording,
+      durationMillis: recorder.isRecording ? 1400 : 0,
+      metering: undefined,
+    }),
+    requestRecordingPermissionsAsync: jest.fn(async () => ({
+      granted: true,
+      status: 'granted',
+    })),
+    setAudioModeAsync: jest.fn(async () => {}),
+  };
+});
+
+const { __recorder: recorder, requestRecordingPermissionsAsync } = jest.requireMock('expo-audio');
 
 const initialMetrics = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -29,19 +82,31 @@ function renderSession(props) {
   return render(wrap(<AppointmentVoiceSession {...props} />));
 }
 
-function tapToListen() {
-  fireEvent.press(screen.getByTestId('appointment-voice-talk'));
+async function tapOrb() {
+  const orb = screen.getByTestId('appointment-voice-talk');
+  fireEvent(orb, 'pressIn');
+  await flushAudio();
+  fireEvent(orb, 'pressOut');
+  fireEvent.press(orb);
 }
 
-function advanceListen() {
-  act(() => {
-    jest.advanceTimersByTime(VOICE_LISTEN_MS);
+async function flushAudio() {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
   });
 }
 
 describe('AppointmentVoiceSession', () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    recorder.isRecording = false;
+    recorder.prepareToRecordAsync.mockClear();
+    recorder.record.mockClear();
+    recorder.stop.mockClear();
+    requestRecordingPermissionsAsync.mockResolvedValue({ granted: true, status: 'granted' });
+    postVoiceTurn.mockClear();
+    playVoiceReply.mockClear();
   });
 
   afterEach(() => {
@@ -56,91 +121,119 @@ describe('AppointmentVoiceSession', () => {
     expect(onRequestClose).toHaveBeenCalled();
   });
 
-  it('keeps listening after a tap', () => {
+  it('keeps the mic open after a tap and does not run the old script', async () => {
     renderSession({ visible: true, onRequestClose: jest.fn() });
 
     expect(screen.getByText('Tap to keep listening · Hold to talk')).toBeTruthy();
-    tapToListen();
+    await tapOrb();
+    await flushAudio();
 
     expect(screen.getByText('Listening… Tap to stop')).toBeTruthy();
-    expect(screen.queryByText('Customer')).toBeNull();
-
-    advanceListen();
-
-    expect(screen.getByText('What’s the phone number and vehicle?')).toBeTruthy();
-    expect(screen.getByText('Listening… Tap to stop')).toBeTruthy();
-    expect(screen.queryByText('Jose')).toBeNull();
+    expect(recorder.record).toHaveBeenCalled();
+    expect(screen.queryByText('What’s the phone number and vehicle?')).toBeNull();
+    expect(screen.queryByText('Review')).toBeNull();
   });
 
-  it('sends one turn on hold-and-release and does not stay listening', () => {
-    renderSession({ visible: true, onRequestClose: jest.fn() });
+  it('sends one clip on hold-and-release and does not stay listening', async () => {
+    const onClip = jest.fn();
+    renderSession({
+      visible: true,
+      accessToken: 'test-token',
+      onRequestClose: jest.fn(),
+      onClip,
+    });
 
     const orb = screen.getByTestId('appointment-voice-talk');
     fireEvent(orb, 'pressIn');
+    await flushAudio();
     act(() => {
       jest.advanceTimersByTime(VOICE_HOLD_MS);
     });
     fireEvent(orb, 'pressOut');
+    await flushAudio();
 
-    expect(screen.getByText('What’s the phone number and vehicle?')).toBeTruthy();
+    expect(recorder.stop).toHaveBeenCalled();
+    expect(onClip).toHaveBeenCalledWith({
+      uri: 'file:///tmp/voice-clip.m4a',
+      durationMillis: 1400,
+    });
+    expect(postVoiceTurn).toHaveBeenCalledWith(
+      'test-token',
+      expect.objectContaining({ uri: 'file:///tmp/voice-clip.m4a' }),
+    );
+    expect(screen.getByText('Got the audio. AI comes next.')).toBeTruthy();
+    expect(screen.getByText('(server got the clip)')).toBeTruthy();
+    expect(playVoiceReply).toHaveBeenCalledWith({
+      speak: 'Got the audio. AI comes next.',
+      speakAudio: null,
+    });
     expect(screen.getByText('Tap to keep listening · Hold to talk')).toBeTruthy();
     expect(screen.queryByText('Review')).toBeNull();
   });
 
-  it('opens review after a latched conversation so the user can edit and submit', () => {
-    const onSubmit = jest.fn();
-    renderSession({ visible: true, onRequestClose: jest.fn(), onSubmit });
+  it('passes server speakAudio through to the reply player', async () => {
+    postVoiceTurn.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        transcript: '(server got the clip)',
+        draft: {},
+        ask: 'Got the audio. AI comes next.',
+        speak: 'Got the audio. AI comes next.',
+        speakAudio: { base64: 'ZmFrZQ==', mimeType: 'audio/mpeg' },
+        ready: false,
+      },
+    });
 
-    tapToListen();
-    for (let step = 0; step < LAST_VOICE_TURN_INDEX; step += 1) {
-      advanceListen();
-    }
+    renderSession({
+      visible: true,
+      accessToken: 'test-token',
+      onRequestClose: jest.fn(),
+    });
 
-    expect(screen.getByText('Review')).toBeTruthy();
-    expect(screen.getByText('Summary')).toBeTruthy();
-    expect(screen.getByText('Full detail')).toBeTruthy();
-    expect(screen.getAllByText('$89').length).toBeGreaterThan(0);
-    expect(screen.getByText('Sedan')).toBeTruthy();
-    expect(screen.getByText('Ceramic coat')).toBeTruthy();
-    expect(screen.getByText('$149')).toBeTruthy();
-    expect(screen.getByText('$238')).toBeTruthy();
-    expect(screen.getByText('Schedule')).toBeTruthy();
-    expect(screen.getByText(formatScheduledDateUserFacing('2026-09-10'))).toBeTruthy();
-    expect(screen.getByText('10:00 AM')).toBeTruthy();
-    expect(screen.getByText('Jose')).toBeTruthy();
-    expect(screen.getByText('+1 (512) 321-4324')).toBeTruthy();
-    expect(screen.getByText('2019 Honda Accord')).toBeTruthy();
-    expect(screen.getByText('412 Oak Street')).toBeTruthy();
-    expect(screen.getAllByText('Edit').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Notes')).toBeNull();
-    expect(screen.getByText('Total')).toBeTruthy();
+    const orb = screen.getByTestId('appointment-voice-talk');
+    fireEvent(orb, 'pressIn');
+    await flushAudio();
+    act(() => {
+      jest.advanceTimersByTime(VOICE_HOLD_MS);
+    });
+    fireEvent(orb, 'pressOut');
+    await flushAudio();
 
-    fireEvent.press(screen.getByTestId('voice-review-vehicle-edit'));
-    expect(screen.getByText('Done')).toBeTruthy();
-    expect(screen.getByDisplayValue('2019')).toBeTruthy();
-    expect(screen.getByDisplayValue('Honda')).toBeTruthy();
-    expect(screen.getByDisplayValue('Accord')).toBeTruthy();
-    fireEvent.press(screen.getByText('Done'));
-    expect(screen.queryByTestId('voice-review-vehicleYear-input')).toBeNull();
-
-    fireEvent.press(screen.getByTestId('voice-review-customer'));
-    fireEvent.changeText(screen.getByTestId('voice-review-customer-input'), 'Jose M.');
-    fireEvent.press(screen.getByTestId('appointment-voice-submit'));
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ customer: 'Jose M.' }));
+    expect(playVoiceReply).toHaveBeenCalledWith({
+      speak: 'Got the audio. AI comes next.',
+      speakAudio: { base64: 'ZmFrZQ==', mimeType: 'audio/mpeg' },
+    });
   });
 
-  it('resets the script when the session is closed', () => {
+  it('stops a latched listen on the next tap', async () => {
+    const onClip = jest.fn();
+    renderSession({ visible: true, onRequestClose: jest.fn(), onClip });
+
+    await tapOrb();
+    await flushAudio();
+    expect(screen.getByText('Listening… Tap to stop')).toBeTruthy();
+
+    await tapOrb();
+    await flushAudio();
+
+    expect(onClip).toHaveBeenCalled();
+    expect(screen.getByText('Got the audio. AI comes next.')).toBeTruthy();
+    expect(screen.getByText('Tap to keep listening · Hold to talk')).toBeTruthy();
+  });
+
+  it('resets listening when the session is closed', async () => {
     const { rerender } = renderSession({ visible: true, onRequestClose: jest.fn() });
 
-    tapToListen();
-    advanceListen();
-    expect(screen.getByText('What’s the phone number and vehicle?')).toBeTruthy();
+    await tapOrb();
+    await flushAudio();
+    expect(screen.getByText('Listening… Tap to stop')).toBeTruthy();
 
     rerender(wrap(<AppointmentVoiceSession visible={false} onRequestClose={jest.fn()} />));
+    await flushAudio();
     rerender(wrap(<AppointmentVoiceSession visible onRequestClose={jest.fn()} />));
 
     expect(screen.getByText('Tap to keep listening · Hold to talk')).toBeTruthy();
-    expect(screen.queryByText('What’s the phone number and vehicle?')).toBeNull();
+    expect(screen.queryByText('Listening… Tap to stop')).toBeNull();
   });
 });
 
