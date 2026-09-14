@@ -70,6 +70,12 @@ export const darkTheme = {
   /** Form validation / auth errors */
   danger: '#f87171',
 
+  /** Filled destructive CTA — deep red on dark cards, not the bright error token */
+  buttonDangerBg: '#3d1515',
+  buttonDangerBgPressed: '#541a1a',
+  buttonDangerBorder: '#6b2a2a',
+  buttonDangerText: '#f0c4c4',
+
   /** Positive / success text on dark surfaces (e.g. trial, confirmations) */
   textSuccess: '#6ee7b7',
   /** Financial progress and collected revenue — intentionally greener than `textSuccess`. */
@@ -131,6 +137,11 @@ export const lightTheme = {
   spinnerOnSecondary: '#0a0a0a',
 
   danger: '#dc2626',
+
+  buttonDangerBg: '#7f1d1d',
+  buttonDangerBgPressed: '#991b1b',
+  buttonDangerBorder: '#b91c1c',
+  buttonDangerText: '#fff1f2',
 
   /** Positive / success text on light surfaces */
   textSuccess: '#047857',

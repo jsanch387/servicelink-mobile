@@ -15,11 +15,12 @@ import {
   AppText,
   AppVersionFootnote,
   Button,
-  DeleteButton,
   InlineCardError,
+  SegmentedToggle,
   SurfaceCard,
 } from '../../../components/ui';
 import { useAuth } from '../../auth';
+import { TeamMembersPanel } from '../../team';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
@@ -28,6 +29,7 @@ import { AccountSettingsScreenSkeleton } from '../components/AccountSettingsScre
 import { AccountWebPanelNote } from '../components/AccountWebPanelNote';
 import { ChangeBusinessSlugSheet } from '../components/ChangeBusinessSlugSheet';
 import { DeleteAccountConfirmSheet } from '../components/DeleteAccountConfirmSheet';
+import { ACCOUNT_TAB, ACCOUNT_TAB_OPTIONS } from '../constants/accountTabs';
 import { useAccountSettings } from '../hooks/useAccountSettings';
 import { buildBookingLinkCardModel } from '../utils/accountSettingsModel';
 import { SCREEN_GUTTER } from '../../../constants/layout';
@@ -38,6 +40,7 @@ export function AccountSettingsScreen() {
   const { user, signOut } = useAuth();
   const tabBarHeight = useBottomTabBarHeight();
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
+  const [activeTab, setActiveTab] = useState(ACCOUNT_TAB.SETTINGS);
   const [slugSheetVisible, setSlugSheetVisible] = useState(false);
   const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
   const [deleteEmailConfirmed, setDeleteEmailConfirmed] = useState(false);
@@ -73,6 +76,10 @@ export function AccountSettingsScreen() {
           backgroundColor: colors.shell,
           flex: 1,
         },
+        tabs: {
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingTop: 16,
+        },
         scroll: {
           flex: 1,
         },
@@ -80,7 +87,7 @@ export function AccountSettingsScreen() {
           alignItems: 'stretch',
           paddingBottom: scrollBottomPad,
           paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: 16,
+          paddingTop: 4,
           width: '100%',
         },
         section: {
@@ -117,39 +124,12 @@ export function AccountSettingsScreen() {
         iconHitDisabled: {
           opacity: 0.35,
         },
-        signedInCard: {
-          flexDirection: 'row',
-          gap: 10,
-          paddingVertical: 0,
-        },
-        signedInIconWrap: {
-          alignItems: 'center',
-          backgroundColor: colors.shellElevated,
-          borderColor: colors.border,
-          borderRadius: 10,
-          borderWidth: 1,
-          height: 40,
-          justifyContent: 'center',
-          width: 40,
-        },
-        signedInTextCol: {
-          flex: 1,
-          gap: 2,
-          justifyContent: 'center',
-          minWidth: 0,
-        },
-        signedInEmail: {
+        accountEmail: {
           color: colors.text,
-          fontSize: 13,
+          fontSize: 15,
           fontWeight: '500',
-          letterSpacing: -0.05,
-          lineHeight: 18,
-        },
-        signedInHint: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontWeight: '500',
-          lineHeight: 16,
+          letterSpacing: -0.15,
+          lineHeight: 21,
         },
         loadErrorRetry: {
           marginTop: 12,
@@ -168,7 +148,7 @@ export function AccountSettingsScreen() {
           lineHeight: 20,
         },
         dangerButton: {
-          marginTop: 18,
+          marginTop: 16,
         },
         signOutSection: {
           marginTop: 28,
@@ -238,20 +218,12 @@ export function AccountSettingsScreen() {
   const signedInSection = (
     <View style={[styles.section, styles.sectionFirst]}>
       <View style={styles.sectionTitleRow}>
-        <AppText style={styles.sectionTitle}>Signed in</AppText>
+        <AppText style={styles.sectionTitle}>Account</AppText>
       </View>
-      <SurfaceCard padding="sm">
-        <View style={styles.signedInCard}>
-          <View style={styles.signedInIconWrap}>
-            <Ionicons color={colors.textMuted} name="person-circle-outline" size={22} />
-          </View>
-          <View style={styles.signedInTextCol}>
-            <AppText selectable numberOfLines={2} style={styles.signedInEmail}>
-              {signedInEmail}
-            </AppText>
-            <AppText style={styles.signedInHint}>Signed in with this email</AppText>
-          </View>
-        </View>
+      <SurfaceCard>
+        <AppText selectable style={styles.accountEmail}>
+          {signedInEmail}
+        </AppText>
       </SurfaceCard>
     </View>
   );
@@ -273,87 +245,76 @@ export function AccountSettingsScreen() {
 
   const webPanelNote = <AccountWebPanelNote />;
 
+  let settingsBody;
   if (isLoading) {
-    return (
-      <View style={styles.root}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          style={styles.scroll}
-        >
-          <AccountSettingsScreenSkeleton />
-        </ScrollView>
-      </View>
+    settingsBody = (
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+      >
+        <AccountSettingsScreenSkeleton />
+      </ScrollView>
     );
-  }
-
-  if (loadError) {
-    return (
-      <View style={styles.root}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={refreshControl}
-          showsVerticalScrollIndicator={false}
-          style={styles.scroll}
-        >
-          <InlineCardError message={loadError} />
-          <Button
-            accessibilityHint="Attempts to load account settings again"
-            accessibilityLabel="Try again"
-            fullWidth
-            loading={Boolean(isFetching && !isLoading)}
-            style={styles.loadErrorRetry}
-            title="Try again"
-            variant="secondary"
-            onPress={() => void refetch()}
-          />
-        </ScrollView>
-      </View>
+  } else if (loadError) {
+    settingsBody = (
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={refreshControl}
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+      >
+        <InlineCardError message={loadError} />
+        <Button
+          accessibilityHint="Attempts to load account settings again"
+          accessibilityLabel="Try again"
+          fullWidth
+          loading={Boolean(isFetching && !isLoading)}
+          style={styles.loadErrorRetry}
+          title="Try again"
+          variant="secondary"
+          onPress={() => void refetch()}
+        />
+      </ScrollView>
     );
-  }
+  } else if (!business?.id) {
+    settingsBody = (
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={refreshControl}
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+      >
+        {signedInSection}
 
-  if (!business?.id) {
-    return (
-      <View style={styles.root}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={refreshControl}
-          showsVerticalScrollIndicator={false}
-          style={styles.scroll}
-        >
-          {signedInSection}
-
-          <View style={styles.section}>
-            <View style={styles.sectionTitleRow}>
-              <AppText style={styles.sectionTitle}>Business</AppText>
-            </View>
-            <SurfaceCard>
-              <AppText style={styles.businessBody}>
-                Add a business profile to manage your booking link and public page.
-              </AppText>
-              <Button
-                fullWidth
-                style={styles.businessCta}
-                title="Open booking link"
-                variant="secondary"
-                onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
-              />
-            </SurfaceCard>
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <AppText style={styles.sectionTitle}>Business</AppText>
           </View>
+          <SurfaceCard>
+            <AppText style={styles.businessBody}>
+              Add a business profile to manage your booking link and public page.
+            </AppText>
+            <Button
+              fullWidth
+              style={styles.businessCta}
+              title="Open booking link"
+              variant="secondary"
+              onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
+            />
+          </SurfaceCard>
+        </View>
 
-          {webPanelNote}
-          {signOutSection}
-          <AppVersionFootnote />
-        </ScrollView>
-      </View>
+        {webPanelNote}
+        {signOutSection}
+        <AppVersionFootnote />
+      </ScrollView>
     );
-  }
-
-  return (
-    <View style={styles.root}>
+  } else {
+    settingsBody = (
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -395,13 +356,14 @@ export function AccountSettingsScreen() {
           </View>
           <SurfaceCard>
             <AppText style={styles.dangerBody}>
-              This permanently removes your ServiceLink data. You can confirm details in the next
-              step.
+              This closes your account for good. Your profile and data will be deleted.
             </AppText>
-            <DeleteButton
-              showIcon={false}
+            <Button
+              accessibilityLabel="Delete account"
+              fullWidth
               style={styles.dangerButton}
               title="Delete account"
+              variant="danger"
               onPress={() => {
                 setDeleteSheetVisible(true);
                 setDeleteEmailConfirmed(false);
@@ -418,6 +380,19 @@ export function AccountSettingsScreen() {
         {signOutSection}
         <AppVersionFootnote />
       </ScrollView>
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      <View style={styles.tabs}>
+        <SegmentedToggle
+          options={ACCOUNT_TAB_OPTIONS}
+          selected={activeTab}
+          onSelect={setActiveTab}
+        />
+      </View>
+      {activeTab === ACCOUNT_TAB.TEAM ? <TeamMembersPanel /> : settingsBody}
 
       <ChangeBusinessSlugSheet
         initialSlug={linkModel.slug}

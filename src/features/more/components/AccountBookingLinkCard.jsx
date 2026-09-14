@@ -3,7 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../components/ui';
-import { useTheme } from '../../../theme';
+import { FONT_FAMILIES, useTheme } from '../../../theme';
 
 export function AccountBookingLinkCard({
   hasSlug,
@@ -18,60 +18,66 @@ export function AccountBookingLinkCard({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        card: { gap: 14 },
+        card: {
+          gap: 12,
+        },
         linkDescription: {
           color: colors.textMuted,
-          fontSize: 13,
-          fontWeight: '500',
-          lineHeight: 18,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 14,
+          letterSpacing: -0.05,
+          lineHeight: 20,
         },
-        linkWell: {
+        copyRow: {
+          alignItems: 'center',
           backgroundColor: isDark ? colors.surface : colors.shellElevated,
           borderColor: colors.border,
           borderRadius: 12,
           borderWidth: 1,
+          flexDirection: 'row',
           paddingHorizontal: 14,
-          paddingVertical: 14,
+          paddingVertical: 13,
+          width: '100%',
         },
-        linkUrl: {
-          color: colors.text,
-          fontSize: 14,
-          fontWeight: '500',
-          letterSpacing: -0.1,
-        },
-        linkActions: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginTop: 2,
-        },
-        copyPress: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          gap: 6,
-          paddingVertical: 4,
-        },
-        copyLabel: {
-          color: colors.accent,
-          fontSize: 15,
-          fontWeight: '600',
-        },
-        copyLabelDone: {
-          color: colors.textMuted,
+        copyPressed: {
+          opacity: 0.88,
         },
         copyDisabled: {
           opacity: 0.45,
         },
-        changeLink: {
-          paddingVertical: 4,
+        linkCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+          paddingRight: 10,
         },
-        changeLinkText: {
-          color: colors.accent,
-          fontSize: 15,
-          fontWeight: '600',
+        linkUrl: {
+          color: colors.text,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 14,
+          letterSpacing: -0.1,
         },
-        changeLinkDisabled: {
+        copyIconCol: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 22,
+        },
+        editRow: {
+          alignItems: 'flex-end',
+          width: '100%',
+        },
+        editHit: {
+          paddingVertical: 2,
+        },
+        editLabel: {
           color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 13,
+          textDecorationLine: 'underline',
+          textDecorationColor: colors.textMuted,
+        },
+        editDisabled: {
+          opacity: 0.4,
         },
       }),
     [colors, isDark],
@@ -87,48 +93,58 @@ export function AccountBookingLinkCard({
   return (
     <SurfaceCard style={styles.card}>
       <AppText style={styles.linkDescription}>
-        This is your public booking link. Share it anywhere customers find you.
+        This is the link you share with customers so they can book you.
       </AppText>
 
-      <View style={styles.linkWell}>
-        <AppText selectable style={styles.linkUrl}>
-          {hasSlug ? displayLink : 'Set a path below to publish your booking page.'}
-        </AppText>
-      </View>
+      <Pressable
+        accessibilityLabel={copied ? 'Link copied' : 'Copy booking link'}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !hasSlug }}
+        disabled={!hasSlug}
+        onPress={() => {
+          void handleCopyLink();
+        }}
+      >
+        {({ pressed }) => (
+          <View
+            style={[
+              styles.copyRow,
+              pressed && hasSlug && styles.copyPressed,
+              !hasSlug && styles.copyDisabled,
+            ]}
+          >
+            <View style={styles.linkCol}>
+              <AppText numberOfLines={2} selectable style={styles.linkUrl}>
+                {hasSlug ? displayLink : 'Add a path to publish your booking page.'}
+              </AppText>
+            </View>
+            <View style={styles.copyIconCol}>
+              <Ionicons
+                color={copied ? colors.textSuccess : colors.textMuted}
+                name={copied ? 'checkmark' : 'copy-outline'}
+                size={18}
+              />
+            </View>
+          </View>
+        )}
+      </Pressable>
 
-      <View style={styles.linkActions}>
+      <View style={styles.editRow}>
         <Pressable
-          accessibilityLabel={copied ? 'Link copied' : 'Copy booking link'}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !hasSlug }}
-          disabled={!hasSlug}
-          style={[styles.copyPress, !hasSlug && styles.copyDisabled]}
-          onPress={() => {
-            void handleCopyLink();
-          }}
-        >
-          <Ionicons
-            color={copied ? colors.textMuted : colors.accent}
-            name={copied ? 'checkmark-circle-outline' : 'copy-outline'}
-            size={16}
-          />
-          <AppText style={[styles.copyLabel, copied && styles.copyLabelDone]}>
-            {copied ? 'Copied' : 'Copy'}
-          </AppText>
-        </Pressable>
-
-        <Pressable
-          accessibilityLabel="Change booking link"
+          accessibilityLabel="Edit booking link"
           accessibilityRole="button"
           disabled={!canEditSlug}
-          style={styles.changeLink}
           onPress={() => {
             if (canEditSlug) onChangeLink?.();
           }}
         >
-          <AppText style={[styles.changeLinkText, !canEditSlug && styles.changeLinkDisabled]}>
-            Change link
-          </AppText>
+          {({ pressed }) => (
+            <View style={[styles.editHit, pressed && canEditSlug && { opacity: 0.7 }]}>
+              <AppText style={[styles.editLabel, !canEditSlug && styles.editDisabled]}>
+                Edit link
+              </AppText>
+            </View>
+          )}
         </Pressable>
       </View>
     </SurfaceCard>

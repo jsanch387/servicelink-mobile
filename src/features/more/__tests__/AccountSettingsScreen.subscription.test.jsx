@@ -89,6 +89,21 @@ describe('AccountSettingsScreen App Store compliance', () => {
     expect(screen.queryByText(/\$10/)).toBeNull();
   });
 
+  it('shows Account Settings and Team Members tabs', () => {
+    renderWithProviders(<AccountSettingsScreen />);
+
+    expect(screen.getByRole('button', { name: 'Account Settings' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Team Members' })).toBeTruthy();
+    expect(screen.getByText('Booking link')).toBeTruthy();
+    expect(screen.queryByText('No team members yet')).toBeNull();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Team Members' }));
+
+    expect(screen.getByText('No team members yet')).toBeTruthy();
+    expect(screen.queryByText('Booking link')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete account' })).toBeNull();
+  });
+
   it('shows signed in, booking link, log out, delete account, and web panel note', () => {
     renderWithProviders(<AccountSettingsScreen />);
 
