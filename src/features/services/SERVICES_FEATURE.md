@@ -45,7 +45,7 @@ From Supabase:
   - used for: fetch, save edits, delete option
 - `service_addons`
   - business-wide add-on catalog
-  - columns used: `name`, optional `description` (nullable, max 160), `price_cents`, optional `duration_minutes`
+  - columns used: `name`, optional `description` (nullable, max 800), `price_cents`, optional `duration_minutes`
   - used for: list, create, update, delete
   - `description` is for self-booking / web customers; mobile does not surface it outside the editor
 - `service_addon_assignments`
@@ -168,7 +168,7 @@ Default behavior:
 - Required: name, price. Duration and description are optional.
 - Add-on duration is optional (`''` means no extra time).
 - Duration display is human-readable (e.g. `30 min`, `1 hr`, `1 hr 30 min`) without `+`.
-- Optional `description` (max 160 chars via `ADDON_DESCRIPTION_MAX_LENGTH`):
+- Optional `description` (max 800 chars via `ADDON_DESCRIPTION_MAX_LENGTH`):
   - Editable only in `AddonEditorSheet` (create/edit add-on; not on pricing-option sheets)
   - Loaded into catalog/editor models so edit can prefill
   - **Not** shown on add-ons tab cards, service assignment cards (`SelectableAddonCard`), create/edit appointment, or quotes
@@ -183,7 +183,7 @@ Default behavior:
 - **Service** description fields in editor/create include:
   - bullet insert action
   - live char counter
-- **Add-on** description field is a short optional multiline input with a 160-char counter (no bullet toolbar)
+- **Add-on** description field is an optional multiline input with an 800-char counter (no bullet toolbar)
 
 ## Testing
 
