@@ -2,11 +2,24 @@ jest.mock('../../../lib/supabase', () => ({
   supabase: { from: jest.fn() },
 }));
 
+import { supabase } from '../../../lib/supabase';
 import {
   bookingTitleLine,
+  fetchBusinessProfileForUser,
   partitionUpcomingConfirmed,
   pickHomeSpotlight,
 } from '../api/homeDashboard';
+
+function thenableQuery(result) {
+  const resolved = Promise.resolve(result);
+  const builder = {
+    select: jest.fn(() => builder),
+    eq: jest.fn(() => builder),
+    limit: jest.fn(() => builder),
+    maybeSingle: jest.fn(() => resolved),
+  };
+  return builder;
+}
 
 function booking(partial) {
   return {
@@ -189,6 +202,67 @@ describe('pickHomeSpotlight', () => {
     const out = pickHomeSpotlight(rows, nowMs);
     expect(out.spotlightMode).toBe('in_progress');
     expect(out.spotlight?.id).toBe('live');
+  });
+});
+
+describe('fetchBusinessProfileForUser', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns the owned shop when both an owned profile and a membership exist', async () => {
+    const owned = { id: 'biz-1', profile_id: 'user-1', business_name: 'Acme' };
+    supabase.from.mockImplementation((table) => {
+      if (table === 'business_profiles') {
+        return thenableQuery({ data: owned, error: null });
+      }
+      if (table === 'business_members') {
+        return thenableQuery({ data: { business_id: 'other', status: 'active' }, error: null });
+      }
+      throw new Error(`unexpected table ${table}`);
+    });
+
+    const result = await fetchBusinessProfileForUser('user-1');
+    expect(result).toEqual({ data: owned, error: null });
+  });
+
+  it('falls back to the shop from an active membership', async () => {
+    const shop = { id: 'biz-1', profile_id: 'owner-1', business_name: 'Acme' };
+    let profileCalls = 0;
+    supabase.from.mockImplementation((table) => {
+      if (table === 'business_profiles') {
+        profileCalls += 1;
+        if (profileCalls === 1) {
+          return thenableQuery({ data: null, error: null });
+        }
+        return thenableQuery({ data: shop, error: null });
+      }
+      if (table === 'business_members') {
+        return thenableQuery({ data: { business_id: 'biz-1', status: 'active' }, error: null });
+      }
+      throw new Error(`unexpected table ${table}`);
+    });
+
+    const result = await fetchBusinessProfileForUser('member-1');
+    expect(result).toEqual({ data: shop, error: null });
+    expect(supabase.from).toHaveBeenCalledWith('business_members');
+  });
+
+  it('returns no shop when the user owns none and has no membership', async () => {
+    supabase.from.mockImplementation((table) => {
+      if (table === 'business_profiles') {
+        return thenableQuery({ data: null, error: null });
+      }
+      if (table === 'business_members') {
+        return thenableQuery({ data: null, error: null });
+      }
+      throw new Error(`unexpected table ${table}`);
+    });
+
+    await expect(fetchBusinessProfileForUser('user-1')).resolves.toEqual({
+      data: null,
+      error: null,
+    });
   });
 });
 

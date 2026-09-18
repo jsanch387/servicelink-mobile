@@ -2,8 +2,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { useAuth } from '../../auth';
-import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
+import { shopProfileQueryOptions } from '../../shop/shopProfileQueryOptions';
 import { fetchBookingsForPlannerDay } from '../api/bookings';
 import { BOOKINGS_QUERY_ROOT, bookingsPlannerDayQueryKey } from '../queryKeys';
 
@@ -26,19 +26,7 @@ export function useBookingsPlannerDay(yyyyMmDd) {
     }, [queryClient]),
   );
 
-  const businessQ = useQuery({
-    queryKey: homeBusinessProfileQueryKey(userId),
-    queryFn: async () => {
-      const { data, error } = await fetchBusinessProfileForUser(userId);
-      if (error) {
-        throw new Error(error.message ?? 'Could not load business');
-      }
-      return data;
-    },
-    enabled: Boolean(userId),
-    staleTime: 60 * 1000,
-    gcTime: 15 * 60 * 1000,
-  });
+  const businessQ = useQuery(shopProfileQueryOptions(userId));
 
   const business = businessQ.data ?? null;
   const businessId = business?.id;
@@ -64,7 +52,9 @@ export function useBookingsPlannerDay(yyyyMmDd) {
   const dayError = dayQ.isError ? (dayQ.error?.message ?? 'Could not load day') : null;
 
   const isDayPending = hasBusinessRow && Boolean(dateKey) && dayQ.isPending;
-  const isLoading = (Boolean(userId) && businessQ.isPending) || isDayPending;
+  const isLoading =
+    (Boolean(userId) && (businessQ.isPending || (businessQ.isFetching && !hasBusinessRow))) ||
+    isDayPending;
 
   const refetch = useCallback(async () => {
     await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_ROOT });

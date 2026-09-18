@@ -14,21 +14,25 @@ export function RemoveTeamMemberSheet({ member, onRequestClose, onConfirm }) {
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        copy: {
+          gap: 16,
+          paddingBottom: 8,
+        },
         body: {
           color: colors.textMuted,
           fontSize: 14,
           fontWeight: '500',
-          lineHeight: 20,
+          lineHeight: 22,
         },
         email: {
           color: colors.text,
           fontFamily: FONT_FAMILIES.semibold,
           fontSize: 15,
           letterSpacing: -0.2,
-          marginTop: 12,
         },
         footer: {
           minHeight: 52,
+          paddingTop: 8,
         },
         row: {
           flexDirection: 'row',
@@ -69,12 +73,14 @@ export function RemoveTeamMemberSheet({ member, onRequestClose, onConfirm }) {
       visible={visible}
       onRequestClose={onRequestClose}
     >
-      <AppText style={styles.body}>{TEAM_REMOVE_SHEET_BODY}</AppText>
-      {member?.email ? (
-        <AppText numberOfLines={1} style={styles.email}>
-          {member.email}
-        </AppText>
-      ) : null}
+      <View style={styles.copy}>
+        <AppText style={styles.body}>{TEAM_REMOVE_SHEET_BODY}</AppText>
+        {member?.email ? (
+          <AppText numberOfLines={1} style={styles.email}>
+            {member.email}
+          </AppText>
+        ) : null}
+      </View>
     </BottomSheetModal>
   );
 }

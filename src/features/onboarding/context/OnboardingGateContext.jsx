@@ -5,6 +5,9 @@ import { ensureUserProfileRow } from '../../auth/api/ensureUserProfile';
 import { useAuth } from '../../auth';
 import { queryClient } from '../../../lib/queryClient';
 import { accountSettingsQueryKey } from '../../more/queryKeys';
+import { fetchActiveBusinessMembership } from '../../home/api/homeDashboard';
+import { activeBusinessMembershipQueryKey } from '../../shop/queryKeys';
+import { shopProfileQueryOptions } from '../../shop/shopProfileQueryOptions';
 import { fetchProfilesOnboardingState } from '../api/fetchProfilesOnboardingState';
 import { markOnboardingCompleted } from '../api/onboardingV2Api';
 
@@ -50,6 +53,27 @@ export function OnboardingGateProvider({ children }) {
     staleTime: 15_000,
   });
 
+  const membershipQuery = useQuery({
+    queryKey: activeBusinessMembershipQueryKey(userId),
+    enabled: Boolean(session && userId),
+    queryFn: async () => {
+      const { data, error } = await fetchActiveBusinessMembership(userId);
+      if (error) {
+        throw error;
+      }
+      return data;
+    },
+    retry: false,
+    staleTime: 15_000,
+  });
+
+  const isActiveMember = Boolean(membershipQuery.data?.business_id);
+
+  const shopQuery = useQuery({
+    ...shopProfileQueryOptions(userId),
+    enabled: Boolean(session && userId && isActiveMember),
+  });
+
   useEffect(() => {
     if (!profileQuery.error) {
       return;
@@ -63,14 +87,22 @@ export function OnboardingGateProvider({ children }) {
     }
   }, [profileQuery.error]);
 
-  const isGateReady = !session || !userId || !profileQuery.isPending;
+  const isGateReady =
+    !session ||
+    !userId ||
+    (!membershipQuery.isPending &&
+      (isActiveMember ? shopQuery.isFetched : !profileQuery.isPending));
 
   const onboardingDone =
     profileQuery.isSuccess &&
     (profileQuery.data?.onboarding_status ?? 'not_started') === 'completed';
 
   const needsOnboarding = Boolean(
-    session && userId && !onboardingDone && (profileQuery.isSuccess || profileQuery.isError),
+    session &&
+      userId &&
+      !isActiveMember &&
+      !onboardingDone &&
+      (profileQuery.isSuccess || profileQuery.isError),
   );
 
   const isOnboardingProfileLoaded = profileQuery.isSuccess;

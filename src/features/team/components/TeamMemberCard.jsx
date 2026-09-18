@@ -1,71 +1,74 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { AppText } from '../../../components/ui';
+import { AppText, SurfaceCard } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { TEAM_MEMBER_STATUS_LABEL } from '../constants/teamMembersCopy';
-
-function emailInitial(email) {
-  const letter = String(email ?? '')
-    .trim()
-    .charAt(0);
-  return letter ? letter.toUpperCase() : '?';
-}
+import { emailInitial, teamMemberDisplayName } from '../utils/teamMemberDisplay';
 
 /**
- * One team member row — avatar, email, status, remove.
+ * One team member card. Delete is the only tap target (v1 has no detail screen).
  * Row layout lives on inner Views (Pressable + flex on Text stacks on RN).
  */
-export function TeamMemberRow({ member, showDividerBelow = true, onRemove }) {
+export function TeamMemberCard({ member, onRemove }) {
   const { colors } = useTheme();
+  const name = teamMemberDisplayName(member);
   const statusLabel = TEAM_MEMBER_STATUS_LABEL[member.status] ?? TEAM_MEMBER_STATUS_LABEL.active;
+  const showEmailMeta = Boolean(member.name?.trim()) && Boolean(member.email?.trim());
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: {
-          alignSelf: 'stretch',
+        card: {
+          paddingHorizontal: 14,
+          paddingVertical: 14,
           width: '100%',
         },
         row: {
           alignItems: 'center',
           flexDirection: 'row',
           gap: 12,
-          paddingHorizontal: 16,
-          paddingVertical: 14,
           width: '100%',
         },
         avatar: {
           alignItems: 'center',
           backgroundColor: colors.shellElevated,
           borderColor: colors.border,
-          borderRadius: 18,
+          borderRadius: 20,
           borderWidth: 1,
-          height: 36,
+          height: 40,
           justifyContent: 'center',
-          width: 36,
+          width: 40,
         },
         avatarLetter: {
           color: colors.textSecondary,
           fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 13,
+          fontSize: 14,
         },
         textCol: {
           flex: 1,
           justifyContent: 'center',
           minWidth: 0,
         },
-        email: {
+        name: {
           color: colors.text,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 15,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 16,
           letterSpacing: -0.2,
+        },
+        email: {
+          color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 13,
+          marginTop: 3,
+        },
+        statusCol: {
+          flexShrink: 0,
         },
         status: {
           color: colors.textMuted,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 12,
-          marginTop: 3,
         },
         removeCol: {
           alignItems: 'center',
@@ -81,35 +84,37 @@ export function TeamMemberRow({ member, showDividerBelow = true, onRemove }) {
         removePressed: {
           opacity: 0.7,
         },
-        dividerRow: {
-          flexDirection: 'row',
-          paddingLeft: 64,
-          paddingRight: 16,
-        },
-        hairline: {
-          flex: 1,
-          height: StyleSheet.hairlineWidth,
-          opacity: 0.55,
-        },
       }),
     [colors],
   );
 
   return (
-    <View style={styles.root}>
+    <SurfaceCard outlined padding="none" style={styles.card}>
       <View style={styles.row}>
         <View style={styles.avatar}>
-          <AppText style={styles.avatarLetter}>{emailInitial(member.email)}</AppText>
+          <AppText style={styles.avatarLetter}>{emailInitial(member.email || name)}</AppText>
         </View>
         <View style={styles.textCol}>
-          <AppText numberOfLines={1} style={styles.email}>
-            {member.email}
+          <AppText numberOfLines={1} style={styles.name}>
+            {name}
           </AppText>
-          <AppText style={styles.status}>{statusLabel}</AppText>
+          {showEmailMeta ? (
+            <AppText numberOfLines={1} style={styles.email}>
+              {member.email}
+            </AppText>
+          ) : (
+            <AppText style={styles.email}>{statusLabel}</AppText>
+          )}
         </View>
+        {showEmailMeta ? (
+          <View style={styles.statusCol}>
+            <AppText style={styles.status}>{statusLabel}</AppText>
+          </View>
+        ) : null}
         <View style={styles.removeCol}>
           <Pressable
-            accessibilityLabel={`Remove ${member.email}`}
+            accessibilityHint="Asks you to confirm before removing this team member"
+            accessibilityLabel={`Remove ${name}`}
             accessibilityRole="button"
             hitSlop={6}
             onPress={() => onRemove?.(member)}
@@ -122,11 +127,6 @@ export function TeamMemberRow({ member, showDividerBelow = true, onRemove }) {
           </Pressable>
         </View>
       </View>
-      {showDividerBelow ? (
-        <View style={styles.dividerRow}>
-          <View style={[styles.hairline, { backgroundColor: colors.border }]} />
-        </View>
-      ) : null}
-    </View>
+    </SurfaceCard>
   );
 }

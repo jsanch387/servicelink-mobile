@@ -14,9 +14,19 @@ import { AccountSettingsScreen } from '../screens/AccountSettingsScreen';
 
 const mockUseAccountSettings = jest.fn();
 const mockUseAuth = jest.fn();
+const mockUseShopAccess = jest.fn(() => ({
+  isMember: false,
+  isShopLoading: false,
+  canSeeOffice: true,
+  canWriteBookings: true,
+}));
 
 jest.mock('../hooks/useAccountSettings', () => ({
   useAccountSettings: (...args) => mockUseAccountSettings(...args),
+}));
+
+jest.mock('../../shop', () => ({
+  useShopAccess: (...args) => mockUseShopAccess(...args),
 }));
 
 jest.mock('../../auth', () => ({
@@ -72,6 +82,12 @@ describe('AccountSettingsScreen App Store compliance', () => {
       signOut: jest.fn().mockResolvedValue({ error: null }),
     });
     mockUseAccountSettings.mockReturnValue(loadedSettings());
+    mockUseShopAccess.mockReturnValue({
+      isMember: false,
+      isShopLoading: false,
+      canSeeOffice: true,
+      canWriteBookings: true,
+    });
   });
 
   afterEach(() => {
@@ -87,21 +103,6 @@ describe('AccountSettingsScreen App Store compliance', () => {
     expect(screen.queryByText('Free')).toBeNull();
     expect(screen.queryByText('Pro')).toBeNull();
     expect(screen.queryByText(/\$10/)).toBeNull();
-  });
-
-  it('shows Account Settings and Team Members tabs', () => {
-    renderWithProviders(<AccountSettingsScreen />);
-
-    expect(screen.getByRole('button', { name: 'Account Settings' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Team Members' })).toBeTruthy();
-    expect(screen.getByText('Booking link')).toBeTruthy();
-    expect(screen.queryByText('No team members yet')).toBeNull();
-
-    fireEvent.press(screen.getByRole('button', { name: 'Team Members' }));
-
-    expect(screen.getByText('No team members yet')).toBeTruthy();
-    expect(screen.queryByText('Booking link')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Delete account' })).toBeNull();
   });
 
   it('shows signed in, booking link, log out, delete account, and web panel note', () => {
@@ -138,5 +139,22 @@ describe('AccountSettingsScreen App Store compliance', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Log out' }));
 
     await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
+  });
+
+  it('shows member account without shop booking link or delete', () => {
+    mockUseShopAccess.mockReturnValue({
+      isMember: true,
+      isShopLoading: false,
+      canSeeOffice: false,
+      canWriteBookings: false,
+    });
+
+    renderWithProviders(<AccountSettingsScreen />);
+
+    expect(screen.getByText('owner@example.com')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Log out' })).toBeTruthy();
+    expect(screen.queryByText('Booking link')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete account' })).toBeNull();
+    expect(screen.queryByRole('header', { name: ACCOUNT_WEB_PANEL_NOTE_TITLE })).toBeNull();
   });
 });

@@ -107,6 +107,18 @@ jest.mock('../../bookings/hooks/useBookingsFreeTierUsage', () => ({
   useBookingsFreeTierUsage: (...args) => mockUseBookingsFreeTierUsage(...args),
 }));
 
+const mockUseShopAccess = jest.fn(() => ({
+  canSeeOffice: true,
+  canWriteBookings: true,
+  isMember: false,
+  isOwner: true,
+  isShopLoading: false,
+}));
+
+jest.mock('../../shop', () => ({
+  useShopAccess: (...args) => mockUseShopAccess(...args),
+}));
+
 const mockMarkCompleteFlow = {
   sheetVisible: false,
   openSheet: jest.fn(),
@@ -204,6 +216,13 @@ describe('HomeScreen', () => {
     mockCreatePaymentAccess.canUseCreatePayment = true;
     mockCreatePaymentAccess.showUpsell = false;
     mockCreatePaymentAccess.isReady = true;
+    mockUseShopAccess.mockReturnValue({
+      canSeeOffice: true,
+      canWriteBookings: true,
+      isMember: false,
+      isOwner: true,
+      isShopLoading: false,
+    });
   });
 
   it('renders section labels, link stats, and empty today timeline when loaded', () => {
@@ -215,6 +234,35 @@ describe('HomeScreen', () => {
     expect(screen.getByText('Last 24 hours')).toBeTruthy();
     expect(screen.getByText('24 hours')).toBeTruthy();
     expect(screen.getByText('12')).toBeTruthy();
+    expect(screen.getByLabelText('Open create menu')).toBeTruthy();
+  });
+
+  it('keeps Next Up and timeline for members and hides office home actions', () => {
+    mockUseShopAccess.mockReturnValue({
+      canSeeOffice: false,
+      canWriteBookings: false,
+      isMember: true,
+      isOwner: false,
+      isShopLoading: false,
+    });
+    mockUseHomeDashboard.mockReturnValue(
+      baseDashboard({
+        todaysEarnings: {
+          jobCount: 1,
+          potentialCents: 5000,
+          collectedCents: 0,
+          remainingCents: 5000,
+        },
+      }),
+    );
+
+    renderWithProviders(<HomeScreen />);
+
+    expect(screen.getByText('Next Up')).toBeTruthy();
+    expect(screen.getByText("Today's timeline")).toBeTruthy();
+    expect(screen.queryByText('Link visits')).toBeNull();
+    expect(screen.queryByText("Today's earnings")).toBeNull();
+    expect(screen.queryByLabelText('Open create menu')).toBeNull();
   });
 
   it('shows live earnings only when priced jobs are scheduled today', () => {

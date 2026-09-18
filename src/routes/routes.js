@@ -40,6 +40,8 @@ export const ROUTES = {
   MAINTENANCE: 'Maintenance',
   /** More stack — single maintenance enrollment detail. */
   MAINTENANCE_DETAIL: 'MaintenanceDetail',
+  /** More stack — shop team list. */
+  TEAM: 'Team',
   /** More stack — customer subscriptions inbox (plans + members). */
   SUBSCRIPTIONS: 'Subscriptions',
   /** More stack — single customer subscription detail. */
@@ -109,6 +111,7 @@ export const PATHS = {
   REVIEWS: '/reviews',
   MAINTENANCE: '/maintenance',
   MAINTENANCE_DETAIL: '/maintenance/detail',
+  TEAM: '/more/team',
   SUBSCRIPTIONS: '/subscriptions',
   /** Matches `servicelinkmobile://subscriptions/subscribers/{uuid}` — `customer_memberships.id`. */
   SUBSCRIPTION_DETAIL: '/subscriptions/subscribers/:subscriptionId',

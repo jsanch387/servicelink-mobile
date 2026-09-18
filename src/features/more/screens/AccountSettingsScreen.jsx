@@ -16,11 +16,9 @@ import {
   AppVersionFootnote,
   Button,
   InlineCardError,
-  SegmentedToggle,
   SurfaceCard,
 } from '../../../components/ui';
 import { useAuth } from '../../auth';
-import { TeamMembersPanel } from '../../team';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
@@ -29,7 +27,7 @@ import { AccountSettingsScreenSkeleton } from '../components/AccountSettingsScre
 import { AccountWebPanelNote } from '../components/AccountWebPanelNote';
 import { ChangeBusinessSlugSheet } from '../components/ChangeBusinessSlugSheet';
 import { DeleteAccountConfirmSheet } from '../components/DeleteAccountConfirmSheet';
-import { ACCOUNT_TAB, ACCOUNT_TAB_OPTIONS } from '../constants/accountTabs';
+import { useShopAccess } from '../../shop';
 import { useAccountSettings } from '../hooks/useAccountSettings';
 import { buildBookingLinkCardModel } from '../utils/accountSettingsModel';
 import { SCREEN_GUTTER } from '../../../constants/layout';
@@ -40,7 +38,6 @@ export function AccountSettingsScreen() {
   const { user, signOut } = useAuth();
   const tabBarHeight = useBottomTabBarHeight();
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
-  const [activeTab, setActiveTab] = useState(ACCOUNT_TAB.SETTINGS);
   const [slugSheetVisible, setSlugSheetVisible] = useState(false);
   const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
   const [deleteEmailConfirmed, setDeleteEmailConfirmed] = useState(false);
@@ -61,6 +58,7 @@ export function AccountSettingsScreen() {
     deleteAccountError,
     resetDeleteAccountError,
   } = useAccountSettings();
+  const { isMember, isShopLoading } = useShopAccess();
 
   const signedInEmail = user?.email?.trim() || '—';
   const canEditSlug = Boolean(business?.id);
@@ -76,10 +74,6 @@ export function AccountSettingsScreen() {
           backgroundColor: colors.shell,
           flex: 1,
         },
-        tabs: {
-          paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: 16,
-        },
         scroll: {
           flex: 1,
         },
@@ -87,7 +81,7 @@ export function AccountSettingsScreen() {
           alignItems: 'stretch',
           paddingBottom: scrollBottomPad,
           paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: 4,
+          paddingTop: 16,
           width: '100%',
         },
         section: {
@@ -246,7 +240,7 @@ export function AccountSettingsScreen() {
   const webPanelNote = <AccountWebPanelNote />;
 
   let settingsBody;
-  if (isLoading) {
+  if (isLoading || isShopLoading) {
     settingsBody = (
       <ScrollView
         contentContainerStyle={styles.content}
@@ -277,6 +271,20 @@ export function AccountSettingsScreen() {
           variant="secondary"
           onPress={() => void refetch()}
         />
+      </ScrollView>
+    );
+  } else if (isMember) {
+    settingsBody = (
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={refreshControl}
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+      >
+        {signedInSection}
+        {signOutSection}
+        <AppVersionFootnote />
       </ScrollView>
     );
   } else if (!business?.id) {
@@ -385,14 +393,7 @@ export function AccountSettingsScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={styles.tabs}>
-        <SegmentedToggle
-          options={ACCOUNT_TAB_OPTIONS}
-          selected={activeTab}
-          onSelect={setActiveTab}
-        />
-      </View>
-      {activeTab === ACCOUNT_TAB.TEAM ? <TeamMembersPanel /> : settingsBody}
+      {settingsBody}
 
       <ChangeBusinessSlugSheet
         initialSlug={linkModel.slug}

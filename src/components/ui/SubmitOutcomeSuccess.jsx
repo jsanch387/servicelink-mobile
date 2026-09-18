@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     width: 104,
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     letterSpacing: -0.35,
     textAlign: 'center',
@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
   body: {
     fontSize: 15,
     fontWeight: '500',
-    lineHeight: 22,
-    maxWidth: 300,
+    lineHeight: 20,
+    maxWidth: 280,
     textAlign: 'center',
   },
   actions: {
@@ -125,19 +125,19 @@ const styles = StyleSheet.create({
   },
   inlineTitle: {
     alignSelf: 'stretch',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    letterSpacing: -0.4,
-    lineHeight: 28,
-    marginBottom: 14,
+    letterSpacing: -0.35,
+    lineHeight: 26,
+    marginBottom: 4,
     textAlign: 'center',
   },
   inlineBody: {
     alignSelf: 'stretch',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
     letterSpacing: -0.15,
-    lineHeight: 24,
+    lineHeight: 20,
     textAlign: 'center',
   },
 });

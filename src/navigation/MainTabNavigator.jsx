@@ -13,6 +13,7 @@ import { PushTokenRegistration } from '../features/notifications/components/Push
 import { PaymentsScreen } from '../features/payments/screens/PaymentsScreen';
 import { ShopAddressUpdatePrompt } from '../features/bookingLink/components/ShopAddressUpdatePrompt';
 import { LocationCollectionModal, useLocationPrompt } from '../features/location';
+import { useShopAccess } from '../features/shop';
 import { MAIN_TAB_CONFIG, ROUTES } from '../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../theme';
 import { MainTabBar } from './MainTabBar';
@@ -42,7 +43,11 @@ const tabScreens = {
 
 export function MainTabNavigator() {
   const { colors } = useTheme();
+  const { canSeeOffice } = useShopAccess();
   const { promptVisible, handleSaveLocation, handleDismissPrompt } = useLocationPrompt();
+  const visibleTabs = MAIN_TAB_CONFIG.filter(
+    (tab) => tab.route !== ROUTES.CUSTOMERS || canSeeOffice,
+  );
 
   return (
     <>
@@ -56,7 +61,9 @@ export function MainTabNavigator() {
         onDismiss={handleDismissPrompt}
         onSave={handleSaveLocation}
       />
-      <ShopAddressUpdatePrompt locationPromptVisible={promptVisible} />
+      {canSeeOffice ? (
+        <ShopAddressUpdatePrompt locationPromptVisible={promptVisible} />
+      ) : null}
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
@@ -70,7 +77,7 @@ export function MainTabNavigator() {
         }}
         tabBar={(props) => <MainTabBar {...props} />}
       >
-        {MAIN_TAB_CONFIG.map(({ route, label, icon }) => {
+        {visibleTabs.map(({ route, label, icon }) => {
           const nestedRootByTab =
             route === ROUTES.BOOKINGS
               ? ROUTES.BOOKINGS_LIST

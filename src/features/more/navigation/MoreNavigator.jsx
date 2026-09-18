@@ -35,6 +35,7 @@ import {
   SaleDetailScreen,
 } from '../../marketing';
 import { ReviewsScreen } from '../../reviews';
+import { TeamMembersProvider, TeamScreen } from '../../team';
 
 const Stack = createNativeStackNavigator();
 
@@ -43,7 +44,8 @@ export function MoreNavigator() {
 
   return (
     <MarketingCampaignsProvider>
-      <Stack.Navigator screenOptions={nativeStackScreenOptions({ colors })}>
+      <TeamMembersProvider>
+        <Stack.Navigator screenOptions={nativeStackScreenOptions({ colors })}>
         <Stack.Screen
           component={MoreScreen}
           name={ROUTES.MORE_HOME}
@@ -153,6 +155,15 @@ export function MoreNavigator() {
           name={ROUTES.REVIEWS}
           options={{
             title: 'Reviews',
+            headerBackButtonDisplayMode: 'minimal',
+            headerBackTitleVisible: false,
+          }}
+        />
+        <Stack.Screen
+          component={TeamScreen}
+          name={ROUTES.TEAM}
+          options={{
+            title: 'Team',
             headerBackButtonDisplayMode: 'minimal',
             headerBackTitleVisible: false,
           }}
@@ -279,7 +290,8 @@ export function MoreNavigator() {
             headerBackTitleVisible: false,
           }}
         />
-      </Stack.Navigator>
+        </Stack.Navigator>
+      </TeamMembersProvider>
     </MarketingCampaignsProvider>
   );
 }

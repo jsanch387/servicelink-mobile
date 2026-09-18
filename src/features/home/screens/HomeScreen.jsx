@@ -49,6 +49,7 @@ import { navigateToPaymentsSetup } from '../../tap-to-pay/utils/navigateToPaymen
 import { useBookingsFreeTierUsage } from '../../bookings/hooks/useBookingsFreeTierUsage';
 import { bookingsFreeTierCountQueryKey } from '../../bookings/queryKeys';
 import { resolveFreeTierBookingUsed } from '../../bookings/utils/resolveFreeTierBookingUsed';
+import { useShopAccess } from '../../shop';
 
 export function HomeScreen() {
   const { colors, isDark } = useTheme();
@@ -57,8 +58,9 @@ export function HomeScreen() {
   const { unreadCount } = useNotificationUnreadCount();
   const { hasProAccess, isOwnerProfileLoaded, ownerProfile, refetchSubscription } =
     useSubscription();
+  const { canSeeOffice, canWriteBookings } = useShopAccess();
   const paymentFailedNotice = useOwnerSubscriptionPaymentFailedNotice({
-    enabled: isOwnerProfileLoaded,
+    enabled: isOwnerProfileLoaded && canSeeOffice,
     ownerProfile,
   });
   const createPaymentAccess = useCreatePaymentAccess();
@@ -105,7 +107,7 @@ export function HomeScreen() {
   );
 
   const linkViews = useLinkViewsAnalytics(dashboard.business?.id, {
-    enabled: Boolean(dashboard.business?.id) && !dashboard.isPendingBusiness,
+    enabled: canSeeOffice && Boolean(dashboard.business?.id) && !dashboard.isPendingBusiness,
     hasProAccess,
   });
 
@@ -184,6 +186,7 @@ export function HomeScreen() {
     dashboard.todaysEarnings.potentialCents > 0;
 
   const showFreeTierBookingCount =
+    canSeeOffice &&
     isOwnerProfileLoaded &&
     !hasProAccess &&
     Boolean(dashboard.business?.id) &&
@@ -202,12 +205,19 @@ export function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       const bid = dashboard.business?.id;
-      if (!bid || !isOwnerProfileLoaded || hasProAccess || dashboard.businessError) {
+      if (
+        !canSeeOffice ||
+        !bid ||
+        !isOwnerProfileLoaded ||
+        hasProAccess ||
+        dashboard.businessError
+      ) {
         return undefined;
       }
       void queryClient.invalidateQueries({ queryKey: bookingsFreeTierCountQueryKey(bid) });
       return undefined;
     }, [
+      canSeeOffice,
       dashboard.business?.id,
       dashboard.businessError,
       hasProAccess,
@@ -561,7 +571,7 @@ export function HomeScreen() {
             />
           </View>
         ) : null}
-        {paymentFailedNotice.visible ? (
+        {canSeeOffice && paymentFailedNotice.visible ? (
           <View style={styles.storeUpdateWrap}>
             <OwnerSubscriptionPaymentFailedBanner onDismiss={paymentFailedNotice.dismiss} />
           </View>
@@ -621,7 +631,7 @@ export function HomeScreen() {
             ) : null}
           </View>
         ) : null}
-        {showFreeBookingsUsage ? (
+        {canSeeOffice && showFreeBookingsUsage ? (
           <HomeFreeBookingsUsageCard
             limit={FREE_TIER_BOOKINGS_LIMIT}
             used={resolvedFreeBookingUsed}
@@ -661,7 +671,7 @@ export function HomeScreen() {
           workingPhase={nextUpWorkingPhase}
         />
 
-        {showTodaysEarnings || showTodaysEarningsSkeleton ? (
+        {canSeeOffice && (showTodaysEarnings || showTodaysEarningsSkeleton) ? (
           <>
             <AppText style={[styles.sectionLabel, styles.secondarySectionLabel]}>
               Today&apos;s earnings
@@ -687,30 +697,38 @@ export function HomeScreen() {
           </>
         ) : null}
 
-        <AppText style={[styles.sectionLabel, styles.secondarySectionLabel]}>Link visits</AppText>
-        <LinkStatsSection
-          businessError={homeErrors.linkBusinessError}
-          hasProAccess={hasProAccess}
-          isLoading={dashboard.isPendingBusiness}
-          isPendingViews={linkViews.isPendingViews}
-          lastViewedAt={linkViews.lastViewedAt}
-          linkSectionDegraded={homeErrors.linkSectionDegraded}
-          effectivePeriod={linkViews.effectivePeriod}
-          onPeriodChange={linkViews.onPeriodChange}
-          period={linkViews.period}
-          slug={slug}
-          views={linkViews.views}
-          viewsError={linkViews.viewsError}
-        />
+        {canSeeOffice ? (
+          <>
+            <AppText style={[styles.sectionLabel, styles.secondarySectionLabel]}>
+              Link visits
+            </AppText>
+            <LinkStatsSection
+              businessError={homeErrors.linkBusinessError}
+              hasProAccess={hasProAccess}
+              isLoading={dashboard.isPendingBusiness}
+              isPendingViews={linkViews.isPendingViews}
+              lastViewedAt={linkViews.lastViewedAt}
+              linkSectionDegraded={homeErrors.linkSectionDegraded}
+              effectivePeriod={linkViews.effectivePeriod}
+              onPeriodChange={linkViews.onPeriodChange}
+              period={linkViews.period}
+              slug={slug}
+              views={linkViews.views}
+              viewsError={linkViews.viewsError}
+            />
+          </>
+        ) : null}
       </ScrollView>
-      <FloatingCreateMenu
-        bottom={30}
-        /* Free users still see this row; tap opens Payments (subscribe / Connect). */
-        showCreatePayment={createPaymentAccess.featureEnabled}
-        onCreateAppointment={handleCreateAppointment}
-        onCreatePayment={handleCreatePayment}
-        onCreateQuote={handleCreateQuote}
-      />
+      {canWriteBookings ? (
+        <FloatingCreateMenu
+          bottom={30}
+          /* Free users still see this row; tap opens Payments (subscribe / Connect). */
+          showCreatePayment={createPaymentAccess.featureEnabled}
+          onCreateAppointment={handleCreateAppointment}
+          onCreatePayment={handleCreatePayment}
+          onCreateQuote={handleCreateQuote}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

@@ -47,6 +47,7 @@ import { useBookingActionsMovedTip } from '../booking-details/hooks/useBookingAc
 import { useMarkBookingCompleteFlow } from '../booking-details/hooks/useMarkBookingCompleteFlow';
 import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
 import { buildBookingDetailsModel } from '../booking-details/utils/buildBookingDetailsModel';
+import { useShopAccess } from '../../shop';
 import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
 import { useMembershipVisitForBooking } from '../../subscriptions/hooks/useMembershipVisitForBooking';
 
@@ -62,6 +63,7 @@ export function BookingDetailsScreen({ route }) {
   const scrollRef = useRef(/** @type {ScrollView | null} */ (null));
   const detailsQuery = useBookingDetails(bookingId);
   const bookingActions = useBookingActions(bookingId);
+  const { canWriteBookings } = useShopAccess();
   const smsAccess = useCustomerSmsAccess();
   const details = useMemo(
     () => buildBookingDetailsModel(detailsQuery.booking),
@@ -390,6 +392,7 @@ export function BookingDetailsScreen({ route }) {
         onRequestClose={() => setRescheduleSheetOpen(false)}
       />
       <BookingActionsSheet
+        canWriteBookings={canWriteBookings}
         isCancelDisabled={isCancelledStatus || isCompletedStatus}
         isCancellingBooking={bookingActions.isCancellingBooking}
         isDeletingBooking={bookingActions.isDeletingBooking}
@@ -494,16 +497,18 @@ export function BookingDetailsScreen({ route }) {
             />
 
             <BookingActivitySection onPress={handleOpenActivity} />
-            <View style={styles.deleteSection}>
-              <DeleteButton
-                accessibilityHint="Removes this appointment from your calendar. This can\'t be undone."
-                accessibilityLabel="Delete booking permanently"
-                disabled={actionsBusy || !bookingId}
-                loading={bookingActions.isDeletingBooking}
-                title="Delete booking"
-                onPress={handleDeleteBooking}
-              />
-            </View>
+            {canWriteBookings ? (
+              <View style={styles.deleteSection}>
+                <DeleteButton
+                  accessibilityHint="Removes this appointment from your calendar. This can\'t be undone."
+                  accessibilityLabel="Delete booking permanently"
+                  disabled={actionsBusy || !bookingId}
+                  loading={bookingActions.isDeletingBooking}
+                  title="Delete booking"
+                  onPress={handleDeleteBooking}
+                />
+              </View>
+            ) : null}
           </>
         ) : null}
       </ScrollView>

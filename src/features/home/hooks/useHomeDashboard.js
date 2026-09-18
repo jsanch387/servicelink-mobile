@@ -2,17 +2,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { useAuth } from '../../auth';
-import {
-  fetchBusinessProfileForUser,
-  fetchConfirmedBookingsFromToday,
-  pickHomeSpotlight,
-} from '../api/homeDashboard';
-import {
-  HOME_QUERY_KEY,
-  homeBookingsUpcomingQueryKey,
-  homeBookingsTodayQueryKey,
-  homeBusinessProfileQueryKey,
-} from '../queryKeys';
+import { shopProfileQueryOptions } from '../../shop/shopProfileQueryOptions';
+import { fetchConfirmedBookingsFromToday, pickHomeSpotlight } from '../api/homeDashboard';
+import { HOME_QUERY_KEY, homeBookingsUpcomingQueryKey, homeBookingsTodayQueryKey } from '../queryKeys';
 import {
   formatInProgressSubtitle,
   formatNextUpWhenLine,
@@ -39,19 +31,7 @@ export function useHomeDashboard() {
     }, [queryClient]),
   );
 
-  const businessQ = useQuery({
-    queryKey: homeBusinessProfileQueryKey(userId),
-    queryFn: async () => {
-      const { data, error } = await fetchBusinessProfileForUser(userId);
-      if (error) {
-        throw new Error(error.message ?? 'Could not load business');
-      }
-      return data;
-    },
-    enabled: Boolean(userId),
-    staleTime: 60 * 1000,
-    gcTime: 15 * 60 * 1000,
-  });
+  const businessQ = useQuery(shopProfileQueryOptions(userId));
 
   const business = businessQ.data ?? null;
   const businessId = business?.id;
@@ -131,7 +111,8 @@ export function useHomeDashboard() {
     remainingCents: 0,
   };
 
-  const isPendingBusiness = Boolean(userId) && businessQ.isPending;
+  const isPendingBusiness =
+    Boolean(userId) && (businessQ.isPending || (businessQ.isFetching && !hasBusinessRow));
   const isPendingBookings = hasBusinessRow && bookingsQ.isPending;
   const isPendingTodayBookings = hasBusinessRow && todayBookingsQ.isPending;
   const isLoading = isPendingBusiness || isPendingBookings;
