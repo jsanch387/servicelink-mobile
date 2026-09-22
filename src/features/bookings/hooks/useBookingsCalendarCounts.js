@@ -2,8 +2,8 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useMemo } from 'react';
 import { useAuth } from '../../auth';
-import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
+import { shopProfileQueryOptions } from '../../shop/shopProfileQueryOptions';
 import { fetchBookingsCountsForCalendarRange } from '../api/bookings';
 import { BOOKINGS_QUERY_ROOT, bookingsCalendarCountsQueryKey } from '../queryKeys';
 import { bookingCountsFromScheduledRows } from '../utils/calendarBookingsIndex';
@@ -31,17 +31,7 @@ export function useBookingsCalendarCounts({ rangeStart, rangeEnd, enabled = true
   );
 
   const businessQ = useQuery({
-    queryKey: homeBusinessProfileQueryKey(userId),
-    queryFn: async () => {
-      const { data, error } = await fetchBusinessProfileForUser(userId);
-      if (error) {
-        throw new Error(error.message ?? 'Could not load business');
-      }
-      return data;
-    },
-    enabled: Boolean(userId),
-    staleTime: 60 * 1000,
-    gcTime: 15 * 60 * 1000,
+    ...shopProfileQueryOptions(userId),
     retry: shouldRetryBookingsQuery,
     retryDelay: 400,
   });
@@ -84,7 +74,8 @@ export function useBookingsCalendarCounts({ rangeStart, rangeEnd, enabled = true
     : null;
 
   const isLoading =
-    (Boolean(userId) && businessQ.isPending) || (hasBusinessRow && rangeReady && countsQ.isPending);
+    (Boolean(userId) && (businessQ.isPending || (businessQ.isFetching && !hasBusinessRow))) ||
+    (hasBusinessRow && rangeReady && countsQ.isPending);
 
   const refetch = useCallback(async () => {
     await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_ROOT });

@@ -1,4 +1,5 @@
 import { parseBookingStartLocalMs } from '../../../home/utils/bookingStart';
+import { formatLocationCardLines } from '../../create-appointment/utils/formatAppointmentAddress';
 import { formatPhoneWithCountryCode } from '../../../../utils/phone';
 import { splitBookingServiceName } from '../../../../utils/splitBookingServiceName';
 import { parseJobDetailsFromBooking } from './parseJobDetailsFromBooking';
@@ -431,15 +432,17 @@ function normalizeAddonItems(addonDetails) {
     .filter((item) => item.price >= 0);
 }
 
-function buildDateLine(ms) {
+function buildDateLine(ms, nowMs = Date.now()) {
   if (!Number.isFinite(ms)) {
     return 'Date not set';
   }
-  return new Date(ms).toLocaleDateString(undefined, {
+  const start = new Date(ms);
+  const includeYear = start.getFullYear() !== new Date(nowMs).getFullYear();
+  return start.toLocaleDateString(undefined, {
     weekday: 'long',
-    month: 'long',
+    month: 'short',
     day: 'numeric',
-    year: 'numeric',
+    ...(includeYear ? { year: 'numeric' } : {}),
   });
 }
 
@@ -609,15 +612,23 @@ export function buildBookingDetailsModel(booking) {
     ? [{ key: 'vehicle-legacy', icon: 'car-sport-outline', value: legacyVehicleLine }]
     : [];
 
+  const addressForm = {
+    street: clean(booking?.customer_street_address, ''),
+    unit: clean(booking?.customer_unit_apt, ''),
+    city: clean(booking?.customer_city, ''),
+    state: clean(booking?.customer_state, ''),
+    zip: clean(booking?.customer_zip, ''),
+  };
   const addressParts = [
-    clean(booking?.customer_street_address, ''),
-    clean(booking?.customer_unit_apt, ''),
-    clean(booking?.customer_city, ''),
-    clean(booking?.customer_state, ''),
-    clean(booking?.customer_zip, ''),
+    addressForm.street,
+    addressForm.unit,
+    addressForm.city,
+    addressForm.state,
+    addressForm.zip,
   ].filter(Boolean);
   const addressLine = addressParts.join(', ');
   const hasAddress = Boolean(addressLine);
+  const locationLines = formatLocationCardLines(addressForm);
 
   const customerPhoneDisplay = String(
     formatPhoneWithCountryCode(booking?.customer_phone) ?? '',
@@ -660,6 +671,8 @@ export function buildBookingDetailsModel(booking) {
     },
     location: {
       address: addressLine,
+      primary: locationLines.primary || addressLine,
+      secondary: locationLines.secondary,
       hasAddress,
     },
     vehicle: vehicleLine,

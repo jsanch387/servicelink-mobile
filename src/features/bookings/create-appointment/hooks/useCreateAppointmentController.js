@@ -77,6 +77,8 @@ import { membershipCatalogQueryKey } from '../../../subscriptions/queryKeys';
 import { useCreateAppointmentServerData } from './useCreateAppointmentServerData';
 import { useCreateAppointmentSubmitPanel } from './useCreateAppointmentSubmitPanel';
 import { usePastCustomerVehicles } from './usePastCustomerVehicles';
+import { confirmOwnerOverlapHeadsUp } from '../../utils/confirmOwnerOverlapHeadsUp';
+import { resolveOwnerOverlapHeadsUp } from '../../utils/ownerBookingOverlap';
 
 function centsToUsdText(cents) {
   const n = Math.max(0, Math.round(Number(cents) || 0)) / 100;
@@ -458,14 +460,22 @@ export function useCreateAppointmentController({
     return addonsForSelectedService.filter((a) => idSet.has(String(a.id)));
   }, [addonsForSelectedService, selectedAddonIds]);
 
-  const currentJobDurationMinutes = useMemo(
-    () =>
-      totalBookingDurationMinutes(
-        baseServiceDurationMinutes(selectedServiceRow, selectedPricingOption, selectedService),
-        selectedAddonRows,
-      ),
-    [selectedServiceRow, selectedPricingOption, selectedService, selectedAddonRows],
-  );
+  const currentJobDurationMinutes = useMemo(() => {
+    if (isCustomJob) {
+      return Math.max(15, Number(customDurationMinutes) || 60);
+    }
+    return totalBookingDurationMinutes(
+      baseServiceDurationMinutes(selectedServiceRow, selectedPricingOption, selectedService),
+      selectedAddonRows,
+    );
+  }, [
+    customDurationMinutes,
+    isCustomJob,
+    selectedAddonRows,
+    selectedPricingOption,
+    selectedService,
+    selectedServiceRow,
+  ]);
 
   const buildCurrentJobSnapshot = useCallback(
     () =>
@@ -898,7 +908,6 @@ export function useCreateAppointmentController({
       servicePickPhase,
       isCustomJob,
       jobNumber: jobIndex + 1,
-      hasPastVehicles: pastVehicles.length > 0,
     });
     return {
       stepIndex,
@@ -914,7 +923,6 @@ export function useCreateAppointmentController({
     jobIndex,
     meta,
     navArgs,
-    pastVehicles.length,
     servicePickPhase,
     step,
   ]);
@@ -1100,6 +1108,18 @@ export function useCreateAppointmentController({
       });
       return;
     }
+    if (step === CREATE_APPOINTMENT_STEP.SCHEDULE) {
+      const overlapMessage = resolveOwnerOverlapHeadsUp({
+        mode: 'create',
+        dateKey: selectedDateKey,
+        startTime: selectedTime,
+        rows: server.blockingBookingRows,
+      });
+      const canContinueOverlap = await confirmOwnerOverlapHeadsUp(overlapMessage);
+      if (!canContinueOverlap) {
+        return;
+      }
+    }
     setStep(getNextStepOnContinue({ step, ...navArgs }));
   }, [
     appointmentConfirmed,
@@ -1175,6 +1195,8 @@ export function useCreateAppointmentController({
       timeSlots,
       onSelectDateKey: setSelectedDateKey,
       onSelectTime: setSelectedTime,
+      blockingBookingRows: server.blockingBookingRows,
+      overlapMode: 'create',
       customer,
       isReturningCustomer: Boolean(prefilledCustomer) || isMembershipVisit,
       onChangeCustomer: setCustomer,
@@ -1254,6 +1276,7 @@ export function useCreateAppointmentController({
       selectedDateKey,
       selectedTime,
       timeSlots,
+      server.blockingBookingRows,
       customer,
       prefilledCustomer,
       hasSeededCustomerAddress,

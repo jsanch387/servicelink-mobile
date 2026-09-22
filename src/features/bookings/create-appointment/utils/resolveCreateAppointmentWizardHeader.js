@@ -10,7 +10,6 @@ import { CREATE_APPOINTMENT_STEP } from '../constants';
  *   servicePickPhase?: 'chooser' | 'catalog';
  *   isCustomJob?: boolean;
  *   jobNumber?: number;
- *   hasPastVehicles?: boolean;
  * }} [context]
  */
 export function resolveCreateAppointmentWizardHeader(
@@ -37,17 +36,14 @@ export function resolveCreateAppointmentWizardHeader(
     };
   }
 
+  if (step === CREATE_APPOINTMENT_STEP.REVIEW) {
+    return { title: '', subtitle: '' };
+  }
+
   if (step === CREATE_APPOINTMENT_STEP.ADDRESS && addressStepCopy) {
     return {
       title: addressStepCopy.title ?? meta?.title ?? '',
       subtitle: addressStepCopy.subtitle ?? meta?.subtitle ?? '',
-    };
-  }
-
-  if (step === CREATE_APPOINTMENT_STEP.VEHICLE && context.hasPastVehicles) {
-    return {
-      title: meta?.title ?? "What's the vehicle?",
-      subtitle: "Choose one they've used before — or enter a new one.",
     };
   }
 

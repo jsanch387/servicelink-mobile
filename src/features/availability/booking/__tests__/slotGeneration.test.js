@@ -114,6 +114,21 @@ describe('slotGeneration', () => {
     expect(slots.includes('9:30 AM')).toBe(true);
   });
 
+  it('ownerManualBooking still offers a start time that already has a job', () => {
+    const slots = generateTimeSlots({
+      dateKey: '2026-04-29',
+      weeklySchedule: weekly,
+      serviceDurationMinutes: 60,
+      existingBookings: [
+        { scheduled_date: '2026-04-29', start_time: '10:00:00', duration_minutes: 60 },
+      ],
+      timeOffBlocks: [],
+      ownerManualBooking: true,
+      nowMs: Date.parse('2026-04-01T12:00:00'),
+    });
+    expect(slots.includes('10:00 AM')).toBe(true);
+  });
+
   it('ownerManualBooking skips lead time and time off', () => {
     const blocks = [
       {

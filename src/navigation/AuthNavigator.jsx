@@ -15,6 +15,7 @@ import { LoginScreen } from '../features/auth/screens/LoginScreen';
 // import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
 // import { CheckYourEmailScreen } from '../features/auth/screens/CheckYourEmailScreen';
 import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
+import { RemovedFromTeamScreen } from '../features/team';
 import { PENDING_NAVIGATE_TO_BOOKING_LINK_KEY } from '../features/onboarding/constants/postOnboardingNavigation';
 import { consumePendingPushNavigation } from '../features/notifications/constants/pendingPushNavigation';
 import { attemptPushNavigation } from '../features/notifications/utils/attemptPushNavigation';
@@ -52,14 +53,23 @@ function MainAppSubscriptionBootScreen() {
 export function AuthNavigator() {
   const { colors, isDark } = useTheme();
   const { session, isReady, user } = useAuth();
-  const { needsOnboarding, isGateReady, postActivationHandoff, endPostActivationHandoff } =
-    useOnboardingGate();
+  const {
+    needsOnboarding,
+    needsRemovedFromTeam,
+    isGateReady,
+    postActivationHandoff,
+    endPostActivationHandoff,
+  } = useOnboardingGate();
   const { isLoading } = useSubscription();
 
-  const mainAppSubscriptionBooting = Boolean(session && !needsOnboarding && user?.id) && isLoading;
+  const mainAppSubscriptionBooting =
+    Boolean(session && !needsOnboarding && !needsRemovedFromTeam && user?.id) && isLoading;
 
   const mainTabsInteractive =
-    Boolean(session && user?.id) && !needsOnboarding && !mainAppSubscriptionBooting;
+    Boolean(session && user?.id) &&
+    !needsOnboarding &&
+    !needsRemovedFromTeam &&
+    !mainAppSubscriptionBooting;
 
   const handoffOverlayOpacity = useRef(new Animated.Value(1)).current;
   const handoffDismissStartedRef = useRef(false);
@@ -71,7 +81,7 @@ export function AuthNavigator() {
       handoffOverlayOpacity.setValue(1);
       return undefined;
     }
-    if (needsOnboarding) {
+    if (needsOnboarding || needsRemovedFromTeam) {
       return undefined;
     }
 
@@ -131,6 +141,7 @@ export function AuthNavigator() {
     session,
     postActivationHandoff,
     needsOnboarding,
+    needsRemovedFromTeam,
     mainTabsInteractive,
     endPostActivationHandoff,
     handoffOverlayOpacity,
@@ -237,11 +248,13 @@ export function AuthNavigator() {
   }, [boot]);
 
   const stackKey = session
-    ? needsOnboarding
-      ? 'onboarding'
-      : mainAppSubscriptionBooting
-        ? 'main-subscription-boot'
-        : 'main'
+    ? needsRemovedFromTeam
+      ? 'removed-from-team'
+      : needsOnboarding
+        ? 'onboarding'
+        : mainAppSubscriptionBooting
+          ? 'main-subscription-boot'
+          : 'main'
     : 'auth';
 
   if (boot) {
@@ -263,6 +276,13 @@ export function AuthNavigator() {
             headerShown: false,
           }}
         >
+          {session && needsRemovedFromTeam ? (
+            <Stack.Screen
+              component={RemovedFromTeamScreen}
+              name={ROUTES.REMOVED_FROM_TEAM}
+              options={{ gestureEnabled: false }}
+            />
+          ) : null}
           {session && needsOnboarding ? (
             <Stack.Screen
               component={OnboardingScreen}
@@ -270,13 +290,13 @@ export function AuthNavigator() {
               options={{ gestureEnabled: false }}
             />
           ) : null}
-          {session && !needsOnboarding && mainAppSubscriptionBooting ? (
+          {session && !needsOnboarding && !needsRemovedFromTeam && mainAppSubscriptionBooting ? (
             <Stack.Screen
               component={MainAppSubscriptionBootScreen}
               name="MainAppSubscriptionBoot"
             />
           ) : null}
-          {session && !needsOnboarding && !mainAppSubscriptionBooting ? (
+          {session && !needsOnboarding && !needsRemovedFromTeam && !mainAppSubscriptionBooting ? (
             <>
               <Stack.Screen component={MainTabNavigator} name={ROUTES.MAIN_APP} />
               <Stack.Screen

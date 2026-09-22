@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth';
+import { useShopAccess } from '../../shop';
 import { checkUserLocationStatus, saveUserLocation } from '../api/locationApi';
 import {
   SERVICE_AREA_PROMPT_DISMISSIBLE,
@@ -12,6 +13,7 @@ const LocationPromptContext = createContext(null);
 export function LocationPromptProvider({ children }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
+  const { canSeeOffice, isShopLoading } = useShopAccess();
 
   const [isLoading, setIsLoading] = useState(true);
   const [shouldShowPrompt, setShouldShowPrompt] = useState(false);
@@ -19,11 +21,13 @@ export function LocationPromptProvider({ children }) {
   const [businessProfileId, setBusinessProfileId] = useState(null);
 
   const checkIfShouldPrompt = useCallback(async () => {
-    if (!userId) {
+    if (!userId || isShopLoading || !canSeeOffice) {
       setIsLoading(false);
       setShouldShowPrompt(false);
       setPromptVisible(false);
-      setBusinessProfileId(null);
+      if (!userId) {
+        setBusinessProfileId(null);
+      }
       return;
     }
 
@@ -61,7 +65,7 @@ export function LocationPromptProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [canSeeOffice, isShopLoading, userId]);
 
   useEffect(() => {
     void checkIfShouldPrompt();

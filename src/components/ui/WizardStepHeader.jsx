@@ -28,6 +28,9 @@ export function WizardStepHeader({
   style,
 }) {
   const { colors } = useTheme();
+  const titleText = String(title ?? '').trim();
+  const subtitleText = String(subtitle ?? '').trim();
+  const hasCopy = Boolean(titleText || subtitleText);
   const progress =
     stepCount > 0 ? Math.min(100, Math.max(0, ((stepIndex + 1) / stepCount) * 100)) : 0;
 
@@ -35,7 +38,7 @@ export function WizardStepHeader({
     () =>
       StyleSheet.create({
         wrap: {
-          paddingBottom: 16,
+          paddingBottom: hasCopy ? 14 : 20,
           paddingHorizontal: embedded ? 0 : SCREEN_GUTTER,
           paddingTop: showProgress ? 8 : 0,
         },
@@ -43,7 +46,7 @@ export function WizardStepHeader({
           backgroundColor: colors.border,
           borderRadius: 2,
           height: 4,
-          marginBottom: 20,
+          marginBottom: hasCopy ? 18 : 0,
           overflow: 'hidden',
           width: '100%',
         },
@@ -57,17 +60,17 @@ export function WizardStepHeader({
           fontSize: 26,
           fontWeight: '700',
           letterSpacing: -0.6,
-          lineHeight: 30,
+          lineHeight: 28,
         },
         subtitle: {
           color: colors.textMuted,
           fontSize: 15,
           fontWeight: '400',
-          lineHeight: 22,
-          marginTop: 6,
+          lineHeight: 20,
+          marginTop: 2,
         },
       }),
-    [colors, embedded, showProgress],
+    [colors, embedded, hasCopy, showProgress],
   );
 
   return (
@@ -86,10 +89,12 @@ export function WizardStepHeader({
           <View style={[styles.fill, { width: `${progress}%` }]} />
         </View>
       ) : null}
-      <AppText accessibilityRole="header" style={styles.title}>
-        {title}
-      </AppText>
-      {subtitle?.trim() ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
+      {titleText ? (
+        <AppText accessibilityRole="header" style={styles.title}>
+          {titleText}
+        </AppText>
+      ) : null}
+      {subtitleText ? <AppText style={styles.subtitle}>{subtitleText}</AppText> : null}
     </Pressable>
   );
 }

@@ -10,6 +10,17 @@ describe('buildBookingDetailsModel', () => {
     expect(model.schedule.duration).toBe('1 hr 30 min');
   });
 
+  it('uses a long weekday with a short month on the visit date', () => {
+    const model = buildBookingDetailsModel({
+      scheduled_date: '2026-09-23',
+      start_time: '09:00:00',
+    });
+    expect(model.schedule.date).toMatch(/Wednesday/);
+    expect(model.schedule.date).toMatch(/Sep/);
+    expect(model.schedule.date).toMatch(/23/);
+    expect(model.schedule.date).not.toMatch(/September/);
+  });
+
   it('splits combined service name into title and pricing option', () => {
     const model = buildBookingDetailsModel({
       service_name: 'Signature Shine — SUV',
@@ -637,6 +648,22 @@ describe('buildBookingDetailsModel', () => {
     expect(model.payment.variant).toBe('pay_in_person');
     expect(model.payment.status).toBe('Pay in person');
     expect(model.payment.detail).toMatch(/150\.00/);
+  });
+
+  it('splits location into street and city lines', () => {
+    const model = buildBookingDetailsModel({
+      customer_street_address: '123 Main St',
+      customer_unit_apt: 'Suite 4',
+      customer_city: 'Austin',
+      customer_state: 'tx',
+      customer_zip: '78701',
+    });
+    expect(model.location).toMatchObject({
+      hasAddress: true,
+      primary: '123 Main St, Suite 4',
+      secondary: 'Austin, TX 78701',
+      address: '123 Main St, Suite 4, Austin, tx, 78701',
+    });
   });
 
   it('accepts snake_case payment fields from raw rows', () => {

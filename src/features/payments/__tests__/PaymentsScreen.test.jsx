@@ -315,7 +315,7 @@ describe('PaymentsScreen', () => {
     expect(screen.getByText('Accept payments online')).toBeTruthy();
     expect(screen.getByText(/Sign in with the same email/i)).toBeTruthy();
     expect(screen.getByText(/Get paid to your bank/i)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Sign in on the web' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Subscribe on web' })).toBeTruthy();
     expect(screen.queryByText('Upgrade to Pro')).toBeNull();
     expect(screen.queryByText('Set up payments')).toBeNull();
   });

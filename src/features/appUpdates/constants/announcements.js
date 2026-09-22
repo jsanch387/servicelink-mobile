@@ -1,5 +1,3 @@
-import { ROUTES } from '../../../routes/routes';
-
 /**
  * In-app feature announcements — one modal at a time. Each `id` is shown at most once per device.
  *
@@ -25,22 +23,4 @@ import { ROUTES } from '../../../routes/routes';
  */
 
 /** @type {WhatsNewAnnouncement[]} */
-export const APP_UPDATE_ANNOUNCEMENTS = [
-  {
-    id: 'subscriptions-v1',
-    badge: "What's new",
-    icon: 'layers-outline',
-    title: 'Subscriptions for recurring work',
-    bullets: [
-      'Create a plan with price and how often you visit',
-      'Customers subscribe from your link',
-      'Track who’s due, past due, or canceled',
-    ],
-    primaryLabel: 'View subscriptions',
-    secondaryLabel: 'Got it',
-    cta: {
-      tab: ROUTES.MORE,
-      screen: ROUTES.SUBSCRIPTIONS,
-    },
-  },
-];
+export const APP_UPDATE_ANNOUNCEMENTS = [];

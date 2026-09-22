@@ -1,4 +1,4 @@
-import { homeBookingsUpcomingQueryKey } from '../../home/queryKeys';
+import { homeBookingsUpcomingQueryPrefix } from '../../home/queryKeys';
 
 /**
  * Optimistically updates the home spotlight booking `job_status` and optional `status`.
@@ -21,7 +21,7 @@ export function patchBookingJobStatusInHomeCache(
   if (!businessId?.trim() || !bookingId?.trim() || !jobStatus?.trim()) {
     return;
   }
-  queryClient.setQueryData(homeBookingsUpcomingQueryKey(businessId), (old) => {
+  queryClient.setQueriesData({ queryKey: homeBookingsUpcomingQueryPrefix(businessId) }, (old) => {
     if (!old?.next || old.next.id !== bookingId) {
       return old;
     }

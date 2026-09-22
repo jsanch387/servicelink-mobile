@@ -22,6 +22,7 @@ export { DeleteButton } from './DeleteButton';
 export { DetailIconFieldRow } from './DetailIconFieldRow';
 export { MembershipMark } from './MembershipMark';
 export { DetailsSectionCard } from './DetailsSectionCard';
+export { DetailsLeadRow } from './DetailsLeadRow';
 export { InfoSection } from './InfoSection';
 export { LocationSection } from './LocationSection';
 export { LabelValueRow } from './LabelValueRow';

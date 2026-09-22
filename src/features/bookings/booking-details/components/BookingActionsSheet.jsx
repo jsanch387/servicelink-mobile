@@ -352,6 +352,7 @@ export function BookingActionsSheet({
   onMarkCompleted,
   onRequestClose,
   onReschedule,
+  canWriteBookings = true,
   showJobStatusAction = false,
   visible,
 }) {
@@ -370,7 +371,7 @@ export function BookingActionsSheet({
         },
         rows: {
           gap: 10,
-          minHeight: 202,
+          minHeight: canWriteBookings ? 202 : undefined,
           width: '100%',
         },
         row: {
@@ -380,7 +381,7 @@ export function BookingActionsSheet({
           width: '100%',
         },
       }),
-    [],
+    [canWriteBookings],
   );
 
   const handoffTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
@@ -430,46 +431,60 @@ export function BookingActionsSheet({
             />
           </View>
         ) : null}
-        <View style={styles.rows}>
-          <View style={styles.row}>
-            <ActionGridTile
-              accessibilityHint="Edit appointment details"
-              accessibilityLabel="Edit booking"
-              config={ACTION_CONFIG.edit}
-              disabled={isEditDisabled || actionsBusy}
-              label="Edit"
-              onPress={() => runAction(onEdit)}
-            />
-            <ActionGridTile
-              accessibilityHint="Opens a sheet to choose a new date and time"
-              accessibilityLabel="Reschedule booking"
-              config={ACTION_CONFIG.reschedule}
-              disabled={isRescheduleDisabled || actionsBusy}
-              label="Reschedule"
-              onPress={() => runAction(onReschedule)}
-            />
+        {canWriteBookings ? (
+          <View style={styles.rows}>
+            <View style={styles.row}>
+              <ActionGridTile
+                accessibilityHint="Edit appointment details"
+                accessibilityLabel="Edit booking"
+                config={ACTION_CONFIG.edit}
+                disabled={isEditDisabled || actionsBusy}
+                label="Edit"
+                onPress={() => runAction(onEdit)}
+              />
+              <ActionGridTile
+                accessibilityHint="Opens a sheet to choose a new date and time"
+                accessibilityLabel="Reschedule booking"
+                config={ACTION_CONFIG.reschedule}
+                disabled={isRescheduleDisabled || actionsBusy}
+                label="Reschedule"
+                onPress={() => runAction(onReschedule)}
+              />
+            </View>
+            <View style={styles.row}>
+              <ActionGridTile
+                accessibilityLabel={isCancelDisabled ? 'Booking canceled' : 'Cancel booking'}
+                config={ACTION_CONFIG.cancel}
+                disabled={isCancelDisabled || actionsBusy}
+                label={isCancelDisabled ? 'Canceled' : 'Cancel'}
+                loading={isCancellingBooking}
+                onPress={() => runAction(onCancelBooking)}
+              />
+              <ActionGridTile
+                accessibilityLabel={
+                  isMarkCompletedDisabled ? 'Booking completed' : 'Mark booking complete'
+                }
+                config={ACTION_CONFIG.complete}
+                disabled={isMarkCompletedDisabled || actionsBusy || isCancelDisabled}
+                label={isMarkCompletedDisabled ? 'Completed' : 'Complete'}
+                loading={isMarkingCompleted}
+                onPress={() => runAction(onMarkCompleted)}
+              />
+            </View>
           </View>
-          <View style={styles.row}>
-            <ActionGridTile
-              accessibilityLabel={isCancelDisabled ? 'Booking canceled' : 'Cancel booking'}
-              config={ACTION_CONFIG.cancel}
-              disabled={isCancelDisabled || actionsBusy}
-              label={isCancelDisabled ? 'Canceled' : 'Cancel'}
-              loading={isCancellingBooking}
-              onPress={() => runAction(onCancelBooking)}
-            />
-            <ActionGridTile
-              accessibilityLabel={
-                isMarkCompletedDisabled ? 'Booking completed' : 'Mark booking complete'
-              }
-              config={ACTION_CONFIG.complete}
-              disabled={isMarkCompletedDisabled || actionsBusy || isCancelDisabled}
-              label={isMarkCompletedDisabled ? 'Completed' : 'Complete'}
-              loading={isMarkingCompleted}
-              onPress={() => runAction(onMarkCompleted)}
-            />
-          </View>
-        </View>
+        ) : (
+          <Button
+            accessibilityLabel={
+              isMarkCompletedDisabled ? 'Booking completed' : 'Mark booking complete'
+            }
+            disabled={isMarkCompletedDisabled || actionsBusy || isCancelDisabled}
+            fullWidth
+            iconName="checkmark-outline"
+            loading={isMarkingCompleted}
+            title={isMarkCompletedDisabled ? 'Completed' : 'Complete'}
+            onPress={() => runAction(onMarkCompleted)}
+          />
+        )}
       </View>
     </BottomSheetModal>
   );

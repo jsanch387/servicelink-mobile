@@ -9,7 +9,7 @@ export const CREATE_PAYMENT_HIGHLIGHT_DEV_RESET_EVENT =
   'servicelink.createPayment.fabHighlight.devReset';
 
 /**
- * FAB glow + Create payment “New” treatment — once per device.
+ * Create payment “New” treatment — once per device.
  *
  * @param {{ enabled?: boolean }} args
  */

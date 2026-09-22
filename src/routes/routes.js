@@ -14,6 +14,8 @@ export const ROUTES = {
   FORGOT_PASSWORD: 'ForgotPassword',
   /** First-time signup — blocks main tabs until finished */
   ONBOARDING: 'Onboarding',
+  /** Signed-in hire whose shop membership is `removed` */
+  REMOVED_FROM_TEAM: 'RemovedFromTeam',
   /** Stack screen that hosts the bottom tab navigator */
   MAIN_APP: 'MainApp',
   HOME: 'Home',
@@ -40,6 +42,10 @@ export const ROUTES = {
   MAINTENANCE: 'Maintenance',
   /** More stack — single maintenance enrollment detail. */
   MAINTENANCE_DETAIL: 'MaintenanceDetail',
+  /** More stack — shop team list. */
+  TEAM: 'Team',
+  /** More stack — one teammate (name, remove; later visits / stats). */
+  TEAM_MEMBER_DETAILS: 'TeamMemberDetails',
   /** More stack — customer subscriptions inbox (plans + members). */
   SUBSCRIPTIONS: 'Subscriptions',
   /** More stack — single customer subscription detail. */
@@ -109,6 +115,8 @@ export const PATHS = {
   REVIEWS: '/reviews',
   MAINTENANCE: '/maintenance',
   MAINTENANCE_DETAIL: '/maintenance/detail',
+  TEAM: '/more/team',
+  TEAM_MEMBER_DETAILS: '/more/team/:memberId',
   SUBSCRIPTIONS: '/subscriptions',
   /** Matches `servicelinkmobile://subscriptions/subscribers/{uuid}` — `customer_memberships.id`. */
   SUBSCRIPTION_DETAIL: '/subscriptions/subscribers/:subscriptionId',

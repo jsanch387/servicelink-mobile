@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
 import { pastVehiclesMatch } from '../../../customers/utils/mapCustomerAssetToVehicle';
 import { useTheme } from '../../../../theme';
@@ -12,7 +12,8 @@ import {
 } from '../../../../utils/vehicle';
 import { AddAnotherJobCard } from '../components/AddAnotherJobCard';
 import { AppointmentNotesCard } from '../components/AppointmentNotesCard';
-import { ChoiceRow } from '../components/ChoiceRow';
+import { PastAssetsPickerSheet } from '../components/PastAssetsPickerSheet';
+import { PAST_ASSETS_CHANGE, PAST_ASSETS_CTA, PAST_ASSETS_SHEET_TITLE } from '../constants';
 import { isVehicleStepComplete } from '../utils/createAppointmentValidators';
 
 const FIELD_SHELL = { marginBottom: 0 };
@@ -42,6 +43,7 @@ export function VehicleStep({
   pastVehicles = [],
 }) {
   const { colors } = useTheme();
+  const [pastOpen, setPastOpen] = useState(false);
   const hasAnyVehicleField = [vehicle.year, vehicle.make, vehicle.model].some((value) =>
     String(value ?? '').trim(),
   );
@@ -51,12 +53,16 @@ export function VehicleStep({
       : null;
   const savedVehicles = Array.isArray(pastVehicles) ? pastVehicles : [];
   const hasPastVehicles = savedVehicles.length > 0;
+  const selectedPast = savedVehicles.find((past) => pastVehiclesMatch(vehicle, past)) ?? null;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         root: {
           gap: 18,
+        },
+        vehicleBlock: {
+          gap: 10,
         },
         card: {
           paddingHorizontal: 16,
@@ -70,24 +76,54 @@ export function VehicleStep({
           fontWeight: '500',
           lineHeight: 17,
         },
-        pastBlock: {
-          gap: 10,
+        ctaCard: {
+          paddingHorizontal: 14,
+          paddingVertical: 12,
         },
-        returningBanner: {
+        ctaPressed: {
+          opacity: 0.72,
+        },
+        ctaRow: {
           alignItems: 'center',
           flexDirection: 'row',
-          gap: 6,
-          paddingHorizontal: 2,
+          width: '100%',
         },
-        returningBannerText: {
-          color: colors.accent,
-          fontSize: 13,
+        ctaIconWell: {
+          alignItems: 'center',
+          backgroundColor: colors.inputBg,
+          borderColor: colors.border,
+          borderRadius: 16,
+          borderWidth: StyleSheet.hairlineWidth,
+          height: 32,
+          justifyContent: 'center',
+          width: 32,
+        },
+        ctaLabelCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+          paddingHorizontal: 12,
+        },
+        ctaLabel: {
+          color: colors.text,
+          fontSize: 15,
           fontWeight: '600',
+          letterSpacing: -0.2,
         },
-        enterLabel: {
+        ctaValueCol: {
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          paddingRight: 4,
+        },
+        ctaValue: {
           color: colors.textMuted,
           fontSize: 13,
           fontWeight: '600',
+        },
+        ctaChevronCol: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 18,
         },
       }),
     [colors],
@@ -95,94 +131,122 @@ export function VehicleStep({
 
   return (
     <View style={styles.root}>
-      {hasPastVehicles ? (
-        <View style={styles.pastBlock}>
-          <View style={styles.returningBanner}>
-            <Ionicons color={colors.accent} name="repeat-outline" size={15} />
-            <AppText style={styles.returningBannerText}>Choose from their past vehicles</AppText>
+      <View style={styles.vehicleBlock}>
+        <SurfaceCard padding="none" style={styles.card}>
+          <View style={styles.fieldStack}>
+            <SurfaceTextField
+              autoCapitalize="none"
+              autoCorrect={false}
+              compact
+              containerStyle={FIELD_SHELL}
+              keyboardType="number-pad"
+              label="Year"
+              maxLength={4}
+              placeholder="2020"
+              value={vehicle.year}
+              onChangeText={(t) =>
+                onChangeVehicle({ ...vehicle, year: sanitizeVehicleYearInput(t) })
+              }
+            />
+            <SurfaceTextField
+              autoCapitalize="words"
+              compact
+              containerStyle={FIELD_SHELL}
+              label="Make"
+              maxLength={BOOKING_VEHICLE_MAKE_MAX}
+              placeholder="Toyota"
+              value={vehicle.make}
+              onChangeText={(t) =>
+                onChangeVehicle({
+                  ...vehicle,
+                  make: sanitizeVehicleTextInput(t, BOOKING_VEHICLE_MAKE_MAX),
+                })
+              }
+            />
+            <SurfaceTextField
+              autoCapitalize="words"
+              compact
+              containerStyle={FIELD_SHELL}
+              label="Model"
+              maxLength={BOOKING_VEHICLE_MODEL_MAX}
+              placeholder="Camry"
+              value={vehicle.model}
+              onChangeText={(t) =>
+                onChangeVehicle({
+                  ...vehicle,
+                  model: sanitizeVehicleTextInput(t, BOOKING_VEHICLE_MODEL_MAX),
+                })
+              }
+            />
+            {vehicleError ? (
+              <AppText style={[styles.error, { color: colors.danger }]}>{vehicleError}</AppText>
+            ) : null}
           </View>
-          {savedVehicles.map((past) => {
-            const selected = pastVehiclesMatch(vehicle, past);
-            return (
-              <ChoiceRow
-                key={past.id}
-                selected={selected}
-                title={past.label}
-                onPress={() => {
-                  if (selected) {
-                    onChangeVehicle({ year: '', make: '', model: '' });
-                    return;
-                  }
-                  onChangeVehicle({
-                    year: past.year,
-                    make: past.make,
-                    model: past.model,
-                  });
-                }}
-              />
-            );
-          })}
-        </View>
-      ) : null}
+        </SurfaceCard>
 
-      <SurfaceCard padding="none" style={styles.card}>
-        <View style={styles.fieldStack}>
-          {hasPastVehicles ? (
-            <AppText style={styles.enterLabel}>Or enter a different vehicle</AppText>
-          ) : null}
-          <SurfaceTextField
-            autoCapitalize="none"
-            autoCorrect={false}
-            compact
-            containerStyle={FIELD_SHELL}
-            keyboardType="number-pad"
-            label="Year"
-            maxLength={4}
-            placeholder="2020"
-            value={vehicle.year}
-            onChangeText={(t) => onChangeVehicle({ ...vehicle, year: sanitizeVehicleYearInput(t) })}
-          />
-          <SurfaceTextField
-            autoCapitalize="words"
-            compact
-            containerStyle={FIELD_SHELL}
-            label="Make"
-            maxLength={BOOKING_VEHICLE_MAKE_MAX}
-            placeholder="Toyota"
-            value={vehicle.make}
-            onChangeText={(t) =>
-              onChangeVehicle({
-                ...vehicle,
-                make: sanitizeVehicleTextInput(t, BOOKING_VEHICLE_MAKE_MAX),
-              })
-            }
-          />
-          <SurfaceTextField
-            autoCapitalize="words"
-            compact
-            containerStyle={FIELD_SHELL}
-            label="Model"
-            maxLength={BOOKING_VEHICLE_MODEL_MAX}
-            placeholder="Camry"
-            value={vehicle.model}
-            onChangeText={(t) =>
-              onChangeVehicle({
-                ...vehicle,
-                model: sanitizeVehicleTextInput(t, BOOKING_VEHICLE_MODEL_MAX),
-              })
-            }
-          />
-          {vehicleError ? (
-            <AppText style={[styles.error, { color: colors.danger }]}>{vehicleError}</AppText>
-          ) : null}
-        </View>
-      </SurfaceCard>
+        {hasPastVehicles ? (
+          <Pressable
+            accessibilityHint="Opens past vehicles for this customer"
+            accessibilityLabel={selectedPast?.label ? selectedPast.label : PAST_ASSETS_CTA}
+            accessibilityRole="button"
+            onPress={() => setPastOpen(true)}
+          >
+            {({ pressed }) => (
+              <SurfaceCard padding="none" style={[styles.ctaCard, pressed && styles.ctaPressed]}>
+                <View style={styles.ctaRow}>
+                  <View style={styles.ctaIconWell}>
+                    <Ionicons color={colors.textSecondary} name="car-outline" size={16} />
+                  </View>
+                  <View style={styles.ctaLabelCol}>
+                    <AppText numberOfLines={1} style={styles.ctaLabel}>
+                      {selectedPast?.label || PAST_ASSETS_CTA}
+                    </AppText>
+                  </View>
+                  {selectedPast ? (
+                    <View style={styles.ctaValueCol}>
+                      <AppText style={styles.ctaValue}>{PAST_ASSETS_CHANGE}</AppText>
+                    </View>
+                  ) : null}
+                  <View style={styles.ctaChevronCol}>
+                    <Ionicons color={colors.textMuted} name="chevron-forward" size={16} />
+                  </View>
+                </View>
+              </SurfaceCard>
+            )}
+          </Pressable>
+        ) : null}
+      </View>
 
       {showNotes ? <AppointmentNotesCard notes={notes} onChangeNotes={onChangeNotes} /> : null}
 
       {canAddAnotherJob && onAddAnotherJob ? (
         <AddAnotherJobCard disabled={addAnotherJobDisabled} onPress={onAddAnotherJob} />
       ) : null}
+
+      <PastAssetsPickerSheet
+        items={savedVehicles}
+        selectedId={selectedPast?.id ?? null}
+        title={PAST_ASSETS_SHEET_TITLE}
+        visible={pastOpen}
+        onRequestClose={() => setPastOpen(false)}
+        onSelect={(item) => {
+          const past = savedVehicles.find((row) => row.id === item.id);
+          if (!past) {
+            setPastOpen(false);
+            return;
+          }
+          if (selectedPast?.id === past.id) {
+            onChangeVehicle({ year: '', make: '', model: '' });
+          } else {
+            onChangeVehicle({
+              year: past.year,
+              make: past.make,
+              model: past.model,
+            });
+          }
+          setPastOpen(false);
+        }}
+      />
     </View>
   );
 }

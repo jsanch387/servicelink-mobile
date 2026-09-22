@@ -23,6 +23,7 @@ import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { usePushNotificationPermission } from '../../notifications/hooks/usePushNotificationPermission';
+import { useShopAccess } from '../../shop';
 import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
 import { NotificationSettingsScreenSkeleton } from '../components/NotificationSettingsScreenSkeleton';
 
@@ -33,7 +34,7 @@ const CUSTOMER_NOTIFICATIONS_TITLE = 'Text updates';
 const CUSTOMER_NOTIFICATIONS_SUBTITLE = 'Text customer updates';
 const CUSTOMER_TEXTS_SECTION_TITLE = 'Customer notifications';
 
-const WHAT_YOU_GET = [
+const WHAT_YOU_GET_OWNER = [
   {
     title: 'Bookings',
     subtitle: 'New appointments, updates, and cancellations.',
@@ -46,6 +47,14 @@ const WHAT_YOU_GET = [
   },
 ];
 
+const WHAT_YOU_GET_MEMBER = [
+  {
+    title: 'Bookings',
+    subtitle: 'Updates on appointments assigned to you.',
+    icon: 'calendar-outline',
+  },
+];
+
 /** More tab — device push status, what alerts cover, and customer text history. */
 export function NotificationSettingsScreen() {
   const { colors } = useTheme();
@@ -54,6 +63,7 @@ export function NotificationSettingsScreen() {
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
   const { status, loadError, isLoading, refresh, requestPermission } =
     usePushNotificationPermission();
+  const { canSeeOffice } = useShopAccess();
   const smsAccess = useCustomerSmsAccess();
   const [isRequesting, setIsRequesting] = useState(false);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
@@ -336,7 +346,8 @@ export function NotificationSettingsScreen() {
   }
 
   const showNativeDevice = Platform.OS !== 'web' && status !== 'unavailable';
-  const showCustomerTextsSection = smsAccess.featureEnabled && smsAccess.isReady;
+  const showCustomerTextsSection = canSeeOffice && smsAccess.featureEnabled && smsAccess.isReady;
+  const whatYouGet = canSeeOffice ? WHAT_YOU_GET_OWNER : WHAT_YOU_GET_MEMBER;
   const customerTextsTitle = smsAccess.canUseSms ? TEXTS_SENT_TITLE : CUSTOMER_NOTIFICATIONS_TITLE;
   const customerTextsSubtitle = smsAccess.canUseSms
     ? TEXTS_SENT_SUBTITLE
@@ -360,7 +371,7 @@ export function NotificationSettingsScreen() {
             <AppText style={styles.sectionTitle}>{WHAT_YOU_GET_SECTION_TITLE}</AppText>
           </View>
           <SurfaceCard padding="none" style={styles.card}>
-            {WHAT_YOU_GET.map((item, index) => (
+            {whatYouGet.map((item, index) => (
               <View key={item.title}>
                 {index > 0 ? <Divider style={styles.listDivider} /> : null}
                 <View style={styles.notifyRow}>

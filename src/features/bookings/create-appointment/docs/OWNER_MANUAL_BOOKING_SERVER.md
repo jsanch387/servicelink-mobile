@@ -178,7 +178,7 @@ Mobile maps these in `mapOwnerManualBookingHttpError` (`postOwnerManualPublicBoo
 - If the selected slot disappeared, it returns the owner to Date and time and clears the stale time.
 - Submit is disabled while refresh/submission is active.
 - Requests are not automatically retried after ambiguous network failures because the endpoint has no idempotency key.
-- For **owners**, the route skips time-off and lead-time checks. It still does not transactionally prevent simultaneous booking overlap.
+- For **owners**, the route skips time-off, lead-time, and “another booking is here” / buffer checks. Stacking jobs is allowed.
 
 ---
 

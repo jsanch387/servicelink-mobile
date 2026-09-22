@@ -51,7 +51,11 @@ function signedInSession() {
 describe('AuthNavigator subscription gate', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    useOnboardingGate.mockReturnValue({ needsOnboarding: false, isGateReady: true });
+    useOnboardingGate.mockReturnValue({
+      needsOnboarding: false,
+      needsRemovedFromTeam: false,
+      isGateReady: true,
+    });
     useAuth.mockReturnValue(signedInSession());
   });
 

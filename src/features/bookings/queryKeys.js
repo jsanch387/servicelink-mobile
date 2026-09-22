@@ -52,3 +52,10 @@ export function bookingsActivityQueryKey(bookingId) {
 export function bookingsFreeTierCountQueryKey(businessId) {
   return [...BOOKINGS_QUERY_ROOT, 'freeTierCount', businessId ?? 'none'];
 }
+
+/**
+ * @param {string | undefined} userId
+ */
+export function bookingAssigneesQueryKey(userId) {
+  return [...BOOKINGS_QUERY_ROOT, 'assignees', userId ?? 'none'];
+}

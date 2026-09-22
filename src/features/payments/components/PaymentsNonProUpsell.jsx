@@ -143,6 +143,8 @@ export function PaymentsNonProUpsell() {
         <View style={styles.ctaWrap}>
           <Button
             fullWidth
+            iconName="open-outline"
+            iconPosition="right"
             title={PAYMENTS_WEB_ACCESS_CTA}
             variant="secondary"
             onPress={handleSignInOnWeb}

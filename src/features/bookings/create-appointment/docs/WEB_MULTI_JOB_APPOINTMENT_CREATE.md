@@ -293,7 +293,7 @@ Then **Confirm**.
 ## 11. Success
 
 1. Show submitting / loading state while `POST` runs.
-2. On success: **Appointment confirmed** — e.g. “You’re all set—it’s on your calendar. Check Bookings for details.”
+2. On success: **Appointment confirmed** — e.g. “It's on your calendar.”
 3. **Done** closes the wizard (back to calendar / home).
 4. Optional toast if confirmation email/SMS was sent.
 

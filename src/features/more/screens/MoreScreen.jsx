@@ -7,7 +7,6 @@ import {
   AppText,
   AppVersionFootnote,
   BetaLabel,
-  EndingLabel,
   SettingsNavRow,
   SettingsSection,
 } from '../../../components/ui';
@@ -20,14 +19,18 @@ import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { CONTACT_US_ROW_LABEL } from '../../help/constants/helpCopy';
+import { useShopAccess } from '../../shop';
 import { useSubscriptionsAccess } from '../../subscriptions/hooks/useSubscriptionsAccess';
 import { isTapToPayPlatformSupported } from '../../tap-to-pay/constants/tapToPayFeatureFlags';
+import { useTeamMembers } from '../../team';
 
 export function MoreScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
   const subscriptionsAccess = useSubscriptionsAccess();
+  const { canSeeOffice } = useShopAccess();
+  const team = useTeamMembers();
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
 
   const styles = useMemo(
@@ -83,61 +86,72 @@ export function MoreScreen() {
       >
         <AppText style={styles.screenTitle}>More</AppText>
         <SettingsSection first title="Business">
-          <SettingsNavRow
-            icon="albums-outline"
-            label="Services"
-            onPress={() => navigation.navigate(ROUTES.SERVICES_LIST)}
-          />
-          <SettingsNavRow
-            icon="time-outline"
-            label="Availability"
-            onPress={() => navigation.navigate(ROUTES.AVAILABILITY)}
-          />
-          <SettingsNavRow
-            icon="document-text-outline"
-            label="Quotes"
-            onPress={() => navigation.navigate(ROUTES.QUOTES)}
-          />
-          <SettingsNavRow
-            icon="star-outline"
-            label="Reviews"
-            onPress={() => navigation.navigate(ROUTES.REVIEWS)}
-          />
-          <SettingsNavRow
-            icon="repeat-outline"
-            label="Maintenance details"
-            labelAccessory={<EndingLabel />}
-            onPress={() => navigation.navigate(ROUTES.MAINTENANCE)}
-          />
-          {subscriptionsAccess.featureEnabled ? (
-            <SettingsNavRow
-              icon="layers-outline"
-              label="Subscriptions"
-              labelAccessory={<BetaLabel />}
-              onPress={() => navigation.navigate(ROUTES.SUBSCRIPTIONS)}
-            />
+          {canSeeOffice ? (
+            <>
+              <SettingsNavRow
+                icon="albums-outline"
+                label="Services"
+                onPress={() => navigation.navigate(ROUTES.SERVICES_LIST)}
+              />
+              <SettingsNavRow
+                icon="time-outline"
+                label="Availability"
+                onPress={() => navigation.navigate(ROUTES.AVAILABILITY)}
+              />
+              <SettingsNavRow
+                icon="document-text-outline"
+                label="Quotes"
+                onPress={() => navigation.navigate(ROUTES.QUOTES)}
+              />
+              <SettingsNavRow
+                icon="star-outline"
+                label="Reviews"
+                onPress={() => navigation.navigate(ROUTES.REVIEWS)}
+              />
+              {team.showTeamRow ? (
+                <SettingsNavRow
+                  icon="account-group-outline"
+                  iconLibrary="material-community"
+                  label="Team"
+                  onPress={() => navigation.navigate(ROUTES.TEAM)}
+                />
+              ) : null}
+              {subscriptionsAccess.featureEnabled ? (
+                <SettingsNavRow
+                  icon="layers-outline"
+                  label="Subscriptions"
+                  labelAccessory={<BetaLabel />}
+                  onPress={() => navigation.navigate(ROUTES.SUBSCRIPTIONS)}
+                />
+              ) : null}
+              <SettingsNavRow
+                icon="link-outline"
+                label="Booking link"
+                onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
+              />
+            </>
           ) : null}
-          <SettingsNavRow
-            icon="link-outline"
-            label="Booking link"
-            onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
-          />
           <SettingsNavRow
             icon="qr-code-outline"
             label="QR code"
+            showDividerBelow={canSeeOffice}
             onPress={() => navigation.navigate(ROUTES.QR_CODE)}
           />
-          <SettingsNavRow
-            icon="megaphone-outline"
-            label="Marketing"
-            onPress={() => navigation.navigate(ROUTES.MARKETING)}
-          />
-          <SettingsNavRow
-            icon="card-outline"
-            label="Payments"
-            showDividerBelow={false}
-            onPress={() => navigation.navigate(ROUTES.MORE_PAYMENTS)}
-          />
+          {canSeeOffice ? (
+            <>
+              <SettingsNavRow
+                icon="megaphone-outline"
+                label="Marketing"
+                onPress={() => navigation.navigate(ROUTES.MARKETING)}
+              />
+              <SettingsNavRow
+                icon="card-outline"
+                label="Payments"
+                showDividerBelow={false}
+                onPress={() => navigation.navigate(ROUTES.MORE_PAYMENTS)}
+              />
+            </>
+          ) : null}
         </SettingsSection>
 
         <SettingsSection title="Account">

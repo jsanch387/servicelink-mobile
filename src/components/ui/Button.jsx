@@ -68,7 +68,7 @@ export function Button({
     if (variant === 'surfaceLight') return SURFACE_LIGHT_TEXT;
     if (variant === 'surfaceDark') return SURFACE_DARK_TEXT;
     if (variant === 'outline') return outlineTint;
-    if (variant === 'danger') return DANGER_TEXT;
+    if (variant === 'danger') return colors.buttonDangerText ?? DANGER_TEXT;
     return colors.accent;
   }, [colors, variant, outlineTint]);
 
@@ -152,11 +152,16 @@ export function Button({
         } else if (variant === 'danger') {
           faceStyle = [
             styles.face,
+            styles.faceBorder,
+            styles.faceStrokeInset,
             {
-              backgroundColor: pressed ? 'rgba(185, 28, 28, 0.95)' : colors.danger,
+              backgroundColor: pressed
+                ? (colors.buttonDangerBgPressed ?? 'rgba(185, 28, 28, 0.95)')
+                : (colors.buttonDangerBg ?? colors.danger),
+              borderColor: colors.buttonDangerBorder ?? colors.danger,
             },
           ];
-          textColor = DANGER_TEXT;
+          textColor = colors.buttonDangerText ?? DANGER_TEXT;
         } else {
           faceStyle = [
             styles.face,

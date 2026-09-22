@@ -39,6 +39,7 @@ export const BOOKING_DETAILS_SELECT = [
   'customer_notes',
   'job_status',
   'work_handoff_status',
+  'assigned_user_id',
 ].join(', ');
 
 const BOOKING_PAYMENTS_SELECT = [

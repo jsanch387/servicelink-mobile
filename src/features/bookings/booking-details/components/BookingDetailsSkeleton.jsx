@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { SkeletonBox, SurfaceCard } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 
-function SectionSkeleton({ first = false, titleWidth = '24%', rows = 3, withButton = false }) {
+function SectionSkeleton({ first = false, titleWidth = '24%', rows = 3 }) {
   const { colors } = useTheme();
   const styles = useMemo(
     () =>
@@ -35,16 +35,6 @@ function SectionSkeleton({ first = false, titleWidth = '24%', rows = 3, withButt
             width={idx % 2 === 0 ? '68%' : '52%'}
           />
         ))}
-        {withButton ? (
-          <SkeletonBox
-            backgroundColor={colors.textMuted}
-            borderRadius={14}
-            height={52}
-            pulse
-            style={{ marginTop: 14 }}
-            width="100%"
-          />
-        ) : null}
       </SurfaceCard>
     </View>
   );
@@ -53,12 +43,10 @@ function SectionSkeleton({ first = false, titleWidth = '24%', rows = 3, withButt
 export function BookingDetailsSkeleton() {
   return (
     <>
-      <SectionSkeleton first rows={4} titleWidth="22%" />
-      <SectionSkeleton rows={3} titleWidth="20%" />
-      <SectionSkeleton rows={4} titleWidth="30%" />
+      <SectionSkeleton first rows={3} titleWidth="22%" />
+      <SectionSkeleton rows={3} titleWidth="14%" />
+      <SectionSkeleton rows={1} titleWidth="24%" />
       <SectionSkeleton rows={1} titleWidth="20%" />
-      <SectionSkeleton rows={1} titleWidth="18%" />
-      <SectionSkeleton rows={2} titleWidth="28%" />
     </>
   );
 }

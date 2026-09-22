@@ -17,8 +17,10 @@ import {
   fireSuccessHaptic,
 } from '../../../utils/feedbackHaptics';
 
-const STAGE_MIN_HEIGHT = 176;
+const STAGE_HEIGHT = 200;
 const FOOTER_MIN_HEIGHT = 56;
+/** Matches `footer.minHeight` so pending/success can use that space without resizing the sheet. */
+const FOOTER_BLOCK_HEIGHT = FOOTER_MIN_HEIGHT + 8;
 const PENDING_INTERVAL_MS = 2200;
 const SUCCESS_AUTO_CLOSE_MS = 1700;
 
@@ -197,11 +199,19 @@ export function OnMyWayConfirmModal({
       StyleSheet.create({
         stage: {
           alignItems: 'center',
+          height: STAGE_HEIGHT,
           justifyContent: 'center',
-          minHeight: STAGE_MIN_HEIGHT,
-          paddingBottom: 12,
+          overflow: 'hidden',
           paddingHorizontal: 8,
-          paddingTop: 8,
+          width: '100%',
+        },
+        stageWithFooter: {
+          height: STAGE_HEIGHT + FOOTER_BLOCK_HEIGHT,
+        },
+        stageFill: {
+          alignItems: 'center',
+          flex: 1,
+          justifyContent: 'center',
           width: '100%',
         },
         iconBadge: {
@@ -275,8 +285,15 @@ export function OnMyWayConfirmModal({
         },
         footer: {
           gap: 12,
-          minHeight: FOOTER_MIN_HEIGHT + 8,
+          minHeight: FOOTER_BLOCK_HEIGHT,
           paddingTop: 8,
+        },
+        footerCollapsed: {
+          gap: 0,
+          height: 0,
+          minHeight: 0,
+          overflow: 'hidden',
+          paddingTop: 0,
         },
         row: {
           flexDirection: 'row',
@@ -322,33 +339,39 @@ export function OnMyWayConfirmModal({
       <View
         accessibilityLiveRegion="polite"
         accessibilityLabel={pendingMessage}
-        style={styles.pendingWrap}
+        style={styles.stageFill}
       >
-        <EchoBarsLoader accessibilityLabel="Sending on my way text" size="large" />
-        <AppText style={styles.pendingMessage}>{pendingMessage}</AppText>
+        <View style={styles.pendingWrap}>
+          <EchoBarsLoader accessibilityLabel="Sending on my way text" size="large" />
+          <AppText style={styles.pendingMessage}>{pendingMessage}</AppText>
+        </View>
       </View>
     );
   } else if (phase === 'success') {
     stageContent = (
-      <SuccessConfirmation
-        body={successBody}
-        iconAccessibilityLabel="Text sent"
-        replayKey={successReplayKey}
-        title={successTitle}
-      />
+      <View style={styles.stageFill}>
+        <SuccessConfirmation
+          body={successBody}
+          iconAccessibilityLabel="Text sent"
+          replayKey={successReplayKey}
+          title={successTitle}
+        />
+      </View>
     );
   } else if (phase === 'error') {
     stageContent = (
-      <ErrorStage
-        body={errorMessage}
-        styles={styles}
-        title="Text not sent"
-        visible={phase === 'error'}
-      />
+      <View style={styles.stageFill}>
+        <ErrorStage
+          body={errorMessage}
+          styles={styles}
+          title="Text not sent"
+          visible={phase === 'error'}
+        />
+      </View>
     );
   } else {
     stageContent = (
-      <>
+      <View style={styles.stageFill}>
         <View style={styles.iconBadge}>
           <Ionicons
             accessibilityElementsHidden
@@ -359,7 +382,7 @@ export function OnMyWayConfirmModal({
           />
         </View>
         <AppText style={styles.body}>{idleBody}</AppText>
-      </>
+      </View>
     );
   }
 
@@ -372,7 +395,7 @@ export function OnMyWayConfirmModal({
       allowBackdropClose={phase !== 'pending'}
       fitContent
       footer={
-        <View style={styles.footer}>
+        <View style={[styles.footer, showFooterSpacer && !designPreview && styles.footerCollapsed]}>
           {designPreview ? (
             <View style={styles.designRow}>
               {DESIGN_PHASES.map((item) => {
@@ -445,16 +468,15 @@ export function OnMyWayConfirmModal({
               </View>
             </View>
           ) : null}
-          {showFooterSpacer ? <View style={styles.row} /> : null}
         </View>
       }
-      showCloseButton={phase !== 'pending'}
+      showCloseButton
       showHeaderDivider
       title="Send text?"
       visible={visible}
       onRequestClose={requestClose}
     >
-      <View style={styles.stage}>{stageContent}</View>
+      <View style={[styles.stage, showFooterSpacer && styles.stageWithFooter]}>{stageContent}</View>
     </BottomSheetModal>
   );
 }

@@ -51,7 +51,7 @@ describe('AccountBookingLinkCard', () => {
       />,
     );
 
-    fireEvent.press(screen.getByLabelText('Change booking link'));
+    fireEvent.press(screen.getByLabelText('Edit booking link'));
     expect(onChangeLink).toHaveBeenCalledTimes(1);
   });
 });
