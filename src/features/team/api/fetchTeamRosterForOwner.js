@@ -11,7 +11,7 @@ export async function fetchTeamRosterForShop(shopId) {
   const [invitesRes, membersRes] = await Promise.all([
     supabase
       .from('team_invites')
-      .select('id, email, status, accepted_user_id, created_at')
+      .select('id, email, name, status, accepted_user_id, created_at')
       .eq('business_id', shopId),
     supabase
       .from('business_members')

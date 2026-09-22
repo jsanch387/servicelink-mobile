@@ -1,13 +1,16 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 import { getSession, signOut as signOutRequest } from '../../auth/api/auth';
 import { ensureUserProfileRow } from '../../auth/api/ensureUserProfile';
 import { useAuth } from '../../auth';
 import { queryClient } from '../../../lib/queryClient';
 import { accountSettingsQueryKey } from '../../more/queryKeys';
-import { fetchActiveBusinessMembership } from '../../home/api/homeDashboard';
+import { fetchBusinessMembershipForUser } from '../../home/api/homeDashboard';
+import { useTeamMembershipRealtime } from '../../shop/hooks/useTeamMembershipRealtime';
 import { activeBusinessMembershipQueryKey } from '../../shop/queryKeys';
 import { shopProfileQueryOptions } from '../../shop/shopProfileQueryOptions';
+import { resolvePostAuthDestination } from '../../shop/utils/resolvePostAuthDestination';
 import { fetchProfilesOnboardingState } from '../api/fetchProfilesOnboardingState';
 import { markOnboardingCompleted } from '../api/onboardingV2Api';
 
@@ -19,6 +22,7 @@ export function OnboardingGateProvider({ children }) {
   const qc = useQueryClient();
   /** Full-screen handoff after step 5 “Activate” — hides stack swap / deep-link flash until main app is ready. */
   const [postActivationHandoff, setPostActivationHandoff] = useState(false);
+  const [choseOwnBusiness, setChoseOwnBusiness] = useState(false);
 
   const beginPostActivationHandoff = useCallback(() => {
     setPostActivationHandoff(true);
@@ -31,6 +35,7 @@ export function OnboardingGateProvider({ children }) {
   useEffect(() => {
     if (!session) {
       setPostActivationHandoff(false);
+      setChoseOwnBusiness(false);
     }
   }, [session]);
 
@@ -57,17 +62,41 @@ export function OnboardingGateProvider({ children }) {
     queryKey: activeBusinessMembershipQueryKey(userId),
     enabled: Boolean(session && userId),
     queryFn: async () => {
-      const { data, error } = await fetchActiveBusinessMembership(userId);
+      const { data, error } = await fetchBusinessMembershipForUser(userId);
       if (error) {
         throw error;
       }
       return data;
     },
     retry: false,
-    staleTime: 15_000,
+    staleTime: (query) => {
+      const status = query.state.data?.status;
+      return status === 'active' || status === 'removed' ? 0 : 15_000;
+    },
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === 'active' || status === 'removed' ? 15_000 : false;
+    },
   });
 
-  const isActiveMember = Boolean(membershipQuery.data?.business_id);
+  const isActiveMember = membershipQuery.data?.status === 'active';
+  const wasRemovedFromTeam = membershipQuery.data?.status === 'removed';
+  const hasHireMembership = isActiveMember || wasRemovedFromTeam;
+
+  useTeamMembershipRealtime(session && userId ? userId : null);
+
+  useEffect(() => {
+    if (!session || !userId || !hasHireMembership) {
+      return undefined;
+    }
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') {
+        return;
+      }
+      void qc.invalidateQueries({ queryKey: activeBusinessMembershipQueryKey(userId) });
+    });
+    return () => sub.remove();
+  }, [hasHireMembership, qc, session, userId]);
 
   const shopQuery = useQuery({
     ...shopProfileQueryOptions(userId),
@@ -96,14 +125,32 @@ export function OnboardingGateProvider({ children }) {
   const onboardingDone =
     profileQuery.isSuccess &&
     (profileQuery.data?.onboarding_status ?? 'not_started') === 'completed';
-
-  const needsOnboarding = Boolean(
-    session &&
-      userId &&
-      !isActiveMember &&
-      !onboardingDone &&
-      (profileQuery.isSuccess || profileQuery.isError),
+  const onboardingInProgress = Boolean(
+    profileQuery.isSuccess &&
+    !onboardingDone &&
+    (profileQuery.data?.onboarding_status ?? 'not_started') !== 'not_started',
   );
+
+  const postAuthDestination =
+    session &&
+    userId &&
+    !membershipQuery.isPending &&
+    (profileQuery.isSuccess || profileQuery.isError)
+      ? resolvePostAuthDestination({
+          isActiveMember,
+          wasRemovedFromTeam,
+          onboardingDone,
+          onboardingInProgress,
+          choseOwnBusiness,
+        })
+      : null;
+
+  const needsRemovedFromTeam = postAuthDestination === 'removed';
+  const needsOnboarding = postAuthDestination === 'onboarding';
+
+  const startOwnBusiness = useCallback(() => {
+    setChoseOwnBusiness(true);
+  }, []);
 
   const isOnboardingProfileLoaded = profileQuery.isSuccess;
   const onboardingStep = profileQuery.isSuccess ? profileQuery.data.onboarding_step : 1;
@@ -133,6 +180,8 @@ export function OnboardingGateProvider({ children }) {
   const value = useMemo(
     () => ({
       needsOnboarding,
+      needsRemovedFromTeam,
+      startOwnBusiness,
       isGateReady,
       isOnboardingProfileLoaded,
       onboardingStep,
@@ -146,6 +195,8 @@ export function OnboardingGateProvider({ children }) {
     }),
     [
       needsOnboarding,
+      needsRemovedFromTeam,
+      startOwnBusiness,
       isGateReady,
       isOnboardingProfileLoaded,
       onboardingStep,

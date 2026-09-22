@@ -3,18 +3,17 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
-import { TEAM_MEMBER_STATUS_LABEL } from '../constants/teamMembersCopy';
-import { emailInitial, teamMemberDisplayName } from '../utils/teamMemberDisplay';
+import { TEAM_MEMBER_DETAIL_HINT } from '../constants/teamMembersCopy';
+import { presentTeamMember } from '../utils/teamMemberDisplay';
+import { TeamMemberAvatar } from './TeamMemberAvatar';
 
 /**
- * One team member card. Delete is the only tap target (v1 has no detail screen).
+ * Team list row: name, email, chevron. Details / remove live in the member sheet.
  * Row layout lives on inner Views (Pressable + flex on Text stacks on RN).
  */
-export function TeamMemberCard({ member, onRemove }) {
+export function TeamMemberCard({ member, onPress }) {
   const { colors } = useTheme();
-  const name = teamMemberDisplayName(member);
-  const statusLabel = TEAM_MEMBER_STATUS_LABEL[member.status] ?? TEAM_MEMBER_STATUS_LABEL.active;
-  const showEmailMeta = Boolean(member.name?.trim()) && Boolean(member.email?.trim());
+  const { title, subtitle, initial } = presentTeamMember(member);
 
   const styles = useMemo(
     () =>
@@ -24,26 +23,16 @@ export function TeamMemberCard({ member, onRemove }) {
           paddingVertical: 14,
           width: '100%',
         },
+        pressed: {
+          opacity: 0.72,
+        },
         row: {
           alignItems: 'center',
           flexDirection: 'row',
-          gap: 12,
           width: '100%',
         },
-        avatar: {
-          alignItems: 'center',
-          backgroundColor: colors.shellElevated,
-          borderColor: colors.border,
-          borderRadius: 20,
-          borderWidth: 1,
-          height: 40,
-          justifyContent: 'center',
-          width: 40,
-        },
-        avatarLetter: {
-          color: colors.textSecondary,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 14,
+        avatarWrap: {
+          marginRight: 12,
         },
         textCol: {
           flex: 1,
@@ -62,27 +51,12 @@ export function TeamMemberCard({ member, onRemove }) {
           fontSize: 13,
           marginTop: 3,
         },
-        statusCol: {
-          flexShrink: 0,
-        },
-        status: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 12,
-        },
-        removeCol: {
+        chevronCol: {
           alignItems: 'center',
+          height: 22,
           justifyContent: 'center',
-          width: 36,
-        },
-        removeHit: {
-          alignItems: 'center',
-          height: 36,
-          justifyContent: 'center',
-          width: 36,
-        },
-        removePressed: {
-          opacity: 0.7,
+          marginLeft: 10,
+          width: 22,
         },
       }),
     [colors],
@@ -90,43 +64,33 @@ export function TeamMemberCard({ member, onRemove }) {
 
   return (
     <SurfaceCard outlined padding="none" style={styles.card}>
-      <View style={styles.row}>
-        <View style={styles.avatar}>
-          <AppText style={styles.avatarLetter}>{emailInitial(member.email || name)}</AppText>
-        </View>
-        <View style={styles.textCol}>
-          <AppText numberOfLines={1} style={styles.name}>
-            {name}
-          </AppText>
-          {showEmailMeta ? (
-            <AppText numberOfLines={1} style={styles.email}>
-              {member.email}
-            </AppText>
-          ) : (
-            <AppText style={styles.email}>{statusLabel}</AppText>
-          )}
-        </View>
-        {showEmailMeta ? (
-          <View style={styles.statusCol}>
-            <AppText style={styles.status}>{statusLabel}</AppText>
+      <Pressable
+        accessibilityHint={TEAM_MEMBER_DETAIL_HINT}
+        accessibilityLabel={title}
+        accessibilityRole="button"
+        onPress={() => onPress?.(member)}
+      >
+        {({ pressed }) => (
+          <View style={[styles.row, pressed && styles.pressed]}>
+            <View style={styles.avatarWrap}>
+              <TeamMemberAvatar initial={initial} />
+            </View>
+            <View style={styles.textCol}>
+              <AppText numberOfLines={1} style={styles.name}>
+                {title}
+              </AppText>
+              {subtitle ? (
+                <AppText numberOfLines={1} style={styles.email}>
+                  {subtitle}
+                </AppText>
+              ) : null}
+            </View>
+            <View style={styles.chevronCol}>
+              <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />
+            </View>
           </View>
-        ) : null}
-        <View style={styles.removeCol}>
-          <Pressable
-            accessibilityHint="Asks you to confirm before removing this team member"
-            accessibilityLabel={`Remove ${name}`}
-            accessibilityRole="button"
-            hitSlop={6}
-            onPress={() => onRemove?.(member)}
-          >
-            {({ pressed }) => (
-              <View style={[styles.removeHit, pressed && styles.removePressed]}>
-                <Ionicons color={colors.textMuted} name="trash-outline" size={18} />
-              </View>
-            )}
-          </Pressable>
-        </View>
-      </View>
+        )}
+      </Pressable>
     </SurfaceCard>
   );
 }

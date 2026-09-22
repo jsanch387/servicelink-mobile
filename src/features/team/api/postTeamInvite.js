@@ -1,6 +1,9 @@
 import { productionWebApiHttpsGuard } from '../../../lib/productionWebApiHttpsGuard';
 import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileCheckoutOrigin';
-import { TEAM_INVITE_DUPLICATE_EMAIL, TEAM_INVITE_INVALID_EMAIL } from '../constants/teamMembersCopy';
+import {
+  TEAM_INVITE_DUPLICATE_EMAIL,
+  TEAM_INVITE_INVALID_EMAIL,
+} from '../constants/teamMembersCopy';
 
 function createRequestId() {
   if (globalThis.crypto?.randomUUID) {
@@ -54,12 +57,13 @@ export function mapTeamInviteHttpError(httpStatus, serverMessage) {
  *
  * @param {string | null | undefined} accessToken
  * @param {string} email
+ * @param {string} [name]
  * @returns {Promise<
- *   | { ok: true; resent: boolean }
+ *   | { ok: true; resent: boolean; name: string; inviteId: string | null }
  *   | { ok: false; error: Error; httpStatus: number; userMessage: string }
  * >}
  */
-export async function postTeamInvite(accessToken, email) {
+export async function postTeamInvite(accessToken, email, name = '') {
   const origin = resolveStripeMobileCheckoutOrigin();
   const httpsErr = productionWebApiHttpsGuard(origin);
   if (httpsErr) {
@@ -90,7 +94,10 @@ export async function postTeamInvite(accessToken, email) {
         'Content-Type': 'application/json',
         'X-Request-ID': requestId,
       },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({
+        email,
+        ...(String(name ?? '').trim() ? { name: String(name).trim() } : {}),
+      }),
     });
   } catch (err) {
     const error = err instanceof Error ? err : new Error('Network request failed');
@@ -120,5 +127,40 @@ export async function postTeamInvite(accessToken, email) {
     };
   }
 
-  return { ok: true, resent: payload?.resent === true };
+  return {
+    ok: true,
+    resent: payload?.resent === true,
+    name: readInviteName(payload),
+    inviteId: readInviteId(payload),
+  };
+}
+
+/**
+ * @param {Record<string, unknown> | null} payload
+ * @returns {string}
+ */
+function readInviteName(payload) {
+  if (typeof payload?.name === 'string' && payload.name.trim()) {
+    return payload.name.trim();
+  }
+  const invite = payload?.invite;
+  if (invite && typeof invite === 'object' && typeof invite.name === 'string') {
+    return invite.name.trim();
+  }
+  return '';
+}
+
+/**
+ * @param {Record<string, unknown> | null} payload
+ * @returns {string | null}
+ */
+function readInviteId(payload) {
+  if (typeof payload?.id === 'string' && payload.id.trim()) {
+    return payload.id.trim();
+  }
+  const invite = payload?.invite;
+  if (invite && typeof invite === 'object' && typeof invite.id === 'string' && invite.id.trim()) {
+    return invite.id.trim();
+  }
+  return null;
 }

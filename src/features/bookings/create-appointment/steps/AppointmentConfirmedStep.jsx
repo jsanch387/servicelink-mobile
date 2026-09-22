@@ -9,7 +9,7 @@ export function AppointmentConfirmedStep({ replayKey = 'default' }) {
   return (
     <View style={styles.root} testID="create-appt-confirmed">
       <SuccessMoment
-        body="You’re all set—it’s on your calendar. Check Bookings for details."
+        body="It's on your calendar."
         centered
         iconAccessibilityLabel="Appointment confirmed"
         replayKey={replayKey}

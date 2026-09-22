@@ -8,6 +8,7 @@ import {
   TEAM_MEMBERS_EMPTY_BODY,
   TEAM_MEMBERS_EMPTY_TITLE,
 } from '../constants/teamMembersCopy';
+import { TeamHowItWorks } from './TeamHowItWorks';
 
 /**
  * Empty card at the top of Team when the shop has no hires yet.
@@ -64,6 +65,9 @@ export function TeamMembersEmptyState({ onAdd }) {
           marginTop: 24,
           width: '100%',
         },
+        howItWorks: {
+          marginTop: 14,
+        },
       }),
     [colors],
   );
@@ -72,7 +76,11 @@ export function TeamMembersEmptyState({ onAdd }) {
     <View style={styles.root}>
       <SurfaceCard outlined padding="none" style={styles.card}>
         <View style={styles.iconRing}>
-          <MaterialCommunityIcons color={colors.textSecondary} name="account-group-outline" size={30} />
+          <MaterialCommunityIcons
+            color={colors.textSecondary}
+            name="account-group-outline"
+            size={30}
+          />
         </View>
         <AppText style={styles.title}>{TEAM_MEMBERS_EMPTY_TITLE}</AppText>
         <AppText style={styles.body}>{TEAM_MEMBERS_EMPTY_BODY}</AppText>
@@ -87,6 +95,9 @@ export function TeamMembersEmptyState({ onAdd }) {
             />
           </View>
         ) : null}
+        <View style={styles.howItWorks}>
+          <TeamHowItWorks />
+        </View>
       </SurfaceCard>
     </View>
   );

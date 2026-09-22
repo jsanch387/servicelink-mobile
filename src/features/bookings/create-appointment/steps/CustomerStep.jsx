@@ -117,7 +117,7 @@ export function CustomerStep({ customer, isReturningCustomer = false, onChangeCu
           {!emailTrim ? (
             <View style={styles.infoRow}>
               <Ionicons color={colors.placeholder} name="information-circle-outline" size={14} />
-              <AppText style={styles.footnote}>No email, no confirmation will be sent.</AppText>
+              <AppText style={styles.footnote}>We&apos;ll email a confirmation too.</AppText>
             </View>
           ) : null}
         </View>

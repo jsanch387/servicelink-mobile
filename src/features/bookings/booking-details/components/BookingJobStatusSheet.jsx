@@ -31,8 +31,9 @@ import { resolveJobStatusSheetActions } from '../utils/resolveJobStatusSheetActi
 
 const PENDING_INTERVAL_MS = 2200;
 const SUCCESS_HOLD_MS = 1400;
-/** Keeps sheet height stable when swapping list ↔ confirm (one modal, content only). */
-const STAGE_MIN_HEIGHT = 236;
+/** Fixed stage so list / confirm / pending / success do not resize the sheet. */
+const STAGE_HEIGHT = 236;
+const FOOTER_ROW_MIN_HEIGHT = 48;
 const FALLBACK_ERROR = "Couldn't send the text. Try again.";
 
 const ACTION_COPY = {
@@ -398,16 +399,18 @@ export function BookingJobStatusSheet({
           width: '100%',
         },
         stage: {
+          height: STAGE_HEIGHT,
           justifyContent: 'center',
-          minHeight: STAGE_MIN_HEIGHT,
+          overflow: 'hidden',
           width: '100%',
+        },
+        stageWithFooter: {
+          height: STAGE_HEIGHT + FOOTER_ROW_MIN_HEIGHT,
         },
         confirmStage: {
           alignItems: 'center',
-          flexGrow: 1,
+          flex: 1,
           justifyContent: 'center',
-          paddingBottom: 8,
-          paddingTop: 12,
           width: '100%',
         },
         iconBadge: {
@@ -445,11 +448,19 @@ export function BookingJobStatusSheet({
         },
         footer: {
           gap: 10,
+          minHeight: FOOTER_ROW_MIN_HEIGHT,
           width: '100%',
+        },
+        footerCollapsed: {
+          gap: 0,
+          height: 0,
+          minHeight: 0,
+          overflow: 'hidden',
         },
         footerRow: {
           flexDirection: 'row',
           gap: 10,
+          minHeight: FOOTER_ROW_MIN_HEIGHT,
           width: '100%',
         },
         footerGrow: {
@@ -666,9 +677,14 @@ export function BookingJobStatusSheet({
   const inConfirm = phase !== 'list';
   const actionsBusy = bookingAction.disabled || phase === 'pending';
 
-  const footer =
-    phase === 'idle' && confirmCopy ? (
-      <View style={styles.footer}>
+  const footer = !inConfirm ? null : (
+    <View
+      style={[
+        styles.footer,
+        (phase === 'pending' || phase === 'success') && styles.footerCollapsed,
+      ]}
+    >
+      {phase === 'idle' && confirmCopy ? (
         <View style={styles.footerRow}>
           {confirmCopy.showSkip ? (
             <View style={styles.footerGrow}>
@@ -700,9 +716,8 @@ export function BookingJobStatusSheet({
             />
           </View>
         </View>
-      </View>
-    ) : phase === 'error' ? (
-      <View style={styles.footer}>
+      ) : null}
+      {phase === 'error' ? (
         <View style={styles.footerRow}>
           {confirmCopy?.showSkip ? (
             <View style={styles.footerGrow}>
@@ -742,8 +757,9 @@ export function BookingJobStatusSheet({
             />
           </View>
         </View>
-      </View>
-    ) : null;
+      ) : null}
+    </View>
+  );
 
   let stageContent = null;
   if (phase === 'list') {
@@ -800,13 +816,20 @@ export function BookingJobStatusSheet({
       allowBackdropClose={phase !== 'pending'}
       fitContent
       footer={footer}
-      showCloseButton={phase !== 'pending'}
+      showCloseButton
       showHeaderDivider
       title="Job status"
       visible={visible}
       onRequestClose={inConfirm ? handleConfirmBack : handleSheetClose}
     >
-      <View style={styles.stage}>{stageContent}</View>
+      <View
+        style={[
+          styles.stage,
+          (phase === 'pending' || phase === 'success') && styles.stageWithFooter,
+        ]}
+      >
+        {stageContent}
+      </View>
     </BottomSheetModal>
   );
 }

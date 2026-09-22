@@ -24,11 +24,30 @@ import { JOB_STATUS, normalizeJobStatus } from '../constants/jobStatus';
  * @property {number | null} [duration_minutes]
  * @property {string} [job_status] `not_started` | `on_the_way` | `in_progress` | `completed`
  * @property {string | null} [work_handoff_status] `notified` | `skipped` while in progress
+ * @property {string | null} [assigned_user_id] `auth.users.id` on the job; null is Unassigned
+ * @property {string | null} [assigned_user_name] display name stamped on list/planner fetches
+ * @property {boolean} [shop_can_assign] true when the shop has more than one assignable person
  */
 
 /** Keep in sync with `formatBookingAddressForMaps` in `home/utils/bookingAddress.js`. */
 export const BOOKING_LIST_SELECT =
-  'id, scheduled_date, start_time, status, job_status, work_handoff_status, service_name, job_details, visit_job_count, customer_name, customer_phone, customer_email, customer_id, customer_street_address, customer_unit_apt, customer_city, customer_state, customer_zip, customer_vehicle_year, customer_vehicle_make, customer_vehicle_model, duration_minutes';
+  'id, scheduled_date, start_time, status, job_status, work_handoff_status, assigned_user_id, service_name, job_details, visit_job_count, customer_name, customer_phone, customer_email, customer_id, customer_street_address, customer_unit_apt, customer_city, customer_state, customer_zip, customer_vehicle_year, customer_vehicle_make, customer_vehicle_model, duration_minutes';
+
+/**
+ * @param {import('@supabase/supabase-js').PostgrestFilterBuilder} query
+ * @param {string | null | undefined} assignedUserId
+ * @param {{ includeUnassigned?: boolean }} [options]
+ */
+export function applyAssignedUserFilter(query, assignedUserId, options = {}) {
+  const id = typeof assignedUserId === 'string' ? assignedUserId.trim() : '';
+  if (!id) {
+    return query;
+  }
+  if (options.includeUnassigned) {
+    return query.or(`assigned_user_id.is.null,assigned_user_id.eq.${id}`);
+  }
+  return query.eq('assigned_user_id', id);
+}
 
 /** Planner day view — same columns as list (includes `duration_minutes`). */
 export const PLANNER_BOOKING_SELECT = BOOKING_LIST_SELECT;
@@ -43,17 +62,23 @@ export const CALENDAR_DAY_AGENDA_SELECT = BOOKING_LIST_SELECT;
  * Confirmed bookings from today onward (calendar date); filter to true “upcoming” instants in JS.
  *
  * @param {string} businessId
+ * @param {{ assignedUserId?: string | null; includeUnassigned?: boolean }} [options]
+ *   when `assignedUserId` is set, only that person's jobs (plus unassigned if asked)
  * @returns {Promise<{ data: BookingRow[] | null, error: Error | null }>}
  */
-export async function fetchConfirmedBookingsFromToday(businessId) {
+export async function fetchConfirmedBookingsFromToday(businessId, options = {}) {
   const today = localYyyyMmDd();
 
-  const { data, error } = await supabase
-    .from('bookings')
-    .select(BOOKING_LIST_SELECT)
-    .eq('business_id', businessId)
-    .eq('status', 'confirmed')
-    .gte('scheduled_date', today)
+  const { data, error } = await applyAssignedUserFilter(
+    supabase
+      .from('bookings')
+      .select(BOOKING_LIST_SELECT)
+      .eq('business_id', businessId)
+      .eq('status', 'confirmed')
+      .gte('scheduled_date', today),
+    options.assignedUserId,
+    { includeUnassigned: options.includeUnassigned },
+  )
     .order('scheduled_date', { ascending: true })
     .order('start_time', { ascending: true });
 

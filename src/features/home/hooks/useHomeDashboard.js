@@ -3,8 +3,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { useAuth } from '../../auth';
 import { shopProfileQueryOptions } from '../../shop/shopProfileQueryOptions';
+import { resolveShopCapabilities } from '../../shop/utils/resolveShopCapabilities';
 import { fetchConfirmedBookingsFromToday, pickHomeSpotlight } from '../api/homeDashboard';
-import { HOME_QUERY_KEY, homeBookingsUpcomingQueryKey, homeBookingsTodayQueryKey } from '../queryKeys';
+import {
+  HOME_QUERY_KEY,
+  homeBookingsUpcomingQueryKey,
+  homeBookingsTodayQueryKey,
+} from '../queryKeys';
 import {
   formatInProgressSubtitle,
   formatNextUpWhenLine,
@@ -36,11 +41,23 @@ export function useHomeDashboard() {
   const business = businessQ.data ?? null;
   const businessId = business?.id;
   const hasBusinessRow = Boolean(businessId);
+  const { isMember } = resolveShopCapabilities(business, userId);
+  const assignedUserId = userId ?? null;
+  const includeUnassigned = Boolean(assignedUserId) && !isMember;
+  const homeAssigneeKey = isMember
+    ? (assignedUserId ?? 'none')
+    : `mine-or-open:${assignedUserId ?? 'none'}`;
+  const todayAssigneeKey = isMember
+    ? (assignedUserId ?? 'none')
+    : `shop:${assignedUserId ?? 'none'}`;
 
   const bookingsQ = useQuery({
-    queryKey: homeBookingsUpcomingQueryKey(businessId),
+    queryKey: homeBookingsUpcomingQueryKey(businessId, homeAssigneeKey),
     queryFn: async () => {
-      const { data: rows, error } = await fetchConfirmedBookingsFromToday(businessId);
+      const { data: rows, error } = await fetchConfirmedBookingsFromToday(businessId, {
+        assignedUserId,
+        includeUnassigned,
+      });
       if (error) {
         throw new Error(error.message ?? 'Could not load bookings');
       }
@@ -68,13 +85,17 @@ export function useHomeDashboard() {
   });
 
   const todayBookingsQ = useQuery({
-    queryKey: homeBookingsTodayQueryKey(businessId, localYyyyMmDd()),
+    queryKey: homeBookingsTodayQueryKey(businessId, localYyyyMmDd(), todayAssigneeKey),
     queryFn: async ({ queryKey }) => {
       const calendarDay = queryKey.at(-1);
       if (typeof calendarDay !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(calendarDay)) {
         throw new Error('Home today bookings query key missing YYYY-MM-DD');
       }
-      const { data: rows, error } = await fetchBookingsForTodayTimeline(businessId, calendarDay);
+      const { data: rows, error } = await fetchBookingsForTodayTimeline(
+        businessId,
+        calendarDay,
+        isMember ? { assignedUserId } : {},
+      );
       if (error) {
         throw new Error(error.message ?? 'Could not load today bookings');
       }

@@ -60,6 +60,8 @@ export function CreateAppointmentStepContent(p) {
     timeSlots,
     onSelectDateKey,
     onSelectTime,
+    blockingBookingRows = [],
+    overlapMode = 'create',
     customer,
     isReturningCustomer = false,
     onChangeCustomer,
@@ -189,9 +191,11 @@ export function CreateAppointmentStepContent(p) {
       return (
         <ScheduleStep
           acceptBookings={acceptBookings}
+          blockingBookingRows={blockingBookingRows}
           isDateUnavailable={isDateUnavailable}
           maxDate={maxDate}
           minDate={minDate}
+          overlapMode={overlapMode}
           scheduleError={scheduleError}
           scheduleLoading={scheduleLoading}
           selectedDateKey={selectedDateKey}

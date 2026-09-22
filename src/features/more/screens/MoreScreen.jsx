@@ -124,13 +124,13 @@ export function MoreScreen() {
                   onPress={() => navigation.navigate(ROUTES.SUBSCRIPTIONS)}
                 />
               ) : null}
+              <SettingsNavRow
+                icon="link-outline"
+                label="Booking link"
+                onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
+              />
             </>
           ) : null}
-          <SettingsNavRow
-            icon="link-outline"
-            label="Booking link"
-            onPress={() => navigation.navigate(ROUTES.BOOKING_LINK)}
-          />
           <SettingsNavRow
             icon="qr-code-outline"
             label="QR code"

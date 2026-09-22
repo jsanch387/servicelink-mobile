@@ -11,7 +11,12 @@ import {
 describe('InviteTeamMemberSheet', () => {
   it('previews pending, success, and error inside the sheet', () => {
     renderWithProviders(
-      <InviteTeamMemberSheet designPreview visible onInvite={jest.fn()} onRequestClose={jest.fn()} />,
+      <InviteTeamMemberSheet
+        designPreview
+        visible
+        onInvite={jest.fn()}
+        onRequestClose={jest.fn()}
+      />,
     );
 
     expect(screen.getByText(TEAM_INVITE_SHEET_BODY)).toBeTruthy();

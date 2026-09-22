@@ -1,5 +1,8 @@
 import { mapTeamInviteHttpError, postTeamInvite } from '../api/postTeamInvite';
-import { TEAM_INVITE_DUPLICATE_EMAIL, TEAM_INVITE_INVALID_EMAIL } from '../constants/teamMembersCopy';
+import {
+  TEAM_INVITE_DUPLICATE_EMAIL,
+  TEAM_INVITE_INVALID_EMAIL,
+} from '../constants/teamMembersCopy';
 
 jest.mock('../../../lib/stripeMobileCheckoutOrigin', () => ({
   resolveStripeMobileCheckoutOrigin: () => 'https://myservicelink.app',
@@ -21,9 +24,9 @@ describe('postTeamInvite', () => {
       json: async () => ({ ok: true }),
     });
 
-    const result = await postTeamInvite('token-1', 'sam@example.com');
+    const result = await postTeamInvite('token-1', 'sam@example.com', 'Sam');
 
-    expect(result).toEqual({ ok: true, resent: false });
+    expect(result).toEqual({ ok: true, resent: false, name: '', inviteId: null });
     expect(global.fetch).toHaveBeenCalledWith(
       'https://myservicelink.app/api/team/invites',
       expect.objectContaining({
@@ -32,7 +35,7 @@ describe('postTeamInvite', () => {
           Authorization: 'Bearer token-1',
           'Content-Type': 'application/json',
         }),
-        body: JSON.stringify({ email: 'sam@example.com' }),
+        body: JSON.stringify({ email: 'sam@example.com', name: 'Sam' }),
       }),
     );
   });
@@ -45,7 +48,26 @@ describe('postTeamInvite', () => {
     });
 
     const result = await postTeamInvite('token-1', 'sam@example.com');
-    expect(result).toEqual({ ok: true, resent: true });
+    expect(result).toEqual({ ok: true, resent: true, name: '', inviteId: null });
+  });
+
+  it('reads the saved name from the invite payload', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        ok: true,
+        invite: { id: 'inv-1', email: 'sam@example.com', name: 'Sam Rivera', status: 'pending' },
+      }),
+    });
+
+    const result = await postTeamInvite('token-1', 'sam@example.com', 'Sam Rivera');
+    expect(result).toEqual({
+      ok: true,
+      resent: false,
+      name: 'Sam Rivera',
+      inviteId: 'inv-1',
+    });
   });
 
   it('surfaces a 409 as already on the team', async () => {
@@ -76,7 +98,9 @@ describe('postTeamInvite', () => {
 describe('mapTeamInviteHttpError', () => {
   it('prefers the server message and falls back by status', () => {
     expect(mapTeamInviteHttpError(400, null)).toBe(TEAM_INVITE_INVALID_EMAIL);
-    expect(mapTeamInviteHttpError(400, 'You cannot invite yourself.')).toBe('You cannot invite yourself.');
+    expect(mapTeamInviteHttpError(400, 'You cannot invite yourself.')).toBe(
+      'You cannot invite yourself.',
+    );
     expect(mapTeamInviteHttpError(403, null)).toMatch(/owner/i);
   });
 });

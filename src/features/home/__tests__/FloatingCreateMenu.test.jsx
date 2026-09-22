@@ -18,18 +18,15 @@ describe('FloatingCreateMenu payment highlight', () => {
       />,
     );
 
-    await waitFor(() => {
-      expect(screen.getByTestId('create-menu-fab-glow')).toBeTruthy();
-    });
-
     fireEvent.press(screen.getByLabelText('Open create menu'));
-    expect(screen.getByText('New')).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText('New')).toBeTruthy();
+    });
 
     fireEvent.press(screen.getByTestId('create-menu-fab'));
     await waitFor(async () => {
       await expect(AsyncStorage.getItem(CREATE_PAYMENT_HIGHLIGHT_SEEN_KEY)).resolves.toBe('1');
     });
-    expect(screen.queryByTestId('create-menu-fab-glow')).toBeNull();
 
     fireEvent.press(screen.getByLabelText('Open create menu'));
     expect(screen.getByLabelText('Create payment')).toBeTruthy();

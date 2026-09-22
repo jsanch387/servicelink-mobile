@@ -68,9 +68,10 @@ Owners skip both checks in one guard. Time-off blocks may be single-day or a dat
 
 Owner create and edit pass `ownerManualBooking: true` into the shared booking calendar, so the slot picker:
 
-- **Skips** lead time and time off
-- **Still applies** weekly hours, existing-booking overlap, and “not in the past” (client-side)
+- **Skips** lead time, time off, and existing-job overlap
+- **Still applies** weekly hours and “not in the past” (client-side)
 - Treats the schedule as open even when `accept_bookings` is off
+- Shows a heads-up if that start time already has a job — **does not block save**. Older lines that said owner overlap **409** are outdated.
 
 | Piece             | Location                                                                           |
 | ----------------- | ---------------------------------------------------------------------------------- |

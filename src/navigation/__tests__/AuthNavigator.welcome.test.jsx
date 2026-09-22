@@ -45,6 +45,7 @@ describe('AuthNavigator logged out', () => {
     jest.clearAllMocks();
     useOnboardingGate.mockReturnValue({
       needsOnboarding: false,
+      needsRemovedFromTeam: false,
       isGateReady: true,
       postActivationHandoff: false,
     });

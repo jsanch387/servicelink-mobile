@@ -1,5 +1,10 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
+import {
+  TEAM_HOW_IT_WORKS_DISMISS_LABEL,
+  TEAM_HOW_IT_WORKS_LINK_LABEL,
+  TEAM_HOW_IT_WORKS_TITLE,
+} from '../constants/teamHowItWorksCopy';
 import {
   TEAM_MEMBERS_EMPTY_BODY,
   TEAM_MEMBERS_EMPTY_TITLE,
@@ -31,31 +36,39 @@ const members = [
 ];
 
 describe('TeamMembersPanel', () => {
-  it('shows a separate card per member and calls onRemove from trash', () => {
-    const onRemove = jest.fn();
-    renderWithProviders(<TeamMembersPanel members={members} onRemove={onRemove} />);
+  it('shows a separate card per member and opens details from the row', () => {
+    const onPressMember = jest.fn();
+    renderWithProviders(<TeamMembersPanel members={members} onPressMember={onPressMember} />);
 
+    expect(screen.getByText('Jordan')).toBeTruthy();
     expect(screen.getByText('jordan@example.com')).toBeTruthy();
+    expect(screen.getByText('Alex')).toBeTruthy();
     expect(screen.getByText('alex@example.com')).toBeTruthy();
+    expect(screen.queryByText('Invited')).toBeNull();
 
-    fireEvent.press(screen.getByRole('button', { name: 'Remove jordan@example.com' }));
-    expect(onRemove).toHaveBeenCalledWith(expect.objectContaining({ id: 'mem-1' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Jordan' }));
+    expect(onPressMember).toHaveBeenCalledWith(expect.objectContaining({ id: 'mem-1' }));
   });
 
-  it('shows the empty card when there are no members', () => {
+  it('shows the empty card when there are no members', async () => {
     const onAdd = jest.fn();
-    renderWithProviders(<TeamMembersPanel members={[]} onAdd={onAdd} onRemove={jest.fn()} />);
+    renderWithProviders(<TeamMembersPanel members={[]} onAdd={onAdd} />);
 
     expect(screen.getByText(TEAM_MEMBERS_EMPTY_TITLE)).toBeTruthy();
     expect(screen.getByText(TEAM_MEMBERS_EMPTY_BODY)).toBeTruthy();
     fireEvent.press(screen.getByRole('button', { name: 'Add member' }));
     expect(onAdd).toHaveBeenCalled();
+
+    fireEvent.press(screen.getByRole('button', { name: TEAM_HOW_IT_WORKS_LINK_LABEL }));
+    expect(screen.getByText(TEAM_HOW_IT_WORKS_TITLE)).toBeTruthy();
+    fireEvent.press(screen.getByRole('button', { name: TEAM_HOW_IT_WORKS_DISMISS_LABEL }));
+    await waitFor(() => expect(screen.queryByText(TEAM_HOW_IT_WORKS_TITLE)).toBeNull());
   });
 
-  it('shows echo bars while the roster loads', () => {
-    renderWithProviders(<TeamMembersPanel isLoading members={[]} onRemove={jest.fn()} />);
+  it('shows a list skeleton while the roster loads', () => {
+    renderWithProviders(<TeamMembersPanel isLoading members={[]} />);
 
-    expect(screen.getByText(TEAM_MEMBERS_LOADING)).toBeTruthy();
+    expect(screen.getByLabelText(TEAM_MEMBERS_LOADING)).toBeTruthy();
     expect(screen.queryByText(TEAM_MEMBERS_EMPTY_TITLE)).toBeNull();
   });
 });

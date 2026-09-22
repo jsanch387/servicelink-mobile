@@ -20,7 +20,7 @@ import { parseScheduleInputs } from '../utils/scheduleInputs';
  * @param {(key: string | null) => void} p.onSelectDateKey
  * @param {(time: string | null) => void} p.onSelectTime
  * @param {boolean} p.scheduleLoading
- * @param {boolean} [p.ownerManualBooking] Owner create/edit — skip lead time + time off
+ * @param {boolean} [p.ownerManualBooking] Owner create/edit — skip lead time, time off, and existing-job overlap
  * @param {boolean} [p.relaxScheduleValidation] keep pinned date/time when editing an existing booking
  * @param {string | null} [p.pinnedDateKey]
  * @param {string | null} [p.pinnedTime]

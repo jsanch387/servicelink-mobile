@@ -1,13 +1,23 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, BottomSheetModal, Button } from '../../../components/ui';
+import { AppText, BottomSheetModal, Button, InlineCardError } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
-import { TEAM_REMOVE_CONFIRM_BUTTON, TEAM_REMOVE_SHEET_BODY, TEAM_REMOVE_SHEET_TITLE } from '../constants/teamMembersCopy';
+import {
+  TEAM_REMOVE_CONFIRM_BUTTON,
+  TEAM_REMOVE_SHEET_BODY,
+  TEAM_REMOVE_SHEET_TITLE,
+} from '../constants/teamMembersCopy';
 
 /**
- * Confirm remove — same copy as web. Caller owns the action.
+ * Confirm remove — same copy as web. Caller owns the server action.
  */
-export function RemoveTeamMemberSheet({ member, onRequestClose, onConfirm }) {
+export function RemoveTeamMemberSheet({
+  member,
+  isRemoving = false,
+  errorMessage = null,
+  onRequestClose,
+  onConfirm,
+}) {
   const { colors } = useTheme();
   const visible = Boolean(member);
 
@@ -52,28 +62,38 @@ export function RemoveTeamMemberSheet({ member, onRequestClose, onConfirm }) {
         <View style={styles.footer}>
           <View style={styles.row}>
             <View style={styles.rowGrow}>
-              <Button fullWidth title="Cancel" variant="secondary" onPress={onRequestClose} />
+              <Button
+                disabled={isRemoving}
+                fullWidth
+                title="Cancel"
+                variant="secondary"
+                onPress={onRequestClose}
+              />
             </View>
             <View style={styles.rowGrow}>
               <Button
                 accessibilityHint={`Removes ${member?.email ?? 'this team member'}`}
                 accessibilityLabel={TEAM_REMOVE_CONFIRM_BUTTON}
+                disabled={isRemoving}
                 fullWidth
+                loading={isRemoving}
                 title={TEAM_REMOVE_CONFIRM_BUTTON}
                 variant="danger"
                 onPress={() => {
-                  if (member) onConfirm?.(member);
+                  if (member && !isRemoving) onConfirm?.(member);
                 }}
               />
             </View>
           </View>
         </View>
       }
+      allowBackdropClose={!isRemoving}
       title={TEAM_REMOVE_SHEET_TITLE}
       visible={visible}
-      onRequestClose={onRequestClose}
+      onRequestClose={isRemoving ? () => {} : onRequestClose}
     >
       <View style={styles.copy}>
+        {errorMessage ? <InlineCardError message={errorMessage} /> : null}
         <AppText style={styles.body}>{TEAM_REMOVE_SHEET_BODY}</AppText>
         {member?.email ? (
           <AppText numberOfLines={1} style={styles.email}>

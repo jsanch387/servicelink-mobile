@@ -21,6 +21,8 @@ import { TimeSlotGrid } from './TimeSlotGrid';
  *   scheduleError?: string | null;
  *   acceptBookings?: boolean;
  *   availabilityHint?: string;
+ *   belowCalendar?: import('react').ReactNode;
+ *   belowTimes?: import('react').ReactNode;
  * }} props
  */
 export function BookingDateTimePicker({
@@ -36,6 +38,8 @@ export function BookingDateTimePicker({
   scheduleError = null,
   acceptBookings = true,
   availabilityHint = null,
+  belowCalendar = null,
+  belowTimes = null,
 }) {
   const { colors } = useTheme();
 
@@ -114,6 +118,8 @@ export function BookingDateTimePicker({
         </View>
       ) : null}
 
+      {belowCalendar}
+
       <View style={styles.timeBlock}>
         {selectedDateKey ? (
           <>
@@ -124,11 +130,14 @@ export function BookingDateTimePicker({
                 <AppText style={styles.hint}>Loading open times…</AppText>
               </View>
             ) : (
-              <TimeSlotGrid
-                selectedTime={selectedTime}
-                timeSlots={timeSlots}
-                onSelectTime={onSelectTime}
-              />
+              <>
+                <TimeSlotGrid
+                  selectedTime={selectedTime}
+                  timeSlots={timeSlots}
+                  onSelectTime={onSelectTime}
+                />
+                {belowTimes}
+              </>
             )}
           </>
         ) : (

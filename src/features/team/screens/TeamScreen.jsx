@@ -1,16 +1,24 @@
-import { useMemo } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { AddTeamMemberFab } from '../components/AddTeamMemberFab';
 import { InviteTeamMemberSheet } from '../components/InviteTeamMemberSheet';
-import { RemoveTeamMemberSheet } from '../components/RemoveTeamMemberSheet';
 import { TeamMembersPanel } from '../components/TeamMembersPanel';
 import { TEAM_INVITE_DESIGN_PREVIEW } from '../constants/teamInviteDesignFlags';
 import { useTeamMembers } from '../context/TeamMembersContext';
 
 export function TeamScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const team = useTeamMembers();
+
+  useEffect(() => {
+    if (!team.showTeamRow) {
+      navigation.goBack();
+    }
+  }, [navigation, team.showTeamRow]);
 
   const styles = useMemo(
     () =>
@@ -32,8 +40,10 @@ export function TeamScreen() {
         isRefreshing={Boolean(team.isFetching && !team.isLoading)}
         members={team.members}
         onAdd={team.openInvite}
+        onPressMember={(member) => {
+          navigation.navigate(ROUTES.TEAM_MEMBER_DETAILS, { memberId: member.id });
+        }}
         onRefresh={team.refetch}
-        onRemove={team.setMemberToRemove}
         onRetry={team.refetch}
       />
       {team.showTeamRow ? <AddTeamMemberFab onPress={team.openInvite} /> : null}
@@ -42,11 +52,6 @@ export function TeamScreen() {
         visible={team.inviteOpen}
         onInvite={team.handleInvite}
         onRequestClose={team.closeInvite}
-      />
-      <RemoveTeamMemberSheet
-        member={team.memberToRemove}
-        onConfirm={team.handleRemove}
-        onRequestClose={team.closeRemove}
       />
     </View>
   );

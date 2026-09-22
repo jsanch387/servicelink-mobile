@@ -7,7 +7,7 @@ import { TEAM_MEMBERS_ADD_BUTTON } from '../constants/teamMembersCopy';
 export function AddTeamMemberFab({ onPress, bottom = 30 }) {
   return (
     <FloatingActionButton
-      accessibilityHint="Asks for an email so you can send an invite link"
+      accessibilityHint="Asks for a name and email so you can send an invite link"
       accessibilityLabel={TEAM_MEMBERS_ADD_BUTTON}
       bottom={bottom}
       iconLibrary="material-community"

@@ -4,9 +4,11 @@ jest.mock('../../../lib/supabase', () => ({
 
 import { supabase } from '../../../lib/supabase';
 import {
+  applyMembershipRealtimeRow,
   bookingTitleLine,
   fetchBusinessProfileForUser,
   partitionUpcomingConfirmed,
+  pickBusinessMembership,
   pickHomeSpotlight,
 } from '../api/homeDashboard';
 
@@ -15,8 +17,10 @@ function thenableQuery(result) {
   const builder = {
     select: jest.fn(() => builder),
     eq: jest.fn(() => builder),
+    in: jest.fn(() => builder),
     limit: jest.fn(() => builder),
     maybeSingle: jest.fn(() => resolved),
+    then: (onFulfilled, onRejected) => resolved.then(onFulfilled, onRejected),
   };
   return builder;
 }
@@ -202,6 +206,69 @@ describe('pickHomeSpotlight', () => {
     const out = pickHomeSpotlight(rows, nowMs);
     expect(out.spotlightMode).toBe('in_progress');
     expect(out.spotlight?.id).toBe('live');
+  });
+});
+
+describe('pickBusinessMembership', () => {
+  it('prefers an active hire over a removed row', () => {
+    expect(
+      pickBusinessMembership([
+        { business_id: 'old', status: 'removed' },
+        { business_id: 'live', status: 'active' },
+      ]),
+    ).toEqual({ business_id: 'live', status: 'active' });
+  });
+
+  it('prefers the restored hire on the same shop', () => {
+    expect(
+      pickBusinessMembership([
+        { business_id: 'shop', status: 'removed' },
+        { business_id: 'shop', status: 'active' },
+      ]),
+    ).toEqual({ business_id: 'shop', status: 'active' });
+  });
+
+  it('returns a removed membership when that is all they have', () => {
+    expect(pickBusinessMembership([{ business_id: 'old', status: 'removed' }])).toEqual({
+      business_id: 'old',
+      status: 'removed',
+    });
+  });
+
+  it('returns null when there is no hire', () => {
+    expect(pickBusinessMembership([])).toBeNull();
+  });
+});
+
+describe('applyMembershipRealtimeRow', () => {
+  it('replaces the same shop so a kick wins immediately', () => {
+    expect(
+      applyMembershipRealtimeRow(
+        { business_id: 'shop', status: 'active' },
+        { business_id: 'shop', status: 'removed' },
+        'UPDATE',
+      ),
+    ).toEqual({ business_id: 'shop', status: 'removed' });
+  });
+
+  it('restores the same shop when they are hired again', () => {
+    expect(
+      applyMembershipRealtimeRow(
+        { business_id: 'shop', status: 'removed' },
+        { business_id: 'shop', status: 'active' },
+        'UPDATE',
+      ),
+    ).toEqual({ business_id: 'shop', status: 'active' });
+  });
+
+  it('treats a deleted hire row as removed', () => {
+    expect(
+      applyMembershipRealtimeRow(
+        { business_id: 'shop', status: 'active' },
+        { business_id: 'shop', status: 'active' },
+        'DELETE',
+      ),
+    ).toEqual({ business_id: 'shop', status: 'removed' });
   });
 });
 

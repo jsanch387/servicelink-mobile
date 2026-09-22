@@ -56,14 +56,14 @@ export function MainTabNavigator() {
       <TapToPayWarmupBootstrap />
       <PushTokenRegistration />
       <AppUpdateAnnouncementsBootstrap />
-      <LocationCollectionModal
-        visible={promptVisible}
-        onDismiss={handleDismissPrompt}
-        onSave={handleSaveLocation}
-      />
       {canSeeOffice ? (
-        <ShopAddressUpdatePrompt locationPromptVisible={promptVisible} />
+        <LocationCollectionModal
+          visible={promptVisible}
+          onDismiss={handleDismissPrompt}
+          onSave={handleSaveLocation}
+        />
       ) : null}
+      {canSeeOffice ? <ShopAddressUpdatePrompt locationPromptVisible={promptVisible} /> : null}
       <Tab.Navigator
         screenOptions={{
           headerShown: false,

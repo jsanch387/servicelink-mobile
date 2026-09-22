@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import { useAuth } from '../../auth';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
 import { shopProfileQueryOptions } from '../../shop/shopProfileQueryOptions';
+import { stampBookingsWithAssigneeQuery } from '../assignee/utils/attachAssigneeDisplayToBookings';
 import { fetchBookingsForPlannerDay } from '../api/bookings';
 import { BOOKINGS_QUERY_ROOT, bookingsPlannerDayQueryKey } from '../queryKeys';
 
@@ -11,8 +12,9 @@ import { BOOKINGS_QUERY_ROOT, bookingsPlannerDayQueryKey } from '../queryKeys';
  * @param {string | null | undefined} yyyyMmDd - `YYYY-MM-DD`, or null when planner is inactive
  */
 export function useBookingsPlannerDay(yyyyMmDd) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const userId = user?.id;
+  const accessToken = session?.access_token;
   const queryClient = useQueryClient();
   const dateKey = yyyyMmDd == null || yyyyMmDd === '' ? '' : String(yyyyMmDd);
 
@@ -39,7 +41,11 @@ export function useBookingsPlannerDay(yyyyMmDd) {
       if (error) {
         throw new Error(error.message ?? 'Could not load day');
       }
-      return data ?? [];
+      return stampBookingsWithAssigneeQuery(queryClient, {
+        accessToken,
+        userId,
+        rows: data ?? [],
+      });
     },
     enabled: hasBusinessRow && Boolean(dateKey),
     staleTime: 45 * 1000,

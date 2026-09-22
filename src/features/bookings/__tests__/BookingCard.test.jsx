@@ -2,6 +2,20 @@ import { fireEvent, screen } from '@testing-library/react-native';
 import { BookingCard } from '../components/BookingCard';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
 
+jest.mock('../../auth', () => ({
+  useAuth: () => ({ user: { id: 'owner-1' } }),
+}));
+
+jest.mock('../assignee/hooks/useBookingAssignees', () => ({
+  useBookingAssignees: () => ({
+    assignees: [],
+    canAssign: false,
+    pickerOptions: [],
+    labelFor: () => null,
+    isLoading: false,
+  }),
+}));
+
 function makeBooking(overrides = {}) {
   return {
     id: 'b1',
@@ -67,5 +81,59 @@ describe('BookingCard', () => {
     );
     expect(screen.queryByText(/Vehicle not provided/i)).toBeNull();
     expect(screen.queryByText('2021 Tesla Model 3')).toBeNull();
+  });
+
+  it('shows the assignee initial and first name from the booking', () => {
+    renderWithProviders(
+      <BookingCard
+        booking={makeBooking({
+          assigned_user_id: 'member-1',
+          assigned_user_name: 'Jordan Lee',
+          shop_can_assign: true,
+        })}
+      />,
+    );
+    expect(screen.getByText('J')).toBeTruthy();
+    expect(screen.getByText('Jordan')).toBeTruthy();
+    expect(screen.queryByText('Jordan Lee')).toBeNull();
+  });
+
+  it('shows Myself when the booking is assigned to the signed-in user', () => {
+    renderWithProviders(
+      <BookingCard
+        booking={makeBooking({
+          assigned_user_id: 'owner-1',
+          assigned_user_name: 'Owner',
+          shop_can_assign: true,
+        })}
+      />,
+    );
+    expect(screen.getByText('Myself')).toBeTruthy();
+  });
+
+  it('hides the assignee on a solo shop', () => {
+    renderWithProviders(
+      <BookingCard
+        booking={makeBooking({
+          assigned_user_id: 'owner-1',
+          assigned_user_name: 'Owner',
+          shop_can_assign: false,
+        })}
+      />,
+    );
+    expect(screen.queryByText('Myself')).toBeNull();
+    expect(screen.queryByText('Owner')).toBeNull();
+  });
+
+  it('hides the assignee when the name is missing', () => {
+    renderWithProviders(
+      <BookingCard
+        booking={makeBooking({
+          assigned_user_id: 'member-1',
+          shop_can_assign: true,
+        })}
+      />,
+    );
+    expect(screen.queryByText('Jordan')).toBeNull();
   });
 });

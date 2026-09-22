@@ -7,15 +7,23 @@ import {
   EchoBarsLoader,
   SubmitOutcomeError,
   SuccessConfirmation,
+  RequiredFieldLabel,
   SurfaceEmailField,
+  SurfaceTextField,
 } from '../../../components/ui';
 import { useCyclingStatusMessage } from '../../../hooks/useCyclingStatusMessage';
 import { useTheme } from '../../../theme';
-import { fireErrorHaptic, fireSelectionHaptic, fireSuccessHaptic } from '../../../utils/feedbackHaptics';
+import {
+  fireErrorHaptic,
+  fireSelectionHaptic,
+  fireSuccessHaptic,
+} from '../../../utils/feedbackHaptics';
 import { isValidEmailFormat } from '../../../utils/email';
 import {
   TEAM_INVITE_DONE_BUTTON,
   TEAM_INVITE_EMAIL_PLACEHOLDER,
+  TEAM_INVITE_INVALID_NAME,
+  TEAM_INVITE_NAME_PLACEHOLDER,
   TEAM_INVITE_ERROR_TITLE,
   TEAM_INVITE_INVALID_EMAIL,
   TEAM_INVITE_PENDING_MESSAGES,
@@ -27,8 +35,6 @@ import {
   TEAM_INVITE_SUCCESS_TITLE,
 } from '../constants/teamMembersCopy';
 
-const STAGE_HEIGHT = 188;
-const FOOTER_HEIGHT = 52;
 const PENDING_INTERVAL_MS = 2200;
 
 const DESIGN_PHASES = [
@@ -48,8 +54,10 @@ export function InviteTeamMemberSheet({
   onInvite,
 }) {
   const { colors } = useTheme();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [fieldError, setFieldError] = useState(null);
+  const [nameError, setNameError] = useState(null);
+  const [emailError, setEmailError] = useState(null);
   const [phase, setPhase] = useState('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [successReplayKey, setSuccessReplayKey] = useState(0);
@@ -64,8 +72,10 @@ export function InviteTeamMemberSheet({
 
   const resetState = useCallback(() => {
     busyRef.current = false;
+    setName('');
     setEmail('');
-    setFieldError(null);
+    setNameError(null);
+    setEmailError(null);
     setPhase('idle');
     setErrorMessage('');
   }, []);
@@ -76,7 +86,7 @@ export function InviteTeamMemberSheet({
     }
   }, [visible, resetState]);
 
-  const canSend = isValidEmailFormat(email) && phase === 'idle';
+  const canSend = Boolean(name.trim()) && isValidEmailFormat(email) && phase === 'idle';
 
   const enterSuccess = useCallback(() => {
     setPhase('success');
@@ -92,15 +102,20 @@ export function InviteTeamMemberSheet({
 
   const handleSend = useCallback(async () => {
     if (busyRef.current || phase === 'pending') return;
+    if (!name.trim()) {
+      setNameError(TEAM_INVITE_INVALID_NAME);
+      return;
+    }
     if (!isValidEmailFormat(email)) {
-      setFieldError(TEAM_INVITE_INVALID_EMAIL);
+      setEmailError(TEAM_INVITE_INVALID_EMAIL);
       return;
     }
     busyRef.current = true;
-    setFieldError(null);
+    setNameError(null);
+    setEmailError(null);
     setPhase('pending');
     try {
-      const result = await onInvite?.(email);
+      const result = await onInvite?.(email, name.trim());
       busyRef.current = false;
       if (result?.ok) {
         enterSuccess();
@@ -111,7 +126,7 @@ export function InviteTeamMemberSheet({
       busyRef.current = false;
       enterError(err?.message);
     }
-  }, [email, enterError, enterSuccess, onInvite, phase]);
+  }, [email, enterError, enterSuccess, name, onInvite, phase]);
 
   const handleTryAgain = useCallback(() => {
     setErrorMessage('');
@@ -126,7 +141,8 @@ export function InviteTeamMemberSheet({
   const setDesignPhase = useCallback((next) => {
     busyRef.current = false;
     fireSelectionHaptic();
-    setFieldError(null);
+    setNameError(null);
+    setEmailError(null);
     setErrorMessage(next === 'error' ? TEAM_INVITE_INVALID_EMAIL : '');
     if (next === 'success') {
       setSuccessReplayKey((n) => n + 1);
@@ -140,27 +156,23 @@ export function InviteTeamMemberSheet({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        stage: {
-          alignItems: 'center',
-          flexShrink: 0,
-          height: STAGE_HEIGHT,
-          justifyContent: 'flex-start',
-          minHeight: STAGE_HEIGHT,
-          paddingTop: 4,
-          width: '100%',
-        },
         form: {
           alignSelf: 'stretch',
           width: '100%',
         },
+        nameField: {
+          marginBottom: 12,
+        },
         emailField: {
-          marginBottom: 0,
+          marginBottom: 12,
+        },
+        centered: {
+          alignItems: 'center',
+          width: '100%',
         },
         pendingWrap: {
           alignItems: 'center',
-          flex: 1,
           gap: 16,
-          justifyContent: 'center',
           width: '100%',
         },
         pendingMessage: {
@@ -172,12 +184,10 @@ export function InviteTeamMemberSheet({
           textAlign: 'center',
         },
         outcome: {
-          alignSelf: 'stretch',
-          paddingTop: 8,
+          alignItems: 'center',
           width: '100%',
         },
         footer: {
-          height: FOOTER_HEIGHT,
           justifyContent: 'center',
         },
         designRow: {
@@ -213,54 +223,80 @@ export function InviteTeamMemberSheet({
   let stageContent = null;
   if (phase === 'pending') {
     stageContent = (
-      <View
-        accessibilityLabel={pendingMessage || TEAM_INVITE_PENDING_TITLE}
-        accessibilityLiveRegion="polite"
-        style={styles.pendingWrap}
-      >
-        <EchoBarsLoader accessibilityLabel={TEAM_INVITE_PENDING_TITLE} size="large" />
-        <AppText style={styles.pendingMessage}>{pendingMessage || TEAM_INVITE_PENDING_TITLE}</AppText>
+      <View style={styles.centered}>
+        <View
+          accessibilityLabel={pendingMessage || TEAM_INVITE_PENDING_TITLE}
+          accessibilityLiveRegion="polite"
+          style={styles.pendingWrap}
+        >
+          <EchoBarsLoader accessibilityLabel={TEAM_INVITE_PENDING_TITLE} size="large" />
+          <AppText style={styles.pendingMessage}>
+            {pendingMessage || TEAM_INVITE_PENDING_TITLE}
+          </AppText>
+        </View>
       </View>
     );
   } else if (phase === 'success') {
     stageContent = (
-      <View style={styles.outcome}>
-        <SuccessConfirmation
-          body={TEAM_INVITE_SUCCESS_BODY}
-          iconAccessibilityLabel={TEAM_INVITE_SUCCESS_TITLE}
-          replayKey={successReplayKey}
-          title={TEAM_INVITE_SUCCESS_TITLE}
-        />
+      <View style={styles.centered}>
+        <View style={styles.outcome}>
+          <SuccessConfirmation
+            body={TEAM_INVITE_SUCCESS_BODY}
+            iconAccessibilityLabel={TEAM_INVITE_SUCCESS_TITLE}
+            replayKey={successReplayKey}
+            title={TEAM_INVITE_SUCCESS_TITLE}
+          />
+        </View>
       </View>
     );
   } else if (phase === 'error') {
     stageContent = (
-      <View style={styles.outcome}>
-        <SubmitOutcomeError
-          iconAccessibilityLabel="Invite could not be sent"
-          message={errorMessage}
-          showPrimaryAction={false}
-          title={TEAM_INVITE_ERROR_TITLE}
-          variant="inline"
-          onPrimaryAction={handleTryAgain}
-        />
+      <View style={styles.centered}>
+        <View style={styles.outcome}>
+          <SubmitOutcomeError
+            iconAccessibilityLabel="Invite could not be sent"
+            message={errorMessage}
+            showPrimaryAction={false}
+            title={TEAM_INVITE_ERROR_TITLE}
+            variant="inline"
+            onPrimaryAction={handleTryAgain}
+          />
+        </View>
       </View>
     );
   } else {
     stageContent = (
       <View style={styles.form}>
-        <SurfaceEmailField
+        <SurfaceTextField
+          accessibilityLabel="Name"
+          autoCapitalize="words"
+          autoCorrect={false}
           autoFocus
           compact
+          containerStyle={styles.nameField}
+          errorText={nameError ?? undefined}
+          label={<RequiredFieldLabel compact text="Name" />}
+          maxLength={80}
+          placeholder={TEAM_INVITE_NAME_PLACEHOLDER}
+          returnKeyType="next"
+          value={name}
+          onChangeText={(next) => {
+            setName(next);
+            if (nameError) setNameError(null);
+          }}
+        />
+        <SurfaceEmailField
+          accessibilityLabel="Email"
+          compact
           containerStyle={styles.emailField}
-          errorText={fieldError ?? undefined}
-          label="Email"
+          errorText={emailError ?? undefined}
+          label={<RequiredFieldLabel compact text="Email" />}
           placeholder={TEAM_INVITE_EMAIL_PLACEHOLDER}
           returnKeyType="done"
           value={email}
           onChangeText={(next) => {
             setEmail(next);
-            if (fieldError) setFieldError(null);
+            if (emailError) setEmailError(null);
           }}
           onSubmitEditing={() => {
             void handleSend();
@@ -277,9 +313,12 @@ export function InviteTeamMemberSheet({
   return (
     <BottomSheetModal
       allowBackdropClose={phase !== 'pending'}
-      fitContent
+      centerContent={phase !== 'idle'}
+      liftFooterWithKeyboard={false}
+      sheetHeightPercent={92}
       showCloseButton
       showHeaderDivider
+      stickyFooter
       subtitle={TEAM_INVITE_SHEET_BODY}
       footer={
         <View>
@@ -342,7 +381,7 @@ export function InviteTeamMemberSheet({
       visible={visible}
       onRequestClose={requestClose}
     >
-      <View style={styles.stage}>{stageContent}</View>
+      {stageContent}
     </BottomSheetModal>
   );
 }

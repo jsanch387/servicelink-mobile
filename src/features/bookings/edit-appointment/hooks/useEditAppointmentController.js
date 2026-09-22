@@ -142,6 +142,12 @@ export function useEditAppointmentController({
   const saveReturnTargetRef = useRef('hub');
   const saveReturnJobIndexRef = useRef(/** @type {number | null} */ (null));
   const saveSuccessMessageRef = useRef('Changes saved');
+  const originalScheduleRef = useRef(
+    /** @type {{ dateKey: string | null; time: string | null }} */ ({
+      dateKey: null,
+      time: null,
+    }),
+  );
   const [prefillReady, setPrefillReady] = useState(false);
 
   const [step, setStep] = useState(EDIT_APPOINTMENT_HUB);
@@ -198,6 +204,7 @@ export function useEditAppointmentController({
     saveReturnTargetRef.current = 'hub';
     saveReturnJobIndexRef.current = null;
     saveSuccessMessageRef.current = 'Changes saved';
+    originalScheduleRef.current = { dateKey: null, time: null };
     setPricingLabelHint(null);
   }, [bookingId]);
 
@@ -648,6 +655,10 @@ export function useEditAppointmentController({
     setNotes(form.notes);
     setJobs(mapBookingJobsForEdit(booking));
     setPinnedSchedule({ dateKey: form.selectedDateKey, time: form.selectedTime });
+    originalScheduleRef.current = {
+      dateKey: form.selectedDateKey,
+      time: form.selectedTime,
+    };
     setPrefillReady(true);
   }, [
     booking,
@@ -1493,6 +1504,10 @@ export function useEditAppointmentController({
         setStep(EDIT_APPOINTMENT_HUB);
         toast.success(successMessage);
       }
+      originalScheduleRef.current = {
+        dateKey: selectedDateKey,
+        time: selectedTime,
+      };
       await invalidateBookingCachesAfterMutation(queryClient, bookingId);
     },
     onError: (e) => {
@@ -1733,6 +1748,8 @@ export function useEditAppointmentController({
       timeSlots,
       onSelectDateKey: handleSelectDateKey,
       onSelectTime: setSelectedTime,
+      blockingBookingRows: server.blockingBookingRows,
+      overlapMode: 'reschedule',
       customer,
       onChangeCustomer: setCustomer,
       appointmentLocationType,
@@ -1788,6 +1805,7 @@ export function useEditAppointmentController({
       selectedTime,
       timeSlots,
       handleSelectDateKey,
+      server.blockingBookingRows,
       customer,
       appointmentLocationType,
       handleSelectLocationType,

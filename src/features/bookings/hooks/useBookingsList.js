@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
 import { shopProfileQueryOptions } from '../../shop/shopProfileQueryOptions';
+import { stampBookingsWithAssigneeQuery } from '../assignee/utils/attachAssigneeDisplayToBookings';
 import {
   fetchBookingsForListWindow,
   fetchCancelledBookingsForBusiness,
@@ -48,8 +49,9 @@ function mergePastListPages(pages, nowMs) {
  */
 export function useBookingsList(options = {}) {
   const { listEnabled = true } = options;
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const userId = user?.id;
+  const accessToken = session?.access_token;
   const queryClient = useQueryClient();
   const [listFilter, setListFilter] = useState(BOOKINGS_FILTER_UPCOMING);
 
@@ -84,14 +86,22 @@ export function useBookingsList(options = {}) {
         if (error) {
           throw new Error(error.message ?? 'Could not load bookings');
         }
-        return partitionUpcomingConfirmed(data ?? [], nowMs).upcoming;
+        return stampBookingsWithAssigneeQuery(queryClient, {
+          accessToken,
+          userId,
+          rows: partitionUpcomingConfirmed(data ?? [], nowMs).upcoming,
+        });
       }
       if (listFilter === BOOKINGS_FILTER_CANCELLED) {
         const { data, error } = await fetchCancelledBookingsForBusiness(businessId);
         if (error) {
           throw new Error(error.message ?? 'Could not load bookings');
         }
-        return sortCancelledBookingsForList(data ?? []);
+        return stampBookingsWithAssigneeQuery(queryClient, {
+          accessToken,
+          userId,
+          rows: sortCancelledBookingsForList(data ?? []),
+        });
       }
       return [];
     },
@@ -125,7 +135,11 @@ export function useBookingsList(options = {}) {
       return {
         window: windows[windows.length - 1],
         monthCount: windows.length,
-        bookings: allRows,
+        bookings: await stampBookingsWithAssigneeQuery(queryClient, {
+          accessToken,
+          userId,
+          rows: allRows,
+        }),
       };
     },
     getNextPageParam: (lastPage) => getNextListMonthWindow(BOOKINGS_FILTER_PAST, lastPage.window),

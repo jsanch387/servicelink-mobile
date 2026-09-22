@@ -1,21 +1,15 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useMemo } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import {
-  AppText,
-  Button,
-  EchoBarsLoader,
-  InlineCardError,
-  SurfaceCard,
-} from '../../../components/ui';
+import { Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
-import { FONT_FAMILIES, useTheme } from '../../../theme';
-import { TEAM_MEMBERS_LOADING } from '../constants/teamMembersCopy';
+import { useTheme } from '../../../theme';
 import { TeamMemberCard } from './TeamMemberCard';
 import { TeamMembersEmptyState } from './TeamMembersEmptyState';
+import { TeamMembersSkeleton } from './TeamMembersSkeleton';
 
 /**
- * Team member cards. Invite FAB + remove confirm live on TeamScreen.
+ * Team member cards. Invite FAB + member details live on TeamScreen.
  */
 export function TeamMembersPanel({
   members,
@@ -23,7 +17,7 @@ export function TeamMembersPanel({
   isRefreshing = false,
   error = null,
   onAdd,
-  onRemove,
+  onPressMember,
   onRefresh,
   onRetry,
 }) {
@@ -43,21 +37,6 @@ export function TeamMembersPanel({
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
         },
-        contentFill: {
-          flexGrow: 1,
-        },
-        loading: {
-          alignItems: 'center',
-          flexGrow: 1,
-          justifyContent: 'center',
-          paddingVertical: 48,
-        },
-        loadingLabel: {
-          color: colors.textSecondary,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 15,
-          marginTop: 16,
-        },
         emptyCard: {
           paddingHorizontal: 20,
           paddingVertical: 28,
@@ -66,17 +45,12 @@ export function TeamMembersPanel({
           marginTop: 4,
         },
       }),
-    [colors, scrollBottomPad],
+    [scrollBottomPad],
   );
 
   let body = null;
   if (isLoading) {
-    body = (
-      <View accessibilityLabel={TEAM_MEMBERS_LOADING} style={styles.loading}>
-        <EchoBarsLoader size="large" />
-        <AppText style={styles.loadingLabel}>{TEAM_MEMBERS_LOADING}</AppText>
-      </View>
-    );
+    body = <TeamMembersSkeleton />;
   } else if (error) {
     body = (
       <SurfaceCard padding="none">
@@ -94,14 +68,14 @@ export function TeamMembersPanel({
     body = <TeamMembersEmptyState onAdd={onAdd} />;
   } else {
     body = members.map((member) => (
-      <TeamMemberCard key={member.id} member={member} onRemove={onRemove} />
+      <TeamMemberCard key={member.id} member={member} onPress={onPressMember} />
     ));
   }
 
   return (
     <View style={styles.root}>
       <ScrollView
-        contentContainerStyle={[styles.content, isLoading && styles.contentFill]}
+        contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           onRefresh ? (

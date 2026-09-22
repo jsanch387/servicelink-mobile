@@ -26,6 +26,22 @@ export function formatAppointmentAddressSecondaryLine(address) {
   return [city, stateZip].filter(Boolean).join(', ');
 }
 
+/**
+ * Detail-card lines: street on top, city / state / ZIP underneath.
+ * Falls back to a single primary line when street is missing.
+ *
+ * @param {{ street?: string; unit?: string; city?: string; state?: string; zip?: string }} address
+ * @returns {{ primary: string; secondary: string }}
+ */
+export function formatLocationCardLines(address) {
+  const streetLine = formatAppointmentAddressPrimaryLine(address);
+  const locality = formatAppointmentAddressSecondaryLine(address);
+  if (streetLine) {
+    return { primary: streetLine, secondary: locality };
+  }
+  return { primary: locality, secondary: '' };
+}
+
 /** Comma-separated single line — review step, maps, etc. */
 export function formatAppointmentAddressSingleLine(address) {
   const parts = [

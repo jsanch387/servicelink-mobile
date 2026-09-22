@@ -119,14 +119,15 @@ How far in advance a customer must book. Stored in `business_availability.minimu
 
 - it falls outside the day’s enabled weekly window, or
 - it starts before `now + minimumNoticeToMinutes(minimum_notice)` (lead time), or
-- it overlaps an existing booking, or
+- it overlaps an existing booking (public / quote / membership only), or
 - a time-off block covers that date (`start_date ≤ day ≤ end_date`): all-day blocks the whole day; otherwise interval-overlap against the block’s `start_time`–`end_time`.
 
 **Owner create / edit appointment** passes `ownerManualBooking: true` into the shared calendar. That mode:
 
-- **Skips** lead time and time off (owners can squeeze someone in last minute or during blocked days).
-- **Still applies** weekly hours, existing-booking overlap, and “not in the past.”
+- **Skips** lead time, time off, and existing-job overlap (owners can stack jobs).
+- **Still applies** weekly hours and “not in the past.”
 - **Allows** scheduling even when `accept_bookings` is off (public booking closed).
+- Overlap is a **heads-up only** (same start time). It does not block save.
 
 Server create (`POST /api/public/bookings` with `ownerManualBooking: true`) matches: time off and lead time are skipped. Details: `src/features/bookings/create-appointment/docs/OWNER_MANUAL_BOOKING_SCHEDULE_OVERRIDE_SERVER.md`.
 
