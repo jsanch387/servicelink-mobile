@@ -82,17 +82,17 @@ describe('readBookingCardAssignee', () => {
     ).toEqual({ initial: 'J', name: 'Jordan' });
   });
 
-  it('labels the signed-in user as Myself', () => {
+  it('shows the signed-in user by name', () => {
     expect(
       readBookingCardAssignee(
         {
-          assigned_user_id: 'owner-1',
-          assigned_user_name: 'Owner',
+          assigned_user_id: 'mem-1',
+          assigned_user_name: 'Jordan Lee',
           shop_can_assign: true,
         },
-        'owner-1',
+        'mem-1',
       ),
-    ).toEqual({ initial: 'M', name: 'Myself' });
+    ).toEqual({ initial: 'J', name: 'Jordan' });
   });
 
   it('hides the chip on a solo shop', () => {

@@ -15,6 +15,15 @@ describe('notificationMinimalDisplayTitle', () => {
     expect(notificationMinimalDisplayTitle('payment.deposit', 'payment', 'x')).toBe('New payment');
   });
 
+  it('returns Job assigned for assignment types before New appointment', () => {
+    expect(notificationMinimalDisplayTitle('booking.assigned', 'booking', 'ignored')).toBe(
+      'Job assigned',
+    );
+    expect(notificationMinimalDisplayTitle('custom.event', 'widget', 'Job assigned')).toBe(
+      'Job assigned',
+    );
+  });
+
   it('falls back to trimmed title when unknown', () => {
     expect(notificationMinimalDisplayTitle('custom.event', 'widget', 'Hello world')).toBe(
       'Hello world',

@@ -98,17 +98,18 @@ describe('BookingCard', () => {
     expect(screen.queryByText('Jordan Lee')).toBeNull();
   });
 
-  it('shows Myself when the booking is assigned to the signed-in user', () => {
+  it('shows the signed-in user by name when the booking is assigned to them', () => {
     renderWithProviders(
       <BookingCard
         booking={makeBooking({
           assigned_user_id: 'owner-1',
-          assigned_user_name: 'Owner',
+          assigned_user_name: 'Jordan Lee',
           shop_can_assign: true,
         })}
       />,
     );
-    expect(screen.getByText('Myself')).toBeTruthy();
+    expect(screen.getByText('Jordan')).toBeTruthy();
+    expect(screen.queryByText('Myself')).toBeNull();
   });
 
   it('hides the assignee on a solo shop', () => {

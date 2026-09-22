@@ -27,6 +27,29 @@ describe('notificationSubtitle', () => {
   });
 });
 
+describe('mapNotificationRowToInboxItem assignment', () => {
+  it('shows Job assigned and the service name, not the customer or pricing option', () => {
+    const item = mapNotificationRowToInboxItem({
+      id: '2',
+      user_id: 'member-1',
+      type: 'booking.assigned',
+      reference_type: 'booking',
+      reference_id: 'b2',
+      title: 'Job assigned',
+      body: 'Interior Detail — No pricing option selected',
+      read: false,
+      read_at: null,
+      created_at: new Date().toISOString(),
+      metadata: {
+        customerName: 'Jordan',
+        serviceName: 'Interior Detail — No pricing option selected',
+      },
+    });
+    expect(item.displayTitle).toBe('Job assigned');
+    expect(item.subtitle).toBe('Interior Detail');
+  });
+});
+
 describe('mapNotificationRowToInboxItem subtitle integration', () => {
   it('maps subtitle from metadata', () => {
     const item = mapNotificationRowToInboxItem({

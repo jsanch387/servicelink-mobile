@@ -30,8 +30,8 @@ export function useBookingAssignees() {
     return {
       assignees,
       canAssign: canShowAssigneeControl(assignees),
-      pickerOptions: buildAssignablePickerOptions(assignees, userId),
-      labelFor: (assignedUserId) => resolveAssigneeLabel(assignedUserId, assignees, userId),
+      pickerOptions: buildAssignablePickerOptions(assignees),
+      labelFor: (assignedUserId) => resolveAssigneeLabel(assignedUserId, assignees),
       isLoading: query.isLoading,
     };
   }, [query.data, query.isLoading, userId]);

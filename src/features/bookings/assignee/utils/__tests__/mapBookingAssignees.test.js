@@ -37,14 +37,14 @@ describe('mapBookingAssignees', () => {
 
   it('never returns a blank label', () => {
     expect(resolveAssigneeLabel(null, [owner, member])).toBeNull();
-    expect(resolveAssigneeLabel('owner-1', [owner, member], 'owner-1')).toBe('Myself');
+    expect(resolveAssigneeLabel('owner-1', [owner, member], 'owner-1')).toBe('Owner');
     expect(resolveAssigneeLabel('owner-1', [owner, member], 'mem-1')).toBe('Owner');
     expect(resolveAssigneeLabel('unknown', [owner, member])).toBeNull();
   });
 
   it('shows a short name instead of the full email', () => {
     expect(resolveAssigneeLabel('mem-1', [owner, member])).toBe('Sam');
-    expect(resolveAssigneeLabel('mem-1', [owner, member], 'mem-1')).toBe('Myself');
+    expect(resolveAssigneeLabel('mem-1', [owner, member], 'mem-1')).toBe('Sam');
     expect(presentAssigneeDisplay('jesus.sanchez@shop.com')).toEqual({
       title: 'Jesus Sanchez',
       subtitle: 'jesus.sanchez@shop.com',
@@ -67,13 +67,13 @@ describe('mapBookingAssignees', () => {
   it('builds picker options with Unassigned, owner, and active members', () => {
     expect(buildAssignablePickerOptions([owner, member, former], 'owner-1')).toEqual([
       { userId: null, label: 'Unassigned', kind: 'unassigned' },
-      { ...owner, label: 'Myself' },
+      owner,
       member,
     ]);
     expect(buildAssignablePickerOptions([owner, member, former], 'mem-1')).toEqual([
       { userId: null, label: 'Unassigned', kind: 'unassigned' },
       owner,
-      { ...member, label: 'Myself' },
+      member,
     ]);
   });
 

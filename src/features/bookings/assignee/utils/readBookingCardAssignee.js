@@ -5,14 +5,14 @@ import { readAssignedUserId } from './readAssignedUserId';
  * List/planner cards prefer the name stamped on the booking, then the shop roster.
  *
  * @param {object | null | undefined} booking
- * @param {string | null | undefined} currentUserId
+ * @param {string | null | undefined} [_currentUserId]
  * @param {{
  *   canAssign?: boolean;
  *   labelFor?: (assignedUserId: string | null | undefined) => string | null;
  * } | null | undefined} [roster]
  * @returns {{ initial: string; name: string } | null}
  */
-export function readBookingCardAssignee(booking, currentUserId, roster) {
+export function readBookingCardAssignee(booking, _currentUserId, roster) {
   const assignedUserId = readAssignedUserId(booking);
   if (!assignedUserId) {
     return null;
@@ -21,12 +21,9 @@ export function readBookingCardAssignee(booking, currentUserId, roster) {
   if (!canAssign) {
     return null;
   }
-  const viewer = String(currentUserId ?? '').trim();
   const rawLabel =
     roster?.labelFor?.(assignedUserId) ||
-    (viewer && assignedUserId === viewer
-      ? 'Myself'
-      : String(booking.assigned_user_name ?? booking.assignedUserName ?? '').trim());
+    String(booking.assigned_user_name ?? booking.assignedUserName ?? '').trim();
   if (!rawLabel) {
     return null;
   }

@@ -55,10 +55,9 @@ export function canShowAssigneeControl(assignees) {
 /**
  * @param {string | null | undefined} assignedUserId
  * @param {BookingAssignee[]} assignees
- * @param {string | null | undefined} [currentUserId]
  * @returns {string | null}
  */
-export function resolveAssigneeLabel(assignedUserId, assignees, currentUserId) {
+export function resolveAssigneeLabel(assignedUserId, assignees) {
   const id = typeof assignedUserId === 'string' ? assignedUserId.trim() : '';
   if (!id) {
     return null;
@@ -67,7 +66,7 @@ export function resolveAssigneeLabel(assignedUserId, assignees, currentUserId) {
   if (!match) {
     return null;
   }
-  return assigneeUiLabel(match, currentUserId);
+  return assigneeUiLabel(match);
 }
 
 /**
@@ -96,33 +95,22 @@ export function mergeAssigneesKeepingFormer(primary, extra) {
 
 /**
  * @param {BookingAssignee[]} assignees
- * @param {string | null | undefined} [currentUserId]
  * @returns {Array<{ userId: string | null; label: string; kind: string }>}
  */
-export function buildAssignablePickerOptions(assignees, currentUserId) {
+export function buildAssignablePickerOptions(assignees) {
   const people = (assignees ?? []).filter((row) => row.kind === 'owner' || row.kind === 'member');
-  const viewer = String(currentUserId ?? '').trim();
-  return [
-    { userId: null, label: 'Unassigned', kind: 'unassigned' },
-    ...people.map((row) => (viewer && row.userId === viewer ? { ...row, label: 'Myself' } : row)),
-  ];
+  return [{ userId: null, label: 'Unassigned', kind: 'unassigned' }, ...people];
 }
 
 /**
- * "Myself" only when this row is the signed-in user. Everyone else keeps their name
- * (owner stays "Owner" when a teammate is looking).
+ * Shop label for this person — same name whether you are looking at yourself or a teammate.
  *
  * @param {BookingAssignee | null | undefined} row
- * @param {string | null | undefined} [currentUserId]
  * @returns {string | null}
  */
-export function assigneeUiLabel(row, currentUserId) {
+export function assigneeUiLabel(row) {
   if (!row) {
     return null;
-  }
-  const viewer = String(currentUserId ?? '').trim();
-  if (viewer && row.userId === viewer) {
-    return 'Myself';
   }
   const raw = String(row.label ?? '').trim();
   if (!raw) {
