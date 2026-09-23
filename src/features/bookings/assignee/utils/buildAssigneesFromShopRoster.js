@@ -1,6 +1,17 @@
 import { normalizeEmailForDedupe } from '../../../../utils/email';
 
 /**
+ * @param {unknown} label
+ * @returns {boolean}
+ */
+export function isPlaceholderAssigneeLabel(label) {
+  const value = String(label ?? '')
+    .trim()
+    .toLowerCase();
+  return !value || value === 'member' || value === 'team member';
+}
+
+/**
  * @param {{
  *   ownerUserId?: string | null;
  *   members?: Array<{ user_id?: string | null; status?: string | null }>;
@@ -9,10 +20,16 @@ import { normalizeEmailForDedupe } from '../../../../utils/email';
  *     name?: string | null;
  *     accepted_user_id?: string | null;
  *   }>;
+ *   profileByUserId?: Map<string, { name?: string | null; email?: string | null }>;
  * }} input
  * @returns {import('./mapBookingAssignees').BookingAssignee[]}
  */
-export function buildAssigneesFromShopRoster({ ownerUserId, members = [], invites = [] } = {}) {
+export function buildAssigneesFromShopRoster({
+  ownerUserId,
+  members = [],
+  invites = [],
+  profileByUserId = new Map(),
+} = {}) {
   const ownerId = typeof ownerUserId === 'string' ? ownerUserId.trim() : '';
   if (!ownerId) {
     return [];
@@ -20,14 +37,27 @@ export function buildAssigneesFromShopRoster({ ownerUserId, members = [], invite
 
   const emailByUserId = new Map();
   const nameByUserId = new Map();
+  const profileIdByEmail = new Map();
+  for (const [userId, profile] of profileByUserId ?? []) {
+    const email = normalizeEmailForDedupe(profile?.email);
+    if (email) {
+      profileIdByEmail.set(email, userId);
+    }
+  }
+
   for (const row of invites ?? []) {
     const email = normalizeEmailForDedupe(row.email) ?? '';
     const name = String(row.name ?? '').trim();
-    if (row.accepted_user_id && email) {
-      emailByUserId.set(row.accepted_user_id, email);
-      if (name) {
-        nameByUserId.set(row.accepted_user_id, name);
-      }
+    const acceptedId = typeof row.accepted_user_id === 'string' ? row.accepted_user_id.trim() : '';
+    const matchedId = acceptedId || (email ? profileIdByEmail.get(email) : '');
+    if (!matchedId) {
+      continue;
+    }
+    if (email) {
+      emailByUserId.set(matchedId, email);
+    }
+    if (name) {
+      nameByUserId.set(matchedId, name);
     }
   }
 
@@ -39,11 +69,14 @@ export function buildAssigneesFromShopRoster({ ownerUserId, members = [], invite
     if (!memberId || seen.has(memberId)) {
       continue;
     }
-    const email = emailByUserId.get(memberId) || '';
+    const profile = profileByUserId.get(memberId);
+    const profileEmail = normalizeEmailForDedupe(profile?.email) ?? '';
+    const email = emailByUserId.get(memberId) || profileEmail;
     assignees.push({
       userId: memberId,
-      label: nameByUserId.get(memberId) || email || 'Member',
+      label: nameByUserId.get(memberId) || 'Member',
       kind: row.status === 'removed' ? 'former' : 'member',
+      ...(email ? { email } : {}),
     });
     seen.add(memberId);
   }
@@ -54,8 +87,9 @@ export function buildAssigneesFromShopRoster({ ownerUserId, members = [], invite
     }
     assignees.push({
       userId: memberId,
-      label: nameByUserId.get(memberId) || email,
+      label: nameByUserId.get(memberId) || 'Member',
       kind: 'former',
+      ...(email ? { email } : {}),
     });
     seen.add(memberId);
   }

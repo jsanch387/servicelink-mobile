@@ -17,7 +17,13 @@ export function useBookingAssignees() {
   const query = useQuery({
     queryKey: bookingAssigneesQueryKey(userId),
     queryFn: async () => {
-      const result = await fetchBookingAssignees(accessToken, { userId });
+      const result = await fetchBookingAssignees(accessToken, {
+        userId,
+        viewer: {
+          userId,
+          email: user?.email ?? '',
+        },
+      });
       return result.assignees ?? [];
     },
     enabled: Boolean(userId && accessToken),

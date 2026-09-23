@@ -29,7 +29,7 @@ function thenableQuery(result) {
   return builder;
 }
 
-function mockShopRoster({ members = [], invites = [] } = {}) {
+function mockShopRoster({ members = [], invites = [], profiles = [] } = {}) {
   fetchBusinessProfileForUser.mockResolvedValue({
     data: { id: 'biz-1', profile_id: 'owner-1' },
     error: null,
@@ -41,6 +41,9 @@ function mockShopRoster({ members = [], invites = [] } = {}) {
     }
     if (table === 'business_members') {
       return thenableQuery({ data: members, error: null });
+    }
+    if (table === 'profiles') {
+      return thenableQuery({ data: profiles, error: null });
     }
     return thenableQuery({ data: invites, error: null });
   });
@@ -68,7 +71,7 @@ describe('fetchBookingAssignees', () => {
     await expect(fetchBookingAssignees('token', { userId: 'owner-1' })).resolves.toEqual({
       assignees: [
         { userId: 'owner-1', label: 'Owner', kind: 'owner' },
-        { userId: 'mem-1', label: 'sam@shop.com', kind: 'member' },
+        { userId: 'mem-1', label: 'Member', kind: 'member', email: 'sam@shop.com' },
       ],
     });
     expect(global.fetch).toHaveBeenCalledWith(
@@ -102,8 +105,97 @@ describe('fetchBookingAssignees', () => {
     await expect(fetchBookingAssignees('token', { userId: 'owner-1' })).resolves.toEqual({
       assignees: [
         { userId: 'owner-1', label: 'Owner', kind: 'owner' },
-        { userId: 'mem-1', label: 'sam@shop.com', kind: 'member' },
-        { userId: 'old-1', label: 'old@shop.com', kind: 'former' },
+        { userId: 'mem-1', label: 'Member', kind: 'member', email: 'sam@shop.com' },
+        { userId: 'old-1', label: 'Member', kind: 'former', email: 'old@shop.com' },
+      ],
+    });
+  });
+
+  it('does not let a shop Member placeholder overwrite a stored name', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        assignees: [
+          { userId: 'owner-1', label: 'Owner', kind: 'owner' },
+          { userId: 'mem-1', label: 'Sam Rivera', kind: 'member', email: 'sam@shop.com' },
+        ],
+      }),
+    });
+    mockShopRoster({
+      members: [{ user_id: 'mem-1', status: 'active' }],
+      invites: [],
+    });
+
+    await expect(fetchBookingAssignees('token', { userId: 'owner-1' })).resolves.toEqual({
+      assignees: [
+        { userId: 'owner-1', label: 'Owner', kind: 'owner' },
+        { userId: 'mem-1', label: 'Sam Rivera', kind: 'member', email: 'sam@shop.com' },
+      ],
+    });
+  });
+
+  it('uses the shop-set invite name instead of Member or the account name', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        assignees: [
+          { userId: 'owner-1', label: 'Owner', kind: 'owner' },
+          { userId: 'mem-1', label: 'Member', kind: 'member' },
+        ],
+      }),
+    });
+    mockShopRoster({
+      members: [{ user_id: 'mem-1', status: 'active' }],
+      invites: [
+        {
+          email: 'jordan@shop.com',
+          name: 'Alex',
+          accepted_user_id: 'mem-1',
+          status: 'accepted',
+        },
+      ],
+    });
+
+    await expect(
+      fetchBookingAssignees('token', {
+        userId: 'mem-1',
+        viewer: { userId: 'mem-1', name: 'Jordan Lee', email: 'jordan@shop.com' },
+      }),
+    ).resolves.toEqual({
+      assignees: [
+        { userId: 'owner-1', label: 'Owner', kind: 'owner' },
+        { userId: 'mem-1', label: 'Alex', kind: 'member', email: 'jordan@shop.com' },
+      ],
+    });
+  });
+
+  it('matches the shop-set name by the signed-in teammate email', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        assignees: [
+          { userId: 'owner-1', label: 'Owner', kind: 'owner' },
+          { userId: 'mem-1', label: 'Member', kind: 'member' },
+        ],
+      }),
+    });
+    mockShopRoster({
+      members: [{ user_id: 'mem-1', status: 'active' }],
+      invites: [{ email: 'jordan@shop.com', name: 'Alex', status: 'accepted' }],
+    });
+
+    await expect(
+      fetchBookingAssignees('token', {
+        userId: 'mem-1',
+        viewer: { userId: 'mem-1', name: 'Jordan Lee', email: 'jordan@shop.com' },
+      }),
+    ).resolves.toEqual({
+      assignees: [
+        { userId: 'owner-1', label: 'Owner', kind: 'owner' },
+        { userId: 'mem-1', label: 'Alex', kind: 'member', email: 'jordan@shop.com' },
       ],
     });
   });
@@ -125,7 +217,7 @@ describe('fetchBookingAssignees', () => {
     await expect(fetchBookingAssignees('token', { userId: 'owner-1' })).resolves.toEqual({
       assignees: [
         { userId: 'owner-1', label: 'Owner', kind: 'owner' },
-        { userId: 'mem-1', label: 'Sam Rivera', kind: 'member' },
+        { userId: 'mem-1', label: 'Sam Rivera', kind: 'member', email: 'sam@shop.com' },
       ],
     });
   });
@@ -140,7 +232,7 @@ describe('fetchBookingAssignees', () => {
     await expect(fetchBookingAssignees('token', { userId: 'owner-1' })).resolves.toEqual({
       assignees: [
         { userId: 'owner-1', label: 'Owner', kind: 'owner' },
-        { userId: 'mem-1', label: 'sam@shop.com', kind: 'member' },
+        { userId: 'mem-1', label: 'Member', kind: 'member', email: 'sam@shop.com' },
       ],
     });
   });
@@ -155,7 +247,7 @@ describe('fetchBookingAssignees', () => {
     await expect(fetchBookingAssignees('token', { userId: 'owner-1' })).resolves.toEqual({
       assignees: [
         { userId: 'owner-1', label: 'Owner', kind: 'owner' },
-        { userId: 'old-1', label: 'old@shop.com', kind: 'former' },
+        { userId: 'old-1', label: 'Member', kind: 'former', email: 'old@shop.com' },
       ],
     });
   });

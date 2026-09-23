@@ -10,8 +10,8 @@ import { readAssignedUserId } from '../readAssignedUserId';
 
 describe('mapBookingAssignees', () => {
   const owner = { userId: 'owner-1', label: 'Owner', kind: 'owner' };
-  const member = { userId: 'mem-1', label: 'sam@shop.com', kind: 'member' };
-  const former = { userId: 'old-1', label: 'old@shop.com', kind: 'former' };
+  const member = { userId: 'mem-1', label: 'Sam Rivera', kind: 'member', email: 'sam@shop.com' };
+  const former = { userId: 'old-1', label: 'Member', kind: 'former', email: 'old@shop.com' };
 
   it('maps API rows and fills a missing owner label', () => {
     expect(
@@ -22,7 +22,10 @@ describe('mapBookingAssignees', () => {
           { userId: 'mem-1', label: 'sam@shop.com', kind: 'member' },
         ],
       }),
-    ).toEqual([{ userId: 'owner-1', label: 'Owner', kind: 'owner' }, member]);
+    ).toEqual([
+      { userId: 'owner-1', label: 'Owner', kind: 'owner' },
+      { userId: 'mem-1', label: 'Member', kind: 'member', email: 'sam@shop.com' },
+    ]);
   });
 
   it('skips rows that would be a blank chip', () => {
@@ -42,18 +45,35 @@ describe('mapBookingAssignees', () => {
     expect(resolveAssigneeLabel('unknown', [owner, member])).toBeNull();
   });
 
-  it('shows a short name instead of the full email', () => {
-    expect(resolveAssigneeLabel('mem-1', [owner, member])).toBe('Sam');
-    expect(resolveAssigneeLabel('mem-1', [owner, member], 'mem-1')).toBe('Sam');
+  it('keeps the owner email and drops a repeated (owner) suffix', () => {
+    expect(
+      mapBookingAssignees([
+        { userId: 'owner-1', label: 'owner@shop.com (owner)', kind: 'owner' },
+      ]),
+    ).toEqual([{ userId: 'owner-1', label: 'Owner', kind: 'owner', email: 'owner@shop.com' }]);
+    expect(presentAssigneeDisplay('Owner', 'owner@shop.com (owner)')).toEqual({
+      title: 'Owner',
+      subtitle: 'owner@shop.com',
+      initial: 'O',
+    });
+  });
+
+  it('uses the stored name and keeps email as the subtitle', () => {
+    expect(resolveAssigneeLabel('mem-1', [owner, member])).toBe('Sam Rivera');
+    expect(presentAssigneeDisplay('Sam Rivera', 'sam@shop.com')).toEqual({
+      title: 'Sam Rivera',
+      subtitle: 'sam@shop.com',
+      initial: 'S',
+    });
     expect(presentAssigneeDisplay('jesus.sanchez@shop.com')).toEqual({
-      title: 'Jesus Sanchez',
+      title: 'Team member',
       subtitle: 'jesus.sanchez@shop.com',
-      initial: 'J',
+      initial: 'T',
     });
   });
 
   it('still labels a removed teammate on past jobs', () => {
-    expect(resolveAssigneeLabel('old-1', [owner, former])).toBe('Old');
+    expect(resolveAssigneeLabel('old-1', [{ ...former, label: 'Alex' }])).toBe('Alex');
   });
 
   it('keeps former teammates when the API list omitted them', () => {

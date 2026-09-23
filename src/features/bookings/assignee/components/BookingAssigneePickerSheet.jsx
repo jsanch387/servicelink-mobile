@@ -127,7 +127,7 @@ export function BookingAssigneePickerSheet({
           ) : null}
           {options.map((option) => {
             const selected = (option.userId ?? null) === (selectedUserId ?? null);
-            const display = presentAssigneeDisplay(option.label);
+            const display = presentAssigneeDisplay(option.label, option.email);
             const isUnassigned = option.kind === 'unassigned';
             const a11y = display.subtitle ? `${display.title}, ${display.subtitle}` : display.title;
             return (

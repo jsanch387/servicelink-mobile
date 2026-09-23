@@ -18,8 +18,49 @@ describe('buildAssigneesFromShopRoster', () => {
       }),
     ).toEqual([
       { userId: 'owner-1', label: 'Owner', kind: 'owner' },
-      { userId: 'mem-1', label: 'Sam Rivera', kind: 'member' },
-      { userId: 'old-1', label: 'old@shop.com', kind: 'former' },
+      { userId: 'mem-1', label: 'Sam Rivera', kind: 'member', email: 'sam@shop.com' },
+      { userId: 'old-1', label: 'Member', kind: 'former', email: 'old@shop.com' },
+    ]);
+  });
+
+  it('matches an invite name by email when accepted_user_id is missing', () => {
+    expect(
+      buildAssigneesFromShopRoster({
+        ownerUserId: 'owner-1',
+        members: [{ user_id: 'mem-1', status: 'active' }],
+        invites: [{ email: 'jordan@shop.com', name: 'Jordan Lee' }],
+        profileByUserId: new Map([['mem-1', { name: '', email: 'jordan@shop.com' }]]),
+      }),
+    ).toEqual([
+      { userId: 'owner-1', label: 'Owner', kind: 'owner' },
+      { userId: 'mem-1', label: 'Jordan Lee', kind: 'member', email: 'jordan@shop.com' },
+    ]);
+  });
+
+  it('uses the invite name when accepted_user_id is set and email is missing', () => {
+    expect(
+      buildAssigneesFromShopRoster({
+        ownerUserId: 'owner-1',
+        members: [{ user_id: 'mem-1', status: 'active' }],
+        invites: [{ name: 'Alex', accepted_user_id: 'mem-1' }],
+      }),
+    ).toEqual([
+      { userId: 'owner-1', label: 'Owner', kind: 'owner' },
+      { userId: 'mem-1', label: 'Alex', kind: 'member' },
+    ]);
+  });
+
+  it('does not use the account profile name when no shop name is set', () => {
+    expect(
+      buildAssigneesFromShopRoster({
+        ownerUserId: 'owner-1',
+        members: [{ user_id: 'mem-1', status: 'active' }],
+        invites: [],
+        profileByUserId: new Map([['mem-1', { name: 'Jordan Lee', email: 'jordan@shop.com' }]]),
+      }),
+    ).toEqual([
+      { userId: 'owner-1', label: 'Owner', kind: 'owner' },
+      { userId: 'mem-1', label: 'Member', kind: 'member', email: 'jordan@shop.com' },
     ]);
   });
 

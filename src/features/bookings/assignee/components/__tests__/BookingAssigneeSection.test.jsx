@@ -5,15 +5,15 @@ import { BookingAssigneeSection } from '../BookingAssigneeSection';
 const mockAssignees = {
   assignees: [
     { userId: 'owner-1', label: 'Owner', kind: 'owner' },
-    { userId: 'mem-1', label: 'sam@shop.com', kind: 'member' },
+    { userId: 'mem-1', label: 'Sam Rivera', kind: 'member', email: 'sam@shop.com' },
   ],
   canAssign: true,
   pickerOptions: [
     { userId: null, label: 'Unassigned', kind: 'unassigned' },
     { userId: 'owner-1', label: 'Owner', kind: 'owner' },
-    { userId: 'mem-1', label: 'sam@shop.com', kind: 'member' },
+    { userId: 'mem-1', label: 'Sam Rivera', kind: 'member', email: 'sam@shop.com' },
   ],
-  labelFor: (id) => (id === 'mem-1' ? 'sam@shop.com' : id === 'owner-1' ? 'Owner' : null),
+  labelFor: (id) => (id === 'mem-1' ? 'Sam Rivera' : id === 'owner-1' ? 'Owner' : null),
   isLoading: false,
 };
 
@@ -39,7 +39,7 @@ describe('BookingAssigneeSection', () => {
     jest.clearAllMocks();
     mockAssignees.canAssign = true;
     mockAssignees.labelFor = (id) =>
-      id === 'mem-1' ? 'sam@shop.com' : id === 'owner-1' ? 'Owner' : null;
+      id === 'mem-1' ? 'Sam Rivera' : id === 'owner-1' ? 'Owner' : null;
     mockPatch.isAssigning = false;
     mockPatch.assignError = null;
     mockAssignBooking.mockResolvedValue({ assignedUserId: 'mem-1' });
@@ -52,13 +52,13 @@ describe('BookingAssigneeSection', () => {
 
     expect(screen.getByText('Unassigned')).toBeTruthy();
     fireEvent.press(screen.getByLabelText('Change assignee'));
-    fireEvent.press(screen.getByLabelText('Sam, sam@shop.com'));
+    fireEvent.press(screen.getByLabelText('Sam Rivera, sam@shop.com'));
 
     await waitFor(() => {
       expect(mockAssignBooking).toHaveBeenCalledWith('mem-1');
     });
     await waitFor(() => {
-      expect(screen.queryByLabelText('Sam, sam@shop.com')).toBeNull();
+      expect(screen.queryByLabelText('Sam Rivera, sam@shop.com')).toBeNull();
     });
   });
 
@@ -72,10 +72,10 @@ describe('BookingAssigneeSection', () => {
     );
 
     fireEvent.press(screen.getByLabelText('Change assignee'));
-    fireEvent.press(screen.getByLabelText('Sam, sam@shop.com'));
+    fireEvent.press(screen.getByLabelText('Sam Rivera, sam@shop.com'));
 
     await waitFor(() => {
-      expect(screen.queryByLabelText('Sam, sam@shop.com')).toBeNull();
+      expect(screen.queryByLabelText('Sam Rivera, sam@shop.com')).toBeNull();
     });
     expect(mockAssignBooking).not.toHaveBeenCalled();
   });
@@ -100,7 +100,7 @@ describe('BookingAssigneeSection', () => {
       />,
     );
 
-    expect(screen.getByText('sam@shop.com')).toBeTruthy();
+    expect(screen.getByText('Sam Rivera')).toBeTruthy();
     expect(screen.queryByLabelText('Change assignee')).toBeNull();
   });
 
@@ -115,7 +115,7 @@ describe('BookingAssigneeSection', () => {
 
   it('still shows a removed teammate on the job as read-only', () => {
     mockAssignees.canAssign = false;
-    mockAssignees.labelFor = (id) => (id === 'old-1' ? 'old@shop.com' : null);
+    mockAssignees.labelFor = (id) => (id === 'old-1' ? 'Alex' : null);
     renderWithProviders(
       <BookingAssigneeSection
         assignedUserId="old-1"
@@ -123,7 +123,7 @@ describe('BookingAssigneeSection', () => {
         bookingStatus="completed"
       />,
     );
-    expect(screen.getByText('old@shop.com')).toBeTruthy();
+    expect(screen.getByText('Alex')).toBeTruthy();
     expect(screen.queryByLabelText('Change assignee')).toBeNull();
   });
 });

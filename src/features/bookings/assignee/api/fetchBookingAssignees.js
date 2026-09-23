@@ -1,28 +1,27 @@
 import { productionWebApiHttpsGuard } from '../../../../lib/productionWebApiHttpsGuard';
 import { resolveStripeMobileCheckoutOrigin } from '../../../../lib/stripeMobileCheckoutOrigin';
 import { fetchBusinessProfileForUser } from '../../../home/api/homeDashboard';
+import { isPlaceholderAssigneeLabel } from '../utils/buildAssigneesFromShopRoster';
 import { mapBookingAssignees, mergeAssigneesKeepingFormer } from '../utils/mapBookingAssignees';
 import { fetchAssigneeDirectoryForBusiness } from './fetchAssigneeDirectoryForBusiness';
 
 /**
  * @param {string | null | undefined} accessToken
- * @param {{ userId?: string | null }} [options]
+ * @param {{
+ *   userId?: string | null;
+ *   viewer?: { userId?: string | null; name?: string | null; email?: string | null } | null;
+ * }} [options]
  * @returns {Promise<{ assignees: ReturnType<typeof mapBookingAssignees> }>}
  */
 export async function fetchBookingAssignees(accessToken, options = {}) {
   const [fromApi, fromShop] = await Promise.all([
     fetchAssigneesFromApi(accessToken),
-    fetchAssigneesFromSupabase(options.userId),
+    fetchAssigneesFromSupabase(options.userId, options.viewer),
   ]);
-  if (fromApi) {
-    return {
-      assignees: applyInviteNames(
-        mergeAssigneesKeepingFormer(fromApi, fromShop.assignees),
-        fromShop.assignees,
-      ),
-    };
-  }
-  return fromShop;
+  const assignees = fromApi
+    ? applyInviteNames(mergeAssigneesKeepingFormer(fromApi, fromShop.assignees), fromShop.assignees)
+    : (fromShop.assignees ?? []);
+  return { assignees };
 }
 
 /**
@@ -33,15 +32,31 @@ export async function fetchBookingAssignees(accessToken, options = {}) {
  */
 function applyInviteNames(primary, named) {
   const nameById = new Map();
+  const shopById = new Map();
   for (const row of named ?? []) {
+    if (row?.userId) {
+      shopById.set(row.userId, row);
+    }
     const label = String(row?.label ?? '').trim();
-    if (row?.userId && label && !label.includes('@')) {
+    if (row?.userId && label && !label.includes('@') && !isPlaceholderAssigneeLabel(label)) {
       nameById.set(row.userId, label);
     }
   }
   return (primary ?? []).map((row) => {
+    const shopRow = shopById.get(row.userId);
     const namedLabel = nameById.get(row.userId);
-    return namedLabel ? { ...row, label: namedLabel } : row;
+    if (namedLabel) {
+      return shopRow?.email
+        ? { ...row, label: namedLabel, email: row.email || shopRow.email }
+        : { ...row, label: namedLabel };
+    }
+    const shopLabel = String(shopRow?.label ?? '').trim();
+    if (isPlaceholderAssigneeLabel(row.label) && shopLabel && !isPlaceholderAssigneeLabel(shopLabel)) {
+      return shopRow.email
+        ? { ...row, label: shopLabel, email: row.email || shopRow.email }
+        : { ...row, label: shopLabel };
+    }
+    return row;
   });
 }
 
@@ -78,7 +93,7 @@ async function fetchAssigneesFromApi(accessToken) {
   return mapBookingAssignees(payload);
 }
 
-async function fetchAssigneesFromSupabase(userId) {
+async function fetchAssigneesFromSupabase(userId, viewer) {
   if (!userId) {
     return { assignees: [] };
   }
@@ -88,6 +103,6 @@ async function fetchAssigneesFromSupabase(userId) {
     return { assignees: [] };
   }
 
-  const directory = await fetchAssigneeDirectoryForBusiness(shop.id);
+  const directory = await fetchAssigneeDirectoryForBusiness(shop.id, viewer);
   return { assignees: directory.assignees };
 }

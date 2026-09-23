@@ -60,6 +60,13 @@ jest.mock('../../subscription', () => ({
   })),
 }));
 
+jest.mock('../../shop', () => ({
+  useShopAccess: jest.fn(() => ({
+    canSeeOffice: true,
+    isMember: false,
+  })),
+}));
+
 jest.mock('../hooks/useBookingsFreeTierUsage', () => ({
   useBookingsFreeTierUsage: jest.fn(() => ({
     used: 2,
@@ -70,6 +77,7 @@ jest.mock('../hooks/useBookingsFreeTierUsage', () => ({
 }));
 
 const { useSubscription } = require('../../subscription');
+const { useShopAccess } = require('../../shop');
 const { useBookingsFreeTierUsage } = require('../hooks/useBookingsFreeTierUsage');
 
 const mockUseBookingsList = useBookingsList;
@@ -104,6 +112,10 @@ describe('BookingsScreen list empty states', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseBookingsList.mockReturnValue(baseList());
+    useShopAccess.mockReturnValue({
+      canSeeOffice: true,
+      isMember: false,
+    });
     useSubscription.mockReturnValue({
       hasProAccess: true,
       isOwnerProfileLoaded: true,
@@ -185,6 +197,25 @@ describe('BookingsScreen list empty states', () => {
     renderWithProviders(<BookingsScreen />);
     expect(screen.getByLabelText('Bookings used: 2 of 5.')).toBeTruthy();
     expect(screen.queryByLabelText('Upgrade')).toBeNull();
+  });
+
+  it('hides free plan booking usage for team members', () => {
+    useShopAccess.mockReturnValue({
+      canSeeOffice: false,
+      isMember: true,
+    });
+    useSubscription.mockReturnValue({
+      hasProAccess: false,
+      isOwnerProfileLoaded: true,
+    });
+    useBookingsFreeTierUsage.mockReturnValue({
+      used: 2,
+      limit: 5,
+      isLoading: false,
+      isError: false,
+    });
+    renderWithProviders(<BookingsScreen />);
+    expect(screen.queryByLabelText('Bookings used: 2 of 5.')).toBeNull();
   });
 
   it('prefers business_profiles.free_bookings_count for the usage strip when set', () => {

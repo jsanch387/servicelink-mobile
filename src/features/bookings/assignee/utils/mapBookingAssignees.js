@@ -5,6 +5,27 @@ import { presentPersonDisplay } from '../../../../utils/presentPersonDisplay';
  */
 
 /**
+ * API labels sometimes look like `name@shop.com (owner)`. Keep the email only.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function stripAssigneeRoleSuffix(value) {
+  return String(value ?? '')
+    .replace(/\s*\((?:owner|member|former|team member)\)\s*$/i, '')
+    .trim();
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function readAssigneeEmail(value) {
+  const cleaned = stripAssigneeRoleSuffix(value);
+  return cleaned.includes('@') ? cleaned : '';
+}
+
+/**
  * @param {unknown} raw
  * @returns {BookingAssignee | null}
  */
@@ -18,10 +39,13 @@ export function mapAssigneeRow(raw) {
   }
   const kind =
     raw.kind === 'owner' || raw.kind === 'former' || raw.kind === 'member' ? raw.kind : 'member';
-  const named = String(raw.name ?? raw.fullName ?? raw.full_name ?? '').trim();
-  const email = String(raw.email ?? '').trim();
+  const named = stripAssigneeRoleSuffix(raw.name ?? raw.fullName ?? raw.full_name ?? '');
+  const rawLabel = stripAssigneeRoleSuffix(raw.label ?? '');
+  const email = readAssigneeEmail(raw.email) || readAssigneeEmail(raw.label);
   const label =
-    named || String(raw.label ?? '').trim() || email || (kind === 'owner' ? 'Owner' : '');
+    (named && !named.includes('@') ? named : '') ||
+    (rawLabel && !rawLabel.includes('@') ? rawLabel : '') ||
+    (kind === 'owner' ? 'Owner' : email ? 'Member' : '');
   if (!label) {
     return null;
   }
@@ -116,17 +140,26 @@ export function assigneeUiLabel(row) {
   if (!raw) {
     return row.kind === 'owner' ? 'Owner' : null;
   }
-  return presentAssigneeDisplay(raw).title;
+  return presentAssigneeDisplay(raw, row.email).title;
 }
 
 /**
- * Emails become a short name (`jesus.sanchez@x.com` → `Jesus Sanchez`).
- * Real names stay as-is. Picker can still show the email underneath.
+ * Shop-set name is the title. Email stays smaller underneath. Never invent a
+ * name from the email local-part.
  *
  * @param {unknown} rawLabel
+ * @param {unknown} [email]
  * @returns {{ title: string; subtitle: string; initial: string }}
  */
-export function presentAssigneeDisplay(rawLabel) {
-  const value = String(rawLabel ?? '').trim();
-  return presentPersonDisplay(value, value.includes('@') ? value : '');
+export function presentAssigneeDisplay(rawLabel, email = '') {
+  const value = stripAssigneeRoleSuffix(rawLabel);
+  const mail = readAssigneeEmail(email) || readAssigneeEmail(rawLabel);
+  if (value && !value.includes('@')) {
+    return presentPersonDisplay(value, mail);
+  }
+  return {
+    title: 'Team member',
+    subtitle: mail || (value.includes('@') ? value : ''),
+    initial: 'T',
+  };
 }
