@@ -128,7 +128,7 @@ export function SignUpScreen() {
             >
               <View style={styles.centerBlock}>
                 <View style={styles.header}>
-                  <AuthBrandLogo />
+                  <AuthBrandLogo markSize={80} spaced />
                   <AppText style={[styles.title, styles.authHeadingTitle]}>Create account</AppText>
                   <AppText style={[styles.subtitle, styles.authHeadingSubtitle]}>
                     Sign up to manage your business.
@@ -207,27 +207,21 @@ export function SignUpScreen() {
                       <View style={[styles.dividerLine, styles.dividerLineFill]} />
                     </View>
 
-                    <View style={styles.oauthRow}>
-                      <View style={styles.oauthHalf}>
-                        <SocialSignInButton
-                          compact
-                          disabled={submitting || socialBusy !== null}
-                          fullWidth={false}
-                          loading={socialBusy === 'google'}
-                          onPress={handleGoogleSignIn}
-                          provider="google"
-                        />
-                      </View>
-                      <View style={styles.oauthHalf}>
-                        <SocialSignInButton
-                          compact
-                          disabled={submitting || socialBusy !== null}
-                          fullWidth={false}
-                          loading={socialBusy === 'apple'}
-                          onPress={handleAppleSignIn}
-                          provider="apple"
-                        />
-                      </View>
+                    <View style={styles.oauthStack}>
+                      <SocialSignInButton
+                        disabled={submitting || socialBusy !== null}
+                        fullWidth
+                        loading={socialBusy === 'google'}
+                        onPress={handleGoogleSignIn}
+                        provider="google"
+                      />
+                      <SocialSignInButton
+                        disabled={submitting || socialBusy !== null}
+                        fullWidth
+                        loading={socialBusy === 'apple'}
+                        onPress={handleAppleSignIn}
+                        provider="apple"
+                      />
                     </View>
                   </View>
                 </View>

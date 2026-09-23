@@ -87,12 +87,16 @@ export function WhatsNewModal({
           shadowRadius: 36,
           width: '100%',
         },
+        topRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginBottom: 18,
+        },
         accentBar: {
-          alignSelf: 'flex-start',
           backgroundColor: colors.buttonPrimaryBg,
           borderRadius: 3,
           height: 3,
-          marginBottom: 18,
           width: 44,
         },
         iconBadge: {
@@ -116,15 +120,13 @@ export function WhatsNewModal({
           borderColor: colors.border,
         },
         badge: {
-          alignSelf: 'flex-start',
-          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+          backgroundColor: colors.moneyPositive,
           borderRadius: 999,
-          marginBottom: 12,
           paddingHorizontal: 10,
           paddingVertical: 4,
         },
         badgeText: {
-          color: colors.textMuted,
+          color: colors.timelineCompletedCheck,
           fontSize: 11,
           fontWeight: '700',
           letterSpacing: 0.5,
@@ -205,7 +207,14 @@ export function WhatsNewModal({
         <View pointerEvents="box-none" style={styles.centerLayer}>
           <Animated.View style={{ opacity, transform: [{ scale }] }}>
             <View style={styles.card}>
-              <View style={styles.accentBar} />
+              <View style={styles.topRow}>
+                <View style={styles.accentBar} />
+                {announcement.badge ? (
+                  <View style={styles.badge}>
+                    <AppText style={styles.badgeText}>{announcement.badge}</AppText>
+                  </View>
+                ) : null}
+              </View>
               {!showIllustration ? (
                 <View
                   style={[
@@ -218,11 +227,6 @@ export function WhatsNewModal({
                   ]}
                 >
                   {heroIconNode}
-                </View>
-              ) : null}
-              {announcement.badge ? (
-                <View style={styles.badge}>
-                  <AppText style={styles.badgeText}>{announcement.badge}</AppText>
                 </View>
               ) : null}
               <AppText style={styles.title}>{announcement.title}</AppText>

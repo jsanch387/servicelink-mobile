@@ -42,7 +42,7 @@ describe('LoginScreen social sign-in', () => {
     Platform.OS = originalOs;
   });
 
-  it('shows Google and Apple side by side on iOS', () => {
+  it('shows Google and Apple on iOS', () => {
     renderWithProviders(<LoginScreen />);
     expect(screen.getByTestId('login-google')).toBeTruthy();
     expect(screen.getByTestId('login-apple')).toBeTruthy();

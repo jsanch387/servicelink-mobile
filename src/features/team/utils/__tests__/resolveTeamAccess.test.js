@@ -2,8 +2,8 @@ import { TEAM_EARLY_ACCESS_EMAILS } from '../../constants/teamFeatureFlags';
 import { isTeamEarlyAccessEmail, resolveTeamAccess } from '../resolveTeamAccess';
 
 describe('team rollout allowlist', () => {
-  it('restricts Team to the prod test login', () => {
-    expect(TEAM_EARLY_ACCESS_EMAILS).toEqual(['jesuss387@gmail.com']);
+  it('is open to every owner', () => {
+    expect(TEAM_EARLY_ACCESS_EMAILS).toEqual([]);
   });
 });
 
@@ -20,12 +20,11 @@ describe('resolveTeamAccess', () => {
     });
   });
 
-  it('allows the allowlisted email', () => {
+  it('does not special-case the former early-access login', () => {
     expect(
       resolveTeamAccess({
         enabled: true,
-        email: '  Jesuss387@Gmail.com ',
-        restrictToEarlyAccess: true,
+        email: 'jesuss387@gmail.com',
       }),
     ).toEqual({
       featureEnabled: true,
@@ -46,6 +45,18 @@ describe('resolveTeamAccess', () => {
     });
   });
 
+  it('opens Team to every login by default', () => {
+    expect(
+      resolveTeamAccess({
+        enabled: true,
+        email: 'owner@example.com',
+      }),
+    ).toEqual({
+      featureEnabled: true,
+      canSeeTeam: true,
+    });
+  });
+
   it('opens Team to every login when the allowlist is off', () => {
     expect(
       resolveTeamAccess({
@@ -59,8 +70,7 @@ describe('resolveTeamAccess', () => {
     });
   });
 
-  it('matches allowlisted emails case-insensitively', () => {
-    expect(isTeamEarlyAccessEmail('JESUSS387@GMAIL.COM')).toBe(true);
-    expect(isTeamEarlyAccessEmail('other@example.com')).toBe(false);
+  it('matches nobody while the allowlist is empty', () => {
+    expect(isTeamEarlyAccessEmail('owner@example.com')).toBe(false);
   });
 });

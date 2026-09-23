@@ -48,8 +48,8 @@ export function SocialSignInButton({
           styles.face,
           compact && styles.faceCompact,
           {
-            backgroundColor: colors.inputBg,
-            borderColor: colors.inputBorder,
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
             maxWidth: '100%',
             width: '100%',
           },
@@ -58,7 +58,7 @@ export function SocialSignInButton({
         {loading ? (
           <ActivityIndicator color={colors.text} size="small" />
         ) : (
-          <Ionicons color={colors.text} name={icon} size={isGoogle ? 22 : 24} />
+          <Ionicons color={colors.text} name={icon} size={isGoogle ? 18 : 20} />
         )}
         <AppText
           ellipsizeMode="tail"
@@ -94,13 +94,13 @@ const styles = StyleSheet.create({
   },
   face: {
     alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1.5,
+    borderRadius: 16,
+    borderWidth: 1,
     flexDirection: 'row',
     justifyContent: 'center',
     minHeight: 52,
     overflow: 'hidden',
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingVertical: 14,
   },
   faceCompact: {
@@ -109,7 +109,8 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 12,
+    letterSpacing: -0.2,
+    marginLeft: 10,
   },
   labelCompact: {
     fontSize: 14,

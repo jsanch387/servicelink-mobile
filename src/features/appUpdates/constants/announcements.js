@@ -1,3 +1,5 @@
+import { ROUTES } from '../../../routes/routes';
+
 /**
  * In-app feature announcements — one modal at a time. Each `id` is shown at most once per device.
  *
@@ -23,4 +25,19 @@
  */
 
 /** @type {WhatsNewAnnouncement[]} */
-export const APP_UPDATE_ANNOUNCEMENTS = [];
+export const APP_UPDATE_ANNOUNCEMENTS = [
+  {
+    id: 'teams-v3',
+    badge: 'New',
+    icon: 'people-outline',
+    title: 'Teams',
+    bullets: [
+      'Invite a teammate by email from More.',
+      'Assign them the appointments they should handle.',
+      'They can sign in to the ServiceLink app with their own account.',
+    ],
+    primaryLabel: 'Open Team',
+    secondaryLabel: 'Not now',
+    cta: { tab: ROUTES.MORE, screen: ROUTES.TEAM },
+  },
+];

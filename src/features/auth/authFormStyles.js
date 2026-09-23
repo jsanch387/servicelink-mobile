@@ -1,4 +1,4 @@
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 export const AUTH_FORM_MAX_WIDTH = 400;
 
@@ -37,12 +37,13 @@ export function getAuthFormSharedStyles(colors) {
       flex: 1,
       backgroundColor: 'transparent',
     },
-    /** Login / sign-up: non-scrolling column (ScrollView not used). */
+    /** Login / sign-up column. `flexGrow` lets a ScrollView center short content and scroll when the keyboard is up. */
     authScreenMain: {
-      flex: 1,
+      flexGrow: 1,
       justifyContent: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 40,
+      paddingHorizontal: 24,
+      paddingBottom: 28,
+      paddingTop: 12,
     },
     centerBlock: {
       alignSelf: 'center',
@@ -52,7 +53,7 @@ export function getAuthFormSharedStyles(colors) {
     header: {
       alignItems: 'center',
       alignSelf: 'stretch',
-      marginBottom: 28,
+      marginBottom: 32,
     },
     title: {
       alignSelf: 'stretch',
@@ -65,41 +66,25 @@ export function getAuthFormSharedStyles(colors) {
       textAlign: 'center',
     },
     authHeadingTitle: {
-      fontSize: 28,
+      fontSize: 32,
       fontWeight: '600',
-      letterSpacing: -0.65,
-      lineHeight: 32,
+      letterSpacing: -0.9,
+      lineHeight: 38,
     },
     authHeadingSubtitle: {
       alignSelf: 'center',
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '400',
-      letterSpacing: -0.15,
-      lineHeight: 21,
-      marginTop: 4,
+      letterSpacing: -0.2,
+      lineHeight: 23,
+      marginTop: 8,
       maxWidth: 300,
       paddingHorizontal: 8,
     },
-    /** Groups fields + actions; rows stay `cardSurface` for contrast against this panel. */
+    /** Fields and actions sit directly on the shell — inputs already have their own surface. */
     authFormPanel: {
       alignSelf: 'stretch',
-      backgroundColor: colors.surface,
-      borderColor: colors.cardBorder,
-      borderRadius: 20,
-      borderWidth: StyleSheet.hairlineWidth,
-      paddingHorizontal: 16,
-      paddingTop: 22,
-      paddingBottom: 22,
       width: '100%',
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.09,
-          shadowRadius: 24,
-        },
-        default: {},
-      }),
     },
     /** Stacked fields use SurfaceTextField default spacing (20px below each field). */
     form: {
@@ -108,7 +93,8 @@ export function getAuthFormSharedStyles(colors) {
     divider: {
       alignItems: 'center',
       flexDirection: 'row',
-      marginVertical: 20,
+      marginBottom: 16,
+      marginTop: 22,
       width: '100%',
     },
     dividerLine: {
@@ -121,11 +107,15 @@ export function getAuthFormSharedStyles(colors) {
     },
     dividerText: {
       color: colors.textMuted,
-      fontSize: 11,
-      fontWeight: '600',
-      letterSpacing: 1.2,
-      marginHorizontal: 16,
-      textTransform: 'uppercase',
+      fontSize: 13,
+      fontWeight: '500',
+      letterSpacing: -0.1,
+      marginHorizontal: 14,
+    },
+    /** Google + Apple stacked full width. */
+    oauthStack: {
+      gap: 10,
+      width: '100%',
     },
     /** Google + Apple: equal-width halves (`oauthHalf` wraps each control). */
     oauthRow: {

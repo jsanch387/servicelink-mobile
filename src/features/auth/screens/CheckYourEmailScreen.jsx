@@ -80,21 +80,12 @@ export function CheckYourEmailScreen() {
         card: {
           alignSelf: 'stretch',
           backgroundColor: colors.surface,
-          borderColor: colors.cardBorder,
+          borderColor: colors.border,
           borderRadius: 20,
           borderWidth: StyleSheet.hairlineWidth,
           paddingHorizontal: 20,
           paddingVertical: 22,
           width: '100%',
-          ...Platform.select({
-            ios: {
-              shadowColor: '#000000',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.08,
-              shadowRadius: 16,
-            },
-            default: {},
-          }),
         },
         mailBadge: {
           alignItems: 'center',
@@ -197,7 +188,7 @@ export function CheckYourEmailScreen() {
               <View style={styles.body}>
                 <View style={styles.centerBlock}>
                   <View style={styles.header}>
-                    <AuthBrandLogo />
+                    <AuthBrandLogo markSize={80} spaced />
                     <AppText style={styles.title}>Almost there</AppText>
                     <AppText style={styles.lede}>
                       Open the link in your email, then sign in.

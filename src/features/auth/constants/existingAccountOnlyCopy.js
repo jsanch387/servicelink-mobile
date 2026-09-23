@@ -2,10 +2,10 @@
 export const NO_EXISTING_SERVICELINK_ACCOUNT_CODE = 'NO_EXISTING_SERVICELINK_ACCOUNT';
 
 /** Login screen headline. */
-export const LOGIN_SCREEN_TITLE = 'Sign in';
+export const LOGIN_SCREEN_TITLE = 'Welcome';
 
 /** Login screen subtitle (under logo). */
-export const LOGIN_SCREEN_SUBTITLE = 'Enter your email to receive a login code.';
+export const LOGIN_SCREEN_SUBTITLE = 'Log in to your account to continue.';
 
 /**
  * Login footer — informational only (not a link; App Store 3.1.1).

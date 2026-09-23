@@ -4,18 +4,18 @@
  * **Kill switch:** set `TEAM_FEATURE_ENABLED` to `false` to hide the Team row
  * and skip roster fetches.
  *
- * **Email-only (current):** `TEAM_EARLY_ACCESS_EMAILS` is non-empty — only those
- * logins see Team. Clear the array to open it to every owner.
+ * **Open:** `TEAM_EARLY_ACCESS_EMAILS` is empty — every owner with a shop sees Team.
+ * Put emails back in the array to restrict it again.
  */
 
 /** Master kill switch for the Team management UI. */
 export const TEAM_FEATURE_ENABLED = true;
 
 /**
- * Temporary early-access login emails (lowercase).
- * Non-empty = ONLY these emails get More → Team.
- * Empty = every owner with a shop sees Team.
+ * Optional early-access login emails (lowercase).
+ * Empty = every owner with a shop sees More → Team.
+ * Non-empty = ONLY these emails get Team.
  *
  * @type {readonly string[]}
  */
-export const TEAM_EARLY_ACCESS_EMAILS = ['jesuss387@gmail.com'];
+export const TEAM_EARLY_ACCESS_EMAILS = [];

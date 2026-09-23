@@ -40,5 +40,5 @@ export function useBookingAssignees() {
       labelFor: (assignedUserId) => resolveAssigneeLabel(assignedUserId, assignees),
       isLoading: query.isLoading,
     };
-  }, [query.data, query.isLoading, userId]);
+  }, [query.data, query.isLoading]);
 }

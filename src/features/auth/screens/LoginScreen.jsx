@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
@@ -52,6 +53,9 @@ export function LoginScreen() {
     () =>
       StyleSheet.create({
         ...getAuthFormSharedStyles(colors),
+        scrollContent: {
+          flexGrow: 1,
+        },
         centerBlock: {
           alignSelf: 'center',
           maxWidth: 400,
@@ -63,23 +67,34 @@ export function LoginScreen() {
           paddingHorizontal: 0,
           width: '100%',
         },
+        textGroup: {
+          alignItems: 'center',
+          alignSelf: 'stretch',
+        },
+        welcomeTitle: {
+          lineHeight: 34,
+        },
+        welcomeSubtitle: {
+          marginTop: 6,
+        },
         appReviewNote: {
           color: colors.textMuted,
           fontSize: 13,
           fontWeight: '500',
-          letterSpacing: -0.05,
-          lineHeight: 19,
-          marginBottom: 4,
+          letterSpacing: -0.1,
+          lineHeight: 18,
+          marginBottom: 16,
           marginTop: -8,
         },
         noAccountNote: {
-          alignSelf: 'stretch',
+          alignSelf: 'center',
           color: colors.textMuted,
           fontSize: 13,
-          fontWeight: '500',
-          letterSpacing: -0.05,
+          fontWeight: '400',
+          letterSpacing: -0.1,
           lineHeight: 19,
-          marginTop: 24,
+          marginTop: 28,
+          maxWidth: 300,
           textAlign: 'center',
         },
         socialError: {
@@ -166,7 +181,14 @@ export function LoginScreen() {
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
           style={styles.shellGlowKeyboard}
         >
-          <View style={styles.shellGlowScroll}>
+          <ScrollView
+            bounces={false}
+            contentContainerStyle={styles.scrollContent}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            style={styles.shellGlowScroll}
+          >
             <Pressable
               accessible={false}
               onPress={() => Keyboard.dismiss()}
@@ -174,22 +196,25 @@ export function LoginScreen() {
             >
               <View style={styles.centerBlock}>
                 <View style={styles.header}>
-                  <AuthBrandLogo />
-                  <AppText
-                    accessibilityRole="header"
-                    style={[styles.title, styles.authHeadingTitle]}
-                  >
-                    {LOGIN_SCREEN_TITLE}
-                  </AppText>
-                  <AppText
-                    style={[
-                      styles.subtitle,
-                      styles.authHeadingSubtitle,
-                      styles.authHeadingSubtitleWide,
-                    ]}
-                  >
-                    {LOGIN_SCREEN_SUBTITLE}
-                  </AppText>
+                  <AuthBrandLogo markSize={80} spaced />
+                  <View style={styles.textGroup}>
+                    <AppText
+                      accessibilityRole="header"
+                      style={[styles.title, styles.authHeadingTitle, styles.welcomeTitle]}
+                    >
+                      {LOGIN_SCREEN_TITLE}
+                    </AppText>
+                    <AppText
+                      style={[
+                        styles.subtitle,
+                        styles.authHeadingSubtitle,
+                        styles.authHeadingSubtitleWide,
+                        styles.welcomeSubtitle,
+                      ]}
+                    >
+                      {LOGIN_SCREEN_SUBTITLE}
+                    </AppText>
+                  </View>
                 </View>
 
                 <View style={styles.authFormPanel}>
@@ -270,32 +295,7 @@ export function LoginScreen() {
                       <View style={[styles.dividerLine, styles.dividerLineFill]} />
                     </View>
 
-                    {showAppleSignIn ? (
-                      <View style={styles.oauthRow}>
-                        <View style={styles.oauthHalf}>
-                          <SocialSignInButton
-                            compact
-                            disabled={socialDisabled}
-                            fullWidth={false}
-                            loading={socialBusy === 'google'}
-                            onPress={handleGoogleSignIn}
-                            provider="google"
-                            testID="login-google"
-                          />
-                        </View>
-                        <View style={styles.oauthHalf}>
-                          <SocialSignInButton
-                            compact
-                            disabled={socialDisabled}
-                            fullWidth={false}
-                            loading={socialBusy === 'apple'}
-                            onPress={handleAppleSignIn}
-                            provider="apple"
-                            testID="login-apple"
-                          />
-                        </View>
-                      </View>
-                    ) : (
+                    <View style={styles.oauthStack}>
                       <SocialSignInButton
                         disabled={socialDisabled}
                         fullWidth
@@ -304,7 +304,17 @@ export function LoginScreen() {
                         provider="google"
                         testID="login-google"
                       />
-                    )}
+                      {showAppleSignIn ? (
+                        <SocialSignInButton
+                          disabled={socialDisabled}
+                          fullWidth
+                          loading={socialBusy === 'apple'}
+                          onPress={handleAppleSignIn}
+                          provider="apple"
+                          testID="login-apple"
+                        />
+                      ) : null}
+                    </View>
                     {socialError ? (
                       <AppText accessibilityRole="alert" style={styles.socialError}>
                         {socialError}
@@ -318,7 +328,7 @@ export function LoginScreen() {
                 </AppText>
               </View>
             </Pressable>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
