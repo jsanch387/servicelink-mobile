@@ -30,6 +30,7 @@ export function ScheduleStep({ blockingBookingRows = [], overlapMode = 'create',
           borderWidth: StyleSheet.hairlineWidth,
           flexDirection: 'row',
           gap: 8,
+          marginBottom: 12,
           marginTop: 14,
           paddingHorizontal: 12,
           paddingVertical: 10,
@@ -52,7 +53,7 @@ export function ScheduleStep({ blockingBookingRows = [], overlapMode = 'create',
   return (
     <BookingDateTimePicker
       {...pickerProps}
-      belowTimes={
+      belowCalendar={
         headsUp ? (
           <View accessibilityLiveRegion="polite" style={styles.notice}>
             <Ionicons color={colors.textMuted} name="information-circle-outline" size={18} />
