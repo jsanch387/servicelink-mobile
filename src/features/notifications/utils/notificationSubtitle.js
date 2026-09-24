@@ -1,4 +1,7 @@
+import { splitBookingServiceName } from '../../../utils/splitBookingServiceName';
 import { KNOWN_MINIMAL_INBOX_HEADLINES } from './notificationMinimalTitle';
+
+const PLACEHOLDER_PRICING_OPTION = /no pricing option selected/i;
 
 const MAX_SUB_CHARS = 52;
 
@@ -37,6 +40,26 @@ function pickStringField(obj, keys) {
     }
   }
   return '';
+}
+
+function serviceNameFromMetadata(metadata) {
+  if (!metadata || typeof metadata !== 'object') {
+    return '';
+  }
+  const nested = metadata.service;
+  if (nested && typeof nested === 'object') {
+    const fromNested = pickStringField(nested, ['name', 'title', 'label', 'serviceName']);
+    if (fromNested) {
+      return fromNested;
+    }
+  }
+  return pickStringField(metadata, [
+    'serviceName',
+    'service_name',
+    'service',
+    'jobName',
+    'job_name',
+  ]);
 }
 
 function customerFromMetadata(metadata) {
@@ -98,6 +121,27 @@ function shortBodyLine(body) {
     return '';
   }
   return truncate(b, MAX_SUB_CHARS);
+}
+
+/**
+ * Service line for a job-assignment inbox row — name only, no customer, no pricing tier.
+ *
+ * @param {Record<string, unknown> | null | undefined} metadata
+ * @param {string | null | undefined} body
+ * @returns {string | null}
+ */
+export function assignmentNotificationSubtitle(metadata, body) {
+  const fromMeta = serviceNameFromMetadata(metadata);
+  const raw = fromMeta || normalizeOneLine(body);
+  if (!raw) {
+    return null;
+  }
+  const { primary } = splitBookingServiceName(raw);
+  if (!primary || PLACEHOLDER_PRICING_OPTION.test(primary)) {
+    return null;
+  }
+  const line = truncate(primary, MAX_SUB_CHARS);
+  return line || null;
 }
 
 /**

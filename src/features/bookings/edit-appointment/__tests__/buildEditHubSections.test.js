@@ -36,6 +36,8 @@ describe('buildEditHubSections', () => {
     const ids = sections.map((s) => s.id);
 
     expect(ids).toEqual(['jobs', 'addons', 'schedule', 'customer', 'notes']);
+    expect(sections.find((s) => s.id === 'jobs')?.title).toBe('Jobs');
+    expect(sections.find((s) => s.id === 'jobs')?.summary).toBe('Full Detail');
     expect(sections.find((s) => s.id === 'jobs')?.step).toBe(EDIT_APPOINTMENT_JOBS_LIST);
     expect(sections.find((s) => s.id === 'addons')?.step).toBe(EDIT_APPOINTMENT_ADDONS_ENTRY);
     expect(sections.find((s) => s.id === 'addons')?.summary).toBe('Wax');
@@ -46,6 +48,50 @@ describe('buildEditHubSections', () => {
     const schedule = sections.find((s) => s.id === 'schedule');
     expect(schedule?.summary).toBe('Wed, Jul 15 · 2:30 PM');
     expect(schedule?.step).toBe(CREATE_APPOINTMENT_STEP.SCHEDULE);
+  });
+
+  it('shows the first job and a leftover count when there are more', () => {
+    const sections = buildEditHubSections({
+      ...base,
+      jobs: [
+        { serviceName: 'Signature Shine', isCustomJob: false, selectedServiceId: 'svc-1' },
+        { serviceName: 'Interior', isCustomJob: false, selectedServiceId: 'svc-2' },
+        { serviceName: 'Touch-up', isCustomJob: true, selectedServiceId: null },
+      ],
+    });
+    const jobsSection = sections.find((s) => s.id === 'jobs');
+    expect(jobsSection?.title).toBe('Jobs');
+    expect(jobsSection?.summary).toBe('Signature Shine');
+    expect(jobsSection?.summarySuffix).toBe('+2 more');
+  });
+
+  it('hides visit Add-ons when there are multiple jobs', () => {
+    const sections = buildEditHubSections({
+      ...base,
+      showAddonsSection: false,
+      jobs: [
+        { serviceName: 'Signature Shine', isCustomJob: false, selectedServiceId: 'svc-1' },
+        { serviceName: 'Interior', isCustomJob: false, selectedServiceId: 'svc-2' },
+      ],
+    });
+    expect(sections.map((s) => s.id)).not.toContain('addons');
+    expect(sections.map((s) => s.id)).toContain('jobs');
+  });
+
+  it('truncates a long first job name and keeps the leftover count', () => {
+    const longName = 'Premium Ceramic Coating And Interior Restoration For Oversized Trucks';
+    const sections = buildEditHubSections({
+      ...base,
+      jobs: [
+        { serviceName: longName, isCustomJob: false, selectedServiceId: 'svc-1' },
+        { serviceName: 'Interior', isCustomJob: false, selectedServiceId: 'svc-2' },
+      ],
+    });
+    const jobsSection = sections.find((s) => s.id === 'jobs');
+    expect(jobsSection?.summarySuffix).toBe('+1 more');
+    expect(jobsSection?.summary.endsWith('…')).toBe(true);
+    expect(jobsSection?.summary.length).toBeLessThan(longName.length);
+    expect(jobsSection?.summary).not.toContain('+1 more');
   });
 
   it('hides Add-ons when every job is custom', () => {
@@ -71,7 +117,7 @@ describe('buildEditHubSections', () => {
           selectedAddonRows: [{ name: 'Shampoo' }],
         },
       ]),
-    ).toBe('3 add-ons selected');
+    ).toBe('3 add-ons');
   });
 
   it('includes location and address when not skipped', () => {

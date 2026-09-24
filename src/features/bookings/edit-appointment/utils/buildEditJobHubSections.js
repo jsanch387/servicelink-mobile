@@ -1,5 +1,5 @@
 import { CREATE_APPOINTMENT_STEP } from '../../create-appointment/constants';
-import { truncateHubSummary } from './buildEditHubSections';
+import { formatEditJobAddonsHubSummary, truncateHubSummary } from './buildEditHubSections';
 
 function vehicleSummary(vehicle) {
   const parts = [
@@ -11,8 +11,8 @@ function vehicleSummary(vehicle) {
 }
 
 /**
- * Mini-hub for editing one job. Pricing stays with Service; Add-ons live on the
- * visit hub for quicker access.
+ * Mini-hub for editing one job. Add-ons live here when the visit has multiple
+ * jobs; a single catalog job still uses the visit-hub Add-ons row.
  *
  * @param {object} args
  * @param {string} [args.jobTitle]
@@ -21,6 +21,8 @@ function vehicleSummary(vehicle) {
  * @param {string | null} [args.selectedServiceId]
  * @param {unknown} args.selectedService
  * @param {object} args.vehicle
+ * @param {boolean} [args.showAddonsSection]
+ * @param {unknown[]} [args.selectedAddonRows]
  */
 export function buildEditJobHubSections({
   jobTitle,
@@ -29,6 +31,8 @@ export function buildEditJobHubSections({
   selectedServiceId = null,
   selectedService,
   vehicle,
+  showAddonsSection = false,
+  selectedAddonRows = [],
 }) {
   const serviceName =
     String(selectedService?.name ?? '').trim() || String(jobTitle ?? '').trim() || 'Not selected';
@@ -58,6 +62,17 @@ export function buildEditJobHubSections({
         !pricingSkipped && hasCatalogService
           ? CREATE_APPOINTMENT_STEP.PRICING
           : CREATE_APPOINTMENT_STEP.SERVICE,
+      summaryMaxLines: 2,
+    });
+  }
+
+  if (showAddonsSection && !isCustomJob) {
+    sections.push({
+      id: 'job-addons',
+      title: 'Add-ons',
+      summary: truncateHubSummary(formatEditJobAddonsHubSummary(selectedAddonRows)),
+      icon: 'add-circle-outline',
+      step: CREATE_APPOINTMENT_STEP.ADDONS,
       summaryMaxLines: 2,
     });
   }

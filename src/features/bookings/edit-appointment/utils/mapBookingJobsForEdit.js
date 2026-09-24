@@ -253,16 +253,24 @@ export function isMultiJobEdit(jobs) {
 }
 
 /**
+ * First job name for the hub preview (leftover count is styled separately).
+ *
  * @param {EditJobSnapshot[] | null | undefined} jobs
  */
 export function formatEditJobsHubSummary(jobs) {
   const list = Array.isArray(jobs) ? jobs : [];
   if (list.length === 0) return 'No jobs';
-  if (list.length === 1) {
-    return String(list[0]?.serviceName ?? '').trim() || '1 job';
-  }
-  const first = String(list[0]?.serviceName ?? '').trim() || 'Job';
-  return `${first} +${list.length - 1} more`;
+  return String(list[0]?.serviceName ?? '').trim() || 'Job';
+}
+
+/**
+ * Leftover job count, e.g. `+2 more`. Empty when there is only one job.
+ *
+ * @param {EditJobSnapshot[] | null | undefined} jobs
+ */
+export function formatEditJobsHubMoreLabel(jobs) {
+  const extra = Math.max(0, (Array.isArray(jobs) ? jobs.length : 0) - 1);
+  return extra > 0 ? `+${extra} more` : '';
 }
 
 /**

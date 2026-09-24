@@ -30,6 +30,9 @@ export function WizardStepHeader({
   style,
 }) {
   const { colors } = useTheme();
+  const titleText = String(title ?? '').trim();
+  const subtitleText = String(subtitle ?? '').trim();
+  const hasCopy = Boolean(titleText || subtitleText);
   const progress =
     stepCount > 0 ? Math.min(100, Math.max(0, ((stepIndex + 1) / stepCount) * 100)) : 0;
 
@@ -37,7 +40,7 @@ export function WizardStepHeader({
     () =>
       StyleSheet.create({
         wrap: {
-          paddingBottom: 16,
+          paddingBottom: hasCopy ? 14 : 20,
           paddingHorizontal: embedded ? 0 : SCREEN_GUTTER,
           paddingTop: showProgress ? 8 : 0,
         },
@@ -45,7 +48,7 @@ export function WizardStepHeader({
           backgroundColor: colors.border,
           borderRadius: 2,
           height: 4,
-          marginBottom: 20,
+          marginBottom: hasCopy ? 18 : 0,
           overflow: 'hidden',
           width: '100%',
         },
@@ -55,23 +58,23 @@ export function WizardStepHeader({
           height: '100%',
         },
         copy: {
-          gap: compactCopy ? 2 : 6,
+          gap: 2,
         },
         title: {
           color: colors.text,
           fontSize: 26,
           fontWeight: '700',
           letterSpacing: -0.6,
-          lineHeight: 30,
+          lineHeight: 28,
         },
         subtitle: {
           color: colors.textMuted,
           fontSize: compactCopy ? 14 : 15,
           fontWeight: '400',
-          lineHeight: compactCopy ? 19 : 22,
+          lineHeight: compactCopy ? 19 : 20,
         },
       }),
-    [colors, compactCopy, embedded, showProgress],
+    [colors, compactCopy, embedded, hasCopy, showProgress],
   );
 
   return (
@@ -90,12 +93,16 @@ export function WizardStepHeader({
           <View style={[styles.fill, { width: `${progress}%` }]} />
         </View>
       ) : null}
-      <View style={styles.copy}>
-        <AppText accessibilityRole="header" style={styles.title}>
-          {title}
-        </AppText>
-        {subtitle?.trim() ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
-      </View>
+      {hasCopy ? (
+        <View style={styles.copy}>
+          {titleText ? (
+            <AppText accessibilityRole="header" style={styles.title}>
+              {titleText}
+            </AppText>
+          ) : null}
+          {subtitleText ? <AppText style={styles.subtitle}>{subtitleText}</AppText> : null}
+        </View>
+      ) : null}
     </Pressable>
   );
 }

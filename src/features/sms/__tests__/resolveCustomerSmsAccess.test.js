@@ -92,7 +92,7 @@ describe('resolveCustomerSmsAccess', () => {
   });
 
   describe('phase 2 — allowlist cleared (restrictToEarlyAccess: false)', () => {
-    it('allows Pro when profile is loaded', () => {
+    it('allows a Pro owner when profile is loaded', () => {
       expect(
         resolveCustomerSmsAccess({
           enabled: true,
@@ -109,24 +109,24 @@ describe('resolveCustomerSmsAccess', () => {
       });
     });
 
-    it('shows upsell for non-Pro when ready', () => {
+    it('allows a team member or non-Pro user when ready', () => {
       expect(
         resolveCustomerSmsAccess({
           enabled: true,
           hasProAccess: false,
-          email: 'free@example.com',
+          email: 'member@example.com',
           profileLoaded: true,
           restrictToEarlyAccess: false,
         }),
       ).toEqual({
         featureEnabled: true,
-        canUseSms: false,
-        showUpsell: true,
+        canUseSms: true,
+        showUpsell: false,
         isReady: true,
       });
     });
 
-    it('waits for profile before upsell or Pro grant', () => {
+    it('waits for profile before granting SMS', () => {
       expect(
         resolveCustomerSmsAccess({
           enabled: true,

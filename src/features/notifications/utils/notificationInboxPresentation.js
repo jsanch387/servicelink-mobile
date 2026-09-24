@@ -1,5 +1,8 @@
-import { notificationMinimalDisplayTitle } from './notificationMinimalTitle';
-import { notificationSubtitle } from './notificationSubtitle';
+import {
+  isJobAssignmentNotification,
+  notificationMinimalDisplayTitle,
+} from './notificationMinimalTitle';
+import { assignmentNotificationSubtitle, notificationSubtitle } from './notificationSubtitle';
 
 /**
  * @param {string} isoString
@@ -67,7 +70,9 @@ export function notificationInboxIconCategory(type, referenceType) {
  */
 export function mapNotificationRowToInboxItem(row) {
   const displayTitle = notificationMinimalDisplayTitle(row.type, row.reference_type, row.title);
-  const subtitle = notificationSubtitle(row.metadata, row.title, displayTitle, row.body);
+  const subtitle = isJobAssignmentNotification(row.type, row.reference_type, row.title)
+    ? assignmentNotificationSubtitle(row.metadata, row.body)
+    : notificationSubtitle(row.metadata, row.title, displayTitle, row.body);
   return {
     id: row.id,
     type: notificationInboxIconCategory(row.type, row.reference_type),

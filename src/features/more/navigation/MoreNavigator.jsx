@@ -36,6 +36,8 @@ import {
 } from '../../marketing';
 import { ReviewsScreen } from '../../reviews';
 import { ExpensesScreen } from '../../expenses';
+import { TeamMemberDetailsScreen, TeamMembersProvider, TeamScreen } from '../../team';
+import { TEAM_MEMBER_ROLE_LABEL } from '../../team/constants/teamMembersCopy';
 
 const Stack = createNativeStackNavigator();
 
@@ -44,252 +46,272 @@ export function MoreNavigator() {
 
   return (
     <MarketingCampaignsProvider>
-      <Stack.Navigator screenOptions={nativeStackScreenOptions({ colors })}>
-        <Stack.Screen
-          component={MoreScreen}
-          name={ROUTES.MORE_HOME}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          component={AccountSettingsScreen}
-          name={ROUTES.ACCOUNT_SETTINGS}
-          options={{
-            title: 'Account',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={NotificationSettingsScreen}
-          name={ROUTES.NOTIFICATIONS}
-          options={{
-            title: 'Notification settings',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={SentTextsScreen}
-          name={ROUTES.SENT_TEXTS}
-          options={{
-            title: 'Messages sent',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={CustomerSmsUpsellScreen}
-          name={ROUTES.CUSTOMER_SMS_UPSELL}
-          options={{
-            title: 'Customer notifications',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={HelpScreen}
-          name={ROUTES.HELP}
-          options={{
-            title: HELP_SCREEN_TITLE,
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={SupportScreen}
-          name={ROUTES.SUPPORT}
-          options={{
-            title: CONTACT_US_SCREEN_TITLE,
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={LegalScreen}
-          name={ROUTES.LEGAL}
-          options={{
-            title: 'Privacy & terms',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={ServicesScreen}
-          name={ROUTES.SERVICES_LIST}
-          options={{
-            title: 'Services',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={ServiceEditScreen}
-          name={ROUTES.SERVICES_EDIT}
-          options={{
-            title: 'Edit service',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={AvailabilityScreen}
-          name={ROUTES.AVAILABILITY}
-          options={{
-            title: 'Availability',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={QuotesScreen}
-          name={ROUTES.QUOTES}
-          options={{
-            title: 'Quotes',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={ReviewsScreen}
-          name={ROUTES.REVIEWS}
-          options={{
-            title: 'Reviews',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={MaintenanceScreen}
-          name={ROUTES.MAINTENANCE}
-          options={{
-            title: 'Maintenance details',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={MaintenanceDetailScreen}
-          name={ROUTES.MAINTENANCE_DETAIL}
-          options={{
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={SubscriptionsScreen}
-          name={ROUTES.SUBSCRIPTIONS}
-          options={{
-            title: 'Subscriptions',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={SubscriptionDetailScreen}
-          name={ROUTES.SUBSCRIPTION_DETAIL}
-          options={{
-            title: 'Subscriber',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={SubscriptionPlanDetailScreen}
-          name={ROUTES.SUBSCRIPTION_PLAN_DETAIL}
-          options={{
-            title: 'Subscription details',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={SubscriptionPlanSubscribersScreen}
-          name={ROUTES.SUBSCRIPTION_PLAN_SUBSCRIBERS}
-          options={{
-            title: 'Subscribers',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={CustomerDetailsScreen}
-          name={ROUTES.CUSTOMER_DETAILS}
-          options={{
-            title: 'Customer details',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={QuoteDetailScreen}
-          name={ROUTES.QUOTE_DETAIL}
-          options={{
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={BookingLinkScreen}
-          name={ROUTES.BOOKING_LINK}
-          options={{
-            title: 'Booking link',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={QrCodeScreen}
-          name={ROUTES.QR_CODE}
-          options={{
-            title: 'QR code',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={MarketingScreen}
-          name={ROUTES.MARKETING}
-          options={{
-            title: 'Marketing',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={PromoCodeDetailScreen}
-          name={ROUTES.MARKETING_PROMO_DETAIL}
-          options={{
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={SaleDetailScreen}
-          name={ROUTES.MARKETING_SALE_DETAIL}
-          options={{
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={PaymentsScreen}
-          name={ROUTES.MORE_PAYMENTS}
-          options={{
-            title: 'Payments',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-        <Stack.Screen
-          component={ExpensesScreen}
-          name={ROUTES.EXPENSES}
-          options={{
-            title: 'Expenses',
-            headerBackButtonDisplayMode: 'minimal',
-            headerBackTitleVisible: false,
-          }}
-        />
-      </Stack.Navigator>
+      <TeamMembersProvider>
+        <Stack.Navigator screenOptions={nativeStackScreenOptions({ colors })}>
+          <Stack.Screen
+            component={MoreScreen}
+            name={ROUTES.MORE_HOME}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            component={AccountSettingsScreen}
+            name={ROUTES.ACCOUNT_SETTINGS}
+            options={{
+              title: 'Account',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={NotificationSettingsScreen}
+            name={ROUTES.NOTIFICATIONS}
+            options={{
+              title: 'Notification settings',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={SentTextsScreen}
+            name={ROUTES.SENT_TEXTS}
+            options={{
+              title: 'Messages sent',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={CustomerSmsUpsellScreen}
+            name={ROUTES.CUSTOMER_SMS_UPSELL}
+            options={{
+              title: 'Customer notifications',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={HelpScreen}
+            name={ROUTES.HELP}
+            options={{
+              title: HELP_SCREEN_TITLE,
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={SupportScreen}
+            name={ROUTES.SUPPORT}
+            options={{
+              title: CONTACT_US_SCREEN_TITLE,
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={LegalScreen}
+            name={ROUTES.LEGAL}
+            options={{
+              title: 'Privacy & terms',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={ServicesScreen}
+            name={ROUTES.SERVICES_LIST}
+            options={{
+              title: 'Services',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={ServiceEditScreen}
+            name={ROUTES.SERVICES_EDIT}
+            options={{
+              title: 'Edit service',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={AvailabilityScreen}
+            name={ROUTES.AVAILABILITY}
+            options={{
+              title: 'Availability',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={QuotesScreen}
+            name={ROUTES.QUOTES}
+            options={{
+              title: 'Quotes',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={ReviewsScreen}
+            name={ROUTES.REVIEWS}
+            options={{
+              title: 'Reviews',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={TeamScreen}
+            name={ROUTES.TEAM}
+            options={{
+              title: 'Team',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={TeamMemberDetailsScreen}
+            name={ROUTES.TEAM_MEMBER_DETAILS}
+            options={{
+              title: TEAM_MEMBER_ROLE_LABEL,
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={MaintenanceScreen}
+            name={ROUTES.MAINTENANCE}
+            options={{
+              title: 'Maintenance details',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={MaintenanceDetailScreen}
+            name={ROUTES.MAINTENANCE_DETAIL}
+            options={{
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={SubscriptionsScreen}
+            name={ROUTES.SUBSCRIPTIONS}
+            options={{
+              title: 'Subscriptions',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={SubscriptionDetailScreen}
+            name={ROUTES.SUBSCRIPTION_DETAIL}
+            options={{
+              title: 'Subscriber',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={SubscriptionPlanDetailScreen}
+            name={ROUTES.SUBSCRIPTION_PLAN_DETAIL}
+            options={{
+              title: 'Subscription details',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={SubscriptionPlanSubscribersScreen}
+            name={ROUTES.SUBSCRIPTION_PLAN_SUBSCRIBERS}
+            options={{
+              title: 'Subscribers',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={CustomerDetailsScreen}
+            name={ROUTES.CUSTOMER_DETAILS}
+            options={{
+              title: 'Customer details',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={QuoteDetailScreen}
+            name={ROUTES.QUOTE_DETAIL}
+            options={{
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={BookingLinkScreen}
+            name={ROUTES.BOOKING_LINK}
+            options={{
+              title: 'Booking link',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={QrCodeScreen}
+            name={ROUTES.QR_CODE}
+            options={{
+              title: 'QR code',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={MarketingScreen}
+            name={ROUTES.MARKETING}
+            options={{
+              title: 'Marketing',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={PromoCodeDetailScreen}
+            name={ROUTES.MARKETING_PROMO_DETAIL}
+            options={{
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={SaleDetailScreen}
+            name={ROUTES.MARKETING_SALE_DETAIL}
+            options={{
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={PaymentsScreen}
+            name={ROUTES.MORE_PAYMENTS}
+            options={{
+              title: 'Payments',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={ExpensesScreen}
+            name={ROUTES.EXPENSES}
+            options={{
+              title: 'Expenses',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+        </Stack.Navigator>
+      </TeamMembersProvider>
     </MarketingCampaignsProvider>
   );
 }

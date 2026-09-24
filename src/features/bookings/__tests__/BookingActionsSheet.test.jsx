@@ -53,4 +53,13 @@ describe('BookingActionsSheet', () => {
     jest.advanceTimersByTime(BOOKING_ACTIONS_HANDOFF_MS);
     expect(onMarkCompleted).toHaveBeenCalledTimes(1);
   });
+
+  it('hides create-style writes and keeps Complete plus Job status', () => {
+    renderSheet({ canWriteBookings: false, showJobStatusAction: true });
+    expect(screen.getByLabelText('Job status')).toBeTruthy();
+    expect(screen.getByLabelText('Mark booking complete')).toBeTruthy();
+    expect(screen.queryByLabelText('Edit booking')).toBeNull();
+    expect(screen.queryByLabelText('Reschedule booking')).toBeNull();
+    expect(screen.queryByLabelText('Cancel booking')).toBeNull();
+  });
 });

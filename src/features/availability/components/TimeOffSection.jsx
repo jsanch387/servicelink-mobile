@@ -124,20 +124,21 @@ export function TimeOffSection({ blocks, onAddPress, onDeletePress, style }) {
     () =>
       StyleSheet.create({
         root: {
-          marginTop: 14,
+          marginTop: 22,
         },
         titleRow: {
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'space-between',
           marginBottom: 8,
-          marginTop: 4,
+          minHeight: 22,
           paddingRight: 2,
         },
         sectionTitle: {
-          color: colors.text,
-          fontSize: 17,
-          fontWeight: '700',
+          color: colors.textSecondary,
+          fontSize: 15,
+          fontWeight: '600',
+          letterSpacing: -0.2,
         },
         addLink: {
           alignItems: 'center',

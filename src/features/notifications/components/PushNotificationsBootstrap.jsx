@@ -13,10 +13,12 @@ function handleNotificationResponse(response, canNavigateMain) {
 /** Subscribes to notification opens and maps `data` to navigation (same targets as inbox). */
 export function PushNotificationsBootstrap() {
   const { session, user } = useAuth();
-  const { needsOnboarding } = useOnboardingGate();
+  const { needsOnboarding, needsRemovedFromTeam } = useOnboardingGate();
   const { isLoading: subscriptionLoading } = useSubscription();
 
-  const canNavigateMain = Boolean(session && user?.id && !needsOnboarding && !subscriptionLoading);
+  const canNavigateMain = Boolean(
+    session && user?.id && !needsOnboarding && !needsRemovedFromTeam && !subscriptionLoading,
+  );
 
   const onNotificationResponse = useCallback(
     (response) => {

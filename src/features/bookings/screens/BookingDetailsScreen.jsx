@@ -16,7 +16,6 @@ import {
   DeleteButton,
   InfoSection,
   InlineCardError,
-  LocationSection,
   SurfaceCard,
   useToast,
 } from '../../../components/ui';
@@ -41,12 +40,14 @@ import { BookingRescheduleSheet } from '../booking-details/components/BookingRes
 import { BookingActivitySection } from '../booking-details/components/BookingActivitySection';
 import { BookingDetailsSkeleton } from '../booking-details/components/BookingDetailsSkeleton';
 import { BookingJobsSummarySection } from '../booking-details/components/BookingJobsSummarySection';
-import { ScheduleSection } from '../booking-details/components/ScheduleSection';
+import { BookingVisitSection } from '../booking-details/components/BookingVisitSection';
+import { readAssignedUserId } from '../assignee/utils/readAssignedUserId';
 import { useBookingActions } from '../booking-details/hooks/useBookingActions';
 import { useBookingActionsMovedTip } from '../booking-details/hooks/useBookingActionsMovedTip';
 import { useMarkBookingCompleteFlow } from '../booking-details/hooks/useMarkBookingCompleteFlow';
 import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
 import { buildBookingDetailsModel } from '../booking-details/utils/buildBookingDetailsModel';
+import { useShopAccess } from '../../shop';
 import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
 import { useMembershipVisitForBooking } from '../../subscriptions/hooks/useMembershipVisitForBooking';
 
@@ -62,6 +63,7 @@ export function BookingDetailsScreen({ route }) {
   const scrollRef = useRef(/** @type {ScrollView | null} */ (null));
   const detailsQuery = useBookingDetails(bookingId);
   const bookingActions = useBookingActions(bookingId);
+  const { canWriteBookings } = useShopAccess();
   const smsAccess = useCustomerSmsAccess();
   const details = useMemo(
     () => buildBookingDetailsModel(detailsQuery.booking),
@@ -207,10 +209,7 @@ export function BookingDetailsScreen({ route }) {
     handleOpenCustomer,
   ]);
 
-  const notesDisplay = useMemo(() => {
-    const n = String(details.notes ?? '').trim();
-    return n.length > 0 ? n : 'No notes';
-  }, [details.notes]);
+  const notesDisplay = useMemo(() => String(details.notes ?? '').trim(), [details.notes]);
 
   const handleMarkCompleted = useCallback(() => {
     if (isCompletedStatus || isCancelledStatus || !bookingId) {
@@ -383,6 +382,8 @@ export function BookingDetailsScreen({ route }) {
         />
       )}
       <BookingRescheduleSheet
+        bookingId={bookingId}
+        businessId={detailsQuery.booking?.business_id ?? null}
         initialStartMs={Number.isFinite(bookingStartMs) ? bookingStartMs : undefined}
         isSubmitting={bookingActions.isReschedulingBooking}
         onSubmitReschedule={bookingActions.rescheduleBooking}
@@ -390,6 +391,7 @@ export function BookingDetailsScreen({ route }) {
         onRequestClose={() => setRescheduleSheetOpen(false)}
       />
       <BookingActionsSheet
+        canWriteBookings={canWriteBookings}
         isCancelDisabled={isCancelledStatus || isCompletedStatus}
         isCancellingBooking={bookingActions.isCancellingBooking}
         isDeletingBooking={bookingActions.isDeletingBooking}
@@ -454,7 +456,14 @@ export function BookingDetailsScreen({ route }) {
               jobs={details.formattedPrice.jobs}
             />
 
-            <ScheduleSection schedule={details.schedule} />
+            <BookingVisitSection
+              assignedUserId={readAssignedUserId(detailsQuery.booking)}
+              bookingId={bookingId}
+              bookingStatus={details.status}
+              location={details.location}
+              schedule={details.schedule}
+              onOpenMaps={handleOpenMaps}
+            />
 
             <InfoSection
               bodyPadding="roomy"
@@ -465,10 +474,6 @@ export function BookingDetailsScreen({ route }) {
 
             {paymentForDisplay?.visible ? (
               <BookingPaymentSection payment={paymentForDisplay} />
-            ) : null}
-
-            {details.location.hasAddress ? (
-              <LocationSection address={details.location.address} onPress={handleOpenMaps} />
             ) : null}
 
             {details.hasVehicle ? (
@@ -484,26 +489,30 @@ export function BookingDetailsScreen({ route }) {
               />
             ) : null}
 
-            <InfoSection
-              bodyPadding="roomy"
-              cardStyle={styles.notesCard}
-              hideIcons
-              rowGap={14}
-              rows={[{ icon: 'document-text-outline', value: notesDisplay }]}
-              title="Notes"
-            />
+            {notesDisplay ? (
+              <InfoSection
+                bodyPadding="roomy"
+                cardStyle={styles.notesCard}
+                hideIcons
+                rowGap={14}
+                rows={[{ icon: 'document-text-outline', value: notesDisplay }]}
+                title="Notes"
+              />
+            ) : null}
 
             <BookingActivitySection onPress={handleOpenActivity} />
-            <View style={styles.deleteSection}>
-              <DeleteButton
-                accessibilityHint="Removes this appointment from your calendar. This can\'t be undone."
-                accessibilityLabel="Delete booking permanently"
-                disabled={actionsBusy || !bookingId}
-                loading={bookingActions.isDeletingBooking}
-                title="Delete booking"
-                onPress={handleDeleteBooking}
-              />
-            </View>
+            {canWriteBookings ? (
+              <View style={styles.deleteSection}>
+                <DeleteButton
+                  accessibilityHint="Removes this appointment from your calendar. This can\'t be undone."
+                  accessibilityLabel="Delete booking permanently"
+                  disabled={actionsBusy || !bookingId}
+                  loading={bookingActions.isDeletingBooking}
+                  title="Delete booking"
+                  onPress={handleDeleteBooking}
+                />
+              </View>
+            ) : null}
           </>
         ) : null}
       </ScrollView>

@@ -20,15 +20,14 @@ export function isCustomerSmsEarlyAccessEmail(email) {
 }
 
 /**
- * Resolves whether this owner can use server SMS / lifecycle UI.
+ * Resolves whether this signed-in user can use server SMS / lifecycle UI.
  *
  * Rollout phases:
  * 1. **Email-only** — `CUSTOMER_SMS_EARLY_ACCESS_EMAILS` is non-empty. Only those
- *    exact logins get `canUseSms`; everyone else (including existing Pro
- *    subscribers) sees the app exactly as if the flag were off. This lets you
- *    ship to prod and test on your own account without exposing it to real customers.
- * 2. **Pro-gated** — clear the allowlist. Pro subscribers get `canUseSms`; non-Pro
- *    see the upsell screen.
+ *    exact logins get `canUseSms`; everyone else sees the app as if the flag
+ *    were off.
+ * 2. **Open** — clear the allowlist. Any signed-in shop user (owner or team
+ *    member) gets `canUseSms`. Not gated on Pro.
  *
  * @param {{
  *   enabled?: boolean;
@@ -46,7 +45,7 @@ export function isCustomerSmsEarlyAccessEmail(email) {
  */
 export function resolveCustomerSmsAccess({
   enabled = CUSTOMER_SMS_ENABLED,
-  hasProAccess = false,
+  hasProAccess: _hasProAccess = false,
   email = null,
   profileLoaded = true,
   restrictToEarlyAccess = CUSTOMER_SMS_EARLY_ACCESS_EMAILS.length > 0,
@@ -89,19 +88,10 @@ export function resolveCustomerSmsAccess({
     };
   }
 
-  if (hasProAccess) {
-    return {
-      featureEnabled: true,
-      canUseSms: true,
-      showUpsell: false,
-      isReady: true,
-    };
-  }
-
   return {
     featureEnabled: true,
-    canUseSms: false,
-    showUpsell: true,
+    canUseSms: true,
+    showUpsell: false,
     isReady: true,
   };
 }

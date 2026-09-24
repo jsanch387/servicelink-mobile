@@ -154,7 +154,7 @@ export function AddonEditorSheet({
             maxLength={ADDON_DESCRIPTION_MAX_LENGTH}
             multiline
             onChangeText={setDescription}
-            placeholder="Optional short description"
+            placeholder="Optional description"
             style={styles.descriptionInput}
             textAlignVertical="top"
             value={description}

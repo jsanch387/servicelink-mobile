@@ -115,7 +115,7 @@ Business-wide add-on catalog (not tied to a single service until assigned).
 - `business_id` (uuid, FK → `business_profiles.id`, on delete CASCADE)
 - `name` (text, NOT NULL)
 - `description` (text, **nullable** — optional short blurb for self-booking / web customers; empty saves as `NULL`)
-  - Check: `service_addons_description_length_check` — `NULL` or `char_length(description) <= 160`
+  - Check: `service_addons_description_length_check` — `NULL` or `char_length(description) <= 800`
   - Mobile constant: `ADDON_DESCRIPTION_MAX_LENGTH` in `src/features/services/constants/addonDescriptionLimits.js`
 - `price_cents` (integer, NOT NULL, default 0)
 - `duration_minutes` (integer, **nullable** — extra time optional)

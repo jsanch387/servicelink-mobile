@@ -25,6 +25,27 @@ describe('bookingCalendar', () => {
     expect(getTimeSlotsForDateKey('2026-04-29', { ...ctx, acceptBookings: false })).toEqual([]);
   });
 
+  it('public booking still hides a taken start time', () => {
+    const slots = getTimeSlotsForDateKey('2027-04-28', {
+      ...ctx,
+      blockingBookingRows: [
+        { scheduled_date: '2027-04-28', start_time: '10:00:00', duration_minutes: 60 },
+      ],
+    });
+    expect(slots.includes('10:00 AM')).toBe(false);
+  });
+
+  it('owner manual booking still offers a taken start time', () => {
+    const slots = getTimeSlotsForDateKey('2027-04-28', {
+      ...ctx,
+      ownerManualBooking: true,
+      blockingBookingRows: [
+        { scheduled_date: '2027-04-28', start_time: '10:00:00', duration_minutes: 60 },
+      ],
+    });
+    expect(slots.includes('10:00 AM')).toBe(true);
+  });
+
   it('isSelectedScheduleStillValid rejects unavailable dates', () => {
     const sundayCtx = {
       ...ctx,

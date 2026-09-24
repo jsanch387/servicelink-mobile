@@ -11,10 +11,26 @@ export const KNOWN_MINIMAL_INBOX_HEADLINES = new Set([
   'Appointment updated',
   'Upcoming appointment',
   'New review',
+  'Job assigned',
   'Customer update',
   'Billing update',
   'Update',
 ]);
+
+/**
+ * Job assigned to a teammate (web `booking.assigned` / “Job assigned”).
+ *
+ * @param {string | undefined} type
+ * @param {string | undefined} referenceType
+ * @param {string | undefined} [title]
+ */
+export function isJobAssignmentNotification(type, referenceType, title) {
+  const blob = `${type ?? ''} ${referenceType ?? ''} ${title ?? ''}`.toLowerCase();
+  if (blob.includes('unassign')) {
+    return false;
+  }
+  return blob.includes('assign');
+}
 
 /**
  * One-line inbox copy: stable, short, no service names. Uses `type` + `reference_type`
@@ -64,6 +80,9 @@ export function notificationMinimalDisplayTitle(type, referenceType, fallbackTit
   }
   if (blob.includes('review')) {
     return 'New review';
+  }
+  if (isJobAssignmentNotification(type, referenceType, fallbackTitle)) {
+    return 'Job assigned';
   }
   if (blob.includes('booking') || blob.includes('appointment')) {
     return 'New appointment';

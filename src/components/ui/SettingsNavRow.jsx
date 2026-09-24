@@ -1,4 +1,4 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
@@ -16,6 +16,8 @@ const CHEVRON_W = 22;
 export function SettingsNavRow({
   disabled = false,
   icon,
+  /** `'ionicons'` (default) or `'material-community'`. */
+  iconLibrary = 'ionicons',
   label,
   labelAccessory,
   onPress,
@@ -107,7 +109,11 @@ export function SettingsNavRow({
           >
             {icon ? (
               <View style={styles.iconWrap}>
-                <Ionicons color={colors.textMuted} name={icon} size={22} />
+                {iconLibrary === 'material-community' ? (
+                  <MaterialCommunityIcons color={colors.textMuted} name={icon} size={22} />
+                ) : (
+                  <Ionicons color={colors.textMuted} name={icon} size={22} />
+                )}
               </View>
             ) : null}
             <View style={styles.labelCol}>

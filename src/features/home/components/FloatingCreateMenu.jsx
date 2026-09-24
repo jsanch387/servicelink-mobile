@@ -6,13 +6,11 @@ import { Animated, Easing, Pressable, StyleSheet, Text, Vibration, View } from '
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { useCreatePaymentHighlight } from '../../payments/create-payment/hooks/useCreatePaymentHighlight';
-import { CreateMenuFabGlow } from './CreateMenuFabGlow';
 
 const FAB_SIZE = 56;
 const FAB_RADIUS = 18;
 const ACTION_GAP = 10;
 const ROW_GAP = 12;
-const GLOW_PAD = 28;
 
 /** Extra inset from screen right so speed-dial rows sit closer to the main FAB center. */
 const ACTION_MENU_RIGHT_NUDGE = Math.round(FAB_SIZE * 0.05);
@@ -248,13 +246,13 @@ export function FloatingCreateMenu({
         },
         fabHost: {
           alignItems: 'center',
-          bottom: bottom - GLOW_PAD / 2,
-          height: FAB_SIZE + GLOW_PAD,
+          bottom,
+          height: FAB_SIZE,
           justifyContent: 'center',
           overflow: 'visible',
           position: 'absolute',
-          right: SCREEN_GUTTER - GLOW_PAD / 2,
-          width: FAB_SIZE + GLOW_PAD,
+          right: SCREEN_GUTTER,
+          width: FAB_SIZE,
           zIndex: 30,
         },
         fabLift: {
@@ -449,11 +447,6 @@ export function FloatingCreateMenu({
       ) : null}
 
       <View pointerEvents="box-none" style={styles.fabHost}>
-        <CreateMenuFabGlow
-          active={highlightPayment && !open}
-          color={paymentGreen}
-          size={FAB_SIZE}
-        />
         <Animated.View
           style={[
             styles.fabLift,

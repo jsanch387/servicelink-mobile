@@ -10,7 +10,7 @@ import {
   EDIT_APPOINTMENT_JOBS_LIST,
   EDIT_APPOINTMENT_NOTES,
 } from '../constants';
-import { formatEditJobsHubSummary } from './mapBookingJobsForEdit';
+import { formatEditJobsHubMoreLabel, formatEditJobsHubSummary } from './mapBookingJobsForEdit';
 import { isEditJobCustom } from './editJobDraft';
 
 /**
@@ -18,6 +18,7 @@ import { isEditJobCustom } from './editJobDraft';
  * @property {string} id
  * @property {string} title
  * @property {string} summary
+ * @property {string} [summarySuffix] leftover count, styled apart from the summary
  * @property {keyof typeof import('@expo/vector-icons').Ionicons.glyphMap} icon
  * @property {number} step
  * @property {number} [summaryMaxLines] lines before ellipsis in the hub row
@@ -25,6 +26,8 @@ import { isEditJobCustom } from './editJobDraft';
 
 const HUB_SUMMARY_MAX_CHARS = 96;
 const HUB_ADDRESS_MAX_CHARS = 64;
+const HUB_JOB_NAME_MAX_CHARS = 48;
+const HUB_JOB_NAME_WITH_MORE_MAX_CHARS = 36;
 
 /** Truncate long hub previews — RN ellipsis alone is not enough for very long single tokens. */
 export function truncateHubSummary(value, max = HUB_SUMMARY_MAX_CHARS) {
@@ -107,7 +110,21 @@ export function formatEditVisitAddonsHubSummary(jobs) {
   }
   if (count === 0) return 'None selected';
   if (count === 1) return firstName || '1 add-on';
-  return `${count} add-ons selected`;
+  return `${count} add-ons`;
+}
+
+/**
+ * Add-ons preview for one job on the job mini-hub.
+ *
+ * @param {unknown[] | null | undefined} addonRows
+ */
+export function formatEditJobAddonsHubSummary(addonRows) {
+  const rows = Array.isArray(addonRows) ? addonRows : [];
+  if (rows.length === 0) return 'None selected';
+  if (rows.length === 1) {
+    return String(rows[0]?.name ?? '').trim() || '1 add-on';
+  }
+  return `${rows.length} add-ons`;
 }
 
 /**
@@ -142,13 +159,18 @@ export function buildEditHubSections({
   /** @type {EditHubSection[]} */
   const sections = [];
 
+  const jobsMoreLabel = formatEditJobsHubMoreLabel(jobs);
   sections.push({
     id: 'jobs',
     title: 'Jobs',
-    summary: truncateHubSummary(formatEditJobsHubSummary(jobs)),
+    summary: truncateHubSummary(
+      formatEditJobsHubSummary(jobs),
+      jobsMoreLabel ? HUB_JOB_NAME_WITH_MORE_MAX_CHARS : HUB_JOB_NAME_MAX_CHARS,
+    ),
+    summarySuffix: jobsMoreLabel,
     icon: 'briefcase-outline',
     step: EDIT_APPOINTMENT_JOBS_LIST,
-    summaryMaxLines: 2,
+    summaryMaxLines: 1,
   });
 
   if (showAddonsSection) {

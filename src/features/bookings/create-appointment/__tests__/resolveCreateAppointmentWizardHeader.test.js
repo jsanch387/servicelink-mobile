@@ -52,7 +52,7 @@ describe('resolveCreateAppointmentWizardHeader', () => {
     });
   });
 
-  it('recommends past vehicles on the vehicle step when they exist', () => {
+  it('keeps default vehicle copy when past vehicles exist', () => {
     expect(
       resolveCreateAppointmentWizardHeader(
         CREATE_APPOINTMENT_STEP.VEHICLE,
@@ -62,7 +62,19 @@ describe('resolveCreateAppointmentWizardHeader', () => {
       ),
     ).toEqual({
       title: "What's the vehicle?",
-      subtitle: "Choose one they've used before — or enter a new one.",
+      subtitle: 'Add vehicle details — or leave blank.',
+    });
+  });
+
+  it('hides review heading copy', () => {
+    expect(
+      resolveCreateAppointmentWizardHeader(CREATE_APPOINTMENT_STEP.REVIEW, {
+        title: 'Review',
+        subtitle: 'Please review the appointment details.',
+      }),
+    ).toEqual({
+      title: '',
+      subtitle: '',
     });
   });
 

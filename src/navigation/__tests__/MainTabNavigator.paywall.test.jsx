@@ -9,6 +9,16 @@ jest.mock('../../features/subscription', () => ({
   useSubscription: jest.fn(),
 }));
 
+jest.mock('../../features/shop', () => ({
+  useShopAccess: () => ({
+    canSeeOffice: true,
+    canWriteBookings: true,
+    isMember: false,
+    isOwner: true,
+    isShopLoading: false,
+  }),
+}));
+
 jest.mock('../../features/bookings', () => ({
   BookingsNavigator: () => null,
 }));

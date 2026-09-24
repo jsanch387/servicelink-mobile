@@ -30,13 +30,5 @@ export const EDIT_APPOINTMENT_ADDONS_ENTRY = -5;
 /** Pick which job’s add-ons to edit (multi-job). */
 export const EDIT_APPOINTMENT_ADDONS_JOBS_LIST = -6;
 
-/** Same wizard steps as create; review copy is edit-specific. */
-export const EDIT_APPOINTMENT_STEP_META = CREATE_APPOINTMENT_STEP_META.map((entry) =>
-  entry.key === 'review'
-    ? {
-        ...entry,
-        title: 'Review changes',
-        subtitle: 'Confirm your updates, then save the appointment.',
-      }
-    : entry,
-);
+/** Same wizard steps as create. Review has no heading. */
+export const EDIT_APPOINTMENT_STEP_META = CREATE_APPOINTMENT_STEP_META;

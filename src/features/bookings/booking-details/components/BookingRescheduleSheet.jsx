@@ -11,6 +11,9 @@ import {
 } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 import { safeUserFacingMessage } from '../../../../utils/safeUserFacingMessage';
+import { fetchBlockingBookingsInRange } from '../../create-appointment/api/schedulingBookings';
+import { confirmOwnerOverlapHeadsUp } from '../../utils/confirmOwnerOverlapHeadsUp';
+import { resolveOwnerOverlapHeadsUp, startClockMinutes } from '../../utils/ownerBookingOverlap';
 
 function formatDateForDisplay(date) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
@@ -123,6 +126,8 @@ export function BookingRescheduleSheet({
   initialStartMs,
   onSubmitReschedule,
   isSubmitting = false,
+  businessId = null,
+  bookingId = null,
 }) {
   const { colors } = useTheme();
   const [dateValue, setDateValue] = useState(() => new Date());
@@ -264,9 +269,42 @@ export function BookingRescheduleSheet({
     }
     setSubmitError('');
     try {
+      const scheduledDate = formatDateForPayload(dateValue);
+      const startTime = formatTimeForPayload(dateValue);
+      const original =
+        typeof initialStartMs === 'number' && Number.isFinite(initialStartMs)
+          ? new Date(initialStartMs)
+          : null;
+      const scheduleMoved =
+        !original ||
+        Number.isNaN(original.getTime()) ||
+        formatDateForPayload(original) !== scheduledDate ||
+        startClockMinutes(formatTimeForPayload(original)) !== startClockMinutes(startTime);
+      if (businessId && scheduleMoved) {
+        try {
+          const { data } = await fetchBlockingBookingsInRange(
+            businessId,
+            scheduledDate,
+            scheduledDate,
+            bookingId,
+          );
+          const overlapMessage = resolveOwnerOverlapHeadsUp({
+            mode: 'reschedule',
+            dateKey: scheduledDate,
+            startTime,
+            rows: data ?? [],
+          });
+          const canContinueOverlap = await confirmOwnerOverlapHeadsUp(overlapMessage);
+          if (!canContinueOverlap) {
+            return;
+          }
+        } catch {
+          // Heads-up is optional. Never block save if the day list fails.
+        }
+      }
       await onSubmitReschedule?.({
-        scheduledDate: formatDateForPayload(dateValue),
-        startTime: formatTimeForPayload(dateValue),
+        scheduledDate,
+        startTime,
       });
       setShowSuccessState(true);
     } catch (error) {

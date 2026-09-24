@@ -78,6 +78,7 @@ import { TapToPayCheckoutIcon } from '../../../tap-to-pay/components/TapToPayChe
 import { TapToPaySetupRequiredSheet } from '../../../tap-to-pay/components/TapToPaySetupRequiredSheet';
 import { isTapToPayNativeRuntimeAvailable } from '../../../tap-to-pay/utils/isTapToPayNativeRuntimeAvailable';
 import { useAuth } from '../../../auth';
+import { useShopAccess } from '../../../shop';
 import {
   CompleteVisitMarkPaidSheet,
   getInPersonPaymentRowLabel,
@@ -109,6 +110,7 @@ function formatUsd(amount) {
  *   tapToPayConnectReady?: boolean;
  *   tapToPayConnectLoading?: boolean;
  *   onTapToPaySetupPress?: () => void;
+ *   isTeamMember?: boolean;
  *   onMarkPaidInPerson: (method: string, amount: number) => void;
  *   amountDue: number;
  *   subtotal: number;
@@ -149,6 +151,7 @@ function CompleteVisitDesignBody({
   tapToPayConnectReady = false,
   tapToPayConnectLoading = false,
   onTapToPaySetupPress,
+  isTeamMember = false,
   amountDue,
   subtotal,
   paidOnline,
@@ -579,6 +582,7 @@ function CompleteVisitDesignBody({
       ) : null}
 
       <TapToPaySetupRequiredSheet
+        isMember={isTeamMember}
         visible={setupSheetVisible}
         onRequestClose={() => setSetupSheetVisible(false)}
         onSetupPress={handleSetupPaymentsPress}
@@ -614,6 +618,7 @@ export function BookingCompleteVisitSheet({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
+  const { isMember } = useShopAccess();
   const toast = useToast();
   const navigation = useNavigation();
   const queryClient = useQueryClient();
@@ -1202,6 +1207,7 @@ export function BookingCompleteVisitSheet({
                     onAddFee={handleAddFee}
                     onMarkPaidInPerson={handleMarkPaidInPerson}
                     onRemoveFee={handleRemoveFee}
+                    isTeamMember={isMember}
                     onTapToPaySetupPress={handleTapToPaySetupPress}
                     onTapToPaySuccess={handleTapToPaySuccess}
                   />

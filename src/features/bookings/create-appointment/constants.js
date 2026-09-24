@@ -51,8 +51,8 @@ export const CREATE_APPOINTMENT_STEP_META = [
   },
   {
     key: 'review',
-    title: 'Review',
-    subtitle: 'Please review the appointment details.',
+    title: '',
+    subtitle: '',
   },
 ];
 
@@ -76,10 +76,16 @@ export const CREATE_APPOINTMENT_LAST_STEP = CREATE_APPOINTMENT_STEP_COUNT - 1;
 /** Max jobs in one manual visit (UI + sequential booking create). */
 export const CREATE_APPOINTMENT_MAX_JOBS = 4;
 
+/** Returning-customer saved assets (vehicles now; pets later). */
+export const PAST_ASSETS_CTA = 'Choose from past vehicles';
+export const PAST_ASSETS_CHANGE = 'Change';
+export const PAST_ASSETS_SHEET_TITLE = 'Past vehicles';
+
 /** Pricing and add-ons steps use their own in-card headings. */
 const STEPS_WITHOUT_MAIN_TITLE = new Set([
   CREATE_APPOINTMENT_STEP.PRICING,
   CREATE_APPOINTMENT_STEP.ADDONS,
+  CREATE_APPOINTMENT_STEP.REVIEW,
 ]);
 
 /**

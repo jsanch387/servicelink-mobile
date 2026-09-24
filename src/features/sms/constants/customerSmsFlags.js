@@ -7,11 +7,11 @@
  * - Hide customer-text rows on Notification settings
  * - Turn off SMS toasts and complete-visit “we'll text” copy
  *
- * **Rollout (current):** allowlist empty → Pro subscribers get SMS (`hasProAccess`).
- * Non-Pro see the Customer notifications upsell when the flag is on.
+ * **Rollout (current):** allowlist empty → any signed-in shop user (owner or
+ * team member) gets server SMS / On my way. Not gated on Pro.
  *
  * Optional early-access: put emails in `CUSTOMER_SMS_EARLY_ACCESS_EMAILS` to
- * temporarily restrict the feature to those logins only (even Pro is excluded).
+ * temporarily restrict the feature to those logins only.
  */
 
 /** Master kill switch for server-backed customer SMS + job lifecycle CTAs. */
@@ -20,7 +20,7 @@ export const CUSTOMER_SMS_ENABLED = true;
 /**
  * Temporary early-access login emails (lowercase).
  * Non-empty = ONLY these emails get the feature (Pro not listed are excluded).
- * Empty = Pro-only gating for everyone (production release).
+ * Empty = open for every signed-in shop user (production).
  *
  * @type {readonly string[]}
  */

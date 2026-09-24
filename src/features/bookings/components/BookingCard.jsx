@@ -2,8 +2,11 @@ import { useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../components/ui';
-import { useTheme } from '../../../theme';
+import { FONT_FAMILIES, useTheme } from '../../../theme';
+import { useAuth } from '../../auth';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
+import { useBookingAssignees } from '../assignee/hooks/useBookingAssignees';
+import { readBookingCardAssignee } from '../assignee/utils/readBookingCardAssignee';
 import { formatBookingServiceLabel } from '../utils/formatBookingServiceLabel';
 
 /**
@@ -18,6 +21,12 @@ import { formatBookingServiceLabel } from '../utils/formatBookingServiceLabel';
  */
 export function BookingCard({ booking, variant = 'standalone', showRelativeLine = true, onPress }) {
   const { colors } = useTheme();
+  const { user } = useAuth();
+  const assignees = useBookingAssignees();
+  const assigneeDisplay = useMemo(
+    () => readBookingCardAssignee(booking, user?.id, assignees),
+    [assignees, booking, user?.id],
+  );
   const serviceTitle = formatBookingServiceLabel(booking);
   const customerName = booking.customer_name?.trim() || 'Customer';
   const scheduleMs = useMemo(
@@ -220,6 +229,39 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
           minWidth: 0,
           opacity: 0.92,
         },
+        assigneeRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          marginTop: 8,
+          maxWidth: '100%',
+        },
+        assigneeAvatar: {
+          alignItems: 'center',
+          backgroundColor: colors.shellElevated,
+          borderColor: colors.cardBorder,
+          borderRadius: 10,
+          borderWidth: 1,
+          height: 20,
+          justifyContent: 'center',
+          marginRight: 7,
+          width: 20,
+        },
+        assigneeInitial: {
+          color: colors.textSecondary,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 10,
+          letterSpacing: -0.2,
+        },
+        assigneeNameCol: {
+          flexShrink: 1,
+          minWidth: 0,
+        },
+        assigneeName: {
+          color: colors.textMuted,
+          fontFamily: FONT_FAMILIES.medium,
+          fontSize: 12,
+          letterSpacing: -0.05,
+        },
         chevron: {
           alignItems: 'center',
           alignSelf: 'stretch',
@@ -282,6 +324,18 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
                   <AppText ellipsizeMode="tail" numberOfLines={2} style={styles.vehicleMetaText}>
                     {vehicleLine}
                   </AppText>
+                ) : null}
+                {assigneeDisplay ? (
+                  <View style={styles.assigneeRow}>
+                    <View style={styles.assigneeAvatar}>
+                      <AppText style={styles.assigneeInitial}>{assigneeDisplay.initial}</AppText>
+                    </View>
+                    <View style={styles.assigneeNameCol}>
+                      <AppText numberOfLines={1} style={styles.assigneeName}>
+                        {assigneeDisplay.name}
+                      </AppText>
+                    </View>
+                  </View>
                 ) : null}
               </View>
               <View style={styles.chevron}>

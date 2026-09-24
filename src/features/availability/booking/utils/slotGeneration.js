@@ -115,7 +115,8 @@ function existingOverlap(dateKey, slotStartM, durationM, existingRows) {
  *   incrementMinutes?: number;
  *   nowMs?: number;
  * }} params
- * `ownerManualBooking` — owner create/edit: skip lead time + time off (still respects weekly hours, past times, overlaps).
+ * `ownerManualBooking` — owner create/edit: skip lead time, time off, and existing-job overlap
+ * (still respects weekly hours and “not in the past”). Public book still hides taken slots.
  * @returns {string[]}
  */
 export function generateTimeSlots({
@@ -147,7 +148,9 @@ export function generateTimeSlots({
     const slotStart = new Date(dayDate);
     slotStart.setHours(Math.floor(t / 60), t % 60, 0, 0);
     if (slotStart.getTime() < earliestStartMs) continue;
-    if (existingOverlap(dateKey, t, duration, existingBookings)) continue;
+    if (!ownerManualBooking && existingOverlap(dateKey, t, duration, existingBookings)) {
+      continue;
+    }
     if (!ownerManualBooking && timeOffBlocksOverlap(dateKey, t, duration, timeOffBlocks)) {
       continue;
     }

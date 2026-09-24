@@ -11,7 +11,7 @@ import {
   normalizeJobStatus,
 } from '../constants/jobStatus';
 import { bookingsDetailsQueryKey } from '../queryKeys';
-import { homeBookingsUpcomingQueryKey } from '../../home/queryKeys';
+import { homeBookingsUpcomingQueryPrefix } from '../../home/queryKeys';
 import { invalidateBookingCachesAfterAction } from '../utils/invalidateBookingCachesAfterAction';
 import { patchBookingJobStatusInDetailsCache } from '../utils/patchBookingJobStatusInDetailsCache';
 import { patchBookingJobStatusInHomeCache } from '../utils/patchBookingJobStatusInHomeCache';
@@ -32,9 +32,13 @@ function readJobStatusFromCaches(queryClient, businessId, bookingId) {
     return normalizeJobStatus(details.job_status);
   }
   if (businessId) {
-    const home = queryClient.getQueryData(homeBookingsUpcomingQueryKey(businessId));
-    if (home?.next?.id === bookingId) {
-      return normalizeJobStatus(home.next.job_status);
+    const homeEntries = queryClient.getQueriesData({
+      queryKey: homeBookingsUpcomingQueryPrefix(businessId),
+    });
+    for (const [, home] of homeEntries) {
+      if (home?.next?.id === bookingId) {
+        return normalizeJobStatus(home.next.job_status);
+      }
     }
   }
   return null;

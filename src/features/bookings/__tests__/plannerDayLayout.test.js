@@ -87,4 +87,28 @@ describe('layoutPlannerDay', () => {
     expect(second.booking.id).toBe('b');
     expect(second.top).toBeGreaterThanOrEqual(first.top + first.height + 1);
   });
+
+  it('shows every job that starts at the same time', () => {
+    const layout = layoutPlannerDay([
+      {
+        id: 'one',
+        scheduled_date: '2026-06-01',
+        start_time: '10:00:00',
+        duration_minutes: 60,
+        status: 'confirmed',
+        service_name: 'Wash',
+        customer_name: 'A',
+      },
+      {
+        id: 'two',
+        scheduled_date: '2026-06-01',
+        start_time: '10:00:00',
+        duration_minutes: 60,
+        status: 'confirmed',
+        service_name: 'Wax',
+        customer_name: 'B',
+      },
+    ]);
+    expect(layout.blocks.map((block) => block.booking.id).sort()).toEqual(['one', 'two']);
+  });
 });

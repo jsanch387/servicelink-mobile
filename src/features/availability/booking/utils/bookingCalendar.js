@@ -9,7 +9,7 @@ import { generateTimeSlots } from './slotGeneration';
  * @property {unknown[]} blockingBookingRows
  * @property {unknown[]} timeOffBlocks
  * @property {string} [minimumNotice]
- * @property {boolean} [ownerManualBooking] Owner create/edit — skip lead time + time off; allow scheduling even when public booking is off.
+ * @property {boolean} [ownerManualBooking] Owner create/edit — skip lead time, time off, and existing-job overlap; allow scheduling even when public booking is off.
  */
 
 /**

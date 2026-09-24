@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useMemo, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Vibration, View } from 'react-native';
@@ -21,6 +21,8 @@ export function FloatingActionButton({
   accessibilityLabel,
   accessibilityHint,
   iconName,
+  /** `'ionicons'` (default) or `'material-community'`. */
+  iconLibrary = 'ionicons',
   badgeIconName = 'add',
   showBadge = true,
 }) {
@@ -105,11 +107,17 @@ export function FloatingActionButton({
         <View style={styles.iconCluster}>
           {showBadge ? (
             <>
-              <Ionicons color={colors.surface} name={iconName} size={24} />
+              {iconLibrary === 'material-community' ? (
+                <MaterialCommunityIcons color={colors.surface} name={iconName} size={24} />
+              ) : (
+                <Ionicons color={colors.surface} name={iconName} size={24} />
+              )}
               <View style={styles.plusBadge}>
                 <Ionicons color={colors.accent} name={badgeIconName} size={14} />
               </View>
             </>
+          ) : iconLibrary === 'material-community' ? (
+            <MaterialCommunityIcons color={colors.surface} name={iconName} size={28} />
           ) : (
             <Ionicons color={colors.surface} name={iconName} size={28} />
           )}

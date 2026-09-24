@@ -12,8 +12,8 @@ export const ON_MY_WAY_CONFIRM_DESIGN_PREVIEW = false;
 
 /**
  * Compile-time alias of {@link CUSTOMER_SMS_ENABLED}.
- * Runtime Next Up / Job status also require Pro (or early-access email) via
- * `useCustomerSmsAccess().canUseSms`.
+ * Runtime Next Up / Job status also require `useCustomerSmsAccess().canUseSms`
+ * (signed-in shop user; not Pro-gated).
  *
  * When false: legacy Next Up (device Messages On my way + Navigate only).
  */

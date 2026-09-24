@@ -39,6 +39,7 @@ import { getMonthDateRangeKeys, getWeekDateRangeKeys } from '../utils/calendarRa
 import { groupBookingsByScheduledDate } from '../utils/groupBookingsByDate';
 import { resolveFreeTierBookingUsed } from '../utils/resolveFreeTierBookingUsed';
 import { ROUTES } from '../../../routes/routes';
+import { useShopAccess } from '../../shop';
 import { useSubscription } from '../../subscription';
 
 const FAB_VERTICAL_GAP = 56;
@@ -73,8 +74,13 @@ export function BookingsScreen() {
     listEnabled: viewMode === BOOKINGS_VIEW_LIST,
   });
   const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
+  const { canSeeOffice } = useShopAccess();
   const showFreeTierUsage =
-    isOwnerProfileLoaded && !hasProAccess && Boolean(list.business?.id) && !list.businessError;
+    canSeeOffice &&
+    isOwnerProfileLoaded &&
+    !hasProAccess &&
+    Boolean(list.business?.id) &&
+    !list.businessError;
 
   const freeTierUsage = useBookingsFreeTierUsage(list.business?.id, {
     enabled: showFreeTierUsage,
