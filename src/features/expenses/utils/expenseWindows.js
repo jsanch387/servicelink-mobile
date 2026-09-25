@@ -195,3 +195,21 @@ export function formatExpenseWindowCaption(fromYmd, toYmd) {
   }
   return `${monthDay(from)} – ${monthDay(to)}`;
 }
+
+/**
+ * Rows the overview needs: this period plus the prior period used for the change pill.
+ * All-time has no bound — callers should load every expense for the business.
+ *
+ * @param {string} range
+ * @param {Date} [now]
+ * @param {{ fromYmd?: string | null; toYmd?: string | null }} [custom]
+ * @returns {{ fromYmd: string; toYmd: string } | null}
+ */
+export function expenseOverviewFetchWindow(range, now = new Date(), custom = {}) {
+  if (range === EXPENSE_RANGE.ALL) return null;
+  const current = expenseRangeWindow(range, now, [], custom);
+  const prior = expensePriorWindow(range, now, custom);
+  const fromYmd = prior && prior.fromYmd < current.fromYmd ? prior.fromYmd : current.fromYmd;
+  const toYmd = prior && prior.toYmd > current.toYmd ? prior.toYmd : current.toYmd;
+  return { fromYmd, toYmd };
+}

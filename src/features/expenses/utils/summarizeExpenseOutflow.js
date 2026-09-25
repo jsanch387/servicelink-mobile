@@ -42,27 +42,12 @@ function formatChangeSentence(changePct, compareName) {
 }
 
 /**
- * @param {number} expenseTotal
- * @param {number | null | undefined} revenueDollars
- */
-export function summarizeExpenseKept(expenseTotal, revenueDollars) {
-  const revenue = Number(revenueDollars);
-  if (!Number.isFinite(revenue)) return null;
-  const spent = Number(expenseTotal) || 0;
-  return {
-    revenue,
-    kept: revenue - spent,
-  };
-}
-
-/**
  * Overview story for the selected Week / Month / Year / All time filter.
  *
  * @param {Array<object>} expenses
  * @param {string} range
  * @param {Date} [now]
  * @param {{
- *   revenueDollars?: number | null;
  *   customFromYmd?: string | null;
  *   customToYmd?: string | null;
  * }} [options]
@@ -99,6 +84,5 @@ export function summarizeExpenseOutflow(
       range !== EXPENSE_RANGE.YEAR && range !== EXPENSE_RANGE.ALL && range !== EXPENSE_RANGE.CUSTOM,
     categories: buildCategoryBreakdown(inRange),
     bars: buildExpenseChartBars(expenses, range, now, custom),
-    kept: summarizeExpenseKept(total, options.revenueDollars),
   };
 }

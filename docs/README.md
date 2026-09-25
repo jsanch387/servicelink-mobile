@@ -10,6 +10,7 @@ Integration and product docs live **with their features** under `src/features/<f
 | **More — delete account** (mobile + Next.js, LAN / web origin) | [`src/features/more/docs/delete-account-integration.md`](../src/features/more/docs/delete-account-integration.md)                                                                                                                                         |
 | **Stripe** (checkout, portal, Connect, envs)                   | [`src/features/stripe/docs/mobile-stripe-feature-map.md`](../src/features/stripe/docs/mobile-stripe-feature-map.md)                                                                                                                                       |
 | **Quotes** (inbox, send API, navigation)                       | [`src/features/quotes/docs/quotes-feature.md`](../src/features/quotes/docs/quotes-feature.md)                                                                                                                                                             |
+| **Expenses** (owner charges, overview, list, table)            | [`src/features/expenses/docs/expenses-feature.md`](../src/features/expenses/docs/expenses-feature.md), [`data`](../src/features/expenses/docs/expenses-data.md)                                                                                           |
 
 ## Repo-wide (stays in `/docs`)
 

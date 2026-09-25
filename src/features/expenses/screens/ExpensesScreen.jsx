@@ -1,40 +1,57 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import {
   customDateWindow,
+  InlineCardError,
   isCompleteCustomDateRange,
   SegmentedToggle,
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { AddExpenseFab } from '../components/AddExpenseFab';
+import { ExpenseDetailSheet } from '../components/ExpenseDetailSheet';
 import { ExpenseEditorSheet } from '../components/ExpenseEditorSheet';
 import { ExpenseInsights } from '../components/ExpenseInsights';
 import { ExpenseList } from '../components/ExpenseList';
+import { ExpenseListSkeleton } from '../components/ExpenseListSkeleton';
+import { ExpenseOverviewSkeleton } from '../components/ExpenseOverviewSkeleton';
 import { EXPENSE_CATEGORY_DEFAULT } from '../constants/expenseCategories';
 import { EXPENSE_RANGE, EXPENSE_RANGE_DEFAULT } from '../constants/expenseRanges';
 import { EXPENSE_SCREEN_TAB, EXPENSE_SCREEN_TAB_OPTIONS } from '../constants/expenseScreenTabs';
-import { MOCK_EXPENSES } from '../constants/mockExpenses';
-import { mockRevenueForRange } from '../constants/mockRevenue';
+import { useExpensesList } from '../hooks/useExpensesList';
+import { useExpensesOverview } from '../hooks/useExpensesOverview';
+import { useExpenseWrites } from '../hooks/useExpenseWrites';
 import { summarizeExpenseOutflow } from '../utils/summarizeExpenseOutflow';
-
-function createExpenseId() {
-  return `exp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
 
 export function ExpensesScreen() {
   const { colors } = useTheme();
   const tabBarHeight = useBottomTabBarHeight();
-  const [expenses, setExpenses] = useState(MOCK_EXPENSES);
   const [screenTab, setScreenTab] = useState(EXPENSE_SCREEN_TAB.OVERVIEW);
   const [range, setRange] = useState(EXPENSE_RANGE_DEFAULT);
   const [customFromYmd, setCustomFromYmd] = useState(/** @type {string | null} */ (null));
   const [customToYmd, setCustomToYmd] = useState(/** @type {string | null} */ (null));
   const [editorVisible, setEditorVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState(
-    /** @type {typeof MOCK_EXPENSES[0] | null} */ (null),
+    /** @type {{ id: string; name: string; amount: number; chargedOn: string; category?: string } | null} */ (
+      null
+    ),
   );
+  const [viewingExpense, setViewingExpense] = useState(
+    /** @type {{ id: string; name: string; amount: number; chargedOn: string; category?: string } | null} */ (
+      null
+    ),
+  );
+  const editHandoffRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
+  const showOverview = screenTab === EXPENSE_SCREEN_TAB.OVERVIEW;
+  const overview = useExpensesOverview({
+    range,
+    customFromYmd,
+    customToYmd,
+    enabled: showOverview,
+  });
+  const list = useExpensesList({ enabled: !showOverview });
+  const { save, remove } = useExpenseWrites();
 
   const selectCustomRange = useCallback(({ fromYmd, toYmd }) => {
     const next = customDateWindow(fromYmd, toYmd);
@@ -46,24 +63,49 @@ export function ExpensesScreen() {
 
   const outflow = useMemo(
     () =>
-      summarizeExpenseOutflow(expenses, range, new Date(), {
-        revenueDollars: mockRevenueForRange(range, { fromYmd: customFromYmd, toYmd: customToYmd }),
+      summarizeExpenseOutflow(overview.expenses, range, new Date(), {
         customFromYmd,
         customToYmd,
       }),
-    [customFromYmd, customToYmd, expenses, range],
+    [customFromYmd, customToYmd, overview.expenses, range],
   );
-  const showOverview = screenTab === EXPENSE_SCREEN_TAB.OVERVIEW;
+
+  useEffect(
+    () => () => {
+      if (editHandoffRef.current) clearTimeout(editHandoffRef.current);
+    },
+    [],
+  );
 
   const openNew = useCallback(() => {
+    if (editHandoffRef.current) {
+      clearTimeout(editHandoffRef.current);
+      editHandoffRef.current = null;
+    }
+    setViewingExpense(null);
     setEditingExpense(null);
     setEditorVisible(true);
   }, []);
 
-  const openEdit = useCallback((expense) => {
-    setEditingExpense(expense);
-    setEditorVisible(true);
+  const openExpense = useCallback((expense) => {
+    setViewingExpense(expense);
   }, []);
+
+  const closeExpense = useCallback(() => {
+    setViewingExpense(null);
+  }, []);
+
+  const editExpense = useCallback(() => {
+    const expense = viewingExpense;
+    if (!expense) return;
+    setViewingExpense(null);
+    if (editHandoffRef.current) clearTimeout(editHandoffRef.current);
+    editHandoffRef.current = setTimeout(() => {
+      editHandoffRef.current = null;
+      setEditingExpense(expense);
+      setEditorVisible(true);
+    }, 320);
+  }, [viewingExpense]);
 
   const closeEditor = useCallback(() => {
     setEditorVisible(false);
@@ -71,46 +113,55 @@ export function ExpensesScreen() {
   }, []);
 
   const handleSave = useCallback(
-    ({ name, amount, chargedOn, category }) => {
-      setExpenses((current) => {
-        if (editingExpense?.id) {
-          return current.map((item) =>
-            item.id === editingExpense.id
-              ? { ...item, name, amount, chargedOn, category: category ?? EXPENSE_CATEGORY_DEFAULT }
-              : item,
-          );
-        }
-        return [
-          {
-            id: createExpenseId(),
-            name,
-            amount,
-            chargedOn,
-            category: category ?? EXPENSE_CATEGORY_DEFAULT,
-          },
-          ...current,
-        ];
-      });
-      closeEditor();
+    async ({ name, amount, chargedOn, category }) => {
+      try {
+        await save.mutateAsync({
+          id: editingExpense?.id,
+          name,
+          amount,
+          chargedOn,
+          category: category ?? EXPENSE_CATEGORY_DEFAULT,
+        });
+        closeEditor();
+      } catch (error) {
+        Alert.alert(
+          'Could not save expense',
+          error instanceof Error ? error.message : 'Try again.',
+        );
+      }
     },
-    [closeEditor, editingExpense],
+    [closeEditor, editingExpense, save],
   );
 
   const handleDelete = useCallback(() => {
-    if (!editingExpense?.id) return;
-    const label = editingExpense.name;
+    if (!viewingExpense?.id) return;
+    const label = viewingExpense.name;
+    const expenseId = viewingExpense.id;
     Alert.alert('Remove expense?', `Remove ${label}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
         style: 'destructive',
         onPress: () => {
-          setExpenses((current) => current.filter((item) => item.id !== editingExpense.id));
-          closeEditor();
+          void remove.mutateAsync(expenseId).then(
+            () => {
+              setViewingExpense(null);
+            },
+            (error) => {
+              Alert.alert(
+                'Could not remove expense',
+                error instanceof Error ? error.message : 'Try again.',
+              );
+            },
+          );
         },
       },
     ]);
-  }, [closeEditor, editingExpense]);
+  }, [remove, viewingExpense]);
+
+  const activeError = showOverview ? overview.error : list.error;
+  const activeLoading = showOverview ? overview.isLoading : list.isLoading;
+  const isEmpty = showOverview ? outflow.total <= 0 : list.expenses.length === 0;
 
   const styles = useMemo(
     () =>
@@ -129,44 +180,83 @@ export function ExpensesScreen() {
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
         },
+        emptyPage: {
+          flex: 1,
+          paddingBottom: 24,
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingTop: 16,
+        },
+        error: {
+          marginBottom: 16,
+        },
       }),
     [colors, tabBarHeight],
   );
 
+  const pageBody = (
+    <>
+      <SegmentedToggle
+        options={EXPENSE_SCREEN_TAB_OPTIONS}
+        selected={screenTab}
+        onSelect={setScreenTab}
+      />
+
+      {activeError ? (
+        <View style={styles.error}>
+          <InlineCardError message={activeError} />
+        </View>
+      ) : null}
+
+      {activeLoading ? (
+        showOverview ? (
+          <ExpenseOverviewSkeleton />
+        ) : (
+          <ExpenseListSkeleton />
+        )
+      ) : showOverview ? (
+        <ExpenseInsights
+          customFromYmd={customFromYmd}
+          customToYmd={customToYmd}
+          outflow={outflow}
+          range={range}
+          onRangeChange={setRange}
+          onSelectCustom={selectCustomRange}
+        />
+      ) : (
+        <ExpenseList expenses={list.expenses} onExpensePress={openExpense} />
+      )}
+    </>
+  );
+
   return (
     <View style={styles.root}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        style={styles.scroll}
-      >
-        <SegmentedToggle
-          options={EXPENSE_SCREEN_TAB_OPTIONS}
-          selected={screenTab}
-          onSelect={setScreenTab}
-        />
-
-        {showOverview ? (
-          <ExpenseInsights
-            customFromYmd={customFromYmd}
-            customToYmd={customToYmd}
-            outflow={outflow}
-            range={range}
-            onRangeChange={setRange}
-            onSelectCustom={selectCustomRange}
-          />
-        ) : (
-          <ExpenseList expenses={expenses} onExpensePress={openEdit} />
-        )}
-      </ScrollView>
+      {isEmpty && !activeLoading ? (
+        <View style={styles.emptyPage}>{pageBody}</View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          {pageBody}
+        </ScrollView>
+      )}
 
       <AddExpenseFab onPress={openNew} />
 
+      <ExpenseDetailSheet
+        expense={viewingExpense}
+        removing={remove.isPending}
+        onDelete={handleDelete}
+        onEdit={editExpense}
+        onRequestClose={closeExpense}
+      />
+
       <ExpenseEditorSheet
         expense={editingExpense}
+        saving={save.isPending}
         visible={editorVisible}
-        onDelete={editingExpense ? handleDelete : undefined}
         onRequestClose={closeEditor}
         onSave={handleSave}
       />

@@ -4,8 +4,8 @@ import { AppText, SurfaceCard, TimeRangePicker, TrendAreaChart } from '../../../
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { EXPENSE_RANGE, EXPENSE_RANGE_FILTERS } from '../constants/expenseRanges';
 import { formatExpenseDollars } from '../utils/expenseMoney';
-import { ExpenseBalanceReceipt } from './ExpenseBalanceReceipt';
 import { ExpenseCategoryBars } from './ExpenseCategoryBars';
+import { ExpenseEmptyState } from './ExpenseEmptyState';
 
 /**
  * Visual overview of money leaving the business for the selected period.
@@ -47,6 +47,12 @@ export function ExpenseInsights({
       StyleSheet.create({
         stack: {
           gap: 16,
+        },
+        emptyRoot: {
+          flex: 1,
+        },
+        emptyScreen: {
+          flex: 1,
         },
         heroCard: {
           gap: 12,
@@ -132,95 +138,112 @@ export function ExpenseInsights({
           marginTop: 4,
           width: '100%',
         },
+        emptyRange: {
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          zIndex: 1,
+        },
       }),
     [colors, isDark],
   );
 
+  const isEmpty = outflow.total <= 0;
+
   return (
-    <View style={styles.stack}>
-      <SurfaceCard outlined={false} style={styles.heroCard}>
-        <View style={styles.heroHeader}>
-          <View style={styles.amountRow}>
-            <View style={styles.amountCol}>
-              <AppText style={styles.heroAmount}>{formatExpenseDollars(outflow.total)}</AppText>
+    <View style={isEmpty ? styles.emptyRoot : styles.stack}>
+      {isEmpty ? (
+        <View style={styles.emptyScreen}>
+          <View style={styles.emptyRange}>
+            <TimeRangePicker
+              customFromYmd={customFromYmd}
+              customKey={EXPENSE_RANGE.CUSTOM}
+              customToYmd={customToYmd}
+              options={EXPENSE_RANGE_FILTERS}
+              value={range}
+              onChange={onRangeChange}
+              onSelectCustom={onSelectCustom}
+            />
+          </View>
+          <ExpenseEmptyState body="Add an expense to track it here." title="No expenses yet" />
+        </View>
+      ) : (
+        <>
+          <SurfaceCard outlined={false} style={styles.heroCard}>
+            <View style={styles.heroHeader}>
+              <View style={styles.amountRow}>
+                <View style={styles.amountCol}>
+                  <AppText style={styles.heroAmount}>{formatExpenseDollars(outflow.total)}</AppText>
+                </View>
+                <View style={styles.rangeCol}>
+                  <TimeRangePicker
+                    customFromYmd={customFromYmd}
+                    customKey={EXPENSE_RANGE.CUSTOM}
+                    customToYmd={customToYmd}
+                    options={EXPENSE_RANGE_FILTERS}
+                    value={range}
+                    onChange={onRangeChange}
+                    onSelectCustom={onSelectCustom}
+                  />
+                </View>
+              </View>
+              <View style={styles.metaRow}>
+                <View style={styles.metaLeft}>
+                  {showChange ? (
+                    <View
+                      style={[
+                        styles.changePill,
+                        spendingDown && styles.changePillDown,
+                        spendingFlat && styles.changePillMuted,
+                      ]}
+                    >
+                      <AppText
+                        style={[
+                          styles.changePillText,
+                          spendingDown && styles.changePillTextDown,
+                          spendingFlat && styles.changePillTextMuted,
+                        ]}
+                      >
+                        {spendingUp ? '↑' : spendingDown ? '↓' : ''}
+                        {spendingFlat ? '' : ' '}
+                        {Math.abs(outflow.changePct)}% {outflow.compareLabel}
+                      </AppText>
+                    </View>
+                  ) : range === EXPENSE_RANGE.ALL ? (
+                    <View style={[styles.changePill, styles.changePillMuted]}>
+                      <AppText style={[styles.changePillText, styles.changePillTextMuted]}>
+                        All expenses
+                      </AppText>
+                    </View>
+                  ) : null}
+                </View>
+                {outflow.windowCaption ? (
+                  <View style={styles.rangeDatesCol}>
+                    <AppText style={styles.rangeDates}>{outflow.windowCaption}</AppText>
+                  </View>
+                ) : null}
+              </View>
             </View>
-            <View style={styles.rangeCol}>
-              <TimeRangePicker
-                customFromYmd={customFromYmd}
-                customKey={EXPENSE_RANGE.CUSTOM}
-                customToYmd={customToYmd}
-                options={EXPENSE_RANGE_FILTERS}
-                value={range}
-                onChange={onRangeChange}
-                onSelectCustom={onSelectCustom}
+
+            <View style={styles.chartWrap}>
+              <TrendAreaChart
+                color={colors.danger}
+                fallbackAccessibilityLabel="Expense chart"
+                formatValue={formatExpenseDollars}
+                gradientId="expenseFill"
+                initialSelection="none"
+                points={chartPoints}
               />
             </View>
-          </View>
-          <View style={styles.metaRow}>
-            <View style={styles.metaLeft}>
-              {showChange ? (
-                <View
-                  style={[
-                    styles.changePill,
-                    spendingDown && styles.changePillDown,
-                    spendingFlat && styles.changePillMuted,
-                  ]}
-                >
-                  <AppText
-                    style={[
-                      styles.changePillText,
-                      spendingDown && styles.changePillTextDown,
-                      spendingFlat && styles.changePillTextMuted,
-                    ]}
-                  >
-                    {spendingUp ? '↑' : spendingDown ? '↓' : ''}
-                    {spendingFlat ? '' : ' '}
-                    {Math.abs(outflow.changePct)}% {outflow.compareLabel}
-                  </AppText>
-                </View>
-              ) : range === EXPENSE_RANGE.ALL ? (
-                <View style={[styles.changePill, styles.changePillMuted]}>
-                  <AppText style={[styles.changePillText, styles.changePillTextMuted]}>
-                    All expenses
-                  </AppText>
-                </View>
-              ) : null}
-            </View>
-            {outflow.windowCaption ? (
-              <View style={styles.rangeDatesCol}>
-                <AppText style={styles.rangeDates}>{outflow.windowCaption}</AppText>
-              </View>
-            ) : null}
-          </View>
-        </View>
+          </SurfaceCard>
 
-        <View style={styles.chartWrap}>
-          <TrendAreaChart
-            color={colors.danger}
-            fallbackAccessibilityLabel="Expense chart"
-            formatValue={formatExpenseDollars}
-            gradientId="expenseFill"
-            initialSelection="none"
-            points={chartPoints}
-          />
-        </View>
-      </SurfaceCard>
-
-      {outflow.kept ? (
-        <SurfaceCard outlined={false}>
-          <ExpenseBalanceReceipt
-            left={outflow.kept.kept}
-            revenue={outflow.kept.revenue}
-            spent={outflow.total}
-          />
-        </SurfaceCard>
-      ) : null}
-
-      {outflow.categories.length > 0 ? (
-        <SurfaceCard outlined={false}>
-          <ExpenseCategoryBars categories={outflow.categories} />
-        </SurfaceCard>
-      ) : null}
+          {outflow.categories.length > 0 ? (
+            <SurfaceCard outlined={false}>
+              <ExpenseCategoryBars categories={outflow.categories} />
+            </SurfaceCard>
+          ) : null}
+        </>
+      )}
     </View>
   );
 }

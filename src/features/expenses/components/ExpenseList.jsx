@@ -4,6 +4,7 @@ import { AppText, SurfaceCard } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { formatExpenseMonthLabel, groupExpensesByMonth } from '../utils/expenseDate';
 import { formatExpenseDollars, sumExpenseAmounts } from '../utils/expenseMoney';
+import { ExpenseEmptyState } from './ExpenseEmptyState';
 import { ExpenseRow } from './ExpenseRow';
 
 /**
@@ -55,38 +56,12 @@ export function ExpenseList({ expenses, onExpensePress }) {
           borderRadius: 14,
           overflow: 'hidden',
         },
-        empty: {
-          alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingVertical: 48,
-        },
-        emptyTitle: {
-          color: colors.textSecondary,
-          fontSize: 17,
-          fontWeight: '700',
-          letterSpacing: -0.2,
-          textAlign: 'center',
-        },
-        emptyBody: {
-          color: colors.textMuted,
-          fontSize: 15,
-          fontWeight: '500',
-          lineHeight: 22,
-          marginTop: 8,
-          maxWidth: 280,
-          textAlign: 'center',
-        },
       }),
     [colors],
   );
 
   if (!hasExpenses) {
-    return (
-      <View style={styles.empty}>
-        <AppText style={styles.emptyTitle}>No expenses yet</AppText>
-        <AppText style={styles.emptyBody}>Add a name, amount, and date. That’s it.</AppText>
-      </View>
-    );
+    return <ExpenseEmptyState body="Add an expense to track it here." title="No expenses yet" />;
   }
 
   return (

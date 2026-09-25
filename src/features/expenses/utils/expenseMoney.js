@@ -22,6 +22,13 @@ export function formatExpenseDollars(amount) {
   });
 }
 
+/** Editor field value with cents (`64.50`). */
+export function formatExpenseAmountInput(amount) {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return '';
+  return n.toFixed(2);
+}
+
 /** Parse a typed dollar string. Returns null when empty or not a positive amount. */
 export function parseExpenseAmount(raw) {
   const n = Number(String(raw ?? '').trim());

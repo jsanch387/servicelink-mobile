@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
-  DeleteButton,
   FormBottomSheetModal,
   SurfaceTextField,
   WizardStepHeader,
@@ -9,7 +8,11 @@ import {
 } from '../../../components/ui';
 import { EXPENSE_CATEGORY_DEFAULT, normalizeExpenseCategory } from '../constants/expenseCategories';
 import { EXPENSE_NAME_MAX_LENGTH, sanitizeExpenseNameInput } from '../utils/expenseName';
-import { parseExpenseAmount, sanitizeExpenseAmountInput } from '../utils/expenseMoney';
+import {
+  formatExpenseAmountInput,
+  parseExpenseAmount,
+  sanitizeExpenseAmountInput,
+} from '../utils/expenseMoney';
 import { ExpenseCategoryChips } from './ExpenseCategoryChips';
 import { ExpenseDateField } from './ExpenseDateField';
 
@@ -32,9 +35,15 @@ const STEPS = [
  * @param {{ id: string; name: string; amount: number; chargedOn: string } | null} [props.expense]
  * @param {() => void} props.onRequestClose
  * @param {(next: { name: string; amount: number; chargedOn: string; category: string }) => void} props.onSave
- * @param {() => void} [props.onDelete]
+ * @param {boolean} [props.saving]
  */
-export function ExpenseEditorSheet({ visible, expense = null, onRequestClose, onSave, onDelete }) {
+export function ExpenseEditorSheet({
+  visible,
+  expense = null,
+  onRequestClose,
+  onSave,
+  saving = false,
+}) {
   const isEdit = Boolean(expense?.id);
   const [step, setStep] = useState(STEP_AMOUNT);
   const [name, setName] = useState('');
@@ -48,7 +57,7 @@ export function ExpenseEditorSheet({ visible, expense = null, onRequestClose, on
     setName(sanitizeExpenseNameInput(expense?.name ?? ''));
     setAmountText(
       expense?.amount != null && Number.isFinite(Number(expense.amount))
-        ? String(expense.amount)
+        ? formatExpenseAmountInput(expense.amount)
         : '',
     );
     setChargedOn(expense?.chargedOn || toLocalYyyyMmDd(new Date()));
@@ -74,7 +83,7 @@ export function ExpenseEditorSheet({ visible, expense = null, onRequestClose, on
   }
 
   function handlePrimary() {
-    if (!canAdvance) return;
+    if (saving || !canAdvance) return;
     if (!isLast) {
       setStep((current) => Math.min(STEP_DATE, current + 1));
       return;
@@ -90,7 +99,8 @@ export function ExpenseEditorSheet({ visible, expense = null, onRequestClose, on
   return (
     <FormBottomSheetModal
       cancelTitle={step === STEP_AMOUNT ? 'Cancel' : 'Back'}
-      primaryDisabled={!canAdvance}
+      primaryDisabled={!canAdvance || saving}
+      primaryLoading={saving}
       primaryTitle={isLast ? (isEdit ? 'Save' : 'Done') : 'Continue'}
       showHeaderDivider={false}
       title={isEdit ? 'Expense' : 'New expense'}
@@ -141,14 +151,7 @@ export function ExpenseEditorSheet({ visible, expense = null, onRequestClose, on
       ) : null}
 
       {step === STEP_DATE ? (
-        <View>
-          <ExpenseDateField valueYyyyMmDd={chargedOn} onChange={setChargedOn} />
-          {isEdit && onDelete ? (
-            <View style={styles.deleteWrap}>
-              <DeleteButton title="Remove expense" onPress={onDelete} />
-            </View>
-          ) : null}
-        </View>
+        <ExpenseDateField valueYyyyMmDd={chargedOn} onChange={setChargedOn} />
       ) : null}
     </FormBottomSheetModal>
   );
@@ -165,8 +168,5 @@ const styles = StyleSheet.create({
   },
   nameStack: {
     gap: 24,
-  },
-  deleteWrap: {
-    marginTop: 24,
   },
 });

@@ -68,7 +68,7 @@ export function ExpenseRow({ expense, showDividerBelow = true, onPress }) {
           color: colors.textMuted,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 12,
-          marginTop: 2,
+          marginTop: 6,
         },
         divider: {
           backgroundColor: colors.border,
@@ -81,7 +81,7 @@ export function ExpenseRow({ expense, showDividerBelow = true, onPress }) {
 
   return (
     <Pressable
-      accessibilityHint="Opens expense to edit"
+      accessibilityHint="Opens expense details"
       accessibilityLabel={`${expense.name}, ${amountLabel}, ${dayLabel}, ${categoryLabel}`}
       accessibilityRole="button"
       onPress={onPress}

@@ -1,6 +1,10 @@
 import { EXPENSE_CATEGORY } from '../../constants/expenseCategories';
 import { EXPENSE_RANGE } from '../../constants/expenseRanges';
-import { expensePriorWindow, expenseRangeWindow } from '../expenseWindows';
+import {
+  expenseOverviewFetchWindow,
+  expensePriorWindow,
+  expenseRangeWindow,
+} from '../expenseWindows';
 import { summarizeExpenseOutflow } from '../summarizeExpenseOutflow';
 
 const NOW = new Date(2026, 8, 7);
@@ -84,6 +88,19 @@ describe('expensePriorWindow', () => {
       fromYmd: '2026-02-15',
       toYmd: '2026-03-02',
     });
+  });
+});
+
+describe('expenseOverviewFetchWindow', () => {
+  it('includes this month and the prior comparison window', () => {
+    expect(expenseOverviewFetchWindow(EXPENSE_RANGE.MONTH, NOW)).toEqual({
+      fromYmd: '2026-08-01',
+      toYmd: '2026-09-07',
+    });
+  });
+
+  it('has no bound for all time', () => {
+    expect(expenseOverviewFetchWindow(EXPENSE_RANGE.ALL, NOW)).toBeNull();
   });
 });
 
@@ -192,25 +209,10 @@ describe('summarizeExpenseOutflow', () => {
     ]);
   });
 
-  it('computes kept as revenue minus expenses in the same window', () => {
-    const outflow = summarizeExpenseOutflow(EXPENSES, EXPENSE_RANGE.MONTH, NOW, {
-      revenueDollars: 400,
-    });
-    expect(outflow.kept).toEqual({ revenue: 400, kept: 300 });
-  });
-
-  it('omits kept when revenue is missing and goes red when expenses exceed revenue', () => {
-    expect(summarizeExpenseOutflow(EXPENSES, EXPENSE_RANGE.MONTH, NOW).kept).toBeNull();
-    expect(
-      summarizeExpenseOutflow(EXPENSES, EXPENSE_RANGE.MONTH, NOW, { revenueDollars: 40 }).kept,
-    ).toEqual({ revenue: 40, kept: -60 });
-  });
-
   it('totals a custom range and compares to the same-length prior period', () => {
     const outflow = summarizeExpenseOutflow(EXPENSES, EXPENSE_RANGE.CUSTOM, NOW, {
       customFromYmd: '2026-08-20',
       customToYmd: '2026-09-06',
-      revenueDollars: 800,
     });
     expect(outflow.total).toBe(300);
     expect(outflow.caption).toBe('Custom');
@@ -219,7 +221,6 @@ describe('summarizeExpenseOutflow', () => {
     expect(outflow.bars).toHaveLength(18);
     expect(outflow.bars[0]).toMatchObject({ label: 'Aug 20', amount: 200 });
     expect(outflow.bars[outflow.bars.length - 1]).toMatchObject({ label: 'Sep 6', amount: 70 });
-    expect(outflow.kept).toEqual({ revenue: 800, kept: 500 });
     expect(outflow.showYearToDate).toBe(false);
   });
 
