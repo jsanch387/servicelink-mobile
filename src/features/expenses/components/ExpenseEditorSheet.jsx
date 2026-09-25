@@ -99,6 +99,7 @@ export function ExpenseEditorSheet({
   return (
     <FormBottomSheetModal
       cancelTitle={step === STEP_AMOUNT ? 'Cancel' : 'Back'}
+      liftFooterWithKeyboard
       primaryDisabled={!canAdvance || saving}
       primaryLoading={saving}
       primaryTitle={isLast ? (isEdit ? 'Save' : 'Done') : 'Continue'}

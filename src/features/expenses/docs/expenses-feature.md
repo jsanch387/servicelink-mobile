@@ -29,7 +29,7 @@ Entry: More → Expenses, last row in the office group (after Marketing and Paym
 | Tab          | Loads                                                                     | Shows                                                         |
 | ------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | **Overview** | Current range plus the prior comparison window. All time loads every row. | Total spent, change pill, chart, category bars, range picker. |
-| **List**     | Every expense for the business, once.                                     | Register grouped by charge month. Tap a row for details.      |
+| **List**     | The newest month with a charge, then the previous month each time the owner taps Load more. | Register grouped by charge month. Tap a row for details.      |
 
 The list ignores the overview range. Week / Month / Year / All time / Custom filter the overview only.
 
@@ -119,7 +119,7 @@ All Supabase calls use the owner session. The client never uses the service role
 | `api/expenses.js`              | Select, insert, update, delete. Maps cents ↔ dollars.                                           |
 | `hooks/useExpenseBusiness.js`  | Current user and business id.                                                                   |
 | `hooks/useExpensesOverview.js` | Overview query. Disabled while List is selected.                                                |
-| `hooks/useExpensesList.js`     | Full register. Disabled until List is selected.                                                 |
+| `hooks/useExpensesList.js`     | Paged register. Disabled until List is selected.                                                |
 | `hooks/useExpenseWrites.js`    | Save (insert or update) and remove. Invalidates `['expenses']`.                                 |
 | `queryKeys.js`                 | `['expenses', 'overview', businessId, range, from, to]` and `['expenses', 'list', businessId]`. |
 
@@ -152,7 +152,7 @@ Detail layout: the name sits at the top of the amount panel. Amount, Category, a
 - Profit, revenue, and “kept” on the overview. That needs real payment totals. Do not put sample revenue next to real expenses.
 - Receipt photos, notes, and extra categories.
 - Editing or deleting from the chart. Those actions are on the list detail sheet.
-- Paging. Overview All time and the list each load every row for the business. Fine while history is short. When a shop has years of charges, the list should load month by month.
+- Overview All time still loads every charge in that range. The list does not: it loads one month at a time.
 
 ## Tests
 

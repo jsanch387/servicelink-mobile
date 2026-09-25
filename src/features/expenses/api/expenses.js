@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { normalizeExpenseCategory } from '../constants/expenseCategories';
+import { expenseMonthBounds } from '../utils/expenseDate';
 
 const EXPENSE_SELECT = 'id, name, amount_cents, charged_on, category';
 
@@ -53,6 +54,63 @@ export async function fetchExpensesForBusiness(businessId, window = {}) {
     return { data: null, error };
   }
   return { data: (data ?? []).map(mapExpenseRow), error: null };
+}
+
+/**
+ * One calendar month of the register, newest month first.
+ * `beforeYmd` skips that date and anything newer, so the next page is the previous month that has a charge.
+ *
+ * @param {string} businessId
+ * @param {string | null} [beforeYmd]
+ * @returns {Promise<{ data: { expenses: ReturnType<typeof mapExpenseRow>[]; monthKey: string | null; hasOlder: boolean } | null; error: unknown }>}
+ */
+export async function fetchExpenseMonthPage(businessId, beforeYmd = null) {
+  let probe = supabase
+    .from('business_expenses')
+    .select('charged_on')
+    .eq('business_id', businessId)
+    .order('charged_on', { ascending: false })
+    .limit(1);
+
+  if (beforeYmd) probe = probe.lt('charged_on', beforeYmd);
+
+  const { data: probeRows, error: probeError } = await probe;
+  if (probeError) return { data: null, error: probeError };
+
+  const anchor = probeRows?.[0]?.charged_on ?? null;
+  const bounds = expenseMonthBounds(anchor);
+  if (!bounds) {
+    return { data: { expenses: [], monthKey: null, hasOlder: false }, error: null };
+  }
+
+  const monthQuery = supabase
+    .from('business_expenses')
+    .select(EXPENSE_SELECT)
+    .eq('business_id', businessId)
+    .gte('charged_on', bounds.fromYmd)
+    .lte('charged_on', bounds.toYmd)
+    .order('charged_on', { ascending: false })
+    .order('id', { ascending: false });
+
+  const olderQuery = supabase
+    .from('business_expenses')
+    .select('id')
+    .eq('business_id', businessId)
+    .lt('charged_on', bounds.fromYmd)
+    .limit(1);
+
+  const [monthResult, olderResult] = await Promise.all([monthQuery, olderQuery]);
+  if (monthResult.error) return { data: null, error: monthResult.error };
+  if (olderResult.error) return { data: null, error: olderResult.error };
+
+  return {
+    data: {
+      expenses: (monthResult.data ?? []).map(mapExpenseRow),
+      monthKey: bounds.monthKey,
+      hasOlder: (olderResult.data ?? []).length > 0,
+    },
+    error: null,
+  };
 }
 
 /**

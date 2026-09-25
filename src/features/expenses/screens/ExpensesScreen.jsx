@@ -223,7 +223,15 @@ export function ExpensesScreen() {
           onSelectCustom={selectCustomRange}
         />
       ) : (
-        <ExpenseList expenses={list.expenses} onExpensePress={openExpense} />
+          <ExpenseList
+            expenses={list.expenses}
+            hasNextPage={list.hasNextPage}
+            isFetchingNextPage={list.isFetchingNextPage}
+            onExpensePress={openExpense}
+            onLoadMore={() => {
+              void list.fetchNextPage();
+            }}
+          />
       )}
     </>
   );

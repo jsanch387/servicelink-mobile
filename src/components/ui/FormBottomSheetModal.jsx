@@ -5,8 +5,9 @@ import { Button } from './Button';
 /**
  * Shared tall bottom sheet for simple forms: `BottomSheetModal` + standard Cancel / primary actions.
  * Use for add-on, add-service style flows; feature screens pass fields as `children`.
- * Footer pins to the bottom of the sheet (`stickyFooter`) and stays under the
- * keyboard while typing (`liftFooterWithKeyboard={false}`).
+ * Footer pins to the bottom of the sheet (`stickyFooter`). By default it stays
+ * under the keyboard. Pass `liftFooterWithKeyboard` when Cancel / Continue
+ * should sit above the keyboard while typing.
  * `onSecondaryPress` overrides the left button (e.g. Back in a stepper).
  */
 export function FormBottomSheetModal({
@@ -22,6 +23,7 @@ export function FormBottomSheetModal({
   onPrimaryPress,
   onSecondaryPress,
   showHeaderDivider = true,
+  liftFooterWithKeyboard = false,
   children,
 }) {
   return (
@@ -50,7 +52,7 @@ export function FormBottomSheetModal({
           />
         </View>
       }
-      liftFooterWithKeyboard={false}
+      liftFooterWithKeyboard={liftFooterWithKeyboard}
       sheetHeightPercent={sheetHeightPercent}
       showHeaderDivider={showHeaderDivider}
       stickyFooter

@@ -43,7 +43,7 @@ export function formatExpenseDateFieldLabel(yyyyMmDd) {
  *
  * @param {string | null | undefined} yyyyMm
  */
-export function formatExpenseMonthLabel(yyyyMm) {
+export function formatExpenseMonthLabel(yyyyMm, now = new Date()) {
   const raw = String(yyyyMm ?? '').trim();
   const match = raw.match(/^(\d{4})-(\d{2})$/);
   if (!match) return '';
@@ -51,7 +51,8 @@ export function formatExpenseMonthLabel(yyyyMm) {
   const month = Number(match[2]) - 1;
   const date = new Date(year, month, 1);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString(undefined, { month: 'long' });
+  const includeYear = year !== now.getFullYear();
+  return date.toLocaleDateString(undefined, includeYear ? { month: 'long', year: 'numeric' } : { month: 'long' });
 }
 
 /**
@@ -60,6 +61,26 @@ export function formatExpenseMonthLabel(yyyyMm) {
 export function expenseMonthKey(yyyyMmDd) {
   const raw = String(yyyyMmDd ?? '').trim();
   return raw.length >= 7 ? raw.slice(0, 7) : '';
+}
+
+/**
+ * Inclusive `YYYY-MM-DD` bounds for the calendar month of a charge date.
+ *
+ * @param {string | null | undefined} yyyyMmDd
+ * @returns {{ monthKey: string; fromYmd: string; toYmd: string } | null}
+ */
+export function expenseMonthBounds(yyyyMmDd) {
+  const monthKey = expenseMonthKey(yyyyMmDd);
+  const match = monthKey.match(/^(\d{4})-(\d{2})$/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+  return {
+    monthKey,
+    fromYmd: `${match[1]}-${match[2]}-01`,
+    toYmd: `${match[1]}-${match[2]}-${String(lastDay).padStart(2, '0')}`,
+  };
 }
 
 /**

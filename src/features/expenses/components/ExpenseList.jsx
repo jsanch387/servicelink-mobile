@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, SurfaceCard } from '../../../components/ui';
+import { AppText, Button, SurfaceCard } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { formatExpenseMonthLabel, groupExpensesByMonth } from '../utils/expenseDate';
 import { formatExpenseDollars, sumExpenseAmounts } from '../utils/expenseMoney';
@@ -13,8 +13,17 @@ import { ExpenseRow } from './ExpenseRow';
  * @param {object} props
  * @param {Array<object>} props.expenses
  * @param {(expense: object) => void} props.onExpensePress
+ * @param {boolean} [props.hasNextPage]
+ * @param {boolean} [props.isFetchingNextPage]
+ * @param {() => void} [props.onLoadMore]
  */
-export function ExpenseList({ expenses, onExpensePress }) {
+export function ExpenseList({
+  expenses,
+  onExpensePress,
+  hasNextPage = false,
+  isFetchingNextPage = false,
+  onLoadMore,
+}) {
   const { colors } = useTheme();
   const monthGroups = useMemo(() => groupExpensesByMonth(expenses), [expenses]);
   const hasExpenses = monthGroups.length > 0;
@@ -56,6 +65,9 @@ export function ExpenseList({ expenses, onExpensePress }) {
           borderRadius: 14,
           overflow: 'hidden',
         },
+        loadMore: {
+          marginTop: 4,
+        },
       }),
     [colors],
   );
@@ -93,6 +105,17 @@ export function ExpenseList({ expenses, onExpensePress }) {
           </View>
         );
       })}
+      {hasNextPage ? (
+        <View style={styles.loadMore}>
+          <Button
+            fullWidth
+            loading={isFetchingNextPage}
+            title="Load more"
+            variant="secondary"
+            onPress={onLoadMore}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
