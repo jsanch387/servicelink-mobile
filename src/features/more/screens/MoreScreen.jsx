@@ -7,13 +7,13 @@ import {
   AppText,
   AppVersionFootnote,
   BetaLabel,
+  NewLabel,
   SettingsNavRow,
   SettingsSection,
 } from '../../../components/ui';
 import { resetAppUpdatesForDev } from '../../appUpdates';
 import { clearTapToPayEducationSeen } from '../../tap-to-pay/native/presentTapToPayEducation';
 import { resetNextUpCoachTipsForDev } from '../../home/dev/resetNextUpCoachTipsForDev';
-import { resetCreatePaymentHighlightForDev } from '../../payments/create-payment/dev/resetCreatePaymentHighlightForDev';
 import { resetOwnerPaymentFailedNoticeForDev } from '../../subscription/dev/resetOwnerPaymentFailedNoticeForDev';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
@@ -66,12 +66,11 @@ export function MoreScreen() {
       resetAppUpdatesForDev(),
       clearTapToPayEducationSeen(),
       resetNextUpCoachTipsForDev(),
-      resetCreatePaymentHighlightForDev(),
       resetOwnerPaymentFailedNoticeForDev(),
     ]).then(() => {
       Alert.alert(
         'Dev',
-        "What's new, Tap to Pay, Next Up coach tips, Try it, Create payment highlight, and Pro payment notice reset.",
+        "What's new, Tap to Pay, Next Up coach tips, Try it, and Pro payment notice reset.",
       );
     });
   };
@@ -113,6 +112,7 @@ export function MoreScreen() {
                   icon="account-group-outline"
                   iconLibrary="material-community"
                   label="Team"
+                  labelAccessory={<NewLabel />}
                   onPress={() => navigation.navigate(ROUTES.TEAM)}
                 />
               ) : null}
@@ -147,8 +147,14 @@ export function MoreScreen() {
               <SettingsNavRow
                 icon="card-outline"
                 label="Payments"
-                showDividerBelow={false}
                 onPress={() => navigation.navigate(ROUTES.MORE_PAYMENTS)}
+              />
+              <SettingsNavRow
+                icon="receipt-outline"
+                label="Expenses"
+                labelAccessory={<NewLabel />}
+                showDividerBelow={false}
+                onPress={() => navigation.navigate(ROUTES.EXPENSES)}
               />
             </>
           ) : null}

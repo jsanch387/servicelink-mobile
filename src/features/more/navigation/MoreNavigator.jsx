@@ -35,6 +35,7 @@ import {
   SaleDetailScreen,
 } from '../../marketing';
 import { ReviewsScreen } from '../../reviews';
+import { ExpensesScreen } from '../../expenses';
 import { TeamMemberDetailsScreen, TeamMembersProvider, TeamScreen } from '../../team';
 import { TEAM_MEMBER_ROLE_LABEL } from '../../team/constants/teamMembersCopy';
 
@@ -296,6 +297,15 @@ export function MoreNavigator() {
             name={ROUTES.MORE_PAYMENTS}
             options={{
               title: 'Payments',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={ExpensesScreen}
+            name={ROUTES.EXPENSES}
+            options={{
+              title: 'Expenses',
               headerBackButtonDisplayMode: 'minimal',
               headerBackTitleVisible: false,
             }}

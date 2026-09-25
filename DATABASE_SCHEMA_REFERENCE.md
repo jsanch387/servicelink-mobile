@@ -153,6 +153,27 @@ Optional browsing groups for the service catalog (e.g. Cars, RVs, Boats). **Not*
 Runnable SQL: `docs/sql/service_categories_migration.sql`  
 Mobile module doc: `src/features/services/categories/docs/service-categories-database.md`
 
+## Expenses
+
+### `business_expenses`
+
+One row per charge the owner logs. Scoped to a business. Team members do not see these rows (`canSeeOffice` is owner-only).
+
+- `id` (uuid, PK, default `gen_random_uuid()`)
+- `business_id` (uuid, FK → `business_profiles.id`, on delete CASCADE)
+- `name` (text, NOT NULL, trimmed length 1–40) — matches `EXPENSE_NAME_MAX_LENGTH`
+- `amount_cents` (integer, NOT NULL, `> 0`) — USD cents. `$64.50` is `6450`
+- `charged_on` (date, NOT NULL) — the day the charge posted, not the day it was entered
+- `category` (text, NOT NULL, default `other`) — `supplies | fuel | insurance | equipment | other`
+- `created_by` (uuid, nullable, FK → `auth.users.id`, on delete SET NULL)
+- `created_at`, `updated_at` (timestamptz, NOT NULL; `updated_at` via `trg_business_expenses_set_updated_at`)
+
+Index: `(business_id, charged_on desc)` for the owner list and the overview window.
+
+**RLS:** owner select, insert, update, and delete via `auth_owns_business(business_id)`. No public read.
+
+Mobile read/write reference: `src/features/expenses/docs/expenses-data.md`
+
 ## Other Supporting Tables
 
 - `business_availability` (detailed contract below)

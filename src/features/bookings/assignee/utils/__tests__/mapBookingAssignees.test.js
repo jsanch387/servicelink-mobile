@@ -47,9 +47,7 @@ describe('mapBookingAssignees', () => {
 
   it('keeps the owner email and drops a repeated (owner) suffix', () => {
     expect(
-      mapBookingAssignees([
-        { userId: 'owner-1', label: 'owner@shop.com (owner)', kind: 'owner' },
-      ]),
+      mapBookingAssignees([{ userId: 'owner-1', label: 'owner@shop.com (owner)', kind: 'owner' }]),
     ).toEqual([{ userId: 'owner-1', label: 'Owner', kind: 'owner', email: 'owner@shop.com' }]);
     expect(presentAssigneeDisplay('Owner', 'owner@shop.com (owner)')).toEqual({
       title: 'Owner',

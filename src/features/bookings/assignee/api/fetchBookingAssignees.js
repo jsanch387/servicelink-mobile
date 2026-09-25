@@ -51,7 +51,11 @@ function applyInviteNames(primary, named) {
         : { ...row, label: namedLabel };
     }
     const shopLabel = String(shopRow?.label ?? '').trim();
-    if (isPlaceholderAssigneeLabel(row.label) && shopLabel && !isPlaceholderAssigneeLabel(shopLabel)) {
+    if (
+      isPlaceholderAssigneeLabel(row.label) &&
+      shopLabel &&
+      !isPlaceholderAssigneeLabel(shopLabel)
+    ) {
       return shopRow.email
         ? { ...row, label: shopLabel, email: row.email || shopRow.email }
         : { ...row, label: shopLabel };

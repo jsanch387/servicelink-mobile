@@ -1,3 +1,4 @@
+import { CHART_MONTH_SHORT, chartMonthTick, chartMonthTooltip } from '../../../components/ui';
 import { calendarYyyyMmDdFromScheduledDate, localYyyyMmDd } from '../../home/utils/bookingStart';
 import { computeBookingEarningsCents } from '../../home/utils/todaysEarnings';
 import {
@@ -82,34 +83,6 @@ function sumDaysInRange(byDay, fromYmd, toYmd) {
 
 const WEEKDAY_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const WEEKDAY_MED = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTH_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-const MONTH_LONG = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
 
 /**
  * @param {Map<string, number>} byDay
@@ -125,7 +98,7 @@ function barsForWeek(byDay, fromYmd, toYmd) {
   while (cursor.getTime() <= end.getTime()) {
     const ymd = localYyyyMmDd(cursor);
     const weekday = cursor.getDay();
-    const monthShort = MONTH_SHORT[cursor.getMonth()];
+    const monthShort = chartMonthTick(cursor.getMonth());
     const dayNum = cursor.getDate();
     bars.push({
       key: ymd,
@@ -180,13 +153,13 @@ function barsForMonth(byDay, fromYmd, toYmd) {
  * @returns {RevenueBar[]}
  */
 function barsForYear(byDay, year) {
-  return MONTH_SHORT.map((label, monthIndex) => {
+  return CHART_MONTH_SHORT.map((label, monthIndex) => {
     const from = new Date(year, monthIndex, 1);
     const to = new Date(year, monthIndex + 1, 0);
     return {
       key: `${year}-${monthIndex + 1}`,
       label,
-      fullLabel: MONTH_LONG[monthIndex],
+      fullLabel: chartMonthTooltip(monthIndex, year),
       cents: sumDaysInRange(byDay, localYyyyMmDd(from), localYyyyMmDd(to)),
     };
   });
@@ -210,15 +183,15 @@ function customBucketKind(fromYmd, toYmd) {
  * @returns {string}
  */
 function customChunkFullLabel(from, to) {
-  const fromLabel = `${MONTH_SHORT[from.getMonth()]} ${from.getDate()}`;
+  const fromLabel = `${chartMonthTick(from.getMonth())} ${from.getDate()}`;
   if (localYyyyMmDd(from) === localYyyyMmDd(to)) return fromLabel;
   if (from.getFullYear() === to.getFullYear() && from.getMonth() === to.getMonth()) {
     return `${fromLabel}–${to.getDate()}`;
   }
   if (from.getFullYear() === to.getFullYear()) {
-    return `${fromLabel}–${MONTH_SHORT[to.getMonth()]} ${to.getDate()}`;
+    return `${fromLabel}–${chartMonthTick(to.getMonth())} ${to.getDate()}`;
   }
-  return `${fromLabel}, ${from.getFullYear()}–${MONTH_SHORT[to.getMonth()]} ${to.getDate()}, ${to.getFullYear()}`;
+  return `${fromLabel}, ${from.getFullYear()}–${chartMonthTick(to.getMonth())} ${to.getDate()}, ${to.getFullYear()}`;
 }
 
 /**
@@ -238,7 +211,7 @@ function barsForCustomDays(byDay, fromYmd, toYmd) {
   while (cursor.getTime() <= end.getTime()) {
     const ymd = localYyyyMmDd(cursor);
     const weekday = cursor.getDay();
-    const monthShort = MONTH_SHORT[cursor.getMonth()];
+    const monthShort = chartMonthTick(cursor.getMonth());
     const dayNum = cursor.getDate();
     bars.push({
       key: ymd,
@@ -272,7 +245,7 @@ function barsForCustomWeeks(byDay, fromYmd, toYmd) {
     const toKey = localYyyyMmDd(to);
     bars.push({
       key: `cw${weekIndex}-${fromKey}`,
-      label: `${MONTH_SHORT[cursor.getMonth()]} ${cursor.getDate()}`,
+      label: `${chartMonthTick(cursor.getMonth())} ${cursor.getDate()}`,
       fullLabel: customChunkFullLabel(cursor, to),
       cents: sumDaysInRange(byDay, fromKey, toKey),
     });
@@ -291,7 +264,6 @@ function barsForCustomWeeks(byDay, fromYmd, toYmd) {
 function barsForCustomMonths(byDay, fromYmd, toYmd) {
   const start = parseLocalYmd(fromYmd);
   const end = parseLocalYmd(toYmd);
-  const showYear = start.getFullYear() !== end.getFullYear();
   /** @type {RevenueBar[]} */
   const bars = [];
   let year = start.getFullYear();
@@ -304,8 +276,8 @@ function barsForCustomMonths(byDay, fromYmd, toYmd) {
     const to = monthEnd.getTime() > end.getTime() ? end : monthEnd;
     bars.push({
       key: `${year}-${month + 1}`,
-      label: showYear ? `${MONTH_SHORT[month]} ${String(year).slice(2)}` : MONTH_SHORT[month],
-      fullLabel: `${MONTH_LONG[month]} ${year}`,
+      label: chartMonthTick(month),
+      fullLabel: chartMonthTooltip(month, year),
       cents: sumDaysInRange(byDay, localYyyyMmDd(from), localYyyyMmDd(to)),
     });
     month += 1;

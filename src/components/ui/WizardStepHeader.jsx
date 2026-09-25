@@ -16,6 +16,7 @@ import { useTheme } from '../../theme';
  * @param {string} [props.progressAccessibilityLabel] - e.g. "Quote wizard progress"
  * @param {boolean} [props.embedded] When true, omits horizontal padding (parent scroll content provides gutter).
  * @param {boolean} [props.showProgress] When false, title/subtitle only (e.g. edit section screens).
+ * @param {boolean} [props.compactCopy] Tighter title + subtitle grouping.
  */
 export function WizardStepHeader({
   stepIndex,
@@ -25,6 +26,7 @@ export function WizardStepHeader({
   progressAccessibilityLabel = 'Wizard progress',
   embedded = false,
   showProgress = true,
+  compactCopy = false,
   style,
 }) {
   const { colors } = useTheme();
@@ -55,6 +57,9 @@ export function WizardStepHeader({
           borderRadius: 2,
           height: '100%',
         },
+        copy: {
+          gap: 2,
+        },
         title: {
           color: colors.text,
           fontSize: 26,
@@ -64,13 +69,12 @@ export function WizardStepHeader({
         },
         subtitle: {
           color: colors.textMuted,
-          fontSize: 15,
+          fontSize: compactCopy ? 14 : 15,
           fontWeight: '400',
-          lineHeight: 20,
-          marginTop: 2,
+          lineHeight: compactCopy ? 19 : 20,
         },
       }),
-    [colors, embedded, hasCopy, showProgress],
+    [colors, compactCopy, embedded, hasCopy, showProgress],
   );
 
   return (
@@ -89,12 +93,16 @@ export function WizardStepHeader({
           <View style={[styles.fill, { width: `${progress}%` }]} />
         </View>
       ) : null}
-      {titleText ? (
-        <AppText accessibilityRole="header" style={styles.title}>
-          {titleText}
-        </AppText>
+      {hasCopy ? (
+        <View style={styles.copy}>
+          {titleText ? (
+            <AppText accessibilityRole="header" style={styles.title}>
+              {titleText}
+            </AppText>
+          ) : null}
+          {subtitleText ? <AppText style={styles.subtitle}>{subtitleText}</AppText> : null}
+        </View>
       ) : null}
-      {subtitleText ? <AppText style={styles.subtitle}>{subtitleText}</AppText> : null}
     </Pressable>
   );
 }

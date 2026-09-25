@@ -38,9 +38,7 @@ describe('ScheduleStep', () => {
     renderStep(
       <ScheduleStep
         {...pickerProps}
-        blockingBookingRows={[
-          { id: 'a', scheduled_date: '2026-04-29', start_time: '10:00:00' },
-        ]}
+        blockingBookingRows={[{ id: 'a', scheduled_date: '2026-04-29', start_time: '10:00:00' }]}
       />,
     );
 
@@ -58,9 +56,7 @@ describe('ScheduleStep', () => {
       <ScheduleStep
         {...pickerProps}
         selectedTime="11:00 AM"
-        blockingBookingRows={[
-          { id: 'a', scheduled_date: '2026-04-29', start_time: '10:00:00' },
-        ]}
+        blockingBookingRows={[{ id: 'a', scheduled_date: '2026-04-29', start_time: '10:00:00' }]}
       />,
     );
 

@@ -2,7 +2,8 @@ export const TEAM_HOW_IT_WORKS_TITLE = 'How team works';
 export const TEAM_HOW_IT_WORKS_LINK_LABEL = 'How it works';
 export const TEAM_HOW_IT_WORKS_DISMISS_LABEL = 'Got it';
 
-export const TEAM_HOW_IT_WORKS_INTRO = 'Add a teammate, assign them appointments, and they only see those jobs.';
+export const TEAM_HOW_IT_WORKS_INTRO =
+  'Add a teammate, assign them appointments, and they only see those jobs.';
 
 export const TEAM_HOW_IT_WORKS_ITEMS = [
   {
