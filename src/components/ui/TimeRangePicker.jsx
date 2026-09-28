@@ -233,7 +233,9 @@ export function TimeRangePicker({
               }
               mode={Platform.OS === 'ios' ? 'spinner' : 'dropdown'}
               selectedValue={draft}
-              style={Platform.OS === 'ios' ? styles.pickerIOS : { width: '100%' }}
+              style={
+                Platform.OS === 'ios' ? styles.pickerIOS : { color: colors.text, width: '100%' }
+              }
               themeVariant={isDark ? 'dark' : 'light'}
               onValueChange={(itemValue) => {
                 if (itemValue === '') return;
@@ -241,7 +243,12 @@ export function TimeRangePicker({
               }}
             >
               {options.map((opt) => (
-                <Picker.Item key={opt.key} label={opt.label} value={opt.key} />
+                <Picker.Item
+                  key={opt.key}
+                  color={Platform.OS === 'android' ? colors.text : undefined}
+                  label={opt.label}
+                  value={opt.key}
+                />
               ))}
             </Picker>
           </View>

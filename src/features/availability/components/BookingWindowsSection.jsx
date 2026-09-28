@@ -138,7 +138,7 @@ export function BookingWindowsSection({
                 ? pickerValue
                 : pickerOptions[0]?.value
             }
-            style={Platform.OS === 'ios' ? styles.pickerIOS : { width: '100%' }}
+            style={Platform.OS === 'ios' ? styles.pickerIOS : { color: colors.text, width: '100%' }}
             themeVariant={isDark ? 'dark' : 'light'}
             onValueChange={(itemValue) => {
               if (itemValue === '') return;
@@ -153,6 +153,7 @@ export function BookingWindowsSection({
             {pickerOptions.map((option) => (
               <Picker.Item
                 key={option.value}
+                color={Platform.OS === 'android' ? colors.text : undefined}
                 label={
                   option.value === 'none'
                     ? pickerKind === 'buffer'

@@ -301,7 +301,9 @@ export function SelectField({
               }
               mode={Platform.OS === 'ios' ? 'spinner' : 'dropdown'}
               selectedValue={pickerSelectedValue}
-              style={Platform.OS === 'ios' ? styles.pickerIOS : { width: '100%' }}
+              style={
+                Platform.OS === 'ios' ? styles.pickerIOS : { color: colors.text, width: '100%' }
+              }
               themeVariant={isDark ? 'dark' : 'light'}
               onValueChange={(itemValue) => {
                 if (itemValue === '') return;
@@ -309,7 +311,12 @@ export function SelectField({
               }}
             >
               {options.map((opt) => (
-                <Picker.Item key={String(opt.value)} label={opt.label} value={opt.value} />
+                <Picker.Item
+                  key={String(opt.value)}
+                  color={Platform.OS === 'android' ? colors.text : undefined}
+                  label={opt.label}
+                  value={opt.value}
+                />
               ))}
             </Picker>
           </View>
