@@ -150,6 +150,12 @@ export function MoreScreen() {
                 onPress={() => navigation.navigate(ROUTES.MORE_PAYMENTS)}
               />
               <SettingsNavRow
+                icon="documents-outline"
+                label="Invoices"
+                labelAccessory={<NewLabel />}
+                onPress={() => navigation.navigate(ROUTES.INVOICES)}
+              />
+              <SettingsNavRow
                 icon="receipt-outline"
                 label="Expenses"
                 labelAccessory={<NewLabel />}

@@ -36,6 +36,7 @@ import {
 } from '../../marketing';
 import { ReviewsScreen } from '../../reviews';
 import { ExpensesScreen } from '../../expenses';
+import { InvoiceDetailScreen, InvoicesScreen } from '../../invoicing';
 import { TeamMemberDetailsScreen, TeamMembersProvider, TeamScreen } from '../../team';
 import { TEAM_MEMBER_ROLE_LABEL } from '../../team/constants/teamMembersCopy';
 
@@ -306,6 +307,24 @@ export function MoreNavigator() {
             name={ROUTES.EXPENSES}
             options={{
               title: 'Expenses',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={InvoicesScreen}
+            name={ROUTES.INVOICES}
+            options={{
+              title: 'Invoices',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={InvoiceDetailScreen}
+            name={ROUTES.INVOICE_DETAIL}
+            options={{
+              title: 'Invoice',
               headerBackButtonDisplayMode: 'minimal',
               headerBackTitleVisible: false,
             }}

@@ -197,6 +197,23 @@ describe('resolvePushDestination', () => {
     });
   });
 
+  it('opens Expenses for expenses slug and path aliases', () => {
+    const expected = {
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.EXPENSES,
+    };
+    expect(resolvePushDestination({ referenceType: 'screen', referenceId: 'expenses' })).toEqual(
+      expected,
+    );
+    expect(
+      resolvePushDestination({ referenceType: 'announcement', referenceId: 'expenses' }),
+    ).toEqual(expected);
+    expect(
+      resolvePushDestination({ referenceType: 'screen', referenceId: '/more/expenses' }),
+    ).toEqual(expected);
+  });
+
   it('maps subscriptions screen slug to subscriptions hub', () => {
     expect(
       resolvePushDestination({ referenceType: 'screen', referenceId: 'subscriptions' }),

@@ -27,17 +27,17 @@ import { ROUTES } from '../../../routes/routes';
 /** @type {WhatsNewAnnouncement[]} */
 export const APP_UPDATE_ANNOUNCEMENTS = [
   {
-    id: 'teams-v3',
+    id: 'expenses-v1',
     badge: 'New',
-    icon: 'people-outline',
-    title: 'Teams',
+    icon: 'receipt-outline',
+    title: 'Expenses',
     bullets: [
-      'Invite a teammate by email from More.',
-      'Assign them the appointments they should handle.',
-      'They can sign in to the ServiceLink app with their own account.',
+      'Log what the business spends from More.',
+      'See totals and categories for the week, month, or year.',
+      'Add, edit, or remove a charge when it changes.',
     ],
-    primaryLabel: 'Open Team',
+    primaryLabel: 'Open Expenses',
     secondaryLabel: 'Not now',
-    cta: { tab: ROUTES.MORE, screen: ROUTES.TEAM },
+    cta: { tab: ROUTES.MORE, screen: ROUTES.EXPENSES },
   },
 ];

@@ -39,6 +39,7 @@ const SCREEN_SLUG_DESTINATIONS = {
   reviews: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.REVIEWS },
   payments: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.MORE_PAYMENTS },
   payments_connect: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.MORE_PAYMENTS },
+  expenses: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.EXPENSES },
   maintenance: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.MAINTENANCE },
   availability: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.AVAILABILITY },
   services: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.SERVICES_LIST },
@@ -85,6 +86,8 @@ const SCREEN_SLUG_DESTINATIONS = {
 const PATH_DESTINATIONS = {
   [PATHS.NOTIFICATIONS]: SCREEN_SLUG_DESTINATIONS.notification_settings,
   'more/notifications': SCREEN_SLUG_DESTINATIONS.notification_settings,
+  [PATHS.EXPENSES]: SCREEN_SLUG_DESTINATIONS.expenses,
+  'more/expenses': SCREEN_SLUG_DESTINATIONS.expenses,
 };
 
 /**

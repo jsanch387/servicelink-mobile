@@ -68,6 +68,10 @@ export const ROUTES = {
   PAYMENTS: 'Payments',
   /** More stack — business expenses list. */
   EXPENSES: 'Expenses',
+  /** More stack — customer invoices. */
+  INVOICES: 'Invoices',
+  /** More stack — invoice document preview. */
+  INVOICE_DETAIL: 'InvoiceDetail',
   /** Bottom tab: More (settings, business tools, support) */
   MORE: 'More',
   MORE_HOME: 'MoreHome',
@@ -133,6 +137,8 @@ export const PATHS = {
   MORE_PAYMENTS: '/more/payments',
   PAYMENTS: '/payments',
   EXPENSES: '/more/expenses',
+  INVOICES: '/more/invoices',
+  INVOICE_DETAIL: '/more/invoices/detail',
   MORE: '/more',
   MORE_HOME: '/more/home',
   ACCOUNT_SETTINGS: '/more/account',
