@@ -38,7 +38,15 @@ function getValueIndexFromOffset(offsetY, valuesLength) {
  * One snapping wheel column. Values are display strings and `selected` is one of them.
  * `values` may change while open (e.g. switching weeks → months); the column re-snaps.
  */
-export function WheelColumn({ values, selected, onSelectedChange, listRef, wheelStyle }) {
+export function WheelColumn({
+  values,
+  selected,
+  onSelectedChange,
+  listRef,
+  wheelStyle,
+  fullWidth = false,
+  itemTextStyle,
+}) {
   const { colors } = useTheme();
   const padded = useMemo(() => paddedValues(values), [values]);
   const initialIndex = Math.max(
@@ -126,7 +134,7 @@ export function WheelColumn({ values, selected, onSelectedChange, listRef, wheel
         nestedScrollEnabled
         showsVerticalScrollIndicator={false}
         snapToInterval={WHEEL_ITEM_HEIGHT}
-        style={styles.wheelList}
+        style={[styles.wheelList, fullWidth && styles.wheelListFull]}
         onMomentumScrollEnd={(e) => snapToOffset(e.nativeEvent.contentOffset.y)}
         onScroll={(e) => {
           if (isSnappingRef.current) return;
@@ -140,11 +148,16 @@ export function WheelColumn({ values, selected, onSelectedChange, listRef, wheel
         scrollEventThrottle={32}
       >
         {padded.map((item, index) => (
-          <View key={`${item ?? 'spacer'}-${index}`} style={styles.dialItem}>
+          <View
+            key={`${item ?? 'spacer'}-${index}`}
+            style={[styles.dialItem, fullWidth && styles.dialItemFull]}
+          >
             <AppText
+              numberOfLines={fullWidth ? 1 : undefined}
               style={[
                 styles.dialItemText,
                 { color: item === highlightedValue ? colors.text : colors.textMuted },
+                itemTextStyle,
               ]}
             >
               {item ?? ''}
@@ -343,6 +356,9 @@ const styles = StyleSheet.create({
   wheelList: {
     flexGrow: 0,
   },
+  wheelListFull: {
+    height: '100%',
+  },
   wheelHighlight: {
     borderRadius: 10,
     height: WHEEL_ITEM_HEIGHT,
@@ -352,5 +368,10 @@ const styles = StyleSheet.create({
     top: WHEEL_ITEM_HEIGHT * SPACER_ROWS,
   },
   dialItem: { alignItems: 'center', height: WHEEL_ITEM_HEIGHT, justifyContent: 'center' },
+  dialItemFull: {
+    alignSelf: 'stretch',
+    paddingHorizontal: 16,
+    width: '100%',
+  },
   dialItemText: { fontSize: 18, fontWeight: '500' },
 });
