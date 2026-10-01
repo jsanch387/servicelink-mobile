@@ -39,6 +39,7 @@ const SCREEN_SLUG_DESTINATIONS = {
   reviews: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.REVIEWS },
   payments: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.MORE_PAYMENTS },
   payments_connect: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.MORE_PAYMENTS },
+  expenses: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.EXPENSES },
   maintenance: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.MAINTENANCE },
   availability: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.AVAILABILITY },
   services: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.SERVICES_LIST },
@@ -78,14 +79,82 @@ const SCREEN_SLUG_DESTINATIONS = {
   },
   upgrade: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.ACCOUNT_SETTINGS },
   settings: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.ACCOUNT_SETTINGS },
+  account: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.ACCOUNT_SETTINGS },
   subscriptions: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.SUBSCRIPTIONS },
+  team: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.TEAM },
+  teams: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.TEAM },
+  help: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.HELP },
+  support: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.SUPPORT },
+  contact: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.SUPPORT },
+  legal: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.LEGAL },
+  privacy: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.LEGAL },
+  more: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.MORE_HOME },
+  sent_texts: { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.SENT_TEXTS },
+  customer_texts: {
+    kind: 'main_app_tab',
+    tab: ROUTES.MORE,
+    stackScreen: ROUTES.CUSTOMER_SMS_UPSELL,
+  },
+  customer_sms: {
+    kind: 'main_app_tab',
+    tab: ROUTES.MORE,
+    stackScreen: ROUTES.CUSTOMER_SMS_UPSELL,
+  },
+  inbox: { kind: 'notifications_inbox' },
+  create_appointment: { kind: 'root_stack', screen: ROUTES.CREATE_APPOINTMENT },
+  create_payment: { kind: 'root_stack', screen: ROUTES.CREATE_PAYMENT },
+  create_quote: { kind: 'root_stack', screen: ROUTES.CREATE_QUOTE },
 };
 
-/** Path-style `reference_id` values (deep links) → same destinations as screen slugs. */
-const PATH_DESTINATIONS = {
-  [PATHS.NOTIFICATIONS]: SCREEN_SLUG_DESTINATIONS.notification_settings,
-  'more/notifications': SCREEN_SLUG_DESTINATIONS.notification_settings,
-};
+/**
+ * Path-style `reference_id` values (deep links) → same destinations as screen slugs.
+ * Leading-slash paths also match without the slash (`/more/team` and `more/team`).
+ * @type {Record<string, PushDestination>}
+ */
+const PATH_DESTINATIONS = Object.fromEntries(
+  [
+    [PATHS.BOOKINGS, SCREEN_SLUG_DESTINATIONS.bookings],
+    [PATHS.BOOKINGS_LIST, SCREEN_SLUG_DESTINATIONS.bookings],
+    [PATHS.CUSTOMERS, SCREEN_SLUG_DESTINATIONS.customers],
+    [PATHS.CUSTOMERS_LIST, SCREEN_SLUG_DESTINATIONS.customers],
+    [PATHS.SERVICES, SCREEN_SLUG_DESTINATIONS.services],
+    [PATHS.SERVICES_LIST, SCREEN_SLUG_DESTINATIONS.services],
+    [PATHS.AVAILABILITY, SCREEN_SLUG_DESTINATIONS.availability],
+    [PATHS.QUOTES, SCREEN_SLUG_DESTINATIONS.quotes],
+    [PATHS.REVIEWS, SCREEN_SLUG_DESTINATIONS.reviews],
+    [PATHS.MAINTENANCE, SCREEN_SLUG_DESTINATIONS.maintenance],
+    [PATHS.TEAM, SCREEN_SLUG_DESTINATIONS.team],
+    [PATHS.SUBSCRIPTIONS, SCREEN_SLUG_DESTINATIONS.subscriptions],
+    [PATHS.BOOKING_LINK, SCREEN_SLUG_DESTINATIONS.booking_link],
+    [PATHS.QR_CODE, SCREEN_SLUG_DESTINATIONS.qr_code],
+    [PATHS.MARKETING, SCREEN_SLUG_DESTINATIONS.marketing],
+    [PATHS.MORE_PAYMENTS, SCREEN_SLUG_DESTINATIONS.payments],
+    [PATHS.PAYMENTS, SCREEN_SLUG_DESTINATIONS.payments],
+    [PATHS.EXPENSES, SCREEN_SLUG_DESTINATIONS.expenses],
+    [PATHS.MORE, SCREEN_SLUG_DESTINATIONS.more],
+    [PATHS.MORE_HOME, SCREEN_SLUG_DESTINATIONS.more],
+    [PATHS.ACCOUNT_SETTINGS, SCREEN_SLUG_DESTINATIONS.account],
+    [PATHS.NOTIFICATIONS, SCREEN_SLUG_DESTINATIONS.notification_settings],
+    [PATHS.SENT_TEXTS, SCREEN_SLUG_DESTINATIONS.sent_texts],
+    [PATHS.CUSTOMER_SMS_UPSELL, SCREEN_SLUG_DESTINATIONS.customer_texts],
+    [PATHS.NOTIFICATIONS_INBOX, SCREEN_SLUG_DESTINATIONS.inbox],
+    [PATHS.CREATE_APPOINTMENT, SCREEN_SLUG_DESTINATIONS.create_appointment],
+    [PATHS.CREATE_PAYMENT, SCREEN_SLUG_DESTINATIONS.create_payment],
+    [PATHS.CREATE_QUOTE, SCREEN_SLUG_DESTINATIONS.create_quote],
+    [PATHS.SUPPORT, SCREEN_SLUG_DESTINATIONS.support],
+    [PATHS.HELP, SCREEN_SLUG_DESTINATIONS.help],
+    [PATHS.LEGAL, SCREEN_SLUG_DESTINATIONS.legal],
+  ].flatMap(([path, destination]) => {
+    const normalized = String(path).trim().toLowerCase();
+    if (!normalized.startsWith('/')) {
+      return [[normalized, destination]];
+    }
+    return [
+      [normalized, destination],
+      [normalized.slice(1), destination],
+    ];
+  }),
+);
 
 /**
  * Maps push `reference_type` + `reference_id` to an in-app destination.
