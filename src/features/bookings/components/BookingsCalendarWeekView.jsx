@@ -1,9 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import {
   AppText,
   AppointmentCountMarkers,
+  PeriodNav,
   appointmentDayFillOpacity,
 } from '../../../components/ui';
 import { toLocalYyyyMmDd } from '../../../components/ui/calendarDateKey';
@@ -49,6 +49,7 @@ export function BookingsCalendarWeekView({
   onBookingPress,
 }) {
   const { colors, isDark } = useTheme();
+  const [pillsReady, setPillsReady] = useState(false);
   const busyFillColor = isDark ? 'rgba(250,250,250,' : 'rgba(10,10,10,';
   const todayKey = useMemo(() => localYyyyMmDd(new Date()), []);
   const selectedKey = useMemo(() => localYyyyMmDd(anchorDate), [anchorDate]);
@@ -63,146 +64,137 @@ export function BookingsCalendarWeekView({
           paddingHorizontal: BOOKINGS_LIST_SCREEN_PADDING,
           paddingTop: 4,
         },
-        navRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginBottom: 6,
+        weekPanel: {
+          backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.42)',
+          borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+          borderRadius: 18,
+          borderWidth: StyleSheet.hairlineWidth,
+          paddingBottom: 8,
+          paddingHorizontal: 8,
+          paddingTop: 4,
         },
-        navHit: {
-          alignItems: 'center',
-          borderRadius: 12,
-          height: 40,
-          justifyContent: 'center',
-          width: 40,
-        },
-        rangeTitle: {
-          color: colors.text,
-          fontSize: 16,
-          fontWeight: '700',
-          letterSpacing: -0.2,
-          textAlign: 'center',
+        divider: {
+          backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+          height: StyleSheet.hairlineWidth,
+          marginBottom: 16,
+          marginHorizontal: 7,
+          marginTop: 4,
         },
         strip: {
           flexDirection: 'row',
-          marginBottom: 4,
-          marginTop: 4,
         },
         dayCol: {
           alignItems: 'center',
           flex: 1,
         },
         weekday: {
-          color: colors.textMuted,
-          fontSize: 11,
-          fontWeight: '600',
-          marginBottom: 6,
+          color: isDark ? 'rgba(250,250,250,0.78)' : colors.textSecondary,
+          fontSize: 12,
+          fontWeight: '700',
+          marginBottom: 10,
         },
         dayPill: {
           alignItems: 'center',
-          borderRadius: 10,
+          alignSelf: 'stretch',
+          backgroundColor: 'transparent',
+          borderRadius: 14,
+          height: 52,
           justifyContent: 'center',
-          minHeight: 44,
-          minWidth: 36,
-          paddingBottom: 6,
-          paddingHorizontal: 4,
-          paddingTop: 4,
+          marginHorizontal: 2,
+          overflow: 'hidden',
         },
-        dayPillSelected: {
+        dayFill: {
+          borderRadius: 14,
+          bottom: 0,
+          left: 0,
+          position: 'absolute',
+          right: 0,
+          top: 0,
+        },
+        dayFillSelected: {
           backgroundColor: colors.buttonPrimaryBg,
-        },
-        dayPillToday: {
-          borderColor: colors.tabBarActive,
-          borderWidth: 1.5,
+          borderRadius: 14,
+          bottom: 0,
+          left: 0,
+          position: 'absolute',
+          right: 0,
+          top: 0,
         },
         dayNum: {
           color: colors.text,
-          fontSize: 15,
-          fontWeight: '700',
+          fontSize: 16,
+          fontWeight: '600',
         },
         dayNumSelected: {
           color: colors.buttonPrimaryText,
-        },
-        dayNumIdle: {
-          color: colors.textMuted,
-          fontWeight: '600',
         },
         markerWrap: {
           marginTop: 2,
         },
       }),
-    [colors],
+    [colors, isDark],
   );
 
   return (
     <View style={styles.root}>
-      <View style={styles.navRow}>
-        <Pressable
-          accessibilityLabel="Previous week"
-          accessibilityRole="button"
-          hitSlop={8}
-          style={styles.navHit}
-          onPress={() => onShiftWeek(-1)}
+      <View style={styles.weekPanel}>
+        <PeriodNav
+          appearance="plain"
+          label={rangeLabel}
+          nextLabel="Next week"
+          previousLabel="Previous week"
+          onNext={() => onShiftWeek(1)}
+          onPrevious={() => onShiftWeek(-1)}
+        />
+        <View style={styles.divider} />
+        <View
+          style={styles.strip}
+          onLayout={() => {
+            if (!pillsReady) setPillsReady(true);
+          }}
         >
-          <Ionicons color={colors.text} name="chevron-back" size={22} />
-        </Pressable>
-        <AppText style={styles.rangeTitle}>{rangeLabel}</AppText>
-        <Pressable
-          accessibilityLabel="Next week"
-          accessibilityRole="button"
-          hitSlop={8}
-          style={styles.navHit}
-          onPress={() => onShiftWeek(1)}
-        >
-          <Ionicons color={colors.text} name="chevron-forward" size={22} />
-        </Pressable>
-      </View>
-
-      <View style={styles.strip}>
-        {weekDays.map((day, index) => {
-          const key = toLocalYyyyMmDd(day);
-          const selected = key === selectedKey;
-          const isToday = key === todayKey;
-          const bookingCount = bookingCountByDateKey[key] ?? 0;
-          const hasBookings = bookingCount > 0;
-          const fillOpacity =
-            hasBookings && !selected ? appointmentDayFillOpacity(bookingCount) : 0;
-          return (
-            <Pressable
-              key={key}
-              accessibilityLabel={`${WEEKDAY_LABELS[index]} ${day.getDate()}${isToday ? ', today' : ''}${selected ? ', selected' : ''}${hasBookings ? `, ${bookingCount} appointment${bookingCount === 1 ? '' : 's'}` : ''}`}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              style={styles.dayCol}
-              onPress={() => onSelectDay(day)}
-            >
-              <AppText style={styles.weekday}>{WEEKDAY_LABELS[index]}</AppText>
-              <View
-                style={[
-                  styles.dayPill,
-                  fillOpacity > 0 ? { backgroundColor: `${busyFillColor}${fillOpacity})` } : null,
-                  selected && styles.dayPillSelected,
-                  isToday && !selected && styles.dayPillToday,
-                ]}
+          {weekDays.map((day, index) => {
+            const key = toLocalYyyyMmDd(day);
+            const selected = key === selectedKey;
+            const isToday = key === todayKey;
+            const bookingCount = bookingCountByDateKey[key] ?? 0;
+            const hasBookings = bookingCount > 0;
+            const fillOpacity =
+              hasBookings && !selected ? appointmentDayFillOpacity(bookingCount) : 0;
+            return (
+              <Pressable
+                key={key}
+                accessibilityLabel={`${WEEKDAY_LABELS[index]} ${day.getDate()}${isToday ? ', today' : ''}${selected ? ', selected' : ''}${hasBookings ? `, ${bookingCount} appointment${bookingCount === 1 ? '' : 's'}` : ''}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                style={styles.dayCol}
+                onPress={() => onSelectDay(day)}
               >
-                <AppText
-                  style={[
-                    styles.dayNum,
-                    selected && styles.dayNumSelected,
-                    !selected && !isToday && styles.dayNumIdle,
-                  ]}
-                >
-                  {day.getDate()}
-                </AppText>
-                {hasBookings ? (
-                  <View style={styles.markerWrap}>
-                    <AppointmentCountMarkers compact count={bookingCount} inverted={selected} />
-                  </View>
-                ) : null}
-              </View>
-            </Pressable>
-          );
-        })}
+                <AppText style={styles.weekday}>{WEEKDAY_LABELS[index]}</AppText>
+                <View key={pillsReady ? `${key}-ready` : key} style={styles.dayPill}>
+                  {fillOpacity > 0 ? (
+                    <View
+                      pointerEvents="none"
+                      style={[
+                        styles.dayFill,
+                        { backgroundColor: `${busyFillColor}${fillOpacity})` },
+                      ]}
+                    />
+                  ) : null}
+                  {selected ? <View pointerEvents="none" style={styles.dayFillSelected} /> : null}
+                  <AppText style={[styles.dayNum, selected && styles.dayNumSelected]}>
+                    {day.getDate()}
+                  </AppText>
+                  {hasBookings ? (
+                    <View style={styles.markerWrap}>
+                      <AppointmentCountMarkers compact count={bookingCount} inverted={selected} />
+                    </View>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       <BookingsCalendarDayAgenda

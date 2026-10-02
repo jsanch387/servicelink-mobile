@@ -11,13 +11,73 @@ import { socialMediaFromDb, socialMediaPublicUrl } from '../../utils/socialMedia
 import { resolveBookingProfileCtaVisibility } from '../utils/profileCtaVisibility';
 import { BookingLinkRequestQuoteOwnerHintSheet } from './BookingLinkRequestQuoteOwnerHintSheet';
 
-const CTA_BUTTON_HEIGHT = 42;
+const COVER_DOT_SIZE = 1.5;
+const COVER_DOT_STEP = 14;
+const COVER_DOT_OPACITY = 0.08;
+
+function buildCoverDotGrid(width, height) {
+  if (width <= 0 || height <= 0) return [];
+  const cols = Math.max(2, Math.round(width / COVER_DOT_STEP));
+  const rows = Math.max(2, Math.round(height / COVER_DOT_STEP));
+  const stepX = width / (cols - 1);
+  const stepY = height / (rows - 1);
+  const dots = [];
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      dots.push({
+        key: `${row}-${col}`,
+        left: col * stepX - COVER_DOT_SIZE / 2,
+        top: row * stepY - COVER_DOT_SIZE / 2,
+      });
+    }
+  }
+  return dots;
+}
+
+function CoverEmptyDotField({ color }) {
+  const [bounds, setBounds] = useState(null);
+  const dots = useMemo(
+    () => (bounds ? buildCoverDotGrid(bounds.width, bounds.height) : []),
+    [bounds],
+  );
+
+  return (
+    <View
+      pointerEvents="none"
+      style={StyleSheet.absoluteFill}
+      onLayout={(event) => {
+        const { width, height } = event.nativeEvent.layout;
+        setBounds((current) =>
+          current && current.width === width && current.height === height
+            ? current
+            : { width, height },
+        );
+      }}
+    >
+      {dots.map((dot) => (
+        <View
+          key={dot.key}
+          style={{
+            backgroundColor: color,
+            borderRadius: COVER_DOT_SIZE / 2,
+            height: COVER_DOT_SIZE,
+            left: dot.left,
+            opacity: COVER_DOT_OPACITY,
+            position: 'absolute',
+            top: dot.top,
+            width: COVER_DOT_SIZE,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
+const CTA_BUTTON_HEIGHT = 36;
 const CTA_BORDER_RADIUS = 10;
 /** Shared 1px stroke so filled + outline CTAs share the same outer box (outline no longer reads smaller). */
 const CTA_BORDER_WIDTH = 1;
 const CONTACT_ICON_BUTTON_SIZE = CTA_BUTTON_HEIGHT;
-/** Paired quote pill width beside the square phone button (~20% narrower than full flex). */
-const REQUEST_QUOTE_PAIRED_MAX_WIDTH_RATIO = '62%';
 
 export function BookingProfileHeader({
   coverHeight,
@@ -73,14 +133,10 @@ export function BookingProfileHeader({
           width: '100%',
         },
         heroPhotoFallback: {
-          ...StyleSheet.absoluteFillObject,
           alignItems: 'center',
           backgroundColor: colors.shellElevated,
-          justifyContent: 'center',
-        },
-        /** Nudge empty-state icon slightly above true center (reads better in the hero band). */
-        heroPhotoFallbackIcon: {
-          marginTop: -Math.min(28, Math.round(coverHeight * 0.12)),
+          justifyContent: 'flex-start',
+          paddingTop: 30,
         },
         heroFade: {
           bottom: 0,
@@ -92,7 +148,7 @@ export function BookingProfileHeader({
         },
         profileBlock: {
           alignItems: 'center',
-          marginTop: -48,
+          marginTop: -80,
           paddingHorizontal: 20,
           position: 'relative',
           zIndex: 10,
@@ -162,9 +218,9 @@ export function BookingProfileHeader({
         },
         locationText: {
           color: colors.textMuted,
-          fontSize: 14,
-          fontWeight: '600',
-          letterSpacing: 0.2,
+          fontSize: 13,
+          fontWeight: '500',
+          letterSpacing: 0.1,
         },
         socialRow: {
           alignItems: 'center',
@@ -220,24 +276,22 @@ export function BookingProfileHeader({
           borderRadius: CTA_BORDER_RADIUS,
           borderWidth: CTA_BORDER_WIDTH,
           justifyContent: 'center',
-          paddingHorizontal: 16,
         },
         requestQuoteButtonPaired: {
           flexGrow: 0,
-          flexShrink: 1,
+          flexShrink: 0,
           height: CTA_BUTTON_HEIGHT,
-          maxWidth: REQUEST_QUOTE_PAIRED_MAX_WIDTH_RATIO,
-          width: REQUEST_QUOTE_PAIRED_MAX_WIDTH_RATIO,
+          paddingHorizontal: 28,
         },
         requestQuoteButtonSolo: {
           height: CTA_BUTTON_HEIGHT,
-          width: '100%',
+          paddingHorizontal: 28,
         },
         requestQuoteButtonText: {
           color: colors.buttonPrimaryText,
-          fontSize: 15,
+          fontSize: 13,
           fontWeight: '600',
-          lineHeight: 18,
+          lineHeight: 16,
         },
         contactIconButton: {
           alignItems: 'center',
@@ -297,10 +351,9 @@ export function BookingProfileHeader({
         {coverImageUrl ? (
           <Image source={{ uri: coverImageUrl }} style={StyleSheet.absoluteFillObject} />
         ) : (
-          <View style={styles.heroPhotoFallback}>
-            <View style={styles.heroPhotoFallbackIcon}>
-              <Ionicons name="image-outline" size={40} color={colors.textMuted} />
-            </View>
+          <View style={[StyleSheet.absoluteFill, styles.heroPhotoFallback]}>
+            <CoverEmptyDotField color={colors.text} />
+            <Ionicons name="image-outline" size={32} color={colors.textMuted} />
           </View>
         )}
         <LinearGradient
@@ -337,7 +390,7 @@ export function BookingProfileHeader({
         </View>
         {location ? (
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+            <Ionicons name="location-outline" size={13} color={colors.textMuted} />
             <AppText style={styles.locationText}>{location}</AppText>
           </View>
         ) : null}
@@ -379,7 +432,7 @@ export function BookingProfileHeader({
                   style={styles.contactIconButton}
                   onPress={() => void handleCall()}
                 >
-                  <Ionicons color={colors.textSecondary} name="call-outline" size={20} />
+                  <Ionicons color={colors.textSecondary} name="call-outline" size={18} />
                 </Pressable>
               ) : (
                 <Pressable

@@ -43,7 +43,7 @@ function nextId() {
  */
 function ToastLayer({ toast, dismissing, dismiss, finalizeHide }) {
   return (
-    <View pointerEvents="box-none" style={styles.rootLayer}>
+    <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, styles.rootLayer]}>
       <ToastView
         dismissing={dismissing}
         message={toast.message}
@@ -230,7 +230,6 @@ export function useToast() {
 
 const styles = StyleSheet.create({
   rootLayer: {
-    ...StyleSheet.absoluteFillObject,
     zIndex: 9999,
   },
 });

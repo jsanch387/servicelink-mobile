@@ -3,13 +3,13 @@ import 'react-native-get-random-values';
 
 import './global.css';
 
-import * as Notifications from 'expo-notifications';
 import { isRunningInExpoGo, registerRootComponent } from 'expo';
 import * as SplashScreen from 'expo-splash-screen';
 import { Platform } from 'react-native';
 
 import App from './App';
 import { ensureAndroidDefaultNotificationChannel } from './src/features/notifications/utils/ensureAndroidDefaultNotificationChannel';
+import { isAndroidExpoGo } from './src/features/notifications/utils/loadExpoNotifications';
 
 // Expo Go does not support splash control; preventAutoHide without a working hide leaves you stuck.
 if (!isRunningInExpoGo()) {
@@ -17,17 +17,20 @@ if (!isRunningInExpoGo()) {
   SplashScreen.preventAutoHideAsync().catch(() => {});
 }
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+if (!isAndroidExpoGo()) {
+  const Notifications = require('expo-notifications');
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
 
-if (Platform.OS === 'android') {
-  void ensureAndroidDefaultNotificationChannel();
+  if (Platform.OS === 'android') {
+    void ensureAndroidDefaultNotificationChannel();
+  }
 }
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);

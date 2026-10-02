@@ -24,6 +24,7 @@ import { getServiceDescriptionCopy } from '../utils/servicePreviewCopy';
  *   selected?: boolean;
  *   onPress?: () => void;
  *   hideDescription?: boolean;
+ *   compact?: boolean;
  *   style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
  * }} props
  */
@@ -33,6 +34,7 @@ export function ServicePreviewCard({
   onPress,
   style,
   hideDescription = false,
+  compact = false,
 }) {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
@@ -41,9 +43,9 @@ export function ServicePreviewCard({
     () =>
       StyleSheet.create({
         serviceCard: {
-          borderRadius: 18,
-          paddingHorizontal: 16,
-          paddingVertical: hideDescription ? 12 : 16,
+          borderRadius: compact ? 16 : 18,
+          paddingHorizontal: compact ? 14 : 16,
+          paddingVertical: hideDescription ? 12 : compact ? 13 : 16,
         },
         serviceTopRow: {
           alignItems: 'flex-start',
@@ -59,6 +61,12 @@ export function ServicePreviewCard({
         },
         serviceTitle: {
           ...serviceCardTitleStyle(colors),
+          ...(compact
+            ? {
+                fontSize: 15,
+                lineHeight: 20,
+              }
+            : null),
           ...(hideDescription
             ? {
                 fontWeight: '600',
@@ -114,17 +122,17 @@ export function ServicePreviewCard({
         compareAtPrice: {
           color: colors.textMuted,
           fontFamily: SERVICE_CARD_TITLE_SYSTEM_FONT,
-          fontSize: 15,
+          fontSize: compact ? 13 : 15,
           fontWeight: '600',
-          lineHeight: 20,
+          lineHeight: compact ? 18 : 20,
           textDecorationLine: 'line-through',
         },
         price: {
           color: colors.text,
           fontFamily: SERVICE_CARD_TITLE_SYSTEM_FONT,
-          fontSize: 20,
+          fontSize: compact ? 17 : 20,
           fontWeight: '700',
-          lineHeight: 24,
+          lineHeight: compact ? 21 : 24,
           textAlign: 'right',
         },
         headerDivider: {
@@ -135,8 +143,8 @@ export function ServicePreviewCard({
         },
         serviceItemText: {
           color: colors.textMuted,
-          fontSize: 14,
-          lineHeight: 21,
+          fontSize: compact ? 13 : 14,
+          lineHeight: compact ? 19 : 21,
           marginBottom: 2,
         },
         seeMoreRow: {
@@ -172,7 +180,7 @@ export function ServicePreviewCard({
           marginLeft: 6,
         },
       }),
-    [colors, hideDescription],
+    [colors, compact, hideDescription],
   );
 
   const borderColor = onPress && selected ? colors.accent : colors.border;
@@ -257,7 +265,7 @@ export function ServicePreviewCard({
       {!hideDescription ? (
         <View style={styles.serviceBottomRow}>
           <View style={styles.durationRow}>
-            <Ionicons color={colors.textMuted} name="time-outline" size={17} />
+            <Ionicons color={colors.textMuted} name="time-outline" size={compact ? 15 : 17} />
             <AppText numberOfLines={1} style={styles.durationText}>
               {service.duration}
             </AppText>

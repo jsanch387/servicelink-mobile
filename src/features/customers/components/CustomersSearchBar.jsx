@@ -1,37 +1,23 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { View } from 'react-native';
-import { AppTextInput, SurfaceInputRow, useSurfaceInputTextStyle } from '../../../components/ui';
-import { useTheme } from '../../../theme';
+import { SurfaceTextField } from '../../../components/ui';
 
-/** Same `cardSurface` shell as auth `SurfaceTextField` and shared `SurfaceInputRow`. */
+/** Same centered placeholder treatment as the other form fields. */
 export function CustomersSearchBar({ value, onChangeText }) {
-  const { colors } = useTheme();
-  const inputTextStyle = useSurfaceInputTextStyle();
-
   return (
-    <SurfaceInputRow
-      left={
-        <View
-          style={{
-            alignItems: 'center',
-            height: 52,
-            justifyContent: 'center',
-            marginRight: 4,
-            width: 22,
-          }}
-        >
-          <Ionicons color={colors.textMuted} name="search-outline" size={18} />
-        </View>
-      }
-      style={{ marginBottom: 14 }}
-    >
-      <AppTextInput
-        onChangeText={onChangeText}
-        placeholder="Search by name, email, or phone..."
-        placeholderTextColor={colors.placeholder}
-        style={inputTextStyle}
-        value={value}
-      />
-    </SurfaceInputRow>
+    <SurfaceTextField
+      accessibilityLabel="Search customers"
+      autoCapitalize="none"
+      autoCorrect={false}
+      clearButtonMode="while-editing"
+      containerStyle={searchFieldStyle}
+      leftIcon="search-outline"
+      placeholder="Search by name, email, or phone"
+      returnKeyType="search"
+      value={value}
+      onChangeText={onChangeText}
+    />
   );
 }
+
+const searchFieldStyle = {
+  marginBottom: 14,
+};

@@ -1,9 +1,9 @@
-import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect } from 'react';
 import { useAuth } from '../../auth';
 import { useOnboardingGate } from '../../onboarding';
 import { useSubscription } from '../../subscription';
 import { attemptPushNavigation } from '../utils/attemptPushNavigation';
+import { loadExpoNotifications } from '../utils/loadExpoNotifications';
 
 function handleNotificationResponse(response, canNavigateMain) {
   const data = response?.notification?.request?.content?.data;
@@ -28,6 +28,11 @@ export function PushNotificationsBootstrap() {
   );
 
   useEffect(() => {
+    const Notifications = loadExpoNotifications();
+    if (!Notifications) {
+      return undefined;
+    }
+
     const sub = Notifications.addNotificationResponseReceivedListener(onNotificationResponse);
 
     let active = true;

@@ -96,7 +96,7 @@ describe('CustomersScreen', () => {
     );
 
     renderWithProviders(<CustomersScreen />);
-    fireEvent.changeText(screen.getByPlaceholderText('Search by name, email, or phone...'), 'zzz');
+    fireEvent.changeText(screen.getByLabelText('Search customers'), 'zzz');
     expect(screen.getByText('No matching customers')).toBeTruthy();
     expect(screen.getByText(/Try adjusting your search or filter/i)).toBeTruthy();
   });

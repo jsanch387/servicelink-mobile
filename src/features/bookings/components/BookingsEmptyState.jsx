@@ -10,10 +10,16 @@ import { useTheme } from '../../../theme';
  * @param {{
  *   title: string;
  *   iconName?: import('@expo/vector-icons/Ionicons').IconProps['name'];
+ *   compact?: boolean;
  *   style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
  * }} props
  */
-export function BookingsEmptyState({ title, iconName = 'calendar-outline', style }) {
+export function BookingsEmptyState({
+  title,
+  iconName = 'calendar-outline',
+  compact = false,
+  style,
+}) {
   const { colors } = useTheme();
 
   const styles = useMemo(
@@ -32,26 +38,26 @@ export function BookingsEmptyState({ title, iconName = 'calendar-outline', style
           alignItems: 'center',
           backgroundColor: colors.shellElevated,
           borderRadius: 999,
-          height: 72,
+          height: compact ? 48 : 72,
           justifyContent: 'center',
-          marginBottom: 18,
-          width: 72,
+          marginBottom: compact ? 10 : 18,
+          width: compact ? 48 : 72,
         },
         title: {
           color: colors.textMuted,
-          fontSize: 18,
+          fontSize: compact ? 15 : 18,
           fontWeight: '500',
           letterSpacing: -0.25,
           textAlign: 'center',
         },
       }),
-    [colors],
+    [colors, compact],
   );
 
   return (
     <View style={[styles.root, style]}>
       <View style={styles.iconRing}>
-        <Ionicons color={colors.textMuted} name={iconName} size={30} />
+        <Ionicons color={colors.textMuted} name={iconName} size={compact ? 20 : 30} />
       </View>
       <AppText style={styles.title}>{title}</AppText>
     </View>

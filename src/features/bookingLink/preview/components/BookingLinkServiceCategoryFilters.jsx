@@ -30,9 +30,9 @@ export function BookingLinkServiceCategoryFilters({ tabs, selectedTabId, onSelec
           borderColor: colors.border,
           borderRadius: FILTER_TAB_RADIUS,
           borderWidth: 1,
-          minHeight: 36,
-          paddingHorizontal: 14,
-          paddingVertical: 8,
+          minHeight: 32,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
         },
         tabActive: {
           backgroundColor: colors.accent,
@@ -40,7 +40,7 @@ export function BookingLinkServiceCategoryFilters({ tabs, selectedTabId, onSelec
         },
         tabLabel: {
           color: colors.textMuted,
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: '600',
           letterSpacing: -0.15,
         },

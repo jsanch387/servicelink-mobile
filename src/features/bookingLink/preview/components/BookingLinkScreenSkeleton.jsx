@@ -31,7 +31,7 @@ export function BookingLinkScreenSkeleton({ coverHeight }) {
         },
         profileBlock: {
           alignItems: 'center',
-          marginTop: -48,
+          marginTop: -80,
           paddingHorizontal: 20,
         },
         logoRing: {
@@ -78,21 +78,20 @@ export function BookingLinkScreenSkeleton({ coverHeight }) {
         },
         ctaQuoteBone: {
           borderRadius: 10,
-          height: 42,
-          maxWidth: '62%',
-          width: '62%',
+          height: 36,
+          width: 168,
         },
         ctaContactBone: {
           borderRadius: 10,
-          height: 42,
-          width: 42,
+          height: 36,
+          width: 36,
         },
         tabsRow: {
           borderBottomColor: colors.border,
           borderBottomWidth: 1,
           flexDirection: 'row',
           gap: 24,
-          marginTop: 26,
+          marginTop: 30,
           paddingHorizontal: SCREEN_GUTTER,
           paddingBottom: 14,
         },
@@ -102,7 +101,7 @@ export function BookingLinkScreenSkeleton({ coverHeight }) {
         contentWrap: {
           paddingBottom: 28,
           paddingHorizontal: 16,
-          paddingTop: 16,
+          paddingTop: 28,
         },
         serviceCard: {
           borderColor: colors.border,
@@ -163,10 +162,10 @@ export function BookingLinkScreenSkeleton({ coverHeight }) {
       </View>
 
       <View style={styles.tabsRow}>
-        <SkeletonBox borderRadius={6} height={16} pulse style={styles.tabBone} width={72} />
-        <SkeletonBox borderRadius={6} height={16} pulse style={styles.tabBone} width={56} />
-        <SkeletonBox borderRadius={6} height={16} pulse style={styles.tabBone} width={36} />
-        <SkeletonBox borderRadius={6} height={16} pulse style={styles.tabBone} width={58} />
+        <SkeletonBox borderRadius={6} height={14} pulse style={styles.tabBone} width={64} />
+        <SkeletonBox borderRadius={6} height={14} pulse style={styles.tabBone} width={50} />
+        <SkeletonBox borderRadius={6} height={14} pulse style={styles.tabBone} width={32} />
+        <SkeletonBox borderRadius={6} height={14} pulse style={styles.tabBone} width={52} />
       </View>
 
       <View style={styles.contentWrap}>

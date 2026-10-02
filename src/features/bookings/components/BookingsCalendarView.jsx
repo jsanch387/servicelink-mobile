@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { CalendarMonthPicker } from '../../../components/ui';
 import { parseLocalYyyyMmDd, startOfLocalDay } from '../../../components/ui/calendarDateKey';
+import { useTheme } from '../../../theme';
 import {
   BOOKINGS_CALENDAR_DAY,
   BOOKINGS_CALENDAR_MONTH,
@@ -47,6 +48,7 @@ export function BookingsCalendarView({
   contentBottomPad,
   safeHorizontalInset,
 }) {
+  const { isDark } = useTheme();
   const anchorKey = useMemo(() => localYyyyMmDd(anchorDate), [anchorDate]);
 
   const styles = useMemo(
@@ -61,10 +63,17 @@ export function BookingsCalendarView({
         monthContent: {
           paddingBottom: contentBottomPad,
           paddingHorizontal: BOOKINGS_LIST_SCREEN_PADDING,
-          paddingTop: 12,
+          paddingTop: 4,
         },
-        calendarWrap: {
-          marginTop: 16,
+        calendarPanel: {
+          backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.42)',
+          borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+          borderRadius: 18,
+          borderWidth: StyleSheet.hairlineWidth,
+          marginTop: 4,
+          paddingBottom: 8,
+          paddingHorizontal: 8,
+          paddingTop: 4,
         },
         plannerWrap: {
           flex: 1,
@@ -73,7 +82,7 @@ export function BookingsCalendarView({
           paddingTop: 8,
         },
       }),
-    [contentBottomPad, safeHorizontalInset.left, safeHorizontalInset.right],
+    [contentBottomPad, isDark, safeHorizontalInset.left, safeHorizontalInset.right],
   );
 
   const onSelectDateKey = (key) => {
@@ -93,11 +102,12 @@ export function BookingsCalendarView({
           showsVerticalScrollIndicator={false}
           style={styles.monthScroll}
         >
-          <View style={styles.calendarWrap}>
+          <View style={styles.calendarPanel}>
             <CalendarMonthPicker
               bookingCountByDateKey={bookingCountByDateKey}
               maxDate={CALENDAR_MAX_DATE}
               minDate={CALENDAR_MIN_DATE}
+              plainNav
               selectedDateKey={anchorKey}
               onSelectDateKey={onSelectDateKey}
               onVisibleMonthChange={onVisibleMonthChange}

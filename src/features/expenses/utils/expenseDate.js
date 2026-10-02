@@ -52,7 +52,10 @@ export function formatExpenseMonthLabel(yyyyMm, now = new Date()) {
   const date = new Date(year, month, 1);
   if (Number.isNaN(date.getTime())) return '';
   const includeYear = year !== now.getFullYear();
-  return date.toLocaleDateString(undefined, includeYear ? { month: 'long', year: 'numeric' } : { month: 'long' });
+  return date.toLocaleDateString(
+    undefined,
+    includeYear ? { month: 'long', year: 'numeric' } : { month: 'long' },
+  );
 }
 
 /**

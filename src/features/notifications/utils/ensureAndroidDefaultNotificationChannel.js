@@ -1,21 +1,25 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { ANDROID_PUSH_CHANNEL_ID, ANDROID_PUSH_CHANNEL_NAME } from '../constants/pushAlertSetup';
+import { loadExpoNotifications } from './loadExpoNotifications';
+
+const Notifications = loadExpoNotifications();
 
 /**
  * Android channel matching server `channelId: "default"`.
  * Sound + vibration must be on at create time — Android will not add them later.
  */
-export const ANDROID_DEFAULT_PUSH_CHANNEL = Object.freeze({
-  name: ANDROID_PUSH_CHANNEL_NAME,
-  importance: Notifications.AndroidImportance.HIGH,
-  sound: 'default',
-  enableVibrate: true,
-  vibrationPattern: [0, 250, 250, 250],
-  enableLights: true,
-  lightColor: '#0a0a0a',
-  showBadge: true,
-});
+export const ANDROID_DEFAULT_PUSH_CHANNEL = Notifications
+  ? Object.freeze({
+      name: ANDROID_PUSH_CHANNEL_NAME,
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'default',
+      enableVibrate: true,
+      vibrationPattern: [0, 250, 250, 250],
+      enableLights: true,
+      lightColor: '#0a0a0a',
+      showBadge: true,
+    })
+  : null;
 
 /**
  * @param {{ sound?: string | null; enableVibrate?: boolean } | null | undefined} channel
@@ -32,7 +36,7 @@ export function androidPushChannelNeedsRecreate(channel) {
  * and vibration are not swallowed. No-op on iOS / web.
  */
 export async function ensureAndroidDefaultNotificationChannel() {
-  if (Platform.OS !== 'android') {
+  if (Platform.OS !== 'android' || !Notifications) {
     return;
   }
 

@@ -55,15 +55,14 @@ export function WhatsNewModal({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        fill: {
-          ...StyleSheet.absoluteFillObject,
+        root: {
+          flex: 1,
         },
         backdrop: {
-          ...StyleSheet.absoluteFillObject,
           backgroundColor: isDark ? 'rgba(0, 0, 0, 0.92)' : 'rgba(0, 0, 0, 0.62)',
         },
         centerLayer: {
-          ...StyleSheet.absoluteFillObject,
+          flex: 1,
           justifyContent: 'center',
           paddingBottom: Math.max(insets.bottom, 16),
           paddingHorizontal: 22,
@@ -199,9 +198,9 @@ export function WhatsNewModal({
         /* Require an explicit button — backdrop / hardware back do not dismiss. */
       }}
     >
-      <View style={styles.fill}>
-        <Animated.View pointerEvents="none" style={[styles.fill, { opacity }]}>
-          <View style={styles.backdrop} />
+      <View style={styles.root}>
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity }]}>
+          <View style={[StyleSheet.absoluteFill, styles.backdrop]} />
         </Animated.View>
 
         <View pointerEvents="box-none" style={styles.centerLayer}>

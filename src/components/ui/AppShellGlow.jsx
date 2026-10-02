@@ -1,52 +1,46 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
+const GLOW_HEIGHT = 260;
+
+/**
+ * Top-edge highlight behind shell screens.
+ * The slot is taken out of layout (absolute, zero height) so the gradient cannot
+ * push the business name or the launch logo down.
+ */
 export function AppShellGlow() {
   return (
-    <View pointerEvents="none" style={styles.layer}>
-      <View style={styles.topGlowLayer}>
+    <View collapsable={false} pointerEvents="none" style={slotStyle}>
+      <View pointerEvents="none" style={glowStyle}>
         <LinearGradient
           colors={['rgba(255,255,255,0.14)', 'rgba(198,198,198,0.08)', 'rgba(10,10,10,0)']}
           locations={[0, 0.45, 1]}
           start={{ x: 0.5, y: 0 }}
-          style={styles.topGlowGradient}
+          style={gradientStyle}
         />
       </View>
-
-      {/* Bottom glow — toggle on if you want a subtle lift above the tab bar */}
-      {/* <View style={styles.bottomGlowLayer}>
-        <LinearGradient
-          colors={['rgba(10,10,10,0)', 'rgba(198,198,198,0.035)', 'rgba(255,255,255,0.06)']}
-          locations={[0, 0.62, 1]}
-          start={{ x: 0.5, y: 0 }}
-          style={styles.bottomGlowGradient}
-        />
-      </View> */}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  layer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  topGlowLayer: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    top: 0,
-  },
-  topGlowGradient: {
-    height: 260,
-    width: '100%',
-  },
-  // Used when bottom glow block above is uncommented
-  // bottomGlowLayer: {
-  //   ...StyleSheet.absoluteFillObject,
-  //   alignItems: 'center',
-  //   justifyContent: 'flex-end',
-  // },
-  // bottomGlowGradient: {
-  //   height: 130,
-  //   width: '100%',
-  // },
-});
+const slotStyle = {
+  height: 0,
+  left: 0,
+  overflow: 'visible',
+  position: 'absolute',
+  right: 0,
+  top: 0,
+  zIndex: 0,
+};
+
+const glowStyle = {
+  height: GLOW_HEIGHT,
+  left: 0,
+  position: 'absolute',
+  right: 0,
+  top: 0,
+};
+
+const gradientStyle = {
+  flex: 1,
+};
