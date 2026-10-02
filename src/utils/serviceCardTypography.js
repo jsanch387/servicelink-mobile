@@ -10,8 +10,8 @@ export const SERVICE_CARD_TITLE_SYSTEM_FONT = Platform.select({
 /** Service card title line size (px) — Services list + Booking link services tab. */
 export const SERVICE_CARD_TITLE_FONT_SIZE = 17;
 
-/** Booking link preview header business name only (larger than service cards). */
-export const BOOKING_LINK_PROFILE_BUSINESS_NAME_FONT_SIZE = 25;
+/** Booking link preview header business name only (slightly larger than service cards). */
+export const BOOKING_LINK_PROFILE_BUSINESS_NAME_FONT_SIZE = 21;
 
 /**
  * Title row on service cards: system sans (semibold, not ultra-black).
@@ -31,6 +31,6 @@ export function bookingLinkProfileBusinessNameStyle(colors) {
   return {
     ...serviceCardTitleStyle(colors),
     fontSize: BOOKING_LINK_PROFILE_BUSINESS_NAME_FONT_SIZE,
-    fontWeight: '900',
+    fontWeight: '700',
   };
 }

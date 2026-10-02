@@ -57,7 +57,7 @@ export function GalleryTabContent({ images }) {
         },
         emptyStateText: {
           color: colors.textMuted,
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: '500',
         },
       }),

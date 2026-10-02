@@ -7,15 +7,12 @@ import {
   BottomSheetModal,
   Button,
   InlineCardError,
+  SurfaceEmailField,
+  SurfacePhoneField,
   SurfaceTextField,
 } from '../../../components/ui';
 import { isValidEmailFormat } from '../../../utils/email';
-import {
-  canonicalNanpDigits,
-  formatPhoneInputAsYouType,
-  isValidUsNanpTenDigits,
-  US_NANP_FORMATTED_MAX_LENGTH,
-} from '../../../utils/phone';
+import { canonicalNanpDigits, isValidUsNanpTenDigits } from '../../../utils/phone';
 import { useTheme } from '../../../theme';
 import { useCreateCustomer } from '../hooks/useCreateCustomer';
 
@@ -76,20 +73,6 @@ export function AddCustomerSheet({ businessId, visible, onRequestClose }) {
           fontWeight: '500',
           lineHeight: 20,
           marginBottom: 16,
-        },
-        fieldError: {
-          color: colors.danger,
-          fontSize: 13,
-          fontWeight: '600',
-          lineHeight: 18,
-          marginBottom: 0,
-          marginTop: 2,
-        },
-        fieldFlushBottom: {
-          marginBottom: 0,
-        },
-        fieldGroup: {
-          marginBottom: 20,
         },
         footer: {
           gap: 12,
@@ -196,33 +179,22 @@ export function AddCustomerSheet({ businessId, visible, onRequestClose }) {
         <>
           <AppText style={styles.helper}>Add a new customer to your list.</AppText>
           <SurfaceTextField label="Name *" onChangeText={setName} value={name} />
-          <View style={styles.fieldGroup}>
-            <SurfaceTextField
-              containerStyle={styles.fieldFlushBottom}
-              keyboardType="phone-pad"
-              label="Phone *"
-              maxLength={US_NANP_FORMATTED_MAX_LENGTH}
-              onChangeText={(t) => setPhone(formatPhoneInputAsYouType(t))}
-              value={phone}
-            />
-            {phoneInvalid ? (
-              <AppText style={styles.fieldError}>Enter a complete US phone number.</AppText>
-            ) : null}
-          </View>
-          <View style={styles.fieldGroup}>
-            <SurfaceTextField
-              autoCapitalize="none"
-              autoCorrect={false}
-              containerStyle={styles.fieldFlushBottom}
-              keyboardType="email-address"
-              label="Email (optional)"
-              onChangeText={setEmail}
-              value={email}
-            />
-            {emailInvalid ? (
-              <AppText style={styles.fieldError}>Enter a valid email address.</AppText>
-            ) : null}
-          </View>
+          <SurfacePhoneField
+            errorText={phoneInvalid ? 'Enter a complete US phone number.' : undefined}
+            label="Phone *"
+            placeholder="(555) 234-5678"
+            prefixText="+1"
+            value={phone}
+            onChangeText={setPhone}
+          />
+          <SurfaceEmailField
+            errorText={emailInvalid ? 'Enter a valid email address.' : undefined}
+            label="Email (optional)"
+            leftIcon="mail-outline"
+            placeholder="name@email.com"
+            value={email}
+            onChangeText={setEmail}
+          />
           <SurfaceTextField
             label="Notes (optional)"
             maxLength={NOTES_MAX_LEN}

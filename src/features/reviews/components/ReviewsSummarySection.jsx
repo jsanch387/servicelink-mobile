@@ -8,13 +8,14 @@ import { StarRating } from './StarRating';
 /**
  * Flat rating summary (no card shell). Used on booking-link Reviews tab and inside {@link ReviewsSummaryCard}.
  *
- * @param {{ averageRating: number; totalCount: number; breakdown: { stars: number; percent: number }[]; showBreakdownDivider?: boolean }} props
+ * @param {{ averageRating: number; totalCount: number; breakdown: { stars: number; percent: number }[]; showBreakdownDivider?: boolean; compact?: boolean }} props
  */
 export function ReviewsSummarySection({
   averageRating,
   totalCount,
   breakdown,
   showBreakdownDivider = true,
+  compact = false,
 }) {
   const { colors } = useTheme();
 
@@ -36,10 +37,10 @@ export function ReviewsSummarySection({
         },
         average: {
           color: colors.text,
-          fontSize: 40,
+          fontSize: compact ? 32 : 40,
           fontWeight: '700',
           letterSpacing: -1,
-          lineHeight: 44,
+          lineHeight: compact ? 36 : 44,
         },
         starsBlock: {
           flex: 1,
@@ -48,7 +49,7 @@ export function ReviewsSummarySection({
         },
         count: {
           color: colors.textMuted,
-          fontSize: 14,
+          fontSize: compact ? 13 : 14,
           fontWeight: '500',
         },
         divider: {
@@ -92,7 +93,7 @@ export function ReviewsSummarySection({
           width: 36,
         },
       }),
-    [colors, showBreakdownDivider],
+    [colors, compact, showBreakdownDivider],
   );
 
   return (
@@ -100,7 +101,7 @@ export function ReviewsSummarySection({
       <View style={styles.topRow}>
         <AppText style={styles.average}>{averageLabel}</AppText>
         <View style={styles.starsBlock}>
-          <StarRating rating={averageRating} size={18} gap={3} />
+          <StarRating rating={averageRating} size={compact ? 16 : 18} gap={3} />
           <AppText style={styles.count}>{reviewCountLabel}</AppText>
         </View>
       </View>

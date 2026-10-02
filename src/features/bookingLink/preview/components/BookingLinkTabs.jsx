@@ -15,12 +15,12 @@ export function BookingLinkTabs({ activeTab, onChangeTab }) {
           borderBottomColor: colors.border,
           borderBottomWidth: 1,
           flexDirection: 'row',
-          marginTop: 18,
+          marginTop: 30,
           paddingHorizontal: SCREEN_GUTTER,
         },
         tab: {
-          marginRight: 24,
-          paddingBottom: 14,
+          marginRight: 18,
+          paddingBottom: 11,
           paddingTop: 2,
         },
         activeTab: {
@@ -29,7 +29,7 @@ export function BookingLinkTabs({ activeTab, onChangeTab }) {
         },
         tabLabel: {
           color: colors.textMuted,
-          fontSize: 15,
+          fontSize: 13,
           fontWeight: '500',
         },
         activeTabLabel: {

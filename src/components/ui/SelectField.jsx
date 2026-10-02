@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
@@ -11,13 +11,16 @@ import {
   scheduleSheetOpen,
   useModalFadeBackdropSlideSheet,
 } from './useModalFadeBackdropSlideSheet';
+import { WHEEL_ITEM_HEIGHT, WheelColumn } from './wheelPicker';
 
 /**
  * Opens a bottom sheet to pick one option. Trigger matches {@link TextField} outline styling.
  * Layout: full-screen backdrop (dismiss) + sheet only at the bottom (so touches work reliably).
  *
- * `presentation`: `sheet` (default) = scrollable rows; `wheel` = native picker in a compact
+ * `presentation`: `sheet` (default) = scrollable rows; `wheel` = a scroll wheel in a compact
  * app bottom sheet (same chrome as {@link BottomSheetModal} `fitContent`, not a full page sheet).
+ * iOS uses the native spinner. Android uses {@link WheelColumn} — the native Android
+ * picker only shows the current value, then opens a second system dialog.
  * Web uses `sheet`.
  *
  * @param {{
@@ -30,6 +33,68 @@ import {
  *   presentation?: 'sheet' | 'wheel';
  * }} props
  */
+
+/**
+ * Scroll wheel for Android. Remounted each time the sheet opens so it starts on the
+ * current value. Selection is ignored until that first positioning finishes.
+ */
+function AndroidSelectWheel({ options, selectedValue, onValueChange, itemTextStyle, wheelStyle }) {
+  const listRef = useRef(null);
+  const readyRef = useRef(false);
+  const optionsRef = useRef(options);
+  const onValueChangeRef = useRef(onValueChange);
+  const mountIndexRef = useRef(
+    Math.max(
+      0,
+      options.findIndex((option) => option.value === selectedValue),
+    ),
+  );
+  optionsRef.current = options;
+  onValueChangeRef.current = onValueChange;
+
+  const labels = useMemo(() => options.map((option) => option.label), [options]);
+  const selectedLabel =
+    options.find((option) => option.value === selectedValue)?.label ?? labels[0] ?? '';
+
+  useEffect(() => {
+    const y = mountIndexRef.current * WHEEL_ITEM_HEIGHT;
+    const position = () => {
+      listRef.current?.scrollTo({ animated: false, y });
+    };
+    const frame = requestAnimationFrame(position);
+    const timer = setTimeout(() => {
+      position();
+      readyRef.current = true;
+    }, 64);
+    return () => {
+      readyRef.current = false;
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, []);
+
+  const onSelectedChange = useCallback((labelText) => {
+    if (!readyRef.current) return;
+    const match = optionsRef.current.find((option) => option.label === labelText);
+    if (!match) return;
+    onValueChangeRef.current(String(match.value));
+  }, []);
+
+  if (labels.length === 0) return null;
+
+  return (
+    <WheelColumn
+      fullWidth
+      itemTextStyle={itemTextStyle}
+      listRef={listRef}
+      selected={selectedLabel}
+      values={labels}
+      wheelStyle={wheelStyle}
+      onSelectedChange={onSelectedChange}
+    />
+  );
+}
+
 export function SelectField({
   label,
   title,
@@ -48,6 +113,8 @@ export function SelectField({
   const [pressed, setPressed] = useState(false);
 
   const useWheel = presentation === 'wheel' && Platform.OS !== 'web';
+  // Android's native dropdown shows one row, then a second dialog. Reuse the shared wheel.
+  const useAndroidWheel = useWheel && Platform.OS === 'android';
 
   const selectedLabel = useMemo(() => {
     const hit = options.find((o) => o.value === value);
@@ -224,6 +291,16 @@ export function SelectField({
           height: 200,
           width: '100%',
         },
+        androidWheel: {
+          alignSelf: 'stretch',
+          width: '100%',
+        },
+        androidWheelItem: {
+          fontSize: 20,
+          fontWeight: '600',
+          textAlign: 'center',
+          width: '100%',
+        },
         wheelFooter: {
           marginTop: 4,
         },
@@ -287,38 +364,37 @@ export function SelectField({
           onRequestClose={close}
         >
           <View style={styles.pickerWrap}>
-            <Picker
-              dropdownIconColor={colors.textMuted}
-              itemStyle={
-                Platform.OS === 'ios'
-                  ? {
-                      color: colors.text,
-                      fontSize: 20,
-                      fontWeight: '600',
-                      textAlign: 'left',
-                    }
-                  : undefined
-              }
-              mode={Platform.OS === 'ios' ? 'spinner' : 'dropdown'}
-              selectedValue={pickerSelectedValue}
-              style={
-                Platform.OS === 'ios' ? styles.pickerIOS : { color: colors.text, width: '100%' }
-              }
-              themeVariant={isDark ? 'dark' : 'light'}
-              onValueChange={(itemValue) => {
-                if (itemValue === '') return;
-                onValueChange(String(itemValue));
-              }}
-            >
-              {options.map((opt) => (
-                <Picker.Item
-                  key={String(opt.value)}
-                  color={Platform.OS === 'android' ? colors.text : undefined}
-                  label={opt.label}
-                  value={opt.value}
+            {useAndroidWheel ? (
+              open ? (
+                <AndroidSelectWheel
+                  itemTextStyle={styles.androidWheelItem}
+                  options={options}
+                  selectedValue={pickerSelectedValue}
+                  wheelStyle={styles.androidWheel}
+                  onValueChange={onValueChange}
                 />
-              ))}
-            </Picker>
+              ) : null
+            ) : (
+              <Picker
+                itemStyle={{
+                  color: colors.text,
+                  fontSize: 20,
+                  fontWeight: '600',
+                  textAlign: 'left',
+                }}
+                selectedValue={pickerSelectedValue}
+                style={styles.pickerIOS}
+                themeVariant={isDark ? 'dark' : 'light'}
+                onValueChange={(itemValue) => {
+                  if (itemValue === '') return;
+                  onValueChange(String(itemValue));
+                }}
+              >
+                {options.map((opt) => (
+                  <Picker.Item key={String(opt.value)} label={opt.label} value={opt.value} />
+                ))}
+              </Picker>
+            )}
           </View>
         </BottomSheetModal>
       ) : (

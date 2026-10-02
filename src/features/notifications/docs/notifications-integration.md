@@ -109,6 +109,7 @@ Implemented in **`openNotificationTarget`** (shared by inbox and push):
 - **`reference_type`** is **`review`** (or contains `review`) → **More** stack → **Reviews** list (`reference_id` ignored for navigation).
 - **`reference_type`** is **`subscriber`** or **`membership`** (alias) → **More** stack → **Subscriber detail** (`subscriptionId` = `customer_memberships.id`). Missing id → **Subscriptions** hub.
 - **`payment`**, **`payout`**, or **`deposit`** → **More** → **Payments** (`MORE_PAYMENTS`).
+- **`screen`** or **`announcement`** → `reference_id` is a screen slug or path (no entity id). Slugs are listed in `resolvePushDestination.js`. Examples: `team`, `expenses`, `help`, `support`, `legal`, `inbox`, `create_appointment`. Detail screens that need an id (a teammate, a booking, a quote) stay on their entity `reference_type`.
 - Otherwise → **Home** fallback.
 
 Push payloads may use **snake_case** or **camelCase** keys; **`navigateFromPushPayload`** normalizes both.

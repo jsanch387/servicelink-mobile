@@ -12,11 +12,6 @@ jest.mock('expo-constants', () => ({
   },
 }));
 
-jest.mock('react-native/Libraries/Utilities/Platform', () => ({
-  OS: 'ios',
-  select: (options) => options.ios,
-}));
-
 describe('getNativeStoreUpdateConfig', () => {
   beforeEach(() => {
     delete process.env.EXPO_PUBLIC_MIN_NATIVE_APP_VERSION;
@@ -28,31 +23,12 @@ describe('getNativeStoreUpdateConfig', () => {
   });
 
   it('does not require update when current version matches minimum', () => {
-    jest.resetModules();
-    jest.doMock('expo-constants', () => ({
-      __esModule: true,
-      default: {
-        expoConfig: {
-          version: '1.0.7',
-          extra: { minNativeAppVersion: '1.0.7' },
-        },
-        nativeApplicationVersion: '1.0.7',
-      },
-    }));
     const { isNativeStoreUpdateRequired } = require('../getNativeStoreUpdateConfig');
-    expect(isNativeStoreUpdateRequired()).toBe(false);
+    expect(isNativeStoreUpdateRequired('1.0.7', '1.0.7')).toBe(false);
   });
 
   it('does not require update when minimum is unset', () => {
-    jest.resetModules();
-    jest.doMock('expo-constants', () => ({
-      __esModule: true,
-      default: {
-        expoConfig: { version: '1.0.6', extra: {} },
-        nativeApplicationVersion: '1.0.6',
-      },
-    }));
     const { isNativeStoreUpdateRequired } = require('../getNativeStoreUpdateConfig');
-    expect(isNativeStoreUpdateRequired()).toBe(false);
+    expect(isNativeStoreUpdateRequired('1.0.6', '')).toBe(false);
   });
 });

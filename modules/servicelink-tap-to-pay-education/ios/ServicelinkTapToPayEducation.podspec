@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
   s.license        = 'MIT'
   s.author         = 'ServiceLink'
   s.homepage       = 'https://myservicelink.app'
-  s.platforms      = { :ios => '15.1' }
+  s.platforms      = { :ios => '16.4' }
   s.swift_version  = '5.9'
   s.source         = { :git => 'https://github.com/servicelink/servicelink-mobile.git' }
   s.static_framework = true

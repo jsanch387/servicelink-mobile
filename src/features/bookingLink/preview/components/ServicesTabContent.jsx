@@ -64,7 +64,7 @@ export function ServicesTabContent({ services, serviceCategories = [], isLoading
       StyleSheet.create({
         wrap: {
           paddingBottom: 28,
-          paddingTop: 16,
+          paddingTop: 28,
         },
         cardsGutter: {
           paddingHorizontal: SCREEN_GUTTER,
@@ -188,7 +188,7 @@ export function ServicesTabContent({ services, serviceCategories = [], isLoading
 
         {!isLoading
           ? visibleServices.map((service) => (
-              <ServicePreviewCard key={service.id} service={service} />
+              <ServicePreviewCard key={service.id} compact service={service} />
             ))
           : null}
       </View>

@@ -19,7 +19,7 @@ export function ToastModalHost() {
   const { toast, dismissing, dismiss, finalizeHide } = toastPresentation;
 
   return (
-    <View pointerEvents="box-none" style={styles.host}>
+    <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, styles.host]}>
       <ToastView
         dismissing={dismissing}
         message={toast.message}
@@ -38,7 +38,6 @@ export function ToastModalHost() {
 
 const styles = StyleSheet.create({
   host: {
-    ...StyleSheet.absoluteFillObject,
     zIndex: 10000,
   },
 });

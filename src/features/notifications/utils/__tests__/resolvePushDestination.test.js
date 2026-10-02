@@ -214,6 +214,50 @@ describe('resolvePushDestination', () => {
     ).toEqual(expected);
   });
 
+  it('opens Team for team and teams slugs and the team path', () => {
+    const expected = {
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.TEAM,
+    };
+    expect(resolvePushDestination({ referenceType: 'screen', referenceId: 'team' })).toEqual(
+      expected,
+    );
+    expect(resolvePushDestination({ referenceType: 'screen', referenceId: 'teams' })).toEqual(
+      expected,
+    );
+    expect(
+      resolvePushDestination({ referenceType: 'announcement', referenceId: '/more/team' }),
+    ).toEqual(expected);
+  });
+
+  it('maps remaining broadcast screens that do not need an entity id', () => {
+    const cases = [
+      ['help', { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.HELP }],
+      ['support', { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.SUPPORT }],
+      ['contact', { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.SUPPORT }],
+      ['legal', { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.LEGAL }],
+      ['privacy', { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.LEGAL }],
+      ['account', { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.ACCOUNT_SETTINGS }],
+      ['more', { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.MORE_HOME }],
+      ['sent_texts', { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.SENT_TEXTS }],
+      [
+        'customer_texts',
+        { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.CUSTOMER_SMS_UPSELL },
+      ],
+      ['inbox', { kind: 'notifications_inbox' }],
+      ['create_appointment', { kind: 'root_stack', screen: ROUTES.CREATE_APPOINTMENT }],
+      ['create_payment', { kind: 'root_stack', screen: ROUTES.CREATE_PAYMENT }],
+      ['create_quote', { kind: 'root_stack', screen: ROUTES.CREATE_QUOTE }],
+      ['/more/help', { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.HELP }],
+      ['/notifications', { kind: 'notifications_inbox' }],
+    ];
+
+    for (const [referenceId, expected] of cases) {
+      expect(resolvePushDestination({ referenceType: 'screen', referenceId })).toEqual(expected);
+    }
+  });
+
   it('maps subscriptions screen slug to subscriptions hub', () => {
     expect(
       resolvePushDestination({ referenceType: 'screen', referenceId: 'subscriptions' }),

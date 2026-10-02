@@ -243,7 +243,11 @@ export function Button({
                 >
                   <View style={styles.contentRow}>{contentChildren}</View>
                 </View>
-                <View collapsable={false} pointerEvents="none" style={styles.loadingOverlay}>
+                <View
+                  collapsable={false}
+                  pointerEvents="none"
+                  style={[StyleSheet.absoluteFill, styles.loadingOverlay]}
+                >
                   {loadingNode ?? <ActivityIndicator color={spinnerColor} />}
                 </View>
               </View>
@@ -311,7 +315,6 @@ const styles = StyleSheet.create({
     opacity: 0,
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,

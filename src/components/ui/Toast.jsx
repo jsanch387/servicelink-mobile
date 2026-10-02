@@ -160,7 +160,10 @@ export function ToastView({
   };
 
   return (
-    <View pointerEvents="box-none" style={[styles.host, { paddingTop: insets.top + 10 }]}>
+    <View
+      pointerEvents="box-none"
+      style={[StyleSheet.absoluteFill, styles.host, { paddingTop: insets.top + 10 }]}
+    >
       <Animated.View
         {...panResponder.panHandlers}
         pointerEvents="box-none"
@@ -219,7 +222,6 @@ export function ToastView({
 
 const styles = StyleSheet.create({
   host: {
-    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingHorizontal: 16,

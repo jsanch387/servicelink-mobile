@@ -298,7 +298,11 @@ export function AuthNavigator() {
           ) : null}
           {session && !needsOnboarding && !needsRemovedFromTeam && !mainAppSubscriptionBooting ? (
             <>
-              <Stack.Screen component={MainTabNavigator} name={ROUTES.MAIN_APP} />
+              <Stack.Screen
+                component={MainTabNavigator}
+                name={ROUTES.MAIN_APP}
+                options={{ headerTransparent: true }}
+              />
               <Stack.Screen
                 component={NotificationsInboxScreen}
                 name={ROUTES.NOTIFICATIONS_INBOX}

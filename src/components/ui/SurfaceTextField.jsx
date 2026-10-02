@@ -114,9 +114,9 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
           flex: 1,
           justifyContent: isMultiline ? 'flex-start' : 'center',
           minHeight: isMultiline ? 72 : 52,
+          position: 'relative',
         },
         overlayPlaceholderWrap: {
-          ...StyleSheet.absoluteFillObject,
           justifyContent: isMultiline ? 'flex-start' : 'center',
           paddingLeft: 6,
           paddingRight: 4,
@@ -203,7 +203,10 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
     <SurfaceInputRow left={leftNode} right={rightNode} style={styles.rowShell}>
       <View style={styles.inputWrap}>
         {showOverlayPlaceholder ? (
-          <View pointerEvents="none" style={styles.overlayPlaceholderWrap}>
+          <View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, styles.overlayPlaceholderWrap]}
+          >
             <AppText numberOfLines={1} style={styles.overlayPlaceholder}>
               {placeholder}
             </AppText>

@@ -27,8 +27,8 @@ export function BioTabContent({ bio, businessType = '' }) {
         },
         body: {
           color: colors.textMuted,
-          fontSize: 14,
-          lineHeight: 21,
+          fontSize: 13,
+          lineHeight: 19,
           paddingHorizontal: 2,
         },
       }),

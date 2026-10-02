@@ -186,7 +186,6 @@ export function BookingsScreen() {
           flex: 1,
         },
         fabWrap: {
-          ...StyleSheet.absoluteFillObject,
           alignItems: 'center',
           justifyContent: 'flex-end',
           /** Hug the bottom tab bar — small gap only (tab bar sits below this screen). */
@@ -481,7 +480,7 @@ export function BookingsScreen() {
         </View>
       )}
 
-      <View pointerEvents="box-none" style={styles.fabWrap}>
+      <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, styles.fabWrap]}>
         <View pointerEvents="auto" style={styles.fabHit}>
           <BookingsViewModeToggle mode={viewMode} onChange={setViewMode} />
         </View>

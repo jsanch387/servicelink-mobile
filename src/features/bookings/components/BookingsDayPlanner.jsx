@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
+import { AppText, Button, InlineCardError, PeriodNav, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { BOOKINGS_LIST_SCREEN_PADDING } from '../constants';
@@ -99,38 +99,9 @@ export function BookingsDayPlanner({
         root: {
           flex: 1,
         },
-        header: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginBottom: 16,
-          paddingHorizontal: BOOKINGS_LIST_SCREEN_PADDING,
-        },
-        navHit: {
-          padding: 10,
-        },
-        titleWrap: {
-          alignItems: 'center',
-          flex: 1,
-        },
-        title: {
-          color: colors.text,
-          fontSize: 17,
-          fontWeight: '700',
-          letterSpacing: -0.2,
-          textAlign: 'center',
-        },
-        todayPill: {
-          backgroundColor: colors.shellElevated,
-          borderRadius: 6,
-          marginTop: 4,
-          paddingHorizontal: 8,
-          paddingVertical: 2,
-        },
-        todayPillText: {
-          color: colors.textMuted,
-          fontSize: 11,
-          fontWeight: '700',
+        periodNav: {
+          marginBottom: 12,
+          marginHorizontal: BOOKINGS_LIST_SCREEN_PADDING,
         },
         errorBlock: {
           marginBottom: 12,
@@ -380,32 +351,14 @@ export function BookingsDayPlanner({
       showsVerticalScrollIndicator={false}
       style={styles.scroll}
     >
-      <View style={styles.header}>
-        <Pressable
-          accessibilityLabel="Previous day"
-          hitSlop={12}
-          onPress={() => onShiftDay(-1)}
-          style={styles.navHit}
-        >
-          <Ionicons color={colors.tabBarActive} name="chevron-back" size={26} />
-        </Pressable>
-        <View style={styles.titleWrap}>
-          <AppText style={styles.title}>{title}</AppText>
-          {isToday ? (
-            <View style={styles.todayPill}>
-              <AppText style={styles.todayPillText}>Today</AppText>
-            </View>
-          ) : null}
-        </View>
-        <Pressable
-          accessibilityLabel="Next day"
-          hitSlop={12}
-          onPress={() => onShiftDay(1)}
-          style={styles.navHit}
-        >
-          <Ionicons color={colors.tabBarActive} name="chevron-forward" size={26} />
-        </Pressable>
-      </View>
+      <PeriodNav
+        label={title}
+        nextLabel="Next day"
+        previousLabel="Previous day"
+        style={styles.periodNav}
+        onNext={() => onShiftDay(1)}
+        onPrevious={() => onShiftDay(-1)}
+      />
 
       {businessError ? (
         <View style={styles.errorBlock}>
@@ -441,7 +394,7 @@ export function BookingsDayPlanner({
           <BookingsDayPlannerSkeleton />
         </View>
       ) : showEmptyDay ? (
-        <BookingsEmptyState title="Nothing scheduled" />
+        <BookingsEmptyState compact title="Nothing scheduled" />
       ) : showTimeline ? (
         <View style={styles.timelineRow}>
           <View style={styles.timeGutter}>

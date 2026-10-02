@@ -129,11 +129,9 @@ export function ServiceCreateSheet({
       footer={
         <View style={styles.actions}>
           <Button
-            labelColor="#ffffff"
-            outlineColor="rgba(255,255,255,0.52)"
             style={styles.actionBtn}
             title="Cancel"
-            variant="outline"
+            variant="secondary"
             onPress={onRequestClose}
           />
           <Button
