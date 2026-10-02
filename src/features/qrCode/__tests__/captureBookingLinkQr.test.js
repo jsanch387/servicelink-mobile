@@ -4,7 +4,7 @@ import {
   shareBookingLinkQr,
 } from '../utils/captureBookingLinkQr';
 
-jest.mock('expo-media-library', () => ({
+jest.mock('expo-media-library/legacy', () => ({
   requestPermissionsAsync: jest.fn(),
   createAssetAsync: jest.fn(),
 }));
@@ -18,7 +18,7 @@ jest.mock('react-native-view-shot', () => ({
   captureRef: jest.fn(),
 }));
 
-const MediaLibrary = require('expo-media-library');
+const MediaLibrary = require('expo-media-library/legacy');
 const Sharing = require('expo-sharing');
 const { captureRef } = require('react-native-view-shot');
 

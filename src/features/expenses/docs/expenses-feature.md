@@ -26,9 +26,9 @@ Entry: More → Expenses, last row in the office group (after Marketing and Paym
 
 `ExpensesScreen` opens on **Overview**. **List** does not fetch until that tab is selected.
 
-| Tab          | Loads                                                                     | Shows                                                         |
-| ------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **Overview** | Current range plus the prior comparison window. All time loads every row. | Total spent, change pill, chart, category bars, range picker. |
+| Tab          | Loads                                                                                       | Shows                                                         |
+| ------------ | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **Overview** | Current range plus the prior comparison window. All time loads every row.                   | Total spent, change pill, chart, category bars, range picker. |
 | **List**     | The newest month with a charge, then the previous month each time the owner taps Load more. | Register grouped by charge month. Tap a row for details.      |
 
 The list ignores the overview range. Week / Month / Year / All time / Custom filter the overview only.

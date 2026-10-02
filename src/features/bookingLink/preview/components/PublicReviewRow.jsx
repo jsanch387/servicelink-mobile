@@ -41,7 +41,7 @@ export function PublicReviewRow({
         },
         name: {
           color: colors.text,
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: '600',
           letterSpacing: -0.2,
         },
@@ -69,9 +69,9 @@ export function PublicReviewRow({
         },
         replyText: {
           color: colors.textMuted,
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: '500',
-          lineHeight: 21,
+          lineHeight: 19,
         },
       }),
     [colors],

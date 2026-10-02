@@ -73,7 +73,12 @@ export function CompleteVisitSubmitOverlay({
     return (
       <View
         accessibilityLiveRegion="polite"
-        style={[styles.root, overlayInsetStyle, { backgroundColor: colors.shell }]}
+        style={[
+          StyleSheet.absoluteFill,
+          styles.root,
+          overlayInsetStyle,
+          { backgroundColor: colors.shell },
+        ]}
       >
         <View style={styles.centeredWrap}>
           <EchoBarsLoader accessibilityLabel="Completing appointment" size="large" />
@@ -86,7 +91,14 @@ export function CompleteVisitSubmitOverlay({
   }
 
   return (
-    <View style={[styles.root, overlayInsetStyle, { backgroundColor: colors.shell }]}>
+    <View
+      style={[
+        StyleSheet.absoluteFill,
+        styles.root,
+        overlayInsetStyle,
+        { backgroundColor: colors.shell },
+      ]}
+    >
       <SuccessMoment
         body={successDetail}
         centered
@@ -101,7 +113,6 @@ export function CompleteVisitSubmitOverlay({
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'transparent',
     zIndex: 10,
   },

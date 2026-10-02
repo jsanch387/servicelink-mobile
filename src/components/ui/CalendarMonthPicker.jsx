@@ -1,9 +1,9 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
 import { AppointmentCountMarkers, appointmentDayFillOpacity } from './AppointmentCountMarkers';
 import { AppText } from './AppText';
+import { PeriodNav } from './PeriodNav';
 import {
   buildMonthWeekGrid,
   parseLocalYyyyMmDd,
@@ -32,6 +32,7 @@ const WEEK_HEADERS_COMPACT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
  *   isDateUnavailable?: (d: Date) => boolean;
  *   bookingCountByDateKey?: Record<string, number>;
  *   onVisibleMonthChange?: (monthStart: Date) => void;
+ *   plainNav?: boolean;
  * }} props
  */
 export function CalendarMonthPicker({
@@ -46,6 +47,7 @@ export function CalendarMonthPicker({
   isDateUnavailable,
   bookingCountByDateKey,
   onVisibleMonthChange,
+  plainNav = false,
 }) {
   const { colors, isDark } = useTheme();
   const ownerCalendar = bookingCountByDateKey !== undefined;
@@ -135,28 +137,15 @@ export function CalendarMonthPicker({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        navRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginBottom: ownerCalendar ? 10 : 12,
+        periodNav: {
+          marginBottom: ownerCalendar ? 0 : 12,
         },
-        navCenter: {
-          alignItems: 'center',
-          flex: 1,
-        },
-        navHit: {
-          alignItems: 'center',
-          borderRadius: 12,
-          height: 40,
-          justifyContent: 'center',
-          width: 40,
-        },
-        monthTitle: {
-          color: colors.text,
-          fontSize: ownerCalendar ? 18 : 17,
-          fontWeight: '700',
-          letterSpacing: -0.3,
+        monthDivider: {
+          backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+          height: StyleSheet.hairlineWidth,
+          marginBottom: 16,
+          marginHorizontal: 7,
+          marginTop: 4,
         },
         weekHeaderRow: {
           flexDirection: 'row',
@@ -167,12 +156,16 @@ export function CalendarMonthPicker({
           flex: 1,
         },
         weekHeaderText: {
-          color: colors.textMuted,
-          fontSize: 11,
-          fontWeight: '600',
+          color: ownerCalendar
+            ? isDark
+              ? 'rgba(250,250,250,0.78)'
+              : colors.textSecondary
+            : colors.textMuted,
+          fontSize: ownerCalendar ? 12 : 11,
+          fontWeight: ownerCalendar ? '700' : '600',
         },
         monthBody: {
-          gap: ownerCalendar ? 6 : 4,
+          gap: ownerCalendar ? 8 : 4,
         },
         weekRow: {
           flexDirection: 'row',
@@ -181,20 +174,21 @@ export function CalendarMonthPicker({
           alignItems: 'center',
           flex: 1,
           justifyContent: 'center',
-          minHeight: ownerCalendar ? 50 : 44,
+          minHeight: ownerCalendar ? 56 : 44,
           paddingVertical: 2,
         },
         daySpacer: {
           flex: 1,
-          minHeight: ownerCalendar ? 50 : 44,
+          minHeight: ownerCalendar ? 56 : 44,
         },
         dayInner: {
           alignItems: 'center',
-          alignSelf: 'center',
-          borderRadius: ownerCalendar ? 12 : 10,
-          height: ownerCalendar ? 46 : 42,
+          alignSelf: ownerCalendar ? 'stretch' : 'center',
+          borderRadius: ownerCalendar ? 14 : 10,
+          height: ownerCalendar ? 52 : 42,
           justifyContent: 'center',
-          width: ownerCalendar ? 44 : 40,
+          marginHorizontal: ownerCalendar ? 2 : 0,
+          width: ownerCalendar ? undefined : 40,
           zIndex: 1,
         },
         dayInnerSelected: {
@@ -216,8 +210,8 @@ export function CalendarMonthPicker({
           right: 0,
         },
         dayInnerToday: {
-          borderColor: ownerCalendar ? colors.tabBarActive : colors.borderStrong,
-          borderWidth: ownerCalendar ? 1.5 : 1,
+          borderColor: colors.borderStrong,
+          borderWidth: 1,
         },
         dayNum: {
           fontSize: ownerCalendar ? 16 : 15,
@@ -296,33 +290,19 @@ export function CalendarMonthPicker({
 
   return (
     <View>
-      <View style={styles.navRow}>
-        <Pressable
-          accessibilityLabel="Previous month"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !canGoPrev }}
-          disabled={!canGoPrev}
-          hitSlop={8}
-          style={[styles.navHit, { opacity: canGoPrev ? 1 : 0.35 }]}
-          onPress={goPrevMonth}
-        >
-          <Ionicons color={colors.text} name="chevron-back" size={22} />
-        </Pressable>
-        <View style={styles.navCenter}>
-          <AppText style={styles.monthTitle}>{monthLabel}</AppText>
-        </View>
-        <Pressable
-          accessibilityLabel="Next month"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !canGoNext }}
-          disabled={!canGoNext}
-          hitSlop={8}
-          style={[styles.navHit, { opacity: canGoNext ? 1 : 0.35 }]}
-          onPress={goNextMonth}
-        >
-          <Ionicons color={colors.text} name="chevron-forward" size={22} />
-        </Pressable>
-      </View>
+      <PeriodNav
+        appearance={plainNav ? 'plain' : 'bar'}
+        label={monthLabel}
+        nextDisabled={!canGoNext}
+        nextLabel="Next month"
+        previousDisabled={!canGoPrev}
+        previousLabel="Previous month"
+        style={styles.periodNav}
+        onNext={goNextMonth}
+        onPrevious={goPrevMonth}
+      />
+
+      {ownerCalendar ? <View style={styles.monthDivider} /> : null}
 
       <View style={styles.weekHeaderRow}>
         {weekHeaders.map((w, index) => (
@@ -399,7 +379,9 @@ export function CalendarMonthPicker({
                       fillOpacity > 0
                         ? { backgroundColor: `${busyFillColor}${fillOpacity})` }
                         : null,
-                      isToday && !selected && !inRange && !disabled ? styles.dayInnerToday : null,
+                      isToday && !selected && !inRange && !disabled && !ownerCalendar
+                        ? styles.dayInnerToday
+                        : null,
                       selected && !disabled ? styles.dayInnerSelected : null,
                     ]}
                     testID={

@@ -1,11 +1,11 @@
 import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 import { useAuth } from '../../auth';
 import { upsertPushDeviceToken } from '../api/upsertPushDeviceToken';
 import { PUSH_PERMISSION_REQUEST } from '../constants/pushAlertSetup';
 import { ensureAndroidDefaultNotificationChannel } from '../utils/ensureAndroidDefaultNotificationChannel';
+import { loadExpoNotifications } from '../utils/loadExpoNotifications';
 
 function resolveExpoProjectId() {
   return Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId ?? undefined;
@@ -23,6 +23,11 @@ export function PushTokenRegistration() {
     if (Platform.OS === 'web' || !userId) {
       return;
     }
+    const Notifications = loadExpoNotifications();
+    if (!Notifications) {
+      return;
+    }
+
     try {
       await ensureAndroidDefaultNotificationChannel();
 

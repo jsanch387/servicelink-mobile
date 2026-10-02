@@ -92,18 +92,18 @@ order by charged_on desc
 
 `fetchExpensesForBusiness` adds `charged_on >= from` and `charged_on <= to` only when those dates are passed.
 
-| Caller                | When it runs            | Date filter                                                              |
-| --------------------- | ----------------------- | ------------------------------------------------------------------------ |
-| `useExpensesOverview` | Overview tab is visible | Current range plus the prior comparison window. All time sends no dates. |
+| Caller                | When it runs            | Date filter                                                                                                   |
+| --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `useExpensesOverview` | Overview tab is visible | Current range plus the prior comparison window. All time sends no dates.                                      |
 | `useExpensesList`     | List tab is visible     | The newest month that has a charge, then the previous month with a charge each time the owner taps Load more. |
 
 Overview does not run while List is open, and List does not run until the owner opens that tab. Each query stays cached for 30 seconds (`staleTime`). Garbage collection is 15 minutes.
 
 Query keys:
 
-| Key                                                           | Cache         |
-| ------------------------------------------------------------- | ------------- |
-| `['expenses', 'overview', businessId, range, fromYmd, toYmd]` | One window    |
+| Key                                                           | Cache                        |
+| ------------------------------------------------------------- | ---------------------------- |
+| `['expenses', 'overview', businessId, range, fromYmd, toYmd]` | One window                   |
 | `['expenses', 'list', businessId]`                            | Loaded pages of the register |
 
 The business id comes from `useExpenseBusiness` (`shopProfileQueryOptions`). The query stays off until that id exists.

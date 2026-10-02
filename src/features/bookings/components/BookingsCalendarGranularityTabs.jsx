@@ -1,146 +1,108 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useMemo } from 'react';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { BOOKINGS_CALENDAR_GRANULARITY_OPTIONS, BOOKINGS_LIST_SCREEN_PADDING } from '../constants';
 
-const INDICATOR_HEIGHT = 3;
+const TRACK_PAD = 3;
+const SEGMENT_HEIGHT = 30;
+const TRACK_HEIGHT = TRACK_PAD * 2 + SEGMENT_HEIGHT;
+const SEGMENT_RADIUS = SEGMENT_HEIGHT / 2;
 
-/** Day · Week · Month — top of calendar mode; matches list tab chrome. */
+const ACTIVE_FG = '#000000';
+const ACTIVE_BG = '#ffffff';
+
+/** Day · Week · Month — compact version of the translucent list/calendar toggle. */
 export function BookingsCalendarGranularityTabs({ value, onChange }) {
-  const { colors } = useTheme();
-  const [measures, setMeasures] = useState({});
-
-  const setPressableX = useCallback((id, x) => {
-    setMeasures((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], px: x },
-    }));
-  }, []);
-
-  const setTextLayout = useCallback((id, x, width) => {
-    setMeasures((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], tx: x, tw: width },
-    }));
-  }, []);
-
-  const activeMeasure = measures[value];
-  const hasIndicator =
-    activeMeasure &&
-    activeMeasure.tw != null &&
-    activeMeasure.tw > 0 &&
-    activeMeasure.px !== undefined &&
-    activeMeasure.tx !== undefined;
-  const indicatorLeft = hasIndicator ? activeMeasure.px + activeMeasure.tx : 0;
-  const indicatorWidth = hasIndicator ? activeMeasure.tw : 0;
+  const { colors, isDark } = useTheme();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         wrap: {
-          paddingBottom: 16,
+          paddingBottom: 8,
           paddingHorizontal: BOOKINGS_LIST_SCREEN_PADDING,
           paddingTop: 8,
         },
-        tabRow: {
-          flexDirection: 'row',
-          gap: 20,
-          justifyContent: 'flex-start',
-          width: '100%',
-        },
-        tab: {
+        track: {
           alignItems: 'center',
+          backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.42)',
+          borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+          borderRadius: TRACK_HEIGHT / 2,
+          borderWidth: StyleSheet.hairlineWidth,
+          flexDirection: 'row',
+          height: TRACK_HEIGHT,
+          padding: TRACK_PAD,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: isDark ? 0.28 : 0.08,
+              shadowRadius: 8,
+            },
+          }),
+        },
+        segmentSlot: {
+          alignItems: 'center',
+          flex: 1,
+          height: SEGMENT_HEIGHT,
           justifyContent: 'center',
-          paddingBottom: 10,
-          paddingHorizontal: 8,
-          paddingTop: 8,
         },
-        tabLeading: {
-          paddingLeft: 0,
-        },
-        tabLabel: {
-          fontSize: 15,
-          fontWeight: '500',
-          letterSpacing: -0.2,
-          textAlign: 'center',
-        },
-        tabLabelActive: {
-          color: colors.tabBarActive,
-          fontWeight: '700',
-        },
-        tabLabelIdle: {
-          color: colors.textMuted,
-        },
-        indicatorTrack: {
-          backgroundColor: 'transparent',
-          height: INDICATOR_HEIGHT,
-          marginTop: 10,
-          width: '100%',
-        },
-        indicator: {
-          backgroundColor: colors.tabBarActive,
-          height: INDICATOR_HEIGHT,
+        selectedFill: {
+          backgroundColor: ACTIVE_BG,
+          borderRadius: SEGMENT_RADIUS,
+          bottom: 0,
+          left: 0,
           position: 'absolute',
+          right: 0,
           top: 0,
         },
-        divider: {
-          backgroundColor: colors.border,
-          height: StyleSheet.hairlineWidth,
-          width: '100%',
+        segment: {
+          alignItems: 'center',
+          height: SEGMENT_HEIGHT,
+          justifyContent: 'center',
+          paddingHorizontal: 8,
+        },
+        label: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '600',
+          letterSpacing: -0.15,
+        },
+        labelOn: {
+          color: ACTIVE_FG,
         },
       }),
-    [colors],
+    [colors, isDark],
   );
 
   return (
     <View accessibilityRole="tablist" style={styles.wrap}>
-      <View style={styles.tabRow}>
-        {BOOKINGS_CALENDAR_GRANULARITY_OPTIONS.map((opt, index) => {
+      <View style={styles.track}>
+        {BOOKINGS_CALENDAR_GRANULARITY_OPTIONS.map((opt) => {
           const selected = opt.id === value;
           return (
-            <Pressable
-              key={opt.id}
-              accessibilityLabel={`${opt.label} calendar view`}
-              accessibilityRole="tab"
-              accessibilityState={{ selected }}
-              hitSlop={{ top: 8, bottom: 8 }}
-              onLayout={(e) => setPressableX(opt.id, e.nativeEvent.layout.x)}
-              onPress={() => onChange(opt.id)}
-              style={({ pressed }) => [
-                styles.tab,
-                index === 0 && styles.tabLeading,
-                pressed && { opacity: 0.75 },
-              ]}
-            >
-              <AppText
-                numberOfLines={1}
-                onLayout={(e) => {
-                  const { x, width } = e.nativeEvent.layout;
-                  setTextLayout(opt.id, x, width);
-                }}
-                style={[styles.tabLabel, selected ? styles.tabLabelActive : styles.tabLabelIdle]}
+            <View key={opt.id} style={styles.segmentSlot}>
+              {selected ? <View pointerEvents="none" style={styles.selectedFill} /> : null}
+              <Pressable
+                accessibilityLabel={`${opt.label} calendar view`}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                android_ripple={{ color: 'transparent' }}
+                onPress={() => onChange(opt.id)}
               >
-                {opt.label}
-              </AppText>
-            </Pressable>
+                {({ pressed }) => (
+                  <View style={[styles.segment, pressed && { opacity: 0.88 }]}>
+                    <AppText numberOfLines={1} style={[styles.label, selected && styles.labelOn]}>
+                      {opt.label}
+                    </AppText>
+                  </View>
+                )}
+              </Pressable>
+            </View>
           );
         })}
       </View>
-      <View style={styles.indicatorTrack}>
-        {hasIndicator ? (
-          <View
-            style={[
-              styles.indicator,
-              {
-                left: indicatorLeft,
-                width: indicatorWidth,
-              },
-            ]}
-          />
-        ) : null}
-      </View>
-      <View style={styles.divider} />
     </View>
   );
 }

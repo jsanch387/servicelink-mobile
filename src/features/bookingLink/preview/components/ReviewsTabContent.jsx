@@ -39,16 +39,16 @@ export function ReviewsTabContent({ isActive, reviewsState }) {
         },
         emptyTitle: {
           color: colors.textSecondary,
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: '600',
           letterSpacing: -0.15,
           textAlign: 'center',
         },
         emptyBody: {
           color: colors.textMuted,
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: '500',
-          lineHeight: 20,
+          lineHeight: 19,
           marginTop: 8,
           textAlign: 'center',
         },
@@ -85,6 +85,7 @@ export function ReviewsTabContent({ isActive, reviewsState }) {
             <ReviewsSummarySection
               averageRating={reviewsState.summary.averageRating}
               breakdown={reviewsState.summary.breakdown}
+              compact
               showBreakdownDivider={false}
               totalCount={reviewsState.summary.totalCount}
             />

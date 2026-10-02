@@ -506,7 +506,9 @@ export function HomeScreen() {
       ) : null}
       <AppShellGlow />
       <ScrollView
+        automaticallyAdjustsScrollIndicatorInsets={false}
         contentContainerStyle={styles.content}
+        contentInsetAdjustmentBehavior="never"
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl

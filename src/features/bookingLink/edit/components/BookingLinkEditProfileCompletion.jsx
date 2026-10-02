@@ -115,11 +115,6 @@ export function BookingLinkEditProfileCompletion({ percent = 0, onPress }) {
           marginLeft: 2,
           opacity: 0.45,
         },
-        divider: {
-          backgroundColor: colors.border,
-          height: StyleSheet.hairlineWidth,
-          width: '100%',
-        },
       }),
     [colors],
   );
@@ -185,7 +180,6 @@ export function BookingLinkEditProfileCompletion({ percent = 0, onPress }) {
         >
           {content}
         </Pressable>
-        <View style={styles.divider} />
       </View>
     );
   }
@@ -193,7 +187,6 @@ export function BookingLinkEditProfileCompletion({ percent = 0, onPress }) {
   return (
     <View style={styles.shell}>
       <View style={styles.row}>{content}</View>
-      <View style={styles.divider} />
     </View>
   );
 }

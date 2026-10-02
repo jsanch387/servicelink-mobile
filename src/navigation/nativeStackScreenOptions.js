@@ -21,5 +21,13 @@ export function nativeStackScreenOptions({ colors, animation = 'slide_from_right
     contentStyle: { backgroundColor: colors.shell },
     headerTitleAlign: NATIVE_STACK_HEADER_TITLE_ALIGN,
     headerTitleStyle: nativeStackHeaderTitleStyle,
+    // iOS 26 applies an automatic scroll-edge inset. Headerless screens already
+    // pad for the status bar, so the automatic inset shows up as a large empty gap.
+    scrollEdgeEffects: {
+      bottom: 'hidden',
+      left: 'hidden',
+      right: 'hidden',
+      top: 'hidden',
+    },
   };
 }
