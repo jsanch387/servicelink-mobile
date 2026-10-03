@@ -8,8 +8,13 @@ import { InvoiceRow } from './InvoiceRow';
  * @param {object} props
  * @param {import('../constants/mockInvoices').MockInvoice[]} props.invoices
  * @param {(invoice: import('../constants/mockInvoices').MockInvoice) => void} props.onInvoicePress
+ * @param {string} [props.emptyLabel]
  */
-export function InvoiceList({ invoices, onInvoicePress }) {
+export function InvoiceList({
+  invoices,
+  onInvoicePress,
+  emptyLabel = 'No invoices in this view.',
+}) {
   const { colors } = useTheme();
   const styles = useMemo(
     () =>
@@ -29,7 +34,7 @@ export function InvoiceList({ invoices, onInvoicePress }) {
   );
 
   if (!invoices.length) {
-    return <AppText style={styles.empty}>No invoices in this view.</AppText>;
+    return <AppText style={styles.empty}>{emptyLabel}</AppText>;
   }
 
   return (

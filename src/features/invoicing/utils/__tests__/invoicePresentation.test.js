@@ -4,6 +4,7 @@ import {
   filterInvoices,
   invoiceDocumentModel,
   invoiceRowModel,
+  searchInvoices,
   summarizeOpenInvoices,
 } from '../invoicePresentation';
 
@@ -18,6 +19,13 @@ describe('invoicePresentation', () => {
     expect(filterInvoices(MOCK_INVOICES, INVOICE_FILTER.PAID)).toHaveLength(2);
     expect(filterInvoices(MOCK_INVOICES, INVOICE_FILTER.DRAFT)).toHaveLength(1);
     expect(filterInvoices(MOCK_INVOICES, INVOICE_FILTER.ALL)).toHaveLength(MOCK_INVOICES.length);
+  });
+
+  it('finds invoices by name, email, or number', () => {
+    expect(searchInvoices(MOCK_INVOICES, 'riley').map((row) => row.id)).toEqual(['mock-inv-1042']);
+    expect(searchInvoices(MOCK_INVOICES, '1042').map((row) => row.number)).toEqual(['INV-1042']);
+    expect(searchInvoices(MOCK_INVOICES, '   ')).toHaveLength(MOCK_INVOICES.length);
+    expect(searchInvoices(MOCK_INVOICES, 'nobody')).toHaveLength(0);
   });
 
   it('describes each status on the row', () => {

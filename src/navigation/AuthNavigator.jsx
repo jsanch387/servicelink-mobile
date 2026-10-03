@@ -23,6 +23,7 @@ import { CreateAppointmentScreen } from '../features/bookings';
 import { EditBookingScreen } from '../features/bookings/screens/EditBookingScreen';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
 import { CreatePaymentScreen } from '../features/payments';
+import { CreateInvoicePreviewScreen, CreateInvoiceScreen } from '../features/invoicing';
 import { CreateQuoteScreen } from '../features/quotes/screens/CreateQuoteScreen';
 import { useSubscription } from '../features/subscription';
 import { MainTabNavigator } from './MainTabNavigator';
@@ -348,6 +349,26 @@ export function AuthNavigator() {
                 name={ROUTES.CREATE_QUOTE}
                 options={{
                   headerShown: true,
+                  headerBackButtonDisplayMode: 'minimal',
+                  headerBackTitleVisible: false,
+                }}
+              />
+              <Stack.Screen
+                component={CreateInvoiceScreen}
+                name={ROUTES.CREATE_INVOICE}
+                options={{
+                  headerShown: true,
+                  title: 'New invoice',
+                  headerBackButtonDisplayMode: 'minimal',
+                  headerBackTitleVisible: false,
+                }}
+              />
+              <Stack.Screen
+                component={CreateInvoicePreviewScreen}
+                name={ROUTES.CREATE_INVOICE_PREVIEW}
+                options={{
+                  headerShown: true,
+                  title: 'Invoice',
                   headerBackButtonDisplayMode: 'minimal',
                   headerBackTitleVisible: false,
                 }}

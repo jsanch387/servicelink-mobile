@@ -50,7 +50,7 @@ export function InvoiceDocument({ invoice, businessName }) {
         paper: {
           backgroundColor: PAPER.background,
           borderColor: PAPER.border,
-          borderRadius: 10,
+          borderRadius: 14,
           borderWidth: 1,
           paddingBottom: 72,
           paddingHorizontal: 16,

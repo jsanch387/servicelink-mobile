@@ -33,6 +33,7 @@ const WEEK_HEADERS_COMPACT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
  *   bookingCountByDateKey?: Record<string, number>;
  *   onVisibleMonthChange?: (monthStart: Date) => void;
  *   plainNav?: boolean;
+ *   appearance?: 'default' | 'owner' Bookings month layout: taller days, compact weekday labels.
  * }} props
  */
 export function CalendarMonthPicker({
@@ -48,9 +49,10 @@ export function CalendarMonthPicker({
   bookingCountByDateKey,
   onVisibleMonthChange,
   plainNav = false,
+  appearance = 'default',
 }) {
   const { colors, isDark } = useTheme();
-  const ownerCalendar = bookingCountByDateKey !== undefined;
+  const ownerCalendar = appearance === 'owner' || bookingCountByDateKey !== undefined;
   const isRangeMode = selectionMode === 'range';
 
   const today = useMemo(() => startOfLocalDay(new Date()), []);

@@ -31,6 +31,29 @@ export function filterInvoices(invoices, filter) {
 }
 
 /**
+ * @param {import('../constants/mockInvoices').MockInvoice[]} invoices
+ * @param {string} query
+ */
+export function searchInvoices(invoices, query) {
+  const needle = String(query ?? '')
+    .trim()
+    .toLowerCase();
+  if (!needle) return invoices ?? [];
+  return (invoices ?? []).filter((invoice) => {
+    const haystack = [
+      invoice.customerName,
+      invoice.customerEmail,
+      invoice.customerPhone,
+      invoice.number,
+      invoice.serviceLabel,
+    ]
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(needle);
+  });
+}
+
+/**
  * @param {import('../constants/mockInvoices').MockInvoice} invoice
  */
 function invoiceNumberLabel(number) {

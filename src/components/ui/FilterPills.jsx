@@ -9,9 +9,11 @@ import { AppText } from './AppText';
  * @param {{ key: string; label: string }[]} options
  * @param {string} selectedKey
  * @param {(key: string) => void} onSelect
+ * @param {'default' | 'large'} [size]
  */
-export function FilterPills({ options, selectedKey, onSelect }) {
+export function FilterPills({ options, selectedKey, onSelect, size = 'default' }) {
   const { colors } = useTheme();
+  const large = size === 'large';
 
   const styles = useMemo(
     () =>
@@ -26,8 +28,8 @@ export function FilterPills({ options, selectedKey, onSelect }) {
           borderColor: colors.cardBorder,
           borderRadius: 999,
           borderWidth: 1,
-          paddingHorizontal: 10,
-          paddingVertical: 5,
+          paddingHorizontal: large ? 13 : 10,
+          paddingVertical: large ? 6 : 5,
         },
         pillActive: {
           backgroundColor: colors.accent,
@@ -35,7 +37,7 @@ export function FilterPills({ options, selectedKey, onSelect }) {
         },
         label: {
           color: colors.textMuted,
-          fontSize: 12,
+          fontSize: large ? 13 : 12,
           fontWeight: '600',
           letterSpacing: -0.05,
         },
@@ -43,7 +45,7 @@ export function FilterPills({ options, selectedKey, onSelect }) {
           color: colors.shell,
         },
       }),
-    [colors],
+    [colors, large],
   );
 
   return (

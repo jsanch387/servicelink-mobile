@@ -56,6 +56,10 @@ export const ROUTES = {
   SUBSCRIPTION_PLAN_SUBSCRIBERS: 'SubscriptionPlanSubscribers',
   /** Root stack — build & send quote (hides tab bar; same pattern as CREATE_APPOINTMENT). */
   CREATE_QUOTE: 'CreateQuote',
+  /** Root stack — create invoice. Open from Invoices today; bookings and Home can use the same route later. */
+  CREATE_INVOICE: 'CreateInvoice',
+  /** Root stack — white invoice sheet after the create flow, before send. */
+  CREATE_INVOICE_PREVIEW: 'CreateInvoicePreview',
   BOOKING_LINK: 'BookingLink',
   /** More stack — shareable booking-link QR (Pro). */
   QR_CODE: 'QrCode',
@@ -129,6 +133,8 @@ export const PATHS = {
   SUBSCRIPTION_PLAN_DETAIL: '/subscriptions/plans/detail',
   SUBSCRIPTION_PLAN_SUBSCRIBERS: '/subscriptions/plans/subscribers',
   CREATE_QUOTE: '/quotes/create',
+  CREATE_INVOICE: '/invoices/create',
+  CREATE_INVOICE_PREVIEW: '/invoices/create/preview',
   BOOKING_LINK: '/booking-link',
   QR_CODE: '/more/qr-code',
   MARKETING: '/marketing',
