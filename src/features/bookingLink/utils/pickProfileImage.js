@@ -8,15 +8,18 @@ const SQUARE_CROP_ASPECT = [1, 1];
 const IOS_OPTIONS = ['Cancel', 'Choose a photo', 'Take a new photo'];
 
 async function pickFromLibrary(aspect) {
-  const { status, canAskAgain } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== 'granted') {
-    Alert.alert(
-      'Photo access',
-      canAskAgain
-        ? 'We need access to your photos for this.'
-        : 'Photo access is off. You can turn it on in Settings for this app.',
-    );
-    return null;
+  // Android uses the system photo picker, which does not need READ_MEDIA_IMAGES.
+  if (Platform.OS === 'ios') {
+    const { status, canAskAgain } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Photo access',
+        canAskAgain
+          ? 'We need access to your photos for this.'
+          : 'Photo access is off. You can turn it on in Settings for this app.',
+      );
+      return null;
+    }
   }
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
