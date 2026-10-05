@@ -12,6 +12,7 @@ import { BOOKING_LINK_EDIT_TAB_DETAILS } from '../../bookingLink/edit/constants/
  *   tab: string;
  *   stackScreen?: string;
  *   stackParams?: Record<string, unknown>;
+ *   stackUnder?: string[];
  * }} MainAppTabDestination
  * @typedef {{
  *   kind: 'root_stack';
@@ -253,6 +254,20 @@ export function resolvePushDestination({ referenceType, referenceId }) {
 
   if (refType === 'review' || refType.includes('review')) {
     return { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.REVIEWS };
+  }
+
+  /** Invoice paid: `reference_id` is `invoices.id`. Missing id opens the list. */
+  if (refType === 'invoice') {
+    if (id) {
+      return {
+        kind: 'main_app_tab',
+        tab: ROUTES.MORE,
+        stackScreen: ROUTES.INVOICE_DETAIL,
+        stackParams: { invoiceId: id },
+        stackUnder: [ROUTES.INVOICES],
+      };
+    }
+    return { kind: 'main_app_tab', tab: ROUTES.MORE, stackScreen: ROUTES.INVOICES };
   }
 
   if (refType === 'payment' || refType === 'payout' || refType === 'deposit') {

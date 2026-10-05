@@ -79,6 +79,48 @@ describe('navigateFromPushPayload', () => {
     });
   });
 
+  it('maps an invoice-paid push to the bill, with the list under it', () => {
+    const navigation = { navigate: jest.fn() };
+    navigateFromPushPayload(navigation, {
+      reference_type: 'invoice',
+      reference_id: 'inv-paid-1',
+    });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.MORE,
+      params: {
+        state: {
+          routes: [
+            { name: ROUTES.MORE_HOME },
+            { name: ROUTES.INVOICES },
+            { name: ROUTES.INVOICE_DETAIL, params: { invoiceId: 'inv-paid-1' } },
+          ],
+          index: 2,
+        },
+      },
+    });
+  });
+
+  it('maps camelCase invoice keys the same way', () => {
+    const navigation = { navigate: jest.fn() };
+    navigateFromPushPayload(navigation, {
+      referenceType: 'invoice',
+      referenceId: 'inv-paid-2',
+    });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.MORE,
+      params: {
+        state: {
+          routes: [
+            { name: ROUTES.MORE_HOME },
+            { name: ROUTES.INVOICES },
+            { name: ROUTES.INVOICE_DETAIL, params: { invoiceId: 'inv-paid-2' } },
+          ],
+          index: 2,
+        },
+      },
+    });
+  });
+
   it('no-ops when data is null or undefined', () => {
     const navigation = { navigate: jest.fn() };
     navigateFromPushPayload(navigation, null);

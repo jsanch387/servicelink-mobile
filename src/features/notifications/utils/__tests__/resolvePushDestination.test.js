@@ -279,4 +279,27 @@ describe('resolvePushDestination', () => {
       kind: 'home',
     });
   });
+
+  it('maps an invoice to its bill with the list underneath', () => {
+    expect(
+      resolvePushDestination({
+        referenceType: 'invoice',
+        referenceId: '11111111-1111-1111-1111-111111111111',
+      }),
+    ).toEqual({
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.INVOICE_DETAIL,
+      stackParams: { invoiceId: '11111111-1111-1111-1111-111111111111' },
+      stackUnder: [ROUTES.INVOICES],
+    });
+  });
+
+  it('maps an invoice with no id to the invoice list', () => {
+    expect(resolvePushDestination({ referenceType: 'invoice', referenceId: '' })).toEqual({
+      kind: 'main_app_tab',
+      tab: ROUTES.MORE,
+      stackScreen: ROUTES.INVOICES,
+    });
+  });
 });

@@ -1,0 +1,131 @@
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Button, FilterPills, InlineCardError } from '../../../components/ui';
+import { SCREEN_GUTTER } from '../../../constants/layout';
+import { ROUTES } from '../../../routes/routes';
+import { useTheme } from '../../../theme';
+import { AddInvoiceFab } from '../components/AddInvoiceFab';
+import { InvoiceList } from '../components/InvoiceList';
+import { InvoiceListSkeleton } from '../components/InvoiceListSkeleton';
+import { InvoiceSearchBar } from '../components/InvoiceSearchBar';
+import { CREATE_INVOICE_SOURCE } from '../constants/createInvoiceWizard';
+import { INVOICE_FILTER, INVOICE_FILTER_OPTIONS } from '../constants/invoiceStatuses';
+import { useInvoicesList } from '../hooks/useInvoicesList';
+import { filterInvoices, invoiceListEmptyCopy, searchInvoices } from '../utils/invoicePresentation';
+
+export function InvoicesScreen() {
+  const { colors } = useTheme();
+  const navigation = useNavigation();
+  const tabBarHeight = useBottomTabBarHeight();
+  const [filter, setFilter] = useState(INVOICE_FILTER.ALL);
+  const [query, setQuery] = useState('');
+  const list = useInvoicesList();
+  const invoices = useMemo(() => {
+    const filtered = filterInvoices(list.invoices, filter);
+    return searchInvoices(filtered, query);
+  }, [filter, list.invoices, query]);
+  const emptyCopy = invoiceListEmptyCopy(filter, query);
+  const showInbox = list.isLoading || Boolean(list.error) || list.canRead;
+
+  useEffect(() => {
+    if (!list.accessReady || list.canRead) return undefined;
+    const timeout = setTimeout(() => {
+      if (navigation.canGoBack()) navigation.goBack();
+      else navigation.navigate(ROUTES.MORE_HOME);
+    }, 0);
+    return () => clearTimeout(timeout);
+  }, [list.accessReady, list.canRead, navigation]);
+  const startNewInvoice = useCallback(() => {
+    navigation.navigate(ROUTES.CREATE_INVOICE, { source: CREATE_INVOICE_SOURCE.INVOICES });
+  }, [navigation]);
+  const openInvoice = useCallback(
+    (invoice) => {
+      navigation.navigate(ROUTES.INVOICE_DETAIL, {
+        invoiceId: invoice.id,
+        status: invoice.status,
+      });
+    },
+    [navigation],
+  );
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: {
+          backgroundColor: colors.shell,
+          flex: 1,
+          position: 'relative',
+        },
+        scroll: {
+          flex: 1,
+        },
+        content: {
+          gap: 16,
+          paddingBottom: 28 + Math.max(tabBarHeight, 72),
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingTop: 16,
+        },
+        controls: {
+          gap: 16,
+        },
+        errorRetry: {
+          marginTop: 12,
+        },
+      }),
+    [colors, tabBarHeight],
+  );
+
+  if (list.accessReady && !list.canRead) {
+    return null;
+  }
+
+  return (
+    <View style={styles.root}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+      >
+        {showInbox ? (
+          <View style={styles.controls}>
+            <InvoiceSearchBar value={query} onChangeText={setQuery} />
+            <FilterPills
+              options={INVOICE_FILTER_OPTIONS}
+              selectedKey={filter}
+              size="large"
+              onSelect={setFilter}
+            />
+          </View>
+        ) : null}
+        {list.isLoading ? (
+          <InvoiceListSkeleton />
+        ) : list.error ? (
+          <View>
+            <InlineCardError message={list.error} />
+            <Button
+              accessibilityHint="Attempts to load invoices again"
+              accessibilityLabel="Try again"
+              fullWidth
+              loading={list.isFetching && !list.isLoading}
+              style={styles.errorRetry}
+              title="Try again"
+              variant="secondary"
+              onPress={() => void list.refetch()}
+            />
+          </View>
+        ) : list.canRead ? (
+          <InvoiceList
+            emptyBody={emptyCopy.body}
+            emptyTitle={emptyCopy.title}
+            invoices={invoices}
+            onInvoicePress={openInvoice}
+          />
+        ) : null}
+      </ScrollView>
+      {list.canRead ? <AddInvoiceFab onPress={startNewInvoice} /> : null}
+    </View>
+  );
+}

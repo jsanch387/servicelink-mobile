@@ -10,6 +10,7 @@ export { SheetCloseButton } from './SheetCloseButton';
 export { FormBottomSheetModal } from './FormBottomSheetModal';
 export { useBottomSheetOverlay, BottomSheetOverlayProvider } from './bottomSheetOverlay';
 export { CalendarMonthPicker } from './CalendarMonthPicker';
+export { MonthCalendar } from './MonthCalendar';
 export { PeriodNav } from './PeriodNav';
 export {
   AppointmentCountMarkers,

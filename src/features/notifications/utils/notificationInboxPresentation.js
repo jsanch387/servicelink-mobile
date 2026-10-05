@@ -45,7 +45,8 @@ export function notificationInboxIconCategory(type, referenceType) {
     blob.includes('payment') ||
     blob.includes('payout') ||
     blob.includes('deposit') ||
-    blob.includes('refund')
+    blob.includes('refund') ||
+    blob.includes('invoice')
   ) {
     return 'payment';
   }
@@ -53,6 +54,21 @@ export function notificationInboxIconCategory(type, referenceType) {
     return 'quote';
   }
   return 'booking';
+}
+
+/**
+ * Inbox second line for an invoice-paid row. The server body is "{customer} · {amount}" or the amount.
+ *
+ * @param {string | null | undefined} body
+ */
+function invoicePaidInboxSubtitle(body) {
+  const line = String(body ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!line) return null;
+  const max = 52;
+  if (line.length <= max) return line;
+  return `${line.slice(0, max - 1)}…`;
 }
 
 /**
@@ -70,9 +86,15 @@ export function notificationInboxIconCategory(type, referenceType) {
  */
 export function mapNotificationRowToInboxItem(row) {
   const displayTitle = notificationMinimalDisplayTitle(row.type, row.reference_type, row.title);
-  const subtitle = isJobAssignmentNotification(row.type, row.reference_type, row.title)
-    ? assignmentNotificationSubtitle(row.metadata, row.body)
-    : notificationSubtitle(row.metadata, row.title, displayTitle, row.body);
+  const invoicePaid =
+    String(row.type ?? '')
+      .trim()
+      .toLowerCase() === 'customer_invoice_paid';
+  const subtitle = invoicePaid
+    ? invoicePaidInboxSubtitle(row.body)
+    : isJobAssignmentNotification(row.type, row.reference_type, row.title)
+      ? assignmentNotificationSubtitle(row.metadata, row.body)
+      : notificationSubtitle(row.metadata, row.title, displayTitle, row.body);
   return {
     id: row.id,
     type: notificationInboxIconCategory(row.type, row.reference_type),

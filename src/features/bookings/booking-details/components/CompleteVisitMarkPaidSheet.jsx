@@ -41,14 +41,24 @@ function formatUsd(amount) {
  *   onClose: () => void;
  *   amountDue: number;
  *   onConfirm: (method: InPersonPaymentMethod) => void;
+ *   requireMethod?: boolean;
+ *   confirming?: boolean;
+ *   keepOpenOnConfirm?: boolean;
  * }} props
  */
-export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
+export function CompleteVisitMarkPaidSheet({
+  onClose,
+  amountDue,
+  onConfirm,
+  requireMethod = false,
+  confirming = false,
+  keepOpenOnConfirm = false,
+}) {
   const { colors, isDark } = useTheme();
   const [visible, setVisible] = useState(true);
   const pendingAfterCloseRef = useRef(null);
   const [selectedMethod, setSelectedMethod] = useState(
-    /** @type {InPersonPaymentMethod} */ ('cash'),
+    /** @type {InPersonPaymentMethod | null} */ (requireMethod ? null : 'cash'),
   );
 
   const runClose = useCallback((afterClose) => {
@@ -73,8 +83,9 @@ export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
   }, [finishPendingClose, visible]);
 
   const close = useCallback(() => {
+    if (confirming) return;
     runClose(onClose);
-  }, [onClose, runClose]);
+  }, [confirming, onClose, runClose]);
 
   const styles = useMemo(
     () =>
@@ -151,8 +162,9 @@ export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
   );
 
   const handleConfirm = () => {
+    if (!selectedMethod || confirming) return;
     onConfirm(selectedMethod);
-    close();
+    if (!keepOpenOnConfirm) close();
   };
 
   return (
@@ -162,10 +174,23 @@ export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
         <View style={styles.footerWrap}>
           <View style={styles.footer}>
             <View style={styles.footerGrow}>
-              <Button fullWidth title="Cancel" variant="secondary" onPress={close} />
+              <Button
+                disabled={confirming}
+                fullWidth
+                title="Cancel"
+                variant="secondary"
+                onPress={close}
+              />
             </View>
             <View style={styles.footerGrow}>
-              <Button fullWidth title="Mark as paid" variant="primary" onPress={handleConfirm} />
+              <Button
+                disabled={!selectedMethod || confirming}
+                fullWidth
+                loading={confirming}
+                title="Mark as paid"
+                variant="primary"
+                onPress={handleConfirm}
+              />
             </View>
           </View>
         </View>
@@ -198,7 +223,9 @@ export function CompleteVisitMarkPaidSheet({ onClose, amountDue, onConfirm }) {
                     styles.methodOption,
                     selected ? styles.methodOptionSelected : styles.methodOptionUnselected,
                   ]}
-                  onPress={() => setSelectedMethod(option.id)}
+                  onPress={() => {
+                    if (!confirming) setSelectedMethod(option.id);
+                  }}
                 >
                   <AppText
                     style={[
