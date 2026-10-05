@@ -69,3 +69,26 @@ describe('mapNotificationRowToInboxItem subtitle integration', () => {
     expect(item.subtitle).toBe('From Jordan');
   });
 });
+
+describe('mapNotificationRowToInboxItem invoice paid', () => {
+  it('shows Invoice paid and the server body, and keeps the invoice id for navigation', () => {
+    const item = mapNotificationRowToInboxItem({
+      id: 'n-1',
+      user_id: 'u',
+      type: 'customer_invoice_paid',
+      reference_type: 'invoice',
+      reference_id: 'inv-9',
+      title: 'Invoice paid',
+      body: 'Jane Doe · $150.00',
+      read: false,
+      read_at: null,
+      created_at: new Date().toISOString(),
+      metadata: { customerName: 'Jane Doe' },
+    });
+    expect(item.displayTitle).toBe('Invoice paid');
+    expect(item.subtitle).toBe('Jane Doe · $150.00');
+    expect(item.type).toBe('payment');
+    expect(item.referenceType).toBe('invoice');
+    expect(item.referenceId).toBe('inv-9');
+  });
+});

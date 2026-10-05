@@ -34,7 +34,7 @@ export function getInvoiceStatusPillTheme(status, colors, isDark) {
     };
   }
 
-  if (s === INVOICE_STATUS.DRAFT || s === INVOICE_STATUS.VOIDED) {
+  if (s === INVOICE_STATUS.DRAFT || s === INVOICE_STATUS.VOID || s === INVOICE_STATUS.VOIDED) {
     return {
       backgroundColor: isDark ? 'rgba(250,250,250,0.05)' : 'rgba(10,10,10,0.04)',
       borderColor: colors.border,

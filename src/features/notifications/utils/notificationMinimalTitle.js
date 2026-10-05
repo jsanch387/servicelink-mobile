@@ -11,6 +11,7 @@ export const KNOWN_MINIMAL_INBOX_HEADLINES = new Set([
   'Appointment updated',
   'Upcoming appointment',
   'New review',
+  'Invoice paid',
   'Job assigned',
   'Customer update',
   'Billing update',
@@ -45,6 +46,13 @@ export function notificationMinimalDisplayTitle(type, referenceType, fallbackTit
 
   if (blob.includes('payment') && blob.includes('fail')) {
     return 'Payment failed';
+  }
+  if (
+    String(type ?? '')
+      .trim()
+      .toLowerCase() === 'customer_invoice_paid'
+  ) {
+    return 'Invoice paid';
   }
   if (
     blob.includes('payment') ||

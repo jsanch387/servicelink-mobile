@@ -3,6 +3,7 @@ import { MOCK_INVOICES } from '../../constants/mockInvoices';
 import {
   filterInvoices,
   invoiceDocumentModel,
+  invoiceListEmptyCopy,
   invoiceRowModel,
   searchInvoices,
   summarizeOpenInvoices,
@@ -19,6 +20,37 @@ describe('invoicePresentation', () => {
     expect(filterInvoices(MOCK_INVOICES, INVOICE_FILTER.PAID)).toHaveLength(2);
     expect(filterInvoices(MOCK_INVOICES, INVOICE_FILTER.DRAFT)).toHaveLength(1);
     expect(filterInvoices(MOCK_INVOICES, INVOICE_FILTER.ALL)).toHaveLength(MOCK_INVOICES.length);
+  });
+
+  it('keeps void invoices on All only', () => {
+    const rows = [
+      { id: 'void-1', status: 'void' },
+      { id: 'sent-1', status: 'sent' },
+    ];
+    expect(filterInvoices(rows, INVOICE_FILTER.ALL).map((row) => row.id)).toEqual([
+      'void-1',
+      'sent-1',
+    ]);
+    expect(filterInvoices(rows, INVOICE_FILTER.SENT).map((row) => row.id)).toEqual(['sent-1']);
+    expect(filterInvoices(rows, INVOICE_FILTER.DRAFT)).toHaveLength(0);
+    expect(filterInvoices(rows, INVOICE_FILTER.PAID)).toHaveLength(0);
+  });
+
+  it('describes each empty filter', () => {
+    expect(invoiceListEmptyCopy(INVOICE_FILTER.ALL, '')).toEqual({
+      title: 'No invoices yet',
+      body: 'Send your customer an invoice for the work.',
+    });
+    expect(invoiceListEmptyCopy(INVOICE_FILTER.DRAFT).body).toBe(
+      'Invoices in this status will show up here.',
+    );
+    expect(invoiceListEmptyCopy(INVOICE_FILTER.DRAFT).title).toBe('No drafts');
+    expect(invoiceListEmptyCopy(INVOICE_FILTER.SENT).title).toBe('No sent invoices');
+    expect(invoiceListEmptyCopy(INVOICE_FILTER.PAID).title).toBe('No paid invoices');
+    expect(invoiceListEmptyCopy(INVOICE_FILTER.ALL, 'riley')).toEqual({
+      title: 'No invoices match that search.',
+      body: '',
+    });
   });
 
   it('finds invoices by name, email, or number', () => {
@@ -44,6 +76,20 @@ describe('invoicePresentation', () => {
     expect(invoiceRowModel(paid).numberLabel).toBe('#1039');
     expect(invoiceRowModel(draft).dateLabel).toBe('Sep 28, 2026');
     expect(invoiceRowModel(voided)).toMatchObject({
+      statusLabel: 'Voided',
+      voided: true,
+    });
+    expect(
+      invoiceRowModel({
+        amount: 40,
+        number: null,
+        dateLabel: 'No due date',
+        status: 'void',
+      }),
+    ).toMatchObject({
+      amountLabel: '$40',
+      numberLabel: '—',
+      dateLabel: 'No due date',
       statusLabel: 'Voided',
       voided: true,
     });

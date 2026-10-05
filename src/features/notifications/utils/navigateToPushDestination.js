@@ -1,5 +1,4 @@
 import { ROUTES } from '../../../routes/routes';
-import { nestedStackState } from '../../../navigation/navigateNestedTabScreen';
 
 /** Nested stack root screen per bottom tab (for back + tab re-tap). */
 const TAB_STACK_ROOT = {
@@ -35,10 +34,22 @@ export function navigateToPushDestination(navigation, destination) {
   if (destination.kind === 'main_app_tab') {
     const root = TAB_STACK_ROOT[destination.tab] ?? destination.tab;
     if (destination.stackScreen) {
+      const under = Array.isArray(destination.stackUnder) ? destination.stackUnder : [];
+      const routes = [{ name: root }];
+      for (const name of under) {
+        if (name && name !== root && name !== destination.stackScreen) {
+          routes.push({ name });
+        }
+      }
+      if (destination.stackScreen !== root) {
+        const route = { name: destination.stackScreen };
+        if (destination.stackParams) route.params = destination.stackParams;
+        routes.push(route);
+      }
       navigation.navigate(ROUTES.MAIN_APP, {
         screen: destination.tab,
         params: {
-          state: nestedStackState(root, destination.stackScreen, destination.stackParams),
+          state: { routes, index: routes.length - 1 },
         },
       });
       return;

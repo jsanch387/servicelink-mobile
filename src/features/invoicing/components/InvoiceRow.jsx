@@ -9,8 +9,8 @@ import { InvoiceStatusPill } from './InvoiceStatusPill';
  * Invoice card: customer and status on top, amount / number / date underneath.
  *
  * @param {object} props
- * @param {import('../constants/mockInvoices').MockInvoice} props.invoice
- * @param {() => void} props.onPress
+ * @param {object} props.invoice
+ * @param {() => void} [props.onPress] Omit while opening one invoice is out of scope.
  */
 export function InvoiceRow({ invoice, onPress }) {
   const { colors } = useTheme();
@@ -94,6 +94,53 @@ export function InvoiceRow({ invoice, onPress }) {
     [colors],
   );
 
+  const email = String(invoice.customerEmail ?? '').trim();
+  const card = (
+    <SurfaceCard padding="none" style={styles.card}>
+      <View style={styles.headRow}>
+        <View style={styles.nameCol}>
+          <AppText numberOfLines={1} style={styles.customerName}>
+            {invoice.customerName}
+          </AppText>
+          {email ? (
+            <AppText numberOfLines={1} style={styles.email}>
+              {email}
+            </AppText>
+          ) : null}
+        </View>
+        <View style={styles.pillCol}>
+          <InvoiceStatusPill label={model.statusLabel} status={invoice.status} />
+        </View>
+      </View>
+      <View style={styles.divider} />
+      <View style={styles.details}>
+        <View style={styles.stat}>
+          <AppText style={styles.statLabel}>Amount</AppText>
+          <AppText
+            numberOfLines={1}
+            style={[styles.statValue, model.voided && styles.statValueVoid]}
+          >
+            {model.amountLabel}
+          </AppText>
+        </View>
+        <View style={styles.stat}>
+          <AppText style={styles.statLabel}>No</AppText>
+          <AppText numberOfLines={1} style={styles.statValue}>
+            {model.numberLabel}
+          </AppText>
+        </View>
+        <View style={styles.stat}>
+          <AppText style={styles.statLabel}>Date</AppText>
+          <AppText numberOfLines={1} style={styles.statValue}>
+            {model.dateLabel}
+          </AppText>
+        </View>
+      </View>
+    </SurfaceCard>
+  );
+
+  if (!onPress) return card;
+
   return (
     <Pressable
       accessibilityHint="Opens the invoice"
@@ -101,49 +148,7 @@ export function InvoiceRow({ invoice, onPress }) {
       accessibilityRole="button"
       onPress={onPress}
     >
-      {({ pressed }) => (
-        <View style={pressed ? styles.pressed : null}>
-          <SurfaceCard padding="none" style={styles.card}>
-            <View style={styles.headRow}>
-              <View style={styles.nameCol}>
-                <AppText numberOfLines={1} style={styles.customerName}>
-                  {invoice.customerName}
-                </AppText>
-                <AppText numberOfLines={1} style={styles.email}>
-                  {invoice.customerEmail}
-                </AppText>
-              </View>
-              <View style={styles.pillCol}>
-                <InvoiceStatusPill label={model.statusLabel} status={invoice.status} />
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.details}>
-              <View style={styles.stat}>
-                <AppText style={styles.statLabel}>Amount</AppText>
-                <AppText
-                  numberOfLines={1}
-                  style={[styles.statValue, model.voided && styles.statValueVoid]}
-                >
-                  {model.amountLabel}
-                </AppText>
-              </View>
-              <View style={styles.stat}>
-                <AppText style={styles.statLabel}>No</AppText>
-                <AppText numberOfLines={1} style={styles.statValue}>
-                  {model.numberLabel}
-                </AppText>
-              </View>
-              <View style={styles.stat}>
-                <AppText style={styles.statLabel}>Date</AppText>
-                <AppText numberOfLines={1} style={styles.statValue}>
-                  {model.dateLabel}
-                </AppText>
-              </View>
-            </View>
-          </SurfaceCard>
-        </View>
-      )}
+      {({ pressed }) => <View style={pressed ? styles.pressed : null}>{card}</View>}
     </Pressable>
   );
 }

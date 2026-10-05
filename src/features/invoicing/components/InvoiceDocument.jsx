@@ -357,7 +357,7 @@ export function InvoiceDocument({ invoice, businessName }) {
         {model.voided ? (
           <>
             <View style={styles.totalRule} />
-            <TotalLine muted label="Voided" styles={styles} value={model.subtotalLabel} />
+            <TotalLine muted label={model.voidLabel} styles={styles} value={model.subtotalLabel} />
           </>
         ) : null}
       </View>

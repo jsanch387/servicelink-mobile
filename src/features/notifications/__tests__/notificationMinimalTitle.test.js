@@ -15,6 +15,12 @@ describe('notificationMinimalDisplayTitle', () => {
     expect(notificationMinimalDisplayTitle('payment.deposit', 'payment', 'x')).toBe('New payment');
   });
 
+  it('returns Invoice paid for a customer invoice payment', () => {
+    expect(
+      notificationMinimalDisplayTitle('customer_invoice_paid', 'invoice', 'Invoice paid'),
+    ).toBe('Invoice paid');
+  });
+
   it('returns Job assigned for assignment types before New appointment', () => {
     expect(notificationMinimalDisplayTitle('booking.assigned', 'booking', 'ignored')).toBe(
       'Job assigned',
