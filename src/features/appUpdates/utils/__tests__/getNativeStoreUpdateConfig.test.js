@@ -31,4 +31,22 @@ describe('getNativeStoreUpdateConfig', () => {
     const { isNativeStoreUpdateRequired } = require('../getNativeStoreUpdateConfig');
     expect(isNativeStoreUpdateRequired('1.0.6', '')).toBe(false);
   });
+
+  it('uses the installed store version when an update bundle reports a newer version', () => {
+    const Constants = require('expo-constants').default;
+    const previousVersion = Constants.expoConfig.version;
+    const previousNativeVersion = Constants.nativeApplicationVersion;
+    const previousMinimum = Constants.expoConfig.extra.minNativeAppVersion;
+
+    Constants.expoConfig.version = '1.0.12';
+    Constants.nativeApplicationVersion = '1.0.6';
+    Constants.expoConfig.extra.minNativeAppVersion = '1.0.12';
+
+    const { isNativeStoreUpdateRequired } = require('../getNativeStoreUpdateConfig');
+    expect(isNativeStoreUpdateRequired()).toBe(true);
+
+    Constants.expoConfig.version = previousVersion;
+    Constants.nativeApplicationVersion = previousNativeVersion;
+    Constants.expoConfig.extra.minNativeAppVersion = previousMinimum;
+  });
 });

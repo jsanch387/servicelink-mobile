@@ -39,9 +39,18 @@ export function getNativeStoreUpdateUrl() {
   return null;
 }
 
+/**
+ * Installed App Store / Play version. Prefer the native binary over `expoConfig.version`,
+ * which an over-the-air update can raise while the store build stays old.
+ */
+function getInstalledStoreVersion() {
+  const nativeVersion = String(Constants.nativeApplicationVersion ?? '').trim();
+  return nativeVersion || getAppMarketingVersion();
+}
+
 /** True when the installed App Store / Play binary is older than the configured minimum. */
 export function isNativeStoreUpdateRequired(
-  currentVersion = getAppMarketingVersion(),
+  currentVersion = getInstalledStoreVersion(),
   minimumVersion = getMinNativeAppVersion(),
 ) {
   if (!minimumVersion) {
