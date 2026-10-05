@@ -40,6 +40,7 @@ import { buildInvoiceFromDraft } from '../utils/createInvoiceDraft';
 import { describeInvoiceSendResult, invoiceSendConfirmationBody } from '../utils/invoiceSendResult';
 import { confirmDeleteInvoice } from '../utils/confirmDeleteInvoice';
 import { buildInvoiceWriteBody, invoiceUuidOrNull } from '../utils/invoiceWriteBody';
+import { useLeaveWhenInvoicesHidden } from '../hooks/useLeaveWhenInvoicesHidden';
 
 export function CreateInvoicePreviewScreen() {
   const { colors } = useTheme();
@@ -48,6 +49,7 @@ export function CreateInvoicePreviewScreen() {
   const insets = useSafeAreaInsets();
   const { business } = useAccountSettings();
   const queryClient = useQueryClient();
+  const invoiceAccess = useLeaveWhenInvoicesHidden();
   const draft = route.params?.draft ?? null;
   const [invoiceId, setInvoiceId] = useState(() => invoiceUuidOrNull(route.params?.invoiceId));
 
@@ -300,6 +302,10 @@ export function CreateInvoicePreviewScreen() {
       }),
     [colors],
   );
+
+  if (invoiceAccess.isReady && !invoiceAccess.canSeeInvoices) {
+    return null;
+  }
 
   if (deletePhase === 'pending' || deletePhase === 'error') {
     return (

@@ -1,6 +1,6 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, FilterPills, InlineCardError } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
@@ -28,6 +28,15 @@ export function InvoicesScreen() {
   }, [filter, list.invoices, query]);
   const emptyCopy = invoiceListEmptyCopy(filter, query);
   const showInbox = list.isLoading || Boolean(list.error) || list.canRead;
+
+  useEffect(() => {
+    if (!list.accessReady || list.canRead) return undefined;
+    const timeout = setTimeout(() => {
+      if (navigation.canGoBack()) navigation.goBack();
+      else navigation.navigate(ROUTES.MORE_HOME);
+    }, 0);
+    return () => clearTimeout(timeout);
+  }, [list.accessReady, list.canRead, navigation]);
   const startNewInvoice = useCallback(() => {
     navigation.navigate(ROUTES.CREATE_INVOICE, { source: CREATE_INVOICE_SOURCE.INVOICES });
   }, [navigation]);
@@ -67,6 +76,10 @@ export function InvoicesScreen() {
       }),
     [colors, tabBarHeight],
   );
+
+  if (list.accessReady && !list.canRead) {
+    return null;
+  }
 
   return (
     <View style={styles.root}>

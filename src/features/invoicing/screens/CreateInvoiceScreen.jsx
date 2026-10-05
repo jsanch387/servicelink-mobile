@@ -24,6 +24,7 @@ import { InvoiceHoldStage } from '../components/InvoiceHoldStage';
 import { INVOICE_SEND_MIN_PENDING_MS } from '../components/InvoiceSendSubmittingState';
 import { CREATE_INVOICE_STEPS } from '../constants/createInvoiceWizard';
 import { INVOICES_QUERY_ROOT } from '../queryKeys';
+import { useLeaveWhenInvoicesHidden } from '../hooks/useLeaveWhenInvoicesHidden';
 import { confirmDeleteInvoice } from '../utils/confirmDeleteInvoice';
 import {
   canContinueInvoiceStep,
@@ -41,6 +42,7 @@ export function CreateInvoiceScreen() {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const invoiceAccess = useLeaveWhenInvoicesHidden();
   const scrollRef = useRef(null);
   const [deletePhase, setDeletePhase] = useState(
     /** @type {'idle' | 'pending' | 'error'} */ ('idle'),
@@ -230,6 +232,10 @@ export function CreateInvoiceScreen() {
       }),
     [colors],
   );
+
+  if (invoiceAccess.isReady && !invoiceAccess.canSeeInvoices) {
+    return null;
+  }
 
   if (deletePhase === 'pending' || deletePhase === 'error') {
     return (

@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../auth';
-import { useShopAccess } from '../../shop';
 import { shopProfileQueryOptions } from '../../shop/shopProfileQueryOptions';
 import { useSubscription } from '../../subscription';
 import { fetchInvoiceForOpen, invoiceBusinessName } from '../api/invoiceOpen';
+import { useInvoiceAccess } from './useInvoiceAccess';
 import { invoiceOpenQueryKey } from '../queryKeys';
 
 /**
@@ -16,17 +16,11 @@ export function useInvoiceOpen(invoiceId) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const businessQ = useQuery(shopProfileQueryOptions(userId));
-  const { canSeeOffice, isShopLoading } = useShopAccess();
-  const {
-    hasProAccess,
-    isOwnerProfileLoaded,
-    isLoading: subscriptionLoading,
-    loadError: subscriptionError,
-  } = useSubscription();
+  const { loadError: subscriptionError } = useSubscription();
+  const access = useInvoiceAccess();
 
   const businessId = businessQ.data?.id ?? null;
-  const allowed =
-    Boolean(userId) && !isShopLoading && isOwnerProfileLoaded && canSeeOffice && hasProAccess;
+  const allowed = Boolean(userId) && access.canSeeInvoices;
   const openQ = useQuery({
     queryKey: invoiceOpenQueryKey(businessId, id),
     queryFn: () => fetchInvoiceForOpen(businessId, id),
@@ -35,8 +29,7 @@ export function useInvoiceOpen(invoiceId) {
     gcTime: 15 * 60 * 1000,
   });
 
-  const gatesPending =
-    Boolean(userId) && (isShopLoading || subscriptionLoading || businessQ.isPending);
+  const gatesPending = Boolean(userId) && (!access.isReady || (allowed && businessQ.isPending));
   const isLoading =
     Boolean(id) && (gatesPending || (allowed && Boolean(businessId) && openQ.isPending));
   const outcome = openQ.data?.outcome ?? null;

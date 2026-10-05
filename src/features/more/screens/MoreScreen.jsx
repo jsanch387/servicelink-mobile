@@ -20,7 +20,7 @@ import { useTheme } from '../../../theme';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { CONTACT_US_ROW_LABEL } from '../../help/constants/helpCopy';
 import { useShopAccess } from '../../shop';
-import { useSubscription } from '../../subscription';
+import { useInvoiceAccess } from '../../invoicing/hooks/useInvoiceAccess';
 import { useSubscriptionsAccess } from '../../subscriptions/hooks/useSubscriptionsAccess';
 import { isTapToPayPlatformSupported } from '../../tap-to-pay/constants/tapToPayFeatureFlags';
 import { useTeamMembers } from '../../team';
@@ -31,8 +31,8 @@ export function MoreScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const subscriptionsAccess = useSubscriptionsAccess();
   const { canSeeOffice } = useShopAccess();
-  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
-  const showInvoices = canSeeOffice && isOwnerProfileLoaded && hasProAccess;
+  const invoicesAccess = useInvoiceAccess();
+  const showInvoices = invoicesAccess.canSeeInvoices;
   const team = useTeamMembers();
   const scrollBottomPad = 28 + Math.max(tabBarHeight, 72);
 
