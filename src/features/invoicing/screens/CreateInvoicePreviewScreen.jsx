@@ -10,6 +10,7 @@ import {
   HeaderBarSideSlot,
   HeaderTextButton,
   androidBalancedHeaderLeft,
+  androidHeaderTitleBalanceRight,
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
@@ -211,34 +212,24 @@ export function CreateInvoicePreviewScreen() {
           )),
       headerRight: hideNavigationHeader
         ? undefined
-        : () => {
-            const save = (
-              <HeaderTextButton
-                accessibilityLabel="Save draft"
-                label="Save"
-                onPress={busy ? undefined : () => void saveDraft()}
-              />
-            );
-            const row = (
-              <View style={{ alignItems: 'center', flexDirection: 'row' }}>
-                {save}
-                {invoiceId ? (
-                  <InvoiceHeaderDeleteButton
-                    onPress={() => {
-                      if (busy) return;
-                      confirmDeleteInvoice(() => {
-                        void runDelete();
-                      });
-                    }}
-                  />
-                ) : null}
-              </View>
-            );
-            if (Platform.OS !== 'android' || invoiceId) return row;
-            return <HeaderBarSideSlot align="flex-end">{save}</HeaderBarSideSlot>;
-          },
+        : invoiceId
+          ? () => {
+              const button = (
+                <InvoiceHeaderDeleteButton
+                  onPress={() => {
+                    if (busy) return;
+                    confirmDeleteInvoice(() => {
+                      void runDelete();
+                    });
+                  }}
+                />
+              );
+              if (Platform.OS !== 'android') return button;
+              return <HeaderBarSideSlot align="flex-end">{button}</HeaderBarSideSlot>;
+            }
+          : androidHeaderTitleBalanceRight(),
     });
-  }, [busy, cancelInvoice, hideNavigationHeader, invoiceId, navigation, runDelete, saveDraft]);
+  }, [busy, cancelInvoice, hideNavigationHeader, invoiceId, navigation, runDelete]);
 
   useLayoutEffect(
     () => () => {
@@ -273,6 +264,9 @@ export function CreateInvoicePreviewScreen() {
           justifyContent: 'center',
           paddingBottom: 16,
           paddingHorizontal: 12,
+        },
+        draftAction: {
+          marginTop: 16,
         },
         footerStack: {
           backgroundColor: colors.shell,
@@ -349,7 +343,20 @@ export function CreateInvoicePreviewScreen() {
         {phase === 'success' ? (
           <InvoiceSendSuccess body={confirmationBody} />
         ) : invoice ? (
-          <InvoiceDocument businessName={businessName} invoice={invoice} />
+          <>
+            <InvoiceDocument businessName={businessName} invoice={invoice} />
+            <View style={styles.draftAction}>
+              <Button
+                accessibilityLabel="Save as draft"
+                disabled={busy}
+                fullWidth
+                loading={saving}
+                title="Save as draft"
+                variant="secondary"
+                onPress={() => void saveDraft()}
+              />
+            </View>
+          </>
         ) : (
           <AppText style={styles.missing}>This invoice is not available.</AppText>
         )}
