@@ -1,12 +1,38 @@
 import { productionWebApiHttpsGuard } from '../../../lib/productionWebApiHttpsGuard';
 import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileCheckoutOrigin';
-import { quotesDebug, quotesDebugError } from '../utils/quotesDebug';
+import { quotesDebugError } from '../utils/quotesDebug';
 
 function createRequestId() {
   if (globalThis.crypto?.randomUUID) {
     return globalThis.crypto.randomUUID();
   }
   return `mobile-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
+/**
+ * This send emails the customer. A text goes out only when the server says it did.
+ *
+ * @param {Record<string, unknown> | null} data
+ * @returns {{ emailSent: boolean; smsSent: boolean }}
+ */
+function readQuoteSendChannels(data) {
+  return {
+    emailSent: readOptionalBool(data, ['emailSent', 'emailed']) ?? true,
+    smsSent: readOptionalBool(data, ['smsSent', 'smsed']) ?? false,
+  };
+}
+
+/**
+ * @param {Record<string, unknown> | null | undefined} source
+ * @param {string[]} keys
+ * @returns {boolean | undefined}
+ */
+function readOptionalBool(source, keys) {
+  if (!source || typeof source !== 'object') return undefined;
+  for (const key of keys) {
+    if (typeof source[key] === 'boolean') return source[key];
+  }
+  return undefined;
 }
 
 /**
@@ -60,7 +86,7 @@ export function mapSendQuoteHttpError(httpStatus, serverMessage) {
  * @param {string | null | undefined} accessToken
  * @param {Record<string, unknown>} body
  * @returns {Promise<
- *   | { ok: true; quoteId: string; publicUrl: string; expiresAt: string }
+ *   | { ok: true; quoteId: string; publicUrl: string; expiresAt: string; emailSent: boolean; smsSent: boolean }
  *   | { ok: false; error: Error; httpStatus: number; requestId?: string }
  * >}
  */
@@ -75,7 +101,6 @@ export async function postSendNewQuote(accessToken, body) {
   }
 
   const requestId = createRequestId();
-  quotesDebug('postSendQuote:start', { mode: 'new', requestId });
 
   let res;
   try {
@@ -117,7 +142,7 @@ export async function postSendNewQuote(accessToken, body) {
  * @param {string} quoteId
  * @param {Record<string, unknown>} body
  * @returns {Promise<
- *   | { ok: true; quoteId: string; publicUrl: string; expiresAt: string }
+ *   | { ok: true; quoteId: string; publicUrl: string; expiresAt: string; emailSent: boolean; smsSent: boolean }
  *   | { ok: false; error: Error; httpStatus: number; requestId?: string }
  * >}
  */
@@ -136,7 +161,6 @@ export async function postSendExistingQuote(accessToken, quoteId, body) {
   }
 
   const requestId = createRequestId();
-  quotesDebug('postSendQuote:start', { mode: 'existing', quoteId: id, requestId });
 
   let res;
   try {
@@ -179,7 +203,7 @@ export async function postSendExistingQuote(accessToken, quoteId, body) {
  * @param {Response} res
  * @param {{ successStatuses: number[]; sentRequestId: string; mode: 'new' | 'existing'; quoteId?: string }} opts
  * @returns {Promise<
- *   | { ok: true; quoteId: string; publicUrl: string; expiresAt: string }
+ *   | { ok: true; quoteId: string; publicUrl: string; expiresAt: string; emailSent: boolean; smsSent: boolean }
  *   | { ok: false; error: Error; httpStatus: number; requestId?: string }
  * >}
  */
@@ -209,13 +233,8 @@ async function parseSendQuoteResponse(res, opts) {
   const statusOk = opts.successStatuses.includes(res.status);
 
   if (statusOk && body?.success === true && okShape) {
-    quotesDebug('postSendQuote:ok', {
-      mode: opts.mode,
-      httpStatus: res.status,
-      requestId: echoedId,
-      quoteId,
-    });
-    return { ok: true, quoteId, publicUrl, expiresAt };
+    const channels = readQuoteSendChannels(data);
+    return { ok: true, quoteId, publicUrl, expiresAt, ...channels };
   }
 
   const msg = mapSendQuoteHttpError(res.status, serverError);

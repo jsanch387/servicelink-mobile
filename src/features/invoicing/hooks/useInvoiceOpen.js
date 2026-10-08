@@ -20,7 +20,7 @@ export function useInvoiceOpen(invoiceId) {
   const access = useInvoiceAccess();
 
   const businessId = businessQ.data?.id ?? null;
-  const allowed = Boolean(userId) && access.canSeeInvoices;
+  const allowed = Boolean(userId) && access.canUseInvoices;
   const openQ = useQuery({
     queryKey: invoiceOpenQueryKey(businessId, id),
     queryFn: () => fetchInvoiceForOpen(businessId, id),

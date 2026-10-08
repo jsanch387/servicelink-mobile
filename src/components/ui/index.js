@@ -99,3 +99,4 @@ export {
   HEADER_BAR_SIDE_SLOT_WIDTH,
 } from './HeaderTextButton';
 export { WizardStepHeader } from './WizardStepHeader';
+export { WizardStepTitle } from './WizardStepTitle';

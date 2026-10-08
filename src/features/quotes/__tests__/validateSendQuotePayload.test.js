@@ -168,6 +168,28 @@ describe('validateSendQuotePayload', () => {
     expect(r.body.assets).toBeUndefined();
   });
 
+  it('sends customer_choice when more than one payment method is selected', () => {
+    const r = validateSendQuotePayload(
+      validBase({ paymentOptions: ['pay_in_person', 'pay_in_full'] }),
+    );
+    expect(r.ok).toBe(true);
+    expect(r.body.paymentCollection).toBe('customer_choice');
+    expect(r.body.paymentOptions).toBeUndefined();
+  });
+
+  it('sends deposit or full when that is the only method', () => {
+    const deposit = validateSendQuotePayload(validBase({ paymentOptions: ['deposit'] }));
+    const full = validateSendQuotePayload(validBase({ paymentOptions: ['pay_in_full'] }));
+    expect(deposit.body.paymentCollection).toBe('deposit');
+    expect(full.body.paymentCollection).toBe('full');
+  });
+
+  it('sends none when the customer pays in person', () => {
+    const r = validateSendQuotePayload(validBase({ paymentOptions: ['pay_in_person'] }));
+    expect(r.ok).toBe(true);
+    expect(r.body.paymentCollection).toBe('none');
+  });
+
   it('rejects a partial second vehicle', () => {
     const r = validateSendQuotePayload(
       validBase({

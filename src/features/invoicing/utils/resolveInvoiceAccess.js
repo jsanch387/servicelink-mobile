@@ -13,8 +13,9 @@ export function isInvoiceEarlyAccessEmail(email) {
 }
 
 /**
- * Whether this login can see More → Invoices and the invoice screens.
- * A non-empty allowlist hides the feature from every other account, including Pro.
+ * Whether this login can open More → Invoices.
+ * Pro owners use the list. Other office owners see the subscribe card.
+ * A non-empty allowlist hides the feature from every other account.
  *
  * @param {{
  *   email?: string | null;
@@ -23,7 +24,12 @@ export function isInvoiceEarlyAccessEmail(email) {
  *   profileLoaded?: boolean;
  *   restrictToEarlyAccess?: boolean;
  * }} [params]
- * @returns {{ canSeeInvoices: boolean; isReady: boolean }}
+ * @returns {{
+ *   canSeeInvoices: boolean;
+ *   canUseInvoices: boolean;
+ *   showUpsell: boolean;
+ *   isReady: boolean;
+ * }}
  */
 export function resolveInvoiceAccess({
   email = null,
@@ -33,13 +39,16 @@ export function resolveInvoiceAccess({
   restrictToEarlyAccess = INVOICE_EARLY_ACCESS_EMAILS.length > 0,
 } = {}) {
   if (restrictToEarlyAccess && !isInvoiceEarlyAccessEmail(email)) {
-    return { canSeeInvoices: false, isReady: true };
+    return { canSeeInvoices: false, canUseInvoices: false, showUpsell: false, isReady: true };
   }
   if (!profileLoaded) {
-    return { canSeeInvoices: false, isReady: false };
+    return { canSeeInvoices: false, canUseInvoices: false, showUpsell: false, isReady: false };
   }
-  return {
-    canSeeInvoices: Boolean(canSeeOffice && hasProAccess),
-    isReady: true,
-  };
+  if (!canSeeOffice) {
+    return { canSeeInvoices: false, canUseInvoices: false, showUpsell: false, isReady: true };
+  }
+  if (hasProAccess) {
+    return { canSeeInvoices: true, canUseInvoices: true, showUpsell: false, isReady: true };
+  }
+  return { canSeeInvoices: true, canUseInvoices: false, showUpsell: true, isReady: true };
 }

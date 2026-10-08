@@ -72,17 +72,18 @@ Built by **`validateSendQuotePayload`** in `src/features/quotes/utils/validateSe
 
 **Required / typical fields on the wire:**
 
-| Field                                                | Notes                                                  |
-| ---------------------------------------------------- | ------------------------------------------------------ |
-| `businessSlug`                                       | string                                                 |
-| `customerName`, `customerEmail`                      | string                                                 |
-| `customerPhone`                                      | optional, 10-digit US string when present              |
-| `serviceName`                                        | string                                                 |
-| `priceCents`                                         | integer                                                |
-| `durationMinutes`                                    | integer, &gt; 0                                        |
-| `scheduledDate`                                      | `YYYY-MM-DD`                                           |
-| `scheduledStartTime`                                 | `HH:mm` 24h (`:00` or `:30` only from the time picker) |
-| `vehicleYear`, `vehicleMake`, `vehicleModel`, `note` | optional; omitted when empty                           |
+| Field                                                | Notes                                                                                                                                                                                                                                                                                  |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `businessSlug`                                       | string                                                                                                                                                                                                                                                                                 |
+| `customerName`, `customerEmail`                      | string                                                                                                                                                                                                                                                                                 |
+| `customerPhone`                                      | optional, 10-digit US string when present                                                                                                                                                                                                                                              |
+| `serviceName`                                        | string                                                                                                                                                                                                                                                                                 |
+| `priceCents`                                         | integer                                                                                                                                                                                                                                                                                |
+| `durationMinutes`                                    | integer, &gt; 0                                                                                                                                                                                                                                                                        |
+| `scheduledDate`                                      | `YYYY-MM-DD`                                                                                                                                                                                                                                                                           |
+| `scheduledStartTime`                                 | `HH:mm` 24h (`:00` or `:30` only from the time picker)                                                                                                                                                                                                                                 |
+| `vehicleYear`, `vehicleMake`, `vehicleModel`, `note` | optional; omitted when empty                                                                                                                                                                                                                                                           |
+| `paymentCollection`                                  | `none`, `deposit`, `full`, or `customer_choice`. One selected card method sends `deposit` or `full`. Two or more selected methods send `customer_choice`. Pay in person alone sends `none`. The server snapshots the shop deposit rule; card collection needs Pro and charges enabled. |
 
 **Success response shape** (parsed in `parseSendQuoteResponse`):
 

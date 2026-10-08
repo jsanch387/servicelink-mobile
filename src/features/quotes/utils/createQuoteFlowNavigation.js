@@ -15,6 +15,7 @@ export function getCreateQuoteVisibleStepOrder(
   if (!addonsSkipped) order.push(CREATE_QUOTE_STEP.ADDONS);
   order.push(CREATE_QUOTE_STEP.SCHEDULE);
   if (schedulePickIncluded) order.push(CREATE_QUOTE_STEP.SCHEDULE_PICK);
+  order.push(CREATE_QUOTE_STEP.PAYMENT);
   order.push(CREATE_QUOTE_STEP.REVIEW);
   return order;
 }
@@ -80,10 +81,13 @@ export function getNextCreateQuoteStepOnContinue({
     return CREATE_QUOTE_STEP.SCHEDULE;
   }
   if (step === CREATE_QUOTE_STEP.SCHEDULE_PICK) {
+    return CREATE_QUOTE_STEP.PAYMENT;
+  }
+  if (step === CREATE_QUOTE_STEP.PAYMENT) {
     return CREATE_QUOTE_STEP.REVIEW;
   }
   if (step === CREATE_QUOTE_STEP.SCHEDULE) {
-    return schedulePickIncluded ? CREATE_QUOTE_STEP.SCHEDULE_PICK : CREATE_QUOTE_STEP.REVIEW;
+    return schedulePickIncluded ? CREATE_QUOTE_STEP.SCHEDULE_PICK : CREATE_QUOTE_STEP.PAYMENT;
   }
   return step + 1;
 }
@@ -103,6 +107,9 @@ export function getPreviousCreateQuoteStepOnBack({
   schedulePickIncluded = false,
 }) {
   if (step === CREATE_QUOTE_STEP.REVIEW) {
+    return CREATE_QUOTE_STEP.PAYMENT;
+  }
+  if (step === CREATE_QUOTE_STEP.PAYMENT) {
     if (schedulePickIncluded) return CREATE_QUOTE_STEP.SCHEDULE_PICK;
     return CREATE_QUOTE_STEP.SCHEDULE;
   }

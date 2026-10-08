@@ -3,6 +3,7 @@ import { canonicalNanpDigits } from '../../../utils/phone';
 import { isOptionalVehicleComplete } from '../../../utils/vehicle';
 import { isQuoteVehicleFilled } from './quoteVehicles';
 import { CREATE_QUOTE_CUSTOM_JOB_ID, CREATE_QUOTE_STEP } from '../constants/createQuoteWizard';
+import { orderQuotePaymentMethods } from './quotePaymentOptions';
 import { twelveHourDisplayToHhMm } from './validateSendQuotePayload';
 
 function isValidYyyyMmDd(s) {
@@ -81,6 +82,10 @@ export function canAdvanceCreateQuoteStep(step, s) {
       const date = String(s.scheduledDateYyyyMmDd ?? '').trim();
       if (!isValidYyyyMmDd(date)) return false;
       return Boolean(twelveHourDisplayToHhMm(s.scheduledStartTime12h));
+    }
+    case CREATE_QUOTE_STEP.PAYMENT: {
+      if (s.paymentOptionsLoading) return false;
+      return orderQuotePaymentMethods(s.paymentMethods).length > 0;
     }
     case CREATE_QUOTE_STEP.REVIEW:
       return true;

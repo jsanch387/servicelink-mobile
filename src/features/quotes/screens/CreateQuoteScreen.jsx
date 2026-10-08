@@ -13,17 +13,17 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Button, InlineCardError, WizardStepHeader } from '../../../components/ui';
+import { Button, InlineCardError, WizardStepTitle } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
 import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
-import { localYyyyMmDd } from '../../home/utils/bookingStart';
 import { formatPhoneForDisplay } from '../../../utils/phone';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { isValidCalendarYyyyMmDd } from '../utils/formatScheduledDateDisplay';
 import { CreateQuoteSendSuccess } from '../components/create-quote/CreateQuoteSendSuccess';
+import { quoteSendConfirmationBody } from '../utils/quoteSendConfirmation';
 import { CreateQuoteStepContent } from '../components/create-quote/CreateQuoteStepContent';
 import { CreateQuoteSubmittingState } from '../components/create-quote/CreateQuoteSubmittingState';
 import { CreateQuoteWizardFooter } from '../components/create-quote/CreateQuoteWizardFooter';
@@ -38,6 +38,7 @@ import {
 } from '../constants/createQuoteWizard';
 import { postSendExistingQuote, postSendNewQuote } from '../api/sendQuote';
 import { useCreateQuoteServiceCatalog } from '../hooks/useCreateQuoteServiceCatalog';
+import { useQuotePaymentSelection } from '../hooks/useQuotePaymentSelection';
 import { quoteDetailQueryKey, quotesListQueryKey } from '../queryKeys';
 import {
   deriveCatalogQuoteFields,
@@ -53,6 +54,7 @@ import {
 } from '../utils/createQuoteFlowNavigation';
 import { canAdvanceCreateQuoteStep } from '../utils/createQuoteStepGuards';
 import { formatQuoteVehicleLine, readPrefillSecondVehicle } from '../utils/quoteVehicles';
+import { QUOTE_PAYMENT_METHOD } from '../utils/quotePaymentOptions';
 import {
   dbTimeToCreateQuoteTime12hSnapped,
   twelveHourDisplayToHhMm,
@@ -173,9 +175,7 @@ export function CreateQuoteScreen() {
     ),
   );
   const [scheduledDateYyyyMmDd, setScheduledDateYyyyMmDd] = useState(() =>
-    prefScheduledDate && isValidCalendarYyyyMmDd(prefScheduledDate)
-      ? prefScheduledDate
-      : localYyyyMmDd(),
+    prefScheduledDate && isValidCalendarYyyyMmDd(prefScheduledDate) ? prefScheduledDate : '',
   );
   const [scheduledStartTime12h, setScheduledStartTime12h] = useState(() =>
     prefScheduledTime && twelveHourDisplayToHhMm(prefScheduledTime) ? prefScheduledTime : '9:00 AM',
@@ -184,6 +184,7 @@ export function CreateQuoteScreen() {
   const [sendError, setSendError] = useState(/** @type {string | null} */ (null));
   const [sending, setSending] = useState(false);
   const [sendSucceeded, setSendSucceeded] = useState(false);
+  const [sendConfirmationBody, setSendConfirmationBody] = useState("We've sent the quote.");
 
   const isCustomJob = isCreateQuoteCustomJobSelection(selectedServiceId);
 
@@ -302,16 +303,13 @@ export function CreateQuoteScreen() {
   const handleChooseScheduleDate = useCallback(() => {
     void Haptics.selectionAsync().catch(() => {});
     setScheduleMode('pick');
-    if (!isValidCalendarYyyyMmDd(scheduledDateYyyyMmDd)) {
-      setScheduledDateYyyyMmDd(localYyyyMmDd());
-    }
     setStepIndex(CREATE_QUOTE_STEP.SCHEDULE_PICK);
-  }, [scheduledDateYyyyMmDd]);
+  }, []);
 
   const handleLetCustomerChooseSchedule = useCallback(() => {
     void Haptics.selectionAsync().catch(() => {});
     setScheduleMode('customer');
-    setStepIndex(CREATE_QUOTE_STEP.REVIEW);
+    setStepIndex(CREATE_QUOTE_STEP.PAYMENT);
   }, []);
 
   const businessQ = useQuery({
@@ -330,6 +328,10 @@ export function CreateQuoteScreen() {
   const business = businessQ.data ?? null;
   const businessId = business?.id;
   const businessSlug = String(business?.business_slug ?? '').trim();
+  const paymentSelection = useQuotePaymentSelection();
+  const paymentDepositLabel = paymentSelection.methods.includes(QUOTE_PAYMENT_METHOD.DEPOSIT)
+    ? paymentSelection.availability.depositLabel
+    : null;
 
   const schedulePickIncluded = scheduleMode === 'pick';
   const skipArgs = useMemo(
@@ -375,6 +377,8 @@ export function CreateQuoteScreen() {
       scheduleMode,
       scheduledDateYyyyMmDd,
       scheduledStartTime12h,
+      paymentMethods: paymentSelection.methods,
+      paymentOptionsLoading: paymentSelection.loading,
     }),
     [
       customerEmail,
@@ -387,6 +391,8 @@ export function CreateQuoteScreen() {
       pricingOptionsCount,
       scheduleMode,
       scheduledDateYyyyMmDd,
+      paymentSelection.loading,
+      paymentSelection.methods,
       scheduledStartTime12h,
       selectedPricingId,
       selectedServiceId,
@@ -483,6 +489,17 @@ export function CreateQuoteScreen() {
       setBusinessNote,
       onBusinessNoteFocus: handleBusinessNoteFocus,
       customerRequestNotes,
+      paymentMethods: paymentSelection.methods,
+      paymentAvailability: paymentSelection.availability,
+      paymentOptionsLoading: paymentSelection.loading,
+      paymentLoadError: paymentSelection.loadError,
+      paymentSummary: paymentSelection.summary,
+      paymentDepositLabel,
+      paymentCustomerChooses: paymentSelection.customerChooses,
+      paymentShowCustomerChooses: paymentSelection.showCustomerChooses,
+      onTogglePaymentMethod: paymentSelection.toggleMethod,
+      onToggleCustomerChooses: paymentSelection.toggleCustomerChooses,
+      onRetryPaymentSettings: paymentSelection.retry,
     }),
     [
       addonsForSelectedService,
@@ -508,6 +525,17 @@ export function CreateQuoteScreen() {
       handleSelectCatalogService,
       handleToggleAddon,
       isCustomJob,
+      paymentDepositLabel,
+      paymentSelection.availability,
+      paymentSelection.customerChooses,
+      paymentSelection.loadError,
+      paymentSelection.loading,
+      paymentSelection.methods,
+      paymentSelection.retry,
+      paymentSelection.showCustomerChooses,
+      paymentSelection.summary,
+      paymentSelection.toggleCustomerChooses,
+      paymentSelection.toggleMethod,
       priceUsdText,
       pricingOptions,
       scheduleMode,
@@ -538,9 +566,9 @@ export function CreateQuoteScreen() {
     navigation.setOptions({
       gestureEnabled: !hideNavigationHeader,
       headerShown: !hideNavigationHeader,
-      title: isReviewStep ? 'Review' : quoteRequestId ? 'Send quote' : 'New quote',
+      title: quoteRequestId ? 'Send quote' : 'New quote',
     });
-  }, [hideNavigationHeader, isReviewStep, navigation, quoteRequestId]);
+  }, [hideNavigationHeader, navigation, quoteRequestId]);
 
   useLayoutEffect(
     () => () => {
@@ -599,6 +627,8 @@ export function CreateQuoteScreen() {
       scheduleMode,
       scheduledDateYyyyMmDd,
       scheduledStartTime12h,
+      paymentOptions: paymentSelection.methods,
+      paymentAvailability: paymentSelection.availability,
     });
 
     if (!validated.ok) {
@@ -631,6 +661,12 @@ export function CreateQuoteScreen() {
         }
       }
 
+      setSendConfirmationBody(
+        quoteSendConfirmationBody({
+          emailSent: result.emailSent,
+          smsSent: result.smsSent,
+        }),
+      );
       setSendSucceeded(true);
     } finally {
       setSending(false);
@@ -646,6 +682,8 @@ export function CreateQuoteScreen() {
     durationHhMm,
     isCustomJob,
     businessNote,
+    paymentSelection.availability,
+    paymentSelection.methods,
     priceUsdText,
     queryClient,
     quoteRequestId,
@@ -697,7 +735,7 @@ export function CreateQuoteScreen() {
       return;
     }
 
-    if (stepIndex === CREATE_QUOTE_STEP.REVIEW) {
+    if (stepIndex === CREATE_QUOTE_STEP.REVIEW || stepIndex === CREATE_QUOTE_STEP.PAYMENT) {
       const prev = getPreviousCreateQuoteStepOnBack({
         step: stepIndex,
         detailsSkipped,
@@ -806,15 +844,13 @@ export function CreateQuoteScreen() {
         },
         content: {
           flexGrow: 1,
-          gap: 16,
-          paddingBottom: 28,
+          paddingBottom: 36,
           paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: 6,
+          paddingTop: 12,
         },
         contentReview: {
           gap: 12,
           paddingBottom: 36,
-          paddingTop: 22,
         },
         contentSuccessConfirm: {
           alignItems: 'center',
@@ -881,16 +917,6 @@ export function CreateQuoteScreen() {
           style={styles.flex}
         >
           <View style={styles.column}>
-            {!isReviewStep ? (
-              <WizardStepHeader
-                progressAccessibilityLabel="Quote wizard progress"
-                stepCount={visibleStepCount}
-                stepIndex={visibleStepIndex}
-                subtitle={stepDef.subtitle}
-                title={stepDef.title}
-              />
-            ) : null}
-
             <View style={styles.scrollOuter}>
               <ScrollView
                 ref={scrollRef}
@@ -905,12 +931,19 @@ export function CreateQuoteScreen() {
                 showsVerticalScrollIndicator={false}
                 style={styles.scroll}
               >
+                {!sendSucceeded && !isReviewStep ? (
+                  <WizardStepTitle
+                    stepCount={visibleStepCount}
+                    stepIndex={visibleStepIndex}
+                    title={stepDef.title}
+                  />
+                ) : null}
                 {!businessSlug ? (
                   <InlineCardError message="Your business slug is not set. Finish your booking profile on the web app, then return here." />
                 ) : null}
 
                 {sendSucceeded ? (
-                  <CreateQuoteSendSuccess customerEmail={customerEmail} />
+                  <CreateQuoteSendSuccess body={sendConfirmationBody} />
                 ) : (
                   <CreateQuoteStepContent form={formBag} stepIndex={stepIndex} />
                 )}

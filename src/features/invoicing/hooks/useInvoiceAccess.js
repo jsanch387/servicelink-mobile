@@ -4,7 +4,7 @@ import { useShopAccess } from '../../shop';
 import { useSubscription } from '../../subscription';
 import { resolveInvoiceAccess } from '../utils/resolveInvoiceAccess';
 
-/** Owner + Pro, and the prod-test email allowlist. */
+/** Office owners see Invoices. Pro uses the list; others get the subscribe card. */
 export function useInvoiceAccess() {
   const { user } = useAuth();
   const { canSeeOffice, isShopLoading } = useShopAccess();

@@ -29,6 +29,41 @@ function renderReview() {
 }
 
 describe('CreateQuoteStepReview', () => {
+  it('shows the payment choice on review', () => {
+    render(
+      <ThemeProvider initialScheme="dark">
+        <TypographyProvider>
+          <CreateQuoteStepReview
+            addonLines={[]}
+            businessNote=""
+            customerEmail="pat@example.com"
+            customerName="Pat"
+            customerPhoneDisplay=""
+            customerRequestNotes=""
+            durationHhMm="01:00"
+            paymentDepositLabel="25%"
+            paymentMethods={['deposit', 'pay_in_person']}
+            priceUsdText="100"
+            scheduleMode="pick"
+            scheduledDateYyyyMmDd="2026-09-01"
+            scheduledStartTime12h="2:00 PM"
+            serviceName="Detail"
+            vehicleMake=""
+            vehicleModel=""
+            vehicleYear=""
+          />
+        </TypographyProvider>
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText('Payment options')).toBeTruthy();
+    expect(screen.getByText('Deposit')).toBeTruthy();
+    expect(screen.getByText('25%')).toBeTruthy();
+    expect(screen.getByText('In person')).toBeTruthy();
+    expect(screen.getByText('On site')).toBeTruthy();
+    expect(screen.queryByText('Customer chooses')).toBeNull();
+  });
+
   it('shows duration as a field in the Schedule card', () => {
     renderReview();
 

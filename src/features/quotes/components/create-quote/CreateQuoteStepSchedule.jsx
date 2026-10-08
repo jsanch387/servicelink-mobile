@@ -31,11 +31,17 @@ function PathCard({ title, subtitle, icon, onPress }) {
           gap: 14,
           paddingHorizontal: 16,
           paddingVertical: 18,
+          width: '100%',
         },
         iconWrap: {
           alignItems: 'center',
           justifyContent: 'center',
           width: 28,
+        },
+        chevronCol: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 22,
         },
         textCol: {
           flex: 1,
@@ -68,7 +74,9 @@ function PathCard({ title, subtitle, icon, onPress }) {
           <AppText style={styles.title}>{title}</AppText>
           <AppText style={styles.subtitle}>{subtitle}</AppText>
         </View>
-        <Ionicons color={colors.textMuted} name="chevron-forward" size={22} />
+        <View style={styles.chevronCol}>
+          <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />
+        </View>
       </View>
     </Pressable>
   );

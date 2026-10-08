@@ -28,7 +28,8 @@ export const CREATE_QUOTE_FIELD_GAP = 20;
  *   ADDONS: 4;
  *   SCHEDULE: 5;
  *   SCHEDULE_PICK: 6;
- *   REVIEW: 7;
+ *   PAYMENT: 7;
+ *   REVIEW: 8;
  * }>}
  */
 export const CREATE_QUOTE_STEP = Object.freeze({
@@ -39,14 +40,15 @@ export const CREATE_QUOTE_STEP = Object.freeze({
   ADDONS: 4,
   SCHEDULE: 5,
   SCHEDULE_PICK: 6,
-  REVIEW: 7,
+  PAYMENT: 7,
+  REVIEW: 8,
 });
 
 /** @type {CreateQuoteWizardStepDef[]} */
 export const CREATE_QUOTE_WIZARD_STEPS = [
   {
     id: 'customer',
-    title: 'Who is this for?',
+    title: 'Customer',
     subtitle: 'Customer name, email, and phone.',
   },
   {
@@ -71,17 +73,22 @@ export const CREATE_QUOTE_WIZARD_STEPS = [
   },
   {
     id: 'schedule',
-    title: 'Date and time',
+    title: 'Schedule',
     subtitle: 'Set a time now, or let them choose later.',
   },
   {
     id: 'schedule_pick',
-    title: 'Choose a date',
+    title: 'Date and time',
     subtitle: 'Pick a day and start time for this quote.',
   },
   {
+    id: 'payment',
+    title: 'Payment',
+    subtitle: '',
+  },
+  {
     id: 'review',
-    title: 'Ready to send',
+    title: 'Review',
     subtitle: 'Check the quote, then send it.',
   },
 ];

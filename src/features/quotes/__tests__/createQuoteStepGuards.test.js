@@ -115,6 +115,28 @@ describe('canAdvanceCreateQuoteStep', () => {
     expect(canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.SCHEDULE_PICK, baseSnapshot)).toBe(true);
   });
 
+  it('requires at least one payment option once settings have loaded', () => {
+    expect(
+      canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.PAYMENT, {
+        ...baseSnapshot,
+        paymentOptionsLoading: true,
+        paymentMethods: ['pay_in_person'],
+      }),
+    ).toBe(false);
+    expect(
+      canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.PAYMENT, {
+        ...baseSnapshot,
+        paymentMethods: [],
+      }),
+    ).toBe(false);
+    expect(
+      canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.PAYMENT, {
+        ...baseSnapshot,
+        paymentMethods: ['deposit', 'pay_in_person'],
+      }),
+    ).toBe(true);
+  });
+
   it('always allows review step', () => {
     expect(canAdvanceCreateQuoteStep(CREATE_QUOTE_STEP.REVIEW, baseSnapshot)).toBe(true);
   });

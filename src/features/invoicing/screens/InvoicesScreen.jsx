@@ -7,6 +7,7 @@ import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { AddInvoiceFab } from '../components/AddInvoiceFab';
+import { InvoicesNonProUpsell } from '../components/InvoicesNonProUpsell';
 import { InvoiceList } from '../components/InvoiceList';
 import { InvoiceListSkeleton } from '../components/InvoiceListSkeleton';
 import { InvoiceSearchBar } from '../components/InvoiceSearchBar';
@@ -30,13 +31,13 @@ export function InvoicesScreen() {
   const showInbox = list.isLoading || Boolean(list.error) || list.canRead;
 
   useEffect(() => {
-    if (!list.accessReady || list.canRead) return undefined;
+    if (!list.accessReady || list.canRead || list.showUpsell) return undefined;
     const timeout = setTimeout(() => {
       if (navigation.canGoBack()) navigation.goBack();
       else navigation.navigate(ROUTES.MORE_HOME);
     }, 0);
     return () => clearTimeout(timeout);
-  }, [list.accessReady, list.canRead, navigation]);
+  }, [list.accessReady, list.canRead, list.showUpsell, navigation]);
   const startNewInvoice = useCallback(() => {
     navigation.navigate(ROUTES.CREATE_INVOICE, { source: CREATE_INVOICE_SOURCE.INVOICES });
   }, [navigation]);
@@ -77,7 +78,7 @@ export function InvoicesScreen() {
     [colors, tabBarHeight],
   );
 
-  if (list.accessReady && !list.canRead) {
+  if (list.accessReady && !list.canRead && !list.showUpsell) {
     return null;
   }
 
@@ -89,7 +90,8 @@ export function InvoicesScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
-        {showInbox ? (
+        {list.showUpsell ? <InvoicesNonProUpsell /> : null}
+        {showInbox && !list.showUpsell ? (
           <View style={styles.controls}>
             <InvoiceSearchBar value={query} onChangeText={setQuery} />
             <FilterPills
@@ -100,9 +102,9 @@ export function InvoicesScreen() {
             />
           </View>
         ) : null}
-        {list.isLoading ? (
+        {!list.showUpsell && list.isLoading ? (
           <InvoiceListSkeleton />
-        ) : list.error ? (
+        ) : !list.showUpsell && list.error ? (
           <View>
             <InlineCardError message={list.error} />
             <Button

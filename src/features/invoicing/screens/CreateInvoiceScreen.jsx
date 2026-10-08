@@ -3,18 +3,17 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle } from 'react-native-svg';
 import {
-  AppText,
   Button,
   HeaderBarSideSlot,
   HeaderTextButton,
+  WizardStepTitle,
   androidBalancedHeaderLeft,
   androidHeaderTitleBalanceRight,
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
-import { FONT_FAMILIES, useTheme } from '../../../theme';
+import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { getSession } from '../../auth';
 import { deleteInvoice } from '../api/invoiceWrites';
@@ -33,8 +32,6 @@ import {
 } from '../utils/createInvoiceDraft';
 
 const LAST_STEP = CREATE_INVOICE_STEPS.length - 1;
-const STEP_RING_SIZE = 16;
-const STEP_RING_STROKE = 2;
 
 export function CreateInvoiceScreen() {
   const { colors } = useTheme();
@@ -56,10 +53,6 @@ export function CreateInvoiceScreen() {
   });
   const step = CREATE_INVOICE_STEPS[stepIndex];
   const canContinue = canContinueInvoiceStep(step.id, draft);
-  const stepProgress = (stepIndex + 1) / CREATE_INVOICE_STEPS.length;
-  const ringRadius = (STEP_RING_SIZE - STEP_RING_STROKE) / 2;
-  const ringCenter = STEP_RING_SIZE / 2;
-  const ringCircumference = 2 * Math.PI * ringRadius;
 
   const cancelInvoice = useCallback(() => {
     navigation.goBack();
@@ -186,36 +179,6 @@ export function CreateInvoiceScreen() {
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 12,
         },
-        header: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          paddingBottom: 32,
-          paddingTop: 8,
-        },
-        titleCol: {
-          flex: 1,
-          justifyContent: 'center',
-          minWidth: 0,
-        },
-        stepRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          gap: 8,
-          marginLeft: 12,
-        },
-        stepCount: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 13,
-          letterSpacing: 0.2,
-        },
-        title: {
-          color: colors.text,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 28,
-          letterSpacing: -0.6,
-          lineHeight: 34,
-        },
         footer: {
           backgroundColor: colors.shell,
           borderTopColor: colors.border,
@@ -233,7 +196,7 @@ export function CreateInvoiceScreen() {
     [colors],
   );
 
-  if (invoiceAccess.isReady && !invoiceAccess.canSeeInvoices) {
+  if (invoiceAccess.isReady && !invoiceAccess.canUseInvoices) {
     return null;
   }
 
@@ -269,41 +232,11 @@ export function CreateInvoiceScreen() {
           showsVerticalScrollIndicator={false}
           style={styles.scroll}
         >
-          <View style={styles.header}>
-            <View style={styles.titleCol}>
-              <AppText style={styles.title}>{step.title}</AppText>
-            </View>
-            <View
-              accessibilityLabel={`Step ${stepIndex + 1} of ${CREATE_INVOICE_STEPS.length}`}
-              style={styles.stepRow}
-            >
-              <Svg height={STEP_RING_SIZE} width={STEP_RING_SIZE}>
-                <Circle
-                  cx={ringCenter}
-                  cy={ringCenter}
-                  fill="none"
-                  r={ringRadius}
-                  stroke={colors.border}
-                  strokeWidth={STEP_RING_STROKE}
-                />
-                <Circle
-                  cx={ringCenter}
-                  cy={ringCenter}
-                  fill="none"
-                  r={ringRadius}
-                  stroke={colors.text}
-                  strokeDasharray={`${ringCircumference} ${ringCircumference}`}
-                  strokeDashoffset={ringCircumference * (1 - stepProgress)}
-                  strokeLinecap="round"
-                  strokeWidth={STEP_RING_STROKE}
-                  transform={`rotate(-90 ${ringCenter} ${ringCenter})`}
-                />
-              </Svg>
-              <AppText style={styles.stepCount}>
-                {stepIndex + 1} of {CREATE_INVOICE_STEPS.length}
-              </AppText>
-            </View>
-          </View>
+          <WizardStepTitle
+            stepCount={CREATE_INVOICE_STEPS.length}
+            stepIndex={stepIndex}
+            title={step.title}
+          />
           <CreateInvoiceForm draft={draft} step={step.id} onChange={patchDraft} />
         </ScrollView>
         <View style={[styles.footer, { paddingBottom: 12 + insets.bottom }]}>

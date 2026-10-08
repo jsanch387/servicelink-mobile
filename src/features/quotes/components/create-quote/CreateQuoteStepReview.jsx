@@ -7,6 +7,7 @@ import {
   DetailsSectionCard,
   Divider,
   InfoSection,
+  SurfaceCard,
 } from '../../../../components/ui';
 import {
   formatServiceDurationSelectLabel,
@@ -20,6 +21,7 @@ import {
   isValidCalendarYyyyMmDd,
 } from '../../utils/formatScheduledDateDisplay';
 import { resolveQuoteRequestBrief } from '../../utils/resolveQuoteRequestBrief';
+import { quotePaymentReviewTiles } from '../../utils/quotePaymentOptions';
 
 /**
  * Review step for create-quote: proposal, schedule, customer, vehicle, notes.
@@ -44,6 +46,8 @@ import { resolveQuoteRequestBrief } from '../../utils/resolveQuoteRequestBrief';
  * @param {string} props.scheduledStartTime12h
  * @param {string} props.customerRequestNotes From the quote request (read-only).
  * @param {string} props.businessNote From the vehicle step (`body.note`).
+ * @param {string[]} [props.paymentMethods]
+ * @param {string | null} [props.paymentDepositLabel]
  */
 export function CreateQuoteStepReview({
   customerName,
@@ -65,6 +69,8 @@ export function CreateQuoteStepReview({
   scheduledStartTime12h,
   customerRequestNotes,
   businessNote,
+  paymentMethods = [],
+  paymentDepositLabel = null,
 }) {
   const { colors } = useTheme();
 
@@ -170,34 +176,97 @@ export function CreateQuoteStepReview({
     : serviceNameTrimmed;
   const reviewAddons = Array.isArray(addonLines) ? addonLines : [];
   const hasAddons = reviewAddons.length > 0;
+  const paymentTiles = quotePaymentReviewTiles(paymentMethods, {
+    depositLabel: paymentDepositLabel,
+    totalLabel: priceDisplay,
+  });
+  const showPayment = paymentTiles.length > 0;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         reviewRoot: {
-          gap: 22,
+          gap: 16,
         },
-        heroBlock: {
-          marginBottom: 6,
+        reviewHeader: {
+          gap: 12,
         },
-        heroHeadline: {
+        reviewTitle: {
           color: colors.text,
           fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 22,
-          letterSpacing: -0.35,
-          lineHeight: 28,
-          marginBottom: 3,
+          fontSize: 28,
+          letterSpacing: -0.6,
+          lineHeight: 34,
         },
-        heroSub: {
+        paymentSection: {
+          gap: 8,
+        },
+        paymentSectionTitle: {
+          color: colors.textSecondary,
+          fontSize: 15,
+          fontWeight: '600',
+          letterSpacing: -0.2,
+        },
+        paymentRow: {
+          alignItems: 'stretch',
+          flexDirection: 'row',
+          gap: 8,
+          width: '100%',
+        },
+        paymentTileCol: {
+          flexBasis: 0,
+          flexGrow: 1,
+          flexShrink: 1,
+          minWidth: 0,
+        },
+        paymentTile: {
+          gap: 8,
+          width: '100%',
+        },
+        paymentTileMulti: {
+          alignItems: 'center',
+          height: 68,
+          justifyContent: 'center',
+          paddingHorizontal: 6,
+        },
+        paymentTileSingle: {
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+        },
+        paymentTileTitle: {
           color: colors.textMuted,
           fontFamily: FONT_FAMILIES.medium,
-          fontSize: 14,
+          fontSize: 12,
           fontWeight: '500',
-          letterSpacing: -0.1,
-          lineHeight: 21,
+          lineHeight: 16,
+          textAlign: 'center',
         },
-        heroDivider: {
-          marginTop: 9,
+        paymentTileTitlePair: {
+          fontSize: 14,
+          lineHeight: 18,
+        },
+        paymentTileTitleSingle: {
+          fontSize: 13,
+          lineHeight: 18,
+          textAlign: 'left',
+        },
+        paymentTileDetail: {
+          color: colors.text,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 13,
+          lineHeight: 17,
+          textAlign: 'center',
+        },
+        paymentTileDetailPair: {
+          fontSize: 16,
+          lineHeight: 20,
+        },
+        paymentTileDetailSingle: {
+          fontSize: 16,
+          lineHeight: 22,
+          textAlign: 'left',
         },
         proposalInner: {
           paddingVertical: 2,
@@ -324,10 +393,11 @@ export function CreateQuoteStepReview({
 
   return (
     <View style={styles.reviewRoot}>
-      <View style={styles.heroBlock}>
-        <AppText style={styles.heroHeadline}>Review quote</AppText>
-        <AppText style={styles.heroSub}>Review the details, then send.</AppText>
-        <Divider style={styles.heroDivider} />
+      <View style={styles.reviewHeader}>
+        <AppText accessibilityRole="header" style={styles.reviewTitle}>
+          Review
+        </AppText>
+        <Divider />
       </View>
 
       <DetailsSectionCard title="Proposal">
@@ -366,6 +436,61 @@ export function CreateQuoteStepReview({
           )}
         </View>
       </DetailsSectionCard>
+
+      {showPayment ? (
+        <View style={styles.paymentSection}>
+          <AppText style={styles.paymentSectionTitle}>Payment options</AppText>
+          <View style={styles.paymentRow}>
+            {paymentTiles.map((tile) => {
+              const single = paymentTiles.length === 1;
+              const pair = paymentTiles.length === 2;
+              const compact = paymentTiles.length > 2;
+              let title = tile.title;
+              let detail = tile.detail;
+              if (compact && tile.id === 'pay_in_full') title = 'In full';
+              return (
+                <View key={tile.id} style={styles.paymentTileCol}>
+                  <SurfaceCard
+                    outlined
+                    padding="none"
+                    style={[
+                      styles.paymentTile,
+                      single ? styles.paymentTileSingle : styles.paymentTileMulti,
+                    ]}
+                  >
+                    <AppText
+                      adjustsFontSizeToFit={!single}
+                      minimumFontScale={0.8}
+                      numberOfLines={1}
+                      style={[
+                        styles.paymentTileTitle,
+                        pair && styles.paymentTileTitlePair,
+                        single && styles.paymentTileTitleSingle,
+                      ]}
+                    >
+                      {title}
+                    </AppText>
+                    {detail ? (
+                      <AppText
+                        adjustsFontSizeToFit={!single}
+                        minimumFontScale={0.75}
+                        numberOfLines={1}
+                        style={[
+                          styles.paymentTileDetail,
+                          pair && styles.paymentTileDetailPair,
+                          single && styles.paymentTileDetailSingle,
+                        ]}
+                      >
+                        {detail}
+                      </AppText>
+                    ) : null}
+                  </SurfaceCard>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
 
       {showScheduleSection ? (
         <DetailsSectionCard bodyPadding="roomy" title="Schedule">

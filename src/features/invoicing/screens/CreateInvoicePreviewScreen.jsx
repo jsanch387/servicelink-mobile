@@ -297,7 +297,7 @@ export function CreateInvoicePreviewScreen() {
     [colors],
   );
 
-  if (invoiceAccess.isReady && !invoiceAccess.canSeeInvoices) {
+  if (invoiceAccess.isReady && !invoiceAccess.canUseInvoices) {
     return null;
   }
 

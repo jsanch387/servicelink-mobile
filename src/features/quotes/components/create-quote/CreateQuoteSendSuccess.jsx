@@ -5,12 +5,9 @@ import { SuccessMoment } from '../../../../components/ui';
  * Same confirmation moment as create-appointment after send succeeds.
  *
  * @param {object} props
- * @param {string} props.customerEmail
+ * @param {string} props.body
  */
-export function CreateQuoteSendSuccess({ customerEmail }) {
-  const email = String(customerEmail ?? '').trim();
-  const body = email ? `We've sent the quote to ${email}.` : "We've sent the quote.";
-
+export function CreateQuoteSendSuccess({ body }) {
   return (
     <View style={styles.root}>
       <SuccessMoment

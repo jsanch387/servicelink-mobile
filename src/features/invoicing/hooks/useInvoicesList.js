@@ -9,7 +9,7 @@ import { invoicesListQueryKey } from '../queryKeys';
 
 /**
  * Full invoice list for the current shop. Status filters stay in memory.
- * The query stays off until the allowlisted owner with Pro can read invoices.
+ * The query stays off until an owner with Pro can read invoices.
  */
 export function useInvoicesList() {
   const { user } = useAuth();
@@ -19,7 +19,7 @@ export function useInvoicesList() {
 
   const businessId = businessQ.data?.id ?? null;
   const access = useInvoiceAccess();
-  const allowed = Boolean(userId) && access.canSeeInvoices;
+  const allowed = Boolean(userId) && access.canUseInvoices;
   const listQ = useQuery({
     queryKey: invoicesListQueryKey(businessId),
     queryFn: async () => {
@@ -56,8 +56,9 @@ export function useInvoicesList() {
     error: subscriptionError || businessError || listError,
     isFetching: listQ.isFetching || businessQ.isFetching,
     refetch,
-    /** Allowlisted owner with Pro. The list renders only after this is true. */
+    /** Owner with Pro. The list renders only after this is true. */
     canRead: allowed,
+    showUpsell: access.showUpsell,
     accessReady: access.isReady,
   };
 }

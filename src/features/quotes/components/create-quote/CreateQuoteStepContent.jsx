@@ -7,6 +7,7 @@ import {
 import { CreateQuoteStepAddons } from './CreateQuoteStepAddons';
 import { CreateQuoteStepCustomer } from './CreateQuoteStepCustomer';
 import { CreateQuoteStepNote } from './CreateQuoteStepNote';
+import { CreateQuoteStepPayment } from './CreateQuoteStepPayment';
 import { CreateQuoteStepPricing } from './CreateQuoteStepPricing';
 import { CreateQuoteStepReview } from './CreateQuoteStepReview';
 import { CreateQuoteStepSchedule } from './CreateQuoteStepSchedule';
@@ -149,6 +150,20 @@ export function CreateQuoteStepContent({ stepIndex, form }) {
           onScheduledStartTimeChange={form.setScheduledStartTime12h}
         />
       );
+    case CREATE_QUOTE_STEP.PAYMENT:
+      return (
+        <CreateQuoteStepPayment
+          availability={form.paymentAvailability}
+          customerChooses={form.paymentCustomerChooses}
+          loadError={form.paymentLoadError}
+          loading={form.paymentOptionsLoading}
+          selectedMethods={form.paymentMethods}
+          showCustomerChooses={form.paymentShowCustomerChooses}
+          onRetry={form.onRetryPaymentSettings}
+          onToggleCustomerChooses={form.onToggleCustomerChooses}
+          onToggleMethod={form.onTogglePaymentMethod}
+        />
+      );
     case CREATE_QUOTE_STEP.REVIEW:
       return (
         <CreateQuoteStepReview
@@ -159,6 +174,8 @@ export function CreateQuoteStepContent({ stepIndex, form }) {
           customerPhoneDisplay={form.customerPhoneDisplay}
           customerRequestNotes={form.customerRequestNotes}
           durationHhMm={form.durationHhMm}
+          paymentDepositLabel={form.paymentDepositLabel}
+          paymentMethods={form.paymentMethods}
           priceUsdText={form.priceUsdText}
           pricingOptionLabel={form.pricingOptionLabel}
           scheduleMode={form.scheduleMode}

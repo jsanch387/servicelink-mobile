@@ -32,7 +32,7 @@ describe('createQuoteFlowNavigation', () => {
     ).toBe(CREATE_QUOTE_STEP.SCHEDULE);
   });
 
-  it('moves from calendar pick to review', () => {
+  it('moves from calendar pick to payment, then review', () => {
     expect(
       getNextCreateQuoteStepOnContinue({
         step: CREATE_QUOTE_STEP.SCHEDULE_PICK,
@@ -40,10 +40,18 @@ describe('createQuoteFlowNavigation', () => {
         addonsSkipped: true,
         schedulePickIncluded: true,
       }),
+    ).toBe(CREATE_QUOTE_STEP.PAYMENT);
+    expect(
+      getNextCreateQuoteStepOnContinue({
+        step: CREATE_QUOTE_STEP.PAYMENT,
+        detailsSkipped: true,
+        addonsSkipped: true,
+        schedulePickIncluded: true,
+      }),
     ).toBe(CREATE_QUOTE_STEP.REVIEW);
   });
 
-  it('backs from review to calendar when owner picked a date', () => {
+  it('backs from review through payment to the schedule path', () => {
     expect(
       getPreviousCreateQuoteStepOnBack({
         step: CREATE_QUOTE_STEP.REVIEW,
@@ -51,10 +59,18 @@ describe('createQuoteFlowNavigation', () => {
         addonsSkipped: true,
         schedulePickIncluded: true,
       }),
+    ).toBe(CREATE_QUOTE_STEP.PAYMENT);
+    expect(
+      getPreviousCreateQuoteStepOnBack({
+        step: CREATE_QUOTE_STEP.PAYMENT,
+        detailsSkipped: true,
+        addonsSkipped: true,
+        schedulePickIncluded: true,
+      }),
     ).toBe(CREATE_QUOTE_STEP.SCHEDULE_PICK);
     expect(
       getPreviousCreateQuoteStepOnBack({
-        step: CREATE_QUOTE_STEP.REVIEW,
+        step: CREATE_QUOTE_STEP.PAYMENT,
         detailsSkipped: true,
         addonsSkipped: true,
         schedulePickIncluded: false,
@@ -69,13 +85,13 @@ describe('createQuoteFlowNavigation', () => {
         addonsSkipped: true,
         schedulePickIncluded: false,
       }),
-    ).toBe(5);
+    ).toBe(6);
     expect(
       getCreateQuoteWizardStepCount({
         detailsSkipped: true,
         addonsSkipped: true,
         schedulePickIncluded: true,
       }),
-    ).toBe(6);
+    ).toBe(7);
   });
 });

@@ -11,6 +11,7 @@ import {
 import { isValidEmailFormat } from '../../../utils/email';
 import { canonicalNanpDigits } from '../../../utils/phone';
 import { isOptionalVehicleComplete } from '../../../utils/vehicle';
+import { normalizeQuotePaymentOptions, quotePaymentCollection } from './quotePaymentOptions';
 import { isQuoteVehicleFilled } from './quoteVehicles';
 
 /**
@@ -97,6 +98,8 @@ function trimOrNull(s) {
  * @property {'unset' | 'pick' | 'customer'} [scheduleMode]
  * @property {string} scheduledDateYyyyMmDd
  * @property {string} scheduledStartTime12h
+ * @property {string[] | null | undefined} [paymentOptions]
+ * @property {import('./quotePaymentOptions').QuotePaymentAvailability | null | undefined} [paymentAvailability]
  */
 
 /**
@@ -251,6 +254,14 @@ export function validateSendQuotePayload(input) {
     };
   }
 
+  const paymentOptions = normalizeQuotePaymentOptions(
+    input.paymentOptions,
+    input.paymentAvailability,
+  );
+  if (!paymentOptions.ok) {
+    return paymentOptions;
+  }
+
   /** @type {Record<string, unknown>} */
   const body = {
     businessSlug,
@@ -259,6 +270,7 @@ export function validateSendQuotePayload(input) {
     serviceName,
     priceCents,
     durationMinutes,
+    paymentCollection: quotePaymentCollection(paymentOptions.methods),
   };
 
   if (catalogServiceId) {
