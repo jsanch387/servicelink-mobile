@@ -90,7 +90,7 @@ export function parseInvoiceQtyInput(text) {
 
 function linePrice(line) {
   const raw = String(line.unitPrice ?? '').trim();
-  if (!raw) return 0;
+  if (!raw) return null;
   return parseInvoiceMoneyInput(raw);
 }
 

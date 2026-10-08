@@ -131,7 +131,7 @@ export function CreateInvoiceForm({ step, draft, onChange }) {
     [colors, dueLabel],
   );
 
-  const itemPriceValue = itemPrice.trim() ? parseInvoiceMoneyInput(itemPrice) : 0;
+  const itemPriceValue = parseInvoiceMoneyInput(itemPrice);
   const canAddItem =
     Boolean(itemName.trim()) && itemPriceValue != null && parseInvoiceQtyInput(itemQty) != null;
 

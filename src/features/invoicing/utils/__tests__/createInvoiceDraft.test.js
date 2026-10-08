@@ -65,7 +65,14 @@ describe('createInvoiceDraft', () => {
 
     draft.dueDateYyyyMmDd = '2026-10-09';
     draft.lineItems = [{ id: 'line-1', name: 'Wash', qty: '1', unitPrice: '' }];
-    expect(canContinueInvoiceStep('notes', draft)).toBe(true);
+    expect(canContinueInvoiceStep('services', draft)).toBe(false);
+    expect(canCreateInvoice(draft)).toBe(false);
+
+    draft.lineItems = [{ id: 'line-1', name: 'Wash', qty: '', unitPrice: '15' }];
+    expect(canContinueInvoiceStep('services', draft)).toBe(false);
+
+    draft.lineItems = [{ id: 'line-1', name: 'Wash', qty: '1', unitPrice: '15' }];
+    expect(canContinueInvoiceStep('services', draft)).toBe(true);
     expect(canCreateInvoice(draft)).toBe(true);
 
     draft.lineItems.push({ id: 'line-2', name: '', qty: '1', unitPrice: '15' });

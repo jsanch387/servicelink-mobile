@@ -13,15 +13,6 @@ export function invoiceUuidOrNull(value) {
 }
 
 /**
- * @param {string | number | null | undefined} unitPrice
- */
-function dollarAmount(unitPrice) {
-  const parsed = parseInvoiceMoneyInput(unitPrice);
-  if (parsed == null) return String(unitPrice ?? '').trim();
-  return parsed.toFixed(2);
-}
-
-/**
  * Save and send share this JSON. `amount` is the unit price in dollars, not cents.
  * `invoiceId` is included only for send, and only when it is a UUID.
  *
@@ -32,13 +23,13 @@ export function buildInvoiceWriteBody(draft, options = {}) {
   const lines = (draft?.lineItems ?? [])
     .map((line) => {
       const description = String(line?.name ?? '').trim();
-      const amountRaw = String(line?.unitPrice ?? '').trim();
-      if (!description && !amountRaw) return null;
+      const amount = parseInvoiceMoneyInput(line?.unitPrice);
       const qty = parseInvoiceQtyInput(line?.qty);
+      if (!description || amount == null || qty == null) return null;
       return {
         description,
-        quantity: String(qty ?? line?.qty ?? '1'),
-        amount: dollarAmount(line?.unitPrice),
+        quantity: String(qty),
+        amount: amount.toFixed(2),
       };
     })
     .filter(Boolean);
