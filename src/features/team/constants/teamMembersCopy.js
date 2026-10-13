@@ -15,6 +15,7 @@ export const TEAM_INVITE_EMAIL_PLACEHOLDER = 'name@email.com';
 export const TEAM_INVITE_SEND_BUTTON = 'Send invite';
 export const TEAM_INVITE_INVALID_NAME = 'Enter their name.';
 export const TEAM_INVITE_INVALID_EMAIL = 'Enter a valid email address.';
+export const TEAM_PLAN_REQUIRED = 'Team is available on the Team plan.';
 export const TEAM_INVITE_DUPLICATE_EMAIL = 'That email is already on the team.';
 export const TEAM_INVITE_SENT_TOAST = 'Invite sent';
 export const TEAM_INVITE_PENDING_TITLE = 'Sending invite';

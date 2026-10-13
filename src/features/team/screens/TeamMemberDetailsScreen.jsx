@@ -50,10 +50,10 @@ export function TeamMemberDetailsScreen() {
   } = team;
 
   useEffect(() => {
-    if (!team.showTeamRow) {
+    if (team.teamGateSettled && !team.canManageTeam) {
       navigation.goBack();
     }
-  }, [navigation, team.showTeamRow]);
+  }, [navigation, team.canManageTeam, team.teamGateSettled]);
   const memberId = String(route.params?.memberId ?? '').trim();
   const member = members.find((row) => row.id === memberId) ?? null;
   const presented = presentTeamMember(member);

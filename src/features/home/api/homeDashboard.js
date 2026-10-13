@@ -1,7 +1,7 @@
 import { supabase } from '../../../lib/supabase';
 
 const BUSINESS_PROFILE_SELECT =
-  'id, profile_id, business_name, business_type, specialties, business_slug, free_bookings_count, accept_quote_req';
+  'id, profile_id, business_name, business_type, specialties, business_slug, free_bookings_count, accept_quote_req, team_included';
 
 /**
  * @typedef {object} BusinessProfileRow
@@ -12,6 +12,7 @@ const BUSINESS_PROFILE_SELECT =
  * @property {string | null} business_slug
  * @property {number | null} free_bookings_count — authoritative usage toward the free booking cap when present; UI falls back to a head-count query via `resolveFreeTierBookingUsed` (see `business_profiles`)
  * @property {boolean | null} accept_quote_req — public booking link quote requests (see `business_profiles`)
+ * @property {boolean | null} [team_included] — shop already has Team on its current price
  */
 
 /**

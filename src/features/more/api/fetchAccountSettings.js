@@ -15,6 +15,7 @@ export async function fetchAccountSettingsBundle(userId) {
       .select(
         [
           'subscription_tier',
+          'subscription_plan',
           'subscription_status',
           'subscription_current_period_end',
           'subscription_cancel_at_period_end',

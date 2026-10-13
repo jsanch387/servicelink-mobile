@@ -1,4 +1,5 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import {
@@ -8,8 +9,10 @@ import {
   SegmentedToggle,
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
+import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { AddExpenseFab } from '../components/AddExpenseFab';
+import { ExpensesNonProUpsell } from '../components/ExpensesNonProUpsell';
 import { ExpenseDetailSheet } from '../components/ExpenseDetailSheet';
 import { ExpenseEditorSheet } from '../components/ExpenseEditorSheet';
 import { ExpenseInsights } from '../components/ExpenseInsights';
@@ -19,6 +22,7 @@ import { ExpenseOverviewSkeleton } from '../components/ExpenseOverviewSkeleton';
 import { EXPENSE_CATEGORY_DEFAULT } from '../constants/expenseCategories';
 import { EXPENSE_RANGE, EXPENSE_RANGE_DEFAULT } from '../constants/expenseRanges';
 import { EXPENSE_SCREEN_TAB, EXPENSE_SCREEN_TAB_OPTIONS } from '../constants/expenseScreenTabs';
+import { useExpenseAccess } from '../hooks/useExpenseAccess';
 import { useExpensesList } from '../hooks/useExpensesList';
 import { useExpensesOverview } from '../hooks/useExpensesOverview';
 import { useExpenseWrites } from '../hooks/useExpenseWrites';
@@ -26,7 +30,9 @@ import { summarizeExpenseOutflow } from '../utils/summarizeExpenseOutflow';
 
 export function ExpensesScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
+  const access = useExpenseAccess();
   const [screenTab, setScreenTab] = useState(EXPENSE_SCREEN_TAB.OVERVIEW);
   const [range, setRange] = useState(EXPENSE_RANGE_DEFAULT);
   const [customFromYmd, setCustomFromYmd] = useState(/** @type {string | null} */ (null));
@@ -48,9 +54,9 @@ export function ExpensesScreen() {
     range,
     customFromYmd,
     customToYmd,
-    enabled: showOverview,
+    enabled: showOverview && access.canUseExpenses,
   });
-  const list = useExpensesList({ enabled: !showOverview });
+  const list = useExpensesList({ enabled: !showOverview && access.canUseExpenses });
   const { save, remove } = useExpenseWrites();
 
   const selectCustomRange = useCallback(({ fromYmd, toYmd }) => {
@@ -76,6 +82,15 @@ export function ExpensesScreen() {
     },
     [],
   );
+
+  useEffect(() => {
+    if (!access.isReady || access.canUseExpenses || access.showUpsell) return undefined;
+    const timeout = setTimeout(() => {
+      if (navigation.canGoBack()) navigation.goBack();
+      else navigation.navigate(ROUTES.MORE_HOME);
+    }, 0);
+    return () => clearTimeout(timeout);
+  }, [access.canUseExpenses, access.isReady, access.showUpsell, navigation]);
 
   const openNew = useCallback(() => {
     if (editHandoffRef.current) {
@@ -180,6 +195,11 @@ export function ExpensesScreen() {
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
         },
+        upsellContent: {
+          paddingBottom: 28 + Math.max(tabBarHeight, 72),
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingTop: 16,
+        },
         emptyPage: {
           flex: 1,
           paddingBottom: 24,
@@ -235,6 +255,35 @@ export function ExpensesScreen() {
       )}
     </>
   );
+
+  if (access.isReady && !access.canUseExpenses && !access.showUpsell) {
+    return null;
+  }
+
+  if (!access.isReady) {
+    return (
+      <View style={styles.root}>
+        <View style={styles.emptyPage}>
+          <ExpenseOverviewSkeleton />
+        </View>
+      </View>
+    );
+  }
+
+  if (access.showUpsell) {
+    return (
+      <View style={styles.root}>
+        <ScrollView
+          contentContainerStyle={styles.upsellContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          <ExpensesNonProUpsell />
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>

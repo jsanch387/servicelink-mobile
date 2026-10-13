@@ -37,6 +37,14 @@ jest.mock('../../../auth', () => ({
   useAuth: () => ({ user: { id: 'owner-1' } }),
 }));
 
+jest.mock('../../../subscription', () => ({
+  useSubscription: () => ({
+    hasProAccess: true,
+    isOwnerProfileLoaded: true,
+    ownerProfile: { subscription_plan: 'team', subscription_tier: 'pro' },
+  }),
+}));
+
 jest.mock('../../../auth/api/auth', () => ({
   getSession: jest.fn(async () => ({
     data: { session: { access_token: 'test-token' } },
@@ -55,7 +63,7 @@ jest.mock('../../api/postTeamRemove', () => ({
 
 jest.mock('../../../home/api/homeDashboard', () => ({
   fetchBusinessProfileForUser: jest.fn(async () => ({
-    data: { id: 'biz-1' },
+    data: { id: 'biz-1', profile_id: 'owner-1', team_included: false },
     error: null,
   })),
 }));

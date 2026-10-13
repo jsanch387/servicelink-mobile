@@ -14,12 +14,15 @@ import { applyInviteNameToRoster } from '../utils/mapTeamRoster';
 import {
   TEAM_INVITE_INVALID_EMAIL,
   TEAM_INVITE_INVALID_NAME,
+  TEAM_PLAN_REQUIRED,
   TEAM_MEMBER_NAME_SAVED_TOAST,
   TEAM_MEMBERS_LOAD_ERROR,
   TEAM_REMOVE_TOAST,
 } from '../constants/teamMembersCopy';
 import { bookingAssigneesQueryKey } from '../../bookings/queryKeys';
+import { useSubscription } from '../../subscription';
 import { teamRosterQueryKey } from '../queryKeys';
+import { hasTeamPlanAccess } from '../utils/resolveTeamPlanAccess';
 import { useTeamAccess } from './useTeamAccess';
 
 /**
@@ -30,6 +33,7 @@ export function useTeamMembersUi() {
   const { user } = useAuth();
   const userId = user?.id;
   const { canSeeTeam } = useTeamAccess();
+  const { hasProAccess, isOwnerProfileLoaded, ownerProfile } = useSubscription();
   const queryClient = useQueryClient();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [isSavingName, setIsSavingName] = useState(false);
@@ -50,6 +54,15 @@ export function useTeamMembersUi() {
   });
 
   const shopId = businessQ.data?.id ?? null;
+  const isOwnerShop = Boolean(shopId) && businessQ.data?.profile_id === userId;
+  const planAllowsTeam = hasTeamPlanAccess({
+    subscriptionPlan: ownerProfile?.subscription_plan,
+    hasProAccess,
+    teamIncluded: businessQ.data?.team_included === true,
+  });
+  const teamGateSettled = !canSeeTeam || (isOwnerProfileLoaded && businessQ.isFetched);
+  const showTeamRow = canSeeTeam && teamGateSettled && isOwnerShop;
+  const canManageTeam = showTeamRow && planAllowsTeam;
 
   const rosterQ = useQuery({
     queryKey: teamRosterQueryKey(userId),
@@ -60,14 +73,12 @@ export function useTeamMembersUi() {
       }
       return result;
     },
-    enabled: Boolean(shopId) && canSeeTeam,
+    enabled: canManageTeam,
     staleTime: 60 * 1000,
   });
 
   const members = rosterQ.data?.members ?? [];
-  const hasShop = Boolean(shopId);
-  const showTeamRow = canSeeTeam && !(businessQ.isFetched && !hasShop);
-  const isLoading = Boolean(shopId) && rosterQ.isPending && rosterQ.data == null;
+  const isLoading = canManageTeam && rosterQ.isPending && rosterQ.data == null;
   const isFetching = rosterQ.isFetching;
   const listError = rosterQ.isError ? (rosterQ.error?.message ?? TEAM_MEMBERS_LOAD_ERROR) : null;
 
@@ -81,6 +92,9 @@ export function useTeamMembersUi() {
 
   const handleInvite = useCallback(
     async (emailRaw, nameRaw) => {
+      if (!canManageTeam) {
+        return { ok: false, error: TEAM_PLAN_REQUIRED };
+      }
       const name = String(nameRaw ?? '').trim();
       const email = normalizeEmailForDedupe(emailRaw);
       if (!name) {
@@ -110,7 +124,7 @@ export function useTeamMembersUi() {
       );
       return { ok: true, resent: result.resent };
     },
-    [queryClient, shopId, userId],
+    [canManageTeam, queryClient, shopId, userId],
   );
 
   const handleRemove = useCallback(
@@ -183,8 +197,10 @@ export function useTeamMembersUi() {
 
   return {
     members,
-    hasShop,
+    hasShop: Boolean(shopId),
     showTeamRow,
+    canManageTeam,
+    teamGateSettled,
     isLoading,
     isFetching,
     listError,

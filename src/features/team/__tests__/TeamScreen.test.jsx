@@ -1,19 +1,22 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
 import { ROUTES } from '../../../routes/routes';
 import { TeamMembersProvider } from '../context/TeamMembersContext';
 import { fetchTeamRosterForShop } from '../api/fetchTeamRosterForOwner';
 import { postTeamInvite } from '../api/postTeamInvite';
+import { TEAM_PLAN_ACCESS_CTA, TEAM_PLAN_ACCESS_TITLE } from '../constants/teamPlanAccessCopy';
 import { TEAM_INVITE_SUCCESS_TITLE } from '../constants/teamMembersCopy';
 import { TeamScreen } from '../screens/TeamScreen';
 
 const mockNavigate = jest.fn();
+const mockGoBack = jest.fn();
 
 jest.mock('@react-navigation/native', () => {
   const actual = jest.requireActual('@react-navigation/native');
   return {
     ...actual,
-    useNavigation: () => ({ navigate: mockNavigate, goBack: jest.fn() }),
+    useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack }),
   };
 });
 
@@ -29,6 +32,16 @@ jest.mock('../constants/teamFeatureFlags', () => ({
 jest.mock('../../auth', () => ({
   useAuth: () => ({ user: { id: 'owner-1' } }),
 }));
+
+jest.mock('../../subscription', () => ({
+  useSubscription: () => mockSubscription,
+}));
+
+const mockSubscription = {
+  hasProAccess: true,
+  isOwnerProfileLoaded: true,
+  ownerProfile: { subscription_plan: 'team', subscription_tier: 'pro' },
+};
 
 jest.mock('../../auth/api/auth', () => ({
   getSession: jest.fn(async () => ({
@@ -48,7 +61,7 @@ jest.mock('../api/persistTeamInviteName', () => ({
 
 jest.mock('../../home/api/homeDashboard', () => ({
   fetchBusinessProfileForUser: jest.fn(async () => ({
-    data: { id: 'biz-1' },
+    data: { id: 'biz-1', profile_id: 'owner-1', team_included: false },
     error: null,
   })),
 }));
@@ -107,7 +120,25 @@ function renderTeamScreen() {
 describe('TeamScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSubscription.hasProAccess = true;
+    mockSubscription.isOwnerProfileLoaded = true;
+    mockSubscription.ownerProfile = { subscription_plan: 'team', subscription_tier: 'pro' };
     mockRoster([jordan, alex]);
+  });
+
+  it('shows the web subscribe card for Pro or free', async () => {
+    mockSubscription.ownerProfile = { subscription_plan: null, subscription_tier: 'pro' };
+    renderTeamScreen();
+
+    expect(await screen.findByText(TEAM_PLAN_ACCESS_TITLE)).toBeTruthy();
+    expect(fetchTeamRosterForShop).not.toHaveBeenCalled();
+    expect(mockGoBack).not.toHaveBeenCalled();
+    expect(screen.queryByText('jordan@example.com')).toBeNull();
+
+    const openUrl = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    fireEvent.press(screen.getByRole('button', { name: TEAM_PLAN_ACCESS_CTA }));
+    expect(openUrl).toHaveBeenCalledWith(expect.stringContaining('/login'));
+    openUrl.mockRestore();
   });
 
   it('loads members from the shop roster', async () => {
