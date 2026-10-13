@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Keyboard, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
+import { BottomSheetModal } from './BottomSheetModal';
+import { Button } from './Button';
 import {
   formatAddonDurationFromHHmm,
   formatServiceDurationSelectLabel,
@@ -12,12 +14,7 @@ import {
   SERVICE_DURATION_MAX_MINUTES,
   SERVICE_DURATION_MIN_MINUTES,
 } from './durationTime';
-import {
-  useWheelPickerSheet,
-  WHEEL_ITEM_HEIGHT,
-  WheelColumn,
-  WheelPickerSheetShell,
-} from './wheelPicker';
+import { WheelColumn } from './wheelPicker';
 
 const HOURS = Array.from({ length: 11 }, (_, i) => String(i));
 const MINUTES = ['00', '30'];
@@ -42,80 +39,6 @@ function resolveDraftFromValue(value, mode) {
   };
 }
 
-function DurationPickerSheet({
-  mode,
-  initialHour,
-  initialMinute,
-  onRequestClose,
-  onConfirm,
-  sheetStyle,
-  backdropStyle,
-}) {
-  const { colors } = useTheme();
-  const [draftHour, setDraftHour] = useState(initialHour);
-  const [draftMinute, setDraftMinute] = useState(initialMinute);
-  const hoursRef = useRef(null);
-  const minutesRef = useRef(null);
-
-  useEffect(() => {
-    const hourIndex = Math.max(
-      0,
-      HOURS.findIndex((h) => h === initialHour),
-    );
-    const minuteIndex = Math.max(
-      0,
-      MINUTES.findIndex((m) => m === initialMinute),
-    );
-    const applyScroll = () => {
-      hoursRef.current?.scrollTo({ animated: false, y: hourIndex * WHEEL_ITEM_HEIGHT });
-      minutesRef.current?.scrollTo({ animated: false, y: minuteIndex * WHEEL_ITEM_HEIGHT });
-    };
-    requestAnimationFrame(() => {
-      requestAnimationFrame(applyScroll);
-    });
-  }, [initialHour, initialMinute]);
-
-  function applySelection() {
-    let total = (parseInt(draftHour, 10) || 0) * 60 + (draftMinute === '30' ? 30 : 0);
-    if (mode === 'addon' && total <= 0) {
-      onConfirm('');
-      return;
-    }
-    total = Math.max(SERVICE_DURATION_MIN_MINUTES, Math.min(SERVICE_DURATION_MAX_MINUTES, total));
-    const h = Math.floor(total / 60);
-    const m = total % 60;
-    onConfirm(`${String(h).padStart(2, '0')}:${m === 30 ? '30' : '00'}`);
-  }
-
-  return (
-    <WheelPickerSheetShell
-      backdropStyle={backdropStyle}
-      confirmTitle="Set duration"
-      sheetStyle={sheetStyle}
-      title="Select duration"
-      onConfirm={applySelection}
-      onRequestClose={onRequestClose}
-    >
-      <View style={styles.dialsRow}>
-        <WheelColumn
-          listRef={hoursRef}
-          selected={draftHour}
-          values={HOURS}
-          onSelectedChange={setDraftHour}
-        />
-        <AppText style={[styles.colon, { color: colors.textMuted }]}>:</AppText>
-        <WheelColumn
-          listRef={minutesRef}
-          selected={draftMinute}
-          values={MINUTES}
-          wheelStyle={styles.minuteWheel}
-          onSelectedChange={setDraftMinute}
-        />
-      </View>
-    </WheelPickerSheetShell>
-  );
-}
-
 export function DurationSelectField({
   value,
   onValueChange,
@@ -129,23 +52,37 @@ export function DurationSelectField({
   mode = 'service',
 }) {
   const { colors } = useTheme();
-  const draftRef = useRef({ hour: '1', minute: '00' });
-  draftRef.current = resolveDraftFromValue(value, mode);
+  const [open, setOpen] = useState(false);
+  const [draftHour, setDraftHour] = useState('1');
+  const [draftMinute, setDraftMinute] = useState('00');
+  const hoursRef = useRef(null);
+  const minutesRef = useRef(null);
 
-  const { host, present } = useWheelPickerSheet(({ backdropStyle, close, sheetStyle }) => (
-    <DurationPickerSheet
-      backdropStyle={backdropStyle}
-      initialHour={draftRef.current.hour}
-      initialMinute={draftRef.current.minute}
-      mode={mode}
-      sheetStyle={sheetStyle}
-      onConfirm={(next) => {
-        onValueChange(next);
-        close();
-      }}
-      onRequestClose={close}
-    />
-  ));
+  function openSheet() {
+    Keyboard.dismiss();
+    const next = resolveDraftFromValue(value, mode);
+    setDraftHour(next.hour);
+    setDraftMinute(next.minute);
+    setOpen(true);
+  }
+
+  function closeSheet() {
+    setOpen(false);
+  }
+
+  function applySelection() {
+    let total = (parseInt(draftHour, 10) || 0) * 60 + (draftMinute === '30' ? 30 : 0);
+    if (mode === 'addon' && total <= 0) {
+      onValueChange('');
+      closeSheet();
+      return;
+    }
+    total = Math.max(SERVICE_DURATION_MIN_MINUTES, Math.min(SERVICE_DURATION_MAX_MINUTES, total));
+    const h = Math.floor(total / 60);
+    const m = total % 60;
+    onValueChange(`${String(h).padStart(2, '0')}:${m === 30 ? '30' : '00'}`);
+    closeSheet();
+  }
 
   const display = useMemo(() => {
     const trimmed = String(value ?? '').trim();
@@ -180,7 +117,7 @@ export function DurationSelectField({
 
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={present}
+        onPress={openSheet}
         style={[
           styles.trigger,
           {
@@ -202,7 +139,38 @@ export function DurationSelectField({
         <Ionicons color={colors.textMuted} name="chevron-down" size={22} />
       </TouchableOpacity>
 
-      {host}
+      <BottomSheetModal
+        allowBackdropClose
+        fitContent
+        footer={
+          <View style={styles.footer}>
+            <Button fullWidth title="Set duration" variant="primary" onPress={applySelection} />
+          </View>
+        }
+        showCloseButton
+        title="Select duration"
+        visible={open}
+        onRequestClose={closeSheet}
+      >
+        {open ? (
+          <View style={styles.dialsRow}>
+            <WheelColumn
+              listRef={hoursRef}
+              selected={draftHour}
+              values={HOURS}
+              onSelectedChange={setDraftHour}
+            />
+            <AppText style={[styles.colon, { color: colors.textMuted }]}>:</AppText>
+            <WheelColumn
+              listRef={minutesRef}
+              selected={draftMinute}
+              values={MINUTES}
+              wheelStyle={styles.minuteWheel}
+              onSelectedChange={setDraftMinute}
+            />
+          </View>
+        ) : null}
+      </BottomSheetModal>
     </View>
   );
 }
@@ -247,6 +215,9 @@ const styles = StyleSheet.create({
   triggerTextCompact: {
     minHeight: 36,
     paddingVertical: 6,
+  },
+  footer: {
+    marginTop: 4,
   },
   dialsRow: {
     alignItems: 'center',

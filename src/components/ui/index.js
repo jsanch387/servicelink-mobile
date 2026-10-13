@@ -84,12 +84,7 @@ export {
 export { TimeSelectField } from './TimeSelectField';
 export { ToastProvider, useToast } from './ToastProvider';
 export { ToastModalHost } from './ToastModalHost';
-export {
-  useWheelPickerSheet,
-  WHEEL_ITEM_HEIGHT,
-  WheelColumn,
-  WheelPickerSheetShell,
-} from './wheelPicker';
+export { WHEEL_ITEM_HEIGHT, WheelColumn } from './wheelPicker';
 export { WizardProgressBar } from './WizardProgressBar';
 export {
   HeaderTextButton,
