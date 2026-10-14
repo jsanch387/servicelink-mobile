@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   AppText,
@@ -9,8 +8,17 @@ import {
   InlineCardError,
   TimeSelectField,
 } from '../../../../components/ui';
+import {
+  parseLocalYyyyMmDd,
+  startOfLocalDay,
+  toLocalYyyyMmDd,
+} from '../../../../components/ui/calendarDateKey';
 import { useTheme } from '../../../../theme';
 import { safeUserFacingMessage } from '../../../../utils/safeUserFacingMessage';
+import {
+  BOOKING_CALENDAR_MAX_DAYS_AHEAD,
+  BookingCalendarCard,
+} from '../../../availability/booking';
 import { fetchBlockingBookingsInRange } from '../../create-appointment/api/schedulingBookings';
 import { confirmOwnerOverlapHeadsUp } from '../../utils/confirmOwnerOverlapHeadsUp';
 import { resolveOwnerOverlapHeadsUp, startClockMinutes } from '../../utils/ownerBookingOverlap';
@@ -40,34 +48,6 @@ function formatTimeForSelectField(date) {
     h12 = 12;
   }
   return `${h12}:${minute} ${period}`;
-}
-
-function normalizeDateValue(raw) {
-  if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
-    return raw;
-  }
-  if (typeof raw === 'number') {
-    const byNumber = new Date(raw);
-    if (!Number.isNaN(byNumber.getTime())) {
-      return byNumber;
-    }
-  }
-  if (typeof raw === 'string') {
-    const byString = new Date(raw);
-    if (!Number.isNaN(byString.getTime())) {
-      return byString;
-    }
-  }
-  if (raw && typeof raw === 'object') {
-    const ts = raw.timestamp ?? raw?.nativeEvent?.timestamp ?? raw?.value ?? raw?.date ?? null;
-    if (typeof ts === 'number' || typeof ts === 'string') {
-      const byTs = new Date(ts);
-      if (!Number.isNaN(byTs.getTime())) {
-        return byTs;
-      }
-    }
-  }
-  return null;
 }
 
 function mergeDateKeepingTime(baseDate, nextCalendarDate) {
@@ -105,19 +85,26 @@ function parseSelectTimeToDate(baseDate, timeLabel) {
 }
 
 /**
- * Bottom sheet to pick a new date and time (save / API wiring comes later).
+ * @param {string} yyyyMmDd
+ * @param {string} fallback
  */
-function formatDateForPayload(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+function formatServerDateLabel(yyyyMmDd, fallback) {
+  const match = String(yyyyMmDd ?? '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return fallback;
+  const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  if (Number.isNaN(parsed.getTime())) return fallback;
+  return formatDateForDisplay(parsed);
 }
 
-function formatTimeForPayload(date) {
+function formatDateForPayload(date) {
+  return toLocalYyyyMmDd(date);
+}
+
+/** 24-hour `HH:mm` for `PATCH /api/availability/bookings/{id}`. */
+function formatTimeForApi(date) {
   const h = String(date.getHours()).padStart(2, '0');
   const m = String(date.getMinutes()).padStart(2, '0');
-  return `${h}:${m}:00`;
+  return `${h}:${m}`;
 }
 
 export function BookingRescheduleSheet({
@@ -131,10 +118,13 @@ export function BookingRescheduleSheet({
 }) {
   const { colors } = useTheme();
   const [dateValue, setDateValue] = useState(() => new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [timeValue, setTimeValue] = useState('9:00 AM');
   const [showSuccessState, setShowSuccessState] = useState(false);
+  const [savedDate, setSavedDate] = useState('');
+  const [savedTime, setSavedTime] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const confirmOpenRef = useRef(false);
+  const submitLockRef = useRef(false);
 
   useEffect(() => {
     if (!visible) {
@@ -149,9 +139,12 @@ export function BookingRescheduleSheet({
     const safe = Number.isNaN(base.getTime()) ? new Date() : base;
     setDateValue(safe);
     setTimeValue(formatTimeForSelectField(safe));
-    setShowDatePicker(false);
     setShowSuccessState(false);
+    setSavedDate('');
+    setSavedTime('');
     setSubmitError('');
+    confirmOpenRef.current = false;
+    submitLockRef.current = false;
   }, [visible, initialStartMs]);
 
   const styles = useMemo(
@@ -165,29 +158,10 @@ export function BookingRescheduleSheet({
         },
         field: {
           marginBottom: 14,
+          marginTop: 4,
         },
-        dateTrigger: {
-          alignItems: 'center',
-          backgroundColor: colors.cardSurface,
-          borderColor: colors.inputBorder,
-          borderRadius: 16,
-          borderWidth: 1,
-          flexDirection: 'row',
-          minHeight: 48,
-          paddingHorizontal: 12,
-          paddingVertical: 8,
-        },
-        dateTriggerText: {
-          color: colors.text,
-          flex: 1,
-          fontSize: 15,
-          fontWeight: '500',
-          paddingLeft: 4,
-          paddingRight: 10,
-          paddingVertical: 8,
-        },
-        pickerInlineWrap: {
-          marginTop: 8,
+        calendarCard: {
+          marginBottom: 8,
         },
         actions: {
           flexDirection: 'row',
@@ -226,36 +200,26 @@ export function BookingRescheduleSheet({
   );
 
   const dateLabel = useMemo(() => formatDateForDisplay(dateValue), [dateValue]);
+  const selectedDateKey = useMemo(() => formatDateForPayload(dateValue), [dateValue]);
+  const calendarBounds = useMemo(() => {
+    const today = startOfLocalDay(new Date());
+    const minDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+    const maxDate = new Date(today);
+    maxDate.setDate(maxDate.getDate() + BOOKING_CALENDAR_MAX_DAYS_AHEAD);
+    if (typeof initialStartMs === 'number' && Number.isFinite(initialStartMs)) {
+      const appointmentDay = startOfLocalDay(new Date(initialStartMs));
+      if (!Number.isNaN(appointmentDay.getTime())) {
+        if (appointmentDay < minDate) minDate.setTime(appointmentDay.getTime());
+        if (appointmentDay > maxDate) maxDate.setTime(appointmentDay.getTime());
+      }
+    }
+    return { minDate: startOfLocalDay(minDate), maxDate: startOfLocalDay(maxDate) };
+  }, [initialStartMs]);
 
-  function handleDateValueChange(event, nextDate) {
-    let next = nextDate;
-    if (!next && event?.nativeEvent?.timestamp != null) {
-      next = new Date(event.nativeEvent.timestamp);
-    }
-    if (!next) {
-      next = normalizeDateValue(event);
-    }
-    if (!next) {
-      return;
-    }
+  function handleSelectDateKey(dateKey) {
+    const next = parseLocalYyyyMmDd(dateKey);
+    if (!next) return;
     setDateValue((prev) => mergeDateKeepingTime(prev, next));
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-    }
-  }
-
-  function handleDateDismiss() {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-    }
-  }
-
-  function handleDateTriggerPress() {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(true);
-      return;
-    }
-    setShowDatePicker((open) => !open);
   }
 
   function handleTimeChange(nextTimeLabel) {
@@ -263,53 +227,91 @@ export function BookingRescheduleSheet({
     setDateValue((prev) => parseSelectTimeToDate(prev, nextTimeLabel));
   }
 
-  async function handleUpdateReschedule() {
-    if (isSubmitting) {
+  async function sendReschedule(scheduledDate, startTime) {
+    if (submitLockRef.current || isSubmitting) {
       return;
     }
+    submitLockRef.current = true;
     setSubmitError('');
     try {
-      const scheduledDate = formatDateForPayload(dateValue);
-      const startTime = formatTimeForPayload(dateValue);
-      const original =
-        typeof initialStartMs === 'number' && Number.isFinite(initialStartMs)
-          ? new Date(initialStartMs)
-          : null;
-      const scheduleMoved =
-        !original ||
-        Number.isNaN(original.getTime()) ||
-        formatDateForPayload(original) !== scheduledDate ||
-        startClockMinutes(formatTimeForPayload(original)) !== startClockMinutes(startTime);
-      if (businessId && scheduleMoved) {
-        try {
-          const { data } = await fetchBlockingBookingsInRange(
-            businessId,
-            scheduledDate,
-            scheduledDate,
-            bookingId,
-          );
-          const overlapMessage = resolveOwnerOverlapHeadsUp({
-            mode: 'reschedule',
-            dateKey: scheduledDate,
-            startTime,
-            rows: data ?? [],
-          });
-          const canContinueOverlap = await confirmOwnerOverlapHeadsUp(overlapMessage);
-          if (!canContinueOverlap) {
-            return;
-          }
-        } catch {
-          // Heads-up is optional. Never block save if the day list fails.
-        }
-      }
-      await onSubmitReschedule?.({
+      const saved = await onSubmitReschedule?.({
         scheduledDate,
         startTime,
       });
+      const nextDate = String(saved?.date ?? '').trim() || scheduledDate;
+      const nextTime = String(saved?.time ?? '').trim() || timeValue;
+      setSavedDate(nextDate);
+      setSavedTime(nextTime);
       setShowSuccessState(true);
     } catch (error) {
-      setSubmitError(safeUserFacingMessage(error, { fallback: 'Could not reschedule booking.' }));
+      setSubmitError(
+        safeUserFacingMessage(error, { fallback: 'Could not reschedule this appointment.' }),
+      );
+    } finally {
+      submitLockRef.current = false;
     }
+  }
+
+  async function handleUpdateReschedule() {
+    if (confirmOpenRef.current || submitLockRef.current || isSubmitting) {
+      return;
+    }
+    confirmOpenRef.current = true;
+    setSubmitError('');
+    const scheduledDate = formatDateForPayload(dateValue);
+    const startTime = formatTimeForApi(dateValue);
+    const original =
+      typeof initialStartMs === 'number' && Number.isFinite(initialStartMs)
+        ? new Date(initialStartMs)
+        : null;
+    const scheduleMoved =
+      !original ||
+      Number.isNaN(original.getTime()) ||
+      formatDateForPayload(original) !== scheduledDate ||
+      startClockMinutes(formatTimeForApi(original)) !== startClockMinutes(startTime);
+    if (businessId && scheduleMoved) {
+      try {
+        const { data } = await fetchBlockingBookingsInRange(
+          businessId,
+          scheduledDate,
+          scheduledDate,
+          bookingId,
+        );
+        const overlapMessage = resolveOwnerOverlapHeadsUp({
+          mode: 'reschedule',
+          dateKey: scheduledDate,
+          startTime,
+          rows: data ?? [],
+        });
+        const canContinueOverlap = await confirmOwnerOverlapHeadsUp(overlapMessage);
+        if (!canContinueOverlap) {
+          confirmOpenRef.current = false;
+          return;
+        }
+      } catch {
+        // Heads-up is optional. Never block save if the day list fails.
+      }
+    }
+    Alert.alert(
+      'Reschedule this appointment?',
+      `${dateLabel} at ${timeValue}. The customer will be notified if we have their contact info.`,
+      [
+        {
+          text: 'Not now',
+          style: 'cancel',
+          onPress: () => {
+            confirmOpenRef.current = false;
+          },
+        },
+        {
+          text: 'Reschedule',
+          onPress: () => {
+            confirmOpenRef.current = false;
+            void sendReschedule(scheduledDate, startTime);
+          },
+        },
+      ],
+    );
   }
 
   function closeSheet() {
@@ -319,6 +321,7 @@ export function BookingRescheduleSheet({
   return (
     <BottomSheetModal
       allowBackdropClose
+      pageSheet={false}
       sheetHeightPercent={92}
       stickyFooter
       title="Reschedule"
@@ -361,7 +364,8 @@ export function BookingRescheduleSheet({
           <Ionicons color="#22c55e" name="checkmark-circle" size={34} />
           <AppText style={styles.successTitle}>Rescheduled</AppText>
           <AppText style={styles.successBody}>
-            Your booking was moved to {dateLabel} at {timeValue}.
+            Your booking was moved to {formatServerDateLabel(savedDate, dateLabel)} at{' '}
+            {savedTime || timeValue}.
           </AppText>
         </View>
       ) : (
@@ -370,26 +374,13 @@ export function BookingRescheduleSheet({
             Choose a new date and time for this appointment.
           </AppText>
 
-          <Pressable
-            accessibilityLabel={showDatePicker ? 'Hide calendar' : 'Show calendar'}
-            accessibilityRole="button"
-            style={styles.dateTrigger}
-            onPress={handleDateTriggerPress}
-          >
-            <AppText style={styles.dateTriggerText}>{dateLabel}</AppText>
-            <Ionicons color={colors.textMuted} name="calendar-outline" size={20} />
-          </Pressable>
-          {showDatePicker ? (
-            <View style={styles.pickerInlineWrap}>
-              <DateTimePicker
-                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                mode="date"
-                value={dateValue}
-                onDismiss={handleDateDismiss}
-                onValueChange={handleDateValueChange}
-              />
-            </View>
-          ) : null}
+          <BookingCalendarCard
+            cardStyle={styles.calendarCard}
+            maxDate={calendarBounds.maxDate}
+            minDate={calendarBounds.minDate}
+            selectedDateKey={selectedDateKey}
+            onSelectDateKey={handleSelectDateKey}
+          />
 
           <View style={styles.field} />
           <TimeSelectField

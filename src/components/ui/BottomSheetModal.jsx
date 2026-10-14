@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Keyboard,
@@ -72,10 +72,13 @@ const GLASS_BACKDROP = Platform.select({
  * @param {'default' | 'glass'} [props.appearance]
  *   - `default` — solid elevated sheet
  *   - `glass` — frosted BlurView (opt in at the call site)
+ * @param {boolean} [props.pageSheet] iOS tall sheets use a native page sheet unless this is false.
+ * @param {() => void} [props.onDismiss] Fires after the modal has fully left the screen.
  */
 export function BottomSheetModal({
   visible,
   onRequestClose,
+  onDismiss,
   title,
   subtitle = null,
   children,
@@ -89,9 +92,11 @@ export function BottomSheetModal({
   centerContent = false,
   showHeaderDivider = true,
   appearance = 'default',
+  pageSheet = true,
 }) {
   // Glass sheets need the transparent overlay path so BlurView can frost the screen behind.
-  const useNativePageSheet = Platform.OS === 'ios' && !fitContent && appearance !== 'glass';
+  const useNativePageSheet =
+    pageSheet !== false && Platform.OS === 'ios' && !fitContent && appearance !== 'glass';
   const showClose =
     showCloseButton ?? (useNativePageSheet || (!fitContent && sheetHeightPercent >= 70));
 
@@ -108,6 +113,7 @@ export function BottomSheetModal({
         subtitle={subtitle}
         title={title}
         visible={visible}
+        onDismiss={onDismiss}
         onRequestClose={onRequestClose}
       >
         {children}
@@ -130,6 +136,7 @@ export function BottomSheetModal({
       subtitle={subtitle}
       title={title}
       visible={visible}
+      onDismiss={onDismiss}
       onRequestClose={onRequestClose}
     >
       {children}
@@ -143,6 +150,7 @@ export function BottomSheetModal({
 function NativePageSheetModal({
   visible,
   onRequestClose,
+  onDismiss,
   title,
   subtitle,
   children,
@@ -202,6 +210,7 @@ function NativePageSheetModal({
       animationType="slide"
       presentationStyle="pageSheet"
       visible={visible}
+      onDismiss={onDismiss}
       onRequestClose={() => {
         if (allowBackdropClose) onRequestClose?.();
       }}
@@ -264,6 +273,7 @@ function NativePageSheetModal({
 function OverlayBottomSheetModal({
   visible,
   onRequestClose,
+  onDismiss,
   title,
   subtitle,
   children,
@@ -286,6 +296,15 @@ function OverlayBottomSheetModal({
   const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
     useModalFadeBackdropSlideSheet({ motion: isGlass ? 'glass' : 'default' });
   const [mounted, setMounted] = useState(visible);
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
+  const hasPresentedRef = useRef(false);
+
+  const emitDismiss = useCallback(() => {
+    if (!hasPresentedRef.current) return;
+    hasPresentedRef.current = false;
+    onDismissRef.current?.();
+  }, []);
 
   const sheetHeight = `${Math.min(100, Math.max(30, sheetHeightPercent))}%`;
   const useStickyFooter = Boolean(stickyFooter && footer && !fitContent);
@@ -308,6 +327,18 @@ function OverlayBottomSheetModal({
     runClose(() => setMounted(false));
     return undefined;
   }, [mounted, visible, runOpen, runClose]);
+
+  useEffect(() => {
+    if (mounted) {
+      hasPresentedRef.current = true;
+      return undefined;
+    }
+    // iOS reports dismiss from Modal.onDismiss after the host is gone.
+    // Android has no onDismiss; animationType="none" removes the host on the next frame.
+    if (Platform.OS === 'ios' || !hasPresentedRef.current) return undefined;
+    const id = requestAnimationFrame(emitDismiss);
+    return () => cancelAnimationFrame(id);
+  }, [mounted, emitDismiss]);
 
   useEffect(() => {
     if (!visible) setIosKeyboardScrollPadding(0);
@@ -511,6 +542,7 @@ function OverlayBottomSheetModal({
       statusBarTranslucent={Platform.OS === 'android'}
       transparent
       visible={mounted}
+      onDismiss={emitDismiss}
       onRequestClose={onRequestClose}
     >
       <View style={styles.modalRoot}>

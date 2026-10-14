@@ -1,7 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth';
 import { patchCancelAvailabilityBooking } from '../../api/patchCancelAvailabilityBooking';
-import { deleteBookingById, rescheduleBookingById } from '../api/bookingDetails';
+import {
+  applyRescheduleDisplayToBookingRow,
+  patchRescheduleAvailabilityBooking,
+} from '../../api/patchRescheduleAvailabilityBooking';
+import { deleteBookingById } from '../api/bookingDetails';
 import { bookingsDetailsQueryKey } from '../../queryKeys';
 import { invalidateBookingCachesAfterMutation } from '../utils/invalidateBookingCachesAfterMutation';
 
@@ -32,17 +36,23 @@ export function useBookingActions(bookingId) {
 
   const rescheduleBookingMutation = useMutation({
     mutationFn: async ({ scheduledDate, startTime }) => {
-      const { data, error } = await rescheduleBookingById(bookingId, {
+      const result = await patchRescheduleAvailabilityBooking(accessToken, bookingId, {
         scheduledDate,
         startTime,
       });
-      if (error) {
-        throw new Error(error.message ?? 'Could not reschedule booking');
+      if (!result.ok) {
+        throw result.error;
       }
-      return data;
+      return result.booking;
     },
-    onSuccess: async () => {
-      await invalidateBookingCachesAfterMutation(queryClient, bookingId);
+    onSuccess: async (booking) => {
+      const id = String(booking?.id ?? bookingId ?? '').trim();
+      if (id) {
+        queryClient.setQueryData(bookingsDetailsQueryKey(id), (prev) =>
+          applyRescheduleDisplayToBookingRow(prev, booking),
+        );
+      }
+      await invalidateBookingCachesAfterMutation(queryClient, id || bookingId);
     },
   });
 

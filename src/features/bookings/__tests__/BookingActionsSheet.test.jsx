@@ -1,6 +1,8 @@
 import { fireEvent, screen } from '@testing-library/react-native';
+import { Modal } from 'react-native';
 import { renderWithProviders } from '../../home/__tests__/testUtils';
 import {
+  BOOKING_ACTIONS_AFTER_DISMISS_MS,
   BOOKING_ACTIONS_HANDOFF_MS,
   BookingActionsSheet,
 } from '../booking-details/components/BookingActionsSheet';
@@ -37,6 +39,19 @@ describe('BookingActionsSheet', () => {
     expect(onJobStatusPress).not.toHaveBeenCalled();
     jest.advanceTimersByTime(BOOKING_ACTIONS_HANDOFF_MS);
     expect(onJobStatusPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs reschedule when the actions sheet finishes dismissing', () => {
+    const onReschedule = jest.fn();
+    const { UNSAFE_getByType } = renderSheet({ onReschedule });
+    fireEvent.press(screen.getByLabelText('Reschedule booking'));
+    expect(onReschedule).not.toHaveBeenCalled();
+    UNSAFE_getByType(Modal).props.onDismiss();
+    expect(onReschedule).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(BOOKING_ACTIONS_AFTER_DISMISS_MS);
+    expect(onReschedule).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(BOOKING_ACTIONS_HANDOFF_MS);
+    expect(onReschedule).toHaveBeenCalledTimes(1);
   });
 
   it('hides Job status when showJobStatusAction is false', () => {

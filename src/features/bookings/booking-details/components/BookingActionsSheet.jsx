@@ -19,8 +19,17 @@ const MOTION_ENABLED = typeof process === 'undefined' || process.env.NODE_ENV !=
 /** Same well as `HeaderTextButton` so iOS 26 glass keeps the icon centered. */
 const HEADER_GLASS_SIZE = 34;
 
-/** Wait for the actions overlay to finish closing before presenting another sheet. */
-export const BOOKING_ACTIONS_HANDOFF_MS = 320;
+/**
+ * Wait after the actions modal reports dismiss before opening the next sheet.
+ * Presenting in the dismiss callback itself is dropped on iOS.
+ */
+export const BOOKING_ACTIONS_AFTER_DISMISS_MS = 400;
+
+/**
+ * Fallback from the tap if dismiss is never reported.
+ * The overlay stays up through its close animation, then the modal has to leave.
+ */
+export const BOOKING_ACTIONS_HANDOFF_MS = 1000;
 
 /** @typedef {'edit' | 'schedule' | 'success' | 'danger'} ActionIconTone */
 
@@ -385,6 +394,26 @@ export function BookingActionsSheet({
   );
 
   const handoffTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
+  const pendingActionRef = useRef(/** @type {(() => void) | null} */ (null));
+
+  const invokePendingAction = useCallback(() => {
+    if (handoffTimerRef.current) {
+      clearTimeout(handoffTimerRef.current);
+      handoffTimerRef.current = null;
+    }
+    const fn = pendingActionRef.current;
+    pendingActionRef.current = null;
+    if (typeof fn === 'function') fn();
+  }, []);
+
+  const schedulePendingAction = useCallback(
+    (delayMs) => {
+      if (!pendingActionRef.current) return;
+      if (handoffTimerRef.current) clearTimeout(handoffTimerRef.current);
+      handoffTimerRef.current = setTimeout(invokePendingAction, delayMs);
+    },
+    [invokePendingAction],
+  );
 
   useEffect(
     () => () => {
@@ -395,16 +424,16 @@ export function BookingActionsSheet({
 
   const runAction = useCallback(
     (fn) => {
+      pendingActionRef.current = typeof fn === 'function' ? fn : null;
       onRequestClose?.();
-      if (typeof fn !== 'function') return;
-      if (handoffTimerRef.current) clearTimeout(handoffTimerRef.current);
-      handoffTimerRef.current = setTimeout(() => {
-        handoffTimerRef.current = null;
-        fn();
-      }, BOOKING_ACTIONS_HANDOFF_MS);
+      schedulePendingAction(BOOKING_ACTIONS_HANDOFF_MS);
     },
-    [onRequestClose],
+    [onRequestClose, schedulePendingAction],
   );
+
+  const handleSheetDismissed = useCallback(() => {
+    schedulePendingAction(BOOKING_ACTIONS_AFTER_DISMISS_MS);
+  }, [schedulePendingAction]);
 
   return (
     <BottomSheetModal
@@ -414,6 +443,7 @@ export function BookingActionsSheet({
       showHeaderDivider
       title="Actions"
       visible={visible}
+      onDismiss={handleSheetDismissed}
       onRequestClose={onRequestClose}
     >
       <View collapsable={false} style={styles.body}>

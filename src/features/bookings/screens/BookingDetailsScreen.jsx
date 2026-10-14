@@ -98,6 +98,7 @@ export function BookingDetailsScreen({ route }) {
   const statusLower = details.status.toLowerCase();
   const isCompletedStatus = statusLower === 'completed' || statusLower === 'complete';
   const isCancelledStatus = statusLower === 'cancelled' || statusLower === 'canceled';
+  const isConfirmedStatus = statusLower === 'confirmed';
   const showJobStatusAction = smsAccess.canUseSms && !isCompletedStatus && !isCancelledStatus;
   const showActionsMenu =
     !detailsQuery.isLoading &&
@@ -243,11 +244,13 @@ export function BookingDetailsScreen({ route }) {
     navigation.navigate(ROUTES.BOOKING_ACTIVITY, { bookingId });
   }, [bookingId, navigation]);
   const handleReschedule = useCallback(() => {
-    if (isCancelledStatus || isCompletedStatus || !bookingId) {
+    if (!isConfirmedStatus || !canWriteBookings || !bookingId) {
       return;
     }
-    setRescheduleSheetOpen(true);
-  }, [bookingId, isCancelledStatus, isCompletedStatus]);
+    // A dropped present leaves this true, and setting true again does not reopen it.
+    setRescheduleSheetOpen(false);
+    setTimeout(() => setRescheduleSheetOpen(true), 32);
+  }, [bookingId, canWriteBookings, isConfirmedStatus]);
 
   const bookingStartMs = useMemo(() => {
     const raw = detailsQuery.booking;
@@ -398,7 +401,7 @@ export function BookingDetailsScreen({ route }) {
         isEditDisabled={isCancelledStatus || isCompletedStatus}
         isMarkCompletedDisabled={isCompletedStatus}
         isMarkingCompleted={markCompleteFlow.isConfirming}
-        isRescheduleDisabled={isCancelledStatus || isCompletedStatus}
+        isRescheduleDisabled={!isConfirmedStatus}
         isReschedulingBooking={bookingActions.isReschedulingBooking}
         showJobStatusAction={showJobStatusAction}
         visible={actionsSheetOpen}

@@ -81,7 +81,7 @@ Owner create and edit pass `ownerManualBooking: true` into the shared booking ca
 | Owner create flow | `src/features/bookings/create-appointment/hooks/useCreateAppointmentController.js` |
 | Owner edit flow   | `src/features/bookings/edit-appointment/hooks/useEditAppointmentController.js`     |
 
-**Scope note:** owner **edit / reschedule** updates `bookings` via Supabase (`updateBookingById`, `rescheduleBookingById`) and never hits this route. Override behavior for create depends on this route + deploy.
+**Scope note:** owner **edit** updates `bookings` via Supabase (`updateBookingById`). Owner **reschedule** uses `PATCH /api/availability/bookings/{id}` (`patchRescheduleAvailabilityBooking`) so the server checks the slot and notifies the customer. Override behavior for create depends on this route + deploy.
 
 ---
 
