@@ -6,6 +6,10 @@ export const MEMBERSHIP_NOTES_MAX_LEN = 2000;
  * Owner notes on a subscriber (`customer_memberships.notes`).
  * Scoped to the owner business — not Stripe, not customer-visible templates.
  *
+ * Requires the "Owners update customer_memberships notes" RLS policy. Without an
+ * UPDATE policy, PostgREST returns 0 rows (no error) and this function reports
+ * "Could not save notes."
+ *
  * @param {string | null | undefined} businessId
  * @param {string | null | undefined} subscriberId `customer_memberships.id`
  * @param {string | null | undefined} notes

@@ -53,4 +53,13 @@ describe('updateMembershipSubscriberNotes', () => {
     expect(result.error?.message).toMatch(/business/i);
     expect(supabase.from).not.toHaveBeenCalled();
   });
+
+  it('fails closed when RLS matches no row (silent 0-row update)', async () => {
+    mockUpdateChain({ data: null, error: null });
+
+    const { data, error } = await updateMembershipSubscriberNotes('biz-1', 'sub-1', 'Gate code');
+
+    expect(data).toBeNull();
+    expect(error?.message).toBe('Could not save notes.');
+  });
 });
