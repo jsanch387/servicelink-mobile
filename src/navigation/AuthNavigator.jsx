@@ -21,6 +21,7 @@ import { consumePendingPushNavigation } from '../features/notifications/constant
 import { attemptPushNavigation } from '../features/notifications/utils/attemptPushNavigation';
 import { CreateAppointmentScreen } from '../features/bookings';
 import { EditBookingScreen } from '../features/bookings/screens/EditBookingScreen';
+import { RescheduleBookingScreen } from '../features/bookings/screens/RescheduleBookingScreen';
 import { NotificationsInboxScreen } from '../features/notifications/screens/NotificationsInboxScreen';
 import { CreatePaymentScreen } from '../features/payments';
 import { CreateInvoicePreviewScreen, CreateInvoiceScreen } from '../features/invoicing';
@@ -330,6 +331,16 @@ export function AuthNavigator() {
                 options={{
                   headerShown: true,
                   title: 'Edit appointment',
+                  headerBackButtonDisplayMode: 'minimal',
+                  headerBackTitleVisible: false,
+                }}
+              />
+              <Stack.Screen
+                component={RescheduleBookingScreen}
+                name={ROUTES.RESCHEDULE_BOOKING}
+                options={{
+                  headerShown: true,
+                  title: 'Reschedule',
                   headerBackButtonDisplayMode: 'minimal',
                   headerBackTitleVisible: false,
                 }}

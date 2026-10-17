@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AppText,
-  BottomSheetModal,
   Button,
   InlineCardError,
+  MonthCalendar,
   TimeSelectField,
 } from '../../../../components/ui';
 import {
@@ -13,15 +14,23 @@ import {
   startOfLocalDay,
   toLocalYyyyMmDd,
 } from '../../../../components/ui/calendarDateKey';
+import { SCREEN_GUTTER } from '../../../../constants/layout';
 import { useTheme } from '../../../../theme';
 import { safeUserFacingMessage } from '../../../../utils/safeUserFacingMessage';
-import {
-  BOOKING_CALENDAR_MAX_DAYS_AHEAD,
-  BookingCalendarCard,
-} from '../../../availability/booking';
+import { BOOKING_CALENDAR_MAX_DAYS_AHEAD } from '../../../availability/booking';
 import { fetchBlockingBookingsInRange } from '../../create-appointment/api/schedulingBookings';
 import { confirmOwnerOverlapHeadsUp } from '../../utils/confirmOwnerOverlapHeadsUp';
 import { resolveOwnerOverlapHeadsUp, startClockMinutes } from '../../utils/ownerBookingOverlap';
+
+function initialDateFromStartMs(initialStartMs) {
+  const base =
+    typeof initialStartMs === 'number' &&
+    Number.isFinite(initialStartMs) &&
+    !Number.isNaN(initialStartMs)
+      ? new Date(initialStartMs)
+      : new Date();
+  return Number.isNaN(base.getTime()) ? new Date() : base;
+}
 
 function formatDateForDisplay(date) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
@@ -107,18 +116,31 @@ function formatTimeForApi(date) {
   return `${h}:${m}`;
 }
 
-export function BookingRescheduleSheet({
-  visible,
-  onRequestClose,
+/**
+ * Full-screen reschedule form. The time picker opens its own sheet on top of this screen.
+ *
+ * @param {object} props
+ * @param {number | undefined} props.initialStartMs
+ * @param {(slot: { scheduledDate: string, startTime: string }) => Promise<{ date?: string, time?: string } | undefined>} props.onSubmitReschedule
+ * @param {boolean} [props.isSubmitting]
+ * @param {string | null} [props.businessId]
+ * @param {string | null} [props.bookingId]
+ * @param {() => void} props.onDone
+ */
+export function BookingRescheduleForm({
   initialStartMs,
   onSubmitReschedule,
   isSubmitting = false,
   businessId = null,
   bookingId = null,
+  onDone,
 }) {
   const { colors } = useTheme();
-  const [dateValue, setDateValue] = useState(() => new Date());
-  const [timeValue, setTimeValue] = useState('9:00 AM');
+  const insets = useSafeAreaInsets();
+  const [dateValue, setDateValue] = useState(() => initialDateFromStartMs(initialStartMs));
+  const [timeValue, setTimeValue] = useState(() =>
+    formatTimeForSelectField(initialDateFromStartMs(initialStartMs)),
+  );
   const [showSuccessState, setShowSuccessState] = useState(false);
   const [savedDate, setSavedDate] = useState('');
   const [savedTime, setSavedTime] = useState('');
@@ -126,30 +148,20 @@ export function BookingRescheduleSheet({
   const confirmOpenRef = useRef(false);
   const submitLockRef = useRef(false);
 
-  useEffect(() => {
-    if (!visible) {
-      return;
-    }
-    const base =
-      typeof initialStartMs === 'number' &&
-      Number.isFinite(initialStartMs) &&
-      !Number.isNaN(initialStartMs)
-        ? new Date(initialStartMs)
-        : new Date();
-    const safe = Number.isNaN(base.getTime()) ? new Date() : base;
-    setDateValue(safe);
-    setTimeValue(formatTimeForSelectField(safe));
-    setShowSuccessState(false);
-    setSavedDate('');
-    setSavedTime('');
-    setSubmitError('');
-    confirmOpenRef.current = false;
-    submitLockRef.current = false;
-  }, [visible, initialStartMs]);
-
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        flex: {
+          flex: 1,
+        },
+        scroll: {
+          flex: 1,
+        },
+        content: {
+          paddingBottom: 24,
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingTop: 18,
+        },
         subtitle: {
           color: colors.textMuted,
           fontSize: 15,
@@ -160,16 +172,21 @@ export function BookingRescheduleSheet({
           marginBottom: 14,
           marginTop: 4,
         },
-        calendarCard: {
+        fieldLabel: {
+          color: colors.textMuted,
+          fontSize: 14,
+          fontWeight: '500',
           marginBottom: 8,
         },
-        actions: {
-          flexDirection: 'row',
-          gap: 12,
-          width: '100%',
+        calendar: {
+          marginBottom: 8,
         },
-        actionBtn: {
-          flex: 1,
+        footer: {
+          backgroundColor: colors.shell,
+          borderTopColor: colors.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingTop: 12,
         },
         successWrap: {
           alignItems: 'center',
@@ -314,88 +331,63 @@ export function BookingRescheduleSheet({
     );
   }
 
-  function closeSheet() {
-    onRequestClose?.();
-  }
-
   return (
-    <BottomSheetModal
-      allowBackdropClose
-      pageSheet={false}
-      sheetHeightPercent={92}
-      stickyFooter
-      title="Reschedule"
-      visible={visible}
-      onRequestClose={onRequestClose}
-      footer={
-        <View style={styles.actions}>
-          {showSuccessState ? (
-            <Button
-              fullWidth
-              style={styles.actionBtn}
-              title="Done"
-              variant="surfaceLight"
-              onPress={closeSheet}
+    <View style={styles.flex}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+      >
+        {showSuccessState ? (
+          <View style={styles.successWrap}>
+            <Ionicons color="#22c55e" name="checkmark-circle" size={34} />
+            <AppText style={styles.successTitle}>Rescheduled</AppText>
+            <AppText style={styles.successBody}>
+              Your booking was moved to {formatServerDateLabel(savedDate, dateLabel)} at{' '}
+              {savedTime || timeValue}.
+            </AppText>
+          </View>
+        ) : (
+          <>
+            <AppText style={styles.subtitle}>Choose a new date and time</AppText>
+            <MonthCalendar
+              maxDate={calendarBounds.maxDate}
+              minDate={calendarBounds.minDate}
+              selectedDateKey={selectedDateKey}
+              style={styles.calendar}
+              onSelectDateKey={handleSelectDateKey}
             />
-          ) : (
-            <>
-              <Button
-                fullWidth
-                style={styles.actionBtn}
-                title="Cancel"
-                variant="secondary"
-                onPress={closeSheet}
+            <View style={styles.field}>
+              <AppText style={styles.fieldLabel}>Time</AppText>
+              <TimeSelectField
+                placeholder="Select time"
+                title="New time"
+                value={timeValue}
+                onValueChange={handleTimeChange}
               />
-              <Button
-                fullWidth
-                style={styles.actionBtn}
-                title="Update"
-                variant="surfaceLight"
-                loading={isSubmitting}
-                onPress={handleUpdateReschedule}
-              />
-            </>
-          )}
-        </View>
-      }
-    >
-      {showSuccessState ? (
-        <View style={styles.successWrap}>
-          <Ionicons color="#22c55e" name="checkmark-circle" size={34} />
-          <AppText style={styles.successTitle}>Rescheduled</AppText>
-          <AppText style={styles.successBody}>
-            Your booking was moved to {formatServerDateLabel(savedDate, dateLabel)} at{' '}
-            {savedTime || timeValue}.
-          </AppText>
-        </View>
-      ) : (
-        <>
-          <AppText style={styles.subtitle}>
-            Choose a new date and time for this appointment.
-          </AppText>
-
-          <BookingCalendarCard
-            cardStyle={styles.calendarCard}
-            maxDate={calendarBounds.maxDate}
-            minDate={calendarBounds.minDate}
-            selectedDateKey={selectedDateKey}
-            onSelectDateKey={handleSelectDateKey}
-          />
-
-          <View style={styles.field} />
-          <TimeSelectField
-            placeholder="Select time"
-            title="New time"
-            value={timeValue}
-            onValueChange={handleTimeChange}
-          />
-          {submitError ? (
-            <View style={styles.submitErrorWrap}>
-              <InlineCardError message={submitError} />
             </View>
-          ) : null}
-        </>
-      )}
-    </BottomSheetModal>
+            {submitError ? (
+              <View style={styles.submitErrorWrap}>
+                <InlineCardError message={submitError} />
+              </View>
+            ) : null}
+          </>
+        )}
+      </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 12 + insets.bottom }]}>
+        {showSuccessState ? (
+          <Button fullWidth title="Done" variant="primary" onPress={onDone} />
+        ) : (
+          <Button
+            fullWidth
+            loading={isSubmitting}
+            title="Update"
+            variant="primary"
+            onPress={handleUpdateReschedule}
+          />
+        )}
+      </View>
+    </View>
   );
 }

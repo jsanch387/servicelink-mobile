@@ -473,7 +473,7 @@ export function BookingActionsSheet({
                 onPress={() => runAction(onEdit)}
               />
               <ActionGridTile
-                accessibilityHint="Opens a sheet to choose a new date and time"
+                accessibilityHint="Opens a screen to choose a new date and time"
                 accessibilityLabel="Reschedule booking"
                 config={ACTION_CONFIG.reschedule}
                 disabled={isRescheduleDisabled || actionsBusy}

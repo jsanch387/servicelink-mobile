@@ -21,7 +21,6 @@ import {
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
-import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { useTheme } from '../../../theme';
 import { openMapsToAddress } from '../../../utils/openMapsToAddress';
 import { phoneForSmsUri } from '../../../utils/phone';
@@ -36,7 +35,6 @@ import { BookingJobStatusSheet } from '../booking-details/components/BookingJobS
 import { BookingMarkCompleteSheet } from '../booking-details/components/BookingMarkCompleteSheet';
 import { BookingPaymentSection } from '../booking-details/components/BookingPaymentSection';
 import { BookingDetailsStatusBanner } from '../booking-details/components/BookingDetailsStatusBanner';
-import { BookingRescheduleSheet } from '../booking-details/components/BookingRescheduleSheet';
 import { BookingActivitySection } from '../booking-details/components/BookingActivitySection';
 import { BookingDetailsSkeleton } from '../booking-details/components/BookingDetailsSkeleton';
 import { BookingJobsSummarySection } from '../booking-details/components/BookingJobsSummarySection';
@@ -57,7 +55,6 @@ export function BookingDetailsScreen({ route }) {
   const toast = useToast();
   const bookingId = route?.params?.bookingId;
   const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
-  const [rescheduleSheetOpen, setRescheduleSheetOpen] = useState(false);
   const [jobStatusSheetOpen, setJobStatusSheetOpen] = useState(false);
   const [completeScrollRequestId, setCompleteScrollRequestId] = useState(0);
   const scrollRef = useRef(/** @type {ScrollView | null} */ (null));
@@ -247,15 +244,8 @@ export function BookingDetailsScreen({ route }) {
     if (!isConfirmedStatus || !canWriteBookings || !bookingId) {
       return;
     }
-    // A dropped present leaves this true, and setting true again does not reopen it.
-    setRescheduleSheetOpen(false);
-    setTimeout(() => setRescheduleSheetOpen(true), 32);
-  }, [bookingId, canWriteBookings, isConfirmedStatus]);
-
-  const bookingStartMs = useMemo(() => {
-    const raw = detailsQuery.booking;
-    return parseBookingStartLocalMs(raw?.scheduled_date, raw?.start_time);
-  }, [detailsQuery.booking]);
+    navigation.navigate(ROUTES.RESCHEDULE_BOOKING, { bookingId });
+  }, [bookingId, canWriteBookings, isConfirmedStatus, navigation]);
 
   const detailsRefreshControl = useMemo(
     () => (
@@ -300,7 +290,6 @@ export function BookingDetailsScreen({ route }) {
   const actionsBusy =
     bookingActions.isCancellingBooking ||
     markCompleteFlow.isConfirming ||
-    bookingActions.isReschedulingBooking ||
     bookingActions.isDeletingBooking;
 
   const handleDeleteBooking = useCallback(() => {
@@ -384,15 +373,6 @@ export function BookingDetailsScreen({ route }) {
           onRequestClose={markCompleteFlow.closeSheet}
         />
       )}
-      <BookingRescheduleSheet
-        bookingId={bookingId}
-        businessId={detailsQuery.booking?.business_id ?? null}
-        initialStartMs={Number.isFinite(bookingStartMs) ? bookingStartMs : undefined}
-        isSubmitting={bookingActions.isReschedulingBooking}
-        onSubmitReschedule={bookingActions.rescheduleBooking}
-        visible={rescheduleSheetOpen}
-        onRequestClose={() => setRescheduleSheetOpen(false)}
-      />
       <BookingActionsSheet
         canWriteBookings={canWriteBookings}
         isCancelDisabled={isCancelledStatus || isCompletedStatus}
@@ -402,7 +382,6 @@ export function BookingDetailsScreen({ route }) {
         isMarkCompletedDisabled={isCompletedStatus}
         isMarkingCompleted={markCompleteFlow.isConfirming}
         isRescheduleDisabled={!isConfirmedStatus}
-        isReschedulingBooking={bookingActions.isReschedulingBooking}
         showJobStatusAction={showJobStatusAction}
         visible={actionsSheetOpen}
         onCancelBooking={handleCancelBooking}
