@@ -18,6 +18,7 @@ import {
   SubscriptionsScreen,
 } from '../../subscriptions';
 import { ServicesScreen } from '../../services';
+import { AddServiceScreen } from '../../services/screens/AddServiceScreen';
 import { ServiceEditScreen } from '../../services/screens/ServiceEditScreen';
 import { AccountSettingsScreen } from '../screens/AccountSettingsScreen';
 import { MoreScreen } from '../screens/MoreScreen';
@@ -122,6 +123,15 @@ export function MoreNavigator() {
             name={ROUTES.SERVICES_LIST}
             options={{
               title: 'Services',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={AddServiceScreen}
+            name={ROUTES.SERVICES_CREATE}
+            options={{
+              title: 'New service',
               headerBackButtonDisplayMode: 'minimal',
               headerBackTitleVisible: false,
             }}

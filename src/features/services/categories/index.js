@@ -15,7 +15,6 @@ export { ServiceReorderBottomBar } from './components/ServiceReorderBottomBar';
 export { ServiceReorderHeaderBlock } from './components/ServiceReorderHeaderBlock';
 export { ServiceCategoryTabs } from './components/ServiceCategoryTabs';
 export { ServiceCategoryPickerField } from './components/ServiceCategoryPickerField';
-export { ServiceCategorySectionContent } from './components/ServiceCategorySectionContent';
 export { ServiceCategorySectionHeader } from './components/ServiceCategorySectionHeader';
 export { ServiceCategoriesHowItWorksSheet } from './components/ServiceCategoriesHowItWorksSheet';
 export { SERVICE_CATEGORIES_HOW_IT_WORKS_TAB_LINK_LABEL } from './constants/serviceCategoriesHowItWorksCopy';

@@ -8,30 +8,41 @@ The feature supports:
 
 - Services catalog list (view/sort/reorder/delete/toggle active)
 - Add-ons catalog list (create/edit/delete; optional short description stored for self-booking)
-- Service edit flow (details, pricing options, add-on assignments)
-- Service create flow (name, description, price, duration)
+- Service create flow (full-screen form)
+- Service edit flow (same layout as create; sticky save; header delete)
 
 ## Main Screens
 
 - `src/features/services/screens/ServicesScreen.jsx`
-  - Segmented view: `services` / `add-ons`
+  - Segmented view: `services` / `categories` / `add-ons`
   - Service card actions:
-    - Edit service (navigates to service editor)
+    - Edit service (navigates to `ROUTES.SERVICES_EDIT`)
     - Delete service (confirmation)
     - Toggle active/inactive (instant DB update)
     - Sort mode + drag reorder + save order
   - Add-on card actions:
     - Edit add-on (sheet) — optional description editable here only
     - Delete add-on (confirmation)
-    - Assign/unassign in service editor context
   - Add-ons tab list shows name / price / duration only (no description preview)
-  - Create service sheet (full-screen slide-up panel)
+  - Create service navigates to `ROUTES.SERVICES_CREATE` (free-tier cap still checked first)
+
+- `src/features/services/screens/AddServiceScreen.jsx`
+  - Full-screen new service: name, description, price, duration
+  - Category picker when categories exist (preselects the catalog tab category when provided)
+  - Prices and add-ons as summary rows (counts) that open sheets
+  - Sticky **Create service** (hidden while keyboard or a sheet is open)
 
 - `src/features/services/screens/ServiceEditScreen.jsx`
-  - Service details edit
-  - Pricing options create/edit/delete
-  - Add-on assignment + add-on create/edit/delete in context
-  - Save changes for service/pricing/assignments
+  - Same field layout as create
+  - Prices / add-ons sheets; sticky **Save changes**
+  - Header trash deletes the service after confirmation
+
+## Supporting UI
+
+- `ServicePriceListSheet` — list + in-sheet add/edit form (no second modal)
+- `ServiceAddonPickerSheet` — checklist of catalog add-ons; **Add an add-on** opens `AddonEditorSheet`
+- `ServiceHeaderDeleteButton` — red trash in the edit header
+- `ServiceCategoryPickerField` — optional category on create/edit
 
 ## Data Sources and Tables
 
@@ -108,14 +119,14 @@ Mutations invalidate these keys plus `homeBusinessProfileQueryKey(userId)` where
   - loads service editor data model for one service
 - `useSaveServiceEdits`
   - persists service details, pricing options, and add-on assignments
+- `useCreateCatalogService`
+  - create service, then optional price options + selected add-ons / pending add-ons
 - `useDeleteServicePriceOption`
   - deletes persisted price options; skips remote delete for unsaved local IDs
 - `useMutateServiceAddon`
   - create/update add-on
 - `useDeleteServiceAddon`
   - delete add-on
-- `useCreateBusinessService`
-  - create service from quick add sheet
 - `useDeleteBusinessService`
   - delete service
 - `useUpdateBusinessServiceActive`
@@ -134,14 +145,23 @@ Required:
 - price
 - duration
 
+Optional:
+
+- category (when categories exist)
+- other prices (`service_price_options`) — enabled when at least one option exists and pricing is not locked
+- add-ons — selected catalog add-ons and newly created pending add-ons that remain selected
+
 Default behavior:
 
 - created as `is_active: true`
 - duration is stored as minutes (minimum 30 minutes in API guard)
+- free-tier service cap still blocks opening create when at the limit
+
+Validation: `validateNewServiceDraft` (also used conceptually for edit required fields).
 
 ### Service Delete
 
-- Confirmation required before delete.
+- Confirmation required before delete (catalog card or edit header trash).
 - Copy intentionally states only that service is deleted (user-friendly wording).
 
 ### Service Active Toggle
@@ -161,7 +181,8 @@ Default behavior:
 - Deployment differences in label column handled by `detectPriceOptionLabelColumn`.
 - New local option IDs follow `option-new-*` and are inserted on save.
 - Persisted options are upserted by `id`.
-- Deleting option requires confirmation.
+- Multiple prices may be locked for non-Pro accounts (`serviceMultiplePricingAccessCopy`); UI shows web-account guidance instead of the prices sheet.
+- On create/edit, manage options inside `ServicePriceListSheet` (list ↔ form in one sheet).
 
 ### Add-ons
 
@@ -171,19 +192,21 @@ Default behavior:
 - Optional `description` (max 800 chars via `ADDON_DESCRIPTION_MAX_LENGTH`):
   - Editable only in `AddonEditorSheet` (create/edit add-on; not on pricing-option sheets)
   - Loaded into catalog/editor models so edit can prefill
-  - **Not** shown on add-ons tab cards, service assignment cards (`SelectableAddonCard`), create/edit appointment, or quotes
+  - **Not** shown on add-ons tab cards, create/edit appointment, or quotes
   - **Not** included in booking payloads (`selectedAddOns` / `addon_details`); web self-booking reads `service_addons.description` directly
-- Add-on delete confirmation explains cross-service removal behavior.
+- On create, unchecked pending add-ons are not inserted.
+- On edit, creating an add-on from the picker persists immediately and selects it for the service.
+- Add-on delete confirmation (catalog) explains cross-service removal behavior.
 
 ## UI/Interaction Notes
 
 - Sort mode drag is long-press on the full service card.
 - Haptics (`expo-haptics`) trigger a subtle tactile tick on drag start.
-- Service create uses full-screen slide-up panel (no new route required).
-- **Service** description fields in editor/create include:
-  - bullet insert action
-  - live char counter
-- **Add-on** description field is an optional multiline input with an 800-char counter (no bullet toolbar)
+- Create and edit use full-screen routes (`SERVICES_CREATE` / `SERVICES_EDIT`), not a create sheet.
+- Service description fields include a bullet insert action; char count shows near the limit.
+- Add-on description is an optional multiline input with an 800-char counter (no bullet toolbar).
+- Prefer `Button` `secondary` / `surfaceLight` / `ghost` over outline for these flows.
+- Tappable rows: `flexDirection: 'row'` on an inner `View`, not on `Pressable`; `flex` / `minWidth: 0` on a `View`, not on `AppText`.
 
 ## Testing
 
@@ -195,6 +218,8 @@ Current service tests live in `src/features/services/__tests__/`:
   - add-on model mapping (including `description`) and duration normalization
 - `servicesApiSortOrder.test.js`
   - verifies reorder write path uses per-row update + business scoping
+- `validateNewServiceDraft.test.js`
+  - required fields and other-price option validation for create
 
 ## Known Follow-ups (if needed later)
 

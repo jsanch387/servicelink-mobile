@@ -1,34 +1,21 @@
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../../../components/ui';
-import { useTheme } from '../../../../theme';
 
 /**
- * Fixed footer actions — same Cancel / primary row as {@link FormBottomSheetModal}.
+ * Floating Cancel / Save order actions while reordering the catalog.
  */
 export function ServiceReorderBottomBar({ isSaving, onCancel, onSave }) {
-  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
-    <View
-      style={[
-        styles.host,
-        {
-          backgroundColor: colors.shell,
-          borderTopColor: colors.border,
-          paddingBottom: Math.max(insets.bottom, 12),
-        },
-      ]}
-    >
+    <View style={[styles.host, { bottom: Math.max(insets.bottom, 12) }]}>
       <View style={styles.actions}>
         <Button
           disabled={isSaving}
-          labelColor={colors.text}
-          outlineColor={colors.borderStrong}
           style={styles.actionBtn}
           title="Cancel"
-          variant="outline"
+          variant="secondary"
           onPress={onCancel}
         />
         <Button
@@ -46,13 +33,9 @@ export function ServiceReorderBottomBar({ isSaving, onCancel, onSave }) {
 
 const styles = StyleSheet.create({
   host: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    bottom: 0,
-    left: 0,
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    left: 16,
     position: 'absolute',
-    right: 0,
+    right: 16,
   },
   actions: {
     alignItems: 'stretch',

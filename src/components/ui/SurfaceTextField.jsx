@@ -88,7 +88,7 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
               ? colors.borderStrong
               : colors.inputBorder,
           borderWidth: focused || hasError ? 1.5 : 1,
-          paddingVertical: isMultiline ? 12 : 0,
+          ...(isMultiline ? { paddingVertical: 12 } : { height: 52, paddingVertical: 0 }),
         },
         iconPad: {
           alignItems: 'center',
@@ -113,7 +113,7 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
         inputWrap: {
           flex: 1,
           justifyContent: isMultiline ? 'flex-start' : 'center',
-          minHeight: isMultiline ? 72 : 52,
+          ...(isMultiline ? { minHeight: 72 } : null),
           position: 'relative',
         },
         overlayPlaceholderWrap: {
@@ -126,7 +126,6 @@ export const SurfaceTextField = forwardRef(function SurfaceTextField(
           color: colors.placeholder,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 16,
-          ...(isMultiline ? { lineHeight: 22 } : null),
         },
         input: {
           backgroundColor: 'transparent',

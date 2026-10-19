@@ -127,16 +127,20 @@ export function DurationSelectField({
           triggerStyle,
         ]}
       >
-        <AppText
-          style={[
-            styles.triggerText,
-            compact && styles.triggerTextCompact,
-            { color: String(value ?? '').trim() ? colors.text : colors.placeholder },
-          ]}
-        >
-          {display}
-        </AppText>
-        <Ionicons color={colors.textMuted} name="chevron-down" size={22} />
+        <View style={styles.triggerLabelCol}>
+          <AppText
+            numberOfLines={1}
+            style={[
+              styles.triggerText,
+              { color: String(value ?? '').trim() ? colors.text : colors.placeholder },
+            ]}
+          >
+            {display}
+          </AppText>
+        </View>
+        <View style={styles.chevronCol}>
+          <Ionicons color={colors.textMuted} name="chevron-down" size={22} />
+        </View>
       </TouchableOpacity>
 
       <BottomSheetModal
@@ -198,23 +202,26 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    minHeight: 40,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    minHeight: 52,
+    paddingHorizontal: 12,
+    width: '100%',
+  },
+  triggerLabelCol: {
+    flex: 1,
+    justifyContent: 'center',
+    minWidth: 0,
+    paddingLeft: 6,
   },
   triggerText: {
-    flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
-    minHeight: 34,
-    paddingLeft: 6,
-    paddingRight: 10,
-    paddingVertical: 8,
   },
-  triggerTextCompact: {
-    minHeight: 36,
-    paddingVertical: 6,
+  chevronCol: {
+    alignItems: 'center',
+    height: 24,
+    justifyContent: 'center',
+    marginLeft: 8,
+    width: 24,
   },
   footer: {
     marginTop: 4,

@@ -49,7 +49,6 @@ import { AddonEditorSheet } from '../components/AddonEditorSheet';
 import { CatalogEntityCard } from '../components/CatalogEntityCard';
 import { CatalogHowItWorksLink } from '../components/CatalogHowItWorksLink';
 import { ServiceAddonsHowItWorksSheet } from '../components/ServiceAddonsHowItWorksSheet';
-import { ServiceCreateSheet } from '../components/ServiceCreateSheet';
 import { SERVICE_ADDONS_HOW_IT_WORKS_LINK_LABEL } from '../constants/serviceAddonsHowItWorksCopy';
 import {
   ENTITY_VIEW_ADDONS,
@@ -58,7 +57,6 @@ import {
   SegmentedEntityToggle,
 } from '../components/SegmentedEntityToggle';
 import { ServiceEntityCard } from '../components/ServiceEntityCard';
-import { useCreateBusinessService } from '../hooks/useCreateBusinessService';
 import { useDeleteBusinessService } from '../hooks/useDeleteBusinessService';
 import { useDeleteServiceAddon } from '../hooks/useDeleteServiceAddon';
 import { useMutateServiceAddon } from '../hooks/useMutateServiceAddon';
@@ -131,7 +129,6 @@ export function ServicesScreen() {
   const { refetch: refetchCatalog } = catalog;
   const categories = catalog.categories;
   const serviceCategoryById = catalog.serviceCategoryById;
-  const categorySelectOptionsWithNone = catalog.categorySelectOptionsWithNone;
   const { mutateCategory, isSavingCategory } = useMutateServiceCategory({
     businessId: catalog.businessId,
     userId: user?.id,
@@ -146,8 +143,6 @@ export function ServicesScreen() {
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [categorySheetError, setCategorySheetError] = useState('');
-  const [serviceSheetOpen, setServiceSheetOpen] = useState(false);
-  const [serviceSheetError, setServiceSheetError] = useState('');
   const [categoriesHowItWorksOpen, setCategoriesHowItWorksOpen] = useState(false);
   const [addonsHowItWorksOpen, setAddonsHowItWorksOpen] = useState(false);
   const [catalogManualRefreshing, setCatalogManualRefreshing] = useState(false);
@@ -300,10 +295,6 @@ export function ServicesScreen() {
     businessId: catalog.businessId,
     userId: user?.id,
   });
-  const { createService, isCreatingService } = useCreateBusinessService({
-    businessId: catalog.businessId,
-    userId: user?.id,
-  });
   const { setServiceActive, isTogglingServiceActive, toggleServiceVariables } =
     useUpdateBusinessServiceActive({
       businessId: catalog.businessId,
@@ -358,11 +349,9 @@ export function ServicesScreen() {
     setCategorySheetOpen(false);
     setEditingCategoryId(null);
     setCategorySheetError('');
-    setServiceSheetOpen(false);
-    setServiceSheetError('');
   }
 
-  function openAddServiceSheet() {
+  function openAddService() {
     if (atFreeTierServicesLimit) {
       showWebAccountFeatureAlert({
         title: servicesLimitCopy.alertTitle,
@@ -370,8 +359,11 @@ export function ServicesScreen() {
       });
       return;
     }
-    setServiceSheetError('');
-    setServiceSheetOpen(true);
+    const categoryId =
+      showCategoryTabsUi && !isUncategorizedTabId(selectedServiceCategoryTabId)
+        ? selectedServiceCategoryTabId
+        : undefined;
+    navigation.navigate(ROUTES.SERVICES_CREATE, categoryId ? { categoryId } : undefined);
   }
 
   function openAddAddonSheet() {
@@ -575,34 +567,6 @@ export function ServicesScreen() {
     }
   }
 
-  async function handleServiceSheetSave({ name, description, price, durationHHmm, categoryId }) {
-    if (!catalog.businessId) {
-      setServiceSheetError('Missing business context.');
-      return;
-    }
-    if (atFreeTierServicesLimit) {
-      setServiceSheetError(servicesLimitCopy.sheetError);
-      return;
-    }
-    try {
-      setServiceSheetError('');
-      const created = await createService({
-        name,
-        description,
-        price,
-        durationHHmm,
-        categoryId,
-      });
-      if (!created?.id) {
-        setServiceSheetError('Could not create service.');
-        return;
-      }
-      setServiceSheetOpen(false);
-    } catch (err) {
-      setServiceSheetError(safeUserFacingMessage(err, { fallback: 'Could not create service.' }));
-    }
-  }
-
   const hasServiceOrderChanges = useMemo(() => {
     if (!isServicesView) return false;
     if (catalogUsesCategoryTabs && activeTabServiceIds.length > 0) {
@@ -698,14 +662,7 @@ export function ServicesScreen() {
         )}
 
         {isReorderFocus && isServicesView ? (
-          <ServiceReorderHeaderBlock
-            categoryName={activeTab?.name}
-            hint={
-              activeTab?.name
-                ? `Drag to set the order customers see in ${activeTab.name}.`
-                : 'Drag to set the order on your booking link.'
-            }
-          />
+          <ServiceReorderHeaderBlock hint="Drag to set the order customers see." />
         ) : null}
 
         {isReorderFocus && isCategoriesView ? (
@@ -773,7 +730,7 @@ export function ServicesScreen() {
                 iconName="add"
                 title={activeCopy.addLabel}
                 variant="surfaceLight"
-                onPress={openAddServiceSheet}
+                onPress={openAddService}
               />
             </View>
           </View>
@@ -1041,7 +998,7 @@ export function ServicesScreen() {
         </ScrollView>
       )}
       {showServicesFab ? (
-        <AddServiceFab bottom={SERVICES_FAB_BOTTOM} onPress={openAddServiceSheet} />
+        <AddServiceFab bottom={SERVICES_FAB_BOTTOM} onPress={openAddService} />
       ) : null}
       {showCategoriesFab ? (
         <AddCategoryFab bottom={SERVICES_FAB_BOTTOM} onPress={openAddCategorySheet} />
@@ -1090,18 +1047,6 @@ export function ServicesScreen() {
           setAddonSheetError('');
         }}
         onSave={handleAddonSheetSave}
-      />
-      <ServiceCreateSheet
-        allowBackdropClose={false}
-        categorySelectOptionsWithNone={categories.length > 0 ? categorySelectOptionsWithNone : null}
-        isSaving={isCreatingService}
-        submitError={serviceSheetError}
-        visible={isServicesView && serviceSheetOpen}
-        onRequestClose={() => {
-          setServiceSheetOpen(false);
-          setServiceSheetError('');
-        }}
-        onSave={handleServiceSheetSave}
       />
       <ServiceCategoriesHowItWorksSheet
         visible={categoriesHowItWorksOpen}

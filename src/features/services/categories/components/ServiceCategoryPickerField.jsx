@@ -3,12 +3,13 @@ import { AppText, SelectField } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 
 /**
- * Optional category assignment — used on create-service sheet and similar forms.
+ * Optional category assignment — used on the new-service screen and similar forms.
  *
  * @param {{
  *   options: { value: string; label: string }[];
  *   value: string;
  *   onValueChange: (id: string) => void;
+ *   label?: string | null;
  *   hint?: string | null;
  * }} props
  */
@@ -16,7 +17,8 @@ export function ServiceCategoryPickerField({
   options,
   value,
   onValueChange,
-  hint = 'Optional. Helps customers browse by group on your booking link.',
+  label = 'Category',
+  hint = null,
 }) {
   const { colors } = useTheme();
 
@@ -26,6 +28,7 @@ export function ServiceCategoryPickerField({
     <View style={styles.root}>
       <SelectField
         fieldStyle={styles.pickerField}
+        label={label || undefined}
         options={options}
         placeholder="None"
         presentation="wheel"
@@ -43,11 +46,13 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   pickerField: {
-    marginBottom: 6,
+    marginBottom: 0,
+    marginTop: 0,
   },
   hint: {
-    fontSize: 12,
-    fontWeight: '500',
-    lineHeight: 17,
+    fontSize: 13,
+    fontWeight: '400',
+    lineHeight: 18,
+    marginTop: 8,
   },
 });

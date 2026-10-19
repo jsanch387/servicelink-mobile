@@ -1,6 +1,6 @@
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -10,7 +10,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Switch,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,25 +18,32 @@ import {
   Button,
   DurationSelectField,
   InlineCardError,
+  SettingsSection,
   SurfaceCard,
   SurfaceTextField,
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
-import {
-  formatServiceDurationSelectLabel,
-  serviceDurationHHmmToMinutes,
-} from '../../../components/ui/durationTime';
+import { serviceDurationHHmmToMinutes } from '../../../components/ui/durationTime';
 import { useAuth } from '../../auth';
 import { useSubscription, showWebAccountFeatureAlert } from '../../subscription';
 import { serviceMultiplePricingAccessCopy } from '../constants/servicePricingAccessCopy';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
-import { CollapsibleEditorSectionCard } from '../components/CollapsibleEditorSectionCard';
-import { ServiceCategorySectionContent } from '../categories';
-import { SelectableAddonCard } from '../components/SelectableAddonCard';
+import { ServiceCategoryPickerField } from '../categories';
+import {
+  ServiceAddonPickerSheet,
+  ServiceAddonSummaryRow,
+  summarizeSelectedAddons,
+} from '../components/ServiceAddonPickerSheet';
+import {
+  ServicePriceListSheet,
+  ServicePriceSummaryRow,
+  summarizePrices,
+} from '../components/ServicePriceListSheet';
+import { ServiceHeaderDeleteButton } from '../components/ServiceHeaderDeleteButton';
 import { buildServiceEditDraft } from '../utils/buildServiceEditDraft';
 import { normalizeAddonDurationHHmm } from '../utils/serviceAddonModel';
-import { useDeleteServiceAddon } from '../hooks/useDeleteServiceAddon';
+import { useDeleteBusinessService } from '../hooks/useDeleteBusinessService';
 import { useMutateServiceAddon } from '../hooks/useMutateServiceAddon';
 import { useServiceEditData } from '../hooks/useServiceEditData';
 import { useSaveServiceEdits } from '../hooks/useSaveServiceEdits';
@@ -119,12 +125,7 @@ function patchEditorSnapshotAddons(prevSnapshot, addonOptions, selectedAddonIds)
   }
 }
 
-/** Dimmed preview when multiple prices are managed on web and none are saved yet. */
-const MOCK_PRICING_OPTION_PREVIEW = {
-  label: 'Larger vehicle',
-  price: '180',
-  durationHHmm: '04:00',
-};
+const DESCRIPTION_MAX_LENGTH = 800;
 
 function validateEditorInput({
   serviceName,
@@ -132,7 +133,6 @@ function validateEditorInput({
   price,
   durationHHmm,
   pricingOptions,
-  multiPriceEnabled,
   skipPricingOptionValidation,
 }) {
   if (!String(serviceName ?? '').trim()) return 'Service name is required.';
@@ -141,10 +141,6 @@ function validateEditorInput({
   if (!String(durationHHmm ?? '').trim()) return 'Service duration is required.';
 
   if (skipPricingOptionValidation) return null;
-
-  if (multiPriceEnabled && (pricingOptions?.length ?? 0) === 0) {
-    return 'Add at least one pricing option before offering multiple prices.';
-  }
 
   for (const option of pricingOptions ?? []) {
     if (!String(option.label ?? '').trim()) return 'Each pricing option requires a name.';
@@ -172,15 +168,11 @@ function validateAddonInput(addonOptions) {
 const TRANSIENT_SAVE_FEEDBACK_MS = 5000;
 
 export function ServiceEditScreen({ route }) {
+  const navigation = useNavigation();
   const { user } = useAuth();
-  const {
-    hasProAccess,
-    isReady: subscriptionReady,
-    isLoading: subscriptionLoading,
-  } = useSubscription();
+  const { hasProAccess, isReady: subscriptionReady } = useSubscription();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const stickyBarHeight = 84;
   const routeService = route?.params?.service;
   const routeServiceId = String(route?.params?.serviceId ?? routeService?.id ?? '');
   const initialDraft = useMemo(() => buildServiceEditDraft(routeService), [routeService]);
@@ -252,17 +244,14 @@ export function ServiceEditScreen({ route }) {
   const [price, setPrice] = useState(initialDraft.price);
   const [durationHHmm, setDurationHHmm] = useState(initialDraft.durationHHmm);
   const [categoryId, setCategoryId] = useState('');
-  const [detailsExpanded, setDetailsExpanded] = useState(false);
-  const [categoryExpanded, setCategoryExpanded] = useState(false);
-  const [pricingExpanded, setPricingExpanded] = useState(false);
-  const [addonsExpanded, setAddonsExpanded] = useState(false);
   const [multiPriceEnabled, setMultiPriceEnabled] = useState(true);
   const [selectedAddonIds, setSelectedAddonIds] = useState(initialSelectedAddonIds);
   const [addonSheetOpen, setAddonSheetOpen] = useState(false);
   const [editingAddonId, setEditingAddonId] = useState(null);
   const [addonSheetError, setAddonSheetError] = useState('');
-  const [pricingOptionSheetOpen, setPricingOptionSheetOpen] = useState(false);
-  const [editingPricingOptionId, setEditingPricingOptionId] = useState(null);
+  const [priceListOpen, setPriceListOpen] = useState(false);
+  const [priceFormFirst, setPriceFormFirst] = useState(false);
+  const [addonPickerOpen, setAddonPickerOpen] = useState(false);
   const [pricingOptions, setPricingOptions] = useState(initialPricingOptions);
   const [addonOptions, setAddonOptions] = useState(initialAddonOptions);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -276,60 +265,20 @@ export function ServiceEditScreen({ route }) {
   const [hydratedServiceId, setHydratedServiceId] = useState('');
   const [editorManualRefreshing, setEditorManualRefreshing] = useState(false);
 
-  const blockPricingControls = Boolean(user?.id) && (!subscriptionReady || !hasProAccess);
-
-  const editingPricingOption = useMemo(
-    () =>
-      editingPricingOptionId
-        ? (pricingOptions.find((o) => o.id === editingPricingOptionId) ?? null)
-        : null,
-    [editingPricingOptionId, pricingOptions],
-  );
-
-  const categoryCollapsedSubtitle = useMemo(() => {
-    if (categoryExpanded) return null;
-    if (categories.length === 0) return 'No categories set up';
-    const selected = categories.find((cat) => cat.id === categoryId);
-    return selected?.name ?? 'Not assigned';
-  }, [categories, categoryExpanded, categoryId]);
-
-  const pricingCollapsedSubtitle = useMemo(() => {
-    if (pricingExpanded) return null;
-    if (blockPricingControls) {
-      if (pricingOptions.length > 0) {
-        return serviceMultiplePricingAccessCopy.collapsedSubtitleWithSaved(pricingOptions.length);
-      }
-      return serviceMultiplePricingAccessCopy.collapsedSubtitleEmpty;
-    }
-    return `${pricingOptions.length} option${pricingOptions.length === 1 ? '' : 's'}`;
-  }, [blockPricingControls, pricingExpanded, pricingOptions.length]);
-
-  const handleMultiPriceToggle = useCallback(
-    (nextEnabled) => {
-      if (blockPricingControls) return;
-      if (nextEnabled && pricingOptions.length === 0) {
-        const msg = 'Add at least one pricing option before turning this on.';
-        setSaveFeedback(msg);
-        setTimeout(() => {
-          setSaveFeedback((current) => (current === msg ? '' : current));
-        }, 4000);
-        return;
-      }
-      setMultiPriceEnabled(nextEnabled);
-    },
-    [blockPricingControls, pricingOptions.length],
-  );
+  const pricingAccessPending = Boolean(user?.id) && !subscriptionReady;
+  const pricingLocked = Boolean(user?.id) && subscriptionReady && !hasProAccess;
+  const hasCategories = categories.length > 0;
 
   const handleCategoryIdChange = useCallback((nextCategoryId) => {
     setCategoryId(nextCategoryId);
   }, []);
 
   useEffect(() => {
-    if (blockPricingControls) return;
+    if (pricingLocked) return;
     if (multiPriceEnabled && pricingOptions.length === 0) {
       setMultiPriceEnabled(false);
     }
-  }, [blockPricingControls, multiPriceEnabled, pricingOptions.length]);
+  }, [multiPriceEnabled, pricingLocked, pricingOptions.length]);
 
   const showTransientSaveFeedback = useCallback((message, ms = TRANSIENT_SAVE_FEEDBACK_MS) => {
     if (!String(message ?? '').trim()) return;
@@ -357,16 +306,56 @@ export function ServiceEditScreen({ route }) {
     serviceId: routeServiceId,
     userId: user?.id,
   });
+  const { deleteService, isDeletingService } = useDeleteBusinessService({
+    businessId,
+    userId: user?.id,
+  });
   const { mutateAddon, isSavingAddon } = useMutateServiceAddon({
     businessId,
     userId: user?.id,
     serviceId: routeServiceId,
   });
-  const { deleteAddon, isDeletingAddon } = useDeleteServiceAddon({
-    businessId,
-    userId: user?.id,
-    serviceId: routeServiceId,
-  });
+
+  const handleDeleteService = useCallback(async () => {
+    if (!businessId || !routeServiceId || isDeletingService) return;
+    try {
+      await deleteService({ serviceId: routeServiceId });
+      navigation.goBack();
+    } catch (err) {
+      Alert.alert(
+        'Could not delete',
+        safeUserFacingMessage(err, { fallback: 'Please try again.' }),
+      );
+    }
+  }, [businessId, deleteService, isDeletingService, navigation, routeServiceId]);
+
+  const confirmDeleteService = useCallback(() => {
+    if (isDeletingService) return;
+    Alert.alert('Remove service?', 'This service will be deleted. This cannot be undone.', [
+      { style: 'cancel', text: 'Cancel' },
+      {
+        style: 'destructive',
+        text: 'Delete',
+        onPress: () => {
+          void handleDeleteService();
+        },
+      },
+    ]);
+  }, [handleDeleteService, isDeletingService]);
+
+  const confirmDeleteServiceRef = useRef(confirmDeleteService);
+  confirmDeleteServiceRef.current = confirmDeleteService;
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <ServiceHeaderDeleteButton
+          disabled={isDeletingService}
+          onPress={() => confirmDeleteServiceRef.current()}
+        />
+      ),
+    });
+  }, [isDeletingService, navigation]);
 
   const handleEditorPullRefresh = useCallback(async () => {
     setEditorManualRefreshing(true);
@@ -422,11 +411,10 @@ export function ServiceEditScreen({ route }) {
   function insertBulletPoint() {
     setDescription((current) => {
       const text = String(current ?? '');
-      if (text.trim().length === 0) {
-        return '• ';
-      }
+      if (text.length >= DESCRIPTION_MAX_LENGTH) return text;
+      if (text.trim().length === 0) return '• ';
       const needsLineBreak = !text.endsWith('\n');
-      return `${text}${needsLineBreak ? '\n' : ''}• `;
+      return `${text}${needsLineBreak ? '\n' : ''}• `.slice(0, DESCRIPTION_MAX_LENGTH);
     });
   }
 
@@ -436,60 +424,35 @@ export function ServiceEditScreen({ route }) {
     );
   }
 
-  function openAddPricingOptionSheet() {
-    if (blockPricingControls) return;
-    setEditingPricingOptionId(null);
-    setPricingOptionSheetOpen(true);
-  }
-
-  function openEditPricingOptionSheet(option) {
-    if (blockPricingControls) return;
-    setEditingPricingOptionId(option.id);
-    setPricingOptionSheetOpen(true);
-  }
-
-  async function handlePricingOptionSheetSave({ name, price, durationHHmm }) {
-    if (blockPricingControls) return;
+  function handlePriceSave({ id, name, price: optionPrice, durationHHmm: optionDuration }) {
+    if (pricingLocked) return;
     const label = String(name ?? '').trim();
     if (!label) return;
 
-    if (editingPricingOptionId) {
+    if (id) {
       setPricingOptions((current) =>
         current.map((option) =>
-          option.id === editingPricingOptionId
-            ? {
-                ...option,
-                label,
-                price,
-                durationHHmm,
-              }
+          option.id === id
+            ? { ...option, label, price: optionPrice, durationHHmm: optionDuration }
             : option,
         ),
       );
     } else {
-      const nextId = `option-new-${Date.now()}`;
       setPricingOptions((current) => [
         ...current,
         {
-          id: nextId,
+          id: `option-new-${Date.now()}`,
           label,
-          price,
-          durationHHmm,
+          price: optionPrice,
+          durationHHmm: optionDuration,
         },
       ]);
     }
-    setEditingPricingOptionId(null);
-    setPricingOptionSheetOpen(false);
+    setMultiPriceEnabled(true);
   }
 
   function openAddAddonSheet() {
     setEditingAddonId(null);
-    setAddonSheetError('');
-    setAddonSheetOpen(true);
-  }
-
-  function openEditAddonSheet(addon) {
-    setEditingAddonId(addon.id);
     setAddonSheetError('');
     setAddonSheetOpen(true);
   }
@@ -531,65 +494,17 @@ export function ServiceEditScreen({ route }) {
         setAddonOptions((prev) => {
           const nextOptions = prev.filter((a) => a.id !== addon.id).concat(addon);
           setSelectedAddonIds((curSel) => {
+            const nextSel = curSel.includes(addon.id) ? curSel : [...curSel, addon.id];
             setInitialSnapshot((s) => patchEditorSnapshotAddons(s, nextOptions, curSel));
-            return curSel;
+            return nextSel;
           });
           return nextOptions;
         });
-        setAddonsExpanded(true);
       }
       setAddonSheetOpen(false);
       setEditingAddonId(null);
     } catch (err) {
       setAddonSheetError(safeUserFacingMessage(err, { fallback: 'Could not save add-on' }));
-    }
-  }
-
-  function confirmDeleteAddon(addon) {
-    const name = String(addon?.name ?? 'This add-on').trim() || 'This add-on';
-    Alert.alert(
-      'Delete add-on?',
-      `"${name}" will be removed from every service. This can't be undone.`,
-      [
-        { style: 'cancel', text: 'Cancel' },
-        {
-          style: 'destructive',
-          text: 'Delete',
-          onPress: () => {
-            void handleDeleteAddon(addon);
-          },
-        },
-      ],
-    );
-  }
-
-  async function handleDeleteAddon(addon) {
-    try {
-      setSaveFeedback('');
-      await deleteAddon({ addonId: addon.id });
-      const nextOptions = addonOptions.filter((a) => a.id !== addon.id);
-      const nextSelected = selectedAddonIds.filter((id) => id !== addon.id);
-      setAddonOptions(nextOptions);
-      setSelectedAddonIds(nextSelected);
-      setInitialSnapshot((s) => patchEditorSnapshotAddons(s, nextOptions, nextSelected));
-      if (editingAddonId === addon.id) {
-        setAddonSheetOpen(false);
-        setEditingAddonId(null);
-      }
-    } catch (err) {
-      showTransientSaveFeedback(
-        safeUserFacingMessage(err, { fallback: 'Could not delete add-on.' }),
-      );
-    }
-  }
-
-  function handleDeletePricingOption(option) {
-    if (blockPricingControls) return;
-    setSaveFeedback('');
-    setPricingOptions((prev) => prev.filter((o) => o.id !== option.id));
-    if (editingPricingOptionId === option.id) {
-      setPricingOptionSheetOpen(false);
-      setEditingPricingOptionId(null);
     }
   }
 
@@ -600,8 +515,7 @@ export function ServiceEditScreen({ route }) {
       price,
       durationHHmm,
       pricingOptions,
-      multiPriceEnabled: !blockPricingControls && multiPriceEnabled,
-      skipPricingOptionValidation: blockPricingControls,
+      skipPricingOptionValidation: pricingLocked,
     });
     if (validationError) {
       showTransientSaveFeedback(validationError);
@@ -618,8 +532,7 @@ export function ServiceEditScreen({ route }) {
       return;
     }
 
-    const savedMultiPriceEnabled =
-      !blockPricingControls && multiPriceEnabled && pricingOptions.length > 0;
+    const savedMultiPriceEnabled = !pricingLocked && pricingOptions.length > 0;
 
     const payload = {
       serviceDetails: {
@@ -732,10 +645,9 @@ export function ServiceEditScreen({ route }) {
   }, [routeServiceId]);
 
   useEffect(() => {
-    if (!blockPricingControls || !pricingOptionSheetOpen) return;
-    setPricingOptionSheetOpen(false);
-    setEditingPricingOptionId(null);
-  }, [blockPricingControls, pricingOptionSheetOpen]);
+    if (!pricingLocked || !priceListOpen) return;
+    setPriceListOpen(false);
+  }, [priceListOpen, pricingLocked]);
 
   useEffect(() => {
     if (!fetchedEditorData || !routeServiceId || hydratedServiceId === routeServiceId) return;
@@ -765,6 +677,17 @@ export function ServiceEditScreen({ route }) {
     setHydratedServiceId(routeServiceId);
   }, [fetchedEditorData, hydratedServiceId, routeServiceId]);
 
+  const sheetsLoading = Boolean(routeServiceId) && hydratedServiceId !== routeServiceId;
+  const addonSummary = summarizeSelectedAddons({
+    catalogAddons: sheetsLoading ? [] : addonOptions,
+    pendingAddons: [],
+    selectedAddonIds: sheetsLoading ? [] : selectedAddonIds,
+  });
+  const priceSummary = summarizePrices(sheetsLoading ? [] : pricingOptions);
+  const sheetOpen = Boolean(priceListOpen || addonSheetOpen || addonPickerOpen);
+  const showSaveButton = !keyboardVisible && !sheetOpen;
+  const showDescriptionCount = description.length >= DESCRIPTION_MAX_LENGTH - 40;
+
   return (
     <SafeAreaView
       edges={['left', 'right']}
@@ -778,7 +701,7 @@ export function ServiceEditScreen({ route }) {
         <ScrollView
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: Math.max(insets.bottom, 16) + stickyBarHeight + 20 },
+            { paddingBottom: Math.max(insets.bottom, 16) + 108 },
           ]}
           keyboardShouldPersistTaps="handled"
           refreshControl={editorRefreshControl}
@@ -800,26 +723,27 @@ export function ServiceEditScreen({ route }) {
             </SurfaceCard>
           ) : null}
 
-          <CollapsibleEditorSectionCard
-            expanded={detailsExpanded}
-            onToggle={() => setDetailsExpanded((v) => !v)}
-            subtitle={!detailsExpanded ? serviceName : null}
-            title="Service details"
-          >
-            <View style={styles.detailsFormSection}>
+          <View style={styles.details}>
+            <SurfaceTextField
+              compact
+              containerStyle={styles.field}
+              label="Service name"
+              onChangeText={setServiceName}
+              placeholder="Full detail"
+              value={serviceName}
+            />
+
+            <View>
               <SurfaceTextField
-                containerStyle={styles.detailsFieldFlush}
-                label="Service name"
-                onChangeText={setServiceName}
-                value={serviceName}
-              />
-            </View>
-            <View style={styles.detailsFormSection}>
-              <SurfaceTextField
-                containerStyle={styles.detailsFieldFlush}
+                compact
+                containerStyle={styles.descriptionField}
                 label="Description"
+                maxLength={DESCRIPTION_MAX_LENGTH}
                 multiline
-                onChangeText={setDescription}
+                onChangeText={(text) =>
+                  setDescription(String(text ?? '').slice(0, DESCRIPTION_MAX_LENGTH))
+                }
+                placeholder="What customers get with this service"
                 style={styles.descriptionInput}
                 textAlignVertical="top"
                 value={description}
@@ -829,243 +753,106 @@ export function ServiceEditScreen({ route }) {
                   accessibilityLabel="Insert bullet point"
                   accessibilityRole="button"
                   hitSlop={8}
-                  style={styles.bulletButton}
                   onPress={insertBulletPoint}
                 >
-                  <Ionicons color={colors.textMuted} name="list-outline" size={18} />
+                  <View style={styles.bulletButton}>
+                    <Ionicons color={colors.textMuted} name="list-outline" size={18} />
+                  </View>
                 </Pressable>
-                <AppText style={[styles.charCount, { color: colors.textMuted }]}>
-                  {description.length}/800
-                </AppText>
+                {showDescriptionCount ? (
+                  <AppText style={[styles.charCount, { color: colors.textMuted }]}>
+                    {description.length}/{DESCRIPTION_MAX_LENGTH}
+                  </AppText>
+                ) : (
+                  <View />
+                )}
               </View>
             </View>
-            <View style={styles.detailsFormSection}>
+
+            <View style={styles.priceRow}>
               <SurfaceTextField
-                containerStyle={[styles.detailsFieldFlush, styles.detailsPriceField]}
+                compact
+                containerStyle={styles.priceField}
                 keyboardType="decimal-pad"
                 label="Price"
                 onChangeText={(text) => setPrice(normalizePriceInput(text))}
                 value={`$${price}`}
               />
               <DurationSelectField
-                containerStyle={styles.detailsDurationField}
+                compact
+                containerStyle={styles.priceField}
                 label="Duration"
                 onValueChange={setDurationHHmm}
-                triggerStyle={{ borderColor: 'rgba(255,255,255,0.24)', borderWidth: 1 }}
                 value={durationHHmm}
               />
             </View>
-          </CollapsibleEditorSectionCard>
+          </View>
 
-          <CollapsibleEditorSectionCard
-            contentStyle={styles.categoryContent}
-            expanded={categoryExpanded}
-            onToggle={() => setCategoryExpanded((v) => !v)}
-            subtitle={categoryCollapsedSubtitle}
-            title="Category"
-          >
-            <ServiceCategorySectionContent
-              categories={categories}
-              categoryId={categoryId}
-              categorySelectOptionsWithNone={categorySelectOptionsWithNone}
-              onCategoryIdChange={handleCategoryIdChange}
-            />
-          </CollapsibleEditorSectionCard>
-
-          <CollapsibleEditorSectionCard
-            contentStyle={styles.pricingContent}
-            expanded={pricingExpanded}
-            onToggle={() => setPricingExpanded((v) => !v)}
-            subtitle={pricingCollapsedSubtitle}
-            title="Pricing options"
-          >
-            <View style={[styles.switchCard, { borderColor: colors.border }]}>
-              <AppText style={[styles.switchText, { color: colors.text }]}>
-                Offer multiple prices
-              </AppText>
-              <View style={styles.switchControlWrap}>
-                <Switch
-                  disabled={blockPricingControls}
-                  thumbColor={
-                    (blockPricingControls ? false : multiPriceEnabled) ? '#f8fafc' : '#f4f4f5'
-                  }
-                  trackColor={{ false: colors.borderStrong, true: '#10b981' }}
-                  value={blockPricingControls ? false : multiPriceEnabled}
-                  onValueChange={blockPricingControls ? () => {} : handleMultiPriceToggle}
-                />
-              </View>
+          {hasCategories ? (
+            <View style={styles.group}>
+              <ServiceCategoryPickerField
+                hint={null}
+                options={categorySelectOptionsWithNone}
+                value={categoryId}
+                onValueChange={handleCategoryIdChange}
+              />
             </View>
+          ) : null}
 
-            <AppText style={[styles.pricingHint, { color: colors.textMuted }]}>
-              {subscriptionLoading
-                ? 'Loading…'
-                : blockPricingControls
-                  ? serviceMultiplePricingAccessCopy.hint
-                  : 'Your lowest price option is shown as "Starting at" to customers.'}
-            </AppText>
-
-            {blockPricingControls ? (
-              <Button
-                fullWidth
-                style={styles.webAccessButtonSpacing}
-                title={serviceMultiplePricingAccessCopy.buttonTitle}
-                variant="secondary"
-                onPress={() =>
-                  showWebAccountFeatureAlert({
-                    title: serviceMultiplePricingAccessCopy.alertTitle,
-                    message: serviceMultiplePricingAccessCopy.alertMessage,
-                  })
-                }
-              />
-            ) : null}
-
-            {!blockPricingControls ? (
-              <Button
-                fullWidth
-                iconName="add"
-                style={styles.pricingAddButton}
-                title="Add option"
-                variant="outline"
-                onPress={openAddPricingOptionSheet}
-              />
-            ) : null}
-
-            {blockPricingControls && pricingOptions.length === 0 ? (
-              <View
-                accessible={false}
-                pointerEvents="none"
-                style={[styles.optionCard, styles.mockOptionCard, { borderColor: colors.border }]}
-              >
-                <View style={styles.optionHeaderRow}>
-                  <View style={[styles.optionHeaderTap, styles.optionReadOnlyTap]}>
-                    <View style={styles.optionMain}>
-                      <AppText
-                        numberOfLines={2}
-                        style={[styles.optionTitle, { color: colors.text }]}
-                      >
-                        {MOCK_PRICING_OPTION_PREVIEW.label}
-                      </AppText>
-                      <AppText
-                        numberOfLines={1}
-                        style={[styles.optionMeta, { color: colors.textMuted }]}
-                      >
-                        ${MOCK_PRICING_OPTION_PREVIEW.price} ·{' '}
-                        {formatServiceDurationSelectLabel(MOCK_PRICING_OPTION_PREVIEW.durationHHmm)}
-                      </AppText>
-                    </View>
-                  </View>
+          {pricingAccessPending ? null : pricingLocked ? (
+            <View style={styles.group}>
+              <SettingsSection first title="Pricing options">
+                <View style={styles.lockedBlock}>
+                  <AppText style={[styles.lockedHint, { color: colors.textMuted }]}>
+                    {serviceMultiplePricingAccessCopy.hint}
+                  </AppText>
+                  <Button
+                    fullWidth
+                    title={serviceMultiplePricingAccessCopy.buttonTitle}
+                    variant="secondary"
+                    onPress={() =>
+                      showWebAccountFeatureAlert({
+                        title: serviceMultiplePricingAccessCopy.alertTitle,
+                        message: serviceMultiplePricingAccessCopy.alertMessage,
+                      })
+                    }
+                  />
                 </View>
-              </View>
-            ) : null}
+              </SettingsSection>
+            </View>
+          ) : null}
 
-            {pricingOptions.map((option) => {
-              return (
-                <View key={option.id} style={[styles.optionCard, { borderColor: colors.border }]}>
-                  <View style={styles.optionHeaderRow}>
-                    {blockPricingControls ? null : (
-                      <Pressable
-                        accessibilityLabel="Delete pricing option"
-                        accessibilityRole="button"
-                        hitSlop={10}
-                        onPress={() => handleDeletePricingOption(option)}
-                        style={styles.optionTrashHit}
-                      >
-                        <Ionicons color="#fb7185" name="trash-outline" size={18} />
-                      </Pressable>
-                    )}
-                    {blockPricingControls ? (
-                      <View style={[styles.optionHeaderTap, styles.optionReadOnlyTap]}>
-                        <View style={styles.optionMain}>
-                          <AppText
-                            numberOfLines={2}
-                            style={[styles.optionTitle, { color: colors.text }]}
-                          >
-                            {option.label}
-                          </AppText>
-                          <AppText
-                            numberOfLines={1}
-                            style={[styles.optionMeta, { color: colors.textMuted }]}
-                          >
-                            {option.price ? `$${option.price}` : 'No price'} ·{' '}
-                            {option.durationHHmm
-                              ? formatServiceDurationSelectLabel(option.durationHHmm)
-                              : 'No duration'}
-                          </AppText>
-                        </View>
-                      </View>
-                    ) : (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => openEditPricingOptionSheet(option)}
-                        style={styles.optionHeaderTap}
-                      >
-                        <View style={styles.optionMain}>
-                          <AppText
-                            numberOfLines={2}
-                            style={[styles.optionTitle, { color: colors.text }]}
-                          >
-                            {option.label}
-                          </AppText>
-                          <AppText
-                            numberOfLines={1}
-                            style={[styles.optionMeta, { color: colors.textMuted }]}
-                          >
-                            {option.price ? `$${option.price}` : 'No price'} ·{' '}
-                            {option.durationHHmm
-                              ? formatServiceDurationSelectLabel(option.durationHHmm)
-                              : 'No duration'}
-                          </AppText>
-                        </View>
-                        <View style={styles.optionChevronHit}>
-                          <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />
-                        </View>
-                      </Pressable>
-                    )}
-                  </View>
+          <View style={styles.group}>
+            {pricingAccessPending || pricingLocked ? (
+              <SettingsSection first>
+                <ServiceAddonSummaryRow
+                  summary={addonSummary}
+                  onPress={() => setAddonPickerOpen(true)}
+                />
+              </SettingsSection>
+            ) : (
+              <SettingsSection first>
+                <ServicePriceSummaryRow
+                  summary={priceSummary}
+                  onPress={() => {
+                    setPriceFormFirst(pricingOptions.length === 0);
+                    setPriceListOpen(true);
+                  }}
+                />
+                <View style={styles.rowDivider}>
+                  <View style={[styles.hairline, { backgroundColor: colors.border }]} />
                 </View>
-              );
-            })}
-          </CollapsibleEditorSectionCard>
-
-          <CollapsibleEditorSectionCard
-            contentStyle={styles.addonsContent}
-            expanded={addonsExpanded}
-            onToggle={() => setAddonsExpanded((v) => !v)}
-            subtitle={!addonsExpanded ? `${selectedAddonIds.length} selected` : null}
-            title="Add-ons"
-          >
-            {addonOptions.map((addon) => (
-              <SelectableAddonCard
-                key={addon.id}
-                addon={addon}
-                deleteDisabled={isDeletingAddon}
-                onDelete={() => confirmDeleteAddon(addon)}
-                onEdit={() => openEditAddonSheet(addon)}
-                onToggle={() => toggleAddon(addon.id)}
-                selected={selectedAddonIds.includes(addon.id)}
-              />
-            ))}
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={openAddAddonSheet}
-              style={[styles.addAddonButton, { borderColor: colors.borderStrong }]}
-            >
-              <Ionicons color="#00d084" name="add" size={18} />
-              <AppText style={styles.addAddonText}>Add new add-on</AppText>
-            </Pressable>
-          </CollapsibleEditorSectionCard>
+                <ServiceAddonSummaryRow
+                  summary={addonSummary}
+                  onPress={() => setAddonPickerOpen(true)}
+                />
+              </SettingsSection>
+            )}
+          </View>
         </ScrollView>
 
-        {!addonSheetOpen && !pricingOptionSheetOpen && !keyboardVisible ? (
-          <View
-            style={[
-              styles.stickySaveWrap,
-              {
-                bottom: Math.max(insets.bottom - 12, 0),
-              },
-            ]}
-          >
+        {showSaveButton ? (
+          <View style={[styles.stickySaveWrap, { bottom: Math.max(insets.bottom, 12) }]}>
             <Button
               disabled={!hasChanges || isSaving}
               fullWidth
@@ -1085,9 +872,9 @@ export function ServiceEditScreen({ route }) {
         initialName={editingAddon?.name ?? ''}
         initialPrice={editingAddon?.price ?? ''}
         isSaving={isSavingAddon}
-        primaryButtonTitle="Save"
+        primaryButtonTitle={editingAddonId ? 'Save' : 'Add add-on'}
         submitError={addonSheetError}
-        title={editingAddonId ? 'Edit add-on' : 'Add new add-on'}
+        title={editingAddonId ? 'Edit add-on' : 'New add-on'}
         visible={addonSheetOpen}
         onRequestClose={() => {
           setAddonSheetOpen(false);
@@ -1097,22 +884,32 @@ export function ServiceEditScreen({ route }) {
         onSave={handleAddonSheetSave}
       />
 
-      <AddonEditorSheet
-        allowBackdropClose={false}
-        durationMode="service"
-        durationPlaceholder="Select duration"
-        initialDurationHHmm={editingPricingOption?.durationHHmm ?? ''}
-        initialName={editingPricingOption?.label ?? ''}
-        initialPrice={editingPricingOption?.price ?? ''}
-        primaryButtonTitle={editingPricingOptionId ? 'Save' : 'Add option'}
-        submitError=""
-        title={editingPricingOptionId ? 'Edit option' : 'Add new option'}
-        visible={pricingOptionSheetOpen}
-        onRequestClose={() => {
-          setPricingOptionSheetOpen(false);
-          setEditingPricingOptionId(null);
+      <ServicePriceListSheet
+        loading={sheetsLoading}
+        options={sheetsLoading ? [] : pricingOptions}
+        startOnForm={priceFormFirst}
+        visible={priceListOpen}
+        onRemove={(id) => {
+          if (pricingLocked) return;
+          const next = pricingOptions.filter((option) => option.id !== id);
+          setPricingOptions(next);
+          if (next.length === 0) {
+            setMultiPriceEnabled(false);
+            setPriceListOpen(false);
+          }
         }}
-        onSave={handlePricingOptionSheetSave}
+        onRequestClose={() => setPriceListOpen(false)}
+        onSave={handlePriceSave}
+      />
+      <ServiceAddonPickerSheet
+        catalogAddons={sheetsLoading ? [] : addonOptions}
+        loading={sheetsLoading}
+        pendingAddons={[]}
+        selectedAddonIds={sheetsLoading ? [] : selectedAddonIds}
+        visible={addonPickerOpen && !addonSheetOpen}
+        onAdd={openAddAddonSheet}
+        onRequestClose={() => setAddonPickerOpen(false)}
+        onToggleCatalog={toggleAddon}
       />
 
       {(saveFeedback && saveFeedback !== 'Saved') || saveError ? (
@@ -1132,100 +929,70 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   content: {
     paddingHorizontal: 16,
-    paddingTop: 6,
+    paddingTop: 8,
   },
   loadErrorCard: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   loadErrorRetry: {
     marginTop: 12,
   },
+  details: {
+    gap: 16,
+  },
+  field: {
+    marginBottom: 0,
+  },
+  descriptionField: {
+    marginBottom: 0,
+  },
+  group: {
+    marginTop: 24,
+  },
   descriptionInput: {
-    minHeight: 140,
-    paddingTop: 12,
-  },
-  /** Match onboarding add-service vertical rhythm (`OnboardingServicesStep`). */
-  detailsFormSection: {
-    marginBottom: 16,
-  },
-  detailsFieldFlush: {
-    marginBottom: 0,
-  },
-  detailsPriceField: {
-    marginBottom: 12,
-  },
-  detailsDurationField: {
-    marginBottom: 0,
-    marginTop: 0,
+    maxHeight: 180,
+    minHeight: 96,
   },
   descriptionToolbar: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 0,
     marginTop: 8,
   },
   bulletButton: {
     alignItems: 'center',
-    height: 30,
+    height: 32,
     justifyContent: 'center',
-    width: 30,
+    width: 32,
   },
   charCount: {
     fontSize: 12,
   },
-  switchCard: {
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
+  priceRow: {
+    alignItems: 'stretch',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    minHeight: 56,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    gap: 10,
   },
-  switchControlWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 34,
+  priceField: {
+    flex: 1,
+    marginBottom: 0,
+    marginTop: 0,
+    minWidth: 0,
   },
-  switchText: {
+  rowDivider: {
+    paddingHorizontal: 16,
+  },
+  hairline: {
+    height: StyleSheet.hairlineWidth,
+    opacity: 0.55,
+  },
+  lockedBlock: {
+    gap: 12,
+    padding: 16,
+  },
+  lockedHint: {
     fontSize: 14,
-    fontWeight: '600',
-  },
-  pricingHint: {
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: 10,
-  },
-  pricingContent: {
-    paddingTop: 12,
-  },
-  categoryContent: {
-    paddingTop: 8,
-  },
-  addonsContent: {
-    paddingTop: 12,
-  },
-  addAddonButton: {
-    alignItems: 'center',
-    borderRadius: 10,
-    borderStyle: 'dashed',
-    borderWidth: 1.5,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 4,
-    minHeight: 44,
-    width: '100%',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  addAddonText: {
-    color: '#00d084',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 5,
+    lineHeight: 20,
   },
   stickySaveWrap: {
     left: 16,
@@ -1248,69 +1015,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  optionCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  optionHeaderRow: {
-    alignItems: 'stretch',
-    flexDirection: 'row',
-    gap: 4,
-    minHeight: 48,
-  },
-  optionHeaderTap: {
-    alignItems: 'stretch',
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    minHeight: 48,
-    minWidth: 0,
-  },
-  optionTrashHit: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 40,
-    width: 40,
-  },
-  optionMain: {
-    flex: 1,
-    justifyContent: 'center',
-    marginRight: 2,
-    minWidth: 0,
-  },
-  optionReadOnlyTap: {
-    flex: 1,
-  },
-  optionChevronHit: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingLeft: 2,
-    width: 28,
-  },
-  webAccessButtonSpacing: {
-    marginBottom: 10,
-  },
-  pricingAddButton: {
-    marginBottom: 8,
-  },
-  mockOptionCard: {
-    marginTop: 4,
-    opacity: 0.5,
-  },
-  optionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: -0.15,
-    lineHeight: 18,
-    marginBottom: 1,
-  },
-  optionMeta: {
-    fontSize: 11,
-    fontWeight: '500',
-    lineHeight: 14,
   },
 });
