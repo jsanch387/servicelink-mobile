@@ -29,8 +29,28 @@ import { NO_EXISTING_SERVICELINK_ACCOUNT_CODE } from '../constants/existingAccou
 import { queryClient } from '../../../lib/queryClient';
 import { getAuthErrorMessage, getAuthErrorHint } from '../utils/authErrors';
 import { tryE2eDevLogin } from '../utils/e2eDevLogin';
+import { posthog } from '../../../lib/posthog';
 
 const AuthContext = createContext(null);
+
+function identifyAuthenticatedUser(user) {
+  const distinctId = user?.id;
+  if (!posthog || typeof distinctId !== 'string' || !distinctId) {
+    return;
+  }
+
+  const personProperties = {};
+  if (typeof user.email === 'string' && user.email) {
+    personProperties.email = user.email;
+  }
+
+  const fullName = user.user_metadata?.full_name ?? user.user_metadata?.name;
+  if (typeof fullName === 'string' && fullName) {
+    personProperties.name = fullName;
+  }
+
+  posthog.identify(distinctId, { $set: personProperties });
+}
 
 function notifyExistingAccountOnlyFailure(error) {
   if (Platform.OS === 'web') {
@@ -88,6 +108,9 @@ export function AuthProvider({ children }) {
         return;
       }
       setSession(nextSession);
+      if (nextSession?.user) {
+        identifyAuthenticatedUser(nextSession.user);
+      }
       setIsReady(true);
     }
 
@@ -95,6 +118,7 @@ export function AuthProvider({ children }) {
 
     const { data } = onAuthStateChange((event, nextSession) => {
       if (event === 'SIGNED_OUT') {
+        posthog?.reset();
         queryClient.clear();
         void clearPendingBookingLinkNavigation();
       }
@@ -108,6 +132,11 @@ export function AuthProvider({ children }) {
             await signOutRequest();
             queryClient.clear();
             setSession(null);
+            return;
+          }
+          // Cold start + sign-in both need identify so people show up in PostHog.
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+            identifyAuthenticatedUser(nextSession.user);
           }
         });
       }

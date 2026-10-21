@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { posthog } from '../../../lib/posthog';
 import { insertCustomerForBusiness } from '../api/customers';
 import { CUSTOMERS_QUERY_ROOT } from '../queryKeys';
 
@@ -24,6 +25,7 @@ export function useCreateCustomer(businessId) {
       return data;
     },
     onSuccess: async () => {
+      posthog?.capture('customer_created');
       await queryClient.invalidateQueries({ queryKey: CUSTOMERS_QUERY_ROOT });
     },
   });

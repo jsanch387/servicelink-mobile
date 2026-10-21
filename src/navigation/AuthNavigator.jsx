@@ -32,6 +32,8 @@ import { ROUTES } from '../routes/routes';
 import { useTheme } from '../theme';
 import { navigationRef } from './navigationRef';
 import { nativeStackScreenOptions } from './nativeStackScreenOptions';
+import { trackScreenView } from '../lib/analyticsNavigation';
+import { PostHogProviderIfConfigured } from '../lib/posthog';
 
 const Stack = createNativeStackNavigator();
 
@@ -75,6 +77,7 @@ export function AuthNavigator() {
 
   const handoffOverlayOpacity = useRef(new Animated.Value(1)).current;
   const handoffDismissStartedRef = useRef(false);
+  const routeNameRef = useRef(null);
 
   /** After step 5 activation: stay covered until tabs are ready so subscription boot / logo doesn’t flash, then fade out. */
   useEffect(() => {
@@ -265,137 +268,164 @@ export function AuthNavigator() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.shell }}>
-      <NavigationContainer ref={navigationRef} theme={navTheme}>
+      <NavigationContainer
+        ref={navigationRef}
+        theme={navTheme}
+        onReady={() => {
+          const state = navigationRef.getRootState();
+          const currentRouteName = navigationRef.getCurrentRoute()?.name ?? null;
+          routeNameRef.current = currentRouteName;
+          trackScreenView({
+            screenName: currentRouteName,
+            navigationState: state,
+          });
+        }}
+        onStateChange={() => {
+          const previousRouteName = routeNameRef.current;
+          const state = navigationRef.getRootState();
+          const currentRouteName = navigationRef.getCurrentRoute()?.name ?? null;
+          if (currentRouteName && currentRouteName !== previousRouteName) {
+            trackScreenView({
+              screenName: currentRouteName,
+              previousScreenName: previousRouteName,
+              navigationState: state,
+            });
+          }
+          routeNameRef.current = currentRouteName;
+        }}
+      >
         <EasOverTheAirUpdateBootstrap />
         <PushNotificationsBootstrap />
-        <Stack.Navigator
-          key={stackKey}
-          screenOptions={{
-            ...nativeStackScreenOptions({
-              animation: stackKey === 'auth' ? 'fade' : 'slide_from_right',
-              colors,
-            }),
-            headerShown: false,
-          }}
-        >
-          {session && needsRemovedFromTeam ? (
-            <Stack.Screen
-              component={RemovedFromTeamScreen}
-              name={ROUTES.REMOVED_FROM_TEAM}
-              options={{ gestureEnabled: false }}
-            />
-          ) : null}
-          {session && needsOnboarding ? (
-            <Stack.Screen
-              component={OnboardingScreen}
-              name={ROUTES.ONBOARDING}
-              options={{ gestureEnabled: false }}
-            />
-          ) : null}
-          {session && !needsOnboarding && !needsRemovedFromTeam && mainAppSubscriptionBooting ? (
-            <Stack.Screen
-              component={MainAppSubscriptionBootScreen}
-              name="MainAppSubscriptionBoot"
-            />
-          ) : null}
-          {session && !needsOnboarding && !needsRemovedFromTeam && !mainAppSubscriptionBooting ? (
-            <>
+        <PostHogProviderIfConfigured>
+          <Stack.Navigator
+            key={stackKey}
+            screenOptions={{
+              ...nativeStackScreenOptions({
+                animation: stackKey === 'auth' ? 'fade' : 'slide_from_right',
+                colors,
+              }),
+              headerShown: false,
+            }}
+          >
+            {session && needsRemovedFromTeam ? (
               <Stack.Screen
-                component={MainTabNavigator}
-                name={ROUTES.MAIN_APP}
-                options={{ headerTransparent: true }}
+                component={RemovedFromTeamScreen}
+                name={ROUTES.REMOVED_FROM_TEAM}
+                options={{ gestureEnabled: false }}
               />
+            ) : null}
+            {session && needsOnboarding ? (
               <Stack.Screen
-                component={NotificationsInboxScreen}
-                name={ROUTES.NOTIFICATIONS_INBOX}
-                options={{
-                  headerShown: true,
-                  title: 'Notifications',
-                  headerBackButtonDisplayMode: 'minimal',
-                  headerBackTitleVisible: false,
-                }}
+                component={OnboardingScreen}
+                name={ROUTES.ONBOARDING}
+                options={{ gestureEnabled: false }}
               />
+            ) : null}
+            {session && !needsOnboarding && !needsRemovedFromTeam && mainAppSubscriptionBooting ? (
               <Stack.Screen
-                component={CreateAppointmentScreen}
-                name={ROUTES.CREATE_APPOINTMENT}
-                options={{
-                  headerShown: true,
-                  title: 'New appointment',
-                  headerBackButtonDisplayMode: 'minimal',
-                  headerBackTitleVisible: false,
-                }}
+                component={MainAppSubscriptionBootScreen}
+                name="MainAppSubscriptionBoot"
               />
-              <Stack.Screen
-                component={EditBookingScreen}
-                name={ROUTES.EDIT_BOOKING}
-                options={{
-                  headerShown: true,
-                  title: 'Edit appointment',
-                  headerBackButtonDisplayMode: 'minimal',
-                  headerBackTitleVisible: false,
-                }}
-              />
-              <Stack.Screen
-                component={RescheduleBookingScreen}
-                name={ROUTES.RESCHEDULE_BOOKING}
-                options={{
-                  headerShown: true,
-                  title: 'Reschedule',
-                  headerBackButtonDisplayMode: 'minimal',
-                  headerBackTitleVisible: false,
-                }}
-              />
-              <Stack.Screen
-                component={CreatePaymentScreen}
-                name={ROUTES.CREATE_PAYMENT}
-                options={{
-                  headerShown: true,
-                  title: 'New payment',
-                  headerBackButtonDisplayMode: 'minimal',
-                  headerBackTitleVisible: false,
-                }}
-              />
-              <Stack.Screen
-                component={CreateQuoteScreen}
-                name={ROUTES.CREATE_QUOTE}
-                options={{
-                  headerShown: true,
-                  headerBackButtonDisplayMode: 'minimal',
-                  headerBackTitleVisible: false,
-                }}
-              />
-              <Stack.Screen
-                component={CreateInvoiceScreen}
-                name={ROUTES.CREATE_INVOICE}
-                options={{
-                  headerShown: true,
-                  title: 'New invoice',
-                  headerBackButtonDisplayMode: 'minimal',
-                  headerBackTitleVisible: false,
-                }}
-              />
-              <Stack.Screen
-                component={CreateInvoicePreviewScreen}
-                name={ROUTES.CREATE_INVOICE_PREVIEW}
-                options={{
-                  headerShown: true,
-                  title: 'Invoice',
-                  headerBackButtonDisplayMode: 'minimal',
-                  headerBackTitleVisible: false,
-                }}
-              />
-            </>
-          ) : null}
-          {!session ? (
-            <>
-              <Stack.Screen component={LoginScreen} name={ROUTES.LOGIN} />
-              <Stack.Screen component={LoginEmailCodeScreen} name={ROUTES.LOGIN_EMAIL_CODE} />
-              {/* <Stack.Screen component={SignUpScreen} name={ROUTES.SIGN_UP} /> */}
-              {/* <Stack.Screen component={CheckYourEmailScreen} name={ROUTES.CHECK_YOUR_EMAIL} /> */}
-              <Stack.Screen component={ForgotPasswordScreen} name={ROUTES.FORGOT_PASSWORD} />
-            </>
-          ) : null}
-        </Stack.Navigator>
+            ) : null}
+            {session && !needsOnboarding && !needsRemovedFromTeam && !mainAppSubscriptionBooting ? (
+              <>
+                <Stack.Screen
+                  component={MainTabNavigator}
+                  name={ROUTES.MAIN_APP}
+                  options={{ headerTransparent: true }}
+                />
+                <Stack.Screen
+                  component={NotificationsInboxScreen}
+                  name={ROUTES.NOTIFICATIONS_INBOX}
+                  options={{
+                    headerShown: true,
+                    title: 'Notifications',
+                    headerBackButtonDisplayMode: 'minimal',
+                    headerBackTitleVisible: false,
+                  }}
+                />
+                <Stack.Screen
+                  component={CreateAppointmentScreen}
+                  name={ROUTES.CREATE_APPOINTMENT}
+                  options={{
+                    headerShown: true,
+                    title: 'New appointment',
+                    headerBackButtonDisplayMode: 'minimal',
+                    headerBackTitleVisible: false,
+                  }}
+                />
+                <Stack.Screen
+                  component={EditBookingScreen}
+                  name={ROUTES.EDIT_BOOKING}
+                  options={{
+                    headerShown: true,
+                    title: 'Edit appointment',
+                    headerBackButtonDisplayMode: 'minimal',
+                    headerBackTitleVisible: false,
+                  }}
+                />
+                <Stack.Screen
+                  component={RescheduleBookingScreen}
+                  name={ROUTES.RESCHEDULE_BOOKING}
+                  options={{
+                    headerShown: true,
+                    title: 'Reschedule',
+                    headerBackButtonDisplayMode: 'minimal',
+                    headerBackTitleVisible: false,
+                  }}
+                />
+                <Stack.Screen
+                  component={CreatePaymentScreen}
+                  name={ROUTES.CREATE_PAYMENT}
+                  options={{
+                    headerShown: true,
+                    title: 'New payment',
+                    headerBackButtonDisplayMode: 'minimal',
+                    headerBackTitleVisible: false,
+                  }}
+                />
+                <Stack.Screen
+                  component={CreateQuoteScreen}
+                  name={ROUTES.CREATE_QUOTE}
+                  options={{
+                    headerShown: true,
+                    headerBackButtonDisplayMode: 'minimal',
+                    headerBackTitleVisible: false,
+                  }}
+                />
+                <Stack.Screen
+                  component={CreateInvoiceScreen}
+                  name={ROUTES.CREATE_INVOICE}
+                  options={{
+                    headerShown: true,
+                    title: 'New invoice',
+                    headerBackButtonDisplayMode: 'minimal',
+                    headerBackTitleVisible: false,
+                  }}
+                />
+                <Stack.Screen
+                  component={CreateInvoicePreviewScreen}
+                  name={ROUTES.CREATE_INVOICE_PREVIEW}
+                  options={{
+                    headerShown: true,
+                    title: 'Invoice',
+                    headerBackButtonDisplayMode: 'minimal',
+                    headerBackTitleVisible: false,
+                  }}
+                />
+              </>
+            ) : null}
+            {!session ? (
+              <>
+                <Stack.Screen component={LoginScreen} name={ROUTES.LOGIN} />
+                <Stack.Screen component={LoginEmailCodeScreen} name={ROUTES.LOGIN_EMAIL_CODE} />
+                {/* <Stack.Screen component={SignUpScreen} name={ROUTES.SIGN_UP} /> */}
+                {/* <Stack.Screen component={CheckYourEmailScreen} name={ROUTES.CHECK_YOUR_EMAIL} /> */}
+                <Stack.Screen component={ForgotPasswordScreen} name={ROUTES.FORGOT_PASSWORD} />
+              </>
+            ) : null}
+          </Stack.Navigator>
+        </PostHogProviderIfConfigured>
       </NavigationContainer>
       {session && postActivationHandoff ? (
         <Animated.View

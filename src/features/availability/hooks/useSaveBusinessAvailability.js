@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { posthog } from '../../../lib/posthog';
 import { saveBusinessAvailability } from '../api/availability';
 import { AVAILABILITY_QUERY_ROOT, businessAvailabilityQueryKey } from '../queryKeys';
 
@@ -17,6 +18,7 @@ export function useSaveBusinessAvailability({ businessId }) {
       return data;
     },
     onSuccess: async () => {
+      posthog?.capture('availability_saved');
       await queryClient.invalidateQueries({ queryKey: AVAILABILITY_QUERY_ROOT });
       await queryClient.invalidateQueries({ queryKey: businessAvailabilityQueryKey(businessId) });
     },

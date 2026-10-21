@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { posthog } from '../../../lib/posthog';
 import { updateReviewReply } from '../api/reviews';
 import { reviewsListQueryKey } from '../queryKeys';
 import { mapReviewRowToModel, validateReviewReply } from '../utils/reviewModel';
@@ -31,6 +32,7 @@ export function useSubmitReviewReply(businessId) {
       return mapReviewRowToModel(data);
     },
     onSuccess: (updatedReview) => {
+      posthog?.capture('review_reply_submitted');
       queryClient.setQueryData(reviewsListQueryKey(businessId), (current) => {
         if (!Array.isArray(current)) return current;
         return current.map((review) => (review.id === updatedReview.id ? updatedReview : review));

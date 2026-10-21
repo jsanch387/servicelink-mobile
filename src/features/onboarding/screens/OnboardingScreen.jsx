@@ -21,6 +21,8 @@ import { getBookingLinkDisplay } from '../../home/utils/bookingLink';
 import { sanitizeBusinessSlugForSave } from '../../more/utils/businessSlug';
 import { fetchBusinessServices } from '../../services/api/services';
 import { queryClient } from '../../../lib/queryClient';
+import { posthog } from '../../../lib/posthog';
+import { posthogLog } from '../../../lib/posthogLogs';
 import { BOOKING_LINK_QUERY_KEY } from '../../bookingLink/queryKeys';
 import { accountSettingsQueryKey } from '../../more/queryKeys';
 import { resolveStripeMobileCheckoutOrigin } from '../../../lib/stripeMobileCheckoutOrigin';
@@ -516,6 +518,11 @@ export function OnboardingScreen() {
         Alert.alert('Could not activate your link', body);
         return;
       }
+      posthog?.capture('onboarding_completed');
+      posthogLog.info('onboarding activated', {
+        event: 'onboarding.activated',
+        outcome: 'success',
+      });
       // Cover the shell before profile refetch flips `needsOnboarding` — otherwise Home flashes for a frame.
       beginPostActivationHandoff();
       try {

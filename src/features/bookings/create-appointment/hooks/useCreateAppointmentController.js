@@ -3,6 +3,8 @@ import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { InteractionManager } from 'react-native';
 import { useToast } from '../../../../components/ui';
+import { posthog } from '../../../../lib/posthog';
+import { posthogLog } from '../../../../lib/posthogLogs';
 import { customersListQueryKey } from '../../../customers/queryKeys';
 import { useCustomerSmsAccess } from '../../../sms/hooks/useCustomerSmsAccess';
 import { catalogAddonsForService } from '../../../services/utils/catalogAddonsForService';
@@ -735,6 +737,19 @@ export function useCreateAppointmentController({
       return res.data;
     },
     onSuccess: async (data) => {
+      posthog?.capture('appointment_created', {
+        job_count: visitJobs.length,
+        is_membership_visit: isMembershipVisit,
+        location_type: appointmentLocationType ?? 'unspecified',
+        sale_discount_applied: Boolean(appliedSaleDiscount),
+      });
+      posthogLog.info('appointment created', {
+        event: 'appointment.created',
+        job_count: visitJobs.length,
+        is_membership_visit: isMembershipVisit,
+        location_type: appointmentLocationType ?? 'unspecified',
+        sale_discount_applied: Boolean(appliedSaleDiscount),
+      });
       await Promise.all([
         invalidateBookingCachesAfterMutation(queryClient, data?.id),
         queryClient.invalidateQueries({

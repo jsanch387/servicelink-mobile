@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '../../../../components/ui';
+import { posthog } from '../../../../lib/posthog';
 import { useAppReviewPrompt } from '../../../appReview';
 import { useAuth } from '../../../auth';
 import { fetchBusinessProfileForUser } from '../../../home/api/homeDashboard';
@@ -343,6 +344,10 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
       return { mode: /** @type {const} */ ('legacy'), result: result.data };
     },
     onSuccess: async (payload, checkout) => {
+      posthog?.capture('booking_completed', {
+        completion_mode: payload.mode,
+        has_checkout: Boolean(checkout),
+      });
       if (payload.mode === 'job_completed') {
         const { result } = payload;
         const id = bookingId?.trim();

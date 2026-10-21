@@ -97,6 +97,8 @@ module.exports = ({ config }) => {
   const minNativeAppVersion =
     String(process.env.EXPO_PUBLIC_MIN_NATIVE_APP_VERSION ?? '').trim() ||
     String(config?.version ?? '').trim();
+  const posthogProjectToken = String(process.env.EXPO_PUBLIC_POSTHOG_PROJECT_TOKEN ?? '').trim();
+  const posthogHost = String(process.env.EXPO_PUBLIC_POSTHOG_HOST ?? '').trim();
   const iosAppStoreUrl =
     String(process.env.EXPO_PUBLIC_IOS_APP_STORE_URL ?? '').trim() ||
     'https://apps.apple.com/app/id6768877250';
@@ -113,6 +115,8 @@ module.exports = ({ config }) => {
     extra: {
       ...(config.extra ?? {}),
       webAppUrl: resolvedWebAppUrl,
+      ...(posthogProjectToken ? { posthogProjectToken } : {}),
+      ...(posthogHost ? { posthogHost } : {}),
       ...(minNativeAppVersion ? { minNativeAppVersion } : {}),
       iosAppStoreUrl,
       androidPlayStoreUrl,

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { useAuth } from '../../auth';
+import { posthog } from '../../../lib/posthog';
 import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
 import {
@@ -94,12 +95,16 @@ export function useMarketingCampaignsState() {
 
       if (campaign.kind === MARKETING_CAMPAIGN_KIND.SALE) {
         const result = await insertSale({ businessId, campaign });
-        if (!result.error) await invalidateMarketing();
+        if (!result.error) {
+          posthog?.capture('marketing_campaign_created', { campaign_kind: 'sale' });
+          await invalidateMarketing();
+        }
         return result;
       }
 
       const result = await insertPromoCode({ businessId, campaign });
       if (!result.error) {
+        posthog?.capture('marketing_campaign_created', { campaign_kind: 'promo_code' });
         queryClient.setQueryData(marketingPromoCodesQueryKey(businessId), (old) => {
           const list = Array.isArray(old) ? old : [];
           return result.data ? [result.data, ...list.filter((c) => c.id !== result.data.id)] : list;

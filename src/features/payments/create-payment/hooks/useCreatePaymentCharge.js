@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { useToast } from '../../../../components/ui';
+import { posthog } from '../../../../lib/posthog';
+import { posthogLog } from '../../../../lib/posthogLogs';
 import { postTapToPayMerchantIntent } from '../../../tap-to-pay/api/postTapToPayMerchantIntent';
 import { isTapToPayUiEnabled } from '../../../tap-to-pay/constants/tapToPayFeatureFlags';
 import {
@@ -119,6 +121,15 @@ export function useCreatePaymentCharge({ accessToken, amount, note, onSuccess })
       });
 
       setPhase('success');
+      posthog?.capture('payment_collected', {
+        amount_cents: result.amountCents,
+        payment_method: 'tap_to_pay',
+      });
+      posthogLog.info('tap to pay collection completed', {
+        event: 'payment.collection_completed',
+        amount_cents: result.amountCents,
+        payment_method: 'tap_to_pay',
+      });
       onSuccess?.(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Payment failed. Try again.';
