@@ -6,11 +6,11 @@ const projectToken = String(Constants.expoConfig?.extra?.posthogProjectToken ?? 
 const host = String(Constants.expoConfig?.extra?.posthogHost ?? '').trim();
 const isLocalDev = typeof __DEV__ !== 'undefined' && __DEV__;
 const hasCredentials = Boolean(projectToken && host);
-const isPostHogConfigured = hasCredentials;
+/** Off in Metro / the dev client so local clicking does not mix with real usage. */
+const isPostHogConfigured = hasCredentials && !isLocalDev;
 
-/** `development` in Metro; otherwise the EAS channel (`production` / `preview`). */
+/** EAS channel (`production` / `preview`), or `production` when the channel is unset. */
 function resolveAppEnvironment() {
-  if (isLocalDev) return 'development';
   const channel = typeof Updates.channel === 'string' ? Updates.channel.trim() : '';
   return channel || 'production';
 }
@@ -23,11 +23,11 @@ if (!hasCredentials && !isLocalDev) {
 }
 
 /**
- * Shared PostHog client.
+ * Shared PostHog client. Disabled while `__DEV__` is true.
  * - Screens/tabs: tracked via navigation (`trackScreenView`)
  * - Crashes: JS uncaught exceptions + unhandled promise rejections
  * - Touches: off by default (noisy); use named events for important actions
- * - Every event includes `app_environment` (`development`, `preview`, or `production`)
+ * - Release events include `app_environment` (`production` or `preview`)
  */
 export const posthog = isPostHogConfigured
   ? new PostHog(projectToken, {
