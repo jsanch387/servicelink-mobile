@@ -36,11 +36,12 @@ Tap to Pay does **not** use Stripe Checkout. The server creates a **PaymentInten
 | Step | Mobile UI                                     | Server                                                                       |
 | ---- | --------------------------------------------- | ---------------------------------------------------------------------------- |
 | 1    | Complete sheet shows line items + balance due | Booking + `booking_payments` (Phase 1)                                       |
-| 2    | Owner taps **Tap to Pay** → sheet opens       | —                                                                            |
-| 3    | Sheet auto-starts: connection token + intent  | `POST …/connection-token`, `POST …/intent`                                   |
-| 4    | Terminal listens; customer taps card          | Stripe confirms PaymentIntent                                                |
-| 5    | SDK reports success                           | `POST …/actions` `job_completed` with `tap_to_pay` + `stripePaymentIntentId` |
-| 6    | Success UI; sheet closes                      | Persist fees, payment, invoice, notify customer                              |
+| 2    | Owner taps **Tap to Pay** → tip screen        | —                                                                            |
+| 3    | Customer picks a tip → Tap to Pay sheet opens | —                                                                            |
+| 4    | Sheet auto-starts: connection token + intent  | `POST …/connection-token`, `POST …/intent` (tip is a `Tip` session fee)      |
+| 5    | Terminal listens; customer taps card          | Stripe confirms PaymentIntent                                                |
+| 6    | SDK reports success                           | `POST …/actions` `job_completed` with `tap_to_pay` + `stripePaymentIntentId` |
+| 7    | Success UI; sheet closes                      | Persist fees, payment, invoice, notify customer                              |
 
 **Golden rule:** Tap to Pay is a **convenience** path. **Mark as paid** (`cash` / `payment_app` / `other`) always remains available. A failed or cancelled tap must **never** block completion.
 
@@ -50,7 +51,7 @@ Tap to Pay does **not** use Stripe Checkout. The server creates a **PaymentInten
 
 ## PaymentIntent timing (intentional)
 
-When the owner taps **Tap to Pay**, the sheet opens and **immediately** calls `POST …/intent` — there is no second in-app tap. This matches Stripe Terminal’s requirement (a `clientSecret` before NFC collection) and is the standard in-person flow.
+After the customer confirms a tip, the Tap to Pay sheet opens and **immediately** calls `POST …/intent` — there is no second in-app tap on that sheet. This matches Stripe Terminal’s requirement (a `clientSecret` before NFC collection). The tip screen is the only step before that.
 
 | Scenario                            | Behavior                                                                        |
 | ----------------------------------- | ------------------------------------------------------------------------------- |
@@ -104,12 +105,15 @@ Intent creation uses **`amountDueCents`** (no session payment yet).
 
 ```text
 1. App root: StripeTerminalAppProvider (connection token from registry while sheet is open)
-2. Owner taps Tap to Pay on Complete sheet → TapToPaySheet mounts
-3. POST …/connection-token (registry) + POST …/intent { sessionFees }
-4. Terminal: easyConnect (tapToPay) → retrievePaymentIntent → processPaymentIntent
-5. On SDK success → POST …/actions job_completed with tap_to_pay + stripePaymentIntentId
-6. On 200 → success UI → sheet closes
+2. Owner taps Tap to Pay on Complete sheet → tip sheet (15% / 20% / 25%, custom, or no tip)
+3. Customer confirms → TapToPaySheet mounts
+4. POST …/connection-token (registry) + POST …/intent { sessionFees }
+5. Terminal: easyConnect (tapToPay) → retrievePaymentIntent → processPaymentIntent
+6. On SDK success → POST …/actions job_completed with tap_to_pay + stripePaymentIntentId
+7. On 200 → success UI → sheet closes
 ```
+
+A chosen tip is an extra `sessionFees` row labeled **`Tip`**, on both the intent and `job_completed`. The PaymentIntent amount is the job total plus that tip, so the existing amount-due check still balances. **No tip** sends the job total only.
 
 If the owner **adds or edits a fee** on the Complete sheet, local tap state is cleared; the next Tap to Pay session sends the updated `sessionFees`.
 
@@ -137,6 +141,7 @@ Call **only after** SDK reports PaymentIntent **succeeded**. Pass the **same** `
 
 | Phase                    | UI                                                                      |
 | ------------------------ | ----------------------------------------------------------------------- |
+| Tip                      | Service total, 15% / 20% / 25%, Custom, No tip, then **Charge**         |
 | `loading_intent`         | Spinner — preparing payment                                             |
 | `pending`                | “Hold their card…” / “Ready to accept payment”                          |
 | `success`                | “Payment received” → auto-dismiss                                       |
@@ -214,6 +219,7 @@ Without it, Terminal `easyConnect` fails with `UNSUPPORTED_OPERATION` even when 
 | ----------------------- | ------------------------------------------------------------------------ |
 | Feature barrel          | `tap-to-pay/index.js`                                                    |
 | Complete sheet entry    | `booking-details/components/BookingCompleteInvoiceDesignSheet.jsx`       |
+| Tip sheet               | `tap-to-pay/components/TapToPayTipSheet.jsx`                             |
 | Tap overlay             | `tap-to-pay/components/TapToPaySheet.jsx`                                |
 | Intent + collection     | `tap-to-pay/hooks/useTapToPaySheet.js`                                   |
 | Terminal SDK            | `tap-to-pay/hooks/useTapToPayTerminalCollection.js`                      |

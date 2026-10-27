@@ -62,7 +62,10 @@ import { isValidEmailFormat } from '../../../../utils/email';
 import { formatPhoneForDisplay, normalizePhoneForDatabase } from '../../../../utils/phone';
 import {
   TapToPaySheet,
+  TapToPayTipSheet,
   TAP_TO_PAY_RECEIPT_ROW_LABEL,
+  appendTapToPayTipCheckoutFee,
+  appendTapToPayTipFee,
   buildTapToPaySessionFees,
   isTapToPayUiEnabled,
   TAP_TO_PAY_USE_TERMINAL_SDK,
@@ -100,7 +103,11 @@ function formatUsd(amount) {
  *   adjustments: Array<{ id: string; label: string; amount: number }>;
  *   onAddFee: (fee: { label: string; amount: number }) => void;
  *   onRemoveFee: (id: string) => void;
- *   onTapToPaySuccess: (result: { amountCents: number; paymentIntentId: string | null }) => void | Promise<void>;
+ *   onTapToPaySuccess: (result: {
+ *     amountCents: number;
+ *     paymentIntentId: string | null;
+ *     tipCents?: number;
+ *   }) => void | Promise<void>;
  *   tapToPayAmount: number;
  *   bookingId?: string | null;
  *   accessToken?: string | null;
@@ -317,31 +324,53 @@ function CompleteVisitDesignBody({
     overlay?.show(<CompleteVisitAddFeeSheet onAdd={onAddFee} onClose={() => overlay.hide()} />);
   };
 
-  const openTapToPaySheet = useCallback(() => {
+  const openTapToPaySheet = useCallback(
+    (tipCents) => {
+      Keyboard.dismiss();
+      if (!isTapToPayNativeRuntimeAvailable()) {
+        Alert.alert(
+          'Development build required',
+          'Tap to Pay needs a development build with Stripe Terminal. It is not available in Expo Go.',
+        );
+        return;
+      }
+      const sessionFees = appendTapToPayTipFee(buildTapToPaySessionFees(adjustments), tipCents);
+      overlay?.show(
+        <TapToPaySheet
+          accessToken={accessToken}
+          amountDue={amountDue + tipCents / 100}
+          bookingId={bookingId}
+          merchantDisplayName={merchantDisplayName}
+          prewarmConnectParams={tapToPayPrewarmConnectParams}
+          sessionFees={sessionFees}
+          onClose={() => overlay.hide()}
+          onSuccess={(result) => onTapToPaySuccess({ ...result, tipCents })}
+        />,
+      );
+    },
+    [
+      accessToken,
+      adjustments,
+      amountDue,
+      bookingId,
+      merchantDisplayName,
+      onTapToPaySuccess,
+      overlay,
+      tapToPayPrewarmConnectParams,
+    ],
+  );
+
+  const openTapToPayTipSheet = useCallback(() => {
     Keyboard.dismiss();
-    const sessionFees = buildTapToPaySessionFees(adjustments);
+    const baseCents = Math.max(0, Math.round(amountDue * 100));
     overlay?.show(
-      <TapToPaySheet
-        accessToken={accessToken}
-        amountDue={amountDue}
-        bookingId={bookingId}
-        merchantDisplayName={merchantDisplayName}
-        prewarmConnectParams={tapToPayPrewarmConnectParams}
-        sessionFees={sessionFees}
+      <TapToPayTipSheet
+        amountDueCents={baseCents}
         onClose={() => overlay.hide()}
-        onSuccess={onTapToPaySuccess}
+        onContinue={(tipCents) => openTapToPaySheet(tipCents)}
       />,
     );
-  }, [
-    accessToken,
-    adjustments,
-    amountDue,
-    bookingId,
-    merchantDisplayName,
-    onTapToPaySuccess,
-    overlay,
-    tapToPayPrewarmConnectParams,
-  ]);
+  }, [amountDue, openTapToPaySheet, overlay]);
 
   const canUseTapToPay = tapToPayConnectReady && !tapToPayConnectLoading;
   const hasReceiptEmailForTapToPay = isValidEmailFormat(savedReceiptEmail);
@@ -353,19 +382,12 @@ function CompleteVisitDesignBody({
     if (tapToPayConnectLoading || tapToPayNeedsReceiptContact) {
       return;
     }
-    if (!isTapToPayNativeRuntimeAvailable()) {
-      Alert.alert(
-        'Development build required',
-        'Tap to Pay needs a development build with Stripe Terminal. It is not available in Expo Go.',
-      );
-      return;
-    }
     if (canUseTapToPay) {
-      openTapToPaySheet();
+      openTapToPayTipSheet();
       return;
     }
     setSetupSheetVisible(true);
-  }, [canUseTapToPay, openTapToPaySheet, tapToPayConnectLoading, tapToPayNeedsReceiptContact]);
+  }, [canUseTapToPay, openTapToPayTipSheet, tapToPayConnectLoading, tapToPayNeedsReceiptContact]);
 
   const handleSetupPaymentsPress = useCallback(() => {
     setSetupSheetVisible(false);
@@ -655,6 +677,7 @@ export function BookingCompleteVisitSheet({
   const [stripePaymentIntentId, setStripePaymentIntentId] = useState(
     /** @type {string | null} */ (null),
   );
+  const [tapToPayTipCents, setTapToPayTipCents] = useState(0);
   const [submitPhase, setSubmitPhase] = useState(
     /** @type {'idle' | 'pending' | 'success'} */ ('idle'),
   );
@@ -929,12 +952,15 @@ export function BookingCompleteVisitSheet({
   const clearTapToPayState = () => {
     setTapToPayAmount(0);
     setStripePaymentIntentId(null);
+    setTapToPayTipCents(0);
   };
 
-  const handleTapToPaySuccess = async ({ amountCents, paymentIntentId }) => {
+  const handleTapToPaySuccess = async ({ amountCents, paymentIntentId, tipCents = 0 }) => {
     const amount = amountCents / 100;
     const intentId = paymentIntentId?.trim() || null;
+    const resolvedTipCents = Math.max(0, Math.round(Number(tipCents) || 0));
     setTapToPayAmount(amount);
+    setTapToPayTipCents(resolvedTipCents);
     setInPersonPayment(null);
     setStripePaymentIntentId(intentId);
 
@@ -947,6 +973,7 @@ export function BookingCompleteVisitSheet({
           inPersonPayment: null,
           stripePaymentIntentId: intentId,
         });
+        checkout.sessionFees = appendTapToPayTipCheckoutFee(checkout.sessionFees, resolvedTipCents);
         await onComplete(checkout);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         setSubmitPhase('success');
@@ -1077,6 +1104,7 @@ export function BookingCompleteVisitSheet({
         inPersonPayment,
         stripePaymentIntentId,
       });
+      checkout.sessionFees = appendTapToPayTipCheckoutFee(checkout.sessionFees, tapToPayTipCents);
       await onComplete(checkout);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {
         if (Platform.OS === 'android') {
@@ -1098,6 +1126,7 @@ export function BookingCompleteVisitSheet({
     stripePaymentIntentId,
     submitPhase,
     tapToPayAmount,
+    tapToPayTipCents,
   ]);
 
   const handleCompletePress = useCallback(() => {
