@@ -176,6 +176,152 @@ function streetFromFeature(feature) {
   return placeName.split(',')[0]?.trim().slice(0, 200) ?? '';
 }
 
+/** Canonical street-suffix and direction tokens so "ave" matches "Avenue". */
+const STREET_TOKEN_ALIASES = {
+  aly: 'alley',
+  alley: 'alley',
+  ave: 'avenue',
+  avenue: 'avenue',
+  blvd: 'boulevard',
+  boulevard: 'boulevard',
+  cir: 'circle',
+  circle: 'circle',
+  ct: 'court',
+  court: 'court',
+  dr: 'drive',
+  drive: 'drive',
+  hwy: 'highway',
+  highway: 'highway',
+  ln: 'lane',
+  lane: 'lane',
+  pkwy: 'parkway',
+  parkway: 'parkway',
+  pl: 'place',
+  place: 'place',
+  rd: 'road',
+  road: 'road',
+  st: 'street',
+  street: 'street',
+  ter: 'terrace',
+  terrace: 'terrace',
+  trl: 'trail',
+  trail: 'trail',
+  way: 'way',
+  n: 'north',
+  s: 'south',
+  e: 'east',
+  w: 'west',
+  ne: 'northeast',
+  nw: 'northwest',
+  se: 'southeast',
+  sw: 'southwest',
+  north: 'north',
+  south: 'south',
+  east: 'east',
+  west: 'west',
+  northeast: 'northeast',
+  northwest: 'northwest',
+  southeast: 'southeast',
+  southwest: 'southwest',
+};
+
+const OPTIONAL_STREET_SUFFIXES = new Set([
+  'alley',
+  'avenue',
+  'boulevard',
+  'circle',
+  'court',
+  'drive',
+  'highway',
+  'lane',
+  'parkway',
+  'place',
+  'road',
+  'street',
+  'terrace',
+  'trail',
+  'way',
+]);
+
+/**
+ * @param {string} value
+ * @returns {string[]}
+ */
+function normalizeStreetTokens(value) {
+  return String(value ?? '')
+    .toLowerCase()
+    .replace(/[.,#]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => STREET_TOKEN_ALIASES[token] ?? token);
+}
+
+/**
+ * Leading US house number, such as "1025" or "1025A". A bare ZIP does not match.
+ * @param {string} query
+ * @returns {string}
+ */
+function leadingHouseNumber(query) {
+  const match = String(query ?? '')
+    .trim()
+    .match(/^(\d{1,6}[a-z]?)(?=\s+\S)/i);
+  return match?.[1] ?? '';
+}
+
+/**
+ * True when the geocoder street is the street the user typed, ignoring city words
+ * after it and a missing suffix ("burkemont" → "Burkemont Avenue").
+ * @param {string} query
+ * @param {string} streetName
+ */
+function streetNameMatchesTypedQuery(query, streetName) {
+  const house = leadingHouseNumber(query);
+  if (!house) return false;
+  const rest = String(query).trim().slice(house.length).trim().split(',')[0];
+  const queryTokens = normalizeStreetTokens(rest);
+  const streetTokens = normalizeStreetTokens(streetName);
+  if (!queryTokens.length || !streetTokens.length) return false;
+
+  const streetIsQueryPrefix =
+    streetTokens.length <= queryTokens.length &&
+    streetTokens.every((token, index) => queryTokens[index] === token);
+  if (streetIsQueryPrefix) return true;
+
+  if (queryTokens.length >= streetTokens.length) return false;
+  if (!queryTokens.every((token, index) => streetTokens[index] === token)) return false;
+  return streetTokens
+    .slice(queryTokens.length)
+    .every((token) => OPTIONAL_STREET_SUFFIXES.has(token));
+}
+
+/**
+ * MapTiler often has only the street centerline, so "1025 Burkemont Ave" comes
+ * back as "Burkemont Avenue". Keep the number the user typed on that street.
+ * @param {import('../types/location').StructuredLocation[]} locations
+ * @param {string} query
+ * @returns {import('../types/location').StructuredLocation[]}
+ */
+export function applyTypedHouseNumber(locations, query) {
+  const house = leadingHouseNumber(query);
+  if (!house) return locations;
+
+  return locations.map((location) => {
+    const streetName = String(location?.street ?? '').trim();
+    if (!streetName || /^\d/.test(streetName)) return location;
+    if (house.length === 5 && !/[a-z]/i.test(house) && location.zip === house) return location;
+    if (!streetNameMatchesTypedQuery(query, streetName)) return location;
+
+    const street = `${house} ${streetName}`.slice(0, 200);
+    const cityStateZip = formatLocationDisplayLabel(
+      location.city,
+      location.state,
+      location.zip ?? '',
+    );
+    const label = cityStateZip ? `${street}, ${cityStateZip}` : street;
+    return { ...location, street, label, searchValue: label };
+  });
+}
+
 /**
  * @param {{
  *   id: string;
@@ -335,7 +481,10 @@ export async function searchMapTilerLocations(query, mode = 'service-origin', si
     types: mapTilerTypesForMode(mode),
   });
 
-  const locations = await fetchMapTilerLocations(encodeURIComponent(query.trim()), params, signal);
+  const locations = applyTypedHouseNumber(
+    await fetchMapTilerLocations(encodeURIComponent(query.trim()), params, signal),
+    query,
+  );
 
   cacheLocations(cacheKey, locations);
   return locations;

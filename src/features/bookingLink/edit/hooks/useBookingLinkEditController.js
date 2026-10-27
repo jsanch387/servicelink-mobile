@@ -484,6 +484,10 @@ export function useBookingLinkEditController({
     shopAddressInput.trim() !== shopAddressBaseline && !selectedShopLocation,
   );
 
+  const onShopAddressFocus = useCallback(() => {
+    setSelectedShopLocation(null);
+  }, []);
+
   const onShopAddressInputChange = useCallback((next) => {
     setShopAddressInput(next);
     setSelectedShopLocation(null);
@@ -927,6 +931,7 @@ export function useBookingLinkEditController({
     shopAddressInput,
     selectedShopLocation,
     shopAddressError,
+    onShopAddressFocus,
     onShopAddressInputChange,
     onShopAddressSelect,
     shopUnitInput,

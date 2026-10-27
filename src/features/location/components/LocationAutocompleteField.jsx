@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceTextField } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import {
@@ -9,7 +9,7 @@ import {
   hasMapTilerApiKey,
   searchLocations,
 } from '../services/locationAutocomplete';
-import { useLocationSuggestionOverlay } from './LocationSuggestionOverlay';
+import { suggestionPanelSize } from '../utils/suggestionPlacement';
 
 const MIN_AUTOCOMPLETE_QUERY_LENGTH = 3;
 const AUTOCOMPLETE_DEBOUNCE_MS = 450;
@@ -49,8 +49,6 @@ export function LocationAutocompleteField({
   onProviderUnavailable,
 }) {
   const { colors, isDark } = useTheme();
-  const setOverlay = useLocationSuggestionOverlay();
-  const fieldRef = useRef(null);
   const suppressSearchUntilEditRef = useRef(false);
   const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -93,11 +91,10 @@ export function LocationAutocompleteField({
     const controller = new AbortController();
     setSuggestions([]);
     setHasCompletedSearch(false);
+    setIsLoading(true);
+    setProviderError('');
 
     const timeout = setTimeout(async () => {
-      setIsLoading(true);
-      setProviderError('');
-
       try {
         const locations = await searchLocations(trimmedValue, {
           mode,
@@ -136,7 +133,6 @@ export function LocationAutocompleteField({
 
   const pressedBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
   const iconBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
-  const [fieldHeight, setFieldHeight] = useState(0);
 
   const styles = useMemo(
     () =>
@@ -153,19 +149,10 @@ export function LocationAutocompleteField({
           borderColor: colors.borderStrong,
           borderRadius: 14,
           borderWidth: 1,
-          elevation: 24,
-          left: 0,
+          marginTop: 8,
           maxHeight: 220,
           overflow: 'hidden',
-          position: setOverlay ? 'relative' : 'absolute',
-          right: 0,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: isDark ? 0.4 : 0.12,
-          shadowRadius: 16,
-          top: setOverlay ? 0 : fieldHeight > 0 ? fieldHeight + 8 : '100%',
           width: '100%',
-          zIndex: 50,
         },
         suggestionScroll: {
           flexGrow: 0,
@@ -226,7 +213,7 @@ export function LocationAutocompleteField({
           fontWeight: '500',
         },
       }),
-    [colors, fieldHeight, iconBg, isDark, pressedBg, setOverlay, showSuggestions],
+    [colors, iconBg, isDark, pressedBg, showSuggestions],
   );
 
   const renderStatusRow = useCallback(
@@ -244,6 +231,14 @@ export function LocationAutocompleteField({
     [styles],
   );
 
+  const suggestionRowCount =
+    isLoading && suggestions.length === 0
+      ? 1
+      : providerError || suggestions.length === 0
+        ? 1
+        : suggestions.length;
+  const { listHeight } = suggestionPanelSize(suggestionRowCount, showProviderFooter);
+
   const suggestionPanel = useMemo(() => {
     if (!showSuggestions) return null;
 
@@ -253,7 +248,7 @@ export function LocationAutocompleteField({
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
           bounces={false}
-          style={styles.suggestionScroll}
+          style={[styles.suggestionScroll, { height: listHeight }]}
           contentContainerStyle={styles.suggestionScrollContent}
         >
           {isLoading && suggestions.length === 0
@@ -311,6 +306,7 @@ export function LocationAutocompleteField({
     colors.danger,
     colors.textMuted,
     isLoading,
+    listHeight,
     pickLocation,
     providerError,
     renderStatusRow,
@@ -320,50 +316,9 @@ export function LocationAutocompleteField({
     suggestions,
   ]);
 
-  useEffect(() => {
-    if (!setOverlay) return undefined;
-    if (!showSuggestions || !suggestionPanel) {
-      setOverlay(null);
-      return undefined;
-    }
-
-    const publish = () => {
-      fieldRef.current?.measureInWindow((x, y, width, height) => {
-        if (width <= 0) return;
-        setOverlay({
-          left: x,
-          top: y + height + 8,
-          width,
-          node: suggestionPanel,
-        });
-      });
-    };
-
-    publish();
-    const showSub = Keyboard.addListener('keyboardDidShow', publish);
-    const hideSub = Keyboard.addListener('keyboardDidHide', publish);
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, [setOverlay, showSuggestions, suggestionPanel]);
-
-  useEffect(() => {
-    if (!setOverlay) return undefined;
-    return () => setOverlay(null);
-  }, [setOverlay]);
-
   return (
-    <View ref={fieldRef} collapsable={false} style={[styles.root, containerStyle]}>
-      <View
-        style={styles.fieldWrap}
-        onLayout={(event) => {
-          const nextHeight = event.nativeEvent.layout.height;
-          if (nextHeight > 0 && nextHeight !== fieldHeight) {
-            setFieldHeight(nextHeight);
-          }
-        }}
-      >
+    <View style={[styles.root, containerStyle]}>
+      <View style={styles.fieldWrap}>
         <SurfaceTextField
           autoCapitalize="words"
           autoCorrect={false}
@@ -389,7 +344,7 @@ export function LocationAutocompleteField({
         />
       </View>
 
-      {setOverlay ? null : suggestionPanel}
+      {suggestionPanel}
     </View>
   );
 }
