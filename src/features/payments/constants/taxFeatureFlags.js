@@ -6,4 +6,4 @@
  *
  * @type {readonly string[]}
  */
-export const TAX_SETTINGS_EARLY_ACCESS_EMAILS = ['jesuss387@gmail.com', 'jesuss3872@gmail.com'];
+export const TAX_SETTINGS_EARLY_ACCESS_EMAILS = ['jesuss387@gmail.com'];
