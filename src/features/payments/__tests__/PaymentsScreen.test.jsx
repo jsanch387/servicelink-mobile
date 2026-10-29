@@ -78,7 +78,7 @@ jest.mock('../../subscription', () => ({
 }));
 
 const mockUseAuth = jest.fn(() => ({
-  user: { id: 'user-1', email: 'jesuss3872@gmail.com' },
+  user: { id: 'user-1', email: 'jesuss387@gmail.com' },
   session: { access_token: 'test-token' },
 }));
 
@@ -162,7 +162,7 @@ describe('PaymentsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseAuth.mockReturnValue({
-      user: { id: 'user-1', email: 'jesuss3872@gmail.com' },
+      user: { id: 'user-1', email: 'jesuss387@gmail.com' },
       session: { access_token: 'test-token' },
     });
     mockUseSubscription.mockReturnValue({
