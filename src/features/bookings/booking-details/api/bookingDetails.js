@@ -49,6 +49,8 @@ const BOOKING_PAYMENTS_SELECT = [
   'total_amount_cents',
   'paid_online_amount_cents',
   'remaining_amount_cents',
+  'tax_cents',
+  'tax_rate_bps',
   'session_fees_total_cents',
   'session_payment_method',
   'session_payment_amount_cents',
@@ -58,6 +60,15 @@ const BOOKING_PAYMENTS_SELECT = [
 const BOOKING_SESSION_FEE_LINES_SELECT = ['id', 'label', 'amount_cents', 'sort_order'].join(', ');
 
 const BOOKING_DETAILS_EMBED_SELECT = `${BOOKING_DETAILS_SELECT}, booking_payments (${BOOKING_PAYMENTS_SELECT}), booking_session_fee_lines (${BOOKING_SESSION_FEE_LINES_SELECT}), booking_invoices (snapshot_json)`;
+
+/**
+ * @param {unknown} raw
+ * @returns {number | null}
+ */
+function readTaxRateBps(raw) {
+  const n = Math.round(Number(raw));
+  return Number.isFinite(n) && n >= 1 ? n : null;
+}
 
 /**
  * Maps a `booking_payments` row to the same camelCase shape the web dashboard uses
@@ -79,6 +90,8 @@ export function mapBookingPaymentRowToSummary(row) {
     totalAmountCents: Math.max(0, Math.round(Number(row.total_amount_cents ?? 0) || 0)),
     paidOnlineAmountCents: Math.max(0, Math.round(Number(row.paid_online_amount_cents ?? 0) || 0)),
     remainingAmountCents: Math.max(0, Math.round(Number(row.remaining_amount_cents ?? 0) || 0)),
+    taxCents: Math.max(0, Math.round(Number(row.tax_cents ?? 0) || 0)),
+    taxRateBps: readTaxRateBps(row.tax_rate_bps),
     sessionFeesTotalCents: Math.max(0, Math.round(Number(row.session_fees_total_cents ?? 0) || 0)),
     sessionPaymentMethod:
       typeof row.session_payment_method === 'string' ? row.session_payment_method : null,

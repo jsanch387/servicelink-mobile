@@ -14,6 +14,7 @@ import { buildSentQuoteActivityEvents } from '../utils/buildQuoteActivityEvents'
 import { QuoteActivityTimeline } from './QuoteActivityTimeline';
 import { QuoteNotesThread } from './QuoteNotesThread';
 import { getQuoteStatusPillTheme } from '../utils/quoteStatusPillTheme';
+import { QuoteAmountRow, QuoteTaxTotalBlock } from './QuoteAmountRow';
 
 /**
  * @param {object} props
@@ -23,6 +24,9 @@ import { getQuoteStatusPillTheme } from '../utils/quoteStatusPillTheme';
  *   servicePriceFormatted?: string | null;
  *   addonDetails?: Array<{ id: string; name: string; priceFormatted: string }>;
  *   priceFormatted?: string | null;
+ *   taxLabel?: string | null;
+ *   taxFormatted?: string | null;
+ *   customerTotalFormatted?: string | null;
  *   durationLabel?: string | null;
  *   statusLabel?: string;
  *   statusRaw?: string;
@@ -144,7 +148,18 @@ export function SentQuoteDetailBody({
         totalRow: {
           alignItems: 'center',
           flexDirection: 'row',
-          justifyContent: 'space-between',
+          width: '100%',
+        },
+        totalLabelCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+        },
+        totalValueCol: {
+          alignItems: 'flex-end',
+          flexShrink: 0,
+          justifyContent: 'center',
+          marginLeft: 12,
         },
         totalLabel: {
           color: colors.text,
@@ -254,14 +269,32 @@ export function SentQuoteDetailBody({
               </View>
               {model.priceFormatted ? (
                 <>
+                  {model.taxFormatted ? (
+                    <QuoteAmountRow label={model.taxLabel || 'Tax'} value={model.taxFormatted} />
+                  ) : null}
                   <Divider style={styles.totalDivider} />
                   <View style={styles.totalRow}>
-                    <AppText style={styles.totalLabel}>Total</AppText>
-                    <AppText style={styles.totalValue}>{model.priceFormatted}</AppText>
+                    <View style={styles.totalLabelCol}>
+                      <AppText style={styles.totalLabel}>Total</AppText>
+                    </View>
+                    <View style={styles.totalValueCol}>
+                      <AppText style={styles.totalValue}>
+                        {model.taxFormatted
+                          ? model.customerTotalFormatted || model.priceFormatted
+                          : model.priceFormatted}
+                      </AppText>
+                    </View>
                   </View>
                 </>
               ) : null}
             </>
+          ) : model.taxFormatted && model.priceFormatted ? (
+            <QuoteTaxTotalBlock
+              priceValue={model.priceFormatted}
+              taxLabel={model.taxLabel}
+              taxValue={model.taxFormatted}
+              totalValue={model.customerTotalFormatted}
+            />
           ) : model.priceFormatted ? (
             <AppText style={styles.price}>{model.priceFormatted}</AppText>
           ) : null}

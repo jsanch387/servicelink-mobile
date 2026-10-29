@@ -37,7 +37,8 @@ import {
 import { InvoiceSendSuccess } from '../components/InvoiceSendSuccess';
 import { INVOICE_STATUS } from '../constants/invoiceStatuses';
 import { INVOICES_QUERY_ROOT } from '../queryKeys';
-import { buildInvoiceFromDraft } from '../utils/createInvoiceDraft';
+import { buildInvoiceFromDraft, invoiceDraftTotal } from '../utils/createInvoiceDraft';
+import { useInvoiceTaxPreview } from '../hooks/useInvoiceTaxPreview';
 import { describeInvoiceSendResult, invoiceSendConfirmationBody } from '../utils/invoiceSendResult';
 import { confirmDeleteInvoice } from '../utils/confirmDeleteInvoice';
 import { buildInvoiceWriteBody, invoiceUuidOrNull } from '../utils/invoiceWriteBody';
@@ -72,14 +73,27 @@ export function CreateInvoicePreviewScreen() {
   const hideNavigationHeader =
     phase === 'pending' || phase === 'success' || phase === 'error' || deletePhase !== 'idle';
   const businessName = business?.business_name?.trim() || 'Your business';
+  const subtotalCents = useMemo(
+    () => (draft ? Math.round(invoiceDraftTotal(draft) * 100) : 0),
+    [draft],
+  );
+  const taxPreview = useInvoiceTaxPreview({
+    businessId: business?.id,
+    bookingId: draft?.bookingId,
+    subtotalCents,
+  });
   const invoice = useMemo(() => {
     if (!draft) return null;
-    return buildInvoiceFromDraft(
-      draft,
-      { id: invoiceId || 'preview', number: '' },
-      INVOICE_STATUS.DRAFT,
-    );
-  }, [draft, invoiceId]);
+    return {
+      ...buildInvoiceFromDraft(
+        draft,
+        { id: invoiceId || 'preview', number: '' },
+        INVOICE_STATUS.DRAFT,
+      ),
+      taxCents: taxPreview.taxCents,
+      taxRateBps: taxPreview.taxRateBps,
+    };
+  }, [draft, invoiceId, taxPreview.taxCents, taxPreview.taxRateBps]);
 
   const editInvoice = useCallback(() => {
     if (route.params?.fromEditor || !invoiceId) {

@@ -107,11 +107,44 @@ describe('mapOpenedBill', () => {
       numberLabel: '#1001',
       statusLabel: 'Unpaid',
       subtotalLabel: '$99.00',
+      taxValueLabel: null,
       showBalance: true,
       balanceTitle: 'Amount due',
       balanceLabel: '$99.00',
       showPaid: false,
       lineItems: [expect.objectContaining({ amountLabel: '$25.00', unitPriceLabel: '$10.00' })],
+    });
+  });
+
+  it('shows stored tax on the bill and keeps amount due as the customer total', () => {
+    const taxed = mapOpenedBill(
+      {
+        id: 'inv-tax',
+        status: 'sent',
+        invoice_number: 1008,
+        customer_name: 'Alex',
+        due_on: '2026-10-03',
+        subtotal_cents: 8500,
+        tax_cents: 191,
+        tax_rate_bps: 225,
+        total_cents: 8691,
+      },
+      [
+        {
+          id: 'line-1',
+          description: 'Wash',
+          quantity: 1,
+          unit_amount_cents: 8500,
+          amount_cents: 8500,
+          position: 0,
+        },
+      ],
+    );
+    expect(invoiceDocumentModel(taxed)).toMatchObject({
+      subtotalLabel: '$85.00',
+      taxLabel: 'Tax (2.25%)',
+      taxValueLabel: '$1.91',
+      balanceLabel: '$86.91',
     });
   });
 
@@ -165,7 +198,7 @@ describe('fetchInvoiceForOpen', () => {
     expect(status.eq).toHaveBeenCalledWith('id', 'inv-1');
     expect(status.eq).toHaveBeenCalledWith('business_id', 'biz-1');
     expect(invoice.select).toHaveBeenCalledWith(
-      'id, status, customer_name, customer_email, customer_phone, note, due_on',
+      'id, status, customer_name, customer_email, customer_phone, note, due_on, booking_id',
     );
     expect(lines.select).toHaveBeenCalledWith(
       'id, position, description, quantity, unit_amount_cents',
@@ -211,7 +244,7 @@ describe('fetchInvoiceForOpen', () => {
     const result = await fetchInvoiceForOpen('biz-1', 'inv-2');
 
     expect(invoice.select).toHaveBeenCalledWith(
-      'id, status, invoice_number, customer_name, customer_email, customer_phone, due_on, note, total_cents, short_code',
+      'id, status, invoice_number, customer_name, customer_email, customer_phone, due_on, note, subtotal_cents, tax_cents, tax_rate_bps, total_cents, short_code',
     );
     expect(lines.select).toHaveBeenCalledWith(
       'id, description, quantity, unit_amount_cents, amount_cents, position',

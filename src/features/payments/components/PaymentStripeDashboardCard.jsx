@@ -1,6 +1,7 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Button, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
@@ -20,6 +21,7 @@ export function PaymentStripeDashboardCard({ stripeAccountId = null }) {
   const { colors } = useTheme();
   const { session } = useAuth();
   const [opening, setOpening] = useState(false);
+  const [feesOpen, setFeesOpen] = useState(false);
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -29,14 +31,31 @@ export function PaymentStripeDashboardCard({ stripeAccountId = null }) {
         fees: {
           borderTopColor: colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
-          gap: 8,
-          paddingTop: 12,
+          paddingTop: 4,
+        },
+        feesToggle: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          minHeight: 44,
+          width: '100%',
+        },
+        feesTogglePressed: {
+          opacity: 0.6,
         },
         feesTitle: {
           color: colors.textMuted,
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: '600',
           letterSpacing: -0.1,
+        },
+        chevronCol: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 22,
+        },
+        feeList: {
+          gap: 8,
+          paddingBottom: 4,
         },
         feeRow: {
           alignItems: 'center',
@@ -128,8 +147,7 @@ export function PaymentStripeDashboardCard({ stripeAccountId = null }) {
       <View style={paymentLayoutStyles.headerTextGroup}>
         <AppText style={[paymentTextStyles.sectionTitle, { color: colors.text }]}>Stripe</AppText>
         <AppText style={[paymentTextStyles.sectionBody, { color: colors.textMuted }]}>
-          View balance, charges, payouts, and tax forms in your Stripe dashboard. Bank and payout
-          details are managed in Stripe.
+          See your balance, payouts, and tax forms.
         </AppText>
       </View>
       <Button
@@ -145,23 +163,46 @@ export function PaymentStripeDashboardCard({ stripeAccountId = null }) {
         }}
       />
       <View style={styles.fees}>
-        <AppText style={styles.feesTitle}>Stripe charges</AppText>
-        <View style={styles.feeRow}>
-          <View style={styles.feeLabelCol}>
-            <AppText style={styles.feeLabel}>Cards</AppText>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: feesOpen }}
+          onPress={() => setFeesOpen((open) => !open)}
+        >
+          {({ pressed }) => (
+            <View style={[styles.feesToggle, pressed && styles.feesTogglePressed]}>
+              <View style={styles.feeLabelCol}>
+                <AppText style={styles.feesTitle}>Stripe charges</AppText>
+              </View>
+              <View style={styles.chevronCol}>
+                <Ionicons
+                  color={colors.textMuted}
+                  name={feesOpen ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                />
+              </View>
+            </View>
+          )}
+        </Pressable>
+        {feesOpen ? (
+          <View style={styles.feeList}>
+            <View style={styles.feeRow}>
+              <View style={styles.feeLabelCol}>
+                <AppText style={styles.feeLabel}>Cards</AppText>
+              </View>
+              <View style={styles.feeRateCol}>
+                <AppText style={styles.feeRate}>{STRIPE_CARD_RATE_LABEL}</AppText>
+              </View>
+            </View>
+            <View style={styles.feeRow}>
+              <View style={styles.feeLabelCol}>
+                <AppText style={styles.feeLabel}>Tap to pay</AppText>
+              </View>
+              <View style={styles.feeRateCol}>
+                <AppText style={styles.feeRate}>{STRIPE_TAP_TO_PAY_RATE_LABEL}</AppText>
+              </View>
+            </View>
           </View>
-          <View style={styles.feeRateCol}>
-            <AppText style={styles.feeRate}>{STRIPE_CARD_RATE_LABEL}</AppText>
-          </View>
-        </View>
-        <View style={styles.feeRow}>
-          <View style={styles.feeLabelCol}>
-            <AppText style={styles.feeLabel}>Tap to pay</AppText>
-          </View>
-          <View style={styles.feeRateCol}>
-            <AppText style={styles.feeRate}>{STRIPE_TAP_TO_PAY_RATE_LABEL}</AppText>
-          </View>
-        </View>
+        ) : null}
       </View>
     </SurfaceCard>
   );

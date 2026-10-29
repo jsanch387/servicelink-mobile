@@ -21,6 +21,8 @@ export function CreatePaymentAmountCard({
   footerPadding,
   testID,
   children,
+  taxCaption = null,
+  totalCaption = null,
 }) {
   const { colors } = useTheme();
   const lightFace = String(colors.nextUpSurface ?? '').toLowerCase() === '#ffffff';
@@ -67,6 +69,30 @@ export function CreatePaymentAmountCard({
           textAlign: 'center',
           width: '100%',
         },
+        chargeSummary: {
+          alignItems: 'center',
+          gap: 12,
+          marginBottom: 8,
+          marginTop: 4,
+          width: '100%',
+        },
+        taxLine: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          letterSpacing: -0.1,
+          lineHeight: 18,
+          textAlign: 'center',
+        },
+        totalLine: {
+          color: colors.nextUpText,
+          fontFamily: FONT_FAMILIES.semibold,
+          fontSize: 17,
+          fontWeight: '600',
+          letterSpacing: -0.3,
+          lineHeight: 22,
+          textAlign: 'center',
+        },
         hint: {
           color: colors.textMuted,
           fontFamily: FONT_FAMILIES.medium,
@@ -100,6 +126,12 @@ export function CreatePaymentAmountCard({
             value={amount}
             onChangeText={onAmountChange}
           />
+          {taxCaption || totalCaption ? (
+            <View style={styles.chargeSummary}>
+              {taxCaption ? <AppText style={styles.taxLine}>{taxCaption}</AppText> : null}
+              {totalCaption ? <AppText style={styles.totalLine}>{totalCaption}</AppText> : null}
+            </View>
+          ) : null}
           <View style={styles.noteField}>
             <AppTextInput
               autoCapitalize="sentences"

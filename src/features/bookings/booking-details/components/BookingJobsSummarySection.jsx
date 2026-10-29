@@ -19,6 +19,8 @@ import { useTheme } from '../../../../theme';
  *   formattedPrice: {
  *     hasDiscount?: boolean;
  *     discount?: { label?: string; value?: string } | null;
+ *     hasTax?: boolean;
+ *     tax?: { label?: string; value?: string } | null;
  *     hasSessionFees?: boolean;
  *     sessionFees?: Array<{ id?: string; name?: string; priceLabel?: string }>;
  *     total?: string;
@@ -150,6 +152,33 @@ export function BookingJobsSummarySection({ jobs, formattedPrice, isMembershipVi
           fontSize: 13,
           fontWeight: '600',
         },
+        taxRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+          width: '100%',
+        },
+        taxLabelCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+          paddingRight: 12,
+        },
+        taxValueCol: {
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+        },
+        taxLabel: {
+          color: colors.textSecondary,
+          fontSize: 13,
+          fontWeight: '500',
+        },
+        taxValue: {
+          color: colors.textSecondary,
+          fontSize: 13,
+          fontWeight: '600',
+        },
         feeRow: {
           alignItems: 'flex-start',
           flexDirection: 'row',
@@ -265,6 +294,18 @@ export function BookingJobsSummarySection({ jobs, formattedPrice, isMembershipVi
                 {formattedPrice.discount.label}
               </AppText>
               <AppText style={styles.discountValue}>{formattedPrice.discount.value}</AppText>
+            </View>
+          ) : null}
+          {formattedPrice?.hasTax && formattedPrice.tax ? (
+            <View style={styles.taxRow}>
+              <View style={styles.taxLabelCol}>
+                <AppText numberOfLines={1} style={styles.taxLabel}>
+                  {formattedPrice.tax.label}
+                </AppText>
+              </View>
+              <View style={styles.taxValueCol}>
+                <AppText style={styles.taxValue}>{formattedPrice.tax.value}</AppText>
+              </View>
             </View>
           ) : null}
           {formattedPrice?.hasSessionFees

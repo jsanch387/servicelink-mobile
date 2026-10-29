@@ -4,10 +4,11 @@ import { CREATE_INVOICE_SOURCE } from '../constants/createInvoiceWizard';
 import { formatInvoiceDueDate, invoiceCentsToDollars } from './invoices';
 
 const STATUS_SELECT = 'status';
-const DRAFT_SELECT = 'id, status, customer_name, customer_email, customer_phone, note, due_on';
+const DRAFT_SELECT =
+  'id, status, customer_name, customer_email, customer_phone, note, due_on, booking_id';
 const DRAFT_LINE_SELECT = 'id, position, description, quantity, unit_amount_cents';
 const BILL_SELECT =
-  'id, status, invoice_number, customer_name, customer_email, customer_phone, due_on, note, total_cents, short_code';
+  'id, status, invoice_number, customer_name, customer_email, customer_phone, due_on, note, subtotal_cents, tax_cents, tax_rate_bps, total_cents, short_code';
 const BILL_LINE_SELECT = 'id, description, quantity, unit_amount_cents, amount_cents, position';
 
 const BILL_STATUSES = new Set(['sent', 'paid', 'void']);
@@ -99,7 +100,7 @@ function lineName(line) {
 export function mapOpenedDraft(invoice, lines) {
   return {
     source: CREATE_INVOICE_SOURCE.INVOICES,
-    bookingId: null,
+    bookingId: invoice?.booking_id ? String(invoice.booking_id) : null,
     customerName: String(invoice?.customer_name ?? '').trim(),
     customerEmail: storedEmail(invoice?.customer_email),
     customerPhone: displayPhone(invoice?.customer_phone),
@@ -120,10 +121,26 @@ export function mapOpenedDraft(invoice, lines) {
  * @param {object} invoice
  * @param {object[]} lines
  */
+function storedCents(value) {
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function storedRateBps(value) {
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) && n >= 1 ? n : null;
+}
+
 export function mapOpenedBill(invoice, lines) {
   const email = storedEmail(invoice?.customer_email);
   const phone = displayPhone(invoice?.customer_phone);
   const customerName = String(invoice?.customer_name ?? '').trim();
+  const totalCents = Math.max(0, Math.round(Number(invoice?.total_cents) || 0));
+  const taxCents = storedCents(invoice?.tax_cents);
+  const hasSubtotal = invoice?.subtotal_cents != null && invoice?.subtotal_cents !== '';
+  const subtotalCents = hasSubtotal
+    ? Math.max(0, Math.round(Number(invoice.subtotal_cents) || 0))
+    : Math.max(0, totalCents - taxCents);
   return {
     presentation: 'bill',
     id: String(invoice?.id ?? ''),
@@ -134,7 +151,11 @@ export function mapOpenedBill(invoice, lines) {
     customerPhone: phone,
     dueDateLabel: formatInvoiceDueDate(invoice?.due_on, 'long'),
     notes: String(invoice?.note ?? '').trim(),
-    amount: invoiceCentsToDollars(invoice?.total_cents),
+    amount: invoiceCentsToDollars(totalCents),
+    subtotalCents,
+    taxCents,
+    taxRateBps: storedRateBps(invoice?.tax_rate_bps),
+    totalCents,
     shortCode: String(invoice?.short_code ?? '').trim(),
     lineItems: sortLines(lines).map((line) => ({
       id: String(line.id),

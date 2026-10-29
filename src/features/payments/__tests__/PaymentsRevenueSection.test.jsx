@@ -81,9 +81,33 @@ describe('PaymentsRevenueSection', () => {
     expect(screen.getByText('Wk 1')).toBeTruthy();
     expect(screen.getAllByText('Jul 8–14').length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText('Week 2')).toBeNull();
+    expect(screen.getByLabelText('Revenue chart')).toBeTruthy();
+    expect(screen.queryByLabelText('Jul 8–14, $750')).toBeNull();
     expect(screen.getByText(/20% vs last month/)).toBeTruthy();
     expect(screen.getByText('4')).toBeTruthy();
     expect(screen.queryByText(REVENUE_EMPTY_CAPTION)).toBeNull();
+    expect(screen.queryByText(/Tax collected/)).toBeNull();
+  });
+
+  it('shows tax collected with cents when finished jobs included tax', () => {
+    mockUsePaymentsRevenue.mockReturnValue(
+      emptySummary({
+        summary: {
+          collectedCents: 8500,
+          taxCollectedCents: 191,
+          jobsPaid: 1,
+          changePct: null,
+          compareLabel: null,
+          bars: [{ key: 'w1', label: 'Wk 1', fullLabel: 'Jul 1–7', cents: 8500 }],
+        },
+      }),
+    );
+
+    renderWithProviders(<PaymentsRevenueSection businessId="biz-1" />);
+
+    expect(screen.getAllByText('$85').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Tax collected;')).toBeTruthy();
+    expect(screen.getByText('$1.91')).toBeTruthy();
   });
 
   it('surfaces load errors without hiding the chart stack', () => {

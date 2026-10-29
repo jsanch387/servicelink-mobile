@@ -213,7 +213,7 @@ export function LocationAutocompleteField({
           fontWeight: '500',
         },
       }),
-    [colors, iconBg, isDark, pressedBg, showSuggestions],
+    [colors, iconBg, pressedBg, showSuggestions],
   );
 
   const renderStatusRow = useCallback(
