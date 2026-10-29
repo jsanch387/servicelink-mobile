@@ -45,6 +45,7 @@ import {
 } from '../utils/stripeConnectSetupCopy';
 import { isPositiveDepositAmount } from '../utils/depositAmountModel';
 import { isSaveableTaxRate } from '../utils/taxRateModel';
+import { canSeeTaxSettings } from '../utils/resolveTaxSettingsAccess';
 
 export function PaymentsScreen() {
   const { colors } = useTheme();
@@ -59,6 +60,7 @@ export function PaymentsScreen() {
   } = useSubscription();
   const payment = usePaymentDashboardRead();
   const businessId = payment.business?.id ?? null;
+  const showTaxSettings = canSeeTaxSettings(user?.email);
   const { savePaymentSettings, isSaving, saveError } = useSavePaymentSettings({ businessId });
   const route = useRoute();
   const requestedTab = route.params?.initialTab;
@@ -621,12 +623,14 @@ export function PaymentsScreen() {
                     onDepositModeChange={setDepositMode}
                     onRequireDepositsChange={handleRequireDepositsChange}
                   />
-                  <PaymentTaxesSection
-                    collectTax={collectTax}
-                    taxRate={taxRate}
-                    onCollectTaxChange={handleCollectTaxChange}
-                    onTaxRateChange={setTaxRate}
-                  />
+                  {showTaxSettings ? (
+                    <PaymentTaxesSection
+                      collectTax={collectTax}
+                      taxRate={taxRate}
+                      onCollectTaxChange={handleCollectTaxChange}
+                      onTaxRateChange={setTaxRate}
+                    />
+                  ) : null}
                 </View>
               </View>
             </View>

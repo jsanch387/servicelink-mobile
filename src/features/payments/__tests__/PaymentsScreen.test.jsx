@@ -77,11 +77,13 @@ jest.mock('../../subscription', () => ({
   useSubscription: (...args) => mockUseSubscription(...args),
 }));
 
+const mockUseAuth = jest.fn(() => ({
+  user: { id: 'user-1', email: 'jesuss3872@gmail.com' },
+  session: { access_token: 'test-token' },
+}));
+
 jest.mock('../../auth', () => ({
-  useAuth: () => ({
-    user: { id: 'user-1' },
-    session: { access_token: 'test-token' },
-  }),
+  useAuth: () => mockUseAuth(),
 }));
 
 jest.mock('../../tap-to-pay/constants/tapToPayFeatureFlags', () => ({
@@ -159,6 +161,10 @@ function openSettingsTab() {
 describe('PaymentsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseAuth.mockReturnValue({
+      user: { id: 'user-1', email: 'jesuss3872@gmail.com' },
+      session: { access_token: 'test-token' },
+    });
     mockUseSubscription.mockReturnValue({
       hasProAccess: true,
       isOwnerProfileLoaded: true,
@@ -267,6 +273,18 @@ describe('PaymentsScreen', () => {
         taxRate: '8.25',
       }),
     );
+  });
+
+  it('hides the taxes card from other accounts', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: 'user-2', email: 'owner@shop.com' },
+      session: { access_token: 'test-token' },
+    });
+    renderWithProviders(<PaymentsScreen />);
+    openSettingsTab();
+    await waitFor(() => expect(screen.getByText('Deposits')).toBeTruthy());
+    expect(screen.queryByText('Taxes')).toBeNull();
+    expect(screen.queryByLabelText('Collect sales tax')).toBeNull();
   });
 
   it('saves a sales tax rate and can turn collection off without clearing it', async () => {
