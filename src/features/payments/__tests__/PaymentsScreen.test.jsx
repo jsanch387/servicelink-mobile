@@ -142,6 +142,8 @@ function loadedRead(overrides = {}) {
       requireDeposits: true,
       depositAmount: '50',
       depositMode: DEPOSIT_AMOUNT_MODE.FIXED,
+      collectTax: false,
+      taxRate: '8.25',
     },
     paymentsQuerySuccess: true,
     refetchPayments: jest.fn(),
@@ -261,8 +263,87 @@ describe('PaymentsScreen', () => {
         requireDeposits: true,
         depositAmount: '50',
         depositMode: DEPOSIT_AMOUNT_MODE.FIXED,
+        collectTax: false,
+        taxRate: '8.25',
       }),
     );
+  });
+
+  it('saves a sales tax rate and can turn collection off without clearing it', async () => {
+    renderWithProviders(<PaymentsScreen />);
+    openSettingsTab();
+    await waitFor(() => expect(screen.getByText('Taxes')).toBeTruthy());
+    expect(screen.queryByLabelText('Tax rate')).toBeNull();
+
+    fireEvent(screen.getByLabelText('Collect sales tax'), 'valueChange', true);
+    expect(screen.getByLabelText('Tax rate').props.value).toBe('8.25');
+
+    fireEvent.changeText(screen.getByLabelText('Tax rate'), '2.25');
+    fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(mockSavePaymentSettings).toHaveBeenCalledTimes(1));
+    expect(mockSavePaymentSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collectTax: true,
+        taxRate: '2.25',
+      }),
+    );
+
+    mockSavePaymentSettings.mockClear();
+    fireEvent(screen.getByLabelText('Collect sales tax'), 'valueChange', false);
+    expect(screen.queryByLabelText('Tax rate')).toBeNull();
+    fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(mockSavePaymentSettings).toHaveBeenCalledTimes(1));
+    expect(mockSavePaymentSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collectTax: false,
+        taxRate: '2.25',
+      }),
+    );
+  });
+
+  it('keeps the saved rate when tax is switched off before saving a new one', async () => {
+    renderWithProviders(<PaymentsScreen />);
+    openSettingsTab();
+    await waitFor(() => expect(screen.getByText('Taxes')).toBeTruthy());
+
+    fireEvent(screen.getByLabelText('Collect sales tax'), 'valueChange', true);
+    fireEvent.changeText(screen.getByLabelText('Tax rate'), '2.25');
+    fireEvent(screen.getByLabelText('Collect sales tax'), 'valueChange', false);
+
+    expect(
+      screen.getByRole('button', { name: 'Save changes' }).props.accessibilityState?.disabled,
+    ).toBe(true);
+
+    fireEvent(screen.getByLabelText('Collect sales tax'), 'valueChange', true);
+    expect(screen.getByLabelText('Tax rate').props.value).toBe('8.25');
+  });
+
+  it('keeps save disabled while tax is on without a rate', async () => {
+    mockUsePaymentDashboardRead.mockReturnValue(
+      loadedRead({
+        formHydration: {
+          paymentsEnabled: true,
+          selectedMethodId: CUSTOMER_PAYMENT_METHOD.CUSTOMER_CHOOSES,
+          requireDeposits: true,
+          depositAmount: '50',
+          depositMode: DEPOSIT_AMOUNT_MODE.FIXED,
+          collectTax: false,
+          taxRate: '',
+        },
+      }),
+    );
+    renderWithProviders(<PaymentsScreen />);
+    openSettingsTab();
+    await waitFor(() => expect(screen.getByText('Taxes')).toBeTruthy());
+
+    fireEvent(screen.getByLabelText('Collect sales tax'), 'valueChange', true);
+    fireEvent.changeText(screen.getByLabelText('Tax rate'), '0');
+
+    expect(
+      screen.getByRole('button', { name: 'Save changes' }).props.accessibilityState?.disabled,
+    ).toBe(true);
   });
 
   it('shows gate copy when Stripe is ready but settings row missing', async () => {

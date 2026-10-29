@@ -26,7 +26,13 @@ import {
 /**
  * Charge on Tap to pay: create a walk-up intent, then open Apple's Tap to Pay UI.
  */
-export function useCreatePaymentCharge({ accessToken, amount, note, onSuccess }) {
+export function useCreatePaymentCharge({
+  accessToken,
+  amount,
+  note,
+  chargeCents = null,
+  onSuccess,
+}) {
   const toast = useToast();
   const { collectPayment, prewarmReaderForCollect } = useTapToPayTerminalCollection();
   const { isConnectReady, merchantDisplayName, stripeAccountId, terminalLocationId } =
@@ -65,7 +71,10 @@ export function useCreatePaymentCharge({ accessToken, amount, note, onSuccess })
       return;
     }
 
-    const amountCents = Math.round(parsedAmount * 100);
+    const amountCents =
+      chargeCents != null && Number.isFinite(Number(chargeCents)) && Number(chargeCents) > 0
+        ? Math.round(Number(chargeCents))
+        : Math.round(parsedAmount * 100);
     const connectParams = {
       terminalLocationId,
       stripeAccountId,
@@ -145,6 +154,7 @@ export function useCreatePaymentCharge({ accessToken, amount, note, onSuccess })
   }, [
     accessToken,
     amount,
+    chargeCents,
     charging,
     collectPayment,
     isConnectReady,
@@ -167,11 +177,15 @@ export function useCreatePaymentCharge({ accessToken, amount, note, onSuccess })
     }
     setError(null);
     setPhase('success');
+    const previewCents =
+      chargeCents != null && Number.isFinite(Number(chargeCents)) && Number(chargeCents) > 0
+        ? Math.round(Number(chargeCents))
+        : Math.round(parsedAmount * 100);
     onSuccess?.({
       paymentIntentId: null,
-      amountCents: Math.round(parsedAmount * 100),
+      amountCents: previewCents,
     });
-  }, [amount, charging, note, onSuccess]);
+  }, [amount, chargeCents, charging, note, onSuccess]);
 
   return {
     charge,

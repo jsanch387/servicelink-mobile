@@ -99,6 +99,35 @@ describe('useCreatePaymentCharge', () => {
     expect(onSuccess).toHaveBeenCalled();
   });
 
+  it('sends the taxed customer total for a walk-up charge', async () => {
+    postTapToPayMerchantIntent.mockResolvedValue({
+      ok: true,
+      paymentIntentId: 'pi_1',
+      clientSecret: 'secret',
+      amountCents: 8691,
+      connectParams: {},
+    });
+    const { result } = renderHook(() =>
+      useCreatePaymentCharge({
+        accessToken: 't',
+        amount: '85',
+        chargeCents: 8691,
+        note: 'Detail',
+        onSuccess,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.charge();
+    });
+
+    expect(postTapToPayMerchantIntent).toHaveBeenCalledWith('t', {
+      amountCents: 8691,
+      note: 'Detail',
+      stripeAccountId: 'acct_1',
+    });
+  });
+
   it('keeps the overlay open with Try again after cancel', async () => {
     mockCollectPayment.mockRejectedValueOnce(
       Object.assign(new Error('The command was canceled.'), { code: 'CANCELED' }),

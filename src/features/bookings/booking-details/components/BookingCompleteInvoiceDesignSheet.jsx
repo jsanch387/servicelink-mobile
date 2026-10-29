@@ -219,6 +219,33 @@ function CompleteVisitDesignBody({
           fontWeight: '500',
           minWidth: 0,
         },
+        taxRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          marginTop: 8,
+          width: '100%',
+        },
+        taxLabelCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+          paddingRight: 12,
+        },
+        taxValueCol: {
+          alignItems: 'flex-end',
+          flexShrink: 0,
+          justifyContent: 'center',
+        },
+        taxLabel: {
+          color: colors.textSecondary,
+          fontSize: 13,
+          fontWeight: '500',
+        },
+        taxValue: {
+          color: colors.textSecondary,
+          fontSize: 13,
+          fontWeight: '600',
+        },
         adjustmentAmount: {
           color: colors.text,
           fontSize: 15,
@@ -389,6 +416,33 @@ function CompleteVisitDesignBody({
   const isPaymentSettled = amountDue <= 0;
   const canEditFees = !isPaymentSettled;
 
+  const renderReceiptLine = (item, { noTopMargin = false } = {}) => {
+    const amountLabel =
+      item.amount < 0 ? `−${formatUsd(Math.abs(item.amount))}` : formatUsd(item.amount);
+    if (item.kind === 'tax') {
+      return (
+        <View key={item.id} style={styles.taxRow}>
+          <View style={styles.taxLabelCol}>
+            <AppText numberOfLines={1} style={styles.taxLabel}>
+              {item.label}
+            </AppText>
+          </View>
+          <View style={styles.taxValueCol}>
+            <AppText style={styles.taxValue}>{amountLabel}</AppText>
+          </View>
+        </View>
+      );
+    }
+    return (
+      <LabelValueRow
+        key={item.id}
+        label={item.label}
+        noTopMargin={noTopMargin}
+        value={amountLabel}
+      />
+    );
+  };
+
   const paymentSettledBanner = useMemo(() => {
     if (!isPaymentSettled) {
       return null;
@@ -501,29 +555,15 @@ function CompleteVisitDesignBody({
               <CompleteVisitJobsBreakdown formatUsd={formatUsd} jobs={jobs} />
               <View style={styles.multiJobAfterJobs}>
                 {lineItems
-                  .filter((item) => item.id === 'discount' || item.kind === 'discount')
-                  .map((item) => (
-                    <LabelValueRow
-                      key={item.id}
-                      label={item.label}
-                      value={`−${formatUsd(Math.abs(item.amount))}`}
-                    />
-                  ))}
+                  .filter(
+                    (item) =>
+                      item.id === 'discount' || item.kind === 'discount' || item.kind === 'tax',
+                  )
+                  .map((item) => renderReceiptLine(item))}
               </View>
             </>
           ) : (
-            lineItems.map((item, index) => {
-              const amountLabel =
-                item.amount < 0 ? `−${formatUsd(Math.abs(item.amount))}` : formatUsd(item.amount);
-              return (
-                <LabelValueRow
-                  key={item.id}
-                  label={item.label}
-                  noTopMargin={index === 0}
-                  value={amountLabel}
-                />
-              );
-            })
+            lineItems.map((item, index) => renderReceiptLine(item, { noTopMargin: index === 0 }))
           )}
 
           {adjustments.map((item) => (

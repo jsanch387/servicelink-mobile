@@ -18,6 +18,7 @@ import { PaymentsNonProUpsell } from '../components/PaymentsNonProUpsell';
 import { PaymentsStripeConnectSetupCard } from '../components/PaymentsStripeConnectSetupCard';
 import { StripeConnectLaunchOverlay } from '../components/StripeConnectLaunchOverlay';
 import { PaymentDepositsSection } from '../components/PaymentDepositsSection';
+import { PaymentTaxesSection } from '../components/PaymentTaxesSection';
 import { PaymentHowCustomersPayCard } from '../components/PaymentHowCustomersPayCard';
 import { PaymentsTapToPaySection } from '../components/PaymentsTapToPaySection';
 import { PaymentStripeDashboardCard } from '../components/PaymentStripeDashboardCard';
@@ -43,6 +44,7 @@ import {
   resolveStripeConnectSetupPresentation,
 } from '../utils/stripeConnectSetupCopy';
 import { isPositiveDepositAmount } from '../utils/depositAmountModel';
+import { isSaveableTaxRate } from '../utils/taxRateModel';
 
 export function PaymentsScreen() {
   const { colors } = useTheme();
@@ -80,6 +82,13 @@ export function PaymentsScreen() {
     requireDeposits: true,
     depositAmount: '50',
     depositMode: DEPOSIT_AMOUNT_MODE.FIXED,
+  }));
+
+  const [collectTax, setCollectTax] = useState(false);
+  const [taxRate, setTaxRate] = useState('');
+  const [savedTax, setSavedTax] = useState(() => ({
+    collectTax: false,
+    taxRate: '',
   }));
 
   const appliedHydrationBusinessId = useRef(null);
@@ -204,6 +213,14 @@ export function PaymentsScreen() {
       depositAmount: h.depositAmount.trim(),
       depositMode: h.depositMode,
     });
+    const nextTaxRate = String(h.taxRate ?? '').trim();
+    const nextCollectTax = Boolean(h.collectTax);
+    setCollectTax(nextCollectTax);
+    setTaxRate(nextTaxRate);
+    setSavedTax({
+      collectTax: nextCollectTax,
+      taxRate: nextTaxRate,
+    });
   }, [payment.business?.id, payment.formHydration, payment.paymentsQuerySuccess]);
 
   useEffect(() => {
@@ -211,6 +228,16 @@ export function PaymentsScreen() {
       setRequireDeposits(false);
     }
   }, [depositAmount, requireDeposits]);
+
+  const handleCollectTaxChange = useCallback(
+    (next) => {
+      if (!next) {
+        setTaxRate(savedTax.taxRate);
+      }
+      setCollectTax(next);
+    },
+    [savedTax.taxRate],
+  );
 
   const handleRequireDepositsChange = useCallback(
     (next) => {
@@ -236,10 +263,18 @@ export function PaymentsScreen() {
     );
   }, [depositAmount, depositMode, requireDeposits, savedDeposits]);
 
-  const hasChanges = methodDirty || acceptDirty || depositsDirty;
+  const taxDirty = useMemo(() => {
+    if (collectTax !== savedTax.collectTax) return true;
+    if (!collectTax) return false;
+    return taxRate.trim() !== savedTax.taxRate.trim();
+  }, [collectTax, savedTax, taxRate]);
+
+  const hasChanges = methodDirty || acceptDirty || depositsDirty || taxDirty;
   const canPersist = Boolean(payment.hasPaymentSettingsRow);
   const depositsSaveValid = !requireDeposits || isPositiveDepositAmount(depositMode, depositAmount);
-  const saveDisabled = !hasChanges || !canPersist || isSaving || !depositsSaveValid;
+  const taxSaveValid = !collectTax || isSaveableTaxRate(taxRate);
+  const saveDisabled =
+    !hasChanges || !canPersist || isSaving || !depositsSaveValid || !taxSaveValid;
 
   const handleSaveAll = useCallback(async () => {
     if (!businessId || !canPersist) return;
@@ -247,6 +282,11 @@ export function PaymentsScreen() {
       Alert.alert('Deposits', 'Enter a deposit amount greater than zero to save.');
       return;
     }
+    if (collectTax && !isSaveableTaxRate(taxRate)) {
+      Alert.alert('Taxes', 'Enter a sales tax rate from 0.01% to 25%.');
+      return;
+    }
+    const persistedTaxRate = collectTax ? taxRate.trim() : savedTax.taxRate;
     try {
       await savePaymentSettings({
         currency: payment.paymentSettings?.currency,
@@ -255,6 +295,8 @@ export function PaymentsScreen() {
         requireDeposits,
         depositAmount,
         depositMode,
+        collectTax,
+        taxRate: persistedTaxRate,
       });
       setSavedMethodId(selectedMethodId);
       setSavedAcceptServicelinkPayments(acceptServicelinkPayments);
@@ -263,6 +305,11 @@ export function PaymentsScreen() {
         depositAmount: depositAmount.trim(),
         depositMode,
       });
+      setTaxRate(persistedTaxRate);
+      setSavedTax({
+        collectTax,
+        taxRate: persistedTaxRate,
+      });
     } catch (e) {
       showUserFacingErrorAlert('Could not save', getPaymentSaveUserMessage(e));
     }
@@ -270,12 +317,15 @@ export function PaymentsScreen() {
     acceptServicelinkPayments,
     businessId,
     canPersist,
+    collectTax,
     depositAmount,
     depositMode,
     payment.paymentSettings?.currency,
     requireDeposits,
     savePaymentSettings,
+    savedTax.taxRate,
     selectedMethodId,
+    taxRate,
   ]);
 
   const settingsLocked = payment.gateServicelinkCheckout;
@@ -570,6 +620,12 @@ export function PaymentsScreen() {
                     onDepositAmountChange={setDepositAmount}
                     onDepositModeChange={setDepositMode}
                     onRequireDepositsChange={handleRequireDepositsChange}
+                  />
+                  <PaymentTaxesSection
+                    collectTax={collectTax}
+                    taxRate={taxRate}
+                    onCollectTaxChange={handleCollectTaxChange}
+                    onTaxRateChange={setTaxRate}
                   />
                 </View>
               </View>

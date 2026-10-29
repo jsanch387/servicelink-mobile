@@ -18,9 +18,12 @@ export function CreatePaymentLinkFormStep({
   onCreateLink,
   creating = false,
   footerPadding,
+  taxCaption = null,
+  totalCaption = null,
+  taxPending = false,
 }) {
   const parsed = parseCreatePaymentAmount(amount);
-  const canCreate = parsed != null && hasCreatePaymentNote(note);
+  const canCreate = parsed != null && hasCreatePaymentNote(note) && !taxPending;
   const actionVariant = useCreatePaymentCardActionVariant();
 
   return (
@@ -41,7 +44,9 @@ export function CreatePaymentLinkFormStep({
       footerPadding={footerPadding}
       hint={CREATE_PAYMENT_LINK_SUBTITLE}
       note={note}
+      taxCaption={taxCaption}
       testID="create-payment-link-form"
+      totalCaption={totalCaption}
       onAmountChange={onAmountChange}
       onNoteChange={onNoteChange}
     />

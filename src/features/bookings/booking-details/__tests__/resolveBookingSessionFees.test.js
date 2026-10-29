@@ -25,6 +25,56 @@ describe('resolveBookingSessionFees', () => {
     ).toEqual([{ id: 'invoice-fee-1', name: 'Pet hair', price: 20 }]);
   });
 
+  it('does not treat a session fee total that is only the stored tax as an additional fee', () => {
+    expect(
+      resolveBookingSessionFees({
+        sessionFeeLines: [],
+        paymentSummary: {
+          totalAmountCents: 8691,
+          taxCents: 191,
+          sessionFeesTotalCents: 191,
+        },
+        servicePrice: 85,
+        addOnsTotal: 0,
+      }),
+    ).toEqual([]);
+  });
+
+  it('does not treat tax inside a marked-paid amount as an additional fee', () => {
+    expect(
+      resolveBookingSessionFees({
+        sessionFeeLines: [],
+        paymentSummary: { totalAmountCents: 8691, taxCents: 191 },
+        servicePrice: 85,
+        addOnsTotal: 0,
+        sessionPaymentAmountCents: 8691,
+      }),
+    ).toEqual([]);
+  });
+
+  it('keeps a real session fee when the marked-paid amount also includes tax', () => {
+    expect(
+      resolveBookingSessionFees({
+        sessionFeeLines: [],
+        paymentSummary: { totalAmountCents: 10191, taxCents: 191 },
+        servicePrice: 85,
+        addOnsTotal: 0,
+        sessionPaymentAmountCents: 10191,
+      }),
+    ).toEqual([{ id: 'inferred-session-fees', name: 'Additional fees', price: 15 }]);
+  });
+
+  it('does not treat stored tax as an additional fee', () => {
+    expect(
+      resolveBookingSessionFees({
+        sessionFeeLines: [],
+        paymentSummary: { totalAmountCents: 8691, taxCents: 191 },
+        servicePrice: 85,
+        addOnsTotal: 0,
+      }),
+    ).toEqual([]);
+  });
+
   it('infers additional fees from payment total when line rows are missing', () => {
     expect(
       resolveBookingSessionFees({

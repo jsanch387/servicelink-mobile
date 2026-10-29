@@ -10,6 +10,7 @@ import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
 import { useTapToPayConnectReadiness } from '../../tap-to-pay/hooks/useTapToPayConnectReadiness';
 import { useTapToPayReaderPrewarm } from '../../tap-to-pay/hooks/useTapToPayReaderPrewarm';
+import { useShopTaxSettings } from '../hooks/useShopTaxSettings';
 import { CREATE_PAYMENT_STEP } from './constants';
 import { useCreatePaymentCharge } from './hooks/useCreatePaymentCharge';
 import { useCreatePaymentLink } from './hooks/useCreatePaymentLink';
@@ -19,6 +20,7 @@ import { CreatePaymentPaidStep } from './steps/CreatePaymentPaidStep';
 import { CreatePaymentLinkFormStep } from './steps/CreatePaymentLinkFormStep';
 import { CreatePaymentLinkReadyStep } from './steps/CreatePaymentLinkReadyStep';
 import { parseCreatePaymentAmount } from './utils/createPaymentAmount';
+import { resolveWalkUpCharge } from './utils/resolveWalkUpCharge';
 
 /**
  * Home FAB create-payment: choose path → collect (Tap to Pay) or send a link.
@@ -39,10 +41,30 @@ export function CreatePaymentFlow({ onClose, onHeaderLeadingChange }) {
   const [copied, setCopied] = useState(false);
   const footerPadding = Math.max(insets.bottom, 12);
   const parsedAmount = parseCreatePaymentAmount(amount);
+  const { data: businessProfile } = useQuery({
+    queryKey: homeBusinessProfileQueryKey(user?.id),
+    queryFn: async () => {
+      const { data, error } = await fetchBusinessProfileForUser(user.id);
+      if (error) {
+        throw error;
+      }
+      return data;
+    },
+    enabled: Boolean(user?.id),
+  });
+  const businessName = String(businessProfile?.business_name ?? '').trim();
+  const shopTax = useShopTaxSettings(businessProfile?.id);
+  const walkUpCharge = resolveWalkUpCharge({
+    priceCents: parsedAmount == null ? 0 : Math.round(parsedAmount * 100),
+    taxEnabled: shopTax.taxEnabled,
+    taxRateBps: shopTax.taxRateBps,
+  });
+  const chargeCents = parsedAmount == null ? null : walkUpCharge.chargeCents;
   const { charge, previewPaid, charging, phase, error, readerWasWarmAtStart } =
     useCreatePaymentCharge({
       accessToken: session?.access_token,
       amount,
+      chargeCents,
       note,
       onSuccess: () => setStep(CREATE_PAYMENT_STEP.COLLECT_PAID),
     });
@@ -57,21 +79,9 @@ export function CreatePaymentFlow({ onClose, onHeaderLeadingChange }) {
   const { createLink, creating } = useCreatePaymentLink({
     accessToken: session?.access_token,
     amount,
+    chargeCents,
     note,
   });
-
-  const { data: businessProfile } = useQuery({
-    queryKey: homeBusinessProfileQueryKey(user?.id),
-    queryFn: async () => {
-      const { data, error } = await fetchBusinessProfileForUser(user.id);
-      if (error) {
-        throw error;
-      }
-      return data;
-    },
-    enabled: Boolean(user?.id),
-  });
-  const businessName = String(businessProfile?.business_name ?? '').trim();
 
   const goChoose = useCallback(() => {
     setStep(CREATE_PAYMENT_STEP.CHOOSE);
@@ -177,6 +187,9 @@ export function CreatePaymentFlow({ onClose, onHeaderLeadingChange }) {
           footerPadding={footerPadding}
           note={note}
           readerWasWarm={readerWasWarmAtStart}
+          taxCaption={walkUpCharge.taxCaption}
+          taxPending={shopTax.isPending}
+          totalCaption={walkUpCharge.totalCaption}
           onAmountChange={setAmount}
           onCharge={charge}
           onPreviewPaid={previewPaid}
@@ -189,6 +202,9 @@ export function CreatePaymentFlow({ onClose, onHeaderLeadingChange }) {
           creating={creating}
           footerPadding={footerPadding}
           note={note}
+          taxCaption={walkUpCharge.taxCaption}
+          taxPending={shopTax.isPending}
+          totalCaption={walkUpCharge.totalCaption}
           onAmountChange={setAmount}
           onCreateLink={handleCreateLink}
           onNoteChange={setNote}
@@ -199,7 +215,7 @@ export function CreatePaymentFlow({ onClose, onHeaderLeadingChange }) {
       ) : null}
       {step === CREATE_PAYMENT_STEP.LINK_READY ? (
         <CreatePaymentLinkReadyStep
-          amount={parsedAmount}
+          amount={parsedAmount == null ? null : walkUpCharge.chargeCents / 100}
           businessName={businessName}
           copied={copied}
           footerPadding={footerPadding}

@@ -52,6 +52,8 @@ describe('mapPaymentSettingsToFormHydration', () => {
     expect(h.requireDeposits).toBe(true);
     expect(h.depositAmount).toBe('25');
     expect(h.depositMode).toBe(DEPOSIT_AMOUNT_MODE.FIXED);
+    expect(h.collectTax).toBe(false);
+    expect(h.taxRate).toBe('');
   });
 
   it('defaults invalid checkout_mode to customer chooses', () => {
@@ -73,5 +75,39 @@ describe('mapPaymentSettingsToFormHydration', () => {
     const h = mapPaymentSettingsToFormHydration(null);
     expect(h.paymentsEnabled).toBe(false);
     expect(h.depositMode).toBe(DEPOSIT_AMOUNT_MODE.PERCENTAGE);
+    expect(h.collectTax).toBe(false);
+    expect(h.taxRate).toBe('');
+  });
+
+  it('keeps a saved rate when tax is off', () => {
+    const h = mapPaymentSettingsToFormHydration({
+      business_id: 'b1',
+      payments_enabled: true,
+      checkout_mode: 'customer_choice',
+      deposits_enabled: false,
+      deposit_type: 'percent',
+      deposit_value: 0,
+      currency: 'usd',
+      tax_enabled: false,
+      tax_rate_bps: 825,
+    });
+    expect(h.collectTax).toBe(false);
+    expect(h.taxRate).toBe('8.25');
+  });
+
+  it('maps an on rate from basis points', () => {
+    const h = mapPaymentSettingsToFormHydration({
+      business_id: 'b1',
+      payments_enabled: true,
+      checkout_mode: 'customer_choice',
+      deposits_enabled: false,
+      deposit_type: 'percent',
+      deposit_value: 0,
+      currency: 'usd',
+      tax_enabled: true,
+      tax_rate_bps: 225,
+    });
+    expect(h.collectTax).toBe(true);
+    expect(h.taxRate).toBe('2.25');
   });
 });

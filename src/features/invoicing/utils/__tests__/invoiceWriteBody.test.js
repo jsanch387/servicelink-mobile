@@ -31,6 +31,8 @@ describe('buildInvoiceWriteBody', () => {
         { description: 'Mats', quantity: '2', amount: '20.50' },
       ],
     });
+    expect(buildInvoiceWriteBody(readyDraft()).taxCents).toBeUndefined();
+    expect(buildInvoiceWriteBody(readyDraft()).tax_cents).toBeUndefined();
   });
 
   it('adds invoiceId on send only when it is a uuid', () => {

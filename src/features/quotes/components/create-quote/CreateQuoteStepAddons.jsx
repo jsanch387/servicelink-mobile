@@ -7,6 +7,9 @@ import {
   parsePriceLabelToUsd,
 } from '../../../bookings/create-appointment/utils/priceLabelMath';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
+import { formatQuoteMoney } from '../../utils/quotePresentation';
+import { buildQuoteTaxPreview, quoteUsdToCents } from '../../utils/quoteTaxPreview';
+import { QuoteAmountRow } from '../QuoteAmountRow';
 
 /**
  * Optional add-ons for a catalog quote (mirrors create-appointment AddonsStep).
@@ -17,6 +20,8 @@ import { FONT_FAMILIES, useTheme } from '../../../../theme';
  *   serviceAddons?: Array<{ id: string; name: string; priceLabel?: string; price?: string }> | null;
  *   selectedAddonIds: string[];
  *   onToggleAddon: (id: string) => void;
+ *   taxEnabled?: boolean;
+ *   taxRateBps?: number | null;
  * }} props
  */
 export function CreateQuoteStepAddons({
@@ -25,6 +30,8 @@ export function CreateQuoteStepAddons({
   serviceAddons,
   selectedAddonIds,
   onToggleAddon,
+  taxEnabled = false,
+  taxRateBps = null,
 }) {
   const { colors } = useTheme();
 
@@ -47,6 +54,12 @@ export function CreateQuoteStepAddons({
     0,
   );
   const totalUsd = baseUsd + addonsUsdSum;
+  const taxPreview = buildQuoteTaxPreview({
+    priceCents: quoteUsdToCents(totalUsd),
+    taxEnabled,
+    taxRateBps,
+  });
+  const showTax = taxPreview.taxCents > 0;
 
   const styles = useMemo(
     () =>
@@ -198,9 +211,19 @@ export function CreateQuoteStepAddons({
           ) : null}
 
           <Divider style={styles.divider} />
+          {showTax ? (
+            <QuoteAmountRow
+              label={taxPreview.label}
+              value={formatQuoteMoney(taxPreview.taxCents)}
+            />
+          ) : null}
           <View style={styles.totalRow}>
             <AppText style={styles.totalLabel}>Quoted amount</AppText>
-            <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>
+            <AppText style={styles.totalValue}>
+              {showTax
+                ? formatQuoteMoney(taxPreview.customerPaysCents)
+                : formatUsdFromNumber(totalUsd)}
+            </AppText>
           </View>
         </DetailsSectionCard>
       </View>

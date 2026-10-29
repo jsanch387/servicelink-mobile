@@ -33,7 +33,7 @@ import {
   buildAppliedSaleDiscount,
   pickActiveSaleForAppointmentDate,
 } from '../utils/applyOwnerBookingSale';
-import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
+import { formatUsdFromNumber } from '../utils/priceLabelMath';
 import {
   CREATE_APPOINTMENT_LOCATION_MOBILE,
   CREATE_APPOINTMENT_LOCATION_SHOP,
@@ -67,7 +67,10 @@ import {
   createEmptyJobDraft,
   snapshotCommittedJob,
   sumJobDurationsMinutes,
+  sumVisitJobsPriceCents,
 } from '../utils/createAppointmentJobs';
+import { buildReviewTaxPreview } from '../utils/reviewTaxPreview';
+import { useShopTaxSettings } from '../../../payments/hooks/useShopTaxSettings';
 import { useBookingCalendar } from '../../../availability/booking';
 import { isSelectedScheduleStillValid } from '../../../availability/booking/utils/bookingCalendar';
 import { parseScheduleInputs } from '../../../availability/booking/utils/scheduleInputs';
@@ -545,27 +548,20 @@ export function useCreateAppointmentController({
     [visitJobs],
   );
 
+  const visitSubtotalCents = useMemo(() => {
+    if (isMembershipVisit) return 0;
+    return sumVisitJobsPriceCents(visitJobs);
+  }, [isMembershipVisit, visitJobs]);
+
   const availableSaleDiscount = useMemo(() => {
     if (isMembershipVisit) return null;
     const sale = pickActiveSaleForAppointmentDate(server.sales, selectedDateKey);
     if (!sale) return null;
-    const subtotalCents = visitJobs.reduce((sum, job) => {
-      const baseCents = Math.round(Number(job.selectedPricingOption?.priceCents) || 0);
-      const addonsCents = (job.selectedAddonRows ?? []).reduce(
-        (addonSum, a) =>
-          addonSum +
-          (a.priceCents != null && Number.isFinite(Number(a.priceCents))
-            ? Math.round(Number(a.priceCents))
-            : Math.round(parsePriceLabelToUsd(a.priceLabel ?? a.price) * 100)),
-        0,
-      );
-      return sum + baseCents + addonsCents;
-    }, 0);
     return buildAppliedSaleDiscount({
-      subtotalCents,
+      subtotalCents: visitSubtotalCents,
       sale,
     });
-  }, [isMembershipVisit, selectedDateKey, server.sales, visitJobs]);
+  }, [isMembershipVisit, selectedDateKey, server.sales, visitSubtotalCents]);
 
   const availableSaleId = availableSaleDiscount?.sale?.id ?? null;
   const [applySaleDiscount, setApplySaleDiscount] = useState(false);
@@ -575,6 +571,18 @@ export function useCreateAppointmentController({
   }, [availableSaleId]);
 
   const appliedSaleDiscount = applySaleDiscount ? availableSaleDiscount : null;
+  const shopTax = useShopTaxSettings(catalog.businessId);
+  const priceAfterDiscountCents = appliedSaleDiscount?.totalCents ?? visitSubtotalCents;
+  const reviewTax = useMemo(
+    () =>
+      buildReviewTaxPreview({
+        isMembershipVisit,
+        priceAfterDiscountCents,
+        taxEnabled: shopTax.taxEnabled,
+        taxRateBps: shopTax.taxRateBps,
+      }),
+    [isMembershipVisit, priceAfterDiscountCents, shopTax.taxEnabled, shopTax.taxRateBps],
+  );
 
   const toggleApplySaleDiscount = useCallback(() => {
     setApplySaleDiscount((prev) => !prev);
@@ -1250,6 +1258,7 @@ export function useCreateAppointmentController({
       onCancelNewJob: jobIndex > 0 ? handleCancelNewJob : undefined,
       onRemoveJob: handleRemoveVisitJob,
       isMembershipVisit,
+      reviewTax,
     }),
     [
       step,
@@ -1316,6 +1325,7 @@ export function useCreateAppointmentController({
       handleCancelNewJob,
       handleRemoveVisitJob,
       isMembershipVisit,
+      reviewTax,
     ],
   );
 

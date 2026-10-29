@@ -224,6 +224,57 @@ describe('buildCompleteVisitModelFromBooking', () => {
     ]);
   });
 
+  it('adds stored tax to the receipt and the balance due', () => {
+    const model = buildCompleteVisitModelFromBooking({
+      service_name: 'Wash',
+      service_price_cents: 8500,
+      payment: {
+        paidOnlineAmountCents: 0,
+        taxCents: 191,
+        taxRateBps: 225,
+        totalAmountCents: 8691,
+      },
+    });
+
+    expect(model?.lineItems).toEqual([
+      { id: 'service', label: 'Wash', amount: 85, kind: 'service' },
+      { id: 'tax', label: 'Tax (2.25%)', amount: 1.91, kind: 'tax' },
+    ]);
+    expect(model?.remainingAmountCents).toBe(8691);
+  });
+
+  it('keeps a membership visit untaxed', () => {
+    const model = buildCompleteVisitModelFromBooking({
+      service_name: 'Wash',
+      service_price_cents: 0,
+      payment: {
+        paymentMethodSelected: 'membership',
+        paidOnlineAmountCents: 0,
+        taxCents: 191,
+        taxRateBps: 225,
+      },
+    });
+
+    expect(model?.lineItems.some((item) => item.kind === 'tax')).toBe(false);
+    expect(model?.isMembershipVisit).toBe(true);
+  });
+
+  it('leaves the balance untaxed when the saved job has no tax', () => {
+    const model = buildCompleteVisitModelFromBooking({
+      service_name: 'Wash',
+      service_price_cents: 8500,
+      payment: {
+        paidOnlineAmountCents: 0,
+        taxCents: 0,
+        taxRateBps: 225,
+        totalAmountCents: 8500,
+      },
+    });
+
+    expect(model?.lineItems.some((item) => item.kind === 'tax')).toBe(false);
+    expect(model?.remainingAmountCents).toBe(8500);
+  });
+
   it('returns null when booking is missing', () => {
     expect(buildCompleteVisitModelFromBooking(null)).toBeNull();
   });

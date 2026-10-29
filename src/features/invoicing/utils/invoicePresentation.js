@@ -1,4 +1,5 @@
 import { INVOICE_FILTER, INVOICE_STATUS, INVOICE_STATUS_LABEL } from '../constants/invoiceStatuses';
+import { formatTaxLineLabel } from '../../payments/utils/taxRateModel';
 import { formatInvoiceDollars, formatInvoiceDocumentDollars } from './formatInvoiceMoney';
 
 /**
@@ -124,6 +125,20 @@ function billStatusLabel(status) {
   return 'Invoice';
 }
 
+function positiveCents(value) {
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function taxRateBps(value) {
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) && n >= 1 ? n : null;
+}
+
+function dollarsFromCents(cents) {
+  return Math.round(Number(cents) || 0) / 100;
+}
+
 export function invoiceDocumentModel(invoice) {
   const isBill = invoice.presentation === 'bill';
   const voided = isVoidInvoiceStatus(invoice.status);
@@ -145,8 +160,20 @@ export function invoiceDocumentModel(invoice) {
     };
   });
   const lineSum = Math.round(lineItems.reduce((sum, item) => sum + item.amount, 0) * 100) / 100;
-  const subtotal = isBill ? Number(invoice.amount) || 0 : lineSum || Number(invoice.amount) || 0;
+  const storedTaxCents = positiveCents(invoice.taxCents ?? invoice.tax_cents);
+  const storedRate = taxRateBps(invoice.taxRateBps ?? invoice.tax_rate_bps);
+  const subtotal = isBill
+    ? invoice.subtotalCents != null
+      ? dollarsFromCents(invoice.subtotalCents)
+      : Number(invoice.amount) || 0
+    : lineSum || Number(invoice.amount) || 0;
+  const total = isBill
+    ? invoice.totalCents != null
+      ? dollarsFromCents(invoice.totalCents)
+      : Number(invoice.amount) || 0
+    : Math.round((subtotal + storedTaxCents / 100) * 100) / 100;
   const amountDue = !voided && !paid;
+  const totalLabel = formatInvoiceDocumentDollars(total);
 
   return {
     numberLabel: invoiceNumberLabel(invoice.number),
@@ -156,11 +183,14 @@ export function invoiceDocumentModel(invoice) {
     dueDateLabel: invoice.dueDateLabel || invoice.dateLabel || '',
     lineItems,
     subtotalLabel: formatInvoiceDocumentDollars(subtotal),
+    taxLabel: storedTaxCents > 0 ? formatTaxLineLabel(storedRate) : null,
+    taxValueLabel: storedTaxCents > 0 ? formatInvoiceDocumentDollars(storedTaxCents / 100) : null,
     showPaid: paid,
-    paidLabel: formatInvoiceDocumentDollars(subtotal),
+    paidLabel: totalLabel,
     showBalance: amountDue,
     balanceTitle: 'Amount due',
-    balanceLabel: formatInvoiceDocumentDollars(subtotal),
+    balanceLabel: totalLabel,
+    totalLabel,
     voided,
     voidLabel: isBill && invoice.status === INVOICE_STATUS.VOID ? 'Void' : 'Voided',
     notes: String(invoice.notes ?? '').trim(),
