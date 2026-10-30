@@ -275,16 +275,15 @@ describe('PaymentsScreen', () => {
     );
   });
 
-  it('hides the taxes card from other accounts', async () => {
+  it('shows the taxes card for any account', async () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'user-2', email: 'owner@shop.com' },
       session: { access_token: 'test-token' },
     });
     renderWithProviders(<PaymentsScreen />);
     openSettingsTab();
-    await waitFor(() => expect(screen.getByText('Deposits')).toBeTruthy());
-    expect(screen.queryByText('Taxes')).toBeNull();
-    expect(screen.queryByLabelText('Collect sales tax')).toBeNull();
+    await waitFor(() => expect(screen.getByText('Taxes')).toBeTruthy());
+    expect(screen.getByLabelText('Collect sales tax')).toBeTruthy();
   });
 
   it('saves a sales tax rate and can turn collection off without clearing it', async () => {
