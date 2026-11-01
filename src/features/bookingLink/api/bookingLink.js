@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { fetchServiceCategories } from '../../services/categories/api/serviceCategories';
+import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { hasProAccessFromProfile } from '../../more/utils/subscriptionPresentation';
 import { socialMediaFromDb } from '../utils/socialMedia';
 
@@ -160,10 +161,11 @@ export async function fetchBusinessImagesForPublicProfile(businessId) {
  * @returns {Promise<{ data: MobileBusinessProfile | null, error: Error | null }>}
  */
 export async function fetchCompleteOwnerBusinessProfile(userId) {
-  const [ownerRes, businessRes] = await Promise.all([
+  const [ownerRes, businessResult] = await Promise.all([
     fetchOwnerProfileRow(userId),
-    fetchBusinessProfileForOwner(userId),
+    fetchBusinessProfileForUser(userId),
   ]);
+  const businessRes = { data: businessResult.data, error: businessResult.error };
 
   if (ownerRes.error) return { data: null, error: ownerRes.error };
   if (businessRes.error) return { data: null, error: businessRes.error };

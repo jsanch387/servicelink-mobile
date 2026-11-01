@@ -16,8 +16,8 @@ export function BookingLinkWelcomeModal({ visible = false, onDismiss }) {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        fill: {
-          ...StyleSheet.absoluteFillObject,
+        root: {
+          flex: 1,
         },
         /** Pure black + alpha — no hue from blur sampling. */
         backdrop: {
@@ -25,7 +25,7 @@ export function BookingLinkWelcomeModal({ visible = false, onDismiss }) {
           backgroundColor: isDark ? 'rgba(0, 0, 0, 0.82)' : 'rgba(0, 0, 0, 0.48)',
         },
         centerLayer: {
-          ...StyleSheet.absoluteFillObject,
+          flex: 1,
           justifyContent: 'center',
           paddingBottom: Math.max(insets.bottom, 16),
           paddingHorizontal: 22,
@@ -134,15 +134,13 @@ export function BookingLinkWelcomeModal({ visible = false, onDismiss }) {
       visible={visible}
       onRequestClose={dismiss}
     >
-      <View style={styles.fill}>
+      <View style={styles.root}>
         <Pressable
           accessibilityLabel="Dismiss"
           accessibilityRole="button"
-          style={styles.fill}
+          style={styles.backdrop}
           onPress={dismiss}
-        >
-          <View style={styles.backdrop} />
-        </Pressable>
+        />
 
         <View pointerEvents="box-none" style={styles.centerLayer}>
           <View style={styles.card}>

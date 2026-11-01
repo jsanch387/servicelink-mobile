@@ -144,13 +144,13 @@ describe('TeamScreen', () => {
   it('loads members from the shop roster', async () => {
     renderTeamScreen();
 
-    expect(await screen.findByText('jordan@example.com')).toBeTruthy();
-    expect(screen.getByText('alex@example.com')).toBeTruthy();
+    expect(await screen.findByText('Jordan')).toBeTruthy();
+    expect(screen.getByText('Alex')).toBeTruthy();
   });
 
   it('opens invite from the FAB', async () => {
     renderTeamScreen();
-    await screen.findByText('jordan@example.com');
+    await screen.findByText('Jordan');
 
     fireEvent.press(screen.getByRole('button', { name: 'Add member' }));
     expect(screen.getByText("We'll send an invite link to their email.")).toBeTruthy();
@@ -158,7 +158,7 @@ describe('TeamScreen', () => {
 
   it('opens member details from a row', async () => {
     renderTeamScreen();
-    await screen.findByText('jordan@example.com');
+    await screen.findByText('Jordan');
 
     fireEvent.press(screen.getByRole('button', { name: 'Jordan' }));
     expect(mockNavigate).toHaveBeenCalledWith(ROUTES.TEAM_MEMBER_DETAILS, { memberId: 'mem-1' });
@@ -171,7 +171,7 @@ describe('TeamScreen', () => {
     });
 
     renderTeamScreen();
-    await screen.findByText('jordan@example.com');
+    await screen.findByText('Jordan');
 
     fireEvent.press(screen.getByRole('button', { name: 'Add member' }));
     fireEvent.changeText(screen.getByLabelText('Name'), 'Sam');
@@ -181,7 +181,7 @@ describe('TeamScreen', () => {
     expect(await screen.findByText(TEAM_INVITE_SUCCESS_TITLE)).toBeTruthy();
     fireEvent.press(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.getByText('Sam')).toBeTruthy());
-    expect(screen.getByText('sam@example.com')).toBeTruthy();
-    expect(postTeamInvite).toHaveBeenCalledWith('test-token', 'sam@example.com', 'Sam');
+    expect(screen.queryByText('sam@example.com')).toBeNull();
+    expect(postTeamInvite).toHaveBeenCalledWith('test-token', 'sam@example.com', 'Sam', 'member');
   });
 });

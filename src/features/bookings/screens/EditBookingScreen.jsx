@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTheme } from '../../../theme';
+import { useRequireBookingWrite } from '../../shop/hooks/useRequireBookingWrite';
 import { EditAppointmentFlow } from '../edit-appointment/EditAppointmentFlow';
 
 /**
@@ -8,6 +9,7 @@ import { EditAppointmentFlow } from '../edit-appointment/EditAppointmentFlow';
  */
 export function EditBookingScreen({ route }) {
   const { colors } = useTheme();
+  useRequireBookingWrite();
   const bookingId = route?.params?.bookingId;
 
   const styles = useMemo(

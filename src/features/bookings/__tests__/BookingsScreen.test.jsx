@@ -63,6 +63,7 @@ jest.mock('../../subscription', () => ({
 jest.mock('../../shop', () => ({
   useShopAccess: jest.fn(() => ({
     canSeeOffice: true,
+    canSeeOwnerHome: true,
     isMember: false,
   })),
 }));
@@ -114,6 +115,7 @@ describe('BookingsScreen list empty states', () => {
     mockUseBookingsList.mockReturnValue(baseList());
     useShopAccess.mockReturnValue({
       canSeeOffice: true,
+      canSeeOwnerHome: true,
       isMember: false,
     });
     useSubscription.mockReturnValue({
@@ -202,6 +204,7 @@ describe('BookingsScreen list empty states', () => {
   it('hides free plan booking usage for team members', () => {
     useShopAccess.mockReturnValue({
       canSeeOffice: false,
+      canSeeOwnerHome: false,
       isMember: true,
     });
     useSubscription.mockReturnValue({

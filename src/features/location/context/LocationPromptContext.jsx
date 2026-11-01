@@ -13,7 +13,7 @@ const LocationPromptContext = createContext(null);
 export function LocationPromptProvider({ children }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
-  const { canSeeOffice, isShopLoading } = useShopAccess();
+  const { canSeeOwnerHome, isShopLoading } = useShopAccess();
 
   const [isLoading, setIsLoading] = useState(true);
   const [shouldShowPrompt, setShouldShowPrompt] = useState(false);
@@ -21,7 +21,7 @@ export function LocationPromptProvider({ children }) {
   const [businessProfileId, setBusinessProfileId] = useState(null);
 
   const checkIfShouldPrompt = useCallback(async () => {
-    if (!userId || isShopLoading || !canSeeOffice) {
+    if (!userId || isShopLoading || !canSeeOwnerHome) {
       setIsLoading(false);
       setShouldShowPrompt(false);
       setPromptVisible(false);
@@ -65,7 +65,7 @@ export function LocationPromptProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, [canSeeOffice, isShopLoading, userId]);
+  }, [canSeeOwnerHome, isShopLoading, userId]);
 
   useEffect(() => {
     void checkIfShouldPrompt();

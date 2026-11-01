@@ -30,7 +30,7 @@ export function MoreScreen() {
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
   const subscriptionsAccess = useSubscriptionsAccess();
-  const { canSeeOffice } = useShopAccess();
+  const { canSeeOffice, canManageBilling, canManagePayments, canManageTeam } = useShopAccess();
   const invoicesAccess = useInvoiceAccess();
   const showInvoices = invoicesAccess.canSeeInvoices;
   const team = useTeamMembers();
@@ -110,7 +110,7 @@ export function MoreScreen() {
                 label="Reviews"
                 onPress={() => navigation.navigate(ROUTES.REVIEWS)}
               />
-              {team.showTeamRow ? (
+              {canManageTeam && team.showTeamRow ? (
                 <SettingsNavRow
                   icon="account-group-outline"
                   iconLibrary="material-community"
@@ -119,7 +119,7 @@ export function MoreScreen() {
                   onPress={() => navigation.navigate(ROUTES.TEAM)}
                 />
               ) : null}
-              {subscriptionsAccess.featureEnabled ? (
+              {canManageBilling && subscriptionsAccess.featureEnabled ? (
                 <SettingsNavRow
                   icon="layers-outline"
                   label="Subscriptions"
@@ -147,11 +147,13 @@ export function MoreScreen() {
                 label="Marketing"
                 onPress={() => navigation.navigate(ROUTES.MARKETING)}
               />
-              <SettingsNavRow
-                icon="card-outline"
-                label="Payments"
-                onPress={() => navigation.navigate(ROUTES.MORE_PAYMENTS)}
-              />
+              {canManagePayments ? (
+                <SettingsNavRow
+                  icon="card-outline"
+                  label="Payments"
+                  onPress={() => navigation.navigate(ROUTES.MORE_PAYMENTS)}
+                />
+              ) : null}
               {showInvoices ? (
                 <SettingsNavRow
                   icon="documents-outline"

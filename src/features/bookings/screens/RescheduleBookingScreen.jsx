@@ -7,6 +7,7 @@ import { useTheme } from '../../../theme';
 import { parseBookingStartLocalMs } from '../../home/utils/bookingStart';
 import { BookingRescheduleForm } from '../booking-details/components/BookingRescheduleForm';
 import { useBookingActions } from '../booking-details/hooks/useBookingActions';
+import { useRequireBookingWrite } from '../../shop/hooks/useRequireBookingWrite';
 import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
 
 /**
@@ -15,6 +16,7 @@ import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
 export function RescheduleBookingScreen({ route }) {
   const { colors } = useTheme();
   const navigation = useNavigation();
+  useRequireBookingWrite();
   const bookingId = route?.params?.bookingId;
   const detailsQuery = useBookingDetails(bookingId);
   const bookingActions = useBookingActions(bookingId);

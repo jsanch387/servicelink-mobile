@@ -43,7 +43,7 @@ const tabScreens = {
 
 export function MainTabNavigator() {
   const { colors } = useTheme();
-  const { canSeeOffice } = useShopAccess();
+  const { canSeeOffice, canSeeOwnerHome } = useShopAccess();
   const { promptVisible, handleSaveLocation, handleDismissPrompt } = useLocationPrompt();
   const visibleTabs = MAIN_TAB_CONFIG.filter(
     (tab) => tab.route !== ROUTES.CUSTOMERS || canSeeOffice,
@@ -56,7 +56,7 @@ export function MainTabNavigator() {
       <TapToPayWarmupBootstrap />
       <PushTokenRegistration />
       <AppUpdateAnnouncementsBootstrap />
-      {canSeeOffice ? (
+      {canSeeOwnerHome ? (
         <LocationCollectionModal
           visible={promptVisible}
           onDismiss={handleDismissPrompt}

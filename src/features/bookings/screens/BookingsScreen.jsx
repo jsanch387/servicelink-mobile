@@ -74,9 +74,9 @@ export function BookingsScreen() {
     listEnabled: viewMode === BOOKINGS_VIEW_LIST,
   });
   const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
-  const { canSeeOffice } = useShopAccess();
+  const { canSeeOwnerHome } = useShopAccess();
   const showFreeTierUsage =
-    canSeeOffice &&
+    canSeeOwnerHome &&
     isOwnerProfileLoaded &&
     !hasProAccess &&
     Boolean(list.business?.id) &&

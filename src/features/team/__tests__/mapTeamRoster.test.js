@@ -62,6 +62,53 @@ describe('mapTeamRoster', () => {
     ]);
   });
 
+  it('keeps a pending invite role', () => {
+    const rows = mapTeamRoster({
+      invites: [
+        {
+          id: 'inv-coord',
+          email: 'sam@example.com',
+          name: 'Sam',
+          role: 'coordinator',
+          status: 'pending',
+          created_at: '2026-09-03T00:00:00.000Z',
+        },
+      ],
+      members: [],
+    });
+
+    expect(rows).toEqual([expect.objectContaining({ source: 'invite', role: 'coordinator' })]);
+  });
+
+  it('reads an active member role from the membership row', () => {
+    const rows = mapTeamRoster({
+      invites: [
+        {
+          id: 'inv-pat',
+          email: 'pat@example.com',
+          name: 'Pat',
+          role: 'member',
+          status: 'accepted',
+          accepted_user_id: 'user-pat',
+          created_at: '2026-09-01T00:00:00.000Z',
+        },
+      ],
+      members: [
+        {
+          id: 'mem-pat',
+          user_id: 'user-pat',
+          role: 'manager',
+          status: 'active',
+          created_at: '2026-09-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(rows).toEqual([
+      expect.objectContaining({ id: 'mem-pat', source: 'member', role: 'manager' }),
+    ]);
+  });
+
   it('returns an empty list when the shop has no hires', () => {
     expect(mapTeamRoster({ invites: [], members: [] })).toEqual([]);
   });
@@ -78,11 +125,12 @@ describe('mapTeamRoster', () => {
         },
         'sam@example.com',
         'Sam Rivera',
+        'coordinator',
       ),
     ).toEqual({
       shopId: 'biz-1',
       members: [
-        { id: 'inv-1', email: 'Sam@Example.com', name: 'Sam Rivera' },
+        { id: 'inv-1', email: 'Sam@Example.com', name: 'Sam Rivera', role: 'coordinator' },
         { id: 'inv-2', email: 'alex@example.com', name: 'Alex' },
       ],
     });

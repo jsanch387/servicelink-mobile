@@ -4,6 +4,7 @@ import {
   TEAM_INVITE_DUPLICATE_EMAIL,
   TEAM_INVITE_INVALID_EMAIL,
 } from '../constants/teamMembersCopy';
+import { storedTeamRole } from '../constants/teamRoles';
 
 function createRequestId() {
   if (globalThis.crypto?.randomUUID) {
@@ -58,12 +59,13 @@ export function mapTeamInviteHttpError(httpStatus, serverMessage) {
  * @param {string | null | undefined} accessToken
  * @param {string} email
  * @param {string} [name]
+ * @param {'member' | 'coordinator' | 'manager'} [role]
  * @returns {Promise<
- *   | { ok: true; resent: boolean; name: string; inviteId: string | null }
+ *   | { ok: true; resent: boolean; name: string; inviteId: string | null; role: 'member' | 'coordinator' | 'manager' }
  *   | { ok: false; error: Error; httpStatus: number; userMessage: string }
  * >}
  */
-export async function postTeamInvite(accessToken, email, name = '') {
+export async function postTeamInvite(accessToken, email, name = '', role = 'member') {
   const origin = resolveStripeMobileCheckoutOrigin();
   const httpsErr = productionWebApiHttpsGuard(origin);
   if (httpsErr) {
@@ -97,6 +99,7 @@ export async function postTeamInvite(accessToken, email, name = '') {
       body: JSON.stringify({
         email,
         ...(String(name ?? '').trim() ? { name: String(name).trim() } : {}),
+        role: storedTeamRole(role),
       }),
     });
   } catch (err) {
@@ -132,6 +135,7 @@ export async function postTeamInvite(accessToken, email, name = '') {
     resent: payload?.resent === true,
     name: readInviteName(payload),
     inviteId: readInviteId(payload),
+    role: readInviteRole(payload) || storedTeamRole(role),
   };
 }
 
@@ -147,6 +151,22 @@ function readInviteName(payload) {
   if (invite && typeof invite === 'object' && typeof invite.name === 'string') {
     return invite.name.trim();
   }
+  return '';
+}
+
+/**
+ * @param {Record<string, unknown> | null} payload
+ * @returns {string | null}
+ */
+function readInviteRole(payload) {
+  const invite = payload?.invite;
+  const raw =
+    invite && typeof invite === 'object' && typeof invite.role === 'string'
+      ? invite.role
+      : typeof payload?.role === 'string'
+        ? payload.role
+        : '';
+  if (raw === 'member' || raw === 'coordinator' || raw === 'manager') return raw;
   return '';
 }
 

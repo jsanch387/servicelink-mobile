@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Dimensions,
   Keyboard,
   Modal,
   Platform,
@@ -43,6 +44,59 @@ const GLASS_BACKDROP = Platform.select({
   android: 'rgba(0,0,0,0.58)',
   default: 'rgba(0,0,0,0.38)',
 });
+
+/** How far the keyboard overlaps the window. `screenY` stays correct for floating keyboards. */
+function keyboardOverlap(screenY, height) {
+  if (typeof screenY === 'number') {
+    return Math.max(0, Dimensions.get('window').height - screenY);
+  }
+  return Math.max(0, height ?? 0);
+}
+
+function currentKeyboardOverlap() {
+  const metrics = typeof Keyboard.metrics === 'function' ? Keyboard.metrics() : null;
+  if (!metrics) return 0;
+  return keyboardOverlap(metrics.screenY, metrics.height);
+}
+
+/**
+ * Space to keep a sheet above the keyboard.
+ * Seeds from `Keyboard.metrics()` because autoFocus can open the keyboard
+ * before the show listener is attached.
+ */
+function useSheetKeyboardInset(visible) {
+  const [inset, setInset] = useState(0);
+
+  useEffect(() => {
+    if (!visible) {
+      setInset((current) => (current === 0 ? current : 0));
+      return undefined;
+    }
+
+    const apply = (height) => {
+      const next = Math.max(0, height);
+      setInset((current) => (current === next ? current : next));
+    };
+    const sync = () => apply(currentKeyboardOverlap());
+    sync();
+
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const subShow = Keyboard.addListener(showEvent, (event) => {
+      apply(keyboardOverlap(event?.endCoordinates?.screenY, event?.endCoordinates?.height));
+    });
+    const subHide = Keyboard.addListener(hideEvent, () => apply(0));
+    const timers = [50, 250].map((ms) => setTimeout(sync, ms));
+
+    return () => {
+      subShow.remove();
+      subHide.remove();
+      timers.forEach(clearTimeout);
+    };
+  }, [visible]);
+
+  return inset;
+}
 
 /**
  * Cross-platform sheet.
@@ -164,30 +218,10 @@ function NativePageSheetModal({
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const [iosKeyboardScrollPadding, setIosKeyboardScrollPadding] = useState(0);
+  const iosKeyboardScrollPadding = useSheetKeyboardInset(visible);
   const useStickyFooter = Boolean(stickyFooter && footer);
   const footerKeyboardPadding = liftFooterWithKeyboard ? iosKeyboardScrollPadding : 0;
   const scrollKeyboardPadding = iosKeyboardScrollPadding;
-
-  useEffect(() => {
-    if (!visible) setIosKeyboardScrollPadding(0);
-  }, [visible]);
-
-  useEffect(() => {
-    if (!visible) return undefined;
-    const onShow = (e) => {
-      setIosKeyboardScrollPadding(Math.max(0, e?.endCoordinates?.height ?? 0));
-    };
-    const onHide = () => setIosKeyboardScrollPadding(0);
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const subShow = Keyboard.addListener(showEvent, onShow);
-    const subHide = Keyboard.addListener(hideEvent, onHide);
-    return () => {
-      subShow.remove();
-      subHide.remove();
-    };
-  }, [visible]);
 
   const styles = useMemo(
     () => createSharedSheetStyles(colors, insets, { nativePageSheet: true }),
@@ -290,7 +324,7 @@ function OverlayBottomSheetModal({
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const [iosKeyboardScrollPadding, setIosKeyboardScrollPadding] = useState(0);
+  const iosKeyboardScrollPadding = useSheetKeyboardInset(visible);
   const isGlass = appearance === 'glass';
 
   const { prepareOpen, runOpen, runClose, backdropStyle, sheetStyle } =
@@ -339,26 +373,6 @@ function OverlayBottomSheetModal({
     const id = requestAnimationFrame(emitDismiss);
     return () => cancelAnimationFrame(id);
   }, [mounted, emitDismiss]);
-
-  useEffect(() => {
-    if (!visible) setIosKeyboardScrollPadding(0);
-  }, [visible]);
-
-  useEffect(() => {
-    if (!visible) return undefined;
-    const onShow = (e) => {
-      setIosKeyboardScrollPadding(Math.max(0, e?.endCoordinates?.height ?? 0));
-    };
-    const onHide = () => setIosKeyboardScrollPadding(0);
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const subShow = Keyboard.addListener(showEvent, onShow);
-    const subHide = Keyboard.addListener(hideEvent, onHide);
-    return () => {
-      subShow.remove();
-      subHide.remove();
-    };
-  }, [visible]);
 
   function closeFromBackdrop() {
     if (!allowBackdropClose) return;

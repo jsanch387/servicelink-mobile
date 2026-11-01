@@ -86,6 +86,14 @@ jest.mock('../../auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+jest.mock('../../shop', () => ({
+  useShopAccess: () => ({
+    canManagePayments: true,
+    isShopLoading: false,
+  }),
+  useLeaveWhenDenied: () => {},
+}));
+
 jest.mock('../../tap-to-pay/constants/tapToPayFeatureFlags', () => ({
   isTapToPayPlatformSupported: jest.fn(() => true),
   TAP_TO_PAY_USE_SERVER_APIS: true,

@@ -4,16 +4,18 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SurfaceCard } from '../../../components/ui';
 import { FONT_FAMILIES, useTheme } from '../../../theme';
 import { TEAM_MEMBER_DETAIL_HINT } from '../constants/teamMembersCopy';
+import { teamRoleCopy } from '../constants/teamRoles';
 import { presentTeamMember } from '../utils/teamMemberDisplay';
 import { TeamMemberAvatar } from './TeamMemberAvatar';
 
 /**
- * Team list row: name, email, chevron. Details / remove live in the member sheet.
+ * Team list row: name and role. Email lives on the member details screen.
  * Row layout lives on inner Views (Pressable + flex on Text stacks on RN).
  */
 export function TeamMemberCard({ member, onPress }) {
   const { colors } = useTheme();
-  const { title, subtitle, initial } = presentTeamMember(member);
+  const { title, initial } = presentTeamMember(member);
+  const roleLabel = teamRoleCopy(member?.role).label;
 
   const styles = useMemo(
     () =>
@@ -45,11 +47,11 @@ export function TeamMemberCard({ member, onPress }) {
           fontSize: 16,
           letterSpacing: -0.2,
         },
-        email: {
-          color: colors.textMuted,
+        role: {
+          color: colors.textSecondary,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 13,
-          marginTop: 3,
+          marginTop: 2,
         },
         chevronCol: {
           alignItems: 'center',
@@ -79,11 +81,9 @@ export function TeamMemberCard({ member, onPress }) {
               <AppText numberOfLines={1} style={styles.name}>
                 {title}
               </AppText>
-              {subtitle ? (
-                <AppText numberOfLines={1} style={styles.email}>
-                  {subtitle}
-                </AppText>
-              ) : null}
+              <AppText numberOfLines={1} style={styles.role}>
+                {roleLabel}
+              </AppText>
             </View>
             <View style={styles.chevronCol}>
               <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />

@@ -11,6 +11,7 @@ import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { useAuth } from '../../auth';
+import { useLeaveWhenDenied, useShopAccess } from '../../shop';
 import { enableServicelinkPaymentsViaSupabase } from '../../payments/api/enableServicelinkPaymentsViaSupabase';
 import { postStripeConnectOnboard } from '../../payments/api/postStripeConnectOnboard';
 import { postStripeConnectSync } from '../../payments/api/postStripeConnectSync';
@@ -53,6 +54,8 @@ export function SubscriptionsScreen() {
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
   const { session } = useAuth();
+  const { canManageBilling } = useShopAccess();
+  useLeaveWhenDenied(canManageBilling);
   const {
     hasProAccess,
     isOwnerProfileLoaded,

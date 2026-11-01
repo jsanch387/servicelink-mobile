@@ -43,3 +43,6 @@ export const TEAM_MEMBER_DETAIL_HINT = 'Opens member details';
 export const TEAM_MEMBER_EDIT_NAME = 'Edit name';
 export const TEAM_MEMBER_SAVE_NAME = 'Save name';
 export const TEAM_MEMBER_NAME_SAVED_TOAST = 'Name saved';
+export const TEAM_MEMBER_ROLE_SAVED_TOAST = 'Role updated';
+export const TEAM_ROLE_SHEET_TITLE = 'Role';
+export const TEAM_ROLE_SAVE_BUTTON = 'Save';
