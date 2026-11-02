@@ -1,21 +1,23 @@
 import { useMemo } from 'react';
 import { useShopAccess } from '../../shop';
+import { canUseShopTools } from '../../shop/utils/canUseShopTools';
 import { useSubscription } from '../../subscription';
 import { resolveExpenseAccess } from '../utils/resolveExpenseAccess';
 
-/** Office owners see Expenses. Pro uses the list; others get the subscribe card. */
+/** Office logins see Expenses. Pro owners and managers use the list; other owners get the subscribe card. */
 export function useExpenseAccess() {
-  const { canSeeOffice, isShopLoading } = useShopAccess();
+  const { canSeeOffice, isMember, isShopLoading } = useShopAccess();
   const { hasProAccess, isOwnerProfileLoaded, isLoading: subscriptionLoading } = useSubscription();
   const profileLoaded = isOwnerProfileLoaded && !isShopLoading && !subscriptionLoading;
+  const hasShopTools = canUseShopTools({ hasProAccess, isMember, canSeeOffice });
 
   return useMemo(
     () =>
       resolveExpenseAccess({
         canSeeOffice,
-        hasProAccess,
+        hasProAccess: hasShopTools,
         profileLoaded,
       }),
-    [canSeeOffice, hasProAccess, profileLoaded],
+    [canSeeOffice, hasShopTools, profileLoaded],
   );
 }

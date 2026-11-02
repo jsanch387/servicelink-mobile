@@ -1,50 +1,43 @@
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  AppText,
-  Button,
-  DeleteButton,
-  InlineCardError,
-  SettingsNavRow,
-  SettingsSection,
-  SurfaceTextField,
-} from '../../../components/ui';
+import { AppText, DeleteButton, DetailsSectionCard, InlineCardError } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { TeamMemberContactCard } from '../components/TeamMemberContactCard';
+import { TeamNameSheet } from '../components/TeamNameSheet';
+import { TeamRoleSheet } from '../components/TeamRoleSheet';
 import {
-  TEAM_INVITE_INVALID_NAME,
-  TEAM_INVITE_NAME_PLACEHOLDER,
   TEAM_MEMBER_EDIT_NAME,
   TEAM_MEMBER_NOT_FOUND,
   TEAM_MEMBERS_LOADING,
-  TEAM_MEMBER_SAVE_NAME,
   TEAM_REMOVE_BUTTON,
   TEAM_REMOVE_CONFIRM_BUTTON,
   TEAM_REMOVE_SHEET_BODY,
 } from '../constants/teamMembersCopy';
+import { storedTeamRole, teamRoleCopy } from '../constants/teamRoles';
 import { useTeamMembers } from '../context/TeamMembersContext';
 import { presentTeamMember } from '../utils/teamMemberDisplay';
 
 /**
- * Full-screen teammate details. Room to add visits / stats later.
+ * Teammate details. Centered identity, then Details, Access, and remove.
  */
 export function TeamMemberDetailsScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const route = useRoute();
-  const tabBarHeight = useBottomTabBarHeight();
   const team = useTeamMembers();
   const {
     clearMemberError,
+    handleChangeRole,
     handleRemove,
     handleRename,
     isLoading,
     isRemoving,
     isSavingName,
+    isSavingRole,
     memberError,
     members,
   } = team;
@@ -54,28 +47,23 @@ export function TeamMemberDetailsScreen() {
       navigation.goBack();
     }
   }, [navigation, team.canManageTeam, team.teamGateSettled]);
+
   const memberId = String(route.params?.memberId ?? '').trim();
   const member = members.find((row) => row.id === memberId) ?? null;
   const presented = presentTeamMember(member);
   const storedName = String(member?.name ?? '').trim();
   const displayName = storedName || presented.title;
-  const [name, setName] = useState(displayName);
-  const [nameError, setNameError] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const email = String(member?.email ?? '').trim();
+  const [nameSheetOpen, setNameSheetOpen] = useState(false);
+  const [roleSheetOpen, setRoleSheetOpen] = useState(false);
+  const currentRole = storedTeamRole(member?.role);
+  const currentRoleLabel = teamRoleCopy(currentRole).label;
 
   useEffect(() => {
     clearMemberError();
   }, [clearMemberError, memberId]);
 
-  useEffect(() => {
-    setName(String(member?.name ?? '').trim() || presentTeamMember(member).title);
-    setNameError(null);
-    setIsEditing(false);
-  }, [member]);
-
-  const trimmedName = name.trim();
-  const nameDirty = trimmedName !== storedName && trimmedName !== displayName;
-  const busy = isSavingName || isRemoving;
+  const busy = isSavingName || isSavingRole || isRemoving;
 
   const styles = useMemo(
     () =>
@@ -88,26 +76,68 @@ export function TeamMemberDetailsScreen() {
           flex: 1,
         },
         content: {
+          paddingBottom: 16,
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingTop: 28,
+        },
+        removeFooter: {
           paddingBottom: 24,
           paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: 16,
+          paddingTop: 8,
         },
         errorWrap: {
-          marginTop: 14,
+          marginTop: 16,
         },
-        nameField: {
-          marginTop: 22,
+        section: {
+          marginTop: 28,
         },
-        save: {
-          marginTop: 22,
+        row: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          minHeight: 56,
+          paddingHorizontal: 16,
+          width: '100%',
         },
-        cancel: {
-          marginTop: 10,
+        pressed: {
+          backgroundColor: colors.buttonGhostPressed,
         },
-        footer: {
-          paddingBottom: Math.max(tabBarHeight - 48, 4),
-          paddingHorizontal: SCREEN_GUTTER,
-          paddingTop: 8,
+        labelCol: {
+          justifyContent: 'center',
+          marginRight: 12,
+        },
+        roleLabelCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+          paddingRight: 12,
+        },
+        label: {
+          color: colors.text,
+          fontSize: 16,
+          letterSpacing: -0.2,
+        },
+        valueCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+        },
+        value: {
+          alignSelf: 'stretch',
+          color: colors.textMuted,
+          fontSize: 16,
+          letterSpacing: -0.2,
+          textAlign: 'right',
+        },
+        chevronCol: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginLeft: 8,
+          width: 18,
+        },
+        rule: {
+          backgroundColor: colors.border,
+          height: StyleSheet.hairlineWidth,
+          marginLeft: 16,
         },
         notFound: {
           alignItems: 'center',
@@ -119,47 +149,8 @@ export function TeamMemberDetailsScreen() {
           fontWeight: '500',
         },
       }),
-    [colors, tabBarHeight],
+    [colors],
   );
-
-  const handleSave = async () => {
-    if (!member) {
-      return;
-    }
-    if (!trimmedName) {
-      setNameError(TEAM_INVITE_INVALID_NAME);
-      return;
-    }
-    if (busy) {
-      return;
-    }
-    if (!nameDirty && trimmedName === storedName) {
-      setIsEditing(false);
-      return;
-    }
-    const result = await handleRename(member, trimmedName);
-    if (result?.ok !== false) {
-      setIsEditing(false);
-    }
-  };
-
-  const cancelEdit = () => {
-    if (busy) {
-      return;
-    }
-    setName(displayName);
-    setNameError(null);
-    setIsEditing(false);
-  };
-
-  const startEdit = () => {
-    if (busy) {
-      return;
-    }
-    setName(displayName);
-    setNameError(null);
-    setIsEditing(true);
-  };
 
   const requestRemove = () => {
     if (!member || busy) {
@@ -198,6 +189,7 @@ export function TeamMemberDetailsScreen() {
     <SafeAreaView edges={['left', 'right']} style={styles.root}>
       <ScrollView
         contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >
@@ -207,68 +199,107 @@ export function TeamMemberDetailsScreen() {
             <InlineCardError message={memberError} />
           </View>
         ) : null}
-        {isEditing ? (
-          <>
-            <View style={styles.nameField}>
-              <SurfaceTextField
-                autoCapitalize="words"
-                autoCorrect={false}
-                autoFocus
-                compact
-                errorText={nameError ?? undefined}
-                label="Name"
-                maxLength={80}
-                placeholder={TEAM_INVITE_NAME_PLACEHOLDER}
-                value={name}
-                onChangeText={(next) => {
-                  setName(next);
-                  if (nameError) setNameError(null);
-                }}
-              />
-            </View>
-            <View style={styles.save}>
-              <Button
-                disabled={busy || !trimmedName}
-                fullWidth
-                loading={isSavingName}
-                title={TEAM_MEMBER_SAVE_NAME}
-                onPress={() => {
-                  void handleSave();
-                }}
-              />
-            </View>
-            <View style={styles.cancel}>
-              <Button
-                disabled={busy}
-                fullWidth
-                title="Cancel"
-                variant="secondary"
-                onPress={cancelEdit}
-              />
-            </View>
-          </>
-        ) : (
-          <SettingsSection title="Actions">
-            <SettingsNavRow
+
+        <View style={styles.section}>
+          <DetailsSectionCard flush title="Details">
+            <Pressable
+              accessibilityLabel={TEAM_MEMBER_EDIT_NAME}
+              accessibilityRole="button"
               disabled={busy}
-              icon="create-outline"
-              label={TEAM_MEMBER_EDIT_NAME}
-              showDividerBelow={false}
-              onPress={startEdit}
-            />
-          </SettingsSection>
-        )}
-      </ScrollView>
-      {isEditing ? null : (
-        <View style={styles.footer}>
-          <DeleteButton
-            disabled={busy}
-            loading={isRemoving}
-            title={TEAM_REMOVE_BUTTON}
-            onPress={requestRemove}
-          />
+              onPress={() => setNameSheetOpen(true)}
+            >
+              {({ pressed }) => (
+                <View style={[styles.row, pressed && styles.pressed]}>
+                  <View style={styles.labelCol}>
+                    <AppText style={styles.label}>Name</AppText>
+                  </View>
+                  <View style={styles.valueCol}>
+                    <AppText numberOfLines={1} style={styles.value}>
+                      {displayName}
+                    </AppText>
+                  </View>
+                  <View style={styles.chevronCol}>
+                    <Ionicons color={colors.textMuted} name="chevron-forward" size={16} />
+                  </View>
+                </View>
+              )}
+            </Pressable>
+            <View style={styles.rule} />
+            <View style={styles.row}>
+              <View style={styles.labelCol}>
+                <AppText style={styles.label}>Email</AppText>
+              </View>
+              <View style={styles.valueCol}>
+                <AppText numberOfLines={1} style={styles.value}>
+                  {email}
+                </AppText>
+              </View>
+            </View>
+          </DetailsSectionCard>
         </View>
-      )}
+
+        <View style={styles.section}>
+          <DetailsSectionCard flush title="Access">
+            <Pressable
+              accessibilityLabel={`Role. Currently ${currentRoleLabel}. Tap to change.`}
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={() => setRoleSheetOpen(true)}
+            >
+              {({ pressed }) => (
+                <View style={[styles.row, pressed && styles.pressed]}>
+                  <View style={styles.roleLabelCol}>
+                    <AppText numberOfLines={1} style={styles.label}>
+                      {currentRoleLabel}
+                    </AppText>
+                  </View>
+                  <View style={styles.chevronCol}>
+                    <Ionicons color={colors.textMuted} name="chevron-down" size={16} />
+                  </View>
+                </View>
+              )}
+            </Pressable>
+          </DetailsSectionCard>
+        </View>
+      </ScrollView>
+      <View style={styles.removeFooter}>
+        <DeleteButton
+          disabled={busy}
+          loading={isRemoving}
+          title={TEAM_REMOVE_BUTTON}
+          onPress={requestRemove}
+        />
+      </View>
+      <TeamNameSheet
+        errorMessage={nameSheetOpen ? memberError : null}
+        saving={isSavingName}
+        value={displayName}
+        visible={nameSheetOpen}
+        onRequestClose={() => setNameSheetOpen(false)}
+        onSave={(nextName) => {
+          void (async () => {
+            const result = await handleRename(member, nextName);
+            if (result?.ok) {
+              setNameSheetOpen(false);
+            }
+          })();
+        }}
+      />
+      <TeamRoleSheet
+        errorMessage={roleSheetOpen ? memberError : null}
+        saving={isSavingRole}
+        value={currentRole}
+        visible={roleSheetOpen}
+        onRequestClose={() => setRoleSheetOpen(false)}
+        onSave={(nextRole) => {
+          void (async () => {
+            const result = await handleChangeRole(member, nextRole);
+            if (result?.ok) {
+              setRoleSheetOpen(false);
+            }
+          })();
+        }}
+      />
     </SafeAreaView>
   );
 }

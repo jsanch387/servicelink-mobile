@@ -3,12 +3,14 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../home/__tests__/testUtils';
 import { fetchTeamRosterForShop } from '../../api/fetchTeamRosterForOwner';
 import { updateTeamMemberDisplayName } from '../../api/persistTeamInviteName';
+import { patchTeamMemberRole } from '../../api/patchTeamMemberRole';
 import { postTeamRemove } from '../../api/postTeamRemove';
 import {
   TEAM_MEMBER_EDIT_NAME,
   TEAM_MEMBER_NAME_SAVED_TOAST,
   TEAM_MEMBER_NOT_FOUND,
-  TEAM_MEMBER_SAVE_NAME,
+  TEAM_MEMBER_ROLE_SAVED_TOAST,
+  TEAM_ROLE_SAVE_BUTTON,
   TEAM_REMOVE_BUTTON,
   TEAM_REMOVE_CONFIRM_BUTTON,
   TEAM_REMOVE_SHEET_BODY,
@@ -55,6 +57,10 @@ jest.mock('../../../auth/api/auth', () => ({
 jest.mock('../../api/persistTeamInviteName', () => ({
   persistTeamInviteName: jest.fn(async () => {}),
   updateTeamMemberDisplayName: jest.fn(async () => {}),
+}));
+
+jest.mock('../../api/patchTeamMemberRole', () => ({
+  patchTeamMemberRole: jest.fn(async () => ({ ok: true, role: 'coordinator' })),
 }));
 
 jest.mock('../../api/postTeamRemove', () => ({
@@ -120,12 +126,13 @@ describe('TeamMemberDetailsScreen', () => {
   it('shows contact details and edits the name', async () => {
     renderDetails();
 
-    expect(await screen.findByText('Jordan')).toBeTruthy();
-    expect(screen.getByText('jordan@example.com')).toBeTruthy();
+    expect(await screen.findAllByText('Jordan')).toHaveLength(2);
+    expect(screen.getAllByText('jordan@example.com')).toHaveLength(2);
+    expect(screen.getByText('Active')).toBeTruthy();
 
     fireEvent.press(screen.getByRole('button', { name: TEAM_MEMBER_EDIT_NAME }));
     fireEvent.changeText(screen.getByDisplayValue('Jordan'), 'Jordan Lee');
-    fireEvent.press(screen.getByRole('button', { name: TEAM_MEMBER_SAVE_NAME }));
+    fireEvent.press(screen.getByRole('button', { name: TEAM_ROLE_SAVE_BUTTON }));
 
     await waitFor(() => {
       expect(updateTeamMemberDisplayName).toHaveBeenCalledWith(
@@ -137,6 +144,24 @@ describe('TeamMemberDetailsScreen', () => {
     expect(await screen.findByText(TEAM_MEMBER_NAME_SAVED_TOAST)).toBeTruthy();
   });
 
+  it('saves a new role through the server', async () => {
+    renderDetails();
+    expect(await screen.findAllByText('Jordan')).toHaveLength(2);
+
+    fireEvent.press(screen.getByLabelText('Role. Currently Member. Tap to change.'));
+    fireEvent.press(screen.getByRole('menuitem', { name: 'Coordinator' }));
+    fireEvent.press(screen.getByRole('button', { name: TEAM_ROLE_SAVE_BUTTON }));
+
+    await waitFor(() => {
+      expect(patchTeamMemberRole).toHaveBeenCalledWith('test-token', {
+        id: 'mem-1',
+        source: 'member',
+        role: 'coordinator',
+      });
+    });
+    expect(await screen.findByText(TEAM_MEMBER_ROLE_SAVED_TOAST)).toBeTruthy();
+  });
+
   it('confirms remove with the native alert and goes back', async () => {
     const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _body, buttons) => {
       const remove = buttons.find((b) => b.style === 'destructive');
@@ -144,7 +169,7 @@ describe('TeamMemberDetailsScreen', () => {
     });
 
     renderDetails();
-    expect(await screen.findByText('jordan@example.com')).toBeTruthy();
+    expect(await screen.findAllByText('jordan@example.com')).toHaveLength(2);
 
     fireEvent.press(screen.getByRole('button', { name: TEAM_REMOVE_BUTTON }));
 
@@ -176,7 +201,7 @@ describe('TeamMemberDetailsScreen', () => {
     });
 
     renderDetails();
-    expect(await screen.findByText('jordan@example.com')).toBeTruthy();
+    expect(await screen.findAllByText('jordan@example.com')).toHaveLength(2);
 
     fireEvent.press(screen.getByRole('button', { name: TEAM_REMOVE_BUTTON }));
 

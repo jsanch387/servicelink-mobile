@@ -60,7 +60,7 @@ export function BookingDetailsScreen({ route }) {
   const scrollRef = useRef(/** @type {ScrollView | null} */ (null));
   const detailsQuery = useBookingDetails(bookingId);
   const bookingActions = useBookingActions(bookingId);
-  const { canWriteBookings } = useShopAccess();
+  const { canDeleteBookings, canWriteBookings } = useShopAccess();
   const smsAccess = useCustomerSmsAccess();
   const details = useMemo(
     () => buildBookingDetailsModel(detailsQuery.booking),
@@ -483,7 +483,7 @@ export function BookingDetailsScreen({ route }) {
             ) : null}
 
             <BookingActivitySection onPress={handleOpenActivity} />
-            {canWriteBookings ? (
+            {canDeleteBookings ? (
               <View style={styles.deleteSection}>
                 <DeleteButton
                   accessibilityHint="Removes this appointment from your calendar. This can\'t be undone."

@@ -16,6 +16,7 @@ import { AppText, Button, InlineCardError, SkeletonBox, SurfaceCard } from '../.
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { FREE_TIER_MAX_SERVICES, freeTierServicesLimitCopy } from '../constants/freeTierLimits';
+import { useShopToolAccess } from '../../shop';
 import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
 import { getWebAccountAdminUrl } from '../../../lib/webAppOrigin';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
@@ -124,7 +125,8 @@ export function ServicesScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
   const navigation = useNavigation();
-  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
+  const { isOwnerProfileLoaded } = useSubscription();
+  const { canUseShopTools } = useShopToolAccess();
   const catalog = useServicesCatalog();
   const { refetch: refetchCatalog } = catalog;
   const categories = catalog.categories;
@@ -274,9 +276,9 @@ export function ServicesScreen() {
   const atFreeTierServicesLimit = useMemo(
     () =>
       isOwnerProfileLoaded &&
-      !hasProAccess &&
+      !canUseShopTools &&
       (catalog.services?.length ?? 0) >= FREE_TIER_MAX_SERVICES,
-    [catalog.services?.length, hasProAccess, isOwnerProfileLoaded],
+    [catalog.services?.length, canUseShopTools, isOwnerProfileLoaded],
   );
 
   const servicesLimitCopy = useMemo(() => freeTierServicesLimitCopy(FREE_TIER_MAX_SERVICES), []);

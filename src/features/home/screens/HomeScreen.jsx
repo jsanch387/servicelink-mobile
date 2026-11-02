@@ -58,9 +58,9 @@ export function HomeScreen() {
   const { unreadCount } = useNotificationUnreadCount();
   const { hasProAccess, isOwnerProfileLoaded, ownerProfile, refetchSubscription } =
     useSubscription();
-  const { canSeeOffice, canWriteBookings } = useShopAccess();
+  const { canSeeOffice, canSeeOwnerHome, canManagePayments, canWriteBookings } = useShopAccess();
   const paymentFailedNotice = useOwnerSubscriptionPaymentFailedNotice({
-    enabled: isOwnerProfileLoaded && canSeeOffice,
+    enabled: isOwnerProfileLoaded && canSeeOwnerHome,
     ownerProfile,
   });
   const createPaymentAccess = useCreatePaymentAccess();
@@ -107,7 +107,7 @@ export function HomeScreen() {
   );
 
   const linkViews = useLinkViewsAnalytics(dashboard.business?.id, {
-    enabled: canSeeOffice && Boolean(dashboard.business?.id) && !dashboard.isPendingBusiness,
+    enabled: canSeeOwnerHome && Boolean(dashboard.business?.id) && !dashboard.isPendingBusiness,
     hasProAccess,
   });
 
@@ -186,7 +186,7 @@ export function HomeScreen() {
     dashboard.todaysEarnings.potentialCents > 0;
 
   const showFreeTierBookingCount =
-    canSeeOffice &&
+    canSeeOwnerHome &&
     isOwnerProfileLoaded &&
     !hasProAccess &&
     Boolean(dashboard.business?.id) &&
@@ -206,7 +206,7 @@ export function HomeScreen() {
     useCallback(() => {
       const bid = dashboard.business?.id;
       if (
-        !canSeeOffice ||
+        !canSeeOwnerHome ||
         !bid ||
         !isOwnerProfileLoaded ||
         hasProAccess ||
@@ -217,7 +217,7 @@ export function HomeScreen() {
       void queryClient.invalidateQueries({ queryKey: bookingsFreeTierCountQueryKey(bid) });
       return undefined;
     }, [
-      canSeeOffice,
+      canSeeOwnerHome,
       dashboard.business?.id,
       dashboard.businessError,
       hasProAccess,
@@ -573,7 +573,7 @@ export function HomeScreen() {
             />
           </View>
         ) : null}
-        {canSeeOffice && paymentFailedNotice.visible ? (
+        {canSeeOwnerHome && paymentFailedNotice.visible ? (
           <View style={styles.storeUpdateWrap}>
             <OwnerSubscriptionPaymentFailedBanner onDismiss={paymentFailedNotice.dismiss} />
           </View>
@@ -633,7 +633,7 @@ export function HomeScreen() {
             ) : null}
           </View>
         ) : null}
-        {canSeeOffice && showFreeBookingsUsage ? (
+        {canSeeOwnerHome && showFreeBookingsUsage ? (
           <HomeFreeBookingsUsageCard
             limit={FREE_TIER_BOOKINGS_LIMIT}
             used={resolvedFreeBookingUsed}
@@ -673,7 +673,7 @@ export function HomeScreen() {
           workingPhase={nextUpWorkingPhase}
         />
 
-        {canSeeOffice && (showTodaysEarnings || showTodaysEarningsSkeleton) ? (
+        {canSeeOwnerHome && (showTodaysEarnings || showTodaysEarningsSkeleton) ? (
           <>
             <AppText style={[styles.sectionLabel, styles.secondarySectionLabel]}>
               Today&apos;s earnings
@@ -699,7 +699,7 @@ export function HomeScreen() {
           </>
         ) : null}
 
-        {canSeeOffice ? (
+        {canSeeOwnerHome ? (
           <>
             <AppText style={[styles.sectionLabel, styles.secondarySectionLabel]}>
               Link visits
@@ -725,7 +725,8 @@ export function HomeScreen() {
         <FloatingCreateMenu
           bottom={30}
           /* Free users still see this row; tap opens Payments (subscribe / Connect). */
-          showCreatePayment={createPaymentAccess.featureEnabled}
+          showCreatePayment={canManagePayments && createPaymentAccess.featureEnabled}
+          showCreateQuote={canSeeOffice}
           onCreateAppointment={handleCreateAppointment}
           onCreatePayment={handleCreatePayment}
           onCreateQuote={handleCreateQuote}

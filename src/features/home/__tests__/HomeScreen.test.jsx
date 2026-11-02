@@ -101,6 +101,8 @@ jest.mock('../../bookings/hooks/useBookingsFreeTierUsage', () => ({
 
 const mockUseShopAccess = jest.fn(() => ({
   canSeeOffice: true,
+  canSeeOwnerHome: true,
+  canManagePayments: true,
   canWriteBookings: true,
   isMember: false,
   isOwner: true,
@@ -210,6 +212,8 @@ describe('HomeScreen', () => {
     mockCreatePaymentAccess.isReady = true;
     mockUseShopAccess.mockReturnValue({
       canSeeOffice: true,
+      canSeeOwnerHome: true,
+      canManagePayments: true,
       canWriteBookings: true,
       isMember: false,
       isOwner: true,
@@ -232,6 +236,8 @@ describe('HomeScreen', () => {
   it('keeps Next Up and timeline for members and hides office home actions', () => {
     mockUseShopAccess.mockReturnValue({
       canSeeOffice: false,
+      canSeeOwnerHome: false,
+      canManagePayments: false,
       canWriteBookings: false,
       isMember: true,
       isOwner: false,

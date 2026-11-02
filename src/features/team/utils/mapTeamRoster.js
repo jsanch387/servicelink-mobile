@@ -1,4 +1,5 @@
 import { normalizeEmailForDedupe } from '../../../utils/email';
+import { storedTeamRole } from '../constants/teamRoles';
 
 function sortNewestFirst(a, b) {
   return String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? ''));
@@ -45,6 +46,7 @@ export function mapTeamRoster(raw) {
       name,
       email,
       phone: '',
+      role: storedTeamRole(row.role),
       status: 'invited',
       source: 'invite',
       createdAt: row.created_at ?? null,
@@ -65,6 +67,7 @@ export function mapTeamRoster(raw) {
       name: (row.user_id && nameByUserId.get(row.user_id)) || '',
       email,
       phone: '',
+      role: storedTeamRole(row.role),
       status: 'active',
       source: 'member',
       userId: row.user_id ?? null,
@@ -81,17 +84,21 @@ export function mapTeamRoster(raw) {
  * @param {{ members?: Array<{ email?: string | null; name?: string | null }> } | null | undefined} roster
  * @param {string} email
  * @param {string} name
+ * @param {string} [role]
  */
-export function applyInviteNameToRoster(roster, email, name) {
+export function applyInviteNameToRoster(roster, email, name, role) {
   const inviteEmail = normalizeEmailForDedupe(email);
   const inviteName = String(name ?? '').trim();
+  const inviteRole = role == null || role === '' ? null : storedTeamRole(role);
   if (!roster || !inviteEmail || !inviteName) {
     return roster;
   }
   return {
     ...roster,
     members: (roster.members ?? []).map((row) =>
-      normalizeEmailForDedupe(row?.email) === inviteEmail ? { ...row, name: inviteName } : row,
+      normalizeEmailForDedupe(row?.email) === inviteEmail
+        ? { ...row, name: inviteName, ...(inviteRole ? { role: inviteRole } : {}) }
+        : row,
     ),
   };
 }

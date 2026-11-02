@@ -18,7 +18,8 @@ import {
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
-import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
+import { useShopToolAccess } from '../../shop';
+import { showWebAccountFeatureAlert } from '../../subscription';
 import { CreatePromoCodeSheet } from '../components/CreatePromoCodeSheet';
 import { CreateSaleSheet } from '../components/CreateSaleSheet';
 import { MarketingCampaignCard } from '../components/MarketingCampaignCard';
@@ -48,7 +49,7 @@ const MARKETING_TOGGLE_OPTIONS = [
 
 export function MarketingScreen() {
   const { colors } = useTheme();
-  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
+  const { canUseShopTools, isOwnerProfileLoaded } = useShopToolAccess();
   const {
     promos,
     addPromo,
@@ -70,7 +71,7 @@ export function MarketingScreen() {
     refetch: refetchSales,
   } = useSales();
 
-  const canMutate = Boolean(isOwnerProfileLoaded && hasProAccess);
+  const canMutate = Boolean(isOwnerProfileLoaded && canUseShopTools);
   const isLoading = promosLoading || salesLoading || !isOwnerProfileLoaded;
   const errorMessage = promosError || salesError;
 
@@ -181,13 +182,13 @@ export function MarketingScreen() {
 
   const handleOpenCreate = useCallback(() => {
     if (!isOwnerProfileLoaded) return;
-    if (!hasProAccess) {
+    if (!canUseShopTools) {
       requirePro();
       return;
     }
     if (isPromosTab) setPromoCreateVisible(true);
     else setSaleCreateVisible(true);
-  }, [hasProAccess, isOwnerProfileLoaded, isPromosTab, requirePro]);
+  }, [canUseShopTools, isOwnerProfileLoaded, isPromosTab, requirePro]);
 
   async function handlePromoCreated(promo) {
     const { data, error } = await addPromo(promo);
@@ -225,7 +226,7 @@ export function MarketingScreen() {
 
   function handleDeletePromo(promo) {
     if (!isOwnerProfileLoaded) return;
-    if (!hasProAccess) {
+    if (!canUseShopTools) {
       requirePro();
       return;
     }
@@ -247,7 +248,7 @@ export function MarketingScreen() {
 
   function handleDeleteSale(sale) {
     if (!isOwnerProfileLoaded) return;
-    if (!hasProAccess) {
+    if (!canUseShopTools) {
       requirePro();
       return;
     }
@@ -269,7 +270,7 @@ export function MarketingScreen() {
 
   function handleTogglePromo(promo, isEnabled) {
     if (!isOwnerProfileLoaded) return;
-    if (!hasProAccess) {
+    if (!canUseShopTools) {
       requirePro();
       return;
     }
@@ -282,7 +283,7 @@ export function MarketingScreen() {
 
   function handleToggleSale(sale, isEnabled) {
     if (!isOwnerProfileLoaded) return;
-    if (!hasProAccess) {
+    if (!canUseShopTools) {
       requirePro();
       return;
     }
@@ -422,7 +423,7 @@ export function MarketingScreen() {
                       onDelete={() => handleDeletePromo(promo)}
                       onEdit={() => {
                         if (!isOwnerProfileLoaded) return;
-                        if (!hasProAccess) {
+                        if (!canUseShopTools) {
                           requirePro();
                           return;
                         }
@@ -440,7 +441,7 @@ export function MarketingScreen() {
                       onDelete={() => handleDeleteSale(sale)}
                       onEdit={() => {
                         if (!isOwnerProfileLoaded) return;
-                        if (!hasProAccess) {
+                        if (!canUseShopTools) {
                           requirePro();
                           return;
                         }

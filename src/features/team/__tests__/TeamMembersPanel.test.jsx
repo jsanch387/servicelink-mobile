@@ -41,9 +41,9 @@ describe('TeamMembersPanel', () => {
     renderWithProviders(<TeamMembersPanel members={members} onPressMember={onPressMember} />);
 
     expect(screen.getByText('Jordan')).toBeTruthy();
-    expect(screen.getByText('jordan@example.com')).toBeTruthy();
+    expect(screen.queryByText('jordan@example.com')).toBeNull();
     expect(screen.getByText('Alex')).toBeTruthy();
-    expect(screen.getByText('alex@example.com')).toBeTruthy();
+    expect(screen.queryByText('alex@example.com')).toBeNull();
     expect(screen.queryByText('Invited')).toBeNull();
 
     fireEvent.press(screen.getByRole('button', { name: 'Jordan' }));

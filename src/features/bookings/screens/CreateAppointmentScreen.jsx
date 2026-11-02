@@ -7,6 +7,7 @@ import {
   androidHeaderTitleBalanceRight,
 } from '../../../components/ui';
 import { useTheme } from '../../../theme';
+import { useRequireBookingWrite } from '../../shop/hooks/useRequireBookingWrite';
 import { CreateAppointmentFlow } from '../create-appointment/CreateAppointmentFlow';
 
 /**
@@ -16,6 +17,7 @@ import { CreateAppointmentFlow } from '../create-appointment/CreateAppointmentFl
 export function CreateAppointmentScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
+  useRequireBookingWrite();
   const route = useRoute();
   const prefilledCustomer = route.params?.prefilledCustomer ?? null;
 

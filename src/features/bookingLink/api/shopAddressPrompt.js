@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { needsLegacyShopAddressUpdate } from '../utils/needsLegacyShopAddressUpdate';
 
 /**
@@ -10,10 +11,18 @@ export async function fetchShopAddressPromptStatus(userId) {
     return { businessProfileId: null, needsUpdate: false };
   }
 
+  const shop = await fetchBusinessProfileForUser(userId);
+  if (shop.error) {
+    throw shop.error;
+  }
+  if (!shop.data?.id) {
+    return { businessProfileId: null, needsUpdate: false };
+  }
+
   const { data, error } = await supabase
     .from('business_profiles')
     .select('id, service_location_mode, shop_city, shop_state')
-    .eq('profile_id', userId)
+    .eq('id', shop.data.id)
     .maybeSingle();
 
   if (error) {

@@ -40,6 +40,7 @@ export function FloatingCreateMenu({
   onCreateQuote,
   onCreatePayment,
   showCreatePayment = true,
+  showCreateQuote = true,
   bottom = 30,
 }) {
   const { colors, isDark } = useTheme();
@@ -232,8 +233,13 @@ export function FloatingCreateMenu({
   );
 
   const menuItems = useMemo(
-    () => MENU_ITEMS.filter((item) => item.key !== 'payment' || showCreatePayment),
-    [showCreatePayment],
+    () =>
+      MENU_ITEMS.filter((item) => {
+        if (item.key === 'payment') return showCreatePayment;
+        if (item.key === 'quote') return showCreateQuote;
+        return true;
+      }),
+    [showCreatePayment, showCreateQuote],
   );
 
   const menuOpacity = progress.interpolate({

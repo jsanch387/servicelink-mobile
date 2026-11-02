@@ -90,7 +90,6 @@ export async function saveOwnerBookingLink(input) {
       .from('business_profiles')
       .select('business_name,business_type')
       .eq('id', businessId)
-      .eq('profile_id', userId)
       .maybeSingle();
     if (existingErr) {
       throw new Error(existingErr.message ?? 'Could not load profile for save');
@@ -118,7 +117,6 @@ export async function saveOwnerBookingLink(input) {
           imageUri: logoImageUri,
           kind: 'logo',
           previousPathHint: previousLogoPath,
-          userId,
         })
       : Promise.resolve(null),
     coverImageUri
@@ -127,7 +125,6 @@ export async function saveOwnerBookingLink(input) {
           imageUri: coverImageUri,
           kind: 'banner',
           previousPathHint: previousBannerPath,
-          userId,
         })
       : Promise.resolve(null),
   ]);
@@ -183,8 +180,7 @@ export async function saveOwnerBookingLink(input) {
   const { error: updateError } = await supabase
     .from('business_profiles')
     .update(updateRow)
-    .eq('id', businessId)
-    .eq('profile_id', userId);
+    .eq('id', businessId);
 
   if (updateError) {
     await Promise.all([
@@ -315,12 +311,11 @@ async function uploadPortfolioBatch(businessId, uris) {
   }
 }
 
-async function replaceBusinessImage({ businessId, imageUri, kind, previousPathHint, userId }) {
+async function replaceBusinessImage({ businessId, imageUri, kind, previousPathHint }) {
   const { data: currentRow, error: currentRowError } = await supabase
     .from('business_profiles')
     .select(kind === 'logo' ? 'logo_path' : 'banner_path')
     .eq('id', businessId)
-    .eq('profile_id', userId)
     .maybeSingle();
   if (currentRowError) {
     throw new Error(currentRowError.message ?? `Could not read current ${kind} image`);

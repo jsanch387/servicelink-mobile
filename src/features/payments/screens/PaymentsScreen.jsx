@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, InlineCardError, SurfaceCard } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
+import { useLeaveWhenDenied, useShopAccess } from '../../shop';
 import { useSubscription } from '../../subscription';
 import { PaymentAcceptServicelinkCard } from '../components/PaymentAcceptServicelinkCard';
 import { PaymentsRevenueSection } from '../components/PaymentsRevenueSection';
@@ -51,6 +52,8 @@ export function PaymentsScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { user, session } = useAuth();
+  const { canManagePayments } = useShopAccess();
+  useLeaveWhenDenied(canManagePayments);
   const {
     hasProAccess,
     isOwnerProfileLoaded,

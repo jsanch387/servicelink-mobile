@@ -11,6 +11,7 @@ import { useTheme } from '../../theme';
  * @param {import('react').ReactNode} props.children
  * @param {'default' | 'overline'} [props.titleTone]
  * @param {'default' | 'roomy'} [props.bodyPadding]
+ * @param {boolean} [props.flush] — no inner padding, for full-bleed rows
  * @param {import('react-native').StyleProp<import('react-native').ViewStyle>} [props.cardStyle]
  */
 export function DetailsSectionCard({
@@ -19,6 +20,7 @@ export function DetailsSectionCard({
   children,
   titleTone = 'default',
   bodyPadding = 'default',
+  flush = false,
   cardStyle,
 }) {
   const { colors } = useTheme();
@@ -60,6 +62,9 @@ export function DetailsSectionCard({
         paddingHorizontal: 16,
         paddingVertical: 16,
       },
+      cardFlush: {
+        overflow: 'hidden',
+      },
     });
   }, [colors, titleTone]);
 
@@ -81,7 +86,13 @@ export function DetailsSectionCard({
           {titleRight}
         </View>
       ) : null}
-      <SurfaceCard style={[isRoomy ? styles.cardRoomy : styles.cardDefault, cardStyle]}>
+      <SurfaceCard
+        padding={flush ? 'none' : 'md'}
+        style={[
+          flush ? styles.cardFlush : isRoomy ? styles.cardRoomy : styles.cardDefault,
+          cardStyle,
+        ]}
+      >
         {children}
       </SurfaceCard>
     </View>
