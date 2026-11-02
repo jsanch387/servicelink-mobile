@@ -1,5 +1,9 @@
-import { buildReviewsSummary } from '../buildReviewsSummary';
-import { mapReviewRowToModel, validateReviewReply } from '../reviewModel';
+import { buildReviewsSummary, mapDashboardSummary } from '../buildReviewsSummary';
+import {
+  mapDashboardReviewToModel,
+  mapReviewRowToModel,
+  validateReviewReply,
+} from '../reviewModel';
 
 describe('reviewModel', () => {
   it('maps a replied review row', () => {
@@ -19,6 +23,35 @@ describe('reviewModel', () => {
     expect(model.ownerReply).toEqual({
       body: 'Thank you!',
       repliedAt: '2026-06-02T12:00:00.000Z',
+    });
+  });
+
+  it('keeps Google reviews out of the ServiceLink reply flow', () => {
+    const model = mapDashboardReviewToModel({
+      id: 'google:rev-1',
+      authorDisplayName: 'Sam',
+      rating: 5,
+      body: '',
+      createdAt: '2026-10-01T12:00:00.000Z',
+      source: 'google',
+      isHidden: false,
+    });
+
+    expect(model.source).toBe('google');
+    expect(model.replyStatus).toBe('replied');
+    expect(model.ownerReply).toBeNull();
+  });
+
+  it('maps the ServiceLink-only summary from the inbox API', () => {
+    expect(
+      mapDashboardSummary({
+        averageRating: 4.5,
+        reviewCount: 2,
+        breakdown: [{ stars: 5, percent: 50 }],
+      }),
+    ).toMatchObject({
+      averageRating: 4.5,
+      totalCount: 2,
     });
   });
 

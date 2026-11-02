@@ -6,7 +6,9 @@ import { REVIEWS_FILTER_NEEDS_REPLY } from '../constants';
  */
 export function filterReviews(reviews, filterKey) {
   if (filterKey === REVIEWS_FILTER_NEEDS_REPLY) {
-    return reviews.filter((review) => review.replyStatus === REVIEWS_FILTER_NEEDS_REPLY);
+    return reviews.filter(
+      (review) => review.source !== 'google' && review.replyStatus === REVIEWS_FILTER_NEEDS_REPLY,
+    );
   }
   return reviews;
 }

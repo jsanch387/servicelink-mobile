@@ -1,5 +1,5 @@
 export const REVIEWS_HOW_IT_WORKS_TITLE = 'How reviews work';
-export const REVIEWS_HOW_IT_WORKS_LINK_LABEL = 'How it works';
+export const REVIEWS_HOW_IT_WORKS_LINK_LABEL = 'How reviews work';
 export const REVIEWS_HOW_IT_WORKS_DISMISS_LABEL = 'Got it';
 
 export const REVIEWS_HOW_IT_WORKS_INTRO =

@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import { REVIEWS_INBOX_PAGE_SIZE } from '../constants/reviewsApiRoutes';
 
 export const REVIEW_OWNER_LIST_COLUMNS =
   'id, author_display_name, rating, body, created_at, owner_reply_body, owner_replied_at, is_hidden';
@@ -6,19 +7,24 @@ export const REVIEW_OWNER_LIST_COLUMNS =
 const REVIEWS_LIST_LIMIT = 100;
 
 /**
- * Owner inbox — newest reviews first. Scoped to `business_profiles.id`.
+ * One page of ServiceLink reviews. Used only when the merged inbox route rejects the phone token.
  *
  * @param {string} businessId
+ * @param {number} [offset]
  */
-export async function fetchReviewsForBusiness(businessId) {
-  const { data, error } = await supabase
+export async function fetchReviewsForBusiness(businessId, offset = 0) {
+  const from = Math.max(0, offset);
+  const to = from + REVIEWS_INBOX_PAGE_SIZE - 1;
+  const { data, error, count } = await supabase
     .from('reviews')
-    .select(REVIEW_OWNER_LIST_COLUMNS)
+    .select(REVIEW_OWNER_LIST_COLUMNS, { count: 'exact' })
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
-    .limit(REVIEWS_LIST_LIMIT);
+    .range(from, to);
 
-  return { data, error };
+  const rows = data ?? [];
+  const total = typeof count === 'number' ? count : from + rows.length;
+  return { data: rows, error, hasMore: !error && from + rows.length < total };
 }
 
 /**

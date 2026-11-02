@@ -1,6 +1,31 @@
 import { REVIEWS_EMPTY_SUMMARY } from '../constants';
 
 /**
+ * Star average from `GET /api/reviews`. That summary is ServiceLink-only.
+ *
+ * @param {unknown} summary
+ */
+export function mapDashboardSummary(summary) {
+  if (!summary || typeof summary !== 'object') return REVIEWS_EMPTY_SUMMARY;
+
+  const record = /** @type {Record<string, unknown>} */ (summary);
+  const breakdown = Array.isArray(record.breakdown)
+    ? record.breakdown
+        .filter((row) => row && typeof row === 'object' && typeof row.stars === 'number')
+        .map((row) => ({
+          stars: row.stars,
+          percent: typeof row.percent === 'number' ? row.percent : 0,
+        }))
+    : [];
+
+  return {
+    averageRating: typeof record.averageRating === 'number' ? record.averageRating : 0,
+    totalCount: typeof record.reviewCount === 'number' ? record.reviewCount : 0,
+    breakdown: breakdown.length > 0 ? breakdown : REVIEWS_EMPTY_SUMMARY.breakdown,
+  };
+}
+
+/**
  * @param {{ rating: number }[]} reviews
  */
 export function buildReviewsSummary(reviews) {
