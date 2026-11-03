@@ -6,4 +6,4 @@
  *
  * @type {readonly string[]}
  */
-export const GOOGLE_REVIEWS_EARLY_ACCESS_EMAILS = Object.freeze(['jesuss387@gmail.com']);
+export const GOOGLE_REVIEWS_EARLY_ACCESS_EMAILS = Object.freeze([]);
