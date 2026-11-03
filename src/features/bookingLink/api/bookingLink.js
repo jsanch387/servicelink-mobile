@@ -165,11 +165,22 @@ export async function fetchCompleteOwnerBusinessProfile(userId) {
     fetchOwnerProfileRow(userId),
     fetchBusinessProfileForUser(userId),
   ]);
-  const businessRes = { data: businessResult.data, error: businessResult.error };
 
   if (ownerRes.error) return { data: null, error: ownerRes.error };
-  if (businessRes.error) return { data: null, error: businessRes.error };
-  if (!businessRes.data?.id) return { data: null, error: null };
+  if (businessResult.error) return { data: null, error: businessResult.error };
+  if (!businessResult.data?.id) return { data: null, error: null };
+
+  // Shop lookup only returns identity columns. Logo, cover, and the rest of the
+  // public profile live on a full row for that same business.
+  const fullRes = await supabase
+    .from('business_profiles')
+    .select(BUSINESS_PROFILE_SELECT)
+    .eq('id', businessResult.data.id)
+    .maybeSingle();
+  if (fullRes.error) return { data: null, error: fullRes.error };
+  if (!fullRes.data?.id) return { data: null, error: null };
+
+  const businessRes = { data: fullRes.data, error: null };
 
   const [servicesRes, categoriesRes, imagesRes] = await Promise.all([
     fetchBusinessServicesForPublicProfile(businessRes.data.id),

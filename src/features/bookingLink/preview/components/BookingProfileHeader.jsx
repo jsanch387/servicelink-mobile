@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { AppText, SkeletonBox } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
 import { phoneForSmsUri } from '../../../../utils/phone';
 import { REVIEW_STAR_COLOR } from '../../../reviews/constants';
 import { bookingLinkProfileBusinessNameStyle } from '../../../../utils/serviceCardTypography';
+import { getCoverDisplayUrl } from '../../utils/coverDisplayUrl';
 import { socialMediaFromDb, socialMediaPublicUrl } from '../../utils/socialMedia';
 import { resolveBookingProfileCtaVisibility } from '../utils/profileCtaVisibility';
 import { BookingLinkRequestQuoteOwnerHintSheet } from './BookingLinkRequestQuoteOwnerHintSheet';
@@ -94,6 +95,11 @@ export function BookingProfileHeader({
 }) {
   const { colors } = useTheme();
   const [quoteOwnerHintVisible, setQuoteOwnerHintVisible] = useState(false);
+  const [coverSrc, setCoverSrc] = useState(() => getCoverDisplayUrl(coverImageUrl));
+
+  useEffect(() => {
+    setCoverSrc(getCoverDisplayUrl(coverImageUrl));
+  }, [coverImageUrl]);
 
   const { showContact, showRequestQuote, showCtaRow } = useMemo(
     () =>
@@ -130,6 +136,10 @@ export function BookingProfileHeader({
           height: coverHeight,
           overflow: 'hidden',
           position: 'relative',
+          width: '100%',
+        },
+        heroPhoto: {
+          height: coverHeight,
           width: '100%',
         },
         heroPhotoFallback: {
@@ -348,8 +358,19 @@ export function BookingProfileHeader({
         onRequestClose={() => setQuoteOwnerHintVisible(false)}
       />
       <View style={styles.heroImage}>
-        {coverImageUrl ? (
-          <Image source={{ uri: coverImageUrl }} style={StyleSheet.absoluteFillObject} />
+        {coverSrc ? (
+          <Image
+            resizeMode="cover"
+            source={{ uri: coverSrc }}
+            style={styles.heroPhoto}
+            onError={() => {
+              if (coverImageUrl && coverSrc !== coverImageUrl) {
+                setCoverSrc(coverImageUrl);
+                return;
+              }
+              setCoverSrc(null);
+            }}
+          />
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.heroPhotoFallback]}>
             <CoverEmptyDotField color={colors.text} />
