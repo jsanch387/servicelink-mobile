@@ -48,6 +48,7 @@ describe('buildCompleteVisitModelFromBooking', () => {
         { id: 'service', label: 'Full Detail', amount: 120, kind: 'service' },
         { id: 'a1', label: 'Engine bay', amount: 25, kind: 'addon' },
       ],
+      adjustments: [],
       jobs: null,
       isMultiJob: false,
       paidOnline: 50,
@@ -62,6 +63,31 @@ describe('buildCompleteVisitModelFromBooking', () => {
       showInvoiceEmail: true,
       isMembershipVisit: false,
     });
+  });
+
+  it('adds the stored tax line and does not tax a membership visit', () => {
+    const taxed = buildCompleteVisitModelFromBooking({
+      service_name: 'Exterior Wash',
+      service_price_cents: 8500,
+      payment: { taxCents: 191, taxRateBps: 225, paidOnlineAmountCents: 0 },
+    });
+    expect(taxed?.lineItems.at(-1)).toEqual({
+      id: 'tax',
+      label: 'Tax (2.25%)',
+      amount: 1.91,
+      kind: 'tax',
+    });
+
+    const membership = buildCompleteVisitModelFromBooking({
+      service_name: 'Exterior Wash',
+      service_price_cents: 8500,
+      payment: {
+        taxCents: 191,
+        taxRateBps: 225,
+        paymentMethodSelected: 'membership',
+      },
+    });
+    expect(membership?.lineItems.some((item) => item.kind === 'tax')).toBe(false);
   });
 
   it('includes discount line and reduces remaining amount due', () => {
@@ -221,6 +247,23 @@ describe('buildCompleteVisitModelFromBooking', () => {
         kind: 'service',
       },
       { id: 'a1', label: 'Wax', amount: 25, jobId: 'j1', kind: 'addon' },
+    ]);
+  });
+
+  it('loads saved fees and discounts onto the payment sheet', () => {
+    const model = buildCompleteVisitModelFromBooking({
+      service_name: 'Exterior Wash',
+      service_price_cents: 10000,
+      session_fee_lines: [
+        { id: 'fee-1', label: 'Travel', amount_cents: 2000, kind: 'fee' },
+        { id: 'disc-1', label: 'Deposit', amount_cents: 5000, kind: 'discount' },
+      ],
+      payment: { paidOnlineAmountCents: 0 },
+    });
+
+    expect(model?.adjustments).toEqual([
+      { id: 'fee-1', label: 'Travel', amount: 20, kind: 'fee' },
+      { id: 'disc-1', label: 'Deposit', amount: -50, kind: 'discount' },
     ]);
   });
 

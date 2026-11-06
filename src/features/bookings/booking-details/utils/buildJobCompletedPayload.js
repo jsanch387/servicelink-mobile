@@ -4,23 +4,25 @@ import { parseJobDetailsFromBooking } from './parseJobDetailsFromBooking';
 
 /**
  * @typedef {object} CompleteVisitCheckoutState
- * @property {Array<{ label: string; amount: number }>} sessionFees — dollar amounts from fee adjustments
+ * @property {Array<{ label: string; amount: number; kind?: 'fee' | 'discount' }>} sessionFees — dollar amounts from the payment sheet. Discounts stay negative here.
  * @property {{
  *   method: string;
  *   amount: number;
  *   stripePaymentIntentId?: string | null;
  * } | null} sessionPayment — in-person or tap-to-pay collection; omit when paid in full online
+ * @property {number} [tipCents] Customer tip in cents. Sent only with `tap_to_pay`.
  */
 
 /**
  * @typedef {object} JobCompletedRequestBody
  * @property {'job_completed'} action
- * @property {Array<{ label: string; amountCents: number }>} [sessionFees]
+ * @property {Array<{ kind: 'fee' | 'discount'; label: string; amountCents: number }>} [sessionFees]
  * @property {{
  *   method: string;
  *   amountCents: number;
  *   stripePaymentIntentId?: string;
  * } | undefined} [sessionPayment]
+ * @property {number} [tipCents]
  */
 
 /**
@@ -36,14 +38,49 @@ export function dollarsToCents(amount) {
 }
 
 /**
- * @param {Array<{ label: string; amount: number }>} sessionFees
- * @returns {Array<{ label: string; amountCents: number }>}
+ * A discount is explicit `kind`, or a negative sheet amount. Omitted kind on a positive amount stays a fee.
+ *
+ * @param {unknown} kind
+ * @param {number} signedCents
+ * @returns {'fee' | 'discount'}
+ */
+export function resolveSessionLineKind(kind, signedCents) {
+  const raw = String(kind ?? '')
+    .trim()
+    .toLowerCase();
+  if (raw === 'discount') {
+    return 'discount';
+  }
+  if (raw === 'fee') {
+    return 'fee';
+  }
+  return signedCents < 0 ? 'discount' : 'fee';
+}
+
+/**
+ * Payment-sheet adjustments become `{ kind, label, amountCents }` with amountCents always positive.
+ *
+ * @param {Array<{ label: string; amount: number; kind?: string }>} sessionFees
+ * @returns {Array<{ kind: 'fee' | 'discount'; label: string; amountCents: number }>}
  */
 export function mapSessionFeesToCents(sessionFees) {
-  return (sessionFees ?? []).map((fee, index) => ({
-    label: String(fee?.label ?? '').trim() || `Fee ${index + 1}`,
-    amountCents: Math.max(0, dollarsToCents(fee?.amount)),
-  }));
+  return (sessionFees ?? [])
+    .map((fee, index) => {
+      const signedCents = dollarsToCents(fee?.amount);
+      const amountCents = Math.abs(signedCents);
+      if (amountCents === 0) {
+        return null;
+      }
+      const kind = resolveSessionLineKind(fee?.kind, signedCents);
+      return {
+        kind,
+        label:
+          String(fee?.label ?? '').trim() ||
+          `${kind === 'discount' ? 'Discount' : 'Fee'} ${index + 1}`,
+        amountCents,
+      };
+    })
+    .filter((fee) => fee != null);
 }
 
 /**
@@ -97,6 +134,10 @@ export function buildJobCompletedPayload(checkout) {
   if (sessionPayment) {
     body.sessionPayment = sessionPayment;
   }
+  const tipCents = Math.max(0, Math.round(Number(checkout.tipCents) || 0));
+  if (tipCents > 0 && sessionPayment?.method === 'tap_to_pay') {
+    body.tipCents = tipCents;
+  }
 
   return body;
 }
@@ -133,10 +174,11 @@ export function resolveCompleteVisitSessionPayment(
 
 /**
  * @param {{
- *   adjustments: Array<{ label: string; amount: number }>;
+ *   adjustments: Array<{ label: string; amount: number; kind?: 'fee' | 'discount' }>;
  *   tapToPayAmount: number;
  *   inPersonPayment: { method: string; amount: number } | null;
  *   stripePaymentIntentId?: string | null;
+ *   tipCents?: number;
  * }} sheetState
  * @returns {CompleteVisitCheckoutState}
  */
@@ -145,12 +187,14 @@ export function buildCompleteVisitCheckoutFromSheetState(sheetState) {
     sessionFees: sheetState.adjustments.map((item) => ({
       label: item.label,
       amount: item.amount,
+      kind: resolveSessionLineKind(item.kind, dollarsToCents(item.amount)),
     })),
     sessionPayment: resolveCompleteVisitSessionPayment(
       sheetState.tapToPayAmount,
       sheetState.inPersonPayment,
       sheetState.stripePaymentIntentId,
     ),
+    tipCents: Math.max(0, Math.round(Number(sheetState.tipCents) || 0)),
   };
 }
 
@@ -200,7 +244,7 @@ export function resolveVisitServiceAndAddonCents({ servicePriceCents, addonDetai
  * @param {{
  *   servicePriceCents: number;
  *   addonDetails: unknown;
- *   sessionFees: Array<{ amountCents: number }>;
+ *   sessionFees: Array<{ amountCents: number; kind?: 'fee' | 'discount' }>;
  *   paidOnlineCents: number;
  *   sessionPaymentAmountCents: number;
  *   discountCents?: number;
@@ -222,10 +266,11 @@ export function computeCompleteVisitAmountDueCents({
     addonDetails,
     jobDetails,
   });
-  const feesCents = (sessionFees ?? []).reduce(
-    (sum, fee) => sum + Math.max(0, Number(fee.amountCents) || 0),
-    0,
-  );
+  const feesCents = (sessionFees ?? []).reduce((sum, fee) => {
+    const cents = Math.round(Number(fee.amountCents)) || 0;
+    const kind = resolveSessionLineKind(fee.kind, cents);
+    return sum + (kind === 'discount' ? -Math.abs(cents) : cents);
+  }, 0);
   const discount = Math.max(0, Math.round(Number(discountCents) || 0));
   const paidOnline = Math.max(0, Number(paidOnlineCents) || 0);
   const sessionPaid = Math.max(0, Number(sessionPaymentAmountCents) || 0);

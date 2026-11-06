@@ -7,6 +7,7 @@ import { parseSessionFeesFromInvoiceSnapshot } from './parseSessionFeesFromInvoi
  *   invoiceSnapshot?: unknown;
  *   paymentSummary?: {
  *     sessionFeesTotalCents?: number;
+ *     sessionDiscountsTotalCents?: number;
  *     totalAmountCents?: number;
  *   } | null;
  *   servicePrice?: number | null;
@@ -15,7 +16,7 @@ import { parseSessionFeesFromInvoiceSnapshot } from './parseSessionFeesFromInvoi
  *   sessionPaymentAmountCents?: number;
  *   paidOnlineCents?: number;
  * }} params
- * @returns {Array<{ id: string; name: string; price: number }>}
+ * @returns {Array<{ id: string; name: string; price: number; kind: 'fee' | 'discount' }>}
  */
 export function resolveBookingSessionFees({
   sessionFeeLines,
@@ -36,12 +37,17 @@ export function resolveBookingSessionFees({
     0,
     Math.round(Number(paymentSummary?.sessionFeesTotalCents ?? 0) || 0),
   );
+  const sessionDiscountsTotalCents = Math.max(
+    0,
+    Math.round(Number(paymentSummary?.sessionDiscountsTotalCents ?? 0) || 0),
+  );
   if (fees.length === 0 && sessionFeesTotalCents > 0) {
     fees = [
       {
         id: 'session-fees-total',
         name: 'Additional fees',
         price: sessionFeesTotalCents / 100,
+        kind: 'fee',
       },
     ];
   }
@@ -53,8 +59,14 @@ export function resolveBookingSessionFees({
   const baseCents = Math.max(0, grossBaseCents - discountCents);
   const baseDueCents = Math.max(0, baseCents - Math.max(0, Math.round(paidOnlineCents)));
   const sessionPaidCents = Math.max(0, Math.round(Number(sessionPaymentAmountCents ?? 0) || 0));
-  if (fees.length === 0 && sessionPaidCents > baseDueCents) {
-    const feeCents = sessionPaidCents - baseDueCents;
+  const tipCents = Math.max(
+    0,
+    Math.round(Number(paymentSummary?.tipCents ?? paymentSummary?.tip_cents ?? 0) || 0),
+  );
+  // The card charge includes the tip. That overage is not an extra fee.
+  const collectedTowardVisitCents = Math.max(0, sessionPaidCents - tipCents);
+  if (fees.length === 0 && collectedTowardVisitCents > baseDueCents) {
+    const feeCents = collectedTowardVisitCents - baseDueCents;
     // Session collected the pre-discount gross — gap is the discount, not a fee.
     if (feeCents > 0 && !(discountCents > 0 && feeCents === discountCents)) {
       fees = [
@@ -62,6 +74,7 @@ export function resolveBookingSessionFees({
           id: 'inferred-session-fees',
           name: 'Additional fees',
           price: feeCents / 100,
+          kind: 'fee',
         },
       ];
     }
@@ -81,10 +94,26 @@ export function resolveBookingSessionFees({
           id: 'inferred-session-fees',
           name: 'Additional fees',
           price: inferredCents / 100,
+          kind: 'fee',
         },
       ];
     }
   }
 
-  return fees;
+  if (sessionDiscountsTotalCents > 0 && !fees.some((item) => item.kind === 'discount')) {
+    fees = [
+      ...fees,
+      {
+        id: 'session-discounts-total',
+        name: 'Discount',
+        price: sessionDiscountsTotalCents / 100,
+        kind: 'discount',
+      },
+    ];
+  }
+
+  return fees.map((item) => ({
+    ...item,
+    kind: item.kind === 'discount' ? 'discount' : 'fee',
+  }));
 }

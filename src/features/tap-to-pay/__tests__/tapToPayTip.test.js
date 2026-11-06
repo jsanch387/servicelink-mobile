@@ -1,7 +1,4 @@
 import {
-  TAP_TO_PAY_TIP_LABEL,
-  appendTapToPayTipCheckoutFee,
-  appendTapToPayTipFee,
   formatTipUsd,
   parseTipAmountInputToCents,
   tipCentsFromPercent,
@@ -25,18 +22,5 @@ describe('tapToPayTip', () => {
     expect(parseTipAmountInputToCents('')).toBeNull();
     expect(parseTipAmountInputToCents('0')).toBeNull();
     expect(parseTipAmountInputToCents('10000')).toBeNull();
-  });
-
-  it('appends a Tip fee only when the customer left a tip', () => {
-    const fees = [{ label: 'Pet hair', amountCents: 2500 }];
-    expect(appendTapToPayTipFee(fees, 0)).toEqual(fees);
-    expect(appendTapToPayTipFee(fees, 1600)).toEqual([
-      { label: 'Pet hair', amountCents: 2500 },
-      { label: TAP_TO_PAY_TIP_LABEL, amountCents: 1600 },
-    ]);
-    expect(appendTapToPayTipCheckoutFee([{ label: 'Pet hair', amount: 25 }], 1600)).toEqual([
-      { label: 'Pet hair', amount: 25 },
-      { label: TAP_TO_PAY_TIP_LABEL, amount: 16 },
-    ]);
   });
 });

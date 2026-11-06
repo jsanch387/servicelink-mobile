@@ -18,10 +18,10 @@ export {
 } from './constants/tapToPayConnectCopy';
 
 export { buildTapToPaySessionFees } from './utils/buildTapToPaySessionFees';
-export { appendTapToPayTipCheckoutFee, appendTapToPayTipFee } from './utils/tapToPayTip';
 export {
   TAP_TO_PAY_USE_SERVER_APIS,
   TAP_TO_PAY_USE_TERMINAL_SDK,
+  isTapToPayDevIntentPreviewEnabled,
   isTapToPayPlatformSupported,
   isTapToPayUiEnabled,
 } from './constants/tapToPayFeatureFlags';

@@ -8,8 +8,14 @@ describe('buildTapToPaySessionFees', () => {
         { label: '  ', amount: 10 },
       ]),
     ).toEqual([
-      { label: 'Pet hair', amountCents: 2500 },
-      { label: 'Fee 2', amountCents: 1000 },
+      { kind: 'fee', label: 'Pet hair', amountCents: 2500 },
+      { kind: 'fee', label: 'Fee 2', amountCents: 1000 },
     ]);
+  });
+
+  it('keeps a discount kind and sends a positive amount', () => {
+    expect(buildTapToPaySessionFees([{ label: 'Deposit', amount: -50, kind: 'discount' }])).toEqual(
+      [{ kind: 'discount', label: 'Deposit', amountCents: 5000 }],
+    );
   });
 });

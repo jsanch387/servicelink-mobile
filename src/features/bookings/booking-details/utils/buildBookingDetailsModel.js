@@ -119,6 +119,11 @@ function normalizeBookingPaymentSummary(raw) {
       0,
       Number(read('sessionFeesTotalCents', 'session_fees_total_cents') ?? 0) || 0,
     ),
+    sessionDiscountsTotalCents: Math.max(
+      0,
+      Number(read('sessionDiscountsTotalCents', 'session_discounts_total_cents') ?? 0) || 0,
+    ),
+    tipCents: Math.max(0, Number(read('tipCents', 'tip_cents') ?? 0) || 0),
     sessionPaymentMethod:
       typeof read('sessionPaymentMethod', 'session_payment_method') === 'string'
         ? read('sessionPaymentMethod', 'session_payment_method')
@@ -543,7 +548,7 @@ export function buildBookingDetailsModel(booking) {
     booking?.status,
     booking?.job_status,
   );
-  const sessionFees = resolveBookingSessionFees({
+  const sessionAdjustments = resolveBookingSessionFees({
     sessionFeeLines: booking?.session_fee_lines ?? booking?.sessionFeeLines,
     invoiceSnapshot: booking?.invoice_snapshot ?? booking?.invoiceSnapshot,
     paymentSummary,
@@ -553,18 +558,25 @@ export function buildBookingDetailsModel(booking) {
     sessionPaymentAmountCents: resolvedSessionPayment.sessionPaidCents,
     paidOnlineCents: resolvedSessionPayment.paidOnlineCents,
   });
+  const sessionFees = sessionAdjustments.filter((item) => item.kind !== 'discount');
+  const sessionDiscounts = sessionAdjustments.filter((item) => item.kind === 'discount');
   const sessionFeesTotal = sessionFees.reduce((sum, item) => sum + item.price, 0);
+  const sessionDiscountsTotal = sessionDiscounts.reduce((sum, item) => sum + item.price, 0);
   const computedTotal = Number.isFinite(servicePrice)
-    ? Math.max(0, servicePrice + addOnsTotal - discountDollars) + sessionFeesTotal
+    ? Math.max(
+        0,
+        servicePrice + addOnsTotal - discountDollars + sessionFeesTotal - sessionDiscountsTotal,
+      )
     : null;
   const paymentTotal =
     paymentSummary?.totalAmountCents > 0 ? paymentSummary.totalAmountCents / 100 : null;
   const total =
     Number.isFinite(computedTotal) &&
-    (sessionFeesTotal > 0 || discountDollars > 0) &&
+    (sessionFeesTotal > 0 || sessionDiscountsTotal > 0 || discountDollars > 0) &&
     (!Number.isFinite(paymentTotal) ||
       paymentTotal < computedTotal - 0.001 ||
-      (discountDollars > 0 && Math.abs(paymentTotal - computedTotal) > 0.001))
+      ((discountDollars > 0 || sessionDiscountsTotal > 0) &&
+        Math.abs(paymentTotal - computedTotal) > 0.001))
       ? computedTotal
       : Number.isFinite(paymentTotal)
         ? paymentTotal
@@ -661,6 +673,7 @@ export function buildBookingDetailsModel(booking) {
       servicePrice,
       addOns,
       sessionFees,
+      sessionDiscounts,
       total,
     },
     customer: {
@@ -694,9 +707,14 @@ export function buildBookingDetailsModel(booking) {
         : null,
       sessionFeesTotal: formatMoney(sessionFeesTotal),
       hasSessionFees: sessionFees.length > 0,
+      hasSessionDiscounts: sessionDiscounts.length > 0,
       total: formatMoneyOrFallback(total),
       addOns: addOns.map((item) => ({ ...item, priceLabel: formatMoney(item.price) })),
       sessionFees: sessionFees.map((item) => ({ ...item, priceLabel: formatMoney(item.price) })),
+      sessionDiscounts: sessionDiscounts.map((item) => ({
+        ...item,
+        priceLabel: `−${formatMoney(item.price)}`,
+      })),
     },
     payment: buildBookingPaymentSection(paymentSummary, booking?.status, booking?.job_status),
   };

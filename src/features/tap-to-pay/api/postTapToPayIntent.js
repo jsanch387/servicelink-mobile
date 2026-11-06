@@ -13,16 +13,21 @@ import { parseTapToPayIntentConnectParams } from '../utils/parseTapToPayIntentCo
 /**
  * @param {string | null | undefined} accessToken
  * @param {string} bookingId
- * @param {Array<{ label: string; amountCents: number }>} [sessionFees]
+ * @param {Array<{ kind?: 'fee' | 'discount'; label: string; amountCents: number }>} [sessionFees]
+ * @param {number} [tipCents] Customer tip. Omitted when there is no tip. Not a session fee.
  * @returns {Promise<
  *   | ({ ok: true; requestId?: string } & TapToPayIntentResult)
  *   | { ok: false; error: Error; httpStatus: number; retryAfterSec?: number; requestId?: string }
  * >}
  */
-export async function postTapToPayIntent(accessToken, bookingId, sessionFees = []) {
-  const result = await tapToPayRequest(accessToken, bookingId, 'intent', {
-    sessionFees,
-  });
+export async function postTapToPayIntent(accessToken, bookingId, sessionFees = [], tipCents = 0) {
+  const resolvedTipCents = Math.max(0, Math.round(Number(tipCents) || 0));
+  /** @type {{ sessionFees: typeof sessionFees; tipCents?: number }} */
+  const body = { sessionFees };
+  if (resolvedTipCents > 0) {
+    body.tipCents = resolvedTipCents;
+  }
+  const result = await tapToPayRequest(accessToken, bookingId, 'intent', body);
   if (!result.ok) {
     return result;
   }

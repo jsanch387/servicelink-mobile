@@ -19,15 +19,16 @@ Index for owner appointments (create → edit → details → Complete) and rela
 
 ## Mobile contracts (Complete / actions)
 
-| Doc                                                                        | When to read                                              |
-| -------------------------------------------------------------------------- | --------------------------------------------------------- |
-| [`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md)                 | Quick reference — all actions, toasts, errors             |
-| [`MOBILE_BOOKING_WORK_FINISHED.md`](./MOBILE_BOOKING_WORK_FINISHED.md)     | Done / Skip (`work_finished`)                             |
-| [`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md)     | Complete sheet + `job_completed` payload                  |
-| [`MOBILE_BOOKING_TAP_TO_PAY.md`](./MOBILE_BOOKING_TAP_TO_PAY.md)           | Tap to Pay — intent, Terminal SDK, iOS v1                 |
-| [`TAP_TO_PAY_TERMINAL_SERVER.md`](./TAP_TO_PAY_TERMINAL_SERVER.md)         | Terminal Location server reference (implemented)          |
-| [`TAP_TO_PAY_WARMUP_SERVER.md`](./TAP_TO_PAY_WARMUP_SERVER.md)             | **App warm-up** — merchant connection-token (implemented) |
-| [`MOBILE_SMS_AND_BOOKING_ACTIONS.md`](./MOBILE_SMS_AND_BOOKING_ACTIONS.md) | SMS/email response shapes                                 |
+| Doc                                                                        | When to read                                                              |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [`MOBILE_BOOKING_ACTIONS.md`](./MOBILE_BOOKING_ACTIONS.md)                 | Quick reference — all actions, toasts, errors                             |
+| [`MOBILE_BOOKING_WORK_FINISHED.md`](./MOBILE_BOOKING_WORK_FINISHED.md)     | Done / Skip (`work_finished`)                                             |
+| [`PAYMENT_FLOW.md`](./PAYMENT_FLOW.md)                                     | **Payment reference** — amount due, tips, fees, discounts, stored columns |
+| [`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md)     | Complete sheet + `job_completed` payload                                  |
+| [`MOBILE_BOOKING_TAP_TO_PAY.md`](./MOBILE_BOOKING_TAP_TO_PAY.md)           | Tap to Pay — intent, Terminal SDK, iOS v1                                 |
+| [`TAP_TO_PAY_TERMINAL_SERVER.md`](./TAP_TO_PAY_TERMINAL_SERVER.md)         | Terminal Location server reference (implemented)                          |
+| [`TAP_TO_PAY_WARMUP_SERVER.md`](./TAP_TO_PAY_WARMUP_SERVER.md)             | **App warm-up** — merchant connection-token (implemented)                 |
+| [`MOBILE_SMS_AND_BOOKING_ACTIONS.md`](./MOBILE_SMS_AND_BOOKING_ACTIONS.md) | SMS/email response shapes                                                 |
 
 ## Server contracts
 
@@ -48,13 +49,13 @@ Index for owner appointments (create → edit → details → Complete) and rela
 
 **Migration (applied):** [`docs/sql/booking_complete_phase1_migration.sql`](../../../docs/sql/booking_complete_phase1_migration.sql)
 
-| Table / column                            | Written on `job_completed`                        |
-| ----------------------------------------- | ------------------------------------------------- |
-| `booking_session_fee_lines`               | Owner-added fees from `sessionFees[]`             |
-| `booking_payments.session_*`              | In-person / session payment from `sessionPayment` |
-| `booking_payments.remaining_amount_cents` | `0` when settled                                  |
-| `bookings.status`, `bookings.job_status`  | `completed`                                       |
-| `booking_invoices`                        | `public_token`, `snapshot_json`, totals           |
+| Table / column                            | Written on `job_completed`                                                                         |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `booking_session_fee_lines`               | Visit fees and discounts (`kind` `fee` or `discount`). See [`PAYMENT_FLOW.md`](./PAYMENT_FLOW.md). |
+| `booking_payments.session_*`              | In-person / session payment from `sessionPayment`                                                  |
+| `booking_payments.remaining_amount_cents` | `0` when settled                                                                                   |
+| `bookings.status`, `bookings.job_status`  | `completed`                                                                                        |
+| `booking_invoices`                        | `public_token`, `snapshot_json`, totals                                                            |
 
 **Read for Complete sheet UI:** prefer `job_details` (services + add-ons); fall back to `addon_details` when job add-ons are empty. Also `booking_payments.paid_online_amount_cents`.
 

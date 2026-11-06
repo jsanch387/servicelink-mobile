@@ -77,6 +77,7 @@ function getInitialTapToPayState(amountDueDollars, accessToken, bookingId) {
  *   accessToken: string | null | undefined;
  *   bookingId: string | null | undefined;
  *   sessionFees: Array<{ label: string; amountCents: number }>;
+ *   tipCents?: number;
  *   amountDueDollars: number;
  *   merchantDisplayName?: string | null;
  *   prewarmConnectParams?: import('../utils/parseTapToPayIntentConnectParams').TapToPayConnectParams | null;
@@ -89,6 +90,7 @@ export function useTapToPaySheet({
   accessToken,
   bookingId,
   sessionFees,
+  tipCents = 0,
   amountDueDollars,
   merchantDisplayName = null,
   prewarmConnectParams = null,
@@ -197,6 +199,7 @@ export function useTapToPaySheet({
       accessToken,
       bookingId.trim(),
       resolvedSessionFees,
+      tipCents,
     );
     if (!intentResult.ok) {
       logTapToPayFailure('intent', {
@@ -236,7 +239,7 @@ export function useTapToPaySheet({
       clientSecret: intentResult.clientSecret,
       connectParams: intentResult.connectParams ?? null,
     };
-  }, [accessToken, amountDueDollars, bookingId, sessionFeesKey]);
+  }, [accessToken, amountDueDollars, bookingId, sessionFeesKey, tipCents]);
 
   const finishSuccess = useCallback(
     (resolvedAmountCents, resolvedPaymentIntentId) => {

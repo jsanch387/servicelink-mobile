@@ -86,18 +86,9 @@ Shared headers: `Authorization: Bearer <token>`, `Content-Type: application/json
 
 ## Amount-due math (must match Complete sheet)
 
-Same formula as [`MOBILE_BOOKING_JOB_COMPLETED.md`](./MOBILE_BOOKING_JOB_COMPLETED.md):
+Current contract, including discounts and `tipCents`: [`PAYMENT_FLOW.md`](./PAYMENT_FLOW.md).
 
-```
-amountDueCents =
-  service_price_cents
-  + sum(addon_details[].priceCents)
-  + sum(sessionFees[].amountCents)
-  - paid_online_amount_cents
-```
-
-Intent creation uses **`amountDueCents`** (no session payment yet).  
-`job_completed` sends `sessionPayment.amountCents` equal to the succeeded tap amount.
+Intent creation uses the pre-tip amount due. The PaymentIntent is that amount plus `tipCents`. `job_completed` sends `sessionPayment.amountCents` equal to the succeeded charge.
 
 ---
 
@@ -107,13 +98,13 @@ Intent creation uses **`amountDueCents`** (no session payment yet).
 1. App root: StripeTerminalAppProvider (connection token from registry while sheet is open)
 2. Owner taps Tap to Pay on Complete sheet → tip sheet (15% / 20% / 25%, custom, or no tip)
 3. Customer confirms → TapToPaySheet mounts
-4. POST …/connection-token (registry) + POST …/intent { sessionFees }
+4. POST …/connection-token (registry) + POST …/intent { sessionFees, tipCents? }
 5. Terminal: easyConnect (tapToPay) → retrievePaymentIntent → processPaymentIntent
-6. On SDK success → POST …/actions job_completed with tap_to_pay + stripePaymentIntentId
+6. On SDK success → POST …/actions job_completed with tap_to_pay, stripePaymentIntentId, and tipCents
 7. On 200 → success UI → sheet closes
 ```
 
-A chosen tip is an extra `sessionFees` row labeled **`Tip`**, on both the intent and `job_completed`. The PaymentIntent amount is the job total plus that tip, so the existing amount-due check still balances. **No tip** sends the job total only.
+The tip is `tipCents` on the intent and on `job_completed`. It is not a `sessionFees` row. **No tip** omits `tipCents`. See [`PAYMENT_FLOW.md`](./PAYMENT_FLOW.md).
 
 If the owner **adds or edits a fee** on the Complete sheet, local tap state is cleared; the next Tap to Pay session sends the updated `sessionFees`.
 
@@ -124,12 +115,13 @@ If the owner **adds or edits a fee** on the Complete sheet, local tap state is c
 ```json
 {
   "action": "job_completed",
-  "sessionFees": [{ "label": "Pet hair removal", "amountCents": 2500 }],
+  "sessionFees": [{ "kind": "fee", "label": "Pet hair removal", "amountCents": 2500 }],
   "sessionPayment": {
     "method": "tap_to_pay",
-    "amountCents": 12000,
+    "amountCents": 14375,
     "stripePaymentIntentId": "pi_…"
-  }
+  },
+  "tipCents": 2875
 }
 ```
 

@@ -21,6 +21,8 @@ import { useTheme } from '../../../../theme';
  *     discount?: { label?: string; value?: string } | null;
  *     hasSessionFees?: boolean;
  *     sessionFees?: Array<{ id?: string; name?: string; priceLabel?: string }>;
+ *     hasSessionDiscounts?: boolean;
+ *     sessionDiscounts?: Array<{ id?: string; name?: string; priceLabel?: string }>;
  *     total?: string;
  *   };
  *   isMembershipVisit?: boolean;
@@ -274,6 +276,16 @@ export function BookingJobsSummarySection({ jobs, formattedPrice, isMembershipVi
                     {item.name}
                   </AppText>
                   <AppText style={styles.feeValue}>{item.priceLabel}</AppText>
+                </View>
+              ))
+            : null}
+          {formattedPrice?.hasSessionDiscounts
+            ? (formattedPrice.sessionDiscounts ?? []).map((item) => (
+                <View key={item.id} style={styles.discountRow}>
+                  <AppText numberOfLines={2} style={styles.discountLabel}>
+                    {item.name}
+                  </AppText>
+                  <AppText style={styles.discountValue}>{item.priceLabel}</AppText>
                 </View>
               ))
             : null}

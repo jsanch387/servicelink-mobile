@@ -50,12 +50,27 @@ const BOOKING_PAYMENTS_SELECT = [
   'paid_online_amount_cents',
   'remaining_amount_cents',
   'session_fees_total_cents',
+  'session_discounts_total_cents',
   'session_payment_method',
   'session_payment_amount_cents',
   'session_payment_stripe_payment_intent_id',
+  'tax_cents',
+  'tax_rate_bps',
+  'tip_cents',
 ].join(', ');
 
-const BOOKING_SESSION_FEE_LINES_SELECT = ['id', 'label', 'amount_cents', 'sort_order'].join(', ');
+const BOOKING_SESSION_FEE_LINES_SELECT = ['id', 'label', 'amount_cents', 'kind', 'sort_order'].join(
+  ', ',
+);
+
+/**
+ * @param {unknown} raw
+ * @returns {number | null}
+ */
+function readTaxRateBps(raw) {
+  const n = Math.round(Number(raw));
+  return Number.isFinite(n) && n >= 1 ? n : null;
+}
 
 const BOOKING_DETAILS_EMBED_SELECT = `${BOOKING_DETAILS_SELECT}, booking_payments (${BOOKING_PAYMENTS_SELECT}), booking_session_fee_lines (${BOOKING_SESSION_FEE_LINES_SELECT}), booking_invoices (snapshot_json)`;
 
@@ -80,6 +95,10 @@ export function mapBookingPaymentRowToSummary(row) {
     paidOnlineAmountCents: Math.max(0, Math.round(Number(row.paid_online_amount_cents ?? 0) || 0)),
     remainingAmountCents: Math.max(0, Math.round(Number(row.remaining_amount_cents ?? 0) || 0)),
     sessionFeesTotalCents: Math.max(0, Math.round(Number(row.session_fees_total_cents ?? 0) || 0)),
+    sessionDiscountsTotalCents: Math.max(
+      0,
+      Math.round(Number(row.session_discounts_total_cents ?? 0) || 0),
+    ),
     sessionPaymentMethod:
       typeof row.session_payment_method === 'string' ? row.session_payment_method : null,
     sessionPaymentAmountCents: Math.max(
@@ -90,6 +109,9 @@ export function mapBookingPaymentRowToSummary(row) {
       typeof row.session_payment_stripe_payment_intent_id === 'string'
         ? row.session_payment_stripe_payment_intent_id
         : null,
+    taxCents: Math.max(0, Math.round(Number(row.tax_cents ?? 0) || 0)),
+    tipCents: Math.max(0, Math.round(Number(row.tip_cents ?? 0) || 0)),
+    taxRateBps: readTaxRateBps(row.tax_rate_bps),
   };
 }
 
@@ -218,6 +240,7 @@ function pickRicherPaymentSummary(a, b) {
     let value = 0;
     if (payment.totalAmountCents > 0) value += 1;
     if (payment.sessionFeesTotalCents > 0) value += 4;
+    if (payment.sessionDiscountsTotalCents > 0) value += 4;
     if (payment.sessionPaymentAmountCents > 0) value += 4;
     if (payment.sessionPaymentMethod) value += 2;
     if (payment.sessionPaymentStripeIntentId) value += 2;

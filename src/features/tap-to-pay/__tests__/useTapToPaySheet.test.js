@@ -84,9 +84,12 @@ describe('useTapToPaySheet', () => {
     );
 
     await waitFor(() => {
-      expect(postTapToPayIntent).toHaveBeenCalledWith('token', 'booking-1', [
-        { label: 'Fee', amountCents: 500 },
-      ]);
+      expect(postTapToPayIntent).toHaveBeenCalledWith(
+        'token',
+        'booking-1',
+        [{ label: 'Fee', amountCents: 500 }],
+        0,
+      );
     });
 
     await waitFor(() => {

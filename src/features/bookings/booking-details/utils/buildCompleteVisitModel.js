@@ -1,9 +1,11 @@
 import { normalizePhoneForDatabase } from '../../../../utils/phone';
+import { formatTaxLineLabel } from './formatTaxLineLabel';
 import { isCompleteVisitPaidInFullOnline } from './completeVisitPaymentState';
 import { getMarkCompletePreviewFromBooking } from './markCompletePreview';
 import { parseAddonLineItemsFromBooking } from './parseAddonLineItemsFromBooking';
 import { parseCompleteVisitServiceLine } from './parseCompleteVisitServiceLine';
 import { parseJobDetailsFromBooking } from './parseJobDetailsFromBooking';
+import { parseSessionFeeLinesFromBooking } from './parseSessionFeeLinesFromBooking';
 import { resolveBookingDiscount } from './resolveBookingDiscount';
 
 /**
@@ -13,7 +15,7 @@ import { resolveBookingDiscount } from './resolveBookingDiscount';
  * @property {string | null | undefined} [sublabel]
  * @property {number} amount
  * @property {string} [jobId]
- * @property {'service' | 'addon' | 'discount'} [kind]
+ * @property {'service' | 'addon' | 'discount' | 'tax'} [kind]
  */
 
 /**
@@ -29,6 +31,7 @@ import { resolveBookingDiscount } from './resolveBookingDiscount';
 /**
  * @typedef {object} CompleteVisitModel
  * @property {CompleteVisitLineItem[]} lineItems
+ * @property {Array<{ id: string; label: string; amount: number; kind: 'fee' | 'discount' }>} adjustments
  * @property {CompleteVisitJob[] | null} jobs — multi-job cards when length > 1; null for single-job UI
  * @property {boolean} isMultiJob
  * @property {number} paidOnline — dollars already collected online
@@ -159,6 +162,31 @@ export function buildCompleteVisitModelFromBooking(booking, preview, options) {
     });
   }
 
+  const payment =
+    booking.payment && typeof booking.payment === 'object'
+      ? /** @type {Record<string, unknown>} */ (booking.payment)
+      : null;
+  const paymentMethod = String(
+    payment?.paymentMethodSelected ?? payment?.payment_method_selected ?? '',
+  )
+    .trim()
+    .toLowerCase();
+  const isMembershipVisit = Boolean(options?.isMembershipVisit) || paymentMethod === 'membership';
+  const taxCents = Math.max(
+    0,
+    Math.round(Number(payment?.taxCents ?? payment?.tax_cents ?? 0) || 0),
+  );
+  const taxRateRaw = payment?.taxRateBps ?? payment?.tax_rate_bps;
+  const taxRate = Math.round(Number(taxRateRaw));
+  if (!isMembershipVisit && taxCents > 0) {
+    lineItems.push({
+      id: 'tax',
+      label: formatTaxLineLabel(Number.isFinite(taxRate) && taxRate >= 1 ? taxRate : null),
+      amount: taxCents / 100,
+      kind: 'tax',
+    });
+  }
+
   /** @type {CompleteVisitJob[] | null} */
   const jobs = isMultiJob
     ? parsedJobs.map((job) => ({
@@ -171,10 +199,6 @@ export function buildCompleteVisitModelFromBooking(booking, preview, options) {
       }))
     : null;
 
-  const payment =
-    booking.payment && typeof booking.payment === 'object'
-      ? /** @type {Record<string, unknown>} */ (booking.payment)
-      : null;
   const paidOnlineCents = Math.max(
     0,
     Number(payment?.paidOnlineAmountCents ?? payment?.paid_online_amount_cents ?? 0) || 0,
@@ -215,6 +239,15 @@ export function buildCompleteVisitModelFromBooking(booking, preview, options) {
     remainingAmountCents = Math.max(0, subtotalCents - paidOnlineCents);
   }
 
+  const adjustments = parseSessionFeeLinesFromBooking(
+    booking.session_fee_lines ?? booking.sessionFeeLines,
+  ).map((line) => ({
+    id: line.id,
+    label: line.name,
+    amount: line.kind === 'discount' ? -line.price : line.price,
+    kind: line.kind,
+  }));
+
   const isPaidInFullOnline = isCompleteVisitPaidInFullOnline({
     paidOnlineCents,
     remainingAmountCents,
@@ -225,15 +258,9 @@ export function buildCompleteVisitModelFromBooking(booking, preview, options) {
   const customerPhone = normalizePhoneForDatabase(String(booking.customer_phone ?? '')) || null;
   const resolvedPreview = preview ?? getMarkCompletePreviewFromBooking(booking, options);
 
-  const paymentMethod = String(
-    payment?.paymentMethodSelected ?? payment?.payment_method_selected ?? '',
-  )
-    .trim()
-    .toLowerCase();
-  const isMembershipVisit = Boolean(options?.isMembershipVisit) || paymentMethod === 'membership';
-
   return {
     lineItems,
+    adjustments,
     jobs,
     isMultiJob,
     paidOnline,

@@ -121,7 +121,7 @@ Mobile amount helpers:
 - `computeCompleteVisitAmountDueCents` — amount due
 - `buildCompleteVisitModelFromBooking` — receipt line items (same heal)
 
-Visit net ≈ **sum(job services) + sum(job add-ons) − discount + session fees**.
+Visit net ≈ **sum(job services) + sum(job add-ons) + stored tax − booked discount + visit fees − visit discounts**. The tip is extra and is not part of that net. Full payment reference: [`PAYMENT_FLOW.md`](./PAYMENT_FLOW.md).
 
 ---
 

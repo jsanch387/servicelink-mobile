@@ -311,6 +311,7 @@ export function useMarkBookingCompleteFlow(bookingId, options = {}) {
             ? {
                 sessionFees: jobCompletedBody.sessionFees,
                 sessionPayment: jobCompletedBody.sessionPayment,
+                tipCents: jobCompletedBody.tipCents,
               }
             : undefined,
         );

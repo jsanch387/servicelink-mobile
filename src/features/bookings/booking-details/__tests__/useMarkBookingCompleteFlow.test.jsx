@@ -128,7 +128,7 @@ describe('useMarkBookingCompleteFlow', () => {
       'booking-1',
       BOOKING_ACTION.JOB_COMPLETED,
       {
-        sessionFees: [{ label: 'Pet hair', amountCents: 2500 }],
+        sessionFees: [{ kind: 'fee', label: 'Pet hair', amountCents: 2500 }],
         sessionPayment: { method: 'cash', amountCents: 12000 },
       },
     );

@@ -218,6 +218,46 @@ describe('postBookingAction', () => {
     }
   });
 
+  it('posts tipCents only for tap to pay', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({
+        success: true,
+        action: 'job_completed',
+        jobStatus: 'completed',
+        bookingStatus: 'completed',
+      }),
+    });
+
+    await postBookingAction('token', 'booking-1', BOOKING_ACTION.JOB_COMPLETED, {
+      sessionFees: [{ kind: 'fee', label: 'Pet hair', amountCents: 2500 }],
+      sessionPayment: {
+        method: 'tap_to_pay',
+        amountCents: 12000,
+        stripePaymentIntentId: 'pi_123',
+      },
+      tipCents: 2000,
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://app.example.com/api/availability/bookings/booking-1/actions',
+      expect.objectContaining({
+        body: JSON.stringify({
+          action: 'job_completed',
+          sessionFees: [{ kind: 'fee', label: 'Pet hair', amountCents: 2500 }],
+          sessionPayment: {
+            method: 'tap_to_pay',
+            amountCents: 12000,
+            stripePaymentIntentId: 'pi_123',
+          },
+          tipCents: 2000,
+        }),
+      }),
+    );
+  });
+
   it('parses invoicePublicToken when present', async () => {
     global.fetch.mockResolvedValue({
       ok: true,

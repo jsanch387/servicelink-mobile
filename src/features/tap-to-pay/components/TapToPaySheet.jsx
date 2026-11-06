@@ -18,6 +18,7 @@ const CLOSE_ANIMATION_MS = 280;
  *   bookingId?: string | null;
  *   accessToken?: string | null;
  *   sessionFees?: Array<{ label: string; amountCents: number }>;
+ *   tipCents?: number;
  *   merchantDisplayName?: string | null;
  *   prewarmConnectParams?: import('../utils/parseTapToPayIntentConnectParams').TapToPayConnectParams | null;
  *   onSuccess: (result: { amountCents: number; paymentIntentId: string | null }) => void;
@@ -29,6 +30,7 @@ export function TapToPaySheet({
   bookingId = null,
   accessToken = null,
   sessionFees = [],
+  tipCents = 0,
   merchantDisplayName = null,
   prewarmConnectParams = null,
   onSuccess,
@@ -62,6 +64,7 @@ export function TapToPaySheet({
     accessToken,
     bookingId,
     sessionFees,
+    tipCents,
     amountDueDollars: amountDue,
     merchantDisplayName,
     prewarmConnectParams,

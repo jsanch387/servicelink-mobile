@@ -16,15 +16,21 @@ function numberOrZero(value) {
  * @param {number} idx
  */
 function mapSnapshotFeeLine(line, idx) {
-  const cents = numberOrZero(
+  const signedCents = numberOrZero(
     line?.amountCents ?? line?.amount_cents ?? line?.priceCents ?? line?.price_cents,
   );
-  const label =
-    String(line?.label ?? line?.name ?? line?.title ?? '').trim() || `Additional fee ${idx + 1}`;
+  const rawKind = String(line?.kind ?? '')
+    .trim()
+    .toLowerCase();
+  const kind = rawKind === 'discount' || signedCents < 0 ? 'discount' : 'fee';
+  const cents = Math.abs(signedCents);
+  const fallback = kind === 'discount' ? `Discount ${idx + 1}` : `Additional fee ${idx + 1}`;
+  const label = String(line?.label ?? line?.name ?? line?.title ?? '').trim() || fallback;
   return {
     id: String(line?.id ?? `invoice-fee-${idx + 1}`),
     name: label,
     price: cents / 100,
+    kind,
   };
 }
 
@@ -49,7 +55,7 @@ function isSessionFeeLine(line) {
  * are unavailable to the mobile client (RLS) or not yet synced.
  *
  * @param {unknown} snapshot
- * @returns {Array<{ id: string; name: string; price: number }>}
+ * @returns {Array<{ id: string; name: string; price: number; kind: 'fee' | 'discount' }>}
  */
 export function parseSessionFeesFromInvoiceSnapshot(snapshot) {
   if (!snapshot) {
@@ -63,7 +69,7 @@ export function parseSessionFeesFromInvoiceSnapshot(snapshot) {
 
   const directArrays = [root.sessionFees, root.session_fees, root.fees].filter(Array.isArray);
   for (const arr of directArrays) {
-    const mapped = arr.map(mapSnapshotFeeLine).filter((item) => item.price >= 0);
+    const mapped = arr.map(mapSnapshotFeeLine).filter((item) => item.price > 0);
     if (mapped.length > 0) {
       return mapped;
     }
@@ -74,7 +80,7 @@ export function parseSessionFeesFromInvoiceSnapshot(snapshot) {
     const mapped = arr
       .filter(isSessionFeeLine)
       .map(mapSnapshotFeeLine)
-      .filter((item) => item.price >= 0);
+      .filter((item) => item.price > 0);
     if (mapped.length > 0) {
       return mapped;
     }

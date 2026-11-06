@@ -93,7 +93,8 @@ function readEmailOutcome(payload) {
  * @param {string} action {@link BOOKING_ACTION} value
  * @param {{
  *   notify?: boolean;
- *   sessionFees?: Array<{ label: string; amountCents: number }>;
+ *   sessionFees?: Array<{ kind?: 'fee' | 'discount'; label: string; amountCents: number }>;
+ *   tipCents?: number;
  *   sessionPayment?: {
  *     method: string;
  *     amountCents: number;
@@ -151,6 +152,10 @@ export async function postBookingAction(accessToken, bookingId, action, options 
     }
     if (options.sessionPayment && typeof options.sessionPayment === 'object') {
       requestBody.sessionPayment = options.sessionPayment;
+    }
+    const tipCents = Math.max(0, Math.round(Number(options.tipCents) || 0));
+    if (tipCents > 0 && options.sessionPayment?.method === 'tap_to_pay') {
+      requestBody.tipCents = tipCents;
     }
   }
 

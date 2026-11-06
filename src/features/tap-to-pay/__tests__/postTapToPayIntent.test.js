@@ -69,4 +69,36 @@ describe('postTapToPayIntent', () => {
     expect(result.error.message).toBe('Set up Stripe payments to use Tap to Pay.');
     expect(result.httpStatus).toBe(422);
   });
+
+  it('sends tipCents beside the fees and does not add a Tip fee', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({
+        success: true,
+        paymentIntentId: 'pi_tip',
+        clientSecret: 'pi_tip_secret_xyz',
+        amountCents: 12000,
+        currency: 'usd',
+      }),
+    });
+
+    await postTapToPayIntent(
+      'token',
+      'booking-1',
+      [{ kind: 'fee', label: 'Pet hair', amountCents: 2500 }],
+      2000,
+    );
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://app.example.com/api/availability/bookings/booking-1/tap-to-pay/intent',
+      expect.objectContaining({
+        body: JSON.stringify({
+          sessionFees: [{ kind: 'fee', label: 'Pet hair', amountCents: 2500 }],
+          tipCents: 2000,
+        }),
+      }),
+    );
+  });
 });

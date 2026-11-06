@@ -50,6 +50,11 @@ export function PriceBreakdownSection({ formattedPrice }) {
             />
           ))
         : null}
+      {formattedPrice.hasSessionDiscounts
+        ? formattedPrice.sessionDiscounts.map((item) => (
+            <LabelValueRow key={item.id} label={item.name} value={item.priceLabel} />
+          ))
+        : null}
       <View style={styles.dividerWrap}>
         <Divider />
       </View>

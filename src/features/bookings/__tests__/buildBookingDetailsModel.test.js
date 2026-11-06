@@ -333,6 +333,30 @@ describe('buildBookingDetailsModel', () => {
     expect(model.formattedPrice.total).toBe('$140.00');
   });
 
+  it('shows a payment-time discount as money off and lowers the visit total', () => {
+    const model = buildBookingDetailsModel({
+      service_price_cents: 10000,
+      session_fee_lines: [
+        { id: 'fee-1', label: 'Travel', amount_cents: 1500, kind: 'fee' },
+        { id: 'disc-1', label: 'Deposit', amount_cents: 5000, kind: 'discount' },
+      ],
+      payment: {
+        totalAmountCents: 11500,
+        sessionFeesTotalCents: 1500,
+        sessionDiscountsTotalCents: 5000,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.sessionFees).toEqual([
+      expect.objectContaining({ name: 'Travel', priceLabel: '$15.00' }),
+    ]);
+    expect(model.formattedPrice.sessionDiscounts).toEqual([
+      expect.objectContaining({ name: 'Deposit', priceLabel: '−$50.00' }),
+    ]);
+    expect(model.formattedPrice.total).toBe('$65.00');
+  });
+
   it('falls back to payment session fee total when line rows are unavailable', () => {
     const model = buildBookingDetailsModel({
       service_price_cents: 8000,

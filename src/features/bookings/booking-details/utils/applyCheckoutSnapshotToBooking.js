@@ -1,4 +1,8 @@
-import { dollarsToCents, resolveVisitServiceAndAddonCents } from './buildJobCompletedPayload';
+import {
+  dollarsToCents,
+  resolveSessionLineKind,
+  resolveVisitServiceAndAddonCents,
+} from './buildJobCompletedPayload';
 
 /**
  * Merges a Complete visit checkout snapshot into a booking details row (fills gaps only).
@@ -12,14 +16,31 @@ export function applyCheckoutSnapshotToBooking(booking, checkout) {
     return booking;
   }
 
-  const sessionFeeLines = (checkout.sessionFees ?? []).map((fee, index) => ({
-    id: `checkout-fee-${index + 1}`,
-    label: String(fee?.label ?? '').trim() || `Fee ${index + 1}`,
-    amount_cents: Math.max(0, dollarsToCents(fee?.amount)),
-    sort_order: index,
-  }));
+  const sessionFeeLines = (checkout.sessionFees ?? []).flatMap((fee, index) => {
+    const signedCents = dollarsToCents(fee?.amount);
+    const amountCents = Math.abs(signedCents);
+    if (amountCents === 0) {
+      return [];
+    }
+    const kind = resolveSessionLineKind(fee?.kind, signedCents);
+    return [
+      {
+        id: `checkout-fee-${index + 1}`,
+        label:
+          String(fee?.label ?? '').trim() ||
+          `${kind === 'discount' ? 'Discount' : 'Fee'} ${index + 1}`,
+        kind,
+        amount_cents: amountCents,
+        sort_order: index,
+      },
+    ];
+  });
   const sessionFeesTotalCents = sessionFeeLines.reduce(
-    (sum, line) => sum + Math.max(0, Number(line.amount_cents) || 0),
+    (sum, line) => sum + (line.kind === 'fee' ? Number(line.amount_cents) || 0 : 0),
+    0,
+  );
+  const sessionDiscountsTotalCents = sessionFeeLines.reduce(
+    (sum, line) => sum + (line.kind === 'discount' ? Number(line.amount_cents) || 0 : 0),
     0,
   );
   const sessionPayment = checkout.sessionPayment;
@@ -63,6 +84,24 @@ export function applyCheckoutSnapshotToBooking(booking, checkout) {
       sessionFeesTotalCents,
     );
     nextPayment.session_fees_total_cents = nextPayment.sessionFeesTotalCents;
+  }
+
+  const tipCents = Math.max(0, Math.round(Number(checkout.tipCents) || 0));
+  if (tipCents > 0 && sessionPayment?.method === 'tap_to_pay') {
+    nextPayment.tipCents = tipCents;
+    nextPayment.tip_cents = tipCents;
+  }
+
+  if (sessionDiscountsTotalCents > 0) {
+    nextPayment.sessionDiscountsTotalCents = Math.max(
+      Number(
+        existingPayment.sessionDiscountsTotalCents ??
+          existingPayment.session_discounts_total_cents ??
+          0,
+      ) || 0,
+      sessionDiscountsTotalCents,
+    );
+    nextPayment.session_discounts_total_cents = nextPayment.sessionDiscountsTotalCents;
   }
 
   if (snapshotTotalCents > existingTotalCents) {
