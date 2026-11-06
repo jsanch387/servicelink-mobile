@@ -331,7 +331,7 @@ describe('HomeScreen', () => {
 
   it('does not show free-tier booking usage for Pro users', () => {
     renderWithProviders(<HomeScreen />);
-    expect(screen.queryByLabelText(/Bookings used:/)).toBeNull();
+    expect(screen.queryByLabelText(/Free bookings used:/)).toBeNull();
     expect(screen.queryByText('Upgrade to Pro')).toBeNull();
   });
 
@@ -406,10 +406,10 @@ describe('HomeScreen', () => {
       isError: false,
     });
     renderWithProviders(<HomeScreen />);
-    expect(screen.getByText('Bookings used')).toBeTruthy();
+    expect(screen.getByText('Free bookings used')).toBeTruthy();
     expect(screen.getByText('3')).toBeTruthy();
     expect(screen.getByText('/ 5')).toBeTruthy();
-    expect(screen.getByLabelText('Bookings used: 3 of 5.')).toBeTruthy();
+    expect(screen.getByLabelText('Free bookings used: 3 of 5.')).toBeTruthy();
     expect(screen.queryByText('Upgrade to Pro')).toBeNull();
   });
 
@@ -425,7 +425,7 @@ describe('HomeScreen', () => {
       isError: false,
     });
     renderWithProviders(<HomeScreen />);
-    expect(screen.getByLabelText('Bookings used: 5 of 5.')).toBeTruthy();
+    expect(screen.getByLabelText('Free bookings used: 5 of 5.')).toBeTruthy();
     expect(screen.queryByText('Upgrade to Pro')).toBeNull();
   });
 
@@ -450,7 +450,7 @@ describe('HomeScreen', () => {
       }),
     );
     renderWithProviders(<HomeScreen />);
-    expect(screen.getByLabelText('Bookings used: 5 of 5.')).toBeTruthy();
+    expect(screen.getByLabelText('Free bookings used: 5 of 5.')).toBeTruthy();
   });
 
   it('blocks create appointment when free_bookings_count from profile is at the cap', () => {

@@ -15,6 +15,8 @@ import { LoginScreen } from '../features/auth/screens/LoginScreen';
 // import { SignUpScreen } from '../features/auth/screens/SignUpScreen';
 // import { CheckYourEmailScreen } from '../features/auth/screens/CheckYourEmailScreen';
 import { OnboardingScreen, useOnboardingGate } from '../features/onboarding';
+import { OnboardingPreviewScreen } from '../features/onboarding/screens/OnboardingPreviewScreen';
+import { OnboardingV3Screen } from '../features/onboarding/screens/OnboardingV3Screen';
 import { RemovedFromTeamScreen } from '../features/team';
 import { PENDING_NAVIGATE_TO_BOOKING_LINK_KEY } from '../features/onboarding/constants/postOnboardingNavigation';
 import { consumePendingPushNavigation } from '../features/notifications/constants/pendingPushNavigation';
@@ -59,6 +61,7 @@ export function AuthNavigator() {
   const { session, isReady, user } = useAuth();
   const {
     needsOnboarding,
+    usesNewOnboarding,
     needsRemovedFromTeam,
     isGateReady,
     postActivationHandoff,
@@ -316,7 +319,7 @@ export function AuthNavigator() {
             ) : null}
             {session && needsOnboarding ? (
               <Stack.Screen
-                component={OnboardingScreen}
+                component={usesNewOnboarding ? OnboardingV3Screen : OnboardingScreen}
                 name={ROUTES.ONBOARDING}
                 options={{ gestureEnabled: false }}
               />
@@ -402,6 +405,11 @@ export function AuthNavigator() {
                     headerBackButtonDisplayMode: 'minimal',
                     headerBackTitleVisible: false,
                   }}
+                />
+                <Stack.Screen
+                  component={OnboardingPreviewScreen}
+                  name={ROUTES.ONBOARDING_PREVIEW}
+                  options={{ animation: 'slide_from_bottom', gestureEnabled: true }}
                 />
                 <Stack.Screen
                   component={CreateInvoicePreviewScreen}

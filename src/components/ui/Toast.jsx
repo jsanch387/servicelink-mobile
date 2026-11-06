@@ -166,7 +166,11 @@ export function ToastView({
         >
           <View style={[styles.glassShell, themed.glassShell]}>
             <View style={styles.content}>
-              <Ionicons color={colors.text} name={iconName} size={18} />
+              <Ionicons
+                color={type === 'error' ? colors.danger : colors.text}
+                name={iconName}
+                size={18}
+              />
               <View style={styles.textWrap}>
                 {title && !isConfirmationCard ? (
                   <AppText numberOfLines={1} style={[styles.title, { color: titleColor }]}>

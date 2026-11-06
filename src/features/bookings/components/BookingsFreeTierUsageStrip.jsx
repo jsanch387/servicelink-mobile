@@ -34,14 +34,18 @@ export function BookingsFreeTierUsageStrip({ used, limit, loading = false, error
           flexDirection: 'row',
           justifyContent: 'space-between',
         },
+        labelCol: {
+          flex: 1,
+          justifyContent: 'center',
+          marginRight: 12,
+          minWidth: 0,
+        },
         label: {
           color: colors.textMuted,
-          flex: 1,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 12,
           fontWeight: '500',
           letterSpacing: -0.05,
-          marginRight: 12,
         },
         fraction: {
           alignItems: 'baseline',
@@ -81,12 +85,12 @@ export function BookingsFreeTierUsageStrip({ used, limit, loading = false, error
 
   const summaryA11y = useMemo(() => {
     if (error) {
-      return 'Bookings used unavailable';
+      return 'Free bookings used unavailable';
     }
     if (loading || used === undefined) {
-      return 'Loading bookings used';
+      return 'Loading free bookings used';
     }
-    return `Bookings used: ${safeUsed} of ${limit}.`;
+    return `Free bookings used: ${safeUsed} of ${limit}.`;
   }, [error, limit, loading, safeUsed, used]);
 
   return (
@@ -97,9 +101,11 @@ export function BookingsFreeTierUsageStrip({ used, limit, loading = false, error
         accessible
         style={styles.row}
       >
-        <AppText includeFontPadding={false} style={styles.label}>
-          Bookings used
-        </AppText>
+        <View style={styles.labelCol}>
+          <AppText includeFontPadding={false} numberOfLines={1} style={styles.label}>
+            Free bookings used
+          </AppText>
+        </View>
         <View style={styles.fraction}>
           <AppText includeFontPadding={false} style={styles.count}>
             {countLabel}

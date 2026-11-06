@@ -13,6 +13,7 @@ import { shopProfileQueryOptions } from '../../shop/shopProfileQueryOptions';
 import { resolvePostAuthDestination } from '../../shop/utils/resolvePostAuthDestination';
 import { fetchProfilesOnboardingState } from '../api/fetchProfilesOnboardingState';
 import { markOnboardingCompleted } from '../api/onboardingV2Api';
+import { resolveOnboardingScreen } from '../utils/onboardingFlow';
 
 const OnboardingGateContext = createContext(null);
 
@@ -147,6 +148,7 @@ export function OnboardingGateProvider({ children }) {
 
   const needsRemovedFromTeam = postAuthDestination === 'removed';
   const needsOnboarding = postAuthDestination === 'onboarding';
+  const usesNewOnboarding = resolveOnboardingScreen(profileQuery.data?.onboarding_flow) === 'v3';
 
   const startOwnBusiness = useCallback(() => {
     setChoseOwnBusiness(true);
@@ -180,6 +182,7 @@ export function OnboardingGateProvider({ children }) {
   const value = useMemo(
     () => ({
       needsOnboarding,
+      usesNewOnboarding,
       needsRemovedFromTeam,
       startOwnBusiness,
       isGateReady,
@@ -195,6 +198,7 @@ export function OnboardingGateProvider({ children }) {
     }),
     [
       needsOnboarding,
+      usesNewOnboarding,
       needsRemovedFromTeam,
       startOwnBusiness,
       isGateReady,

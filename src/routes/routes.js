@@ -14,6 +14,8 @@ export const ROUTES = {
   FORGOT_PASSWORD: 'ForgotPassword',
   /** First-time signup — blocks main tabs until finished */
   ONBOARDING: 'Onboarding',
+  /** UI-only walkthrough of the 2-step setup. Nothing is saved. */
+  ONBOARDING_PREVIEW: 'OnboardingPreview',
   /** Signed-in hire whose shop membership is `removed` */
   REMOVED_FROM_TEAM: 'RemovedFromTeam',
   /** Stack screen that hosts the bottom tab navigator */

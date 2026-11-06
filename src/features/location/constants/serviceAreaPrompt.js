@@ -1,7 +1,10 @@
 /**
  * Session-only skip for the service-area prompt (web sessionStorage equivalent).
  * Cleared when the app process dies → prompt shows again on cold start.
+ *
+ * The sheet stays in the app. Set this to true to show "Where do you serve?" again.
  */
+export const SERVICE_AREA_PROMPT_ENABLED = false;
 
 export const SERVICE_AREA_PROMPT_DISMISSIBLE = true;
 
