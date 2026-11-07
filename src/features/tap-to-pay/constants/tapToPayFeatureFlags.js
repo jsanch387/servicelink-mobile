@@ -39,6 +39,28 @@ export function isTapToPayDevIntentPreviewEnabled(
   return Boolean(dev) && !nativeAvailable;
 }
 
+/**
+ * Production preview. The tip sheet opens only for these sign-in emails.
+ * Clear the list to open tipping for every owner.
+ */
+export const TAP_TO_PAY_TIP_PREVIEW_EMAILS = ['jesuss387@gmail.com'];
+
+/**
+ * @param {string | null | undefined} email Signed-in owner email.
+ * @returns {boolean}
+ */
+export function isTapToPayTipEnabledForEmail(email) {
+  if (TAP_TO_PAY_TIP_PREVIEW_EMAILS.length === 0) {
+    return true;
+  }
+  const normalized = String(email ?? '')
+    .trim()
+    .toLowerCase();
+  return TAP_TO_PAY_TIP_PREVIEW_EMAILS.some(
+    (allowed) => allowed.trim().toLowerCase() === normalized,
+  );
+}
+
 /** Whether Tap to Pay UI is offered on this OS (v1: iOS only). */
 export function isTapToPayPlatformSupported() {
   return Platform.OS === 'ios';

@@ -10,7 +10,7 @@ Related docs: [Tap to Pay SDK](./MOBILE_BOOKING_TAP_TO_PAY.md), [job_completed](
 2. The hero is **Amount due**. That number is before the tip.
 3. Optional: **Fee or discount**. Add as many as needed. A fee raises the amount due. A discount lowers it. Adding or removing one clears any in-progress tap, so the next charge uses the new list.
 4. Collect the balance:
-   - **Tap to Pay** — tip sheet first (15%, 20%, 25%, custom, or no tip), then the card tap.
+   - **Tap to Pay** — tip sheet first (15%, 20%, 25%, custom, or no tip), then the card tap. While `TAP_TO_PAY_TIP_PREVIEW_EMAILS` lists an address, only that signed-in owner sees the tip sheet. Everyone else charges with no tip. Clear the list to open tipping for every owner.
    - **Mark as paid** — cash, payment app, or other. No tip.
 5. After a card succeeds, the app sends `job_completed`. The visit is completed only then. Creating a PaymentIntent does not mark the visit paid.
 

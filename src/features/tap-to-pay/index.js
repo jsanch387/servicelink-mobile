@@ -23,6 +23,7 @@ export {
   TAP_TO_PAY_USE_TERMINAL_SDK,
   isTapToPayDevIntentPreviewEnabled,
   isTapToPayPlatformSupported,
+  isTapToPayTipEnabledForEmail,
   isTapToPayUiEnabled,
 } from './constants/tapToPayFeatureFlags';
 export { TAP_TO_PAY_RECEIPT_ROW_LABEL } from './constants/tapToPayCopy';

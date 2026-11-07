@@ -62,6 +62,7 @@ import {
   TAP_TO_PAY_RECEIPT_ROW_LABEL,
   buildTapToPaySessionFees,
   isTapToPayDevIntentPreviewEnabled,
+  isTapToPayTipEnabledForEmail,
   isTapToPayUiEnabled,
   TAP_TO_PAY_USE_TERMINAL_SDK,
   useTapToPayConnectReadiness,
@@ -109,6 +110,7 @@ function formatUsd(amount) {
  *   bookingId?: string | null;
  *   accessToken?: string | null;
  *   showTapToPay?: boolean;
+ *   showTapToPayTip?: boolean;
  *   merchantDisplayName?: string | null;
  *   tapToPayPrewarmConnectParams?: { terminalLocationId: string; stripeAccountId: string } | null;
  *   tapToPayConnectReady?: boolean;
@@ -141,6 +143,7 @@ function CompleteVisitDesignBody({
   bookingId = null,
   accessToken = null,
   showTapToPay = false,
+  showTapToPayTip = false,
   merchantDisplayName = null,
   tapToPayPrewarmConnectParams = null,
   tapToPayConnectReady = false,
@@ -424,11 +427,22 @@ function CompleteVisitDesignBody({
       return;
     }
     if (canUseTapToPay) {
-      openTapToPayTipSheet();
+      if (showTapToPayTip) {
+        openTapToPayTipSheet();
+        return;
+      }
+      void openTapToPaySheet(0);
       return;
     }
     setSetupSheetVisible(true);
-  }, [canUseTapToPay, openTapToPayTipSheet, tapToPayConnectLoading, tapToPayNeedsReceiptContact]);
+  }, [
+    canUseTapToPay,
+    openTapToPaySheet,
+    openTapToPayTipSheet,
+    showTapToPayTip,
+    tapToPayConnectLoading,
+    tapToPayNeedsReceiptContact,
+  ]);
 
   const handleSetupPaymentsPress = useCallback(() => {
     setSetupSheetVisible(false);
@@ -642,6 +656,7 @@ export function BookingCompleteVisitSheet({
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const accessToken = session?.access_token ?? null;
+  const showTapToPayTip = isTapToPayTipEnabledForEmail(session?.user?.email);
   const { canUseSms } = useCustomerSmsAccess();
   const {
     isConnectReady: tapToPayConnectReady,
@@ -1244,6 +1259,7 @@ export function BookingCompleteVisitSheet({
                     showCollectActions={showCollectActions}
                     showReceiptContactNotice={showReceiptContactNotice}
                     showTapToPay={showTapToPay}
+                    showTapToPayTip={showTapToPayTip}
                     tapToPayConnectLoading={resolvedTapToPayConnectLoading}
                     tapToPayConnectReady={resolvedTapToPayConnectReady}
                     tapToPayPrewarmConnectParams={tapToPayPrewarmConnectParams}
