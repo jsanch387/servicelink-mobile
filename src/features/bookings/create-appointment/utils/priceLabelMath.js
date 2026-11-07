@@ -16,3 +16,20 @@ export function formatUsdFromNumber(dollars) {
     maximumFractionDigits: 0,
   }).format(dollars);
 }
+
+/**
+ * Cents → USD. Whole dollars stay `$85` unless `forceCents` is set (`$1.91`, `$86.91`).
+ *
+ * @param {number} cents
+ * @param {{ forceCents?: boolean }} [options]
+ */
+export function formatUsdFromCents(cents, { forceCents = false } = {}) {
+  const rounded = Math.round(Number(cents) || 0);
+  const showCents = forceCents || rounded % 100 !== 0;
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: showCents ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).format(rounded / 100);
+}

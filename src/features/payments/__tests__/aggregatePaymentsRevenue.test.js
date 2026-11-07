@@ -37,6 +37,7 @@ describe('aggregatePaymentsRevenue', () => {
     });
 
     expect(summary.collectedCents).toBe(35000);
+    expect(summary.taxCollectedCents).toBe(0);
     expect(summary.jobsPaid).toBe(3);
     expect(summary.bars).toHaveLength(4);
     expect(summary.bars.map((b) => b.label)).toEqual(['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4']);
@@ -52,6 +53,30 @@ describe('aggregatePaymentsRevenue', () => {
     expect(summary.bars[3].cents).toBe(5000);
     expect(summary.changePct).toBe(Math.round(((35000 - 15000) / 15000) * 100));
     expect(summary.compareLabel).toBe('vs last month');
+  });
+
+  it('charts the job price and keeps tax on its own total', () => {
+    const taxed = completedRow({ id: 'taxed', scheduled_date: '2026-07-08', totalCents: 8500 });
+    taxed.booking_payments.total_amount_cents = 8691;
+    taxed.booking_payments.paid_online_amount_cents = 8691;
+    taxed.booking_payments.tax_cents = 191;
+
+    const prior = completedRow({ id: 'prior', scheduled_date: '2026-06-08', totalCents: 8500 });
+    prior.booking_payments.total_amount_cents = 8691;
+    prior.booking_payments.paid_online_amount_cents = 8691;
+    prior.booking_payments.tax_cents = 191;
+
+    const summary = aggregatePaymentsRevenue({
+      range: REVENUE_RANGE.MONTH,
+      currentRows: [taxed],
+      previousRows: [prior],
+      now,
+    });
+
+    expect(summary.collectedCents).toBe(8500);
+    expect(summary.taxCollectedCents).toBe(191);
+    expect(summary.bars[1].cents).toBe(8500);
+    expect(summary.changePct).toBe(0);
   });
 
   it('keeps exactly four weeks even when calendar weeks would spill to six', () => {

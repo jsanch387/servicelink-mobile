@@ -12,6 +12,7 @@ import {
 } from './formatScheduledDateDisplay';
 import { resolveQuoteRequestBrief } from './resolveQuoteRequestBrief';
 import { dbTimeToCreateQuoteTime12hSnapped } from './validateSendQuotePayload';
+import { formatTaxLineLabel } from '../../payments/utils/taxRateModel';
 
 function startOfLocalDayMs(ms) {
   const d = new Date(ms);
@@ -258,6 +259,22 @@ function quoteField(row, snakeCaseKey, camelCaseKey) {
   return row?.[camelCaseKey] !== undefined ? row[camelCaseKey] : row?.[snakeCaseKey];
 }
 
+/** Stored cents on a saved quote. Missing, blank, or not a positive number is 0. */
+function readStoredCents(row, snakeCaseKey, camelCaseKey) {
+  const raw = quoteField(row, snakeCaseKey, camelCaseKey);
+  if (raw == null || raw === '') return 0;
+  const n = Math.round(Number(raw));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/** Frozen shop rate. Missing or below 1 basis point is null (`Tax` with no percent). */
+function readStoredTaxRateBps(row) {
+  const raw = quoteField(row, 'tax_rate_bps', 'taxRateBps');
+  if (raw == null || raw === '') return null;
+  const n = Math.round(Number(raw));
+  return Number.isFinite(n) && n >= 1 ? n : null;
+}
+
 function formatQuoteTimeDisplay(value) {
   const raw = String(value ?? '').trim();
   const match = /^(\d{1,2}):(\d{2})/.exec(raw);
@@ -428,7 +445,9 @@ export function mapSentQuoteCard(row, nowMs = Date.now()) {
   const serviceName = service ? splitBookingServiceName(service).primary : '';
   const totalCents = quoteField(row, 'price_cents', 'totalCents');
   const hasPrice = totalCents != null && Number.isFinite(Number(totalCents));
-  const price = hasPrice ? formatQuoteMoney(totalCents) : '';
+  const taxCents = hasPrice ? readStoredCents(row, 'tax_cents', 'taxCents') : 0;
+  const customerCents = hasPrice ? Math.round(Number(totalCents)) + taxCents : null;
+  const price = customerCents != null ? formatQuoteMoney(customerCents) : '';
   const line = service && hasPrice ? `${service} · ${price}` : service || price || '—';
   const vehicles = formatCardVehicles(row);
   const isApproved = String(row.status ?? '').toLowerCase() === 'approved';
@@ -543,8 +562,16 @@ export function mapQuoteDetailModel(row, kind, opts = {}) {
   }
 
   const totalCents = quoteField(row, 'price_cents', 'totalCents');
+  const hasPrice = totalCents != null && Number.isFinite(Number(totalCents));
+  const preTaxCents = hasPrice ? Math.max(0, Math.round(Number(totalCents))) : null;
+  const taxCents = hasPrice ? readStoredCents(row, 'tax_cents', 'taxCents') : 0;
+  const taxRateBps = readStoredTaxRateBps(row);
+  const customerCents = preTaxCents != null ? preTaxCents + taxCents : null;
   const price = formatQuoteMoney(totalCents);
-  const line = service && totalCents != null ? `${service} · ${price}` : service || price || '—';
+  const customerPrice = customerCents != null ? formatQuoteMoney(customerCents) : price;
+  const summaryPrice = taxCents > 0 ? customerPrice : price;
+  const line =
+    service && totalCents != null ? `${service} · ${summaryPrice}` : service || summaryPrice || '—';
   const servicePriceOptionId = quoteField(row, 'service_price_option_id', 'servicePriceOptionId');
   const serviceParts = splitBookingServiceName(service);
   const pricingOptionLabel = servicePriceOptionId ? serviceParts.pricingOption : null;
@@ -579,7 +606,7 @@ export function mapQuoteDetailModel(row, kind, opts = {}) {
 
   const quoteSummaryParts = [];
   if (service) quoteSummaryParts.push(service);
-  if (totalCents != null) quoteSummaryParts.push(price);
+  if (totalCents != null) quoteSummaryParts.push(summaryPrice);
   const quoteSummary = quoteSummaryParts.length ? quoteSummaryParts.join(' · ') : '—';
 
   const dm = Number(quoteField(row, 'duration_minutes', 'durationMinutes'));
@@ -627,8 +654,13 @@ export function mapQuoteDetailModel(row, kind, opts = {}) {
       ...addon,
       priceFormatted: formatQuoteMoney(addon.priceCents),
     })),
-    /** Formatted USD or null when unset. */
-    priceFormatted: totalCents != null ? price : null,
+    /** Pre-tax quote price. Null when unset. */
+    priceFormatted: hasPrice ? price : null,
+    /** Stored tax. Null when the saved quote has no tax. */
+    taxLabel: taxCents > 0 ? formatTaxLineLabel(taxRateBps) : null,
+    taxFormatted: taxCents > 0 ? formatQuoteMoney(taxCents) : null,
+    /** Price plus stored tax. Null when the quote has no tax. */
+    customerTotalFormatted: taxCents > 0 ? customerPrice : null,
     durationLabel,
     statusLabel: formatOwnerFacingQuoteStatus(row.status),
     /** Raw DB enum for pill styling. */

@@ -22,10 +22,13 @@ export function CreatePaymentCollectStep({
   readerWasWarm = false,
   error = null,
   footerPadding,
+  taxCaption = null,
+  totalCaption = null,
+  taxPending = false,
 }) {
   const { colors } = useTheme();
   const parsed = parseCreatePaymentAmount(amount);
-  const canCharge = parsed != null && hasCreatePaymentNote(note);
+  const canCharge = parsed != null && hasCreatePaymentNote(note) && !taxPending;
   const chargeVariant = useCreatePaymentCardActionVariant();
   const hasError = Boolean(error) && !charging;
 
@@ -70,7 +73,9 @@ export function CreatePaymentCollectStep({
       footerPadding={footerPadding}
       hint={CREATE_PAYMENT_COLLECT_SUBTITLE}
       note={note}
+      taxCaption={taxCaption}
       testID="create-payment-collect"
+      totalCaption={totalCaption}
       onAmountChange={onAmountChange}
       onNoteChange={onNoteChange}
     >

@@ -34,7 +34,7 @@ export function TeamMembersSkeleton() {
           justifyContent: 'center',
           minWidth: 0,
         },
-        email: {
+        role: {
           marginTop: 8,
         },
         chevronCol: {
@@ -58,7 +58,7 @@ export function TeamMembersSkeleton() {
             </View>
             <View style={styles.textCol}>
               <SkeletonBox borderRadius={6} height={16} pulse width="46%" />
-              <SkeletonBox borderRadius={6} height={13} pulse style={styles.email} width="68%" />
+              <SkeletonBox borderRadius={6} height={13} pulse style={styles.role} width="32%" />
             </View>
             <View style={styles.chevronCol}>
               <SkeletonBox borderRadius={4} height={14} pulse width={10} />

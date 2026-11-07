@@ -1,4 +1,8 @@
-import { snapshotCommittedJob, sumJobDurationsMinutes } from '../utils/createAppointmentJobs';
+import {
+  snapshotCommittedJob,
+  sumJobDurationsMinutes,
+  sumVisitJobsPriceCents,
+} from '../utils/createAppointmentJobs';
 import { addMinutesToTime12h, parseTime12hToMinutes } from '../utils/scheduleTimeMath';
 
 describe('scheduleTimeMath', () => {
@@ -15,6 +19,21 @@ describe('scheduleTimeMath', () => {
 });
 
 describe('createAppointmentJobs', () => {
+  it('sums service, add-on, and custom job prices before tax', () => {
+    expect(
+      sumVisitJobsPriceCents([
+        {
+          selectedPricingOption: { priceCents: 8500 },
+          selectedAddonRows: [{ priceCents: 500 }],
+        },
+        {
+          selectedPricingOption: { priceCents: 2000 },
+          selectedAddonRows: [{ priceLabel: '$3' }],
+        },
+      ]),
+    ).toBe(11300);
+  });
+
   it('sums job durations', () => {
     expect(
       sumJobDurationsMinutes([{ totalDurationMinutes: 60 }, { totalDurationMinutes: 45 }]),

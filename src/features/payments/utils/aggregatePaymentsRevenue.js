@@ -18,6 +18,7 @@ import {
  * @typedef {{ label: string; fullLabel: string; cents: number; key: string }} RevenueBar
  * @typedef {{
  *   collectedCents: number;
+ *   taxCollectedCents: number;
  *   jobsPaid: number;
  *   changePct: number | null;
  *   compareLabel: string | null;
@@ -34,14 +35,48 @@ function rowCalendarDay(row) {
   return calendarYyyyMmDdFromScheduledDate(row?.scheduled_date);
 }
 
+function firstPayment(row) {
+  if (Array.isArray(row?.booking_payments)) return row.booking_payments[0] ?? null;
+  return row?.booking_payments ?? null;
+}
+
+function positiveCents(value) {
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * Chart earnings stay pre-tax. `total_amount_cents` already includes tax, so that
+ * piece is removed from the bar and counted on its own.
+ *
+ * @param {object} row
+ * @param {{ collectedCents: number }} earnings
+ */
+function splitJobAndTaxCents(row, earnings) {
+  const collected = Math.max(0, Math.round(Number(earnings.collectedCents) || 0));
+  const payment = firstPayment(row);
+  const taxCents = positiveCents(payment?.tax_cents);
+  if (taxCents <= 0) return { jobCents: collected, taxCents: 0 };
+
+  const paymentTotal = positiveCents(payment?.total_amount_cents);
+  const chargedTotalIncludesTax = paymentTotal > 0 && collected >= paymentTotal;
+  if (!chargedTotalIncludesTax) return { jobCents: collected, taxCents };
+
+  return {
+    jobCents: Math.max(0, collected - taxCents),
+    taxCents,
+  };
+}
+
 /**
  * @param {object[] | null | undefined} rows
- * @returns {{ collectedCents: number; jobsPaid: number; byDay: Map<string, number> }}
+ * @returns {{ collectedCents: number; taxCollectedCents: number; jobsPaid: number; byDay: Map<string, number> }}
  */
 function summarizeCompletedRows(rows) {
   /** @type {Map<string, number>} */
   const byDay = new Map();
   let collectedCents = 0;
+  let taxCollectedCents = 0;
   let jobsPaid = 0;
 
   for (const row of rows ?? []) {
@@ -54,13 +89,14 @@ function summarizeCompletedRows(rows) {
     if (!earnings) continue;
     const day = rowCalendarDay(row);
     if (!day) continue;
-    const jobCents = earnings.collectedCents;
-    collectedCents += jobCents;
+    const split = splitJobAndTaxCents(row, earnings);
+    collectedCents += split.jobCents;
+    taxCollectedCents += split.taxCents;
     jobsPaid += 1;
-    byDay.set(day, (byDay.get(day) ?? 0) + jobCents);
+    byDay.set(day, (byDay.get(day) ?? 0) + split.jobCents);
   }
 
-  return { collectedCents, jobsPaid, byDay };
+  return { collectedCents, taxCollectedCents, jobsPaid, byDay };
 }
 
 /**
@@ -398,6 +434,7 @@ export function aggregatePaymentsRevenue({
 
   return {
     collectedCents: current.collectedCents,
+    taxCollectedCents: current.taxCollectedCents,
     jobsPaid: current.jobsPaid,
     changePct,
     compareLabel,

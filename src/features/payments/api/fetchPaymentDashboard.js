@@ -19,6 +19,8 @@ import { supabase } from '../../../lib/supabase';
  * @property {string | null} deposit_type
  * @property {number | null} deposit_value
  * @property {string | null} currency
+ * @property {boolean | null} tax_enabled
+ * @property {number | null} tax_rate_bps
  */
 
 /**
@@ -39,7 +41,7 @@ export async function fetchPaymentDashboardRows(businessId) {
     supabase
       .from('payment_settings')
       .select(
-        'business_id, payments_enabled, checkout_mode, deposits_enabled, deposit_type, deposit_value, currency',
+        'business_id, payments_enabled, checkout_mode, deposits_enabled, deposit_type, deposit_value, currency, tax_enabled, tax_rate_bps',
       )
       .eq('business_id', businessId)
       .maybeSingle(),

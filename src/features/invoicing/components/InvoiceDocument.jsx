@@ -342,6 +342,9 @@ export function InvoiceDocument({ invoice, businessName }) {
 
       <View style={styles.totals}>
         <TotalLine label="Subtotal" styles={styles} value={model.subtotalLabel} />
+        {model.taxValueLabel ? (
+          <TotalLine label={model.taxLabel || 'Tax'} styles={styles} value={model.taxValueLabel} />
+        ) : null}
         {model.showPaid ? (
           <>
             <View style={styles.totalRule} />
@@ -357,7 +360,7 @@ export function InvoiceDocument({ invoice, businessName }) {
         {model.voided ? (
           <>
             <View style={styles.totalRule} />
-            <TotalLine muted label={model.voidLabel} styles={styles} value={model.subtotalLabel} />
+            <TotalLine muted label={model.voidLabel} styles={styles} value={model.totalLabel} />
           </>
         ) : null}
       </View>

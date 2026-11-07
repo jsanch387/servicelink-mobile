@@ -14,6 +14,7 @@ import {
   isValidServiceDurationHHmm,
 } from '../../../../components/ui/durationTime';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
+import { parsePriceLabelToUsd } from '../../../bookings/create-appointment/utils/priceLabelMath';
 import { canonicalNanpDigits, formatPhoneWithCountryCode } from '../../../../utils/phone';
 import { splitBookingServiceName } from '../../../../utils/splitBookingServiceName';
 import {
@@ -22,6 +23,8 @@ import {
 } from '../../utils/formatScheduledDateDisplay';
 import { resolveQuoteRequestBrief } from '../../utils/resolveQuoteRequestBrief';
 import { quotePaymentReviewTiles } from '../../utils/quotePaymentOptions';
+import { formatQuoteMoney } from '../../utils/quotePresentation';
+import { buildQuoteTaxPreview, quotePriceTextToCents } from '../../utils/quoteTaxPreview';
 
 /**
  * Review step for create-quote: proposal, schedule, customer, vehicle, notes.
@@ -48,6 +51,8 @@ import { quotePaymentReviewTiles } from '../../utils/quotePaymentOptions';
  * @param {string} props.businessNote From the vehicle step (`body.note`).
  * @param {string[]} [props.paymentMethods]
  * @param {string | null} [props.paymentDepositLabel]
+ * @param {boolean} [props.taxEnabled]
+ * @param {number | null} [props.taxRateBps]
  */
 export function CreateQuoteStepReview({
   customerName,
@@ -71,6 +76,8 @@ export function CreateQuoteStepReview({
   businessNote,
   paymentMethods = [],
   paymentDepositLabel = null,
+  taxEnabled = false,
+  taxRateBps = null,
 }) {
   const { colors } = useTheme();
 
@@ -82,6 +89,21 @@ export function CreateQuoteStepReview({
     if (!Number.isFinite(n)) return null;
     return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(n);
   }, [priceUsdText]);
+
+  const taxPreview = useMemo(
+    () =>
+      buildQuoteTaxPreview({
+        priceCents: quotePriceTextToCents(priceUsdText),
+        taxEnabled,
+        taxRateBps,
+      }),
+    [priceUsdText, taxEnabled, taxRateBps],
+  );
+  const showTax = taxPreview.taxCents > 0;
+  const hasQuotePrice = priceDisplay != null;
+  const customerTotalDisplay = hasQuotePrice
+    ? formatQuoteMoney(taxPreview.customerPaysCents)
+    : null;
 
   const durationLabel = useMemo(() => {
     if (!isValidServiceDurationHHmm(durationHhMm)) return null;
@@ -176,9 +198,16 @@ export function CreateQuoteStepReview({
     : serviceNameTrimmed;
   const reviewAddons = Array.isArray(addonLines) ? addonLines : [];
   const hasAddons = reviewAddons.length > 0;
+  const addonCents = reviewAddons.reduce(
+    (sum, addon) => sum + Math.round(parsePriceLabelToUsd(addon.priceLabel ?? addon.price) * 100),
+    0,
+  );
+  const serviceCents = Math.max(0, taxPreview.priceCents - addonCents);
+  const servicePriceLabel = hasQuotePrice ? formatQuoteMoney(serviceCents) : '—';
+  const jobPriceLabel = hasQuotePrice ? formatQuoteMoney(taxPreview.priceCents) : '—';
   const paymentTiles = quotePaymentReviewTiles(paymentMethods, {
     depositLabel: paymentDepositLabel,
-    totalLabel: priceDisplay,
+    totalLabel: customerTotalDisplay,
   });
   const showPayment = paymentTiles.length > 0;
 
@@ -268,76 +297,155 @@ export function CreateQuoteStepReview({
           lineHeight: 22,
           textAlign: 'left',
         },
-        proposalInner: {
-          paddingVertical: 2,
+        proposalSection: {
+          rowGap: 8,
         },
-        serviceTitle: {
-          color: colors.text,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 18,
-          letterSpacing: -0.3,
-          lineHeight: 24,
+        proposalTitle: {
+          color: colors.textSecondary,
+          fontSize: 15,
+          fontWeight: '600',
+          letterSpacing: -0.2,
         },
-        optionLabel: {
-          color: colors.textMuted,
-          fontFamily: FONT_FAMILIES.medium,
-          fontSize: 14,
-          fontWeight: '500',
-          letterSpacing: -0.1,
-          lineHeight: 20,
-          marginTop: 4,
+        proposalStack: {
+          gap: 10,
         },
-        lineItems: {
-          marginTop: 14,
+        jobCard: {
+          backgroundColor: colors.cardSurface,
+          borderColor: colors.border,
+          borderRadius: 14,
+          borderWidth: 1,
+          paddingHorizontal: 12,
+          paddingVertical: 12,
         },
-        lineRow: {
+        jobTopRow: {
           alignItems: 'flex-start',
           flexDirection: 'row',
           justifyContent: 'space-between',
-          marginBottom: 8,
+          width: '100%',
         },
-        lineName: {
-          color: colors.textSecondary,
+        jobMainCol: {
           flex: 1,
-          fontFamily: FONT_FAMILIES.medium,
+          marginRight: 12,
+          minWidth: 0,
+        },
+        jobPriceCol: {
+          alignItems: 'flex-end',
+          flexShrink: 0,
+        },
+        serviceName: {
+          color: colors.text,
+          fontSize: 18,
+          fontWeight: '700',
+          letterSpacing: -0.3,
+        },
+        servicePrice: {
+          color: colors.text,
+          fontSize: 18,
+          fontWeight: '700',
+          letterSpacing: -0.3,
+        },
+        optionMetaLine: {
+          color: colors.textMuted,
+          fontSize: 12,
+          fontWeight: '500',
+          marginTop: 2,
+        },
+        serviceDivider: {
+          marginBottom: 10,
+          marginTop: 12,
+        },
+        addonRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          marginBottom: 8,
+          paddingLeft: 2,
+          width: '100%',
+        },
+        addonRowLast: {
+          marginBottom: 0,
+        },
+        addonNameCol: {
+          flex: 1,
+          justifyContent: 'center',
+          marginRight: 12,
+          minWidth: 0,
+        },
+        addonPriceCol: {
+          alignItems: 'flex-end',
+          flexShrink: 0,
+          justifyContent: 'center',
+        },
+        addonName: {
+          color: colors.text,
           fontSize: 14,
           fontWeight: '500',
-          marginRight: 12,
         },
-        linePrice: {
-          color: colors.textSecondary,
-          fontFamily: FONT_FAMILIES.medium,
+        addonPrice: {
+          color: colors.text,
           fontSize: 14,
           fontWeight: '600',
         },
-        dividerWrap: {
-          marginBottom: 12,
-          marginTop: 4,
+        totalCard: {
+          backgroundColor: colors.cardSurface,
+          borderColor: colors.border,
+          borderRadius: 14,
+          borderWidth: 1,
+          paddingHorizontal: 12,
+          paddingVertical: 14,
+        },
+        breakdownRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          marginBottom: 10,
+          width: '100%',
+        },
+        breakdownLabelCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+          paddingRight: 12,
+        },
+        breakdownValueCol: {
+          alignItems: 'flex-end',
+          flexShrink: 0,
+          justifyContent: 'center',
+        },
+        breakdownLabel: {
+          color: colors.text,
+          fontSize: 14,
+          fontWeight: '500',
+        },
+        breakdownValue: {
+          color: colors.text,
+          fontSize: 14,
+          fontWeight: '600',
         },
         totalRow: {
           alignItems: 'center',
           flexDirection: 'row',
-          justifyContent: 'space-between',
+          width: '100%',
+        },
+        totalLabelCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+        },
+        totalValueCol: {
+          alignItems: 'flex-end',
+          flexShrink: 0,
+          justifyContent: 'center',
+          marginLeft: 12,
         },
         totalLabel: {
           color: colors.text,
-          fontFamily: FONT_FAMILIES.semibold,
           fontSize: 16,
-          letterSpacing: -0.2,
+          fontWeight: '700',
         },
         totalValue: {
           color: colors.text,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 22,
-          letterSpacing: -0.4,
-        },
-        priceOnly: {
-          color: colors.text,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 28,
-          letterSpacing: -0.5,
-          lineHeight: 34,
-          marginTop: 10,
+          fontSize: 18,
+          fontWeight: '700',
+          letterSpacing: -0.2,
         },
         scheduleFieldsStack: {
           gap: 18,
@@ -400,42 +508,88 @@ export function CreateQuoteStepReview({
         <Divider />
       </View>
 
-      <DetailsSectionCard title="Proposal">
-        <View style={styles.proposalInner}>
-          <AppText style={styles.serviceTitle}>{serviceHeadline}</AppText>
-          {optionLine ? <AppText style={styles.optionLabel}>{optionLine}</AppText> : null}
-
-          {hasAddons ? (
-            <>
-              <View style={styles.lineItems}>
-                {reviewAddons.map((a) => (
-                  <View key={a.id} style={styles.lineRow}>
-                    <AppText numberOfLines={2} style={styles.lineName}>
-                      {a.name}
-                    </AppText>
-                    {a.priceLabel ? (
-                      <AppText style={styles.linePrice}>{a.priceLabel}</AppText>
-                    ) : null}
+      <View style={styles.proposalSection}>
+        <AppText style={styles.proposalTitle}>Proposal</AppText>
+        <View style={styles.proposalStack}>
+          <View style={styles.jobCard}>
+            <View style={styles.jobTopRow}>
+              <View style={styles.jobMainCol}>
+                <AppText numberOfLines={3} style={styles.serviceName}>
+                  {serviceHeadline}
+                </AppText>
+                {optionLine ? <AppText style={styles.optionMetaLine}>{optionLine}</AppText> : null}
+              </View>
+              <View style={styles.jobPriceCol}>
+                <AppText style={styles.servicePrice}>{servicePriceLabel}</AppText>
+              </View>
+            </View>
+            {hasAddons ? (
+              <>
+                <Divider style={styles.serviceDivider} />
+                {reviewAddons.map((addon, addonIndex) => (
+                  <View
+                    key={addon.id}
+                    style={[
+                      styles.addonRow,
+                      addonIndex === reviewAddons.length - 1 ? styles.addonRowLast : null,
+                    ]}
+                  >
+                    <View style={styles.addonNameCol}>
+                      <AppText numberOfLines={2} style={styles.addonName}>
+                        {addon.name}
+                      </AppText>
+                    </View>
+                    <View style={styles.addonPriceCol}>
+                      <AppText style={styles.addonPrice}>
+                        {formatQuoteMoney(
+                          Math.round(parsePriceLabelToUsd(addon.priceLabel ?? addon.price) * 100),
+                        )}
+                      </AppText>
+                    </View>
                   </View>
                 ))}
-              </View>
-              <View style={styles.dividerWrap}>
-                <Divider />
-              </View>
-              <View style={styles.totalRow}>
+              </>
+            ) : null}
+          </View>
+
+          <View style={styles.totalCard}>
+            {showTax ? (
+              <>
+                <View style={styles.breakdownRow}>
+                  <View style={styles.breakdownLabelCol}>
+                    <AppText numberOfLines={1} style={styles.breakdownLabel}>
+                      Job price
+                    </AppText>
+                  </View>
+                  <View style={styles.breakdownValueCol}>
+                    <AppText style={styles.breakdownValue}>{jobPriceLabel}</AppText>
+                  </View>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <View style={styles.breakdownLabelCol}>
+                    <AppText numberOfLines={1} style={styles.breakdownLabel}>
+                      {taxPreview.label}
+                    </AppText>
+                  </View>
+                  <View style={styles.breakdownValueCol}>
+                    <AppText style={styles.breakdownValue}>
+                      {formatQuoteMoney(taxPreview.taxCents)}
+                    </AppText>
+                  </View>
+                </View>
+              </>
+            ) : null}
+            <View style={styles.totalRow}>
+              <View style={styles.totalLabelCol}>
                 <AppText style={styles.totalLabel}>Total</AppText>
-                <AppText style={styles.totalValue}>{priceDisplay || '—'}</AppText>
               </View>
-            </>
-          ) : priceDisplay ? (
-            <AppText style={styles.priceOnly}>{priceDisplay}</AppText>
-          ) : (
-            <AppText style={[styles.priceOnly, { fontSize: 17, opacity: 0.85 }]}>
-              Price not set
-            </AppText>
-          )}
+              <View style={styles.totalValueCol}>
+                <AppText style={styles.totalValue}>{customerTotalDisplay || '—'}</AppText>
+              </View>
+            </View>
+          </View>
         </View>
-      </DetailsSectionCard>
+      </View>
 
       {showPayment ? (
         <View style={styles.paymentSection}>

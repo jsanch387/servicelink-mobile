@@ -24,7 +24,12 @@ import { AddAnotherJobCard } from '../components/AddAnotherJobCard';
 // import { ReviewPaymentChoice } from '../components/ReviewPaymentChoice';
 import { SwipeToDeleteRow } from '../components/SwipeToDeleteRow';
 import { SwipeToRemoveJobTip } from '../components/SwipeToRemoveJobTip';
-import { formatUsdFromNumber, parsePriceLabelToUsd } from '../utils/priceLabelMath';
+import {
+  formatUsdFromCents,
+  formatUsdFromNumber,
+  parsePriceLabelToUsd,
+} from '../utils/priceLabelMath';
+import { formatTaxLineLabel } from '../../../payments/utils/taxRateModel';
 import { formatBookingDurationMinutes } from '../utils/createFlowDuration';
 import { formatAppointmentAddressSingleLine } from '../utils/formatAppointmentAddress';
 import { CREATE_APPOINTMENT_LOCATION_SHOP } from '../utils/createAppointmentServiceLocation';
@@ -83,6 +88,9 @@ function formatFullServiceAddress(address) {
  *   onAddAnotherJob?: () => void;
  *   addAnotherJobDisabled?: boolean;
  *   onRemoveJob?: (localId: string) => void;
+ *   priceAfterDiscountCents?: number;
+ *   taxCents?: number;
+ *   taxRateBps?: number | null;
  * }} props
  */
 export function ReviewStep({
@@ -108,6 +116,9 @@ export function ReviewStep({
   addAnotherJobDisabled = false,
   onRemoveJob,
   isMembershipVisit = false,
+  priceAfterDiscountCents = 0,
+  taxCents = 0,
+  taxRateBps = null,
 }) {
   const { colors } = useTheme();
   const [swipeTipVisible, setSwipeTipVisible] = useState(false);
@@ -170,6 +181,8 @@ export function ReviewStep({
   const totalUsd = appliedSaleDiscount
     ? Math.max(0, (appliedSaleDiscount.totalCents ?? 0) / 100)
     : subtotalUsd;
+  const showTaxLine = !isMembershipVisit && taxCents > 0;
+  const taxLineLabel = formatTaxLineLabel(taxRateBps);
 
   const fullAddress = useMemo(() => formatFullServiceAddress(address), [address]);
   const showAddressSection = appointmentLocationType !== CREATE_APPOINTMENT_LOCATION_SHOP;
@@ -366,6 +379,33 @@ export function ReviewStep({
         discountValue: {
           color: colors.textSuccess ?? colors.text,
           fontSize: 13,
+          fontWeight: '600',
+        },
+        breakdownRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+          width: '100%',
+        },
+        breakdownLabelCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+          paddingRight: 12,
+        },
+        breakdownValueCol: {
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+        },
+        breakdownLabel: {
+          color: colors.text,
+          fontSize: 14,
+          fontWeight: '500',
+        },
+        breakdownValue: {
+          color: colors.text,
+          fontSize: 14,
           fontWeight: '600',
         },
         totalCard: {
@@ -568,9 +608,41 @@ export function ReviewStep({
                     </AppText>
                   </View>
                 ) : null}
+                {showTaxLine ? (
+                  <>
+                    <View style={styles.breakdownRow}>
+                      <View style={styles.breakdownLabelCol}>
+                        <AppText numberOfLines={1} style={styles.breakdownLabel}>
+                          Job price
+                        </AppText>
+                      </View>
+                      <View style={styles.breakdownValueCol}>
+                        <AppText style={styles.breakdownValue}>
+                          {formatUsdFromCents(priceAfterDiscountCents)}
+                        </AppText>
+                      </View>
+                    </View>
+                    <View style={styles.breakdownRow}>
+                      <View style={styles.breakdownLabelCol}>
+                        <AppText numberOfLines={1} style={styles.breakdownLabel}>
+                          {taxLineLabel}
+                        </AppText>
+                      </View>
+                      <View style={styles.breakdownValueCol}>
+                        <AppText style={styles.breakdownValue}>
+                          {formatUsdFromCents(taxCents, { forceCents: true })}
+                        </AppText>
+                      </View>
+                    </View>
+                  </>
+                ) : null}
                 <View style={styles.totalRow}>
                   <AppText style={styles.totalLabel}>{multiJob ? 'Visit total' : 'Total'}</AppText>
-                  <AppText style={styles.totalValue}>{formatUsdFromNumber(totalUsd)}</AppText>
+                  <AppText style={styles.totalValue}>
+                    {showTaxLine
+                      ? formatUsdFromCents(priceAfterDiscountCents + taxCents, { forceCents: true })
+                      : formatUsdFromNumber(totalUsd)}
+                  </AppText>
                 </View>
                 {isMembershipVisit ? (
                   <View style={styles.membershipTotalHintRow}>

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Keyboard, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
@@ -329,6 +329,7 @@ export function SelectField({
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
         onPress={() => {
+          Keyboard.dismiss();
           if (!useWheel) prepareOpen();
           setOpen(true);
         }}

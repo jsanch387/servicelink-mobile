@@ -110,6 +110,8 @@ export function CreateQuoteStepContent({ stepIndex, form }) {
             durationHhMm={form.durationHhMm}
             priceUsdText={form.priceUsdText}
             serviceName={form.serviceName}
+            taxEnabled={form.taxEnabled}
+            taxRateBps={form.taxRateBps}
             onDurationHhMmChange={form.setDurationHhMm}
             onPriceUsdTextChange={form.setPriceUsdText}
             onServiceNameChange={form.setServiceName}
@@ -121,6 +123,8 @@ export function CreateQuoteStepContent({ stepIndex, form }) {
           pricingOptions={form.pricingOptions}
           selectedPricingId={form.selectedPricingId}
           service={form.selectedCatalogService}
+          taxEnabled={form.taxEnabled}
+          taxRateBps={form.taxRateBps}
           onSelectPricingId={form.setSelectedPricingId}
         />
       );
@@ -131,6 +135,8 @@ export function CreateQuoteStepContent({ stepIndex, form }) {
           selectedPricingOption={form.selectedPricingOption}
           service={form.selectedCatalogService}
           serviceAddons={form.addonsForSelectedService}
+          taxEnabled={form.taxEnabled}
+          taxRateBps={form.taxRateBps}
           onToggleAddon={form.onToggleAddon}
         />
       );
@@ -177,6 +183,8 @@ export function CreateQuoteStepContent({ stepIndex, form }) {
           paymentDepositLabel={form.paymentDepositLabel}
           paymentMethods={form.paymentMethods}
           priceUsdText={form.priceUsdText}
+          taxEnabled={form.taxEnabled}
+          taxRateBps={form.taxRateBps}
           pricingOptionLabel={form.pricingOptionLabel}
           scheduleMode={form.scheduleMode}
           scheduledDateYyyyMmDd={form.scheduledDateYyyyMmDd}

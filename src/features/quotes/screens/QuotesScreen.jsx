@@ -13,7 +13,8 @@ import {
 } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
-import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
+import { useShopToolAccess } from '../../shop';
+import { showWebAccountFeatureAlert } from '../../subscription';
 import { quotesAcceptRequestsAccessCopy } from '../constants/quotesAccessCopy';
 import { useTheme } from '../../../theme';
 import { navigationRef } from '../../../navigation/navigationRef';
@@ -77,7 +78,7 @@ export function QuotesScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
   const userId = user?.id;
-  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
+  const { canUseShopTools, isOwnerProfileLoaded } = useShopToolAccess();
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
   const quotesList = useQuotesInbox();
@@ -101,12 +102,12 @@ export function QuotesScreen() {
 
   const handleAcceptQuoteRequestsChange = useCallback(
     (next) => {
-      if (!hasProAccess) {
+      if (!canUseShopTools) {
         return;
       }
       void quotesList.persistAcceptQuoteRequests(next);
     },
-    [hasProAccess, quotesList],
+    [canUseShopTools, quotesList],
   );
 
   const onWebSignInPress = useCallback(() => {
@@ -211,8 +212,8 @@ export function QuotesScreen() {
 
   const rootOverlayCoversTabs = rootTopRoute !== undefined && rootTopRoute !== ROUTES.MAIN_APP;
 
-  const proLocked = Boolean(userId) && isOwnerProfileLoaded && !hasProAccess;
-  const showQuotesInbox = isOwnerProfileLoaded && hasProAccess;
+  const proLocked = Boolean(userId) && isOwnerProfileLoaded && !canUseShopTools;
+  const showQuotesInbox = isOwnerProfileLoaded && canUseShopTools;
   const filterQuotes = quotesList.quoteGroups[activeFilter] ?? [];
   const approvedMonthGroups = useMemo(
     () => groupApprovedQuotesByMonth(quotesList.quoteGroups[QUOTES_FILTER_APPROVED] ?? []),
@@ -276,7 +277,7 @@ export function QuotesScreen() {
                 !isOwnerProfileLoaded
               }
               proLocked={proLocked}
-              value={hasProAccess ? quotesList.acceptQuoteRequests : false}
+              value={canUseShopTools ? quotesList.acceptQuoteRequests : false}
               onWebSignInPress={onWebSignInPress}
               onValueChange={handleAcceptQuoteRequestsChange}
             />

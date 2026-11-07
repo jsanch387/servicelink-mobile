@@ -1,5 +1,6 @@
 import { DEPOSIT_AMOUNT_MODE } from '../constants/depositAmount';
 import { CUSTOMER_PAYMENT_METHOD } from '../constants/customerPaymentMethods';
+import { taxRateBpsToPercentString } from './taxRateModel';
 
 const VALID_CHECKOUT = new Set(['in_person', 'in_app', 'customer_choice']);
 
@@ -29,6 +30,8 @@ export function mapUiCheckoutMethodToCheckoutMode(uiId) {
  * @property {boolean} requireDeposits
  * @property {string} depositAmount
  * @property {string} depositMode - `DEPOSIT_AMOUNT_MODE` value
+ * @property {boolean} collectTax
+ * @property {string} taxRate - percent string, two decimals when loaded from basis points
  */
 
 /**
@@ -64,6 +67,8 @@ export function defaultPaymentFormHydration() {
     requireDeposits: false,
     depositAmount: '0',
     depositMode: DEPOSIT_AMOUNT_MODE.PERCENTAGE,
+    collectTax: false,
+    taxRate: '',
   };
 }
 
@@ -105,11 +110,16 @@ export function mapPaymentSettingsToFormHydration(row) {
       ? centsToDepositAmountString(depositValue)
       : percentDepositToAmountString(depositValue);
 
+  const taxBpsRaw = row.tax_rate_bps;
+  const taxBps = typeof taxBpsRaw === 'number' ? taxBpsRaw : Number(taxBpsRaw);
+
   return {
     paymentsEnabled: Boolean(row.payments_enabled),
     selectedMethodId,
     requireDeposits: Boolean(row.deposits_enabled),
     depositAmount,
     depositMode,
+    collectTax: Boolean(row.tax_enabled),
+    taxRate: taxRateBpsToPercentString(taxBps),
   };
 }

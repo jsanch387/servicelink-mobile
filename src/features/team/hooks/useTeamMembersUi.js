@@ -8,14 +8,17 @@ import { fetchBusinessProfileForUser } from '../../home/api/homeDashboard';
 import { homeBusinessProfileQueryKey } from '../../home/queryKeys';
 import { fetchTeamRosterForShop } from '../api/fetchTeamRosterForOwner';
 import { persistTeamInviteName, updateTeamMemberDisplayName } from '../api/persistTeamInviteName';
+import { patchTeamMemberRole } from '../api/patchTeamMemberRole';
 import { postTeamInvite } from '../api/postTeamInvite';
 import { postTeamRemove } from '../api/postTeamRemove';
+import { storedTeamRole } from '../constants/teamRoles';
 import { applyInviteNameToRoster } from '../utils/mapTeamRoster';
 import {
   TEAM_INVITE_INVALID_EMAIL,
   TEAM_INVITE_INVALID_NAME,
   TEAM_PLAN_REQUIRED,
   TEAM_MEMBER_NAME_SAVED_TOAST,
+  TEAM_MEMBER_ROLE_SAVED_TOAST,
   TEAM_MEMBERS_LOAD_ERROR,
   TEAM_REMOVE_TOAST,
 } from '../constants/teamMembersCopy';
@@ -37,6 +40,7 @@ export function useTeamMembersUi() {
   const queryClient = useQueryClient();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [isSavingName, setIsSavingName] = useState(false);
+  const [isSavingRole, setIsSavingRole] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const [memberError, setMemberError] = useState(null);
 
@@ -91,7 +95,7 @@ export function useTeamMembersUi() {
   }, [queryClient, userId]);
 
   const handleInvite = useCallback(
-    async (emailRaw, nameRaw) => {
+    async (emailRaw, nameRaw, roleRaw) => {
       if (!canManageTeam) {
         return { ok: false, error: TEAM_PLAN_REQUIRED };
       }
@@ -106,7 +110,7 @@ export function useTeamMembersUi() {
 
       const { data } = await getSession();
       const accessToken = data?.session?.access_token;
-      const result = await postTeamInvite(accessToken, email, name);
+      const result = await postTeamInvite(accessToken, email, name, storedTeamRole(roleRaw));
       if (!result.ok) {
         return { ok: false, error: result.userMessage };
       }
@@ -120,7 +124,12 @@ export function useTeamMembersUi() {
       await queryClient.invalidateQueries({ queryKey: bookingAssigneesQueryKey(userId) });
       await queryClient.refetchQueries({ queryKey: teamRosterQueryKey(userId) });
       queryClient.setQueryData(teamRosterQueryKey(userId), (current) =>
-        applyInviteNameToRoster(current, email, result.name || name),
+        applyInviteNameToRoster(
+          current,
+          email,
+          result.name || name,
+          result.role || storedTeamRole(roleRaw),
+        ),
       );
       return { ok: true, resent: result.resent };
     },
@@ -162,6 +171,50 @@ export function useTeamMembersUi() {
       }
     },
     [isRemoving, queryClient, toast, userId],
+  );
+
+  const handleChangeRole = useCallback(
+    async (member, roleRaw) => {
+      const role = storedTeamRole(roleRaw);
+      if (role === storedTeamRole(member?.role)) {
+        return { ok: true, role };
+      }
+      if (isSavingRole) {
+        return { ok: false };
+      }
+      setIsSavingRole(true);
+      setMemberError(null);
+      try {
+        const { data } = await getSession();
+        const accessToken = data?.session?.access_token;
+        const result = await patchTeamMemberRole(accessToken, {
+          id: member?.id,
+          source: member?.source,
+          role,
+        });
+        if (!result.ok) {
+          setMemberError(result.userMessage);
+          return { ok: false, error: result.userMessage };
+        }
+
+        queryClient.setQueryData(teamRosterQueryKey(userId), (current) => {
+          if (!current?.members) return current;
+          return {
+            ...current,
+            members: current.members.map((row) =>
+              row.id === member.id ? { ...row, role: result.role } : row,
+            ),
+          };
+        });
+        await queryClient.invalidateQueries({ queryKey: teamRosterQueryKey(userId) });
+        setMemberError(null);
+        toast.success(TEAM_MEMBER_ROLE_SAVED_TOAST);
+        return { ok: true, role: result.role };
+      } finally {
+        setIsSavingRole(false);
+      }
+    },
+    [isSavingRole, queryClient, toast, userId],
   );
 
   const handleRename = useCallback(
@@ -206,12 +259,14 @@ export function useTeamMembersUi() {
     listError,
     inviteOpen,
     isSavingName,
+    isSavingRole,
     isRemoving,
     memberError,
     openInvite,
     closeInvite,
     clearMemberError,
     handleInvite,
+    handleChangeRole,
     handleRename,
     handleRemove,
     refetch,

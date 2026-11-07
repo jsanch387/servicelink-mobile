@@ -138,4 +138,52 @@ describe('CreateQuoteStepReview', () => {
     expect(screen.getByText('2021 GMC Sierra AT4')).toBeTruthy();
     expect(screen.getByText('2022 GMC Yukon AT4')).toBeTruthy();
   });
+
+  it('previews shop tax on the proposal and the full-payment tile', () => {
+    render(
+      <ThemeProvider initialScheme="dark">
+        <TypographyProvider>
+          <CreateQuoteStepReview
+            addonLines={[]}
+            businessNote=""
+            customerEmail="pat@example.com"
+            customerName="Pat"
+            customerPhoneDisplay=""
+            customerRequestNotes=""
+            durationHhMm="01:00"
+            paymentMethods={['pay_in_full']}
+            priceUsdText="85"
+            scheduleMode="pick"
+            scheduledDateYyyyMmDd="2026-09-01"
+            scheduledStartTime12h="2:00 PM"
+            serviceName="Detail"
+            taxEnabled
+            taxRateBps={225}
+            vehicleMake=""
+            vehicleModel=""
+            vehicleYear=""
+          />
+        </TypographyProvider>
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText('Detail')).toBeTruthy();
+    expect(screen.getByText('Job price')).toBeTruthy();
+    expect(screen.getAllByText('$85').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('Tax (2.25%)')).toBeTruthy();
+    expect(screen.getByText('$1.91')).toBeTruthy();
+    expect(screen.getByText('Total')).toBeTruthy();
+    expect(screen.getAllByText('$86.91').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('Full payment')).toBeTruthy();
+  });
+
+  it('leaves the proposal untaxed when the shop switch is off', () => {
+    renderReview();
+
+    expect(screen.getByText('Detail')).toBeTruthy();
+    expect(screen.getByText('Total')).toBeTruthy();
+    expect(screen.getAllByText('$100').length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText(/Tax/)).toBeNull();
+    expect(screen.queryByText('Job price')).toBeNull();
+  });
 });

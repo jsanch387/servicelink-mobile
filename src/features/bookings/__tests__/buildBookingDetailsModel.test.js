@@ -265,6 +265,72 @@ describe('buildBookingDetailsModel', () => {
     expect(model.formattedPrice.total).toBe('$140.00');
   });
 
+  it('shows stored sales tax without treating it as a fee', () => {
+    const model = buildBookingDetailsModel({
+      service_price_cents: 8500,
+      payment: {
+        paymentMethodSelected: 'none',
+        totalAmountCents: 8691,
+        remainingAmountCents: 8691,
+        paidOnlineAmountCents: 0,
+        taxCents: 191,
+        taxRateBps: 225,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.hasTax).toBe(true);
+    expect(model.formattedPrice.tax).toEqual({
+      label: 'Tax (2.25%)',
+      value: expect.stringMatching(/1\.91/),
+    });
+    expect(model.formattedPrice.hasSessionFees).toBe(false);
+    expect(model.formattedPrice.total).toMatch(/86\.91/);
+    expect(model.payment.detail).toMatch(/86\.91/);
+  });
+
+  it('does not show tax again as additional fees after mark as paid', () => {
+    const model = buildBookingDetailsModel({
+      status: 'completed',
+      service_price_cents: 8500,
+      payment: {
+        paymentStatus: 'paid',
+        totalAmountCents: 8691,
+        remainingAmountCents: 0,
+        paidOnlineAmountCents: 0,
+        sessionPaymentMethod: 'cash',
+        sessionPaymentAmountCents: 8691,
+        taxCents: 191,
+        taxRateBps: 225,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.hasSessionFees).toBe(false);
+    expect(model.formattedPrice.hasTax).toBe(true);
+    expect(model.formattedPrice.tax).toEqual({
+      label: 'Tax (2.25%)',
+      value: expect.stringMatching(/1\.91/),
+    });
+    expect(model.formattedPrice.total).toMatch(/86\.91/);
+  });
+
+  it('keeps a taxed job untaxed in the breakdown when that job stored no tax', () => {
+    const model = buildBookingDetailsModel({
+      service_price_cents: 8500,
+      payment: {
+        totalAmountCents: 8500,
+        taxCents: 0,
+        taxRateBps: 225,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.hasTax).toBe(false);
+    expect(model.formattedPrice.tax).toBeNull();
+    expect(model.formattedPrice.total).toMatch(/85\.00/);
+  });
+
   it('includes sale/promo discount in price breakdown and total', () => {
     const model = buildBookingDetailsModel({
       service_price_cents: 10000,

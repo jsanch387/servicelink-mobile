@@ -18,13 +18,6 @@ import {
 } from '../utils/depositAmountModel';
 import { PaymentDepositUnitSegment } from './PaymentDepositUnitSegment';
 
-function depositHelperCopy(mode) {
-  if (mode === DEPOSIT_AMOUNT_MODE.PERCENTAGE) {
-    return 'Percent of the service cost.';
-  }
-  return 'Fixed amount in dollars.';
-}
-
 /**
  * Deposits settings UI (controlled). Persist via parent `Save changes` (e.g. `buildDepositSavePayload` when API exists).
  */
@@ -90,7 +83,7 @@ export function PaymentDepositsSection({
       <View style={paymentLayoutStyles.headerTextGroup}>
         <AppText style={[paymentTextStyles.sectionTitle, { color: colors.text }]}>Deposits</AppText>
         <AppText style={[paymentTextStyles.sectionBody, { color: colors.textMuted }]}>
-          Collect part of the price when someone books. Amounts are in US dollars (USD).
+          Collect part of the price when someone books.
         </AppText>
       </View>
 
@@ -137,11 +130,6 @@ export function PaymentDepositsSection({
             <PaymentDepositUnitSegment value={depositMode} onChange={setDepositModeAndClamp} />
           </View>
         </View>
-        <AppText
-          style={[paymentTextStyles.caption, styles.helperAfterField, { color: colors.textMuted }]}
-        >
-          {depositHelperCopy(depositMode)}
-        </AppText>
       </View>
 
       <Divider style={styles.divider} />
@@ -156,7 +144,7 @@ export function PaymentDepositsSection({
         <AppText
           style={[paymentTextStyles.caption, styles.footerText, { color: colors.textMuted }]}
         >
-          Deposits up front often mean fewer no-shows.
+          Deposits required before booking.
         </AppText>
       </View>
     </SurfaceCard>
@@ -182,9 +170,6 @@ const styles = StyleSheet.create({
   },
   amountBlock: {
     gap: 10,
-  },
-  helperAfterField: {
-    marginTop: 0,
   },
   amountRowWrap: {
     alignSelf: 'stretch',

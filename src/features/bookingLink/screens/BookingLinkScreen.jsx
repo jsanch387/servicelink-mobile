@@ -31,6 +31,7 @@ import {
   languagesFromProfile,
   normalizeDbServiceLocationMode,
 } from '../utils/bookingLinkBookingSettings';
+import { useShopToolAccess } from '../../shop';
 import { useSubscription } from '../../subscription';
 import { BOOKING_LINK_ROUTE_PARAMS } from '../constants/bookingLinkRouteParams';
 import {
@@ -54,7 +55,8 @@ export function BookingLinkScreen() {
   const queryClient = useQueryClient();
   const bookingProfile = useBookingLinkProfile();
   const { profile, refetch: refetchBookingProfile } = bookingProfile;
-  const { hasProAccess, isOwnerProfileLoaded } = useSubscription();
+  const { isOwnerProfileLoaded } = useSubscription();
+  const { canUseShopTools } = useShopToolAccess();
   const coverHeight = width >= 768 ? 256 : width >= 640 ? 224 : 192;
   const [activeTab, setActiveTab] = useState(BOOKING_LINK_DEFAULT_TAB);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -299,7 +301,7 @@ export function BookingLinkScreen() {
           coverImageUrl={coverImageUrl}
           coverImagePath={coverImagePath}
           defaultLanguage={bookingLanguages.defaultLocale}
-          hasProAccess={hasProAccess}
+          hasProAccess={canUseShopTools}
           initialEditTab={initialEditTab}
           isOwnerProfileLoaded={isOwnerProfileLoaded}
           logoUrl={logoUrl}

@@ -31,6 +31,7 @@ export function BookingLinkEditBookingSection({
   shopAddressInput,
   selectedShopLocation,
   shopAddressError,
+  onShopAddressFocus,
   onShopAddressInputChange,
   onShopAddressSelect,
   shopUnitInput,
@@ -88,6 +89,7 @@ export function BookingLinkEditBookingSection({
                 showProviderFooter={false}
                 value={shopAddressInput}
                 onChangeText={onShopAddressInputChange}
+                onFocus={onShopAddressFocus}
                 onSelect={onShopAddressSelect}
               />
               <SurfaceTextField

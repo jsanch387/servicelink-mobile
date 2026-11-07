@@ -7,6 +7,9 @@ import {
   parsePriceLabelToUsd,
 } from '../../../bookings/create-appointment/utils/priceLabelMath';
 import { useTheme } from '../../../../theme';
+import { formatQuoteMoney } from '../../utils/quotePresentation';
+import { buildQuoteTaxPreview, quoteUsdToCents } from '../../utils/quoteTaxPreview';
+import { QuoteAmountRow } from '../QuoteAmountRow';
 
 /**
  * Catalog pricing options for a quote (mirrors create-appointment PricingStep).
@@ -16,6 +19,8 @@ import { useTheme } from '../../../../theme';
  *   pricingOptions?: Array<{ id: string; label: string; durationLabel: string; priceLabel: string }> | null;
  *   selectedPricingId: string | null;
  *   onSelectPricingId: (id: string) => void;
+ *   taxEnabled?: boolean;
+ *   taxRateBps?: number | null;
  * }} props
  */
 export function CreateQuoteStepPricing({
@@ -23,6 +28,8 @@ export function CreateQuoteStepPricing({
   pricingOptions,
   selectedPricingId,
   onSelectPricingId,
+  taxEnabled = false,
+  taxRateBps = null,
 }) {
   const { colors } = useTheme();
   const options = useMemo(() => pricingOptions ?? [], [pricingOptions]);
@@ -31,6 +38,13 @@ export function CreateQuoteStepPricing({
     [options, selectedPricingId],
   );
   const displayPrice = selectedOption?.priceLabel ?? '—';
+  const quotedUsd = selectedOption ? parsePriceLabelToUsd(selectedOption.priceLabel) : 0;
+  const taxPreview = buildQuoteTaxPreview({
+    priceCents: quoteUsdToCents(quotedUsd),
+    taxEnabled,
+    taxRateBps,
+  });
+  const showTax = Boolean(selectedOption) && taxPreview.taxCents > 0;
 
   const styles = useMemo(
     () =>
@@ -121,11 +135,19 @@ export function CreateQuoteStepPricing({
             <AppText style={styles.summarySub}>No option selected</AppText>
           )}
           <Divider style={styles.divider} />
+          {showTax ? (
+            <QuoteAmountRow
+              label={taxPreview.label}
+              value={formatQuoteMoney(taxPreview.taxCents)}
+            />
+          ) : null}
           <View style={styles.totalRow}>
             <AppText style={styles.totalLabel}>Quoted amount</AppText>
             <AppText style={styles.totalValue}>
               {selectedOption
-                ? formatUsdFromNumber(parsePriceLabelToUsd(selectedOption.priceLabel))
+                ? showTax
+                  ? formatQuoteMoney(taxPreview.customerPaysCents)
+                  : formatUsdFromNumber(quotedUsd)
                 : '—'}
             </AppText>
           </View>

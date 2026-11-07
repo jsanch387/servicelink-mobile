@@ -10,12 +10,22 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText, FilterPills, InlineCardError, SurfaceCard } from '../../../components/ui';
+import {
+  AppText,
+  FilterPills,
+  InlineCardError,
+  LoadMoreLink,
+  SurfaceCard,
+} from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { useTheme } from '../../../theme';
 import { useAuth } from '../../auth';
 import { ReviewCard } from '../components/ReviewCard';
 import { ReviewsEmptyState } from '../components/ReviewsEmptyState';
+import {
+  ReviewsGoogleConnectCard,
+  ReviewsGoogleConnectCardSkeleton,
+} from '../components/ReviewsGoogleConnectCard';
 import { ReviewsHowItWorks } from '../components/ReviewsHowItWorks';
 import { ReviewsListSkeleton } from '../components/ReviewsListSkeleton';
 import { ReviewsSummaryCard } from '../components/ReviewsSummaryCard';
@@ -24,6 +34,8 @@ import {
   REVIEWS_FILTER_NEEDS_REPLY,
   REVIEWS_FILTER_OPTIONS,
 } from '../constants';
+import { useGoogleReviewConnection } from '../hooks/useGoogleReviewConnection';
+import { canSeeGoogleReviewsConnect } from '../utils/canSeeGoogleReviewsConnect';
 import { useReviewsInbox } from '../hooks/useReviewsInbox';
 import { useSubmitReviewReply } from '../hooks/useSubmitReviewReply';
 import { filterReviews } from '../utils/filterReviews';
@@ -35,8 +47,12 @@ export function ReviewsScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
   const userId = user?.id;
+  const canSeeGoogleConnect = canSeeGoogleReviewsConnect(
+    typeof user?.email === 'string' ? user.email : '',
+  );
   const tabBarHeight = useBottomTabBarHeight();
   const inbox = useReviewsInbox();
+  const googleConnection = useGoogleReviewConnection(userId, { enabled: canSeeGoogleConnect });
   const submitReply = useSubmitReviewReply(inbox.business?.id);
   const [filterKey, setFilterKey] = useState(REVIEWS_FILTER_OPTIONS[0].key);
   const [submittingReviewId, setSubmittingReviewId] = useState(/** @type {string | null} */ (null));
@@ -61,7 +77,10 @@ export function ReviewsScreen() {
 
   const countLabel = useMemo(() => {
     if (totalCount === 0) return REVIEWS_EMPTY_STATE_COPY.title;
-    return `Showing ${showingCount} of ${totalCount} review${totalCount === 1 ? '' : 's'}`;
+    if (showingCount === totalCount) {
+      return `${totalCount} review${totalCount === 1 ? '' : 's'}`;
+    }
+    return `Showing ${showingCount} of ${totalCount} reviews`;
   }, [showingCount, totalCount]);
 
   const emptyFilterCopy = useMemo(() => {
@@ -163,10 +182,10 @@ export function ReviewsScreen() {
           fontWeight: '500',
         },
         list: {
-          gap: 12,
+          gap: 10,
         },
         howItWorksBlock: {
-          marginTop: -4,
+          marginTop: -6,
         },
         errorBlock: {
           marginBottom: 4,
@@ -211,8 +230,14 @@ export function ReviewsScreen() {
           refreshControl={
             <RefreshControl
               colors={[colors.accent]}
-              onRefresh={() => void inbox.refetch()}
-              refreshing={inbox.isFetching && !inbox.isLoading}
+              onRefresh={() => {
+                void inbox.refetch();
+                void googleConnection.refetch();
+              }}
+              refreshing={
+                (inbox.isFetching && !inbox.isLoading) ||
+                (googleConnection.isFetching && !googleConnection.isLoading)
+              }
               tintColor={colors.accent}
             />
           }
@@ -236,7 +261,7 @@ export function ReviewsScreen() {
           ) : null}
 
           {inbox.isLoading ? (
-            <ReviewsListSkeleton />
+            <ReviewsListSkeleton showGoogleConnect={canSeeGoogleConnect} />
           ) : (
             <>
               <ReviewsSummaryCard
@@ -245,9 +270,27 @@ export function ReviewsScreen() {
                 totalCount={inbox.summary.totalCount}
               />
 
-              <View style={styles.howItWorksBlock}>
-                <ReviewsHowItWorks />
-              </View>
+              {canSeeGoogleConnect ? (
+                googleConnection.isLoading ? (
+                  <ReviewsGoogleConnectCardSkeleton />
+                ) : googleConnection.connected === true ? (
+                  <ReviewsGoogleConnectCard connected />
+                ) : googleConnection.connected === false ? (
+                  <ReviewsGoogleConnectCard
+                    connectError={googleConnection.connectError}
+                    connecting={googleConnection.connectLoading}
+                    onConnect={() => {
+                      void googleConnection.startConnect();
+                    }}
+                  />
+                ) : null
+              ) : null}
+
+              {!hasReviews && !showBusinessMissing && !inbox.listError ? (
+                <View style={styles.howItWorksBlock}>
+                  <ReviewsHowItWorks />
+                </View>
+              ) : null}
 
               {hasReviews ? (
                 <View style={styles.filtersBlock}>
@@ -290,6 +333,7 @@ export function ReviewsScreen() {
                         rating={review.rating}
                         reply={review.ownerReply?.body ?? null}
                         reviewerName={review.authorDisplayName}
+                        source={review.source}
                         onComposerClose={handleComposerClose}
                         onComposerOpen={() => handleComposerOpen(review.id)}
                         onReplySubmit={(text) => handleReplySubmit(review.id, text)}
@@ -302,6 +346,20 @@ export function ReviewsScreen() {
                   <AppText style={styles.emptyTitle}>{emptyFilterCopy.title}</AppText>
                   <AppText style={styles.emptyBody}>{emptyFilterCopy.body}</AppText>
                 </View>
+              ) : null}
+
+              {inbox.hasMore ? (
+                <LoadMoreLink
+                  accessibilityHint="Loads the next reviews"
+                  label="Load more"
+                  loading={inbox.isLoadingMore}
+                  onPress={() => {
+                    void inbox.loadMore();
+                  }}
+                />
+              ) : null}
+              {inbox.loadMoreError ? (
+                <AppText style={styles.emptyBody}>{inbox.loadMoreError}</AppText>
               ) : null}
             </>
           )}

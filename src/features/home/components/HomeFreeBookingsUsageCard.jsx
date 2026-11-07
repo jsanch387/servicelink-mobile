@@ -30,15 +30,19 @@ export function HomeFreeBookingsUsageCard({ used, limit }) {
           flexDirection: 'row',
           justifyContent: 'space-between',
         },
+        labelCol: {
+          flex: 1,
+          justifyContent: 'center',
+          marginRight: 12,
+          minWidth: 0,
+        },
         label: {
           color: colors.textMuted,
-          flex: 1,
           fontFamily: FONT_FAMILIES.medium,
           fontSize: 12,
           fontWeight: '500',
           letterSpacing: -0.05,
           lineHeight: 16,
-          marginRight: 12,
         },
         fraction: {
           alignItems: 'center',
@@ -65,7 +69,7 @@ export function HomeFreeBookingsUsageCard({ used, limit }) {
     [atLimit, colors],
   );
 
-  const a11yLabel = `Bookings used: ${safeUsed} of ${limit}.`;
+  const a11yLabel = `Free bookings used: ${safeUsed} of ${limit}.`;
 
   return (
     <SurfaceCard
@@ -76,9 +80,11 @@ export function HomeFreeBookingsUsageCard({ used, limit }) {
       style={styles.card}
     >
       <View style={styles.header}>
-        <AppText includeFontPadding={false} style={styles.label}>
-          Bookings used
-        </AppText>
+        <View style={styles.labelCol}>
+          <AppText includeFontPadding={false} numberOfLines={1} style={styles.label}>
+            Free bookings used
+          </AppText>
+        </View>
         <View style={styles.fraction}>
           <AppText includeFontPadding={false} style={styles.used}>
             {safeUsed}

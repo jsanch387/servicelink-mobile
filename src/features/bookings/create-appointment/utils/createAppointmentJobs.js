@@ -1,5 +1,5 @@
 import { createEmptyVehicleForm } from '../constants';
-import { formatUsdFromNumber } from './priceLabelMath';
+import { formatUsdFromNumber, parsePriceLabelToUsd } from './priceLabelMath';
 
 /**
  * @returns {{
@@ -90,6 +90,27 @@ export function snapshotCommittedJob(p) {
 /**
  * @param {Array<{ totalDurationMinutes?: number }>} jobs
  */
+/**
+ * Service price plus add-ons, in cents, before a sale. Custom jobs use the typed amount.
+ *
+ * @param {Array<{
+ *   selectedPricingOption?: { priceCents?: number } | null;
+ *   selectedAddonRows?: Array<{ priceCents?: number; priceLabel?: string; price?: string | number }>;
+ * }> | null | undefined} jobs
+ */
+export function sumVisitJobsPriceCents(jobs) {
+  return (jobs ?? []).reduce((sum, job) => {
+    const baseCents = Math.round(Number(job?.selectedPricingOption?.priceCents) || 0);
+    const addonsCents = (job?.selectedAddonRows ?? []).reduce((addonSum, addon) => {
+      if (addon?.priceCents != null && Number.isFinite(Number(addon.priceCents))) {
+        return addonSum + Math.round(Number(addon.priceCents));
+      }
+      return addonSum + Math.round(parsePriceLabelToUsd(addon?.priceLabel ?? addon?.price) * 100);
+    }, 0);
+    return sum + baseCents + addonsCents;
+  }, 0);
+}
+
 export function sumJobDurationsMinutes(jobs) {
   return (jobs ?? []).reduce(
     (sum, job) => sum + Math.max(0, Math.round(Number(job?.totalDurationMinutes) || 0)),

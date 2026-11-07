@@ -10,7 +10,7 @@ import {
 /**
  * Creates a walk-up Stripe pay link (no booking).
  */
-export function useCreatePaymentLink({ accessToken, amount, note }) {
+export function useCreatePaymentLink({ accessToken, amount, note, chargeCents = null }) {
   const toast = useToast();
   const [creating, setCreating] = useState(false);
 
@@ -29,8 +29,12 @@ export function useCreatePaymentLink({ accessToken, amount, note }) {
 
     setCreating(true);
     try {
+      const amountCents =
+        chargeCents != null && Number.isFinite(Number(chargeCents)) && Number(chargeCents) > 0
+          ? Math.round(Number(chargeCents))
+          : Math.round(parsedAmount * 100);
       const result = await postCreatePaymentLink(accessToken, {
-        amountCents: Math.round(parsedAmount * 100),
+        amountCents,
         note: sanitizeCreatePaymentNote(note),
       });
       if (!result.ok) {
@@ -41,7 +45,7 @@ export function useCreatePaymentLink({ accessToken, amount, note }) {
     } finally {
       setCreating(false);
     }
-  }, [accessToken, amount, creating, note, toast]);
+  }, [accessToken, amount, chargeCents, creating, note, toast]);
 
   return { createLink, creating };
 }

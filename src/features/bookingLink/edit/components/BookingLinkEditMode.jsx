@@ -159,6 +159,7 @@ export function BookingLinkEditMode({ initialEditTab = BOOKING_LINK_EDIT_DEFAULT
               onPolicyInputChange={ctrl.onPolicyInputChange}
               onRadiusChange={ctrl.onRadiusChange}
               onServiceTypeChange={ctrl.setServiceTypeInput}
+              onShopAddressFocus={ctrl.onShopAddressFocus}
               onShopAddressInputChange={ctrl.onShopAddressInputChange}
               onShopAddressSelect={ctrl.onShopAddressSelect}
               onShopUnitInputChange={ctrl.setShopUnitInput}

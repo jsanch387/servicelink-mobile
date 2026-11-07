@@ -19,19 +19,27 @@ const BUSINESS_PROFILE_SELECT =
  * Prefer an active hire; otherwise a removed row (same user can still read their own membership).
  *
  * @param {Array<{ business_id?: string | null; status?: string | null }> | null | undefined} rows
- * @returns {{ business_id: string; status: 'active' | 'removed' } | null}
+ * @returns {{ business_id: string; status: 'active' | 'removed'; role?: string } | null}
  */
 export function pickBusinessMembership(rows) {
   const list = Array.isArray(rows) ? rows : rows ? [rows] : [];
   const active = list.find((row) => row?.status === 'active' && row.business_id);
   if (active) {
-    return { business_id: active.business_id, status: 'active' };
+    return membershipSnapshot(active, 'active');
   }
   const removed = list.find((row) => row?.status === 'removed' && row.business_id);
   if (removed) {
-    return { business_id: removed.business_id, status: 'removed' };
+    return membershipSnapshot(removed, 'removed');
   }
   return null;
+}
+
+function membershipSnapshot(row, status) {
+  const snapshot = { business_id: row.business_id, status };
+  if (row.role === 'member' || row.role === 'coordinator' || row.role === 'manager') {
+    snapshot.role = row.role;
+  }
+  return snapshot;
 }
 
 /**
@@ -41,7 +49,7 @@ export function pickBusinessMembership(rows) {
  * @param {{ business_id: string; status: 'active' | 'removed' } | null | undefined} current
  * @param {{ business_id?: string | null; status?: string | null } | null | undefined} row
  * @param {string | null | undefined} [eventType]
- * @returns {{ business_id: string; status: 'active' | 'removed' } | null}
+ * @returns {{ business_id: string; status: 'active' | 'removed'; role?: string } | null}
  */
 export function applyMembershipRealtimeRow(current, row, eventType) {
   const businessId = typeof row?.business_id === 'string' ? row.business_id.trim() : '';
@@ -58,6 +66,11 @@ export function applyMembershipRealtimeRow(current, row, eventType) {
     return current ?? null;
   }
   const next = { business_id: businessId, status };
+  if (row.role === 'member' || row.role === 'coordinator' || row.role === 'manager') {
+    next.role = row.role;
+  } else if (current?.business_id === businessId && current.role) {
+    next.role = current.role;
+  }
   if (!current || current.business_id === businessId) {
     return next;
   }
@@ -65,7 +78,7 @@ export function applyMembershipRealtimeRow(current, row, eventType) {
 }
 
 /**
- * Active or removed shop membership for this user. Does not read `role`.
+ * Active or removed shop membership for this user, including `role` when the row has one.
  *
  * @param {string} userId
  * @returns {Promise<{ data: { business_id: string; status: 'active' | 'removed' } | null, error: Error | null }>}
@@ -77,7 +90,7 @@ export async function fetchBusinessMembershipForUser(userId) {
 
   const { data, error } = await supabase
     .from('business_members')
-    .select('business_id, status')
+    .select('business_id, status, role')
     .eq('user_id', userId)
     .in('status', ['active', 'removed']);
 

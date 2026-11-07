@@ -34,6 +34,7 @@ import {
   TEAM_INVITE_SUCCESS_BODY,
   TEAM_INVITE_SUCCESS_TITLE,
 } from '../constants/teamMembersCopy';
+import { TeamInviteRoleDropdown } from './TeamInviteRoleDropdown';
 
 const PENDING_INTERVAL_MS = 2200;
 
@@ -56,6 +57,7 @@ export function InviteTeamMemberSheet({
   const { colors } = useTheme();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState('member');
   const [nameError, setNameError] = useState(null);
   const [emailError, setEmailError] = useState(null);
   const [phase, setPhase] = useState('idle');
@@ -74,6 +76,7 @@ export function InviteTeamMemberSheet({
     busyRef.current = false;
     setName('');
     setEmail('');
+    setRole('member');
     setNameError(null);
     setEmailError(null);
     setPhase('idle');
@@ -115,7 +118,7 @@ export function InviteTeamMemberSheet({
     setEmailError(null);
     setPhase('pending');
     try {
-      const result = await onInvite?.(email, name.trim());
+      const result = await onInvite?.(email, name.trim(), role);
       busyRef.current = false;
       if (result?.ok) {
         enterSuccess();
@@ -126,7 +129,7 @@ export function InviteTeamMemberSheet({
       busyRef.current = false;
       enterError(err?.message);
     }
-  }, [email, enterError, enterSuccess, name, onInvite, phase]);
+  }, [email, enterError, enterSuccess, name, onInvite, phase, role]);
 
   const handleTryAgain = useCallback(() => {
     setErrorMessage('');
@@ -302,6 +305,7 @@ export function InviteTeamMemberSheet({
             void handleSend();
           }}
         />
+        <TeamInviteRoleDropdown value={role} onChange={setRole} />
       </View>
     );
   }

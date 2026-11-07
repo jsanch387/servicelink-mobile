@@ -10,17 +10,14 @@ const CHART_PAD_X = 10;
 const CHART_PAD_TOP = 32;
 const CHART_PAD_BOTTOM = 10;
 
-function buildAreaPaths(points, width) {
+function buildAreaPaths(points, width, padX) {
   const w = Math.max(width, 1);
   if (!points.length) return { line: '', area: '', coords: [] };
   const max = Math.max(...points.map((p) => p.value), 1);
-  const innerW = w - CHART_PAD_X * 2;
+  const innerW = w - padX * 2;
   const innerH = CHART_H - CHART_PAD_TOP - CHART_PAD_BOTTOM;
   const coords = points.map((p, i) => {
-    const x =
-      points.length === 1
-        ? CHART_PAD_X + innerW / 2
-        : CHART_PAD_X + (i / (points.length - 1)) * innerW;
+    const x = points.length === 1 ? padX + innerW / 2 : padX + (i / (points.length - 1)) * innerW;
     const y = CHART_PAD_TOP + innerH - (p.value / max) * innerH;
     return { x, y };
   });
@@ -41,10 +38,10 @@ function buildAreaPaths(points, width) {
   return { line, area, coords };
 }
 
-function indexFromTouchX(locationX, width, count) {
+function indexFromTouchX(locationX, width, count, padX) {
   if (count <= 1) return 0;
-  const innerW = Math.max(width - CHART_PAD_X * 2, 1);
-  const clamped = Math.max(0, Math.min(innerW, locationX - CHART_PAD_X));
+  const innerW = Math.max(width - padX * 2, 1);
+  const clamped = Math.max(0, Math.min(innerW, locationX - padX));
   return Math.round((clamped / innerW) * (count - 1));
 }
 
@@ -66,6 +63,8 @@ function chartLabelLeft(x, index, count, boxW) {
  * @param {string} [props.accessibilityHint]
  * @param {string} [props.fallbackAccessibilityLabel]
  * @param {'last' | 'none'} [props.initialSelection]
+ * @param {boolean} [props.holdSelection] Keep the value line after the finger lifts. Turn off to show it only while tapping or dragging.
+ * @param {number} [props.plotInset] Horizontal inset for the line ends.
  */
 export function TrendAreaChart({
   points,
@@ -75,20 +74,29 @@ export function TrendAreaChart({
   accessibilityHint = 'Touch and drag to see each period',
   fallbackAccessibilityLabel = 'Chart',
   initialSelection = 'last',
+  holdSelection = true,
+  plotInset = CHART_PAD_X,
 }) {
   const { colors, isDark } = useTheme();
   const [chartWidth, setChartWidth] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(() =>
-    initialSelection === 'none' || points.length === 0 ? null : points.length - 1,
+    !holdSelection || initialSelection === 'none' || points.length === 0 ? null : points.length - 1,
   );
   const pointKeys = points.map((p) => p.key).join('|');
 
   useEffect(() => {
-    setSelectedIndex(initialSelection === 'none' || points.length === 0 ? null : points.length - 1);
-  }, [initialSelection, pointKeys, points.length]);
+    setSelectedIndex(
+      !holdSelection || initialSelection === 'none' || points.length === 0
+        ? null
+        : points.length - 1,
+    );
+  }, [holdSelection, initialSelection, pointKeys, points.length]);
 
   const plotWidth = chartWidth > 0 ? chartWidth : 320;
-  const chart = useMemo(() => buildAreaPaths(points, plotWidth), [points, plotWidth]);
+  const chart = useMemo(
+    () => buildAreaPaths(points, plotWidth, plotInset),
+    [plotInset, points, plotWidth],
+  );
   const hasSelection = selectedIndex != null && points.length > 0;
   const activeIndex = hasSelection ? Math.min(selectedIndex, points.length - 1) : -1;
   const activePoint = activeIndex >= 0 ? (points[activeIndex] ?? null) : null;
@@ -96,7 +104,11 @@ export function TrendAreaChart({
 
   const selectFromTouch = (locationX) => {
     const width = chartWidth > 0 ? chartWidth : 1;
-    setSelectedIndex(indexFromTouchX(locationX, width, points.length));
+    setSelectedIndex(indexFromTouchX(locationX, width, points.length, plotInset));
+  };
+
+  const releaseSelection = () => {
+    if (!holdSelection) setSelectedIndex(null);
   };
 
   const styles = useMemo(
@@ -193,6 +205,8 @@ export function TrendAreaChart({
         onMoveShouldSetResponder={() => true}
         onResponderGrant={(e) => selectFromTouch(e.nativeEvent.locationX)}
         onResponderMove={(e) => selectFromTouch(e.nativeEvent.locationX)}
+        onResponderRelease={releaseSelection}
+        onResponderTerminate={releaseSelection}
         onStartShouldSetResponder={() => true}
       >
         {activePoint && activeCoord ? (
@@ -275,7 +289,13 @@ export function TrendAreaChart({
                   width: TREND_CHART_LABEL_SLOT,
                 },
               ]}
-              onPress={() => setSelectedIndex(index)}
+              onPress={() => {
+                if (holdSelection) setSelectedIndex(index);
+              }}
+              onPressIn={() => {
+                if (!holdSelection) setSelectedIndex(index);
+              }}
+              onPressOut={releaseSelection}
             >
               <AppText
                 numberOfLines={1}

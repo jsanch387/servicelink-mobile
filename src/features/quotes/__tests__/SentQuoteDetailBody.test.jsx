@@ -107,4 +107,31 @@ describe('SentQuoteDetailBody', () => {
     expect(screen.getByText('Email sent')).toBeTruthy();
     expect(screen.getByText('Text failed')).toBeTruthy();
   });
+
+  it('shows the price, stored tax, and customer total', () => {
+    renderBody({
+      model: {
+        ...BASE_MODEL,
+        priceFormatted: '$85',
+        taxLabel: 'Tax (2.25%)',
+        taxFormatted: '$1.91',
+        customerTotalFormatted: '$86.91',
+      },
+    });
+
+    expect(screen.getByText('Price')).toBeTruthy();
+    expect(screen.getByText('$85')).toBeTruthy();
+    expect(screen.getByText('Tax (2.25%)')).toBeTruthy();
+    expect(screen.getByText('$1.91')).toBeTruthy();
+    expect(screen.getByText('Total')).toBeTruthy();
+    expect(screen.getByText('$86.91')).toBeTruthy();
+  });
+
+  it('keeps a single price when the quote has no tax', () => {
+    renderBody({ model: BASE_MODEL });
+
+    expect(screen.getByText('$150')).toBeTruthy();
+    expect(screen.queryByText('Tax')).toBeNull();
+    expect(screen.queryByText('Total')).toBeNull();
+  });
 });

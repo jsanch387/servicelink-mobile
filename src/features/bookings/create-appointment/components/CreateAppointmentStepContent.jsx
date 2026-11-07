@@ -90,6 +90,7 @@ export function CreateAppointmentStepContent(p) {
     onAddAnotherJob,
     onRemoveJob,
     isMembershipVisit = false,
+    reviewTax = null,
   } = p;
 
   if (appointmentConfirmed) {
@@ -228,6 +229,9 @@ export function CreateAppointmentStepContent(p) {
           customer={customer}
           isMembershipVisit={isMembershipVisit}
           jobs={reviewJobs}
+          priceAfterDiscountCents={reviewTax?.priceAfterDiscountCents ?? 0}
+          taxCents={reviewTax?.taxCents ?? 0}
+          taxRateBps={reviewTax?.taxRateBps ?? null}
           notes={notes}
           selectedAddonIds={selectedAddonIds}
           selectedDateKey={selectedDateKey}

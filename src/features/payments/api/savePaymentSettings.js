@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabase';
 import { buildDepositSavePayload } from '../utils/depositAmountModel';
 import { mapUiCheckoutMethodToCheckoutMode } from '../utils/paymentSettingsMaps';
+import { buildTaxSettingsPatch } from '../utils/taxRateModel';
 
 /**
  * Persists ServiceLink checkout + deposit fields on `payment_settings` (one row per `business_id`).
@@ -15,6 +16,8 @@ import { mapUiCheckoutMethodToCheckoutMode } from '../utils/paymentSettingsMaps'
  *   requireDeposits: boolean;
  *   depositAmount: string;
  *   depositMode: string;
+ *   collectTax?: boolean;
+ *   taxRate?: string;
  * }} args
  * @returns {Promise<{ data: object | null; error: Error | null }>}
  */
@@ -26,12 +29,19 @@ export async function updatePaymentSettingsRow({
   requireDeposits,
   depositAmount,
   depositMode,
+  collectTax,
+  taxRate,
 }) {
   const deposit = buildDepositSavePayload({
     depositsEnabled: requireDeposits,
     depositMode,
     depositAmount,
   });
+
+  const tax = buildTaxSettingsPatch({ collectTax, taxRate });
+  if (tax.error) {
+    return { data: null, error: tax.error };
+  }
 
   const patch = {
     payments_enabled: Boolean(paymentsEnabled),
@@ -44,6 +54,7 @@ export async function updatePaymentSettingsRow({
         .trim()
         .toLowerCase() || 'usd'
     ).slice(0, 8),
+    ...tax.fields,
   };
 
   const { data, error } = await supabase
@@ -51,7 +62,7 @@ export async function updatePaymentSettingsRow({
     .update(patch)
     .eq('business_id', businessId)
     .select(
-      'business_id, payments_enabled, checkout_mode, deposits_enabled, deposit_type, deposit_value, currency',
+      'business_id, payments_enabled, checkout_mode, deposits_enabled, deposit_type, deposit_value, currency, tax_enabled, tax_rate_bps',
     )
     .maybeSingle();
 

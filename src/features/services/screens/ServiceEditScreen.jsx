@@ -26,6 +26,7 @@ import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { serviceDurationHHmmToMinutes } from '../../../components/ui/durationTime';
 import { useAuth } from '../../auth';
+import { useShopToolAccess } from '../../shop';
 import { useSubscription, showWebAccountFeatureAlert } from '../../subscription';
 import { serviceMultiplePricingAccessCopy } from '../constants/servicePricingAccessCopy';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
@@ -170,7 +171,8 @@ const TRANSIENT_SAVE_FEEDBACK_MS = 5000;
 export function ServiceEditScreen({ route }) {
   const navigation = useNavigation();
   const { user } = useAuth();
-  const { hasProAccess, isReady: subscriptionReady } = useSubscription();
+  const { isReady: subscriptionReady } = useSubscription();
+  const { canUseShopTools } = useShopToolAccess();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const routeService = route?.params?.service;
@@ -266,7 +268,7 @@ export function ServiceEditScreen({ route }) {
   const [editorManualRefreshing, setEditorManualRefreshing] = useState(false);
 
   const pricingAccessPending = Boolean(user?.id) && !subscriptionReady;
-  const pricingLocked = Boolean(user?.id) && subscriptionReady && !hasProAccess;
+  const pricingLocked = Boolean(user?.id) && subscriptionReady && !canUseShopTools;
   const hasCategories = categories.length > 0;
 
   const handleCategoryIdChange = useCallback((nextCategoryId) => {

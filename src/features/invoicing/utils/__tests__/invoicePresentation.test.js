@@ -122,4 +122,22 @@ describe('invoicePresentation', () => {
       statusLabel: 'Voided',
     });
   });
+
+  it('adds preview tax on top of the line subtotal', () => {
+    expect(
+      invoiceDocumentModel({
+        status: 'draft',
+        number: '1042',
+        amount: 85,
+        taxCents: 191,
+        taxRateBps: 225,
+        lineItems: [{ id: 'line-1', name: 'Wash', qty: 1, unitPrice: 85 }],
+      }),
+    ).toMatchObject({
+      subtotalLabel: '$85.00',
+      taxLabel: 'Tax (2.25%)',
+      taxValueLabel: '$1.91',
+      balanceLabel: '$86.91',
+    });
+  });
 });

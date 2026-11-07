@@ -8,6 +8,15 @@ import { usePaymentsRevenue } from '../hooks/usePaymentsRevenue';
 import { formatRevenueWindowCaption } from '../utils/revenueDateWindows';
 import { PaymentsRevenueRangePicker } from './PaymentsRevenueRangePicker';
 
+function formatTaxCollected(cents) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format((Number(cents) || 0) / 100);
+}
+
 function formatUsd(cents, { compact = false } = {}) {
   const dollars = cents / 100;
   if (compact && Math.abs(dollars) >= 1000) {
@@ -156,8 +165,8 @@ export function PaymentsRevenueSection({ businessId }) {
           alignSelf: 'flex-start',
           backgroundColor: isDark ? 'rgba(52, 199, 89, 0.16)' : 'rgba(22, 163, 74, 0.12)',
           borderRadius: 999,
-          paddingHorizontal: 10,
-          paddingVertical: 5,
+          paddingHorizontal: 8,
+          paddingVertical: 2,
         },
         changePillDown: {
           backgroundColor: isDark ? 'rgba(248, 113, 113, 0.16)' : 'rgba(220, 38, 38, 0.1)',
@@ -168,8 +177,9 @@ export function PaymentsRevenueSection({ businessId }) {
         changePillText: {
           color: colors.moneyPositive,
           fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 13,
+          fontSize: 11,
           fontWeight: '600',
+          lineHeight: 16,
         },
         changePillTextDown: {
           color: colors.danger,
@@ -179,9 +189,34 @@ export function PaymentsRevenueSection({ businessId }) {
         },
         chartWrap: {
           alignSelf: 'stretch',
-          marginBottom: 6,
           marginTop: 8,
           width: '100%',
+        },
+        chartRule: {
+          backgroundColor: colors.borderStrong,
+          height: StyleSheet.hairlineWidth,
+          marginTop: 12,
+          width: '100%',
+        },
+        taxRow: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 8,
+          justifyContent: 'flex-start',
+          marginTop: 12,
+          width: '100%',
+        },
+        taxLabel: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          letterSpacing: -0.1,
+        },
+        taxValue: {
+          color: colors.textSecondary,
+          fontSize: 13,
+          fontWeight: '600',
+          letterSpacing: -0.1,
         },
         twinRow: {
           flexDirection: 'row',
@@ -338,8 +373,23 @@ export function PaymentsRevenueSection({ businessId }) {
             fallbackAccessibilityLabel="Revenue chart"
             formatValue={formatUsd}
             gradientId="revenueFill"
+            holdSelection={false}
+            plotInset={0}
             points={chartPoints}
           />
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+            style={styles.chartRule}
+          />
+          {summary.taxCollectedCents > 0 ? (
+            <View style={styles.taxRow}>
+              <AppText style={styles.taxLabel}>Tax collected;</AppText>
+              <AppText style={styles.taxValue}>
+                {formatTaxCollected(summary.taxCollectedCents)}
+              </AppText>
+            </View>
+          ) : null}
         </View>
       </View>
 

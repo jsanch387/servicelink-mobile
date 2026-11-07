@@ -23,6 +23,7 @@ import {
 import { useTheme } from '../../../theme';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { useAuth } from '../../auth';
+import { useShopToolAccess } from '../../shop';
 import { showWebAccountFeatureAlert, useSubscription } from '../../subscription';
 import { ServiceCategoryPickerField } from '../categories';
 import { AddonEditorSheet } from '../components/AddonEditorSheet';
@@ -70,7 +71,8 @@ export function AddServiceScreen({ route }) {
   const { user } = useAuth();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { hasProAccess, isOwnerProfileLoaded, isReady: subscriptionReady } = useSubscription();
+  const { isOwnerProfileLoaded, isReady: subscriptionReady } = useSubscription();
+  const { canUseShopTools } = useShopToolAccess();
   const catalog = useServicesCatalog();
   const { createCatalogService, isCreating } = useCreateCatalogService({
     businessId: catalog.businessId,
@@ -98,11 +100,11 @@ export function AddServiceScreen({ route }) {
 
   const hasCategories = (catalog.categories?.length ?? 0) > 0;
   const pricingAccessPending = Boolean(user?.id) && !subscriptionReady;
-  const pricingLocked = Boolean(user?.id) && subscriptionReady && !hasProAccess;
+  const pricingLocked = Boolean(user?.id) && subscriptionReady && !canUseShopTools;
   const servicesLimitCopy = useMemo(() => freeTierServicesLimitCopy(FREE_TIER_MAX_SERVICES), []);
   const atFreeTierServicesLimit =
     isOwnerProfileLoaded &&
-    !hasProAccess &&
+    !canUseShopTools &&
     (catalog.services?.length ?? 0) >= FREE_TIER_MAX_SERVICES;
 
   const editingPendingAddon = useMemo(() => {

@@ -1,5 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useRef } from 'react';
 import { Animated, PanResponder, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,25 +11,19 @@ import { resolveToastEmailTokens, resolveToastSmsTokens } from './toastSmsTokens
 
 const ENTER_DURATION = 220;
 const EXIT_DURATION = 170;
-const CARD_RADIUS = 18;
+const CARD_RADIUS = 12;
 
-/** Overlay chrome — sits above `shell`, so it cannot reuse `cardSurface` (too close to the bg). */
+/** Near the shell, lifted by the edge. Avoid the mid-gray input fill. */
 const TOAST_SURFACE = {
   dark: {
-    fill: ['#242426', '#1c1c1e'],
-    bg: '#1c1c1e',
-    border: 'rgba(255,255,255,0.12)',
-    specular: ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0)'],
-    iconWell: 'rgba(255,255,255,0.06)',
-    shadowOpacity: 0.5,
+    bg: '#121212',
+    border: 'rgba(255,255,255,0.16)',
+    shadowOpacity: 0.35,
   },
   light: {
-    fill: ['#ffffff', '#f4f4f5'],
     bg: '#ffffff',
-    border: 'rgba(10,10,10,0.12)',
-    specular: ['rgba(255,255,255,0.7)', 'rgba(255,255,255,0)'],
-    iconWell: 'rgba(10,10,10,0.05)',
-    shadowOpacity: 0.16,
+    border: 'rgba(10,10,10,0.1)',
+    shadowOpacity: 0.1,
   },
 };
 
@@ -127,8 +120,6 @@ export function ToastView({
       ? resolveToastEmailTokens(type)
       : resolveToastSmsTokens(type)
     : null;
-  const accent =
-    type === 'success' ? colors.textSuccess : type === 'error' ? colors.danger : colors.text;
   const iconName = isConfirmationCard
     ? confirmationTokens.icon
     : (ICON_BY_TYPE[type] ?? ICON_BY_TYPE.info);
@@ -146,9 +137,6 @@ export function ToastView({
       glassShell: {
         backgroundColor: surface.bg,
         borderColor: surface.border,
-      },
-      iconWell: {
-        backgroundColor: surface.iconWell,
       },
     }),
     [surface],
@@ -177,24 +165,12 @@ export function ToastView({
           style={[styles.cardShadow, themed.cardShadow]}
         >
           <View style={[styles.glassShell, themed.glassShell]}>
-            <LinearGradient
-              colors={surface.fill}
-              end={{ x: 0.5, y: 1 }}
-              pointerEvents="none"
-              start={{ x: 0.5, y: 0 }}
-              style={StyleSheet.absoluteFillObject}
-            />
-            <LinearGradient
-              colors={surface.specular}
-              end={{ x: 0.5, y: 1 }}
-              pointerEvents="none"
-              start={{ x: 0.5, y: 0 }}
-              style={styles.specular}
-            />
             <View style={styles.content}>
-              <View style={[styles.iconWrap, themed.iconWell]}>
-                <Ionicons color={accent} name={iconName} size={22} />
-              </View>
+              <Ionicons
+                color={type === 'error' ? colors.danger : colors.text}
+                name={iconName}
+                size={18}
+              />
               <View style={styles.textWrap}>
                 {title && !isConfirmationCard ? (
                   <AppText numberOfLines={1} style={[styles.title, { color: titleColor }]}>
@@ -233,37 +209,22 @@ const styles = StyleSheet.create({
   },
   cardShadow: {
     borderRadius: CARD_RADIUS,
-    elevation: 20,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 24,
+    elevation: 6,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 14,
     width: '100%',
   },
   glassShell: {
     borderRadius: CARD_RADIUS,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
-    position: 'relative',
-  },
-  specular: {
-    height: '40%',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
   },
   content: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  iconWrap: {
-    alignItems: 'center',
-    borderRadius: 18,
-    height: 36,
-    justifyContent: 'center',
-    width: 36,
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   textWrap: {
     flex: 1,
@@ -276,10 +237,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   message: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
-    letterSpacing: -0.1,
-    lineHeight: 19,
+    letterSpacing: -0.2,
+    lineHeight: 20,
   },
   messageWithTitle: {},
 });

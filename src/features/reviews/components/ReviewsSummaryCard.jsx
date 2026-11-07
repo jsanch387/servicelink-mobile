@@ -10,6 +10,7 @@ export function ReviewsSummaryCard({ averageRating, totalCount, breakdown }) {
       <ReviewsSummarySection
         averageRating={averageRating}
         breakdown={breakdown}
+        collapsible
         totalCount={totalCount}
       />
     </SurfaceCard>

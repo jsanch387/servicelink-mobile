@@ -13,6 +13,7 @@ import { PushTokenRegistration } from '../features/notifications/components/Push
 import { PaymentsScreen } from '../features/payments/screens/PaymentsScreen';
 import { ShopAddressUpdatePrompt } from '../features/bookingLink/components/ShopAddressUpdatePrompt';
 import { LocationCollectionModal, useLocationPrompt } from '../features/location';
+import { SERVICE_AREA_PROMPT_ENABLED } from '../features/location/constants/serviceAreaPrompt';
 import { useShopAccess } from '../features/shop';
 import { MAIN_TAB_CONFIG, ROUTES } from '../routes/routes';
 import { FONT_FAMILIES, useTheme } from '../theme';
@@ -43,8 +44,9 @@ const tabScreens = {
 
 export function MainTabNavigator() {
   const { colors } = useTheme();
-  const { canSeeOffice } = useShopAccess();
+  const { canSeeOffice, canSeeOwnerHome } = useShopAccess();
   const { promptVisible, handleSaveLocation, handleDismissPrompt } = useLocationPrompt();
+  const showWhereYouServe = SERVICE_AREA_PROMPT_ENABLED && promptVisible;
   const visibleTabs = MAIN_TAB_CONFIG.filter(
     (tab) => tab.route !== ROUTES.CUSTOMERS || canSeeOffice,
   );
@@ -56,14 +58,14 @@ export function MainTabNavigator() {
       <TapToPayWarmupBootstrap />
       <PushTokenRegistration />
       <AppUpdateAnnouncementsBootstrap />
-      {canSeeOffice ? (
+      {canSeeOwnerHome ? (
         <LocationCollectionModal
-          visible={promptVisible}
+          visible={showWhereYouServe}
           onDismiss={handleDismissPrompt}
           onSave={handleSaveLocation}
         />
       ) : null}
-      {canSeeOffice ? <ShopAddressUpdatePrompt locationPromptVisible={promptVisible} /> : null}
+      {canSeeOffice ? <ShopAddressUpdatePrompt locationPromptVisible={showWhereYouServe} /> : null}
       <Tab.Navigator
         screenOptions={{
           headerShown: false,

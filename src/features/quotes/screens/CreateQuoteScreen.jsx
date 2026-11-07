@@ -39,6 +39,7 @@ import {
 import { postSendExistingQuote, postSendNewQuote } from '../api/sendQuote';
 import { useCreateQuoteServiceCatalog } from '../hooks/useCreateQuoteServiceCatalog';
 import { useQuotePaymentSelection } from '../hooks/useQuotePaymentSelection';
+import { useShopTaxSettings } from '../../payments/hooks/useShopTaxSettings';
 import { quoteDetailQueryKey, quotesListQueryKey } from '../queryKeys';
 import {
   deriveCatalogQuoteFields,
@@ -328,6 +329,7 @@ export function CreateQuoteScreen() {
   const business = businessQ.data ?? null;
   const businessId = business?.id;
   const businessSlug = String(business?.business_slug ?? '').trim();
+  const shopTax = useShopTaxSettings(businessId);
   const paymentSelection = useQuotePaymentSelection();
   const paymentDepositLabel = paymentSelection.methods.includes(QUOTE_PAYMENT_METHOD.DEPOSIT)
     ? paymentSelection.availability.depositLabel
@@ -473,6 +475,8 @@ export function CreateQuoteScreen() {
       setServiceName,
       priceUsdText,
       setPriceUsdText,
+      taxEnabled: shopTax.taxEnabled,
+      taxRateBps: shopTax.taxRateBps,
       durationHhMm,
       setDurationHhMm,
       pricingOptionLabel: catalogDerived?.pricingOptionLabel ?? null,
@@ -538,6 +542,8 @@ export function CreateQuoteScreen() {
       paymentSelection.toggleMethod,
       priceUsdText,
       pricingOptions,
+      shopTax.taxEnabled,
+      shopTax.taxRateBps,
       scheduleMode,
       scheduledDateYyyyMmDd,
       scheduledStartTime12h,

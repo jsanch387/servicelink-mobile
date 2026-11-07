@@ -63,6 +63,7 @@ jest.mock('../../subscription', () => ({
 jest.mock('../../shop', () => ({
   useShopAccess: jest.fn(() => ({
     canSeeOffice: true,
+    canSeeOwnerHome: true,
     isMember: false,
   })),
 }));
@@ -114,6 +115,7 @@ describe('BookingsScreen list empty states', () => {
     mockUseBookingsList.mockReturnValue(baseList());
     useShopAccess.mockReturnValue({
       canSeeOffice: true,
+      canSeeOwnerHome: true,
       isMember: false,
     });
     useSubscription.mockReturnValue({
@@ -195,13 +197,14 @@ describe('BookingsScreen list empty states', () => {
       isError: false,
     });
     renderWithProviders(<BookingsScreen />);
-    expect(screen.getByLabelText('Bookings used: 2 of 5.')).toBeTruthy();
+    expect(screen.getByLabelText('Free bookings used: 2 of 5.')).toBeTruthy();
     expect(screen.queryByLabelText('Upgrade')).toBeNull();
   });
 
   it('hides free plan booking usage for team members', () => {
     useShopAccess.mockReturnValue({
       canSeeOffice: false,
+      canSeeOwnerHome: false,
       isMember: true,
     });
     useSubscription.mockReturnValue({
@@ -215,7 +218,7 @@ describe('BookingsScreen list empty states', () => {
       isError: false,
     });
     renderWithProviders(<BookingsScreen />);
-    expect(screen.queryByLabelText('Bookings used: 2 of 5.')).toBeNull();
+    expect(screen.queryByLabelText('Free bookings used: 2 of 5.')).toBeNull();
   });
 
   it('prefers business_profiles.free_bookings_count for the usage strip when set', () => {
@@ -235,7 +238,7 @@ describe('BookingsScreen list empty states', () => {
       isError: false,
     });
     renderWithProviders(<BookingsScreen />);
-    expect(screen.getByLabelText('Bookings used: 5 of 5.')).toBeTruthy();
+    expect(screen.getByLabelText('Free bookings used: 5 of 5.')).toBeTruthy();
   });
 
   it('shows profile booking count when head-count query errors but free_bookings_count exists', () => {
@@ -255,7 +258,7 @@ describe('BookingsScreen list empty states', () => {
       isError: true,
     });
     renderWithProviders(<BookingsScreen />);
-    expect(screen.getByLabelText('Bookings used: 4 of 5.')).toBeTruthy();
+    expect(screen.getByLabelText('Free bookings used: 4 of 5.')).toBeTruthy();
   });
 
   it('requests Past filter when the Past tab is pressed', () => {

@@ -91,6 +91,20 @@ describe('mapSentQuoteCard', () => {
     expect(card.timestampLabel).toBe('');
   });
 
+  it('uses the customer total on the list when the quote has stored tax', () => {
+    const card = mapSentQuoteCard({
+      id: 'q-tax',
+      customer_name: 'Alex',
+      service_name: 'Wash',
+      price_cents: 8500,
+      tax_cents: 191,
+      tax_rate_bps: 225,
+      status: 'sent',
+    });
+    expect(card.priceLabel).toBe('$86.91');
+    expect(card.line).toBe('Wash · $86.91');
+  });
+
   it('labels a sent quote as Quote sent on the card', () => {
     const card = mapSentQuoteCard({
       id: 'q2',
@@ -331,6 +345,8 @@ describe('mapQuoteDetailModel', () => {
       expect.objectContaining({ name: 'Engine bay', priceFormatted: '$50' }),
     ]);
     expect(model.priceFormatted).toBe('$250');
+    expect(model.taxFormatted).toBeNull();
+    expect(model.customerTotalFormatted).toBeNull();
     expect(model.scheduleState).toBe('scheduled');
     expect(model.scheduleLabel).toMatch(/July 20, 2026.*9:30 AM/i);
     expect(model.scheduleDateLabel).toMatch(/July 20, 2026/i);
@@ -341,6 +357,43 @@ describe('mapQuoteDetailModel', () => {
     expect(model.note).toBe('Includes clay bar');
     expect(model.createdAtIso).toBe('2026-07-14T12:00:00Z');
     expect(model.viewedAt).toBe(formatQuoteDetailTimestamp('2026-07-14T13:10:00Z'));
+  });
+
+  it('keeps the pre-tax price and shows stored tax on detail', () => {
+    const model = mapQuoteDetailModel(
+      {
+        id: 's-tax',
+        status: 'sent',
+        customerName: 'Alex',
+        serviceName: 'Wash',
+        price_cents: 8500,
+        tax_cents: 191,
+        tax_rate_bps: 225,
+      },
+      QUOTE_DETAIL_KIND_SENT,
+    );
+    expect(model.priceFormatted).toBe('$85');
+    expect(model.taxLabel).toBe('Tax (2.25%)');
+    expect(model.taxFormatted).toBe('$1.91');
+    expect(model.customerTotalFormatted).toBe('$86.91');
+    expect(model.line).toBe('Wash · $86.91');
+    expect(model.quoteSummary).toBe('Wash · $86.91');
+  });
+
+  it('labels tax without a percent when the stored rate is missing', () => {
+    const model = mapQuoteDetailModel(
+      {
+        id: 's-tax-norate',
+        status: 'sent',
+        serviceName: 'Wash',
+        totalCents: 8500,
+        taxCents: 191,
+      },
+      QUOTE_DETAIL_KIND_SENT,
+    );
+    expect(model.taxLabel).toBe('Tax');
+    expect(model.taxFormatted).toBe('$1.91');
+    expect(model.customerTotalFormatted).toBe('$86.91');
   });
 
   it('carries the quote lifecycle stamps for the activity timeline', () => {

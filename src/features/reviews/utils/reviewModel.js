@@ -21,6 +21,7 @@ import { formatReviewDateLabel } from './formatReviewDateLabel';
  * @property {string} dateLabel
  * @property {ReviewOwnerReply | null} ownerReply
  * @property {boolean} isHidden
+ * @property {'servicelink' | 'google'} source
  * @property {'needs_reply' | 'replied'} replyStatus
  */
 
@@ -57,7 +58,44 @@ export function mapReviewRowToModel(row) {
     dateLabel: formatReviewDateLabel(typeof row.created_at === 'string' ? row.created_at : null),
     ownerReply: hasReply ? { body: replyBody, repliedAt } : null,
     isHidden: row.is_hidden === true,
+    source: 'servicelink',
     replyStatus: hasReply ? REVIEWS_FILTER_REPLIED : REVIEWS_FILTER_NEEDS_REPLY,
+  };
+}
+
+/**
+ * Merged inbox row from `GET /api/reviews`. Google rows are not reply targets.
+ *
+ * @param {Record<string, unknown>} review
+ * @returns {ReviewListItem}
+ */
+export function mapDashboardReviewToModel(review) {
+  const source = review?.source === 'google' ? 'google' : 'servicelink';
+  const ownerReply =
+    review?.ownerReply && typeof review.ownerReply === 'object' ? review.ownerReply : null;
+  const replyBody = ownerReply && typeof ownerReply.body === 'string' ? ownerReply.body.trim() : '';
+  const repliedAt =
+    ownerReply && typeof ownerReply.repliedAt === 'string' && ownerReply.repliedAt.trim()
+      ? ownerReply.repliedAt
+      : null;
+  const hasReply = hasOwnerReply(replyBody, repliedAt);
+  const createdAt = typeof review?.createdAt === 'string' ? review.createdAt : '';
+
+  return {
+    id: String(review?.id ?? ''),
+    authorDisplayName:
+      typeof review?.authorDisplayName === 'string' && review.authorDisplayName.trim()
+        ? review.authorDisplayName.trim()
+        : 'Customer',
+    rating: typeof review?.rating === 'number' ? review.rating : Number(review?.rating) || 0,
+    body: typeof review?.body === 'string' ? review.body : '',
+    createdAt,
+    dateLabel: formatReviewDateLabel(createdAt || null),
+    ownerReply: hasReply ? { body: replyBody, repliedAt } : null,
+    isHidden: review?.isHidden === true,
+    source,
+    replyStatus:
+      source === 'google' || hasReply ? REVIEWS_FILTER_REPLIED : REVIEWS_FILTER_NEEDS_REPLY,
   };
 }
 

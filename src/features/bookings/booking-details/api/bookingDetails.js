@@ -49,6 +49,8 @@ const BOOKING_PAYMENTS_SELECT = [
   'total_amount_cents',
   'paid_online_amount_cents',
   'remaining_amount_cents',
+  'tax_cents',
+  'tax_rate_bps',
   'session_fees_total_cents',
   'session_discounts_total_cents',
   'session_payment_method',
@@ -94,6 +96,8 @@ export function mapBookingPaymentRowToSummary(row) {
     totalAmountCents: Math.max(0, Math.round(Number(row.total_amount_cents ?? 0) || 0)),
     paidOnlineAmountCents: Math.max(0, Math.round(Number(row.paid_online_amount_cents ?? 0) || 0)),
     remainingAmountCents: Math.max(0, Math.round(Number(row.remaining_amount_cents ?? 0) || 0)),
+    taxCents: Math.max(0, Math.round(Number(row.tax_cents ?? 0) || 0)),
+    taxRateBps: readTaxRateBps(row.tax_rate_bps),
     sessionFeesTotalCents: Math.max(0, Math.round(Number(row.session_fees_total_cents ?? 0) || 0)),
     sessionDiscountsTotalCents: Math.max(
       0,
@@ -109,9 +113,7 @@ export function mapBookingPaymentRowToSummary(row) {
       typeof row.session_payment_stripe_payment_intent_id === 'string'
         ? row.session_payment_stripe_payment_intent_id
         : null,
-    taxCents: Math.max(0, Math.round(Number(row.tax_cents ?? 0) || 0)),
     tipCents: Math.max(0, Math.round(Number(row.tip_cents ?? 0) || 0)),
-    taxRateBps: readTaxRateBps(row.tax_rate_bps),
   };
 }
 

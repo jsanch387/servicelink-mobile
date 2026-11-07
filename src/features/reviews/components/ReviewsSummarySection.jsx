@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../../components/ui';
 import { useTheme } from '../../../theme';
 import { REVIEW_STAR_COLOR } from '../constants';
@@ -8,7 +9,7 @@ import { StarRating } from './StarRating';
 /**
  * Flat rating summary (no card shell). Used on booking-link Reviews tab and inside {@link ReviewsSummaryCard}.
  *
- * @param {{ averageRating: number; totalCount: number; breakdown: { stars: number; percent: number }[]; showBreakdownDivider?: boolean; compact?: boolean }} props
+ * @param {{ averageRating: number; totalCount: number; breakdown: { stars: number; percent: number }[]; showBreakdownDivider?: boolean; compact?: boolean; collapsible?: boolean }} props
  */
 export function ReviewsSummarySection({
   averageRating,
@@ -16,8 +17,11 @@ export function ReviewsSummarySection({
   breakdown,
   showBreakdownDivider = true,
   compact = false,
+  collapsible = false,
 }) {
   const { colors } = useTheme();
+  const [expanded, setExpanded] = useState(false);
+  const showBreakdown = !collapsible || expanded;
 
   const averageLabel = useMemo(() => averageRating.toFixed(1), [averageRating]);
 
@@ -46,6 +50,14 @@ export function ReviewsSummarySection({
           flex: 1,
           gap: 6,
           minWidth: 0,
+        },
+        chevronCol: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 22,
+        },
+        pressed: {
+          opacity: 0.7,
         },
         count: {
           color: colors.textMuted,
@@ -96,29 +108,55 @@ export function ReviewsSummarySection({
     [colors, compact, showBreakdownDivider],
   );
 
+  const summaryRow = ({ pressed = false } = {}) => (
+    <View style={[styles.topRow, pressed && styles.pressed]}>
+      <AppText style={styles.average}>{averageLabel}</AppText>
+      <View style={styles.starsBlock}>
+        <StarRating rating={averageRating} size={compact ? 16 : 18} gap={3} />
+        <AppText style={styles.count}>{reviewCountLabel}</AppText>
+      </View>
+      {collapsible ? (
+        <View style={styles.chevronCol}>
+          <Ionicons
+            color={colors.textMuted}
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+
   return (
     <View>
-      <View style={styles.topRow}>
-        <AppText style={styles.average}>{averageLabel}</AppText>
-        <View style={styles.starsBlock}>
-          <StarRating rating={averageRating} size={compact ? 16 : 18} gap={3} />
-          <AppText style={styles.count}>{reviewCountLabel}</AppText>
-        </View>
-      </View>
+      {collapsible ? (
+        <Pressable
+          accessibilityLabel="Rating breakdown"
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+          onPress={() => setExpanded((open) => !open)}
+        >
+          {({ pressed }) => summaryRow({ pressed })}
+        </Pressable>
+      ) : (
+        summaryRow()
+      )}
 
-      {showBreakdownDivider ? <View style={styles.divider} /> : null}
+      {showBreakdown && showBreakdownDivider ? <View style={styles.divider} /> : null}
 
-      <View style={styles.breakdown}>
-        {breakdown.map((row) => (
-          <View key={row.stars} style={styles.breakdownRow}>
-            <AppText style={styles.starLabel}>{row.stars}</AppText>
-            <View style={styles.barTrack}>
-              <View style={[styles.barFill, { width: `${row.percent}%` }]} />
+      {showBreakdown ? (
+        <View style={styles.breakdown}>
+          {breakdown.map((row) => (
+            <View key={row.stars} style={styles.breakdownRow}>
+              <AppText style={styles.starLabel}>{row.stars}</AppText>
+              <View style={styles.barTrack}>
+                <View style={[styles.barFill, { width: `${row.percent}%` }]} />
+              </View>
+              <AppText style={styles.percentLabel}>{row.percent}%</AppText>
             </View>
-            <AppText style={styles.percentLabel}>{row.percent}%</AppText>
-          </View>
-        ))}
-      </View>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import { normalizePhoneForDatabase } from '../../../../utils/phone';
-import { formatTaxLineLabel } from './formatTaxLineLabel';
+import { formatTaxLineLabel } from '../../../payments/utils/taxRateModel';
 import { isCompleteVisitPaidInFullOnline } from './completeVisitPaymentState';
 import { getMarkCompletePreviewFromBooking } from './markCompletePreview';
 import { parseAddonLineItemsFromBooking } from './parseAddonLineItemsFromBooking';

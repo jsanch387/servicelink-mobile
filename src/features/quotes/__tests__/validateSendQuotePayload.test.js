@@ -29,6 +29,10 @@ describe('validateSendQuotePayload', () => {
     expect(r.ok).toBe(true);
     expect(r.body.priceCents).toBe(19900);
     expect(r.body.note).toBeUndefined();
+    expect(r.body.taxCents).toBeUndefined();
+    expect(r.body.taxRateBps).toBeUndefined();
+    expect(r.body.tax_cents).toBeUndefined();
+    expect(r.body.tax_rate_bps).toBeUndefined();
   });
 
   it('includes note in body when business note is non-empty', () => {

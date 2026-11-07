@@ -26,7 +26,7 @@ describe('postTeamInvite', () => {
 
     const result = await postTeamInvite('token-1', 'sam@example.com', 'Sam');
 
-    expect(result).toEqual({ ok: true, resent: false, name: '', inviteId: null });
+    expect(result).toEqual({ ok: true, resent: false, name: '', inviteId: null, role: 'member' });
     expect(global.fetch).toHaveBeenCalledWith(
       'https://myservicelink.app/api/team/invites',
       expect.objectContaining({
@@ -35,7 +35,7 @@ describe('postTeamInvite', () => {
           Authorization: 'Bearer token-1',
           'Content-Type': 'application/json',
         }),
-        body: JSON.stringify({ email: 'sam@example.com', name: 'Sam' }),
+        body: JSON.stringify({ email: 'sam@example.com', name: 'Sam', role: 'member' }),
       }),
     );
   });
@@ -48,7 +48,29 @@ describe('postTeamInvite', () => {
     });
 
     const result = await postTeamInvite('token-1', 'sam@example.com');
-    expect(result).toEqual({ ok: true, resent: true, name: '', inviteId: null });
+    expect(result).toEqual({ ok: true, resent: true, name: '', inviteId: null, role: 'member' });
+  });
+
+  it('sends the chosen role', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ ok: true, invite: { role: 'coordinator' } }),
+    });
+
+    const result = await postTeamInvite('token-1', 'sam@example.com', 'Sam Rivera', 'coordinator');
+    expect(result.role).toBe('coordinator');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://myservicelink.app/api/team/invites',
+      expect.objectContaining({
+        body: JSON.stringify({
+          email: 'sam@example.com',
+          name: 'Sam Rivera',
+          role: 'coordinator',
+        }),
+      }),
+    );
   });
 
   it('reads the saved name from the invite payload', async () => {
@@ -67,6 +89,7 @@ describe('postTeamInvite', () => {
       resent: false,
       name: 'Sam Rivera',
       inviteId: 'inv-1',
+      role: 'member',
     });
   });
 
