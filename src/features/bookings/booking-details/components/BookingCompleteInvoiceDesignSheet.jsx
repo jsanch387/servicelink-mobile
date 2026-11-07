@@ -183,7 +183,7 @@ function CompleteVisitDesignBody({
         topBlock: {
           gap: 16,
           paddingHorizontal: 16,
-          paddingTop: 24,
+          paddingTop: 16,
         },
         breakdownScroll: {
           flex: 1,
@@ -197,9 +197,9 @@ function CompleteVisitDesignBody({
         },
         hero: {
           alignItems: 'center',
-          gap: 4,
-          paddingBottom: 8,
-          paddingTop: 12,
+          gap: 10,
+          paddingBottom: 4,
+          paddingTop: 0,
         },
         heroLabel: {
           color: colors.textMuted,
@@ -208,11 +208,11 @@ function CompleteVisitDesignBody({
         },
         heroAmount: {
           color: colors.text,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 48,
-          fontWeight: '800',
-          letterSpacing: -1.2,
-          lineHeight: 56,
+          fontFamily: FONT_FAMILIES.bold,
+          fontSize: 56,
+          fontWeight: '700',
+          letterSpacing: -1.4,
+          lineHeight: 64,
         },
         feeActionRow: {
           alignItems: 'center',
@@ -239,8 +239,6 @@ function CompleteVisitDesignBody({
           lineHeight: 18,
         },
         paymentFooter: {
-          borderTopColor: colors.border,
-          borderTopWidth: StyleSheet.hairlineWidth,
           gap: 10,
           paddingHorizontal: 16,
           paddingTop: 12,
@@ -1008,9 +1006,16 @@ export function BookingCompleteVisitSheet({
         await onComplete(checkout);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         setSubmitPhase('success');
-      } catch {
-        clearTapToPayState();
+      } catch (err) {
         setSubmitPhase('idle');
+        const message =
+          err instanceof Error && err.message.trim()
+            ? err.message.trim()
+            : 'The visit could not be completed.';
+        Alert.alert(
+          'Card charged',
+          `${message}\n\nThe card was charged. Tap Complete to finish the visit. Don't charge the card again.`,
+        );
       }
     }
   };
@@ -1148,8 +1153,13 @@ export function BookingCompleteVisitSheet({
         }
       });
       setSubmitPhase('success');
-    } catch {
+    } catch (err) {
       setSubmitPhase('idle');
+      const message =
+        err instanceof Error && err.message.trim()
+          ? err.message.trim()
+          : 'Could not complete this visit. Try again.';
+      Alert.alert('Could not complete', message);
     }
   }, [
     MOCK_COMPLETE_MS,

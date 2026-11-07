@@ -65,6 +65,6 @@ describe('mapTapToPayTerminalErrorMessage', () => {
 
 describe('TAP_TO_PAY_IOS_UPDATE_REQUIRED_STATUS', () => {
   it('is a short label for the sheet status line', () => {
-    expect(TAP_TO_PAY_IOS_UPDATE_REQUIRED_STATUS).toBe('Update iOS required');
+    expect(TAP_TO_PAY_IOS_UPDATE_REQUIRED_STATUS).toBe('Update your iPhone');
   });
 });

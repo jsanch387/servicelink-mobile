@@ -99,8 +99,32 @@ describe('useTapToPaySheet (Terminal SDK)', () => {
     expect(mockCollectPayment).toHaveBeenCalledTimes(1);
   });
 
-  it('maps collection failures to error phase', async () => {
+  it('returns to the payment screen when the customer cancels', async () => {
     mockCollectPayment.mockRejectedValue(new Error('Payment was canceled.'));
+    const onClose = jest.fn();
+    const runClose = jest.fn();
+
+    const { result } = renderHook(() =>
+      useTapToPaySheet({
+        accessToken: 'token',
+        bookingId: 'booking-1',
+        sessionFees: [],
+        amountDueDollars: 50,
+        onSuccess: jest.fn(),
+        onClose,
+        runClose,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(runClose).toHaveBeenCalledWith(onClose);
+    });
+    expect(result.current.phase).not.toBe('error');
+    expect(result.current.showTryAgainFooter).toBe(false);
+  });
+
+  it('maps a declined card to the error phase', async () => {
+    mockCollectPayment.mockRejectedValue(new Error('Payment was declined.'));
 
     const { result } = renderHook(() =>
       useTapToPaySheet({
@@ -118,6 +142,5 @@ describe('useTapToPaySheet (Terminal SDK)', () => {
       expect(result.current.phase).toBe('error');
     });
     expect(result.current.showTryAgainFooter).toBe(true);
-    expect(result.current.intentError).toMatch(/canceled/i);
   });
 });

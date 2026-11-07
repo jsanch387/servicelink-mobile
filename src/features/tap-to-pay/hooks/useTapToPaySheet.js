@@ -7,6 +7,7 @@ import {
   TAP_TO_PAY_USE_SERVER_APIS,
   TAP_TO_PAY_USE_TERMINAL_SDK,
 } from '../constants/tapToPayFeatureFlags';
+import { isTapToPayCanceledTerminalError } from '../constants/tapToPayCopy';
 import { TAP_TO_PAY_SUCCESS_DISMISS_MS } from '../constants/tapToPayTimings';
 import { collectTapToPayPaymentMock } from '../terminal/collectTapToPayPayment';
 import {
@@ -387,14 +388,18 @@ export function useTapToPaySheet({
       if (runId !== sessionRunRef.current) {
         return;
       }
-      setPhase('error');
-      fireTapToPayErrorHaptic();
       const message =
         err instanceof Error ? err.message : 'Payment failed. Try again or mark as paid.';
       const code =
         err && typeof err === 'object' && 'code' in err && typeof err.code === 'string'
           ? err.code
           : null;
+      if (isTapToPayCanceledTerminalError(code, message)) {
+        runClose(onClose);
+        return;
+      }
+      setPhase('error');
+      fireTapToPayErrorHaptic();
       const stage =
         err && typeof err === 'object' && 'stage' in err && typeof err.stage === 'string'
           ? err.stage
@@ -428,7 +433,9 @@ export function useTapToPaySheet({
     loadIntent,
     merchantDisplayName,
     prewarmConnectParams,
+    onClose,
     prewarmReaderForCollect,
+    runClose,
     runMockCollection,
     sessionFeesKey,
   ]);

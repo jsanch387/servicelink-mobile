@@ -35,7 +35,7 @@ describe('isTapToPayTimeoutTerminalError', () => {
 
 describe('formatTapToPayErrorStatusLine', () => {
   it('keeps already-short messages', () => {
-    expect(formatTapToPayErrorStatusLine('Nothing to collect.')).toBe('Nothing to collect');
+    expect(formatTapToPayErrorStatusLine('Nothing to collect.')).toBe('Nothing to charge');
   });
 
   it('maps server setup failures before collection', () => {
@@ -47,12 +47,12 @@ describe('formatTapToPayErrorStatusLine', () => {
     ).toBe(TAP_TO_PAY_SOMETHING_WENT_WRONG);
     expect(
       formatTapToPayErrorStatusLine('Set up Stripe payments to use Tap to Pay.', 'intent'),
-    ).toBe('Payments not set up');
+    ).toBe("Payments aren't ready");
   });
 
   it('maps collection failures after a payment attempt', () => {
     expect(formatTapToPayErrorStatusLine('Payment was declined.', 'collection')).toBe(
-      'Payment declined',
+      'Card declined',
     );
     expect(
       formatTapToPayErrorStatusLine('Payment failed. Try again or mark as paid.', 'collection'),
@@ -94,23 +94,23 @@ describe('resolveTapToPaySheetCopy', () => {
     );
 
     expect(copy.title).toBe('Tap to Pay');
-    expect(copy.hint).toBe('Set up Stripe payments to use Tap to Pay.');
-    expect(copy.statusLine).toBe('Payments not set up');
+    expect(copy.hint).toBe('Finish setup, then try again.');
+    expect(copy.statusLine).toBe("Payments aren't ready");
   });
 
   it('shows payment messaging only after collection fails', () => {
     const copy = resolveTapToPaySheetCopy('error', 25, 'Payment was declined.');
 
     expect(copy.title).toBe(TAP_TO_PAY_PAYMENT_NOT_COMPLETED);
-    expect(copy.statusLine).toBe('Payment declined');
+    expect(copy.statusLine).toBe('Card declined');
   });
 
   it('hides raw Stripe Apple link errors on collection failure', () => {
     const copy = resolveTapToPaySheetCopy('error', 25, "Tap to Pay setup wasn't finished.");
 
     expect(copy.title).toBe(TAP_TO_PAY_SETUP_NOT_FINISHED_TITLE);
-    expect(copy.statusLine).toBe('Setup not finished');
-    expect(copy.hint).toBe(TAP_TO_PAY_ERROR_RETRY_HINT);
+    expect(copy.statusLine).toBe("Setup didn't finish");
+    expect(copy.hint).toBe('Try again.');
     expect(copy.hint).not.toMatch(/apple id/i);
   });
 
@@ -128,7 +128,7 @@ describe('resolveTapToPaySheetCopy', () => {
 
     expect(copy.title).toBe(TAP_TO_PAY_PAYMENT_TIMED_OUT_TITLE);
     expect(copy.statusLine).toBe(TAP_TO_PAY_PAYMENT_TIMED_OUT_STATUS);
-    expect(copy.hint).toBe(TAP_TO_PAY_ERROR_RETRY_HINT);
+    expect(copy.hint).toBe('Try again.');
   });
 
   it('shows honest setup messaging while Terminal is preparing', () => {
