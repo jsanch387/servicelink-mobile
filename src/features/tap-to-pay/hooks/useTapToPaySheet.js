@@ -7,6 +7,7 @@ import {
   TAP_TO_PAY_USE_SERVER_APIS,
   TAP_TO_PAY_USE_TERMINAL_SDK,
 } from '../constants/tapToPayFeatureFlags';
+import { isTapToPayCanceledTerminalError } from '../constants/tapToPayCopy';
 import { TAP_TO_PAY_SUCCESS_DISMISS_MS } from '../constants/tapToPayTimings';
 import { collectTapToPayPaymentMock } from '../terminal/collectTapToPayPayment';
 import {
@@ -77,6 +78,7 @@ function getInitialTapToPayState(amountDueDollars, accessToken, bookingId) {
  *   accessToken: string | null | undefined;
  *   bookingId: string | null | undefined;
  *   sessionFees: Array<{ label: string; amountCents: number }>;
+ *   tipCents?: number;
  *   amountDueDollars: number;
  *   merchantDisplayName?: string | null;
  *   prewarmConnectParams?: import('../utils/parseTapToPayIntentConnectParams').TapToPayConnectParams | null;
@@ -89,6 +91,7 @@ export function useTapToPaySheet({
   accessToken,
   bookingId,
   sessionFees,
+  tipCents = 0,
   amountDueDollars,
   merchantDisplayName = null,
   prewarmConnectParams = null,
@@ -197,6 +200,7 @@ export function useTapToPaySheet({
       accessToken,
       bookingId.trim(),
       resolvedSessionFees,
+      tipCents,
     );
     if (!intentResult.ok) {
       logTapToPayFailure('intent', {
@@ -236,7 +240,7 @@ export function useTapToPaySheet({
       clientSecret: intentResult.clientSecret,
       connectParams: intentResult.connectParams ?? null,
     };
-  }, [accessToken, amountDueDollars, bookingId, sessionFeesKey]);
+  }, [accessToken, amountDueDollars, bookingId, sessionFeesKey, tipCents]);
 
   const finishSuccess = useCallback(
     (resolvedAmountCents, resolvedPaymentIntentId) => {
@@ -384,14 +388,18 @@ export function useTapToPaySheet({
       if (runId !== sessionRunRef.current) {
         return;
       }
-      setPhase('error');
-      fireTapToPayErrorHaptic();
       const message =
         err instanceof Error ? err.message : 'Payment failed. Try again or mark as paid.';
       const code =
         err && typeof err === 'object' && 'code' in err && typeof err.code === 'string'
           ? err.code
           : null;
+      if (isTapToPayCanceledTerminalError(code, message)) {
+        runClose(onClose);
+        return;
+      }
+      setPhase('error');
+      fireTapToPayErrorHaptic();
       const stage =
         err && typeof err === 'object' && 'stage' in err && typeof err.stage === 'string'
           ? err.stage
@@ -425,7 +433,9 @@ export function useTapToPaySheet({
     loadIntent,
     merchantDisplayName,
     prewarmConnectParams,
+    onClose,
     prewarmReaderForCollect,
+    runClose,
     runMockCollection,
     sessionFeesKey,
   ]);

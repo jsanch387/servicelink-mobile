@@ -23,13 +23,11 @@ export function CompleteVisitPaymentSkeleton({ bottomInset = 0 }) {
           paddingHorizontal: 16,
           paddingTop: 24,
         },
-        amountBlock: {
-          alignItems: 'flex-end',
+        hero: {
+          alignItems: 'center',
           gap: 8,
-          marginBottom: 16,
-        },
-        paymentActions: {
-          gap: 10,
+          paddingBottom: 8,
+          paddingTop: 12,
         },
         breakdownRows: {
           gap: 12,
@@ -42,6 +40,7 @@ export function CompleteVisitPaymentSkeleton({ bottomInset = 0 }) {
         footer: {
           borderTopColor: colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
+          gap: 10,
           paddingHorizontal: 16,
           paddingTop: 12,
         },
@@ -52,18 +51,12 @@ export function CompleteVisitPaymentSkeleton({ bottomInset = 0 }) {
   return (
     <View accessibilityLabel="Loading payment" accessibilityRole="progressbar" style={styles.root}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <DetailsSectionCard bodyPadding="roomy" title="Payment">
-          <View style={styles.amountBlock}>
-            <SkeletonBox borderRadius={8} height={16} pulse width={96} />
-            <SkeletonBox borderRadius={10} height={34} pulse width={132} />
-          </View>
-          <View style={styles.paymentActions}>
-            <SkeletonBox borderRadius={14} height={52} pulse width="100%" />
-            <SkeletonBox borderRadius={14} height={52} pulse width="100%" />
-          </View>
-        </DetailsSectionCard>
+        <View style={styles.hero}>
+          <SkeletonBox borderRadius={8} height={16} pulse width={96} />
+          <SkeletonBox borderRadius={10} height={48} pulse width={180} />
+        </View>
 
-        <DetailsSectionCard bodyPadding="roomy" title="Breakdown">
+        <DetailsSectionCard bodyPadding="roomy">
           <View style={styles.breakdownRows}>
             {['72%', '58%', '64%'].map((width) => (
               <View key={width} style={styles.breakdownRow}>
@@ -76,6 +69,7 @@ export function CompleteVisitPaymentSkeleton({ bottomInset = 0 }) {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(bottomInset, 12) }]}>
+        <SkeletonBox borderRadius={14} height={52} pulse width="100%" />
         <SkeletonBox borderRadius={14} height={52} pulse width="100%" />
       </View>
     </View>

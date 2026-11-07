@@ -67,6 +67,16 @@ export function mergeBookingDetailsCheckoutFields(incoming, previous) {
       ),
       sessionFeesTotalCents: pick('sessionFeesTotalCents', 'session_fees_total_cents'),
       session_fees_total_cents: pick('sessionFeesTotalCents', 'session_fees_total_cents'),
+      sessionDiscountsTotalCents: pick(
+        'sessionDiscountsTotalCents',
+        'session_discounts_total_cents',
+      ),
+      session_discounts_total_cents: pick(
+        'sessionDiscountsTotalCents',
+        'session_discounts_total_cents',
+      ),
+      tipCents: pick('tipCents', 'tip_cents'),
+      tip_cents: pick('tipCents', 'tip_cents'),
       totalAmountCents: Math.max(
         Number(nextPayment.totalAmountCents ?? nextPayment.total_amount_cents ?? 0) || 0,
         Number(prevPayment.totalAmountCents ?? prevPayment.total_amount_cents ?? 0) || 0,

@@ -72,19 +72,20 @@ After **Done/Skip**, mobile shows **Mark complete** → Complete sheet:
 
 ### Amount-due math (must match Complete sheet)
 
-```
-subtotalCents =
-  service_price_cents
-  + sum(addon_details[].priceCents)
-  + sum(sessionFees[].amountCents)
+Fees, discounts, tax, and tips: [`PAYMENT_FLOW.md`](./PAYMENT_FLOW.md).
 
+```
 amountDueCents =
-  subtotalCents
-  - booking_payments.paid_online_amount_cents
-  - sessionPayment.amountCents   // 0 if omitted
+  booked services and add-ons
+  + stored tax
+  − booked discount
+  + visit fees
+  − visit discounts
+  − paid_online_amount_cents
+  − sessionPayment applied to the visit
 ```
 
-Server rejects with **400** `"Payment is still due on this booking."` when `amountDueCents > 0`.
+A Tap to Pay `sessionPayment.amountCents` is the card charge, which includes `tipCents`. The tip is not a fee line. Server rejects with **400** `"Payment is still due on this booking."` when the pre-tip balance is still unpaid.
 
 Load `service_price_cents`, `addon_details`, and join/read `booking_payments` when rendering the Complete sheet.
 

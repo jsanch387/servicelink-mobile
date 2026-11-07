@@ -82,6 +82,27 @@ describe('today earnings', () => {
     });
   });
 
+  it('subtracts a payment-time discount from the day total', () => {
+    expect(
+      computeBookingEarningsCents({
+        status: 'completed',
+        subtotal_cents: 20000,
+        discount_cents: 0,
+        booking_payments: {
+          total_amount_cents: 20000,
+          paid_online_amount_cents: 0,
+          session_fees_total_cents: 0,
+          session_discounts_total_cents: 5000,
+          session_payment_amount_cents: 15000,
+        },
+      }),
+    ).toEqual({
+      potentialCents: 15000,
+      collectedCents: 15000,
+      remainingCents: 0,
+    });
+  });
+
   it('falls back to service and add-on snapshots', () => {
     expect(
       computeBookingEarningsCents({

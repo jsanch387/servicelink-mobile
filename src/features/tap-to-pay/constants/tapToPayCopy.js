@@ -23,9 +23,14 @@ export const TAP_TO_PAY_SETUP_NOT_FINISHED_TITLE = 'Tap to Pay not finished';
 
 export const TAP_TO_PAY_PAYMENT_CANCELED_TITLE = 'Payment canceled';
 
-export const TAP_TO_PAY_ERROR_RETRY_HINT =
-  "Try again when you're ready, or mark as paid another way.";
+export const TAP_TO_PAY_ERROR_RETRY_HINT = 'Try again, or mark as paid.';
 
+export const TAP_TO_PAY_TRY_AGAIN_HINT = 'Try again.';
+
+export const TAP_TO_PAY_MERCHANT_LIMIT_HINT =
+  "This iPhone can't add another business. Try a different iPhone.";
+
+/** Internal identity for Apple's merchant cap. The screen shows {@link TAP_TO_PAY_MERCHANT_LIMIT_HINT}. */
 export const TAP_TO_PAY_MERCHANT_LIMIT =
   "This iPhone has reached Apple's Tap to Pay merchant limit. Remove a merchant in Settings → Apple Account → Payment & Shipping, or try another iPhone.";
 
@@ -35,7 +40,9 @@ export const TAP_TO_PAY_TERMINAL_NOT_CONFIGURED =
 export const TAP_TO_PAY_READER_NOT_CONNECTED =
   'Tap to Pay lost connection on this iPhone. Try again — keep the app open while collecting.';
 
-export const TAP_TO_PAY_READER_NOT_CONNECTED_STATUS = 'Reader not connected';
+export const TAP_TO_PAY_READER_NOT_CONNECTED_STATUS = "Couldn't connect";
+
+export const TAP_TO_PAY_READER_NOT_CONNECTED_HINT = 'Try again and keep the app open.';
 
 export const TAP_TO_PAY_PREPARING_COLD = 'Setting up Tap to Pay';
 
@@ -53,7 +60,9 @@ export const TAP_TO_PAY_IOS_UPDATE_REQUIRED =
   'Tap to Pay on iPhone requires a newer version of iOS. Open Settings → General → Software Update, install the latest update, then try again.';
 
 /** Short status line when {@link TAP_TO_PAY_IOS_UPDATE_REQUIRED} is shown on the sheet. */
-export const TAP_TO_PAY_IOS_UPDATE_REQUIRED_STATUS = 'Update iOS required';
+export const TAP_TO_PAY_IOS_UPDATE_REQUIRED_STATUS = 'Update your iPhone';
+
+export const TAP_TO_PAY_IOS_UPDATE_REQUIRED_HINT = 'Update iOS in Settings, then try again.';
 
 /** @typedef {'intent' | 'collection'} TapToPayErrorContext */
 
@@ -127,28 +136,69 @@ export function formatTapToPayErrorHint(message, context = 'collection') {
   }
 
   const lower = text.toLowerCase();
+  if (
+    text === TAP_TO_PAY_IOS_UPDATE_REQUIRED ||
+    lower.includes('newer version of ios') ||
+    lower.includes('os version not supported') ||
+    lower.includes('software update')
+  ) {
+    return TAP_TO_PAY_IOS_UPDATE_REQUIRED_HINT;
+  }
+  if (text === TAP_TO_PAY_MERCHANT_LIMIT || lower.includes('merchant limit')) {
+    return TAP_TO_PAY_MERCHANT_LIMIT_HINT;
+  }
+  if (
+    text === TAP_TO_PAY_READER_NOT_CONNECTED ||
+    lower.includes('no reader is connected') ||
+    lower.includes('connect to a reader') ||
+    lower.includes('lost connection')
+  ) {
+    return TAP_TO_PAY_READER_NOT_CONNECTED_HINT;
+  }
   if (isTapToPayCanceledTerminalError(null, text)) {
     return TAP_TO_PAY_ERROR_RETRY_HINT;
   }
   if (isTapToPayTimeoutTerminalError(null, text) || text === TAP_TO_PAY_PAYMENT_TIMED_OUT) {
-    return TAP_TO_PAY_ERROR_RETRY_HINT;
+    return TAP_TO_PAY_TRY_AGAIN_HINT;
+  }
+  if (lower.includes('declined')) {
+    return 'Try another card, or mark as paid.';
   }
   if (
     lower.includes('link merchant') ||
     lower.includes('apple id') ||
-    lower.includes('merchant limit') ||
-    text === TAP_TO_PAY_SETUP_NOT_FINISHED ||
-    text === TAP_TO_PAY_MERCHANT_LIMIT
+    text === TAP_TO_PAY_SETUP_NOT_FINISHED
   ) {
-    return TAP_TO_PAY_ERROR_RETRY_HINT;
+    return TAP_TO_PAY_TRY_AGAIN_HINT;
   }
-  if (lower.includes('declined')) {
-    return TAP_TO_PAY_ERROR_RETRY_HINT;
+  if (lower.includes('sign in')) {
+    return 'Sign in, then try again.';
   }
-  if (text.length <= 96) {
-    return text;
+  if (lower.includes('nothing to collect')) {
+    return 'Check the amount, then try again.';
   }
-  return TAP_TO_PAY_ERROR_RETRY_HINT;
+  if (lower.includes('network') || lower.includes('connection')) {
+    return 'Check your internet, then try again.';
+  }
+  if (lower.includes('not found')) {
+    return 'Go back and open the appointment again.';
+  }
+  if (lower.includes('mark work done')) {
+    return 'Finish the visit, then take payment.';
+  }
+  if (lower.includes('too quickly')) {
+    return 'Wait a moment, then try again.';
+  }
+  if (
+    lower.includes('stripe') ||
+    lower.includes('set up') ||
+    lower.includes('setup') ||
+    lower.includes('not configured') ||
+    lower.includes('entitlement')
+  ) {
+    return 'Finish setup, then try again.';
+  }
+  return context === 'collection' ? TAP_TO_PAY_ERROR_RETRY_HINT : TAP_TO_PAY_TRY_AGAIN_HINT;
 }
 
 /**
@@ -176,8 +226,8 @@ export function formatTapToPayErrorStatusLine(message, context = 'intent') {
   if (text === TAP_TO_PAY_SETUP_NOT_FINISHED || text === TAP_TO_PAY_MERCHANT_LIMIT) {
     return context === 'collection'
       ? text === TAP_TO_PAY_MERCHANT_LIMIT
-        ? 'Merchant limit reached'
-        : 'Setup not finished'
+        ? 'Too many businesses'
+        : "Setup didn't finish"
       : TAP_TO_PAY_SOMETHING_WENT_WRONG;
   }
   if (
@@ -186,14 +236,14 @@ export function formatTapToPayErrorStatusLine(message, context = 'intent') {
     lower.includes('apple id') ||
     lower.includes('good standing')
   ) {
-    return context === 'collection' ? 'Setup not finished' : TAP_TO_PAY_SOMETHING_WENT_WRONG;
+    return context === 'collection' ? "Setup didn't finish" : TAP_TO_PAY_SOMETHING_WENT_WRONG;
   }
   if (lower.includes('merchant limit')) {
-    return 'Merchant limit reached';
+    return 'Too many businesses';
   }
 
   if (lower.includes('sign in')) {
-    return 'Sign in required';
+    return 'Sign in again';
   }
   if (
     lower.includes('no reader is connected') ||
@@ -209,10 +259,10 @@ export function formatTapToPayErrorStatusLine(message, context = 'intent') {
     lower.includes('tap to pay reader') ||
     lower.includes('not configured')
   ) {
-    return 'Tap to Pay not configured';
+    return 'Not ready yet';
   }
   if (lower.includes('missing tap to pay on iphone') || lower.includes('entitlement')) {
-    return 'App build not Tap to Pay ready';
+    return 'Not available';
   }
   if (
     lower.includes('requires a newer version of ios') ||
@@ -222,30 +272,30 @@ export function formatTapToPayErrorStatusLine(message, context = 'intent') {
     return TAP_TO_PAY_IOS_UPDATE_REQUIRED_STATUS;
   }
   if (lower.includes('stripe') || lower.includes('set up') || lower.includes('setup')) {
-    return 'Payments not set up';
+    return "Payments aren't ready";
   }
   if (lower.includes('network') || lower.includes('connection')) {
-    return 'Connection issue';
+    return 'No connection';
   }
   if (lower.includes('not found')) {
     return 'Appointment not found';
   }
   if (lower.includes('mark work done')) {
-    return 'Mark work done first';
+    return 'Finish the visit first';
   }
   if (lower.includes('too quickly')) {
     return 'Try again shortly';
   }
   if (lower.includes('nothing to collect')) {
-    return 'Nothing to collect';
+    return 'Nothing to charge';
   }
 
   if (context === 'collection') {
     if (lower.includes('declined') || lower.includes('card')) {
-      return 'Payment declined';
+      return 'Card declined';
     }
     if (lower.includes('reader') || lower.includes('connect')) {
-      return 'Reader issue';
+      return TAP_TO_PAY_READER_NOT_CONNECTED_STATUS;
     }
     if (lower.includes('payment failed') || lower.includes('not completed')) {
       return TAP_TO_PAY_PAYMENT_NOT_COMPLETED;
@@ -290,9 +340,9 @@ export function getTapToPayCopy(phase, amountDue) {
 
   if (phase === 'error') {
     return {
-      title: 'Payment declined',
-      hint: 'The card couldn’t be read or was declined. Try again or choose another way to get paid.',
-      statusLine: 'Payment not completed',
+      title: 'Card declined',
+      hint: 'Try another card, or mark as paid.',
+      statusLine: 'Card declined',
     };
   }
 
@@ -335,7 +385,7 @@ export function resolveTapToPaySheetCopy(phase, amountDue, intentError, options 
   if (phase === 'intent_error') {
     return {
       title: 'Tap to Pay',
-      hint: intentError?.trim() || null,
+      hint: formatTapToPayErrorHint(intentError, 'intent'),
       statusLine: formatTapToPayErrorStatusLine(intentError, 'intent'),
     };
   }
@@ -347,7 +397,7 @@ export function resolveTapToPaySheetCopy(phase, amountDue, intentError, options 
       title = TAP_TO_PAY_PAYMENT_CANCELED_TITLE;
     } else if (statusLine === TAP_TO_PAY_PAYMENT_TIMED_OUT_STATUS) {
       title = TAP_TO_PAY_PAYMENT_TIMED_OUT_TITLE;
-    } else if (statusLine === 'Setup not finished') {
+    } else if (statusLine === "Setup didn't finish") {
       title = TAP_TO_PAY_SETUP_NOT_FINISHED_TITLE;
     }
 

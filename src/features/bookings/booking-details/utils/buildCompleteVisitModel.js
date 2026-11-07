@@ -5,6 +5,7 @@ import { getMarkCompletePreviewFromBooking } from './markCompletePreview';
 import { parseAddonLineItemsFromBooking } from './parseAddonLineItemsFromBooking';
 import { parseCompleteVisitServiceLine } from './parseCompleteVisitServiceLine';
 import { parseJobDetailsFromBooking } from './parseJobDetailsFromBooking';
+import { parseSessionFeeLinesFromBooking } from './parseSessionFeeLinesFromBooking';
 import { resolveBookingDiscount } from './resolveBookingDiscount';
 
 /**
@@ -30,6 +31,7 @@ import { resolveBookingDiscount } from './resolveBookingDiscount';
 /**
  * @typedef {object} CompleteVisitModel
  * @property {CompleteVisitLineItem[]} lineItems
+ * @property {Array<{ id: string; label: string; amount: number; kind: 'fee' | 'discount' }>} adjustments
  * @property {CompleteVisitJob[] | null} jobs — multi-job cards when length > 1; null for single-job UI
  * @property {boolean} isMultiJob
  * @property {number} paidOnline — dollars already collected online
@@ -237,6 +239,15 @@ export function buildCompleteVisitModelFromBooking(booking, preview, options) {
     remainingAmountCents = Math.max(0, subtotalCents - paidOnlineCents);
   }
 
+  const adjustments = parseSessionFeeLinesFromBooking(
+    booking.session_fee_lines ?? booking.sessionFeeLines,
+  ).map((line) => ({
+    id: line.id,
+    label: line.name,
+    amount: line.kind === 'discount' ? -line.price : line.price,
+    kind: line.kind,
+  }));
+
   const isPaidInFullOnline = isCompleteVisitPaidInFullOnline({
     paidOnlineCents,
     remainingAmountCents,
@@ -249,6 +260,7 @@ export function buildCompleteVisitModelFromBooking(booking, preview, options) {
 
   return {
     lineItems,
+    adjustments,
     jobs,
     isMultiJob,
     paidOnline,

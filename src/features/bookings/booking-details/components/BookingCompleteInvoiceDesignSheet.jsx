@@ -15,13 +15,9 @@ import {
 } from 'react-native';
 import {
   AppText,
-  BetaLabel,
   BottomSheetOverlayProvider,
   Button,
-  DetailsSectionCard,
-  Divider,
   InlineCardError,
-  LabelValueRow,
   MembershipMark,
   ToastModalHost,
   useBottomSheetOverlay,
@@ -62,8 +58,11 @@ import { isValidEmailFormat } from '../../../../utils/email';
 import { formatPhoneForDisplay, normalizePhoneForDatabase } from '../../../../utils/phone';
 import {
   TapToPaySheet,
+  TapToPayTipSheet,
   TAP_TO_PAY_RECEIPT_ROW_LABEL,
   buildTapToPaySessionFees,
+  isTapToPayDevIntentPreviewEnabled,
+  isTapToPayTipEnabledForEmail,
   isTapToPayUiEnabled,
   TAP_TO_PAY_USE_TERMINAL_SDK,
   useTapToPayConnectReadiness,
@@ -76,14 +75,16 @@ import { useCustomerSmsAccess } from '../../../sms/hooks/useCustomerSmsAccess';
 import { useTapToPayReaderPrewarm } from '../../../tap-to-pay/hooks/useTapToPayReaderPrewarm';
 import { TapToPayCheckoutIcon } from '../../../tap-to-pay/components/TapToPayCheckoutIcon';
 import { TapToPaySetupRequiredSheet } from '../../../tap-to-pay/components/TapToPaySetupRequiredSheet';
+import { postTapToPayIntent } from '../../../tap-to-pay/api/postTapToPayIntent';
 import { isTapToPayNativeRuntimeAvailable } from '../../../tap-to-pay/utils/isTapToPayNativeRuntimeAvailable';
+import { formatTipUsd } from '../../../tap-to-pay/utils/tapToPayTip';
 import { useAuth } from '../../../auth';
 import { useShopAccess } from '../../../shop';
 import {
   CompleteVisitMarkPaidSheet,
   getInPersonPaymentRowLabel,
 } from './CompleteVisitMarkPaidSheet';
-import { CompleteVisitJobsBreakdown } from './CompleteVisitJobsBreakdown';
+import { CompleteVisitBreakdownCard } from './CompleteVisitBreakdownCard';
 import { FORCE_SHOW_RECEIPT_CONTACT_DIALOG } from '../constants/markCompleteFeatureFlags';
 
 function formatUsd(amount) {
@@ -98,13 +99,18 @@ function formatUsd(amount) {
 /**
  * @param {{
  *   adjustments: Array<{ id: string; label: string; amount: number }>;
- *   onAddFee: (fee: { label: string; amount: number }) => void;
+ *   onAddFee: (fee: { id?: string; label: string; amount: number }) => void;
  *   onRemoveFee: (id: string) => void;
- *   onTapToPaySuccess: (result: { amountCents: number; paymentIntentId: string | null }) => void | Promise<void>;
+ *   onTapToPaySuccess: (result: {
+ *     amountCents: number;
+ *     paymentIntentId: string | null;
+ *     tipCents?: number;
+ *   }) => void | Promise<void>;
  *   tapToPayAmount: number;
  *   bookingId?: string | null;
  *   accessToken?: string | null;
  *   showTapToPay?: boolean;
+ *   showTapToPayTip?: boolean;
  *   merchantDisplayName?: string | null;
  *   tapToPayPrewarmConnectParams?: { terminalLocationId: string; stripeAccountId: string } | null;
  *   tapToPayConnectReady?: boolean;
@@ -120,16 +126,7 @@ function formatUsd(amount) {
  *   showCollectActions: boolean;
  *   followUpInfo: { visible: boolean; message: string; iconName: string };
  *   iosKeyboardScrollPadding: number;
- *   lineItems: Array<{ id: string; label: string; sublabel?: string | null; amount: number }>;
- *   jobs?: Array<{
- *     id?: string;
- *     serviceName?: string;
- *     pricingOption?: string | null;
- *     vehicleLine?: string;
- *     servicePrice?: number;
- *     addOns?: Array<{ id?: string; name?: string; price?: number }>;
- *   }> | null;
- *   isMultiJob?: boolean;
+ *   lineItems: Array<{ id: string; label: string; sublabel?: string | null; amount: number; kind?: string }>;
  *   savedReceiptEmail: string;
  *   savedReceiptPhone: string;
  *   onPressAddReceiptContact: () => void;
@@ -146,6 +143,7 @@ function CompleteVisitDesignBody({
   bookingId = null,
   accessToken = null,
   showTapToPay = false,
+  showTapToPayTip = false,
   merchantDisplayName = null,
   tapToPayPrewarmConnectParams = null,
   tapToPayConnectReady = false,
@@ -162,8 +160,6 @@ function CompleteVisitDesignBody({
   iosKeyboardScrollPadding,
   onMarkPaidInPerson,
   lineItems,
-  jobs = null,
-  isMultiJob = false,
   savedReceiptEmail,
   savedReceiptPhone,
   onPressAddReceiptContact,
@@ -171,6 +167,7 @@ function CompleteVisitDesignBody({
   isMembershipVisit = false,
 }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const overlay = useBottomSheetOverlay();
   const [setupSheetVisible, setSetupSheetVisible] = useState(false);
 
@@ -179,105 +176,104 @@ function CompleteVisitDesignBody({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        scrollContent: {
+        column: {
+          flex: 1,
+          minHeight: 0,
+        },
+        topBlock: {
           gap: 16,
           paddingHorizontal: 16,
-          paddingTop: 24,
+          paddingTop: 16,
         },
-        breakdownRows: {
-          gap: 2,
-        },
-        multiJobBreakdown: {
-          gap: 0,
-        },
-        multiJobAfterJobs: {
-          gap: 2,
-          marginTop: 8,
-        },
-        breakdownTotalDivider: {
-          marginBottom: 4,
-          marginTop: 14,
-        },
-        adjustmentRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          gap: 8,
-          justifyContent: 'space-between',
-          marginTop: 8,
-        },
-        adjustmentLabelWrap: {
-          alignItems: 'center',
+        breakdownScroll: {
           flex: 1,
-          flexDirection: 'row',
-          gap: 6,
-          minWidth: 0,
+          minHeight: 0,
         },
-        adjustmentLabel: {
-          color: colors.textSecondary,
-          flex: 1,
-          fontSize: 14,
+        breakdownScrollContent: {
+          gap: 16,
+          paddingBottom: 16,
+          paddingHorizontal: 16,
+          paddingTop: 10,
+        },
+        hero: {
+          alignItems: 'center',
+          gap: 10,
+          paddingBottom: 4,
+          paddingTop: 0,
+        },
+        heroLabel: {
+          color: colors.textMuted,
+          fontSize: 16,
           fontWeight: '500',
-          minWidth: 0,
         },
-        taxRow: {
+        heroAmount: {
+          color: colors.text,
+          fontFamily: FONT_FAMILIES.bold,
+          fontSize: 56,
+          fontWeight: '700',
+          letterSpacing: -1.4,
+          lineHeight: 64,
+        },
+        feeActionRow: {
           alignItems: 'center',
           flexDirection: 'row',
-          marginTop: 8,
+          justifyContent: 'flex-end',
           width: '100%',
         },
-        taxLabelCol: {
-          flex: 1,
+        feeAction: {
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 4,
+        },
+        feeIconCol: {
+          alignItems: 'center',
+          height: 18,
           justifyContent: 'center',
-          minWidth: 0,
-          paddingRight: 12,
+          width: 18,
         },
-        taxValueCol: {
-          alignItems: 'flex-end',
-          flexShrink: 0,
-          justifyContent: 'center',
-        },
-        taxLabel: {
-          color: colors.textSecondary,
-          fontSize: 13,
-          fontWeight: '500',
-        },
-        taxValue: {
-          color: colors.textSecondary,
-          fontSize: 13,
-          fontWeight: '600',
-        },
-        adjustmentAmount: {
+        feeActionLabel: {
           color: colors.text,
           fontSize: 15,
           fontWeight: '600',
+          letterSpacing: -0.2,
+          lineHeight: 18,
         },
-        removeBtn: {
-          alignItems: 'center',
-          height: 28,
-          justifyContent: 'center',
-          width: 28,
-        },
-        totalRow: {
-          alignItems: 'baseline',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginTop: 2,
-        },
-        totalLabel: {
-          color: colors.text,
-          fontSize: 16,
-          fontWeight: '600',
-        },
-        totalValue: {
-          color: colors.text,
-          fontFamily: FONT_FAMILIES.semibold,
-          fontSize: 26,
-          fontWeight: '700',
-          letterSpacing: -0.45,
-        },
-        paymentActions: {
+        paymentFooter: {
           gap: 10,
-          marginTop: 16,
+          paddingHorizontal: 16,
+          paddingTop: 12,
+        },
+        testingModeBanner: {
+          alignItems: 'flex-start',
+          backgroundColor: 'rgba(255, 159, 10, 0.16)',
+          borderRadius: 12,
+          flexDirection: 'row',
+          gap: 10,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+        },
+        testingModeIconCol: {
+          alignItems: 'center',
+          height: 20,
+          justifyContent: 'center',
+          width: 20,
+        },
+        testingModeTextCol: {
+          flex: 1,
+          gap: 2,
+          minWidth: 0,
+        },
+        testingModeTitle: {
+          color: '#FF9F0A',
+          fontSize: 15,
+          fontWeight: '700',
+          letterSpacing: -0.2,
+        },
+        testingModeDetail: {
+          color: colors.text,
+          fontSize: 13,
+          fontWeight: '500',
+          lineHeight: 18,
         },
         paidBanner: {
           alignItems: 'center',
@@ -341,34 +337,82 @@ function CompleteVisitDesignBody({
 
   const openAddFeeSheet = () => {
     Keyboard.dismiss();
-    overlay?.show(<CompleteVisitAddFeeSheet onAdd={onAddFee} onClose={() => overlay.hide()} />);
-  };
-
-  const openTapToPaySheet = useCallback(() => {
-    Keyboard.dismiss();
-    const sessionFees = buildTapToPaySessionFees(adjustments);
     overlay?.show(
-      <TapToPaySheet
-        accessToken={accessToken}
-        amountDue={amountDue}
-        bookingId={bookingId}
-        merchantDisplayName={merchantDisplayName}
-        prewarmConnectParams={tapToPayPrewarmConnectParams}
-        sessionFees={sessionFees}
+      <CompleteVisitAddFeeSheet
+        items={adjustments}
+        onAdd={onAddFee}
         onClose={() => overlay.hide()}
-        onSuccess={onTapToPaySuccess}
+        onRemove={onRemoveFee}
       />,
     );
-  }, [
-    accessToken,
-    adjustments,
-    amountDue,
-    bookingId,
-    merchantDisplayName,
-    onTapToPaySuccess,
-    overlay,
-    tapToPayPrewarmConnectParams,
-  ]);
+  };
+
+  const openTapToPaySheet = useCallback(
+    async (tipCents) => {
+      Keyboard.dismiss();
+      if (!isTapToPayNativeRuntimeAvailable()) {
+        if (!isTapToPayDevIntentPreviewEnabled()) {
+          Alert.alert(
+            'Development build required',
+            'Tap to Pay needs a development build with Stripe Terminal. It is not available in Expo Go.',
+          );
+          return;
+        }
+        if (!accessToken || !bookingId) {
+          Alert.alert('Tap to Pay', 'Sign in again to create the payment.');
+          return;
+        }
+        const sessionFees = buildTapToPaySessionFees(adjustments);
+        const result = await postTapToPayIntent(accessToken, bookingId, sessionFees, tipCents);
+        overlay?.hide();
+        if (!result.ok) {
+          Alert.alert('Tap to Pay', result.error.message);
+          return;
+        }
+        Alert.alert(
+          'Payment created',
+          `${formatTipUsd(result.amountCents)} is ready in Stripe.\n\n${result.paymentIntentId}\n\nThis simulator can’t read a card, so the visit stays unpaid.`,
+        );
+        return;
+      }
+      const sessionFees = buildTapToPaySessionFees(adjustments);
+      overlay?.show(
+        <TapToPaySheet
+          accessToken={accessToken}
+          amountDue={amountDue + tipCents / 100}
+          bookingId={bookingId}
+          merchantDisplayName={merchantDisplayName}
+          prewarmConnectParams={tapToPayPrewarmConnectParams}
+          sessionFees={sessionFees}
+          tipCents={tipCents}
+          onClose={() => overlay.hide()}
+          onSuccess={(result) => onTapToPaySuccess({ ...result, tipCents })}
+        />,
+      );
+    },
+    [
+      accessToken,
+      adjustments,
+      amountDue,
+      bookingId,
+      merchantDisplayName,
+      onTapToPaySuccess,
+      overlay,
+      tapToPayPrewarmConnectParams,
+    ],
+  );
+
+  const openTapToPayTipSheet = useCallback(() => {
+    Keyboard.dismiss();
+    const baseCents = Math.max(0, Math.round(amountDue * 100));
+    overlay?.show(
+      <TapToPayTipSheet
+        amountDueCents={baseCents}
+        onClose={() => overlay.hide()}
+        onContinue={(tipCents) => openTapToPaySheet(tipCents)}
+      />,
+    );
+  }, [amountDue, openTapToPaySheet, overlay]);
 
   const canUseTapToPay = tapToPayConnectReady && !tapToPayConnectLoading;
   const hasReceiptEmailForTapToPay = isValidEmailFormat(savedReceiptEmail);
@@ -380,19 +424,23 @@ function CompleteVisitDesignBody({
     if (tapToPayConnectLoading || tapToPayNeedsReceiptContact) {
       return;
     }
-    if (!isTapToPayNativeRuntimeAvailable()) {
-      Alert.alert(
-        'Development build required',
-        'Tap to Pay needs a development build with Stripe Terminal. It is not available in Expo Go.',
-      );
-      return;
-    }
     if (canUseTapToPay) {
-      openTapToPaySheet();
+      if (showTapToPayTip) {
+        openTapToPayTipSheet();
+        return;
+      }
+      void openTapToPaySheet(0);
       return;
     }
     setSetupSheetVisible(true);
-  }, [canUseTapToPay, openTapToPaySheet, tapToPayConnectLoading, tapToPayNeedsReceiptContact]);
+  }, [
+    canUseTapToPay,
+    openTapToPaySheet,
+    openTapToPayTipSheet,
+    showTapToPayTip,
+    tapToPayConnectLoading,
+    tapToPayNeedsReceiptContact,
+  ]);
 
   const handleSetupPaymentsPress = useCallback(() => {
     setSetupSheetVisible(false);
@@ -410,38 +458,31 @@ function CompleteVisitDesignBody({
     );
   };
 
-  const hasAppliedPayments =
-    Boolean(onlinePaidRowLabel) || tapToPayAmount > 0 || Boolean(inPersonPayment);
-  const showAmountDueHero = !hasAppliedPayments && amountDue > 0;
   const isPaymentSettled = amountDue <= 0;
   const canEditFees = !isPaymentSettled;
 
-  const renderReceiptLine = (item, { noTopMargin = false } = {}) => {
-    const amountLabel =
-      item.amount < 0 ? `−${formatUsd(Math.abs(item.amount))}` : formatUsd(item.amount);
-    if (item.kind === 'tax') {
-      return (
-        <View key={item.id} style={styles.taxRow}>
-          <View style={styles.taxLabelCol}>
-            <AppText numberOfLines={1} style={styles.taxLabel}>
-              {item.label}
-            </AppText>
-          </View>
-          <View style={styles.taxValueCol}>
-            <AppText style={styles.taxValue}>{amountLabel}</AppText>
-          </View>
-        </View>
-      );
+  const appliedPayments = useMemo(() => {
+    /** @type {Array<{ id: string; label: string; amount: number }>} */
+    const rows = [];
+    if (onlinePaidRowLabel && paidOnline > 0) {
+      rows.push({ id: 'paid-online', label: onlinePaidRowLabel, amount: paidOnline });
     }
-    return (
-      <LabelValueRow
-        key={item.id}
-        label={item.label}
-        noTopMargin={noTopMargin}
-        value={amountLabel}
-      />
-    );
-  };
+    if (tapToPayAmount > 0) {
+      rows.push({
+        id: 'tap-to-pay',
+        label: TAP_TO_PAY_RECEIPT_ROW_LABEL,
+        amount: tapToPayAmount,
+      });
+    }
+    if (inPersonPayment && inPersonPayment.amount > 0) {
+      rows.push({
+        id: 'in-person',
+        label: getInPersonPaymentRowLabel(inPersonPayment.method),
+        amount: inPersonPayment.amount,
+      });
+    }
+    return rows;
+  }, [inPersonPayment, onlinePaidRowLabel, paidOnline, tapToPayAmount]);
 
   const paymentSettledBanner = useMemo(() => {
     if (!isPaymentSettled) {
@@ -457,177 +498,127 @@ function CompleteVisitDesignBody({
   }, [inPersonPayment, isMembershipVisit, isPaymentSettled, paidOnline, subtotal, tapToPayAmount]);
 
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.scrollContent,
-        { paddingBottom: 24 + iosKeyboardScrollPadding },
-      ]}
-      keyboardDismissMode="interactive"
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-    >
-      <DetailsSectionCard bodyPadding="roomy" title="Payment">
-        {paymentSettledBanner ? (
-          <View style={styles.paidBanner}>
-            <Ionicons color={SUBMIT_OUTCOME_SUCCESS.color} name="checkmark-circle" size={28} />
-            <View style={styles.paidBannerTextWrap}>
-              <AppText style={styles.paidBannerTitle}>{paymentSettledBanner.title}</AppText>
-              {paymentSettledBanner.detail ? (
-                <AppText style={styles.paidBannerDetail}>{paymentSettledBanner.detail}</AppText>
-              ) : null}
+    <>
+      <View style={styles.column}>
+        <View style={styles.topBlock}>
+          {paymentSettledBanner ? (
+            <View style={styles.paidBanner}>
+              <Ionicons color={SUBMIT_OUTCOME_SUCCESS.color} name="checkmark-circle" size={28} />
+              <View style={styles.paidBannerTextWrap}>
+                <AppText style={styles.paidBannerTitle}>{paymentSettledBanner.title}</AppText>
+                {paymentSettledBanner.detail ? (
+                  <AppText style={styles.paidBannerDetail}>{paymentSettledBanner.detail}</AppText>
+                ) : null}
+              </View>
             </View>
-          </View>
-        ) : null}
-        {showAmountDueHero ? (
-          <View style={styles.totalRow}>
-            <AppText style={styles.totalLabel}>Amount due</AppText>
-            <AppText style={styles.totalValue}>{formatUsd(amountDue)}</AppText>
-          </View>
-        ) : (
-          <>
-            <LabelValueRow emphasize noTopMargin label="Total" value={formatUsd(subtotal)} />
-            {onlinePaidRowLabel ? (
-              <LabelValueRow label={onlinePaidRowLabel} value={`−${formatUsd(paidOnline)}`} />
-            ) : null}
-            {tapToPayAmount > 0 ? (
-              <LabelValueRow
-                label={TAP_TO_PAY_RECEIPT_ROW_LABEL}
-                value={`−${formatUsd(tapToPayAmount)}`}
-              />
-            ) : null}
-            {inPersonPayment ? (
-              <LabelValueRow
-                label={getInPersonPaymentRowLabel(inPersonPayment.method)}
-                value={`−${formatUsd(inPersonPayment.amount)}`}
-              />
-            ) : null}
-            {amountDue > 0 ? (
-              <LabelValueRow emphasize label="Amount due" value={formatUsd(amountDue)} />
-            ) : null}
-            {isMembershipVisit ? (
-              <View style={styles.membershipTotalHintRow}>
-                <AppText style={styles.membershipTotalHint}>Subscription appointment</AppText>
-                <MembershipMark />
-              </View>
-            ) : null}
-          </>
-        )}
-        {showCollectActions ? (
-          <View style={styles.paymentActions}>
-            {showTapToPay ? (
-              <Button
-                accessibilityHint={
-                  tapToPayNeedsReceiptContact
-                    ? 'Add a customer email or phone below to use Tap to Pay'
-                    : canUseTapToPay
-                      ? TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT
-                      : TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT
-                }
-                disabled={tapToPayConnectLoading || tapToPayNeedsReceiptContact}
-                fullWidth
-                iconNode={<TapToPayCheckoutIcon size={22} />}
-                loading={tapToPayConnectLoading}
-                title={TAP_TO_PAY_CHECKOUT_BUTTON_LABEL}
-                titleAccessory={<BetaLabel />}
-                variant="surfaceLight"
-                onPress={handleTapToPayPress}
-              />
-            ) : null}
-            <Button
-              fullWidth
-              iconName="checkmark-circle-outline"
-              title="Mark as paid"
-              variant="secondary"
-              onPress={openMarkPaidSheet}
-            />
-          </View>
-        ) : null}
-      </DetailsSectionCard>
+          ) : null}
 
-      {showReceiptContactNotice ? (
-        <CompleteVisitReceiptEmailNotice onPressAddContact={onPressAddReceiptContact} />
-      ) : null}
+          {amountDue > 0 ? (
+            <View style={styles.hero}>
+              <AppText style={styles.heroLabel}>Amount due</AppText>
+              <AppText style={styles.heroAmount}>{formatUsd(amountDue)}</AppText>
+            </View>
+          ) : null}
 
-      <DetailsSectionCard bodyPadding="roomy" title="Breakdown">
-        <View style={isMultiJob ? styles.multiJobBreakdown : styles.breakdownRows}>
-          {isMultiJob && jobs?.length ? (
-            <>
-              <CompleteVisitJobsBreakdown formatUsd={formatUsd} jobs={jobs} />
-              <View style={styles.multiJobAfterJobs}>
-                {lineItems
-                  .filter(
-                    (item) =>
-                      item.id === 'discount' || item.kind === 'discount' || item.kind === 'tax',
-                  )
-                  .map((item) => renderReceiptLine(item))}
-              </View>
-            </>
-          ) : (
-            lineItems.map((item, index) => renderReceiptLine(item, { noTopMargin: index === 0 }))
-          )}
+          {isMembershipVisit ? (
+            <View style={styles.membershipTotalHintRow}>
+              <AppText style={styles.membershipTotalHint}>Subscription appointment</AppText>
+              <MembershipMark />
+            </View>
+          ) : null}
 
-          {adjustments.map((item) => (
-            <View key={item.id} style={styles.adjustmentRow}>
-              {canEditFees ? (
-                <View style={styles.adjustmentLabelWrap}>
-                  <Pressable
-                    accessibilityLabel={`Remove ${item.label}`}
-                    accessibilityRole="button"
-                    hitSlop={8}
-                    style={styles.removeBtn}
-                    onPress={() => onRemoveFee(item.id)}
-                  >
-                    <Ionicons color={colors.danger} name="close-circle" size={18} />
-                  </Pressable>
-                  <AppText ellipsizeMode="tail" numberOfLines={2} style={styles.adjustmentLabel}>
-                    {item.label}
-                  </AppText>
+          {showReceiptContactNotice ? (
+            <CompleteVisitReceiptEmailNotice onPressAddContact={onPressAddReceiptContact} />
+          ) : null}
+
+          {canEditFees ? (
+            <View style={styles.feeActionRow}>
+              <Pressable accessibilityRole="button" hitSlop={8} onPress={openAddFeeSheet}>
+                <View style={styles.feeAction}>
+                  <View style={styles.feeIconCol}>
+                    <Ionicons color={colors.text} name="add" size={18} />
+                  </View>
+                  <AppText style={styles.feeActionLabel}>Fee or discount</AppText>
                 </View>
-              ) : (
-                <AppText ellipsizeMode="tail" numberOfLines={2} style={styles.adjustmentLabel}>
-                  {item.label}
-                </AppText>
-              )}
-              <AppText style={styles.adjustmentAmount}>{formatUsd(item.amount)}</AppText>
+              </Pressable>
             </View>
-          ))}
-
-          <View style={styles.breakdownTotalDivider}>
-            <Divider />
-          </View>
-          <LabelValueRow emphasize label="Total" noTopMargin value={formatUsd(subtotal)} />
+          ) : null}
         </View>
-      </DetailsSectionCard>
 
-      {canEditFees ? (
-        <Button
-          fullWidth
-          iconName="add-circle-outline"
-          title="Add fee"
-          variant="secondary"
-          onPress={openAddFeeSheet}
-        />
-      ) : null}
-
-      {followUpInfo.visible ? (
-        <View style={styles.followUpRow}>
-          <Ionicons
-            color={colors.placeholder}
-            name={followUpInfo.iconName}
-            size={14}
-            style={styles.followUpIcon}
+        <ScrollView
+          contentContainerStyle={[
+            styles.breakdownScrollContent,
+            { paddingBottom: 16 + iosKeyboardScrollPadding },
+          ]}
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator
+          style={styles.breakdownScroll}
+        >
+          <CompleteVisitBreakdownCard
+            adjustments={adjustments}
+            appliedPayments={appliedPayments}
+            formatUsd={formatUsd}
+            lineItems={lineItems}
+            total={subtotal}
           />
-          <AppText style={styles.followUpText}>{followUpInfo.message}</AppText>
+
+          {followUpInfo.visible ? (
+            <View style={styles.followUpRow}>
+              <Ionicons
+                color={colors.placeholder}
+                name={followUpInfo.iconName}
+                size={14}
+                style={styles.followUpIcon}
+              />
+              <AppText style={styles.followUpText}>{followUpInfo.message}</AppText>
+            </View>
+          ) : null}
+        </ScrollView>
+      </View>
+      {showCollectActions ? (
+        <View style={[styles.paymentFooter, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          {isTapToPayDevIntentPreviewEnabled() ? (
+            <View accessibilityRole="text" style={styles.testingModeBanner}>
+              <View style={styles.testingModeIconCol}>
+                <Ionicons color="#FF9F0A" name="warning" size={18} />
+              </View>
+              <View style={styles.testingModeTextCol}>
+                <AppText style={styles.testingModeTitle}>Testing mode</AppText>
+                <AppText style={styles.testingModeDetail}>
+                  Charge creates the Stripe payment and leaves this visit unpaid.
+                </AppText>
+              </View>
+            </View>
+          ) : null}
+          {showTapToPay ? (
+            <Button
+              accessibilityHint={
+                tapToPayNeedsReceiptContact
+                  ? 'Add a customer email or phone below to use Tap to Pay'
+                  : canUseTapToPay
+                    ? TAP_TO_PAY_COLLECT_ACCESSIBILITY_HINT
+                    : TAP_TO_PAY_SETUP_ACCESSIBILITY_HINT
+              }
+              disabled={tapToPayConnectLoading || tapToPayNeedsReceiptContact}
+              fullWidth
+              iconNode={<TapToPayCheckoutIcon size={22} />}
+              loading={tapToPayConnectLoading}
+              title={TAP_TO_PAY_CHECKOUT_BUTTON_LABEL}
+              variant="surfaceLight"
+              onPress={handleTapToPayPress}
+            />
+          ) : null}
+          <Button fullWidth title="Mark as paid" variant="secondary" onPress={openMarkPaidSheet} />
         </View>
       ) : null}
-
       <TapToPaySetupRequiredSheet
         isMember={isTeamMember}
         visible={setupSheetVisible}
         onRequestClose={() => setSetupSheetVisible(false)}
         onSetupPress={handleSetupPaymentsPress}
       />
-    </ScrollView>
+    </>
   );
 }
 
@@ -663,6 +654,7 @@ export function BookingCompleteVisitSheet({
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const accessToken = session?.access_token ?? null;
+  const showTapToPayTip = isTapToPayTipEnabledForEmail(session?.user?.email);
   const { canUseSms } = useCustomerSmsAccess();
   const {
     isConnectReady: tapToPayConnectReady,
@@ -686,8 +678,9 @@ export function BookingCompleteVisitSheet({
   const [iosKeyboardScrollPadding, setIosKeyboardScrollPadding] = useState(0);
 
   const [adjustments, setAdjustments] = useState(
-    /** @type {Array<{ id: string; label: string; amount: number }>} */ ([]),
+    /** @type {Array<{ id: string; label: string; amount: number; kind?: 'fee' | 'discount' }>} */ ([]),
   );
+  const didSeedAdjustmentsRef = useRef(false);
   const [tapToPayAmount, setTapToPayAmount] = useState(0);
   const [inPersonPayment, setInPersonPayment] = useState(
     /** @type {{ method: string; amount: number } | null} */ (null),
@@ -695,6 +688,7 @@ export function BookingCompleteVisitSheet({
   const [stripePaymentIntentId, setStripePaymentIntentId] = useState(
     /** @type {string | null} */ (null),
   );
+  const [tapToPayTipCents, setTapToPayTipCents] = useState(0);
   const [submitPhase, setSubmitPhase] = useState(
     /** @type {'idle' | 'pending' | 'success'} */ ('idle'),
   );
@@ -736,6 +730,24 @@ export function BookingCompleteVisitSheet({
     runClose(() => setMounted(false));
     return undefined;
   }, [mounted, visible, runOpen, runClose]);
+
+  useEffect(() => {
+    if (!visible) {
+      didSeedAdjustmentsRef.current = false;
+      return;
+    }
+    if (didSeedAdjustmentsRef.current || !visitModel) {
+      return;
+    }
+    const saved = visitModel.adjustments;
+    if (!Array.isArray(saved)) {
+      return;
+    }
+    didSeedAdjustmentsRef.current = true;
+    if (saved.length > 0) {
+      setAdjustments(saved);
+    }
+  }, [visible, visitModel]);
 
   useEffect(() => {
     if (!visible) {
@@ -969,12 +981,15 @@ export function BookingCompleteVisitSheet({
   const clearTapToPayState = () => {
     setTapToPayAmount(0);
     setStripePaymentIntentId(null);
+    setTapToPayTipCents(0);
   };
 
-  const handleTapToPaySuccess = async ({ amountCents, paymentIntentId }) => {
+  const handleTapToPaySuccess = async ({ amountCents, paymentIntentId, tipCents = 0 }) => {
     const amount = amountCents / 100;
     const intentId = paymentIntentId?.trim() || null;
+    const resolvedTipCents = Math.max(0, Math.round(Number(tipCents) || 0));
     setTapToPayAmount(amount);
+    setTapToPayTipCents(resolvedTipCents);
     setInPersonPayment(null);
     setStripePaymentIntentId(intentId);
 
@@ -986,13 +1001,21 @@ export function BookingCompleteVisitSheet({
           tapToPayAmount: amount,
           inPersonPayment: null,
           stripePaymentIntentId: intentId,
+          tipCents: resolvedTipCents,
         });
         await onComplete(checkout);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         setSubmitPhase('success');
-      } catch {
-        clearTapToPayState();
+      } catch (err) {
         setSubmitPhase('idle');
+        const message =
+          err instanceof Error && err.message.trim()
+            ? err.message.trim()
+            : 'The visit could not be completed.';
+        Alert.alert(
+          'Card charged',
+          `${message}\n\nThe card was charged. Tap Complete to finish the visit. Don't charge the card again.`,
+        );
       }
     }
   };
@@ -1001,7 +1024,12 @@ export function BookingCompleteVisitSheet({
     clearTapToPayState();
     setAdjustments((prev) => [
       ...prev,
-      { id: `adj-${Date.now()}`, label: fee.label, amount: fee.amount },
+      {
+        id: fee.id || `adj-${Date.now()}`,
+        label: fee.label,
+        amount: fee.amount,
+        kind: fee.amount < 0 ? 'discount' : 'fee',
+      },
     ]);
   };
 
@@ -1116,6 +1144,7 @@ export function BookingCompleteVisitSheet({
         tapToPayAmount,
         inPersonPayment,
         stripePaymentIntentId,
+        tipCents: tapToPayTipCents,
       });
       await onComplete(checkout);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {
@@ -1124,8 +1153,13 @@ export function BookingCompleteVisitSheet({
         }
       });
       setSubmitPhase('success');
-    } catch {
+    } catch (err) {
       setSubmitPhase('idle');
+      const message =
+        err instanceof Error && err.message.trim()
+          ? err.message.trim()
+          : 'Could not complete this visit. Try again.';
+      Alert.alert('Could not complete', message);
     }
   }, [
     MOCK_COMPLETE_MS,
@@ -1138,6 +1172,7 @@ export function BookingCompleteVisitSheet({
     stripePaymentIntentId,
     submitPhase,
     tapToPayAmount,
+    tapToPayTipCents,
   ]);
 
   const handleCompletePress = useCallback(() => {
@@ -1227,8 +1262,6 @@ export function BookingCompleteVisitSheet({
                     inPersonPayment={inPersonPayment}
                     iosKeyboardScrollPadding={iosKeyboardScrollPadding}
                     isMembershipVisit={Boolean(resolvedModel.isMembershipVisit)}
-                    isMultiJob={Boolean(resolvedModel.isMultiJob)}
-                    jobs={resolvedModel.jobs}
                     lineItems={resolvedModel.lineItems}
                     merchantDisplayName={merchantDisplayName}
                     onlinePaidRowLabel={onlinePaidRowLabel}
@@ -1236,6 +1269,7 @@ export function BookingCompleteVisitSheet({
                     showCollectActions={showCollectActions}
                     showReceiptContactNotice={showReceiptContactNotice}
                     showTapToPay={showTapToPay}
+                    showTapToPayTip={showTapToPayTip}
                     tapToPayConnectLoading={resolvedTapToPayConnectLoading}
                     tapToPayConnectReady={resolvedTapToPayConnectReady}
                     tapToPayPrewarmConnectParams={tapToPayPrewarmConnectParams}
@@ -1252,26 +1286,28 @@ export function BookingCompleteVisitSheet({
                     onTapToPaySuccess={handleTapToPaySuccess}
                   />
 
-                  <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-                    <Button
-                      accessibilityHint={
-                        canCompleteVisit
-                          ? undefined
-                          : 'Collect the remaining balance with Tap to Pay or Mark as paid'
-                      }
-                      disabled={isSubmitting}
-                      fullWidth
-                      iconName="checkmark-done-outline"
-                      style={
-                        !canCompleteVisit && !isSubmitting
-                          ? styles.completeButtonBlocked
-                          : undefined
-                      }
-                      title="Complete"
-                      variant="primary"
-                      onPress={handleCompletePress}
-                    />
-                  </View>
+                  {showCollectActions ? null : (
+                    <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+                      <Button
+                        accessibilityHint={
+                          canCompleteVisit
+                            ? undefined
+                            : 'Collect the remaining balance with Tap to Pay or Mark as paid'
+                        }
+                        disabled={isSubmitting}
+                        fullWidth
+                        iconName="checkmark-done-outline"
+                        style={
+                          !canCompleteVisit && !isSubmitting
+                            ? styles.completeButtonBlocked
+                            : undefined
+                        }
+                        title="Complete"
+                        variant="primary"
+                        onPress={handleCompletePress}
+                      />
+                    </View>
+                  )}
                 </>
               ) : null}
 

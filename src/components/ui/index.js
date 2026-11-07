@@ -50,6 +50,7 @@ export { CHART_MONTH_SHORT, chartMonthTick, chartMonthTooltip } from './chartMon
 export { TrendAreaChart } from './TrendAreaChart';
 export { SpecialtyChips } from './SpecialtyChips';
 export { SegmentedToggle } from './SegmentedToggle';
+export { WhiteSegmentedTabs } from './WhiteSegmentedTabs';
 export { FloatingActionButton } from './FloatingActionButton';
 export { FrostedCard } from './FrostedCard';
 export { FrostedIconWell, FROSTED_ICON_WELL_SIZE, frostedSurfaceColors } from './FrostedIconWell';

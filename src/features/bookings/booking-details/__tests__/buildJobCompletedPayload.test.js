@@ -19,6 +19,20 @@ describe('buildJobCompletedPayload', () => {
     ).toEqual({ action: BOOKING_ACTION.JOB_COMPLETED });
   });
 
+  it('sends a discount as kind discount with a positive amount', () => {
+    expect(
+      mapSessionFeesToCents([
+        { label: 'Travel fee', amount: 20 },
+        { label: 'Returning customer', amount: -10 },
+        { label: 'Deposit', amount: 50, kind: 'discount' },
+      ]),
+    ).toEqual([
+      { kind: 'fee', label: 'Travel fee', amountCents: 2000 },
+      { kind: 'discount', label: 'Returning customer', amountCents: 1000 },
+      { kind: 'discount', label: 'Deposit', amountCents: 5000 },
+    ]);
+  });
+
   it('maps session fees and in-person payment to cents', () => {
     expect(
       buildJobCompletedPayload({
@@ -27,7 +41,7 @@ describe('buildJobCompletedPayload', () => {
       }),
     ).toEqual({
       action: BOOKING_ACTION.JOB_COMPLETED,
-      sessionFees: [{ label: 'Pet hair', amountCents: 2500 }],
+      sessionFees: [{ kind: 'fee', label: 'Pet hair', amountCents: 2500 }],
       sessionPayment: { method: 'cash', amountCents: 12000 },
     });
   });
@@ -70,8 +84,45 @@ describe('buildJobCompletedPayload', () => {
         stripePaymentIntentId: null,
       }),
     ).toEqual({
-      sessionFees: [{ label: 'Extra wax', amount: 15 }],
+      sessionFees: [{ label: 'Extra wax', amount: 15, kind: 'fee' }],
       sessionPayment: { method: 'payment_app', amount: 80, stripePaymentIntentId: null },
+      tipCents: 0,
+    });
+  });
+
+  it('sends tipCents with tap to pay and leaves it out of the fee lines', () => {
+    expect(
+      buildJobCompletedPayload({
+        sessionFees: [{ label: 'Pet hair', amount: 25 }],
+        sessionPayment: {
+          method: 'tap_to_pay',
+          amount: 120,
+          stripePaymentIntentId: 'pi_123',
+        },
+        tipCents: 2000,
+      }),
+    ).toEqual({
+      action: BOOKING_ACTION.JOB_COMPLETED,
+      sessionFees: [{ kind: 'fee', label: 'Pet hair', amountCents: 2500 }],
+      sessionPayment: {
+        method: 'tap_to_pay',
+        amountCents: 12000,
+        stripePaymentIntentId: 'pi_123',
+      },
+      tipCents: 2000,
+    });
+  });
+
+  it('does not send a tip on mark as paid', () => {
+    expect(
+      buildJobCompletedPayload({
+        sessionFees: [],
+        sessionPayment: { method: 'cash', amount: 80, stripePaymentIntentId: null },
+        tipCents: 2000,
+      }),
+    ).toEqual({
+      action: BOOKING_ACTION.JOB_COMPLETED,
+      sessionPayment: { method: 'cash', amountCents: 8000 },
     });
   });
 
@@ -136,6 +187,16 @@ describe('buildJobCompletedPayload', () => {
         discountCents: 2300,
       }),
     ).toBe(9700);
+
+    expect(
+      computeCompleteVisitAmountDueCents({
+        servicePriceCents: 10000,
+        addonDetails: [],
+        sessionFees: [{ kind: 'discount', label: 'Deposit', amountCents: 5000 }],
+        paidOnlineCents: 0,
+        sessionPaymentAmountCents: 0,
+      }),
+    ).toBe(5000);
 
     expect(
       computeCompleteVisitAmountDueCents({

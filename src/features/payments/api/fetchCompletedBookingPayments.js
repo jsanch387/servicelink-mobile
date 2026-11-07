@@ -18,6 +18,7 @@ const COMPLETED_BOOKING_PAYMENTS_SELECT = `
     paid_online_amount_cents,
     tax_cents,
     session_fees_total_cents,
+    session_discounts_total_cents,
     session_payment_amount_cents,
     remaining_amount_cents,
     session_payment_method,

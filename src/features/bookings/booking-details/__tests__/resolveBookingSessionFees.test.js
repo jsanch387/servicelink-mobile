@@ -9,7 +9,7 @@ describe('resolveBookingSessionFees', () => {
         servicePrice: 100,
         addOnsTotal: 0,
       }),
-    ).toEqual([{ id: 'f1', name: 'Extra vacuum', price: 15 }]);
+    ).toEqual([{ id: 'f1', name: 'Extra vacuum', price: 15, kind: 'fee' }]);
   });
 
   it('falls back to invoice snapshot fees', () => {
@@ -22,7 +22,7 @@ describe('resolveBookingSessionFees', () => {
         servicePrice: 80,
         addOnsTotal: 0,
       }),
-    ).toEqual([{ id: 'invoice-fee-1', name: 'Pet hair', price: 20 }]);
+    ).toEqual([{ id: 'invoice-fee-1', name: 'Pet hair', price: 20, kind: 'fee' }]);
   });
 
   it('does not treat a session fee total that is only the stored tax as an additional fee', () => {
@@ -61,7 +61,7 @@ describe('resolveBookingSessionFees', () => {
         addOnsTotal: 0,
         sessionPaymentAmountCents: 10191,
       }),
-    ).toEqual([{ id: 'inferred-session-fees', name: 'Additional fees', price: 15 }]);
+    ).toEqual([{ id: 'inferred-session-fees', name: 'Additional fees', price: 15, kind: 'fee' }]);
   });
 
   it('does not treat stored tax as an additional fee', () => {
@@ -83,7 +83,7 @@ describe('resolveBookingSessionFees', () => {
         servicePrice: 100,
         addOnsTotal: 0,
       }),
-    ).toEqual([{ id: 'inferred-session-fees', name: 'Additional fees', price: 15 }]);
+    ).toEqual([{ id: 'inferred-session-fees', name: 'Additional fees', price: 15, kind: 'fee' }]);
   });
 
   it('infers additional fees from session payment amount above base due', () => {
@@ -95,7 +95,7 @@ describe('resolveBookingSessionFees', () => {
         sessionPaymentAmountCents: 11500,
         paidOnlineCents: 0,
       }),
-    ).toEqual([{ id: 'inferred-session-fees', name: 'Additional fees', price: 15 }]);
+    ).toEqual([{ id: 'inferred-session-fees', name: 'Additional fees', price: 15, kind: 'fee' }]);
   });
 
   it('does not treat a sale discount gap as additional fees', () => {
@@ -119,6 +119,39 @@ describe('resolveBookingSessionFees', () => {
         addOnsTotal: 0,
         discountDollars: 25,
       }),
-    ).toEqual([{ id: 'inferred-session-fees', name: 'Additional fees', price: 10 }]);
+    ).toEqual([{ id: 'inferred-session-fees', name: 'Additional fees', price: 10, kind: 'fee' }]);
+  });
+
+  it('does not turn a card tip into an additional fee', () => {
+    expect(
+      resolveBookingSessionFees({
+        sessionFeeLines: [],
+        paymentSummary: { tipCents: 1275 },
+        servicePrice: 85,
+        addOnsTotal: 0,
+        sessionPaymentAmountCents: 9775,
+      }),
+    ).toEqual([]);
+  });
+
+  it('reads a saved discount line instead of treating it as a fee', () => {
+    expect(
+      resolveBookingSessionFees({
+        sessionFeeLines: [
+          { id: 'f1', label: 'Travel', amount_cents: 1500, kind: 'fee' },
+          { id: 'd1', label: 'Deposit', amount_cents: 5000, kind: 'discount' },
+        ],
+        paymentSummary: {
+          totalAmountCents: 11500,
+          sessionFeesTotalCents: 1500,
+          sessionDiscountsTotalCents: 5000,
+        },
+        servicePrice: 100,
+        addOnsTotal: 0,
+      }),
+    ).toEqual([
+      { id: 'f1', name: 'Travel', price: 15, kind: 'fee' },
+      { id: 'd1', name: 'Deposit', price: 50, kind: 'discount' },
+    ]);
   });
 });

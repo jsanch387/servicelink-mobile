@@ -2,6 +2,7 @@
 
 export { StripeTerminalAppProvider } from './providers/StripeTerminalAppProvider';
 export { TapToPaySheet } from './components/TapToPaySheet';
+export { TapToPayTipSheet } from './components/TapToPayTipSheet';
 
 export { useTapToPayConnectReadiness } from './hooks/useTapToPayConnectReadiness';
 export { navigateToPaymentsSetup } from './utils/navigateToPaymentsSetup';
@@ -20,7 +21,9 @@ export { buildTapToPaySessionFees } from './utils/buildTapToPaySessionFees';
 export {
   TAP_TO_PAY_USE_SERVER_APIS,
   TAP_TO_PAY_USE_TERMINAL_SDK,
+  isTapToPayDevIntentPreviewEnabled,
   isTapToPayPlatformSupported,
+  isTapToPayTipEnabledForEmail,
   isTapToPayUiEnabled,
 } from './constants/tapToPayFeatureFlags';
 export { TAP_TO_PAY_RECEIPT_ROW_LABEL } from './constants/tapToPayCopy';

@@ -50,13 +50,21 @@ export function computeBookingEarningsCents(row) {
     : serviceCents + addonCents;
   const discountCents = Math.min(cents(row?.discount_cents), grossCents);
   const feesCents = cents(payment?.session_fees_total_cents);
-  const computedTotalCents = Math.max(grossCents - discountCents + feesCents, 0);
+  const visitDiscountCents = cents(
+    payment?.session_discounts_total_cents ?? payment?.sessionDiscountsTotalCents,
+  );
+  const computedTotalCents = Math.max(
+    grossCents - discountCents + feesCents - visitDiscountCents,
+    0,
+  );
   const paymentTotalCents = cents(payment?.total_amount_cents);
 
   let resolvedTotalCents = hasBookingPrice ? computedTotalCents : paymentTotalCents;
   if (paymentTotalCents > 0) {
     const paymentNeedsDiscountCorrection =
-      hasBookingPrice && discountCents > 0 && paymentTotalCents !== computedTotalCents;
+      hasBookingPrice &&
+      (discountCents > 0 || visitDiscountCents > 0) &&
+      paymentTotalCents !== computedTotalCents;
     const paymentMissingFees =
       hasBookingPrice && feesCents > 0 && paymentTotalCents < computedTotalCents;
     if (!paymentNeedsDiscountCorrection && !paymentMissingFees) {
