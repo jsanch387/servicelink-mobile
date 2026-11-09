@@ -8,6 +8,7 @@ import { resolveBookingDiscount } from './resolveBookingDiscount';
 import { resolveBookingSessionFees } from './resolveBookingSessionFees';
 import { resolveSessionPaymentForDisplay } from './resolveSessionPaymentForDisplay';
 import { getSessionPaymentMethodLabel } from './sessionPaymentDisplay';
+import { formatHeadlineDate, formatTimeRange } from './formatBookingScheduleHeadline';
 
 function formatMoney(amount) {
   const safe = Number.isFinite(amount) ? amount : 0;
@@ -155,6 +156,46 @@ function normalizeBookingPaymentSummary(raw) {
  *   accessibilityLabel: string;
  * }} BookingPaymentModel
  */
+
+/**
+ * Money already collected, shown as green negative rows above the balance.
+ * A single partial payment is "Deposit paid". A settled payment uses its method name.
+ *
+ * @param {{
+ *   paidOnlineCents: number;
+ *   sessionPaidCents: number;
+ *   sessionMethod?: string;
+ *   balanceCents: number;
+ * }} args
+ * @returns {Array<{ id: string; label: string; value: string }>}
+ */
+function buildCollectedLines({
+  paidOnlineCents,
+  sessionPaidCents,
+  sessionMethod = '',
+  balanceCents,
+}) {
+  const online = Math.max(0, Math.round(paidOnlineCents));
+  const session = Math.max(0, Math.round(sessionPaidCents));
+  const partial = balanceCents > 0;
+  /** @type {Array<{ id: string; label: string; value: string }>} */
+  const lines = [];
+  if (online > 0) {
+    lines.push({
+      id: 'paid-online',
+      label: session <= 0 && partial ? 'Deposit paid' : 'Paid online',
+      value: `-${formatMoney(online / 100)}`,
+    });
+  }
+  if (session > 0) {
+    lines.push({
+      id: 'paid-session',
+      label: online <= 0 && partial ? 'Deposit paid' : getSessionPaymentMethodLabel(sessionMethod),
+      value: `-${formatMoney(session / 100)}`,
+    });
+  }
+  return lines;
+}
 
 function emptyPaymentModel() {
   return {
@@ -591,6 +632,29 @@ export function buildBookingDetailsModel(booking) {
       : Number.isFinite(paymentTotal)
         ? paymentTotal
         : computedTotal;
+  const totalCents = Number.isFinite(total) ? Math.round(total * 100) : null;
+  const collectedCents =
+    Math.max(0, Math.round(resolvedSessionPayment.paidOnlineCents)) +
+    Math.max(0, Math.round(resolvedSessionPayment.sessionPaidCents));
+  const balanceCents = totalCents == null ? null : Math.max(0, totalCents - collectedCents);
+  const subtotalCents = Number.isFinite(servicePrice)
+    ? Math.round(Math.max(0, servicePrice + addOnsTotal) * 100)
+    : null;
+  const collected = buildCollectedLines({
+    paidOnlineCents: resolvedSessionPayment.paidOnlineCents,
+    sessionPaidCents: resolvedSessionPayment.sessionPaidCents,
+    sessionMethod: resolvedSessionPayment.sessionMethod,
+    balanceCents: balanceCents ?? 0,
+  });
+  const tipCents = Math.max(0, Math.round(Number(paymentSummary?.tipCents) || 0));
+  const showSubtotal =
+    subtotalCents != null &&
+    (discountDollars > 0 ||
+      storedTaxCents > 0 ||
+      sessionFees.length > 0 ||
+      sessionDiscounts.length > 0 ||
+      collectedCents > 0 ||
+      tipCents > 0);
 
   const legacyVehicleLine = buildVehicleDisplayLine(booking);
 
@@ -676,7 +740,9 @@ export function buildBookingDetailsModel(booking) {
       /** Service/add-ons live in Summary job cards — Schedule is date/time/duration only. */
       omitServiceBlock: true,
       date: buildDateLine(ms),
+      headlineDate: formatHeadlineDate(ms),
       time: buildTimeLine(ms),
+      timeRange: formatTimeRange(ms, booking?.duration_minutes),
       duration: formatDuration(booking?.duration_minutes),
     },
     price: {
@@ -727,6 +793,19 @@ export function buildBookingDetailsModel(booking) {
       hasSessionFees: sessionFees.length > 0,
       hasSessionDiscounts: sessionDiscounts.length > 0,
       total: formatMoneyOrFallback(total),
+      subtotal: subtotalCents == null ? null : formatMoney(subtotalCents / 100),
+      showSubtotal,
+      balance:
+        balanceCents == null ? formatMoneyOrFallback(total) : formatMoney(balanceCents / 100),
+      collected,
+      hasTip: tipCents > 0,
+      tip:
+        tipCents > 0
+          ? {
+              label: 'Tip',
+              value: formatMoney(tipCents / 100),
+            }
+          : null,
       addOns: addOns.map((item) => ({ ...item, priceLabel: formatMoney(item.price) })),
       sessionFees: sessionFees.map((item) => ({ ...item, priceLabel: formatMoney(item.price) })),
       sessionDiscounts: sessionDiscounts.map((item) => ({

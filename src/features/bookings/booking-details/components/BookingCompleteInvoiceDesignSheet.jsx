@@ -311,22 +311,16 @@ function CompleteVisitDesignBody({
           marginTop: 8,
         },
         followUpRow: {
-          alignItems: 'flex-start',
-          flexDirection: 'row',
-          gap: 6,
-          marginTop: 6,
-        },
-        followUpIcon: {
-          marginTop: 0,
-          opacity: 0.85,
+          marginTop: 2,
+          width: '100%',
         },
         followUpText: {
           color: colors.placeholder,
-          flex: 1,
           fontSize: 12,
           fontWeight: '400',
           lineHeight: 16,
-          minWidth: 0,
+          textAlign: 'center',
+          width: '100%',
         },
       }),
     [colors],
@@ -551,12 +545,6 @@ function CompleteVisitDesignBody({
 
           {followUpInfo.visible ? (
             <View style={styles.followUpRow}>
-              <Ionicons
-                color={colors.placeholder}
-                name={followUpInfo.iconName}
-                size={14}
-                style={styles.followUpIcon}
-              />
               <AppText style={styles.followUpText}>{followUpInfo.message}</AppText>
             </View>
           ) : null}

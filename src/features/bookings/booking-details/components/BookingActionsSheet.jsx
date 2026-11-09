@@ -39,12 +39,12 @@ export const BOOKING_ACTIONS_HANDOFF_MS = 1000;
  * @property {ActionIconTone} iconTone
  */
 
-/** @type {Record<'edit' | 'reschedule' | 'cancel' | 'complete', ActionConfig>} */
+/** @type {Record<'edit' | 'reschedule' | 'cancel' | 'delete', ActionConfig>} */
 const ACTION_CONFIG = {
   edit: { icon: 'pencil-outline', iconTone: 'edit' },
   reschedule: { icon: 'calendar-outline', iconTone: 'schedule' },
   cancel: { icon: 'close-outline', iconTone: 'danger' },
-  complete: { icon: 'checkmark-outline', iconTone: 'success' },
+  delete: { icon: 'trash-outline', iconTone: 'danger' },
 };
 
 function resolveIconStyle(iconTone, colors, isDark) {
@@ -320,7 +320,7 @@ export function BookingActionsHeaderButton({ highlight = false, onPress }) {
 
   return (
     <Pressable
-      accessibilityHint="Opens edit, reschedule, cancel, and complete"
+      accessibilityHint="Opens edit, reschedule, cancel, and delete"
       accessibilityLabel="More actions"
       accessibilityRole="button"
       onPress={onPress}
@@ -351,22 +351,20 @@ export function BookingActionsSheet({
   isDeletingBooking = false,
   isCancelDisabled = false,
   isEditDisabled = false,
-  isMarkingCompleted = false,
-  isMarkCompletedDisabled = false,
   isRescheduleDisabled = false,
   isReschedulingBooking = false,
   onCancelBooking,
+  onDeleteBooking,
   onEdit,
   onJobStatusPress,
-  onMarkCompleted,
   onRequestClose,
   onReschedule,
+  canDeleteBookings = false,
   canWriteBookings = true,
   showJobStatusAction = false,
   visible,
 }) {
-  const actionsBusy =
-    isCancellingBooking || isMarkingCompleted || isReschedulingBooking || isDeletingBooking;
+  const actionsBusy = isCancellingBooking || isReschedulingBooking || isDeletingBooking;
 
   const styles = useMemo(
     () =>
@@ -382,6 +380,12 @@ export function BookingActionsSheet({
           gap: 10,
           minHeight: canWriteBookings ? 202 : undefined,
           width: '100%',
+        },
+        spacer: {
+          flexBasis: 0,
+          flexGrow: 1,
+          flexShrink: 0,
+          minWidth: 0,
         },
         row: {
           alignItems: 'stretch',
@@ -490,31 +494,34 @@ export function BookingActionsSheet({
                 loading={isCancellingBooking}
                 onPress={() => runAction(onCancelBooking)}
               />
-              <ActionGridTile
-                accessibilityLabel={
-                  isMarkCompletedDisabled ? 'Booking completed' : 'Mark booking complete'
-                }
-                config={ACTION_CONFIG.complete}
-                disabled={isMarkCompletedDisabled || actionsBusy || isCancelDisabled}
-                label={isMarkCompletedDisabled ? 'Completed' : 'Complete'}
-                loading={isMarkingCompleted}
-                onPress={() => runAction(onMarkCompleted)}
-              />
+              {canDeleteBookings ? (
+                <ActionGridTile
+                  accessibilityHint="Removes this appointment from your calendar. This can't be undone."
+                  accessibilityLabel="Delete booking"
+                  config={ACTION_CONFIG.delete}
+                  disabled={actionsBusy}
+                  label="Delete"
+                  loading={isDeletingBooking}
+                  onPress={() => runAction(onDeleteBooking)}
+                />
+              ) : (
+                <View style={styles.spacer} />
+              )}
             </View>
           </View>
-        ) : (
+        ) : canDeleteBookings ? (
           <Button
-            accessibilityLabel={
-              isMarkCompletedDisabled ? 'Booking completed' : 'Mark booking complete'
-            }
-            disabled={isMarkCompletedDisabled || actionsBusy || isCancelDisabled}
+            accessibilityHint="Removes this appointment from your calendar. This can't be undone."
+            accessibilityLabel="Delete booking"
+            disabled={actionsBusy}
             fullWidth
-            iconName="checkmark-outline"
-            loading={isMarkingCompleted}
-            title={isMarkCompletedDisabled ? 'Completed' : 'Complete'}
-            onPress={() => runAction(onMarkCompleted)}
+            iconName="trash-outline"
+            loading={isDeletingBooking}
+            title="Delete booking"
+            variant="danger"
+            onPress={() => runAction(onDeleteBooking)}
           />
-        )}
+        ) : null}
       </View>
     </BottomSheetModal>
   );

@@ -1,11 +1,17 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { AppText, Divider, MembershipMark } from '../../../../components/ui';
+import { AppText, Divider, MembershipMark, SurfaceCard } from '../../../../components/ui';
 import { useTheme } from '../../../../theme';
+import { bookingPaymentFooter } from '../utils/bookingPaymentFooter';
+
+const CARD_BG = '#161616';
+const FOOTER_BG = '#1A1A1A';
+const FOOTER_DIVIDER = '#222222';
+const DUE_AMBER = '#F5B83D';
+const ADDON_GRAY = '#D4D4D4';
 
 /**
- * Multi-job summary cards — matches create-appointment Review job cards
- * (service + price, option, vehicle, add-ons) plus visit total.
+ * Service, add-ons, total, and payment status in one card.
  *
  * @param {{
  *   jobs: Array<{
@@ -28,192 +34,211 @@ import { useTheme } from '../../../../theme';
  *     total?: string;
  *   };
  *   isMembershipVisit?: boolean;
+ *   payment?: object | null;
+ *   sharedVehicle?: string;
  * }} props
  */
-export function BookingJobsSummarySection({ jobs, formattedPrice, isMembershipVisit = false }) {
+export function BookingJobsSummarySection({
+  jobs,
+  formattedPrice,
+  isMembershipVisit = false,
+  payment = null,
+  sharedVehicle = '',
+}) {
   const { colors } = useTheme();
   const list = Array.isArray(jobs) ? jobs : [];
+  const footer = bookingPaymentFooter(payment);
+  const collected = formattedPrice?.collected ?? [];
+  const showSubtotal = Boolean(formattedPrice?.showSubtotal);
+  const hasDeposit = collected.length > 0;
+  const amountLabel = hasDeposit ? 'Balance' : 'Total';
+  const amountValue = formattedPrice?.balance || formattedPrice?.total || '—';
+  const sharedVehicleLine = String(sharedVehicle ?? '').trim();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        section: {
-          rowGap: 8,
+        card: {
+          backgroundColor: CARD_BG,
+          borderRadius: 16,
+          overflow: 'hidden',
+          paddingHorizontal: 0,
+          paddingVertical: 0,
         },
-        sectionTitle: {
-          color: colors.textSecondary,
-          fontSize: 15,
-          fontWeight: '600',
-          letterSpacing: -0.2,
-        },
-        jobsStack: {
-          gap: 10,
-        },
-        jobCard: {
-          backgroundColor: colors.cardSurface,
-          borderColor: colors.border,
-          borderRadius: 14,
-          borderWidth: 1,
-          paddingHorizontal: 12,
-          paddingVertical: 12,
+        body: {
+          paddingBottom: 8,
+          paddingHorizontal: 16,
+          paddingTop: 16,
         },
         jobTopRow: {
           alignItems: 'flex-start',
           flexDirection: 'row',
-          justifyContent: 'space-between',
+          width: '100%',
         },
         jobMainCol: {
           flex: 1,
-          marginRight: 12,
           minWidth: 0,
+          paddingRight: 12,
         },
         serviceNameRow: {
           alignItems: 'center',
           flexDirection: 'row',
-          flexWrap: 'wrap',
           minWidth: 0,
+          width: '100%',
         },
-        jobPriceCol: {
-          alignItems: 'flex-end',
+        serviceNameCol: {
+          flex: 1,
+          flexShrink: 1,
+          minWidth: 0,
         },
         serviceName: {
           color: colors.text,
-          flexShrink: 1,
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: '700',
           letterSpacing: -0.3,
-          minWidth: 0,
+        },
+        membershipMark: {
+          marginLeft: 6,
+        },
+        metaLine: {
+          color: colors.textMuted,
+          fontSize: 12,
+          fontWeight: '400',
+          marginBottom: 8,
+          marginTop: 2,
+        },
+        priceCol: {
+          alignItems: 'flex-end',
+          flexShrink: 0,
+          justifyContent: 'flex-start',
         },
         servicePrice: {
           color: colors.text,
-          fontSize: 18,
-          fontWeight: '700',
-          letterSpacing: -0.3,
+          fontSize: 15,
+          fontWeight: '600',
+          letterSpacing: -0.2,
         },
-        optionMetaLine: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontWeight: '500',
-          marginTop: 2,
-        },
-        vehicleMetaTextSolo: {
-          color: colors.textMuted,
-          fontSize: 12,
-          fontWeight: '500',
-          marginTop: 10,
-        },
-        serviceDivider: {
-          marginBottom: 10,
-          marginTop: 12,
+        addons: {
+          gap: 4,
+          marginTop: 8,
         },
         addonRow: {
           alignItems: 'center',
           flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginBottom: 8,
-          paddingLeft: 2,
-        },
-        addonRowLast: {
-          marginBottom: 0,
-        },
-        addonName: {
-          color: colors.text,
-          flex: 1,
-          fontSize: 14,
-          fontWeight: '500',
-          marginRight: 12,
-        },
-        addonPrice: {
-          color: colors.text,
-          fontSize: 14,
-          fontWeight: '600',
-        },
-        totalCard: {
-          backgroundColor: colors.cardSurface,
-          borderColor: colors.border,
-          borderRadius: 14,
-          borderWidth: 1,
-          paddingHorizontal: 12,
-          paddingVertical: 14,
-        },
-        discountRow: {
-          alignItems: 'flex-start',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginBottom: 10,
-        },
-        discountLabel: {
-          color: colors.textSuccess ?? colors.text,
-          flex: 1,
-          fontSize: 13,
-          fontWeight: '500',
-          marginRight: 12,
-        },
-        discountValue: {
-          color: colors.textSuccess ?? colors.text,
-          fontSize: 13,
-          fontWeight: '600',
-        },
-        taxRow: {
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginBottom: 10,
           width: '100%',
         },
-        taxLabelCol: {
+        addonNameCol: {
           flex: 1,
           justifyContent: 'center',
           minWidth: 0,
           paddingRight: 12,
         },
-        taxValueCol: {
-          alignItems: 'flex-end',
+        addonPriceCol: {
+          flexShrink: 0,
           justifyContent: 'center',
         },
-        taxLabel: {
-          color: colors.textSecondary,
-          fontSize: 13,
-          fontWeight: '500',
+        addonName: {
+          color: ADDON_GRAY,
+          fontSize: 14,
+          fontWeight: '400',
         },
-        taxValue: {
-          color: colors.textSecondary,
-          fontSize: 13,
-          fontWeight: '600',
+        addonPrice: {
+          color: ADDON_GRAY,
+          fontSize: 14,
+          fontWeight: '400',
         },
-        feeRow: {
+        jobDivider: {
+          marginVertical: 10,
+          opacity: 1,
+        },
+        footerDivider: {
+          marginBottom: 8,
+          marginTop: 10,
+          opacity: 1,
+        },
+        balanceFooter: {
+          alignItems: 'center',
+          backgroundColor: FOOTER_BG,
+          borderTopColor: FOOTER_DIVIDER,
+          borderTopWidth: 1,
+          flexDirection: 'row',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          width: '100%',
+        },
+        balanceLabelCol: {
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
+        },
+        balanceValueCol: {
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          marginLeft: 12,
+        },
+        adjustmentRow: {
           alignItems: 'flex-start',
           flexDirection: 'row',
           justifyContent: 'space-between',
-          marginBottom: 10,
+          marginBottom: 6,
+          width: '100%',
         },
-        feeLabel: {
-          color: colors.textSecondary,
+        adjustmentLabelCol: {
           flex: 1,
-          fontSize: 13,
-          fontWeight: '500',
-          marginRight: 12,
+          minWidth: 0,
+          paddingRight: 12,
         },
-        feeValue: {
-          color: colors.textSecondary,
+        adjustmentLabel: {
+          color: colors.textMuted,
           fontSize: 13,
-          fontWeight: '600',
+          fontWeight: '400',
         },
-        totalRow: {
-          alignItems: 'baseline',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
+        adjustmentValue: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '400',
+        },
+        collectedValue: {
+          color: colors.moneyPositive,
+          fontSize: 13,
+          fontWeight: '400',
+        },
+        discountLabel: {
+          color: colors.moneyPositive,
+          fontSize: 13,
+          fontWeight: '400',
+        },
+        discountValue: {
+          color: colors.moneyPositive,
+          fontSize: 13,
+          fontWeight: '400',
         },
         totalLabel: {
           color: colors.text,
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: '700',
+          letterSpacing: -0.2,
         },
         totalValue: {
           color: colors.text,
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: '700',
           letterSpacing: -0.2,
+        },
+        payMethod: {
+          color: colors.textMuted,
+          fontSize: 12,
+          fontWeight: '400',
+        },
+        payBadge: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+        payDetail: {
+          color: colors.textMuted,
+          fontSize: 13,
+          fontWeight: '500',
+          marginTop: 6,
         },
         membershipHint: {
           color: colors.textMuted,
@@ -228,16 +253,23 @@ export function BookingJobsSummarySection({ jobs, formattedPrice, isMembershipVi
 
   if (list.length === 0) return null;
 
+  const badgeColor =
+    footer?.tone === 'due'
+      ? DUE_AMBER
+      : footer?.tone === 'paid'
+        ? colors.moneyPositive
+        : colors.textMuted;
+
   return (
-    <View style={styles.section}>
-      <AppText style={styles.sectionTitle}>Summary</AppText>
-      <View style={styles.jobsStack}>
+    <SurfaceCard padding="none" style={styles.card}>
+      <View style={styles.body}>
         {list.map((job, index) => {
           const addonRows = job.addOns ?? [];
-          const optionLabel = String(job.pricingOption ?? '').trim();
-          const vehicleLine = String(job.vehicleLine ?? '').trim();
+          const ownVehicle = String(job.vehicleLine ?? '').trim();
+          const vehicleLine = ownVehicle || (list.length === 1 ? sharedVehicleLine : '');
           return (
-            <View key={job.id ?? `job-card-${index}`} style={styles.jobCard}>
+            <View key={job.id ?? `job-card-${index}`}>
+              {index > 0 ? <Divider style={styles.jobDivider} /> : null}
               <View style={styles.jobTopRow}>
                 <View style={styles.jobMainCol}>
                   <View
@@ -248,97 +280,151 @@ export function BookingJobsSummarySection({ jobs, formattedPrice, isMembershipVi
                     }
                     style={styles.serviceNameRow}
                   >
-                    <AppText numberOfLines={3} style={styles.serviceName}>
-                      {job.serviceName || '—'}
-                    </AppText>
-                    {isMembershipVisit ? <MembershipMark /> : null}
+                    <View style={styles.serviceNameCol}>
+                      <AppText ellipsizeMode="tail" numberOfLines={1} style={styles.serviceName}>
+                        {job.serviceName || '—'}
+                      </AppText>
+                    </View>
+                    {isMembershipVisit ? <MembershipMark style={styles.membershipMark} /> : null}
                   </View>
-                  {optionLabel ? (
-                    <AppText style={styles.optionMetaLine}>{optionLabel}</AppText>
-                  ) : null}
                   {vehicleLine ? (
-                    <AppText numberOfLines={1} style={styles.vehicleMetaTextSolo}>
+                    <AppText numberOfLines={1} style={styles.metaLine}>
                       {vehicleLine}
                     </AppText>
                   ) : null}
                 </View>
-                <View style={styles.jobPriceCol}>
+                <View style={styles.priceCol}>
                   <AppText style={styles.servicePrice}>{job.servicePriceLabel || '—'}</AppText>
                 </View>
               </View>
               {addonRows.length > 0 ? (
-                <>
-                  <Divider style={styles.serviceDivider} />
-                  {addonRows.map((a, addonIndex) => (
+                <View style={styles.addons}>
+                  {addonRows.map((addon, addonIndex) => (
                     <View
-                      key={String(a.id ?? `${index}-addon-${addonIndex}`)}
-                      style={[
-                        styles.addonRow,
-                        addonIndex === addonRows.length - 1 ? styles.addonRowLast : null,
-                      ]}
+                      key={String(addon.id ?? `${index}-addon-${addonIndex}`)}
+                      style={styles.addonRow}
                     >
-                      <AppText numberOfLines={2} style={styles.addonName}>
-                        {a.name}
-                      </AppText>
-                      <AppText style={styles.addonPrice}>{a.priceLabel}</AppText>
+                      <View style={styles.addonNameCol}>
+                        <AppText ellipsizeMode="tail" numberOfLines={1} style={styles.addonName}>
+                          {addon.name}
+                        </AppText>
+                      </View>
+                      <View style={styles.addonPriceCol}>
+                        <AppText style={styles.addonPrice}>{addon.priceLabel}</AppText>
+                      </View>
                     </View>
                   ))}
-                </>
+                </View>
               ) : null}
             </View>
           );
         })}
 
-        <View style={styles.totalCard}>
-          {formattedPrice?.hasDiscount && formattedPrice.discount ? (
-            <View style={styles.discountRow}>
+        {showSubtotal ? <Divider style={styles.footerDivider} /> : null}
+
+        {showSubtotal ? (
+          <View style={styles.adjustmentRow}>
+            <View style={styles.adjustmentLabelCol}>
+              <AppText numberOfLines={1} style={styles.adjustmentLabel}>
+                Subtotal
+              </AppText>
+            </View>
+            <AppText style={styles.adjustmentValue}>{formattedPrice.subtotal}</AppText>
+          </View>
+        ) : null}
+        {formattedPrice?.hasDiscount && formattedPrice.discount ? (
+          <View style={styles.adjustmentRow}>
+            <View style={styles.adjustmentLabelCol}>
               <AppText numberOfLines={2} style={styles.discountLabel}>
                 {formattedPrice.discount.label}
               </AppText>
-              <AppText style={styles.discountValue}>{formattedPrice.discount.value}</AppText>
             </View>
-          ) : null}
-          {formattedPrice?.hasTax && formattedPrice.tax ? (
-            <View style={styles.taxRow}>
-              <View style={styles.taxLabelCol}>
-                <AppText numberOfLines={1} style={styles.taxLabel}>
-                  {formattedPrice.tax.label}
-                </AppText>
-              </View>
-              <View style={styles.taxValueCol}>
-                <AppText style={styles.taxValue}>{formattedPrice.tax.value}</AppText>
-              </View>
-            </View>
-          ) : null}
-          {formattedPrice?.hasSessionFees
-            ? (formattedPrice.sessionFees ?? []).map((item) => (
-                <View key={item.id} style={styles.feeRow}>
-                  <AppText numberOfLines={2} style={styles.feeLabel}>
+            <AppText style={styles.discountValue}>{formattedPrice.discount.value}</AppText>
+          </View>
+        ) : null}
+        {formattedPrice?.hasSessionFees
+          ? (formattedPrice.sessionFees ?? []).map((item) => (
+              <View key={item.id} style={styles.adjustmentRow}>
+                <View style={styles.adjustmentLabelCol}>
+                  <AppText numberOfLines={2} style={styles.adjustmentLabel}>
                     {item.name}
                   </AppText>
-                  <AppText style={styles.feeValue}>{item.priceLabel}</AppText>
                 </View>
-              ))
-            : null}
-          {formattedPrice?.hasSessionDiscounts
-            ? (formattedPrice.sessionDiscounts ?? []).map((item) => (
-                <View key={item.id} style={styles.discountRow}>
+                <AppText style={styles.adjustmentValue}>{item.priceLabel}</AppText>
+              </View>
+            ))
+          : null}
+        {formattedPrice?.hasSessionDiscounts
+          ? (formattedPrice.sessionDiscounts ?? []).map((item) => (
+              <View key={item.id} style={styles.adjustmentRow}>
+                <View style={styles.adjustmentLabelCol}>
                   <AppText numberOfLines={2} style={styles.discountLabel}>
                     {item.name}
                   </AppText>
-                  <AppText style={styles.discountValue}>{item.priceLabel}</AppText>
                 </View>
-              ))
-            : null}
-          <View style={styles.totalRow}>
-            <AppText style={styles.totalLabel}>Visit total</AppText>
-            <AppText style={styles.totalValue}>{formattedPrice?.total || '—'}</AppText>
+                <AppText style={styles.discountValue}>{item.priceLabel}</AppText>
+              </View>
+            ))
+          : null}
+        {formattedPrice?.hasTax && formattedPrice.tax ? (
+          <View style={styles.adjustmentRow}>
+            <View style={styles.adjustmentLabelCol}>
+              <AppText numberOfLines={1} style={styles.adjustmentLabel}>
+                {formattedPrice.tax.label}
+              </AppText>
+            </View>
+            <AppText style={styles.adjustmentValue}>{formattedPrice.tax.value}</AppText>
           </View>
-          {isMembershipVisit ? (
-            <AppText style={styles.membershipHint}>Included in membership</AppText>
+        ) : null}
+        {formattedPrice?.hasTip && formattedPrice.tip ? (
+          <View style={styles.adjustmentRow}>
+            <View style={styles.adjustmentLabelCol}>
+              <AppText numberOfLines={1} style={styles.adjustmentLabel}>
+                {formattedPrice.tip.label}
+              </AppText>
+            </View>
+            <AppText style={styles.adjustmentValue}>{formattedPrice.tip.value}</AppText>
+          </View>
+        ) : null}
+        {collected.map((item) => (
+          <View key={item.id} style={styles.adjustmentRow}>
+            <View style={styles.adjustmentLabelCol}>
+              <AppText numberOfLines={1} style={styles.adjustmentLabel}>
+                {item.label}
+              </AppText>
+            </View>
+            <AppText style={styles.collectedValue}>{item.value}</AppText>
+          </View>
+        ))}
+
+        {footer?.detail ? <AppText style={styles.payDetail}>{footer.detail}</AppText> : null}
+
+        {isMembershipVisit ? (
+          <AppText style={styles.membershipHint}>Included in membership</AppText>
+        ) : null}
+      </View>
+
+      <View
+        accessibilityLabel={`${amountLabel} ${amountValue}${footer?.accessibilityLabel ? `. ${footer.accessibilityLabel}` : ''}`}
+        style={styles.balanceFooter}
+      >
+        <View style={styles.balanceLabelCol}>
+          <AppText style={styles.totalLabel}>{amountLabel}</AppText>
+          {footer?.method ? (
+            <AppText numberOfLines={1} style={styles.payMethod}>
+              {footer.method}
+            </AppText>
+          ) : null}
+        </View>
+        <View style={styles.balanceValueCol}>
+          <AppText style={styles.totalValue}>{amountValue}</AppText>
+          {footer?.badge ? (
+            <AppText numberOfLines={1} style={[styles.payBadge, { color: badgeColor }]}>
+              {footer.badge}
+            </AppText>
           ) : null}
         </View>
       </View>
-    </View>
+    </SurfaceCard>
   );
 }

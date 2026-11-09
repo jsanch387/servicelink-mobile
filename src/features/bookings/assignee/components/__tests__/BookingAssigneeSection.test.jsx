@@ -104,6 +104,25 @@ describe('BookingAssigneeSection', () => {
     expect(screen.queryByLabelText('Change assignee')).toBeNull();
   });
 
+  it('shows Assigned to in the details list for a solo shop', () => {
+    mockAssignees.canAssign = false;
+    mockAssignees.labelFor = () => null;
+    renderWithProviders(
+      <BookingAssigneeSection
+        assignedUserId={null}
+        bookingId="book-1"
+        bookingStatus="confirmed"
+        layout="meta"
+      />,
+    );
+    expect(screen.getByText('Assigned to')).toBeTruthy();
+    expect(screen.getByText('Unassigned')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Change assignee'));
+    expect(screen.getByText('Owner')).toBeTruthy();
+    expect(screen.getByLabelText('Sam Rivera, sam@shop.com')).toBeTruthy();
+  });
+
   it('hides the section for a solo shop with no assignee', () => {
     mockAssignees.canAssign = false;
     mockAssignees.labelFor = () => null;

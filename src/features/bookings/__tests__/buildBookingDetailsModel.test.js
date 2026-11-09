@@ -21,6 +21,19 @@ describe('buildBookingDetailsModel', () => {
     expect(model.schedule.date).not.toMatch(/September/);
   });
 
+  it('builds a short headline date and a start–end time range', () => {
+    const model = buildBookingDetailsModel({
+      duration_minutes: 60,
+      scheduled_date: '2026-09-23',
+      start_time: '09:00:00',
+    });
+    expect(model.schedule.headlineDate).toMatch(/Wed/);
+    expect(model.schedule.headlineDate).toMatch(/Sep/);
+    expect(model.schedule.headlineDate).toMatch(/23/);
+    expect(model.schedule.headlineDate).not.toMatch(/Wednesday/);
+    expect(model.schedule.timeRange).toBe('9:00 – 10:00 AM');
+  });
+
   it('splits combined service name into title and pricing option', () => {
     const model = buildBookingDetailsModel({
       service_name: 'Signature Shine — SUV',
@@ -536,6 +549,35 @@ describe('buildBookingDetailsModel', () => {
     expect(model.payment.status).toBe('Tap to Pay');
   });
 
+  it('shows a tap to pay tip on the price card without adding it to the visit total', () => {
+    const model = buildBookingDetailsModel({
+      status: 'completed',
+      customer_name: 'James',
+      service_name: 'Exterior Wash',
+      service_price_cents: 10000,
+      payment: {
+        paymentStatus: 'paid_full',
+        paymentMethodSelected: 'pay_in_person',
+        totalAmountCents: 10000,
+        paidOnlineAmountCents: 0,
+        remainingAmountCents: 0,
+        sessionPaymentMethod: 'tap_to_pay',
+        sessionPaymentAmountCents: 12000,
+        tipCents: 2000,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.subtotal).toBe('$100.00');
+    expect(model.formattedPrice.tip).toEqual({ label: 'Tip', value: '$20.00' });
+    expect(model.formattedPrice.hasTip).toBe(true);
+    expect(model.formattedPrice.total).toBe('$100.00');
+    expect(model.formattedPrice.collected).toEqual([
+      { id: 'paid-session', label: 'Tap to Pay', value: '-$120.00' },
+    ]);
+    expect(model.formattedPrice.balance).toBe('$0.00');
+  });
+
   it('shows Tap to Pay when server stored the collection under paid_online on pay_in_person', () => {
     const model = buildBookingDetailsModel({
       status: 'completed',
@@ -555,6 +597,40 @@ describe('buildBookingDetailsModel', () => {
     expect(model.payment.detail).toMatch(/115\.00/);
     expect(model.formattedPrice.hasSessionFees).toBe(true);
     expect(model.formattedPrice.sessionFees[0].priceLabel).toBe('$15.00');
+  });
+
+  it('splits subtotal, tax, deposit, and the remaining balance', () => {
+    const model = buildBookingDetailsModel({
+      service_name: 'Exterior Wash',
+      service_price_cents: 8500,
+      addon_details: {
+        addons: [
+          { id: 'tire', name: 'Tire shine', price_cents: 1500 },
+          { id: 'hair', name: 'Pet hair removal', price_cents: 4000 },
+        ],
+      },
+      payment: {
+        paymentMethodSelected: 'pay_in_person',
+        paidOnlineAmountCents: 2500,
+        remainingAmountCents: 12655,
+        totalAmountCents: 15155,
+        taxCents: 1155,
+        taxRateBps: 825,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.subtotal).toBe('$140.00');
+    expect(model.formattedPrice.showSubtotal).toBe(true);
+    expect(model.formattedPrice.tax).toMatchObject({
+      label: 'Tax (8.25%)',
+      value: '$11.55',
+    });
+    expect(model.formattedPrice.collected).toEqual([
+      { id: 'paid-online', label: 'Deposit paid', value: '-$25.00' },
+    ]);
+    expect(model.formattedPrice.balance).toBe('$126.55');
+    expect(model.formattedPrice.total).toBe('$151.55');
   });
 
   it('shows deposit status on Payment card when a partial online payment remains due', () => {

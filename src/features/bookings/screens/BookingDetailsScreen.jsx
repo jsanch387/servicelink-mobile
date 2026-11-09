@@ -1,9 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   InteractionManager,
-  Linking,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -11,19 +9,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import {
-  Button,
-  DeleteButton,
-  InfoSection,
-  InlineCardError,
-  SurfaceCard,
-  useToast,
-} from '../../../components/ui';
+import { Button, InlineCardError, SurfaceCard, useToast } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
 import { openMapsToAddress } from '../../../utils/openMapsToAddress';
-import { phoneForSmsUri } from '../../../utils/phone';
 import { safeUserFacingMessage } from '../../../utils/safeUserFacingMessage';
 import { BookingActionsMovedTip } from '../booking-details/components/BookingActionsMovedTip';
 import {
@@ -33,17 +23,20 @@ import {
 import { BookingCompleteVisitSheet } from '../booking-details/components/BookingCompleteInvoiceDesignSheet';
 import { BookingJobStatusSheet } from '../booking-details/components/BookingJobStatusSheet';
 import { BookingMarkCompleteSheet } from '../booking-details/components/BookingMarkCompleteSheet';
-import { BookingPaymentSection } from '../booking-details/components/BookingPaymentSection';
-import { BookingDetailsStatusBanner } from '../booking-details/components/BookingDetailsStatusBanner';
-import { BookingActivitySection } from '../booking-details/components/BookingActivitySection';
+import { BookingCustomerCard } from '../booking-details/components/BookingCustomerCard';
+import { BookingDetailsHero } from '../booking-details/components/BookingDetailsHero';
+import { BookingDetailsMetaSection } from '../booking-details/components/BookingDetailsMetaSection';
+import { BookingNotesSheet } from '../booking-details/components/BookingNotesSheet';
 import { BookingDetailsSkeleton } from '../booking-details/components/BookingDetailsSkeleton';
 import { BookingJobsSummarySection } from '../booking-details/components/BookingJobsSummarySection';
-import { BookingVisitSection } from '../booking-details/components/BookingVisitSection';
+import { BookingLocationCard } from '../booking-details/components/BookingLocationCard';
+import { BookingAssigneeSection } from '../assignee/components/BookingAssigneeSection';
 import { readAssignedUserId } from '../assignee/utils/readAssignedUserId';
 import { useBookingActions } from '../booking-details/hooks/useBookingActions';
 import { useBookingActionsMovedTip } from '../booking-details/hooks/useBookingActionsMovedTip';
 import { useMarkBookingCompleteFlow } from '../booking-details/hooks/useMarkBookingCompleteFlow';
 import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
+import { useUpdateBookingNotes } from '../booking-details/hooks/useUpdateBookingNotes';
 import { buildBookingDetailsModel } from '../booking-details/utils/buildBookingDetailsModel';
 import { useShopAccess } from '../../shop';
 import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
@@ -56,9 +49,11 @@ export function BookingDetailsScreen({ route }) {
   const bookingId = route?.params?.bookingId;
   const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
   const [jobStatusSheetOpen, setJobStatusSheetOpen] = useState(false);
+  const [notesSheetOpen, setNotesSheetOpen] = useState(false);
   const [completeScrollRequestId, setCompleteScrollRequestId] = useState(0);
   const scrollRef = useRef(/** @type {ScrollView | null} */ (null));
   const detailsQuery = useBookingDetails(bookingId);
+  const notesSave = useUpdateBookingNotes(bookingId, detailsQuery.booking?.business_id);
   const bookingActions = useBookingActions(bookingId);
   const { canDeleteBookings, canWriteBookings } = useShopAccess();
   const smsAccess = useCustomerSmsAccess();
@@ -97,11 +92,11 @@ export function BookingDetailsScreen({ route }) {
   const isCancelledStatus = statusLower === 'cancelled' || statusLower === 'canceled';
   const isConfirmedStatus = statusLower === 'confirmed';
   const showJobStatusAction = smsAccess.canUseSms && !isCompletedStatus && !isCancelledStatus;
+  const bookingIsOpen = !isCancelledStatus && !isCompletedStatus;
   const showActionsMenu =
     !detailsQuery.isLoading &&
     !detailsQuery.errorMessage &&
-    !isCancelledStatus &&
-    !isCompletedStatus;
+    ((bookingIsOpen && (canWriteBookings || showJobStatusAction)) || canDeleteBookings);
   const { visible: showActionsMovedTip, dismiss: dismissActionsMovedTip } =
     useBookingActionsMovedTip({ enabled: showActionsMenu });
 
@@ -156,58 +151,16 @@ export function BookingDetailsScreen({ route }) {
     navigation.navigate(ROUTES.CUSTOMER_DETAILS, { customerId });
   }, [details.customer.id, navigation]);
 
-  const customerSectionRows = useMemo(() => {
-    const canOpenCustomer = Boolean(details.customer.id);
-    const rows = [
-      {
-        key: 'customer-name',
-        icon: 'person-outline',
-        value: details.customer.name,
-        emphasize: true,
-        interactionStyle: 'none',
-        onPress: canOpenCustomer ? handleOpenCustomer : undefined,
-        accessibilityLabel: canOpenCustomer ? `View ${details.customer.name}` : undefined,
-        trailing: canOpenCustomer ? (
-          <Ionicons color={colors.textMuted} name="chevron-forward" size={18} />
-        ) : null,
-      },
-    ];
-    if (canOpenCustomer) return rows;
-
-    const phoneDisplay = String(details.customer.phone ?? '').trim();
-    const walkInTelUri = phoneForSmsUri(phoneDisplay);
-    if (phoneDisplay.length > 0) {
-      rows.push({
-        key: 'customer-phone',
-        icon: 'call-outline',
-        value: phoneDisplay,
-        onPress: walkInTelUri
-          ? () => {
-              void Linking.openURL(`tel:${walkInTelUri}`);
-            }
-          : undefined,
-        accessibilityLabel: walkInTelUri ? 'Call customer' : undefined,
-      });
-    }
-    const emailDisplay = String(details.customer.email ?? '').trim();
-    if (emailDisplay.length > 0) {
-      rows.push({
-        key: 'customer-email',
-        icon: 'mail-outline',
-        value: emailDisplay,
-      });
-    }
-    return rows;
-  }, [
-    colors.textMuted,
-    details.customer.id,
-    details.customer.name,
-    details.customer.phone,
-    details.customer.email,
-    handleOpenCustomer,
-  ]);
-
   const notesDisplay = useMemo(() => String(details.notes ?? '').trim(), [details.notes]);
+  const scheduleSubtitle = useMemo(() => {
+    const time = String(details.schedule.timeRange || details.schedule.time || '').trim();
+    const duration = String(details.schedule.duration || '').trim();
+    return [time, duration].filter(Boolean).join(' · ');
+  }, [details.schedule.duration, details.schedule.time, details.schedule.timeRange]);
+  const jobCount = details.formattedPrice.jobs?.length ?? 0;
+  const sharedVehicleOnCard = details.hasVehicle && jobCount <= 1 ? details.vehicle : '';
+  const sharedVehicleInMeta = details.hasVehicle && jobCount > 1 ? details.vehicle : '';
+  const canEditBooking = canWriteBookings && !isCancelledStatus && !isCompletedStatus;
 
   const handleMarkCompleted = useCallback(() => {
     if (isCompletedStatus || isCancelledStatus || !bookingId) {
@@ -229,6 +182,24 @@ export function BookingDetailsScreen({ route }) {
       }
     },
     [markCompleteFlow],
+  );
+  const handleOpenNotes = useCallback(() => {
+    if (!canEditBooking || !bookingId) {
+      return;
+    }
+    notesSave.resetSaveError();
+    setNotesSheetOpen(true);
+  }, [bookingId, canEditBooking, notesSave]);
+  const handleSaveNotes = useCallback(
+    async (nextNotes) => {
+      try {
+        await notesSave.saveNotes(nextNotes);
+        setNotesSheetOpen(false);
+      } catch {
+        // The sheet stays open and shows the save error.
+      }
+    },
+    [notesSave],
   );
   const handleEditBooking = useCallback(() => {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
@@ -334,17 +305,23 @@ export function BookingDetailsScreen({ route }) {
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 16,
         },
+        contentWithDock: {
+          paddingBottom: 16,
+        },
+        scroll: {
+          flex: 1,
+        },
+        completeBar: {
+          backgroundColor: colors.shell,
+          paddingBottom: 8,
+          paddingHorizontal: SCREEN_GUTTER,
+          paddingTop: 8,
+        },
         errorWrap: {
           marginTop: 8,
         },
         errorRetry: {
           marginTop: 12,
-        },
-        notesCard: {
-          borderRadius: 10,
-        },
-        deleteSection: {
-          marginTop: 6,
         },
       }),
     [colors],
@@ -374,20 +351,19 @@ export function BookingDetailsScreen({ route }) {
         />
       )}
       <BookingActionsSheet
+        canDeleteBookings={canDeleteBookings}
         canWriteBookings={canWriteBookings}
         isCancelDisabled={isCancelledStatus || isCompletedStatus}
         isCancellingBooking={bookingActions.isCancellingBooking}
         isDeletingBooking={bookingActions.isDeletingBooking}
         isEditDisabled={isCancelledStatus || isCompletedStatus}
-        isMarkCompletedDisabled={isCompletedStatus}
-        isMarkingCompleted={markCompleteFlow.isConfirming}
         isRescheduleDisabled={!isConfirmedStatus}
         showJobStatusAction={showJobStatusAction}
         visible={actionsSheetOpen}
         onCancelBooking={handleCancelBooking}
+        onDeleteBooking={handleDeleteBooking}
         onEdit={handleEditBooking}
         onJobStatusPress={() => setJobStatusSheetOpen(true)}
-        onMarkCompleted={handleMarkCompleted}
         onRequestClose={() => setActionsSheetOpen(false)}
         onReschedule={handleReschedule}
       />
@@ -399,11 +375,26 @@ export function BookingDetailsScreen({ route }) {
         workHandoffStatus={detailsQuery.booking?.work_handoff_status}
         onRequestClose={() => setJobStatusSheetOpen(false)}
       />
+      <BookingNotesSheet
+        errorMessage={notesSave.saveError}
+        notes={notesDisplay}
+        saving={notesSave.isSaving}
+        visible={notesSheetOpen}
+        onRequestClose={() => {
+          if (notesSave.isSaving) return;
+          notesSave.resetSaveError();
+          setNotesSheetOpen(false);
+        }}
+        onSave={(nextNotes) => {
+          void handleSaveNotes(nextNotes);
+        }}
+      />
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, bookingIsOpen && styles.contentWithDock]}
         refreshControl={detailsRefreshControl}
         showsVerticalScrollIndicator={false}
+        style={styles.scroll}
       >
         {detailsQuery.isLoading ? <BookingDetailsSkeleton /> : null}
 
@@ -427,77 +418,60 @@ export function BookingDetailsScreen({ route }) {
 
         {!detailsQuery.isLoading && !detailsQuery.errorMessage ? (
           <>
-            <BookingDetailsStatusBanner
-              isCanceled={isCancelledStatus}
-              isCompleted={isCompletedStatus}
+            <BookingDetailsHero
+              date={details.schedule.headlineDate || details.schedule.date}
+              status={details.status}
+              subtitle={scheduleSubtitle}
             />
 
             <BookingJobsSummarySection
               formattedPrice={details.formattedPrice}
               isMembershipVisit={membershipVisit.isMembershipVisit}
               jobs={details.formattedPrice.jobs}
+              payment={paymentForDisplay}
+              sharedVehicle={sharedVehicleOnCard}
             />
 
-            <BookingVisitSection
-              assignedUserId={readAssignedUserId(detailsQuery.booking)}
-              bookingId={bookingId}
-              bookingStatus={details.status}
-              location={details.location}
-              schedule={details.schedule}
-              onOpenMaps={handleOpenMaps}
+            {details.location.hasAddress ? (
+              <BookingLocationCard location={details.location} onOpenMaps={handleOpenMaps} />
+            ) : null}
+
+            <BookingCustomerCard
+              customer={details.customer}
+              onOpenCustomer={details.customer.id ? handleOpenCustomer : undefined}
             />
 
-            <InfoSection
-              bodyPadding="roomy"
-              rowGap={14}
-              rows={customerSectionRows}
-              title="Customer"
-            />
-
-            {paymentForDisplay?.visible ? (
-              <BookingPaymentSection payment={paymentForDisplay} />
-            ) : null}
-
-            {details.hasVehicle ? (
-              <InfoSection
-                bodyPadding="roomy"
-                rowGap={14}
-                rows={
-                  details.vehicleRows?.length
-                    ? details.vehicleRows
-                    : [{ icon: 'car-sport-outline', value: details.vehicle }]
-                }
-                title={details.vehicleRows?.length > 1 ? 'Vehicles' : 'Vehicle'}
-              />
-            ) : null}
-
-            {notesDisplay ? (
-              <InfoSection
-                bodyPadding="roomy"
-                cardStyle={styles.notesCard}
-                hideIcons
-                rowGap={14}
-                rows={[{ icon: 'document-text-outline', value: notesDisplay }]}
-                title="Notes"
-              />
-            ) : null}
-
-            <BookingActivitySection onPress={handleOpenActivity} />
-            {canDeleteBookings ? (
-              <View style={styles.deleteSection}>
-                <DeleteButton
-                  accessibilityHint="Removes this appointment from your calendar. This can\'t be undone."
-                  accessibilityLabel="Delete booking permanently"
-                  disabled={actionsBusy || !bookingId}
-                  loading={bookingActions.isDeletingBooking}
-                  title="Delete booking"
-                  onPress={handleDeleteBooking}
+            <BookingDetailsMetaSection
+              assignee={
+                <BookingAssigneeSection
+                  assignedUserId={readAssignedUserId(detailsQuery.booking)}
+                  bookingId={bookingId}
+                  bookingStatus={details.status}
+                  layout="meta"
                 />
-              </View>
-            ) : null}
+              }
+              notes={notesDisplay}
+              vehicle={sharedVehicleInMeta}
+              onActivityPress={handleOpenActivity}
+              onNotesPress={canEditBooking ? handleOpenNotes : undefined}
+            />
           </>
         ) : null}
       </ScrollView>
+      {bookingIsOpen && !detailsQuery.isLoading && !detailsQuery.errorMessage ? (
+        <View style={styles.completeBar}>
+          <Button
+            accessibilityHint="Review this visit before marking it complete"
+            accessibilityLabel="Mark complete"
+            disabled={actionsBusy || !bookingId}
+            fullWidth
+            iconName="checkmark"
+            loading={markCompleteFlow.isConfirming}
+            title="Mark complete"
+            onPress={handleMarkCompleted}
+          />
+        </View>
+      ) : null}
       {showActionsMenu && showActionsMovedTip ? (
         <BookingActionsMovedTip
           onDismiss={dismissActionsMovedTip}

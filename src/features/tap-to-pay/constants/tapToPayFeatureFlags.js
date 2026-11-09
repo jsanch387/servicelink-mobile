@@ -1,5 +1,4 @@
 import { Platform } from 'react-native';
-import { isTapToPayNativeRuntimeAvailable } from '../utils/isTapToPayNativeRuntimeAvailable';
 
 /**
  * Tap to Pay Phase 2 rollout (compile-time flags).
@@ -25,18 +24,13 @@ export const TAP_TO_PAY_DEV_MOCK_COLLECTION =
   typeof __DEV__ !== 'undefined' && __DEV__ && !TAP_TO_PAY_USE_TERMINAL_SDK;
 
 /**
- * Simulator / Expo Go path: Charge creates a real PaymentIntent and stops.
- * The visit is not marked paid. Off in release builds and on a dev client that has Terminal.
+ * Simulator path that created a PaymentIntent and left the visit unpaid.
+ * Kept off so the payment screen uses real Tap to Pay.
  *
- * @param {boolean} [dev]
- * @param {boolean} [nativeAvailable]
  * @returns {boolean}
  */
-export function isTapToPayDevIntentPreviewEnabled(
-  dev = typeof __DEV__ !== 'undefined' && __DEV__,
-  nativeAvailable = isTapToPayNativeRuntimeAvailable(),
-) {
-  return Boolean(dev) && !nativeAvailable;
+export function isTapToPayDevIntentPreviewEnabled() {
+  return false;
 }
 
 /** Whether Tap to Pay UI is offered on this OS (v1: iOS only). */

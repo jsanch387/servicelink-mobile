@@ -11,8 +11,9 @@ function renderSheet(props = {}) {
   return renderWithProviders(
     <BookingActionsSheet
       visible
+      canDeleteBookings
       onCancelBooking={jest.fn()}
-      onMarkCompleted={jest.fn()}
+      onDeleteBooking={jest.fn()}
       onRequestClose={jest.fn()}
       onReschedule={jest.fn()}
       {...props}
@@ -59,22 +60,30 @@ describe('BookingActionsSheet', () => {
     expect(screen.queryByLabelText('Job status')).toBeNull();
   });
 
-  it('still shows Complete enabled alongside Job status', () => {
-    const onMarkCompleted = jest.fn();
-    renderSheet({ showJobStatusAction: true, onMarkCompleted });
-    const complete = screen.getByLabelText('Mark booking complete');
-    expect(complete).toBeTruthy();
-    fireEvent.press(complete);
+  it('shows Delete in place of Complete and calls onDeleteBooking after close', () => {
+    const onDeleteBooking = jest.fn();
+    renderSheet({ showJobStatusAction: true, onDeleteBooking });
+    expect(screen.queryByLabelText('Mark booking complete')).toBeNull();
+    const remove = screen.getByLabelText('Delete booking');
+    expect(remove).toBeTruthy();
+    fireEvent.press(remove);
     jest.advanceTimersByTime(BOOKING_ACTIONS_HANDOFF_MS);
-    expect(onMarkCompleted).toHaveBeenCalledTimes(1);
+    expect(onDeleteBooking).toHaveBeenCalledTimes(1);
   });
 
-  it('hides create-style writes and keeps Complete plus Job status', () => {
+  it('hides create-style writes and keeps Delete plus Job status', () => {
     renderSheet({ canWriteBookings: false, showJobStatusAction: true });
     expect(screen.getByLabelText('Job status')).toBeTruthy();
-    expect(screen.getByLabelText('Mark booking complete')).toBeTruthy();
+    expect(screen.getByLabelText('Delete booking')).toBeTruthy();
+    expect(screen.queryByLabelText('Mark booking complete')).toBeNull();
     expect(screen.queryByLabelText('Edit booking')).toBeNull();
     expect(screen.queryByLabelText('Reschedule booking')).toBeNull();
     expect(screen.queryByLabelText('Cancel booking')).toBeNull();
+  });
+
+  it('hides Delete when the member cannot delete bookings', () => {
+    renderSheet({ canDeleteBookings: false });
+    expect(screen.queryByLabelText('Delete booking')).toBeNull();
+    expect(screen.getByLabelText('Edit booking')).toBeTruthy();
   });
 });

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { DetailsLeadRow, DetailsSectionCard } from '../../../../components/ui';
+import { DetailsLeadRow, DetailsSectionCard, ValueNavRow } from '../../../../components/ui';
 import { useBookingAssignees } from '../hooks/useBookingAssignees';
 import { usePatchBookingAssignee } from '../hooks/usePatchBookingAssignee';
 import { BookingAssigneePickerSheet } from './BookingAssigneePickerSheet';
@@ -10,6 +10,8 @@ import { BookingAssigneePickerSheet } from './BookingAssigneePickerSheet';
  *   assignedUserId?: string | null;
  *   bookingStatus?: string | null;
  *   embedded?: boolean;
+ *   layout?: 'section' | 'meta';
+ *   showDividerBelow?: boolean;
  * }} props
  */
 export function BookingAssigneeSection({
@@ -17,6 +19,8 @@ export function BookingAssigneeSection({
   assignedUserId = null,
   bookingStatus = null,
   embedded = false,
+  layout = 'section',
+  showDividerBelow = true,
 }) {
   const assignees = useBookingAssignees();
   const patch = usePatchBookingAssignee(bookingId);
@@ -32,7 +36,7 @@ export function BookingAssigneeSection({
     statusLower === 'complete' ||
     statusLower === 'cancelled' ||
     statusLower === 'canceled';
-  const canPick = Boolean(bookingId) && assignees.canAssign && !isLocked;
+  const canPick = Boolean(bookingId) && !isLocked && (layout === 'meta' || assignees.canAssign);
   const assignedLabel = assignees.labelFor(assignedUserId);
   const label = assignees.labelFor(selectedUserId) || 'Unassigned';
 
@@ -57,12 +61,15 @@ export function BookingAssigneeSection({
     [canPick, embedded, label, patch],
   );
 
-  if (assignees.isLoading && !assignees.canAssign) {
-    return null;
-  }
-  // Solo shop: no team to assign. Keep the row only when a name is already on the job.
-  if (!assignees.canAssign && !assignedLabel) {
-    return null;
+  // The details list always shows Assigned to. Elsewhere, a solo shop only
+  // keeps the row when a name is already on the job.
+  if (layout !== 'meta') {
+    if (assignees.isLoading && !assignees.canAssign) {
+      return null;
+    }
+    if (!assignees.canAssign && !assignedLabel) {
+      return null;
+    }
   }
 
   async function handleSelect(userId) {
@@ -102,6 +109,29 @@ export function BookingAssigneeSection({
       }}
     />
   );
+
+  if (layout === 'meta') {
+    return (
+      <>
+        <ValueNavRow
+          accessibilityHint={canPick ? 'Choose who this visit is assigned to' : undefined}
+          accessibilityLabel={canPick ? 'Change assignee' : `Assigned to ${label}`}
+          label="Assigned to"
+          showDividerBelow={showDividerBelow}
+          value={label}
+          onPress={
+            canPick
+              ? () => {
+                  patch.resetAssignError();
+                  setSheetOpen(true);
+                }
+              : undefined
+          }
+        />
+        {sheet}
+      </>
+    );
+  }
 
   if (embedded) {
     return (
