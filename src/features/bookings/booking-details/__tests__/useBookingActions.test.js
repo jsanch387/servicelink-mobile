@@ -7,6 +7,16 @@ jest.mock('../../../auth', () => ({
   useAuth: jest.fn(),
 }));
 
+jest.mock('../../api/patchApproveAvailabilityBooking', () => ({
+  patchApproveAvailabilityBooking: jest.fn(),
+  isAppointmentRequestExpiredError: (error) =>
+    String(error?.message ?? '').trim() === 'This request expired.',
+}));
+
+jest.mock('../../api/patchDenyAvailabilityBooking', () => ({
+  patchDenyAvailabilityBooking: jest.fn(),
+}));
+
 jest.mock('../../api/patchCancelAvailabilityBooking', () => ({
   patchCancelAvailabilityBooking: jest.fn(),
 }));
@@ -32,6 +42,8 @@ jest.mock('../utils/invalidateBookingCachesAfterMutation', () => ({
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react-native';
 import { useAuth } from '../../../auth';
+import { patchApproveAvailabilityBooking } from '../../api/patchApproveAvailabilityBooking';
+import { patchDenyAvailabilityBooking } from '../../api/patchDenyAvailabilityBooking';
 import { patchCancelAvailabilityBooking } from '../../api/patchCancelAvailabilityBooking';
 import {
   applyRescheduleDisplayToBookingRow,
@@ -55,6 +67,38 @@ async function findRescheduleMutationConfig(mutationConfigs) {
     }
   }
   throw new Error('Expected a reschedule useMutation config');
+}
+
+/** Picks the mutation whose `mutationFn` calls `patchApproveAvailabilityBooking`. */
+async function findApproveMutationConfig(mutationConfigs) {
+  for (const config of mutationConfigs) {
+    patchApproveAvailabilityBooking.mockClear();
+    try {
+      await config.mutationFn();
+    } catch {
+      // wrong mutationFn shape or API throw — try next
+    }
+    if (patchApproveAvailabilityBooking.mock.calls.length > 0) {
+      return config;
+    }
+  }
+  throw new Error('Expected an approve useMutation config');
+}
+
+/** Picks the mutation whose `mutationFn` calls `patchDenyAvailabilityBooking`. */
+async function findDenyMutationConfig(mutationConfigs) {
+  for (const config of mutationConfigs) {
+    patchDenyAvailabilityBooking.mockClear();
+    try {
+      await config.mutationFn();
+    } catch {
+      // wrong mutationFn shape or API throw — try next
+    }
+    if (patchDenyAvailabilityBooking.mock.calls.length > 0) {
+      return config;
+    }
+  }
+  throw new Error('Expected a deny useMutation config');
 }
 
 /** Picks the mutation whose `mutationFn` calls `patchCancelAvailabilityBooking`. */
@@ -98,6 +142,14 @@ describe('useBookingActions', () => {
       },
     });
     deleteBookingById.mockResolvedValue({ data: { id: 'book-1' }, error: null });
+    patchApproveAvailabilityBooking.mockResolvedValue({
+      ok: true,
+      booking: { id: 'book-1', status: 'confirmed' },
+    });
+    patchDenyAvailabilityBooking.mockResolvedValue({
+      ok: true,
+      booking: { id: 'book-1', status: 'cancelled' },
+    });
   });
 
   function renderUseBookingActions() {
@@ -197,9 +249,105 @@ describe('useBookingActions', () => {
 
   it('registers cancel, reschedule, and delete mutations without calling APIs on mount', () => {
     renderUseBookingActions();
+    expect(patchApproveAvailabilityBooking).not.toHaveBeenCalled();
+    expect(patchDenyAvailabilityBooking).not.toHaveBeenCalled();
     expect(patchCancelAvailabilityBooking).not.toHaveBeenCalled();
     expect(patchRescheduleAvailabilityBooking).not.toHaveBeenCalled();
     expect(deleteBookingById).not.toHaveBeenCalled();
-    expect(useMutation).toHaveBeenCalledTimes(3);
+    expect(useMutation).toHaveBeenCalledTimes(5);
+  });
+
+  it('approves via server PATCH and marks the open booking confirmed', async () => {
+    const mutationConfigs = renderUseBookingActions();
+    const approveMutation = await findApproveMutationConfig(mutationConfigs);
+    patchApproveAvailabilityBooking.mockClear();
+
+    const booking = await approveMutation.mutationFn();
+    expect(patchApproveAvailabilityBooking).toHaveBeenCalledWith('token-1', 'book-1');
+    expect(booking).toEqual({ id: 'book-1', status: 'confirmed' });
+
+    await approveMutation.onSuccess(booking);
+    expect(queryClient.setQueryData).toHaveBeenCalled();
+    const updater = queryClient.setQueryData.mock.calls.at(-1)[1];
+    expect(updater({ id: 'book-1', status: 'requested' })).toEqual({
+      id: 'book-1',
+      status: 'confirmed',
+    });
+    expect(invalidateBookingCachesAfterMutation).toHaveBeenCalledWith(queryClient, 'book-1');
+  });
+
+  it('marks an expired request locally when approve returns the expiry error', async () => {
+    patchApproveAvailabilityBooking.mockResolvedValue({
+      ok: false,
+      error: new Error('This request expired.'),
+      httpStatus: 409,
+    });
+
+    const mutationConfigs = renderUseBookingActions();
+    const approveMutation = await findApproveMutationConfig(mutationConfigs);
+
+    await expect(approveMutation.mutationFn()).rejects.toThrow('This request expired.');
+    await approveMutation.onError(new Error('This request expired.'));
+
+    const updater = queryClient.setQueryData.mock.calls.at(-1)[1];
+    expect(updater({ id: 'book-1', status: 'requested' })).toEqual({
+      id: 'book-1',
+      status: 'expired',
+    });
+    expect(invalidateBookingCachesAfterMutation).toHaveBeenCalledWith(queryClient, 'book-1');
+  });
+
+  it('leaves the request unchanged in cache when approve fails for another reason', async () => {
+    patchApproveAvailabilityBooking.mockResolvedValue({
+      ok: false,
+      error: new Error('Forbidden'),
+      httpStatus: 403,
+    });
+
+    const mutationConfigs = renderUseBookingActions();
+    const approveMutation = await findApproveMutationConfig(mutationConfigs);
+    queryClient.setQueryData.mockClear();
+
+    await expect(approveMutation.mutationFn()).rejects.toThrow('Forbidden');
+    await approveMutation.onError(new Error('Forbidden'));
+    expect(queryClient.setQueryData).not.toHaveBeenCalled();
+  });
+
+  it('denies via server PATCH and marks the open booking cancelled', async () => {
+    const mutationConfigs = renderUseBookingActions();
+    const denyMutation = await findDenyMutationConfig(mutationConfigs);
+    patchDenyAvailabilityBooking.mockClear();
+
+    const booking = await denyMutation.mutationFn();
+    expect(patchDenyAvailabilityBooking).toHaveBeenCalledWith('token-1', 'book-1');
+    expect(booking).toEqual({ id: 'book-1', status: 'cancelled' });
+
+    await denyMutation.onSuccess(booking);
+    const updater = queryClient.setQueryData.mock.calls.at(-1)[1];
+    expect(updater({ id: 'book-1', status: 'requested' })).toEqual({
+      id: 'book-1',
+      status: 'cancelled',
+    });
+    expect(invalidateBookingCachesAfterMutation).toHaveBeenCalledWith(queryClient, 'book-1');
+  });
+
+  it('marks an expired request locally when deny returns the expiry error', async () => {
+    patchDenyAvailabilityBooking.mockResolvedValue({
+      ok: false,
+      error: new Error('This request expired.'),
+      httpStatus: 409,
+    });
+
+    const mutationConfigs = renderUseBookingActions();
+    const denyMutation = await findDenyMutationConfig(mutationConfigs);
+
+    await expect(denyMutation.mutationFn()).rejects.toThrow('This request expired.');
+    await denyMutation.onError(new Error('This request expired.'));
+
+    const updater = queryClient.setQueryData.mock.calls.at(-1)[1];
+    expect(updater({ id: 'book-1', status: 'requested' })).toEqual({
+      id: 'book-1',
+      status: 'expired',
+    });
   });
 });

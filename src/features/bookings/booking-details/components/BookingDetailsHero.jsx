@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '../../../../components/ui';
@@ -16,11 +17,15 @@ const PILL = {
     dark: { bg: 'rgba(255, 255, 255, 0.08)', text: '#d4d4d4', dot: '#a3a3a3' },
     light: { bg: 'rgba(10, 10, 10, 0.06)', text: '#404040', dot: '#737373' },
   },
+  requested: {
+    dark: { bg: 'rgba(245, 184, 61, 0.16)', text: '#F5B83D', dot: '#F5B83D' },
+    light: { bg: 'rgba(245, 184, 61, 0.16)', text: '#F5B83D', dot: '#F5B83D' },
+  },
 };
 
 /**
  * @param {string | null | undefined} status
- * @returns {{ label: string, tone: 'success' | 'danger' | 'neutral' }}
+ * @returns {{ label: string, tone: 'success' | 'danger' | 'neutral' | 'requested', icon?: 'time-outline' }}
  */
 function statusPill(status) {
   const raw = String(status ?? '').trim();
@@ -30,6 +35,9 @@ function statusPill(status) {
   }
   if (lower === 'completed' || lower === 'complete') {
     return { label: 'Completed', tone: 'success' };
+  }
+  if (lower === 'requested') {
+    return { label: 'Requested', tone: 'requested', icon: 'time-outline' };
   }
   if (lower === 'confirmed' || !raw) {
     return { label: 'Confirmed', tone: 'success' };
@@ -90,6 +98,9 @@ export function BookingDetailsHero({ date, subtitle = '', status }) {
           marginRight: 6,
           width: 7,
         },
+        pillIcon: {
+          marginRight: 6,
+        },
         pillLabel: {
           color: tone.text,
           fontSize: 13,
@@ -116,7 +127,18 @@ export function BookingDetailsHero({ date, subtitle = '', status }) {
           </AppText>
         </View>
         <View accessibilityLabel={pill.label} accessible style={styles.pill}>
-          <View accessibilityElementsHidden importantForAccessibility="no" style={styles.dot} />
+          {pill.icon ? (
+            <Ionicons
+              accessibilityElementsHidden
+              color={tone.text}
+              importantForAccessibility="no"
+              name={pill.icon}
+              size={13}
+              style={styles.pillIcon}
+            />
+          ) : (
+            <View accessibilityElementsHidden importantForAccessibility="no" style={styles.dot} />
+          )}
           <AppText
             accessibilityElementsHidden
             importantForAccessibility="no"

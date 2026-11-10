@@ -10,7 +10,7 @@ import {
   fetchCancelledBookingsForBusiness,
   fetchConfirmedBookingsFromToday,
   filterPastConfirmedRows,
-  partitionUpcomingConfirmed,
+  partitionUpcomingBookings,
   sortCancelledBookingsForList,
 } from '../api/bookings';
 import {
@@ -82,14 +82,16 @@ export function useBookingsList(options = {}) {
     queryFn: async () => {
       const nowMs = Date.now();
       if (listFilter === BOOKINGS_FILTER_UPCOMING) {
-        const { data, error } = await fetchConfirmedBookingsFromToday(businessId);
+        const { data, error } = await fetchConfirmedBookingsFromToday(businessId, {
+          statuses: ['confirmed', 'requested'],
+        });
         if (error) {
           throw new Error(error.message ?? 'Could not load bookings');
         }
         return stampBookingsWithAssigneeQuery(queryClient, {
           accessToken,
           userId,
-          rows: partitionUpcomingConfirmed(data ?? [], nowMs).upcoming,
+          rows: partitionUpcomingBookings(data ?? [], nowMs).upcoming,
         });
       }
       if (listFilter === BOOKINGS_FILTER_CANCELLED) {

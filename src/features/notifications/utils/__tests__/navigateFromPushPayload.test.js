@@ -22,6 +22,30 @@ describe('navigateFromPushPayload', () => {
     });
   });
 
+  it('opens the booking from reference fields when the title is a request', () => {
+    const navigation = { navigate: jest.fn() };
+    navigateFromPushPayload(navigation, {
+      title: 'New appointment request',
+      body: 'From James',
+      reference_type: 'booking',
+      referenceType: 'booking',
+      reference_id: 'request-bid-1',
+      referenceId: 'request-bid-1',
+    });
+    expect(navigation.navigate).toHaveBeenCalledWith(ROUTES.MAIN_APP, {
+      screen: ROUTES.BOOKINGS,
+      params: {
+        state: {
+          routes: [
+            { name: ROUTES.BOOKINGS_LIST },
+            { name: ROUTES.BOOKING_DETAILS, params: { bookingId: 'request-bid-1' } },
+          ],
+          index: 1,
+        },
+      },
+    });
+  });
+
   it('maps camelCase keys', () => {
     const navigation = { navigate: jest.fn() };
     navigateFromPushPayload(navigation, {

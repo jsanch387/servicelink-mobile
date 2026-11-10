@@ -10,6 +10,7 @@ export const KNOWN_MINIMAL_INBOX_HEADLINES = new Set([
   'Appointment canceled',
   'Appointment updated',
   'Upcoming appointment',
+  'New appointment request',
   'New review',
   'Invoice paid',
   'Job assigned',
@@ -91,6 +92,16 @@ export function notificationMinimalDisplayTitle(type, referenceType, fallbackTit
   }
   if (isJobAssignmentNotification(type, referenceType, fallbackTitle)) {
     return 'Job assigned';
+  }
+  if (
+    String(type ?? '')
+      .trim()
+      .toLowerCase() === 'availability_booking' &&
+    String(fallbackTitle ?? '')
+      .trim()
+      .toLowerCase() === 'new appointment request'
+  ) {
+    return 'New appointment request';
   }
   if (blob.includes('booking') || blob.includes('appointment')) {
     return 'New appointment';

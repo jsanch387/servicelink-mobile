@@ -85,6 +85,7 @@ export function AvailabilityScreen() {
   const [schedulePreset, setSchedulePreset] = useState('mon_fri_9_5');
   const [minimumNotice, setMinimumNotice] = useState('none');
   const [bufferTime, setBufferTime] = useState('none');
+  const [autoConfirmBookings, setAutoConfirmBookings] = useState(true);
 
   useEffect(() => {
     const model = availability.model;
@@ -96,6 +97,7 @@ export function AvailabilityScreen() {
     setSchedulePreset(model.selectedPreset ?? 'mon_fri_9_5');
     setMinimumNotice(normalizeMinimumNotice(model.minimumNotice));
     setBufferTime(normalizeBufferTime(model.bufferTime));
+    setAutoConfirmBookings(model.autoConfirmBookings !== false);
   }, [availability.model]);
 
   const hasActiveDay = useMemo(
@@ -147,6 +149,7 @@ export function AvailabilityScreen() {
       normalizeMinimumNotice(baseline.minimumNotice ?? 'none');
     const sameBuffer =
       normalizeBufferTime(bufferTime) === normalizeBufferTime(baseline.bufferTime ?? 'none');
+    const sameAutoConfirm = autoConfirmBookings === (baseline.autoConfirmBookings !== false);
     return !(
       sameAccept &&
       samePreset &&
@@ -154,9 +157,11 @@ export function AvailabilityScreen() {
       sameRanges &&
       sameTimeOff &&
       sameNotice &&
-      sameBuffer
+      sameBuffer &&
+      sameAutoConfirm
     );
   }, [
+    autoConfirmBookings,
     availability.model,
     bufferTime,
     dayEnabledMap,
@@ -182,6 +187,7 @@ export function AvailabilityScreen() {
       timeOffBlocks: normalizedTimeOff,
       minimumNotice: normalizeMinimumNotice(minimumNotice),
       bufferTime: normalizeBufferTime(bufferTime),
+      publicBookingApprovalRequired: !autoConfirmBookings,
     });
   }
 
@@ -252,11 +258,13 @@ export function AvailabilityScreen() {
         ) : activeTab === AVAILABILITY_TAB.SETTINGS ? (
           <AvailabilitySettingsView
             hasActiveDay={hasActiveDay}
+            autoConfirmBookings={autoConfirmBookings}
             isAcceptingRequests={isAcceptingRequests}
             bufferTime={bufferTime}
             minimumNotice={minimumNotice}
             timeOffBlocks={timeOffBlocks}
             onAcceptingChange={handleAcceptingChange}
+            onAutoConfirmChange={setAutoConfirmBookings}
             onAddTimeOff={() => setIsTimeOffSheetOpen(true)}
             onBufferTimeChange={setBufferTime}
             onDeleteTimeOff={(index) =>

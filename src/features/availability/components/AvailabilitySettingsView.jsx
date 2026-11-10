@@ -5,13 +5,18 @@ import { useTheme } from '../../../theme';
 import { BookingWindowsSection } from './BookingWindowsSection';
 import { TimeOffSection } from './TimeOffSection';
 
+const AUTO_CONFIRM_ON_HINT = 'New bookings are automatically confirmed when submitted.';
+const AUTO_CONFIRM_OFF_HINT = 'New bookings wait until you approve them.';
+
 /**
- * Settings tab: accept bookings, time off, lead time, and buffer time.
+ * Settings tab: accept bookings, auto-confirm, time off, lead time, and buffer time.
  *
  * @param {{
  *   hasActiveDay: boolean;
  *   isAcceptingRequests: boolean;
  *   onAcceptingChange: (next: boolean) => void;
+ *   autoConfirmBookings: boolean;
+ *   onAutoConfirmChange: (next: boolean) => void;
  *   timeOffBlocks: Array<object>;
  *   onAddTimeOff: () => void;
  *   onDeleteTimeOff: (index: number) => void;
@@ -25,6 +30,8 @@ export function AvailabilitySettingsView({
   hasActiveDay,
   isAcceptingRequests,
   onAcceptingChange,
+  autoConfirmBookings,
+  onAutoConfirmChange,
   timeOffBlocks,
   onAddTimeOff,
   onDeleteTimeOff,
@@ -40,6 +47,12 @@ export function AvailabilitySettingsView({
       StyleSheet.create({
         toggleCard: {
           borderRadius: 16,
+          paddingHorizontal: 14,
+          paddingVertical: 14,
+        },
+        autoConfirmCard: {
+          borderRadius: 16,
+          marginTop: 12,
           paddingHorizontal: 14,
           paddingVertical: 14,
         },
@@ -88,6 +101,25 @@ export function AvailabilitySettingsView({
             thumbColor={isAcceptingRequests ? '#f8fafc' : '#f4f4f5'}
             trackColor={{ false: colors.borderStrong, true: '#10b981' }}
             value={isAcceptingRequests}
+          />
+        </View>
+      </SurfaceCard>
+
+      <SurfaceCard style={styles.autoConfirmCard}>
+        <View style={styles.toggleRow}>
+          <View style={styles.toggleTextWrap}>
+            <AppText style={styles.toggleTitle}>Auto-confirm bookings</AppText>
+            <AppText style={styles.toggleHint}>
+              {autoConfirmBookings ? AUTO_CONFIRM_ON_HINT : AUTO_CONFIRM_OFF_HINT}
+            </AppText>
+          </View>
+          <Switch
+            accessibilityLabel="Auto-confirm bookings"
+            disabled={!isAcceptingRequests}
+            onValueChange={onAutoConfirmChange}
+            thumbColor={autoConfirmBookings ? '#f8fafc' : '#f4f4f5'}
+            trackColor={{ false: colors.borderStrong, true: '#10b981' }}
+            value={autoConfirmBookings}
           />
         </View>
       </SurfaceCard>

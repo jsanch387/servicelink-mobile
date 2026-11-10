@@ -1,6 +1,18 @@
 import { notificationMinimalDisplayTitle } from '../utils/notificationMinimalTitle';
 
 describe('notificationMinimalDisplayTitle', () => {
+  it('returns New appointment request only when that is the stored title', () => {
+    expect(
+      notificationMinimalDisplayTitle('availability_booking', 'booking', 'New appointment request'),
+    ).toBe('New appointment request');
+    expect(
+      notificationMinimalDisplayTitle('availability_booking', 'booking', 'New appointment'),
+    ).toBe('New appointment');
+    expect(
+      notificationMinimalDisplayTitle('availability_booking', 'booking', 'Appointment created'),
+    ).toBe('New appointment');
+  });
+
   it('returns New appointment for booking types', () => {
     expect(notificationMinimalDisplayTitle('booking.scheduled', 'booking', 'ignored')).toBe(
       'New appointment',

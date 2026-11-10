@@ -2,7 +2,7 @@
  * Day planner + list UI: map raw booking status to a stable visual kind.
  *
  * @param {string | null | undefined} status
- * @returns {'cancelled' | 'completed' | 'scheduled'}
+ * @returns {'cancelled' | 'completed' | 'requested' | 'scheduled'}
  */
 export function getBookingStatusVisualKind(status) {
   const s = String(status ?? '')
@@ -13,6 +13,9 @@ export function getBookingStatusVisualKind(status) {
   }
   if (s === 'completed' || s === 'complete') {
     return 'completed';
+  }
+  if (s === 'requested') {
+    return 'requested';
   }
   return 'scheduled';
 }
@@ -28,6 +31,8 @@ export function getBookingStatusLabel(status) {
       return 'Canceled';
     case 'completed':
       return 'Completed';
+    case 'requested':
+      return 'Requested';
     default:
       return 'Upcoming';
   }

@@ -92,3 +92,25 @@ describe('mapNotificationRowToInboxItem invoice paid', () => {
     expect(item.referenceId).toBe('inv-9');
   });
 });
+
+describe('mapNotificationRowToInboxItem appointment request', () => {
+  it('shows the request title and customer line, and keeps the booking id', () => {
+    const item = mapNotificationRowToInboxItem({
+      id: 'n-req',
+      user_id: 'u',
+      type: 'availability_booking',
+      reference_type: 'booking',
+      reference_id: 'booking-req-1',
+      title: 'New appointment request',
+      body: 'From James',
+      read: false,
+      read_at: null,
+      created_at: new Date().toISOString(),
+      metadata: null,
+    });
+    expect(item.displayTitle).toBe('New appointment request');
+    expect(item.subtitle).toBe('From James');
+    expect(item.referenceType).toBe('booking');
+    expect(item.referenceId).toBe('booking-req-1');
+  });
+});

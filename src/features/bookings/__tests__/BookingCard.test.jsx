@@ -40,6 +40,11 @@ describe('BookingCard', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
+  it('shows Requested for an appointment request', () => {
+    renderWithProviders(<BookingCard booking={makeBooking({ status: 'requested' })} />);
+    expect(screen.getByText('Requested')).toBeTruthy();
+  });
+
   it('shows vehicle line when vehicle fields are present', () => {
     renderWithProviders(<BookingCard booking={makeBooking()} />);
     expect(screen.getByText('2021 Tesla Model 3')).toBeTruthy();

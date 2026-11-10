@@ -246,7 +246,21 @@ export function buildDefaultAvailabilityUiModel() {
     timeOffBlocks: [],
     minimumNotice: 'none',
     bufferTime: 'none',
+    /** On until a row says approval is required. */
+    autoConfirmBookings: true,
   };
+}
+
+/**
+ * Auto-confirm is the inverse of `public_booking_approval_required`.
+ * No row, or a null/false column, keeps the switch on.
+ *
+ * @param {Record<string, unknown> | null | undefined} row
+ * @returns {boolean}
+ */
+export function autoConfirmBookingsFromRow(row) {
+  if (!row) return true;
+  return row.public_booking_approval_required !== true;
 }
 
 export function buildAvailabilityUiModel(row) {
@@ -275,6 +289,7 @@ export function buildAvailabilityUiModel(row) {
     timeOffBlocks: Array.isArray(row.time_off_blocks) ? row.time_off_blocks : [],
     minimumNotice: normalizeMinimumNotice(row.minimum_notice),
     bufferTime: normalizeBufferTime(row.buffer_time),
+    autoConfirmBookings: autoConfirmBookingsFromRow(row),
   };
 }
 

@@ -1,5 +1,6 @@
 import {
   advanceTimeOffDateSelection,
+  autoConfirmBookingsFromRow,
   buildAvailabilityUiFromPreset,
   buildAvailabilityUiModel,
   buildWeeklySchedulePayloadFromUi,
@@ -103,6 +104,18 @@ describe('availabilityModel', () => {
       expect(model.timeOffBlocks).toHaveLength(1);
       expect(model.minimumNotice).toBe('2h');
       expect(model.bufferTime).toBe('30m');
+      expect(model.autoConfirmBookings).toBe(true);
+    });
+
+    it('maps auto-confirm as the inverse of public_booking_approval_required', () => {
+      expect(autoConfirmBookingsFromRow(null)).toBe(true);
+      expect(autoConfirmBookingsFromRow({})).toBe(true);
+      expect(autoConfirmBookingsFromRow({ public_booking_approval_required: null })).toBe(true);
+      expect(autoConfirmBookingsFromRow({ public_booking_approval_required: false })).toBe(true);
+      expect(autoConfirmBookingsFromRow({ public_booking_approval_required: true })).toBe(false);
+      expect(
+        buildAvailabilityUiModel({ public_booking_approval_required: true }).autoConfirmBookings,
+      ).toBe(false);
     });
 
     it('treats missing or invalid buffer_time as none', () => {

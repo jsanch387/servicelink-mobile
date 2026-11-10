@@ -47,6 +47,19 @@ const ACTION_CONFIG = {
   delete: { icon: 'trash-outline', iconTone: 'danger' },
 };
 
+/**
+ * @param {Array<import('react').ReactElement | null | false>} tiles
+ * @returns {import('react').ReactElement[][]}
+ */
+function chunkActionTiles(tiles) {
+  const visible = tiles.filter(Boolean);
+  const rows = [];
+  for (let index = 0; index < visible.length; index += 2) {
+    rows.push(visible.slice(index, index + 2));
+  }
+  return rows;
+}
+
 function resolveIconStyle(iconTone, colors, isDark) {
   if (iconTone === 'danger') {
     return {
@@ -361,10 +374,16 @@ export function BookingActionsSheet({
   onReschedule,
   canDeleteBookings = false,
   canWriteBookings = true,
+  showCancelAction = true,
   showJobStatusAction = false,
+  showRescheduleAction = true,
   visible,
 }) {
   const actionsBusy = isCancellingBooking || isReschedulingBooking || isDeletingBooking;
+  const gridTileCount = canWriteBookings
+    ? 1 + (showRescheduleAction ? 1 : 0) + (showCancelAction ? 1 : 0) + (canDeleteBookings ? 1 : 0)
+    : 0;
+  const gridRowCount = Math.ceil(gridTileCount / 2);
 
   const styles = useMemo(
     () =>
@@ -378,7 +397,7 @@ export function BookingActionsSheet({
         },
         rows: {
           gap: 10,
-          minHeight: canWriteBookings ? 202 : undefined,
+          minHeight: gridRowCount > 1 ? 202 : undefined,
           width: '100%',
         },
         spacer: {
@@ -394,7 +413,7 @@ export function BookingActionsSheet({
           width: '100%',
         },
       }),
-    [canWriteBookings],
+    [gridRowCount],
   );
 
   const handoffTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
@@ -467,35 +486,41 @@ export function BookingActionsSheet({
         ) : null}
         {canWriteBookings ? (
           <View style={styles.rows}>
-            <View style={styles.row}>
+            {chunkActionTiles([
               <ActionGridTile
+                key="edit"
                 accessibilityHint="Edit appointment details"
                 accessibilityLabel="Edit booking"
                 config={ACTION_CONFIG.edit}
                 disabled={isEditDisabled || actionsBusy}
                 label="Edit"
                 onPress={() => runAction(onEdit)}
-              />
-              <ActionGridTile
-                accessibilityHint="Opens a screen to choose a new date and time"
-                accessibilityLabel="Reschedule booking"
-                config={ACTION_CONFIG.reschedule}
-                disabled={isRescheduleDisabled || actionsBusy}
-                label="Reschedule"
-                onPress={() => runAction(onReschedule)}
-              />
-            </View>
-            <View style={styles.row}>
-              <ActionGridTile
-                accessibilityLabel={isCancelDisabled ? 'Booking canceled' : 'Cancel booking'}
-                config={ACTION_CONFIG.cancel}
-                disabled={isCancelDisabled || actionsBusy}
-                label={isCancelDisabled ? 'Canceled' : 'Cancel'}
-                loading={isCancellingBooking}
-                onPress={() => runAction(onCancelBooking)}
-              />
-              {canDeleteBookings ? (
+              />,
+              showRescheduleAction ? (
                 <ActionGridTile
+                  key="reschedule"
+                  accessibilityHint="Opens a screen to choose a new date and time"
+                  accessibilityLabel="Reschedule booking"
+                  config={ACTION_CONFIG.reschedule}
+                  disabled={isRescheduleDisabled || actionsBusy}
+                  label="Reschedule"
+                  onPress={() => runAction(onReschedule)}
+                />
+              ) : null,
+              showCancelAction ? (
+                <ActionGridTile
+                  key="cancel"
+                  accessibilityLabel={isCancelDisabled ? 'Booking canceled' : 'Cancel booking'}
+                  config={ACTION_CONFIG.cancel}
+                  disabled={isCancelDisabled || actionsBusy}
+                  label={isCancelDisabled ? 'Canceled' : 'Cancel'}
+                  loading={isCancellingBooking}
+                  onPress={() => runAction(onCancelBooking)}
+                />
+              ) : null,
+              canDeleteBookings ? (
+                <ActionGridTile
+                  key="delete"
                   accessibilityHint="Removes this appointment from your calendar. This can't be undone."
                   accessibilityLabel="Delete booking"
                   config={ACTION_CONFIG.delete}
@@ -504,10 +529,13 @@ export function BookingActionsSheet({
                   loading={isDeletingBooking}
                   onPress={() => runAction(onDeleteBooking)}
                 />
-              ) : (
-                <View style={styles.spacer} />
-              )}
-            </View>
+              ) : null,
+            ]).map((row, index) => (
+              <View key={`action-row-${index}`} style={styles.row} testID="booking-action-row">
+                {row}
+                {row.length === 1 ? <View style={styles.spacer} /> : null}
+              </View>
+            ))}
           </View>
         ) : canDeleteBookings ? (
           <Button

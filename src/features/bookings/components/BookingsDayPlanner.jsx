@@ -314,6 +314,9 @@ export function BookingsDayPlanner({
         blockStatusScheduled: {
           color: isDark ? '#bbf7d0' : '#166534',
         },
+        blockStatusRequested: {
+          color: '#F5B83D',
+        },
         blockStatusCompleted: {
           color: isDark ? '#dbeafe' : '#1e40af',
         },
@@ -453,9 +456,11 @@ export function BookingsDayPlanner({
                     ? isDark
                       ? '#60a5fa'
                       : '#2563eb'
-                    : isDark
-                      ? '#4ade80'
-                      : '#16a34a';
+                    : kind === 'requested'
+                      ? '#F5B83D'
+                      : isDark
+                        ? '#4ade80'
+                        : '#16a34a';
               const titleNameStyle = [
                 styles.blockTitleName,
                 kind === 'cancelled' && styles.blockTitleCancelled,
@@ -471,7 +476,9 @@ export function BookingsDayPlanner({
                   ? styles.blockStatusCancelled
                   : kind === 'completed'
                     ? styles.blockStatusCompleted
-                    : styles.blockStatusScheduled;
+                    : kind === 'requested'
+                      ? styles.blockStatusRequested
+                      : styles.blockStatusScheduled;
               const statusIconName =
                 kind === 'cancelled'
                   ? 'close-circle'
@@ -487,9 +494,11 @@ export function BookingsDayPlanner({
                     ? isDark
                       ? '#bfdbfe'
                       : '#1e40af'
-                    : isDark
-                      ? '#bbf7d0'
-                      : '#166534';
+                    : kind === 'requested'
+                      ? '#F5B83D'
+                      : isDark
+                        ? '#bbf7d0'
+                        : '#166534';
               const showCustomerLine = Boolean(customer) && b.height >= 52;
               /** Earlier start time stacks above later cards if geometry ever overlaps by a pixel. */
               const stackZ = 25000 - (typeof b.startMin === 'number' ? b.startMin : 0);

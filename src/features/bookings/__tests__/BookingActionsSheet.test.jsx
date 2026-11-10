@@ -55,6 +55,15 @@ describe('BookingActionsSheet', () => {
     expect(onReschedule).toHaveBeenCalledTimes(1);
   });
 
+  it('hides reschedule and cancel for an appointment request', () => {
+    renderSheet({ showCancelAction: false, showRescheduleAction: false });
+    expect(screen.queryByLabelText('Reschedule booking')).toBeNull();
+    expect(screen.queryByLabelText('Cancel booking')).toBeNull();
+    expect(screen.getByLabelText('Edit booking')).toBeTruthy();
+    expect(screen.getByLabelText('Delete booking')).toBeTruthy();
+    expect(screen.getAllByTestId('booking-action-row')).toHaveLength(1);
+  });
+
   it('hides Job status when showJobStatusAction is false', () => {
     renderSheet({ showJobStatusAction: false });
     expect(screen.queryByLabelText('Job status')).toBeNull();
@@ -64,6 +73,7 @@ describe('BookingActionsSheet', () => {
     const onDeleteBooking = jest.fn();
     renderSheet({ showJobStatusAction: true, onDeleteBooking });
     expect(screen.queryByLabelText('Mark booking complete')).toBeNull();
+    expect(screen.getAllByTestId('booking-action-row')).toHaveLength(2);
     const remove = screen.getByLabelText('Delete booking');
     expect(remove).toBeTruthy();
     fireEvent.press(remove);

@@ -96,6 +96,9 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
     if (raw === 'completed' || raw === 'complete') {
       return 'Completed';
     }
+    if (raw === 'requested') {
+      return 'Requested';
+    }
     return 'Confirmed';
   }, [booking.status]);
   const statusStyle = useMemo(() => {
@@ -113,6 +116,14 @@ export function BookingCard({ booking, variant = 'standalone', showRelativeLine 
         text: '#7dd3fc',
         icon: '#7dd3fc',
         iconName: 'checkmark-done-circle',
+      };
+    }
+    if (statusLabel === 'Requested') {
+      return {
+        bg: 'rgba(245,184,61,0.16)',
+        text: '#F5B83D',
+        icon: '#F5B83D',
+        iconName: 'time-outline',
       };
     }
     return {

@@ -81,6 +81,10 @@ describe('AvailabilityScreen', () => {
     renderWithProviders(<AvailabilityScreen />);
     openSettings();
     expect(screen.getByLabelText('Accept booking requests')).toBeTruthy();
+    expect(screen.getByLabelText('Auto-confirm bookings')).toBeTruthy();
+    expect(
+      screen.getByText('New bookings are automatically confirmed when submitted.'),
+    ).toBeTruthy();
     expect(screen.getByText('Time off')).toBeTruthy();
     expect(screen.getByText('Lead time')).toBeTruthy();
     expect(screen.getByText('Buffer time')).toBeTruthy();
@@ -120,6 +124,7 @@ describe('AvailabilityScreen', () => {
     expect(payload.selectedPreset).toBe('custom');
     expect(payload.minimumNotice).toBe('none');
     expect(payload.bufferTime).toBe('none');
+    expect(payload.publicBookingApprovalRequired).toBe(false);
     expect(payload.weeklySchedule.monday).toBeDefined();
     expect(Array.isArray(payload.timeOffBlocks)).toBe(true);
   });
@@ -173,6 +178,30 @@ describe('AvailabilityScreen', () => {
     openSettings();
     const acceptSwitch = screen.getByLabelText('Accept booking requests');
     expect(acceptSwitch.props.disabled).toBe(true);
+    expect(screen.getByLabelText('Auto-confirm bookings').props.disabled).toBe(true);
+  });
+
+  it('saves a request-approval setting when auto-confirm is turned off', async () => {
+    mockUseBusinessAvailability.mockReturnValue({
+      businessId: 'biz-1',
+      isLoading: false,
+      isFetching: false,
+      businessError: null,
+      availabilityError: null,
+      refetch: jest.fn(),
+      row: { public_booking_approval_required: false },
+      model: { ...BASE_MODEL, acceptBookings: true, autoConfirmBookings: true },
+    });
+    renderWithProviders(<AvailabilityScreen />);
+    openSettings();
+
+    fireEvent(screen.getByLabelText('Auto-confirm bookings'), 'valueChange', false);
+    expect(screen.getByText('New bookings wait until you approve them.')).toBeTruthy();
+
+    fireEvent.press(screen.getByText('Save changes'));
+
+    await waitFor(() => expect(mockSaveAvailability).toHaveBeenCalledTimes(1));
+    expect(mockSaveAvailability.mock.calls[0][0].publicBookingApprovalRequired).toBe(true);
   });
 
   it('turns off accept when the last active day is disabled', async () => {

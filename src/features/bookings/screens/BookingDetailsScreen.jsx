@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Button, InlineCardError, SurfaceCard, useToast } from '../../../components/ui';
+import { AppText, Button, InlineCardError, SurfaceCard, useToast } from '../../../components/ui';
 import { SCREEN_GUTTER } from '../../../constants/layout';
 import { ROUTES } from '../../../routes/routes';
 import { useTheme } from '../../../theme';
@@ -33,10 +33,12 @@ import { BookingLocationCard } from '../booking-details/components/BookingLocati
 import { BookingAssigneeSection } from '../assignee/components/BookingAssigneeSection';
 import { readAssignedUserId } from '../assignee/utils/readAssignedUserId';
 import { useBookingActions } from '../booking-details/hooks/useBookingActions';
+import { isAppointmentRequestExpiredError } from '../api/patchApproveAvailabilityBooking';
 import { useBookingActionsMovedTip } from '../booking-details/hooks/useBookingActionsMovedTip';
 import { useMarkBookingCompleteFlow } from '../booking-details/hooks/useMarkBookingCompleteFlow';
 import { useBookingDetails } from '../booking-details/hooks/useBookingDetails';
 import { useUpdateBookingNotes } from '../booking-details/hooks/useUpdateBookingNotes';
+import { bookingRequestState } from '../booking-details/utils/bookingRequestState';
 import { buildBookingDetailsModel } from '../booking-details/utils/buildBookingDetailsModel';
 import { useShopAccess } from '../../shop';
 import { useCustomerSmsAccess } from '../../sms/hooks/useCustomerSmsAccess';
@@ -91,8 +93,19 @@ export function BookingDetailsScreen({ route }) {
   const isCompletedStatus = statusLower === 'completed' || statusLower === 'complete';
   const isCancelledStatus = statusLower === 'cancelled' || statusLower === 'canceled';
   const isConfirmedStatus = statusLower === 'confirmed';
-  const showJobStatusAction = smsAccess.canUseSms && !isCompletedStatus && !isCancelledStatus;
+  const requestState = useMemo(
+    () =>
+      bookingRequestState({
+        status: details.status,
+        scheduledDate: detailsQuery.booking?.scheduled_date,
+      }),
+    [details.status, detailsQuery.booking?.scheduled_date],
+  );
+  const isAppointmentRequest = requestState.kind !== 'none';
+  const showJobStatusAction =
+    smsAccess.canUseSms && !isCompletedStatus && !isCancelledStatus && !isAppointmentRequest;
   const bookingIsOpen = !isCancelledStatus && !isCompletedStatus;
+  const showCompleteAction = bookingIsOpen && !isAppointmentRequest;
   const showActionsMenu =
     !detailsQuery.isLoading &&
     !detailsQuery.errorMessage &&
@@ -230,6 +243,65 @@ export function BookingDetailsScreen({ route }) {
     [colors.accent, detailsQuery],
   );
 
+  const handleApproveBooking = useCallback(async () => {
+    if (
+      requestState.kind !== 'pending' ||
+      !bookingId ||
+      bookingActions.isApprovingBooking ||
+      bookingActions.isDenyingBooking
+    ) {
+      return;
+    }
+    try {
+      await bookingActions.approveBooking();
+      toast.success('Appointment confirmed');
+    } catch (error) {
+      if (isAppointmentRequestExpiredError(error)) {
+        return;
+      }
+      Alert.alert(
+        'Could not approve appointment',
+        safeUserFacingMessage(error, { fallback: 'Please try again.' }),
+      );
+    }
+  }, [bookingActions, bookingId, requestState.kind, toast]);
+
+  const handleDenyBooking = useCallback(() => {
+    if (
+      requestState.kind !== 'pending' ||
+      !bookingId ||
+      bookingActions.isApprovingBooking ||
+      bookingActions.isDenyingBooking
+    ) {
+      return;
+    }
+    Alert.alert(
+      'Deny request?',
+      'The customer will be told this time was not confirmed, and the slot will open back up.',
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Deny request',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await bookingActions.denyBooking();
+              toast.success('Request denied');
+            } catch (error) {
+              if (isAppointmentRequestExpiredError(error)) {
+                return;
+              }
+              Alert.alert(
+                'Could not deny request',
+                safeUserFacingMessage(error, { fallback: 'Please try again.' }),
+              );
+            }
+          },
+        },
+      ],
+    );
+  }, [bookingActions, bookingId, requestState.kind, toast]);
+
   const handleCancelBooking = useCallback(() => {
     if (isCancelledStatus || isCompletedStatus || !bookingId) {
       return;
@@ -259,6 +331,8 @@ export function BookingDetailsScreen({ route }) {
   }, [bookingActions, bookingId, isCancelledStatus, isCompletedStatus, toast]);
 
   const actionsBusy =
+    bookingActions.isApprovingBooking ||
+    bookingActions.isDenyingBooking ||
     bookingActions.isCancellingBooking ||
     markCompleteFlow.isConfirming ||
     bookingActions.isDeletingBooking;
@@ -317,6 +391,22 @@ export function BookingDetailsScreen({ route }) {
           paddingHorizontal: SCREEN_GUTTER,
           paddingTop: 8,
         },
+        requestCopy: {
+          color: colors.textMuted,
+          fontSize: 15,
+          fontWeight: '400',
+          letterSpacing: -0.15,
+          lineHeight: 21,
+        },
+        requestActions: {
+          columnGap: 10,
+          flexDirection: 'row',
+          width: '100%',
+        },
+        requestActionCell: {
+          flex: 1,
+          minWidth: 0,
+        },
         errorWrap: {
           marginTop: 8,
         },
@@ -358,7 +448,9 @@ export function BookingDetailsScreen({ route }) {
         isDeletingBooking={bookingActions.isDeletingBooking}
         isEditDisabled={isCancelledStatus || isCompletedStatus}
         isRescheduleDisabled={!isConfirmedStatus}
+        showCancelAction={!isAppointmentRequest}
         showJobStatusAction={showJobStatusAction}
+        showRescheduleAction={!isAppointmentRequest}
         visible={actionsSheetOpen}
         onCancelBooking={handleCancelBooking}
         onDeleteBooking={handleDeleteBooking}
@@ -391,7 +483,10 @@ export function BookingDetailsScreen({ route }) {
       />
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.content, bookingIsOpen && styles.contentWithDock]}
+        contentContainerStyle={[
+          styles.content,
+          (showCompleteAction || isAppointmentRequest) && styles.contentWithDock,
+        ]}
         refreshControl={detailsRefreshControl}
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
@@ -458,7 +553,7 @@ export function BookingDetailsScreen({ route }) {
           </>
         ) : null}
       </ScrollView>
-      {bookingIsOpen && !detailsQuery.isLoading && !detailsQuery.errorMessage ? (
+      {showCompleteAction && !detailsQuery.isLoading && !detailsQuery.errorMessage ? (
         <View style={styles.completeBar}>
           <Button
             accessibilityHint="Review this visit before marking it complete"
@@ -470,6 +565,39 @@ export function BookingDetailsScreen({ route }) {
             title="Mark complete"
             onPress={handleMarkCompleted}
           />
+        </View>
+      ) : null}
+      {isAppointmentRequest && !detailsQuery.isLoading && !detailsQuery.errorMessage ? (
+        <View style={styles.completeBar}>
+          {requestState.kind === 'pending' ? (
+            <View style={styles.requestActions}>
+              <View style={styles.requestActionCell}>
+                <Button
+                  accessibilityLabel="Deny"
+                  disabled={bookingActions.isApprovingBooking || !bookingId}
+                  fullWidth
+                  loading={bookingActions.isDenyingBooking}
+                  title="Deny"
+                  variant="danger"
+                  onPress={handleDenyBooking}
+                />
+              </View>
+              <View style={styles.requestActionCell}>
+                <Button
+                  accessibilityLabel="Approve"
+                  disabled={bookingActions.isDenyingBooking || !bookingId}
+                  fullWidth
+                  loading={bookingActions.isApprovingBooking}
+                  title="Approve"
+                  onPress={() => {
+                    void handleApproveBooking();
+                  }}
+                />
+              </View>
+            </View>
+          ) : (
+            <AppText style={styles.requestCopy}>{requestState.message}</AppText>
+          )}
         </View>
       ) : null}
       {showActionsMenu && showActionsMovedTip ? (

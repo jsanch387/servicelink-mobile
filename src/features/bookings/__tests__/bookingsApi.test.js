@@ -1,5 +1,6 @@
 import {
   filterPastConfirmedRows,
+  partitionUpcomingBookings,
   partitionUpcomingConfirmed,
   sortCancelledBookingsForList,
 } from '../api/bookings';
@@ -62,6 +63,24 @@ describe('partitionUpcomingConfirmed', () => {
   it('excludes confirmed rows on today before the current instant', () => {
     const rows = [row('morning', '2026-05-21', '08:00:00')];
     expect(partitionUpcomingConfirmed(rows, nowMs).upcoming).toEqual([]);
+  });
+});
+
+describe('partitionUpcomingBookings', () => {
+  const nowMs = new Date('2026-05-21T14:00:00').getTime();
+
+  it('keeps an open request on today or later with confirmed visits', () => {
+    const rows = [
+      row('request-today', '2026-05-21', '09:00:00', 'requested'),
+      row('request-later', '2026-05-22', '11:00:00', 'requested'),
+      row('request-old', '2026-05-20', '11:00:00', 'requested'),
+      row('confirmed', '2026-05-21', '16:00:00'),
+    ];
+    expect(partitionUpcomingBookings(rows, nowMs).upcoming.map((item) => item.id)).toEqual([
+      'request-today',
+      'confirmed',
+      'request-later',
+    ]);
   });
 });
 

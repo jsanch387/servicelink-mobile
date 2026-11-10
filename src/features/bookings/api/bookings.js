@@ -62,19 +62,24 @@ export const CALENDAR_DAY_AGENDA_SELECT = BOOKING_LIST_SELECT;
  * Confirmed bookings from today onward (calendar date); filter to true “upcoming” instants in JS.
  *
  * @param {string} businessId
- * @param {{ assignedUserId?: string | null; includeUnassigned?: boolean }} [options]
- *   when `assignedUserId` is set, only that person's jobs (plus unassigned if asked)
+ * @param {{ assignedUserId?: string | null; includeUnassigned?: boolean; statuses?: string[] }} [options]
+ *   when `assignedUserId` is set, only that person's jobs (plus unassigned if asked).
+ *   `statuses` defaults to confirmed so Home stays confirmed-only.
  * @returns {Promise<{ data: BookingRow[] | null, error: Error | null }>}
  */
 export async function fetchConfirmedBookingsFromToday(businessId, options = {}) {
   const today = localYyyyMmDd();
+  const statuses =
+    Array.isArray(options.statuses) && options.statuses.length > 0
+      ? options.statuses
+      : ['confirmed'];
 
   const { data, error } = await applyAssignedUserFilter(
     supabase
       .from('bookings')
       .select(BOOKING_LIST_SELECT)
       .eq('business_id', businessId)
-      .eq('status', 'confirmed')
+      .in('status', statuses)
       .gte('scheduled_date', today),
     options.assignedUserId,
     { includeUnassigned: options.includeUnassigned },
@@ -186,7 +191,7 @@ export async function fetchBookingsForListWindow(businessId, filter, startYyyyMm
       .from('bookings')
       .select(BOOKING_LIST_SELECT)
       .eq('business_id', businessId)
-      .eq('status', 'confirmed')
+      .in('status', ['confirmed', 'requested'])
       .gte('scheduled_date', startYyyyMmDd)
       .lte('scheduled_date', endYyyyMmDd)
       .order('scheduled_date', { ascending: true })
@@ -300,6 +305,42 @@ export function partitionUpcomingConfirmed(rows, nowMs) {
     }
     upcoming.push(row);
   }
+  upcoming.sort((a, b) => {
+    const ma = parseBookingStartLocalMs(a.scheduled_date, a.start_time);
+    const mb = parseBookingStartLocalMs(b.scheduled_date, b.start_time);
+    return ma - mb;
+  });
+  return {
+    upcoming,
+    next: upcoming[0] ?? null,
+  };
+}
+
+/**
+ * Bookings list upcoming tab. Confirmed visits still drop off once their start time has passed.
+ * A request stays through the end of its calendar day.
+ *
+ * @param {BookingRow[]} rows
+ * @param {number} nowMs
+ * @returns {{ upcoming: BookingRow[]; next: BookingRow | null }}
+ */
+export function partitionUpcomingBookings(rows, nowMs) {
+  const { upcoming: confirmed } = partitionUpcomingConfirmed(rows, nowMs);
+  const todayKey = localYyyyMmDd(new Date(nowMs));
+  const requested = [];
+  for (const row of rows ?? []) {
+    if (String(row.status ?? '').toLowerCase() !== 'requested') {
+      continue;
+    }
+    const date = String(row.scheduled_date ?? '')
+      .trim()
+      .slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < todayKey) {
+      continue;
+    }
+    requested.push(row);
+  }
+  const upcoming = [...confirmed, ...requested];
   upcoming.sort((a, b) => {
     const ma = parseBookingStartLocalMs(a.scheduled_date, a.start_time);
     const mb = parseBookingStartLocalMs(b.scheduled_date, b.start_time);
