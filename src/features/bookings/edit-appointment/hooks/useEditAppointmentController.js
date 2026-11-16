@@ -1461,6 +1461,7 @@ export function useEditAppointmentController({
             }, 0);
 
       const discountCents = resolveBookingDiscount(booking)?.discountCents ?? 0;
+      // Pre-tax net. syncBookingPaymentTotalsAfterEdit adds tax from the frozen rate.
       const visitNetCents = Math.max(0, visitGrossCents - discountCents);
       const { error: paymentError } = await syncBookingPaymentTotalsAfterEdit(
         bookingId,

@@ -188,6 +188,11 @@ export function BookingDetailsScreen({ route }) {
         await markCompleteFlow.confirmComplete(checkout);
         setCompleteScrollRequestId((id) => id + 1);
       } catch (error) {
+        // The complete-visit sheet shows its own error state. Swallowing this
+        // made that sheet paint the success checkmark and then this alert on top.
+        if (checkout) {
+          throw error;
+        }
         Alert.alert(
           'Could not mark completed',
           safeUserFacingMessage(error, { fallback: 'Please try again.' }),

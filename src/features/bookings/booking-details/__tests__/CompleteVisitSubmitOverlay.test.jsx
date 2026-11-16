@@ -56,4 +56,25 @@ describe('CompleteVisitSubmitOverlay', () => {
     });
     expect(screen.getByText('Finishing up')).toBeTruthy();
   });
+
+  it('shows the server error instead of the complete checkmark', () => {
+    render(
+      <ThemeProvider initialScheme="dark">
+        <TypographyProvider>
+          <CompleteVisitSubmitOverlay
+            errorDetail="Payment is still due on this booking."
+            errorTitle="Could not complete"
+            phase="error"
+            successDetail="The appointment is complete."
+            successTitle="Complete"
+          />
+        </TypographyProvider>
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText('Could not complete')).toBeTruthy();
+    expect(screen.getByText('Payment is still due on this booking.')).toBeTruthy();
+    expect(screen.queryByText('Complete')).toBeNull();
+    expect(screen.queryByLabelText('Visit completed')).toBeNull();
+  });
 });

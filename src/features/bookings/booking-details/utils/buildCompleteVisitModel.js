@@ -1,5 +1,6 @@
 import { normalizePhoneForDatabase } from '../../../../utils/phone';
 import { formatTaxLineLabel } from '../../../payments/utils/taxRateModel';
+import { resolveBookingTaxCents } from '../../utils/resolveBookingPaymentTotals';
 import { isCompleteVisitPaidInFullOnline } from './completeVisitPaymentState';
 import { getMarkCompletePreviewFromBooking } from './markCompletePreview';
 import { parseAddonLineItemsFromBooking } from './parseAddonLineItemsFromBooking';
@@ -172,12 +173,22 @@ export function buildCompleteVisitModelFromBooking(booking, preview, options) {
     .trim()
     .toLowerCase();
   const isMembershipVisit = Boolean(options?.isMembershipVisit) || paymentMethod === 'membership';
-  const taxCents = Math.max(
+  const storedTaxCents = Math.max(
     0,
     Math.round(Number(payment?.taxCents ?? payment?.tax_cents ?? 0) || 0),
   );
   const taxRateRaw = payment?.taxRateBps ?? payment?.tax_rate_bps;
   const taxRate = Math.round(Number(taxRateRaw));
+  const taxableBaseCents = Math.max(
+    0,
+    lineItems.reduce((sum, item) => sum + Math.round(Number(item.amount) * 100), 0),
+  );
+  const taxCents = resolveBookingTaxCents({
+    taxableBaseCents,
+    taxRateBps: Number.isFinite(taxRate) ? taxRate : null,
+    storedTaxCents,
+    isMembershipVisit,
+  });
   if (!isMembershipVisit && taxCents > 0) {
     lineItems.push({
       id: 'tax',
@@ -204,9 +215,26 @@ export function buildCompleteVisitModelFromBooking(booking, preview, options) {
     Number(payment?.paidOnlineAmountCents ?? payment?.paid_online_amount_cents ?? 0) || 0,
   );
   const paidOnline = paidOnlineCents / 100;
+  const sessionDiscountCents = Math.max(
+    0,
+    Math.round(
+      Number(payment?.sessionDiscountsTotalCents ?? payment?.session_discounts_total_cents ?? 0) ||
+        0,
+    ),
+  );
+  const sessionPaymentCents = Math.max(
+    0,
+    Math.round(
+      Number(payment?.sessionPaymentAmountCents ?? payment?.session_payment_amount_cents ?? 0) || 0,
+    ),
+  );
   const subtotalCents = Math.max(
     0,
     lineItems.reduce((sum, item) => sum + Math.round(Number(item.amount) * 100), 0),
+  );
+  const amountDueCents = Math.max(
+    0,
+    subtotalCents - paidOnlineCents - sessionDiscountCents - sessionPaymentCents,
   );
   const paymentTotalCents = Math.max(
     0,
@@ -216,27 +244,26 @@ export function buildCompleteVisitModelFromBooking(booking, preview, options) {
   let remainingAmountCents =
     remainingRaw != null && Number.isFinite(Number(remainingRaw))
       ? Math.max(0, Math.round(Number(remainingRaw)))
-      : Math.max(0, subtotalCents - paidOnlineCents);
+      : amountDueCents;
 
   // Payment row may still store pre-discount totals; prefer line-item net for amount due.
   if (
     discount &&
     paymentTotalCents > 0 &&
     paymentTotalCents === subtotalCents + discount.discountCents &&
-    remainingAmountCents > subtotalCents - paidOnlineCents
+    remainingAmountCents > amountDueCents
   ) {
-    remainingAmountCents = Math.max(0, subtotalCents - paidOnlineCents);
+    remainingAmountCents = amountDueCents;
   }
 
-  // Heal stale remaining when payment total matches pre-job-details first-job only,
-  // but line items (from job_details) are the visit net the owner should collect.
+  // Heal stale remaining when the stored total is behind the current line items
+  // (including tax recomputed from the frozen rate).
   if (
-    useJobDetails &&
     paymentTotalCents > 0 &&
     paymentTotalCents < subtotalCents &&
-    remainingAmountCents < subtotalCents - paidOnlineCents
+    remainingAmountCents < amountDueCents
   ) {
-    remainingAmountCents = Math.max(0, subtotalCents - paidOnlineCents);
+    remainingAmountCents = amountDueCents;
   }
 
   const adjustments = parseSessionFeeLinesFromBooking(

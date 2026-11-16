@@ -7,6 +7,8 @@ import {
   buildCreateFlowPricingOptions,
   getSelectedCreateFlowPricingOption,
 } from '../../create-appointment/utils/createFlowPricing';
+import { resolveBookingPaymentTotals } from '../../utils/resolveBookingPaymentTotals';
+import { visitGrossCentsFromEditJobs } from '../utils/commitAddedEditJob';
 import { buildEditBookingUpdatePayload } from '../utils/buildEditBookingUpdatePayload';
 import { mapBookingToEditAppointmentForm } from '../utils/mapBookingToEditAppointmentForm';
 
@@ -126,5 +128,89 @@ describe('edit appointment save round-trip', () => {
     });
     expect(payload.addon_details.addons).toHaveLength(1);
     expect(payload.addon_details.addons[0].id).toBe('addon-a');
+  });
+});
+
+describe('edit appointment payment sync after a price change', () => {
+  const job = (id, priceCents, addons = []) => ({
+    localId: id,
+    selectedServiceId: 'svc-1',
+    isCustomJob: false,
+    serviceName: 'Detail',
+    selectedPricingOption: { label: 'Standard', priceCents, durationMinutes: 60 },
+    selectedAddonRows: addons,
+    totalDurationMinutes: 60,
+    vehicle: { year: '2020', make: 'Honda', model: 'Civic' },
+  });
+
+  const customer = { fullName: 'Alex', email: '', phone: '5125550101' };
+  const address = { street: '1 Main', unit: '', city: 'Austin', state: 'TX', zip: '78701' };
+
+  function totalsForJobs(jobs, { discountCents = 0, taxRateBps = 700, paidOnlineCents = 0 } = {}) {
+    const payload = buildEditBookingUpdatePayload({
+      selectedService: { name: 'Detail' },
+      selectedServiceId: 'svc-1',
+      selectedPricingOption: jobs[0].selectedPricingOption,
+      selectedAddonRows: jobs[0].selectedAddonRows,
+      totalDurationMinutes: 60,
+      selectedDateKey: '2026-09-13',
+      selectedTime: '9:00 AM',
+      customer,
+      address,
+      vehicle: jobs[0].vehicle,
+      notes: '',
+      appointmentLocationType: 'shop',
+      jobs,
+    });
+    const visitNetCents = Math.max(0, visitGrossCentsFromEditJobs(jobs) - discountCents);
+    return {
+      servicePriceCents: payload.service_price_cents,
+      payment: resolveBookingPaymentTotals({
+        taxableBaseCents: visitNetCents,
+        taxRateBps,
+        paidOnlineCents,
+      }),
+    };
+  }
+
+  it('writes 7% tax on a $600 visit after a third $300 vehicle is added', () => {
+    const saved = totalsForJobs([job('j1', 15000), job('j2', 15000), job('j3', 30000)]);
+
+    expect(saved.servicePriceCents).toBe(60000);
+    expect(saved.payment).toEqual({
+      taxCents: 4200,
+      totalCents: 64200,
+      remainingCents: 64200,
+    });
+  });
+
+  it('lowers tax when a vehicle is removed, a price is overridden, or an add-on changes', () => {
+    expect(totalsForJobs([job('j1', 15000), job('j2', 15000)]).payment.taxCents).toBe(2100);
+
+    expect(totalsForJobs([job('j1', 15000), job('j2', 20000)]).payment).toMatchObject({
+      taxCents: 2450,
+      totalCents: 37450,
+    });
+
+    const withAddon = [job('j1', 15000, [{ id: 'wax', name: 'Wax', priceCents: 2500 }])];
+    expect(totalsForJobs(withAddon).payment.taxCents).toBe(1225);
+    expect(totalsForJobs([job('j1', 15000)]).payment.taxCents).toBe(1050);
+  });
+
+  it('taxes the net after a frozen discount and rounds an odd rate', () => {
+    expect(totalsForJobs([job('j1', 30000)], { discountCents: 5000 }).payment).toMatchObject({
+      taxCents: 1750,
+      totalCents: 26750,
+      remainingCents: 26750,
+    });
+
+    expect(totalsForJobs([job('j1', 15000)], { taxRateBps: 825 }).payment.taxCents).toBe(1238);
+    expect(totalsForJobs([job('j1', 333)], { taxRateBps: 700 }).payment.taxCents).toBe(23);
+
+    expect(totalsForJobs([job('j1', 15000)], { taxRateBps: 0 }).payment).toEqual({
+      taxCents: 0,
+      totalCents: 15000,
+      remainingCents: 15000,
+    });
   });
 });

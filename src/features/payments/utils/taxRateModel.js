@@ -112,7 +112,7 @@ export function taxRateBpsToPercentString(bps) {
 
 /**
  * Tax on the price after discounts. `8500` cents at `225` bps (2.25%) is `191` cents.
- * A missing rate, a rate below 1 basis point, or a $0 price is no tax.
+ * A missing rate, a rate below 1 basis point, a rate above 25%, or a $0 price is no tax.
  *
  * @param {number | null | undefined} priceAfterDiscountCents
  * @param {number | null | undefined} taxRateBps
@@ -121,7 +121,7 @@ export function previewTaxCents(priceAfterDiscountCents, taxRateBps) {
   const price = Math.round(Number(priceAfterDiscountCents));
   const bps = Math.round(Number(taxRateBps));
   if (!Number.isFinite(price) || price <= 0) return 0;
-  if (!Number.isFinite(bps) || bps < 1) return 0;
+  if (!Number.isFinite(bps) || bps < 1 || bps > TAX_RATE_MAX_BPS) return 0;
   return Math.round((price * bps) / 10000);
 }
 

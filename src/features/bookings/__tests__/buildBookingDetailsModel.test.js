@@ -328,20 +328,48 @@ describe('buildBookingDetailsModel', () => {
     expect(model.formattedPrice.total).toMatch(/86\.91/);
   });
 
-  it('keeps a taxed job untaxed in the breakdown when that job stored no tax', () => {
+  it('recomputes tax from the frozen rate when stored tax is still zero', () => {
     const model = buildBookingDetailsModel({
       service_price_cents: 8500,
       payment: {
+        paymentMethodSelected: 'none',
         totalAmountCents: 8500,
+        remainingAmountCents: 8500,
         taxCents: 0,
         taxRateBps: 225,
         currency: 'usd',
       },
     });
 
-    expect(model.formattedPrice.hasTax).toBe(false);
-    expect(model.formattedPrice.tax).toBeNull();
-    expect(model.formattedPrice.total).toMatch(/85\.00/);
+    expect(model.formattedPrice.hasTax).toBe(true);
+    expect(model.formattedPrice.tax).toEqual({
+      label: 'Tax (2.25%)',
+      value: expect.stringMatching(/1\.91/),
+    });
+    expect(model.formattedPrice.total).toMatch(/86\.91/);
+    expect(model.payment.detail).toMatch(/86\.91/);
+  });
+
+  it('shows tax from the rate after a price edit left the old tax on the row', () => {
+    const model = buildBookingDetailsModel({
+      service_price_cents: 60000,
+      payment: {
+        paymentMethodSelected: 'none',
+        totalAmountCents: 60000,
+        remainingAmountCents: 60000,
+        taxCents: 2100,
+        taxRateBps: 700,
+        currency: 'usd',
+      },
+    });
+
+    expect(model.formattedPrice.tax).toEqual({
+      label: 'Tax (7%)',
+      value: expect.stringMatching(/42\.00/),
+    });
+    expect(model.formattedPrice.total).toMatch(/642\.00/);
+    expect(model.formattedPrice.hasSessionFees).toBe(false);
+    expect(model.payment.detail).toMatch(/642\.00/);
   });
 
   it('includes sale/promo discount in price breakdown and total', () => {

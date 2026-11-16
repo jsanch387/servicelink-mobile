@@ -1,5 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { AppText, EchoBarsLoader, SuccessMoment } from '../../../../components/ui';
+import { SUBMIT_OUTCOME_ERROR } from '../../../../components/ui/submitOutcomeTokens';
 import { useCyclingStatusMessage } from '../../../../hooks/useCyclingStatusMessage';
 import { useTheme } from '../../../../theme';
 import { COMPLETE_VISIT_SHOW_CUSTOMER_NOTIFICATION_COPY } from '../constants/markCompleteFeatureFlags';
@@ -44,13 +46,15 @@ function getPendingMessages(includesReviewLink) {
 }
 
 /**
- * Full-screen pending / success overlay for the complete-visit flow.
+ * Full-screen pending / success / error overlay for the complete-visit flow.
  *
  * @param {{
- *   phase: 'pending' | 'success';
+ *   phase: 'pending' | 'success' | 'error';
  *   pendingTitle?: string;
  *   successTitle: string;
  *   successDetail: string;
+ *   errorTitle?: string;
+ *   errorDetail?: string;
  *   includesReviewLink?: boolean;
  *   bottomInset?: number;
  * }} props
@@ -60,6 +64,8 @@ export function CompleteVisitSubmitOverlay({
   pendingTitle = 'Completing',
   successTitle,
   successDetail,
+  errorTitle = 'Could not complete',
+  errorDetail = '',
   includesReviewLink,
   bottomInset = 0,
 }) {
@@ -68,6 +74,36 @@ export function CompleteVisitSubmitOverlay({
   const pendingMessage = useCyclingStatusMessage(phase === 'pending', pendingMessages);
 
   const overlayInsetStyle = { paddingBottom: bottomInset };
+
+  if (phase === 'error') {
+    return (
+      <View
+        accessibilityLiveRegion="polite"
+        style={[
+          StyleSheet.absoluteFill,
+          styles.root,
+          overlayInsetStyle,
+          { backgroundColor: colors.shell },
+        ]}
+      >
+        <View style={styles.centeredWrap}>
+          <View
+            accessibilityLabel="Could not complete visit"
+            accessibilityRole="image"
+            style={[styles.errorIconRing, { backgroundColor: SUBMIT_OUTCOME_ERROR.ring }]}
+          >
+            <Ionicons color={SUBMIT_OUTCOME_ERROR.color} name="alert-circle" size={72} />
+          </View>
+          <AppText style={[styles.errorTitle, { color: colors.text }]}>{errorTitle}</AppText>
+          {errorDetail ? (
+            <AppText style={[styles.errorDetail, { color: colors.textMuted }]}>
+              {errorDetail}
+            </AppText>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
 
   if (phase === 'pending') {
     return (
@@ -127,6 +163,28 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: -0.2,
     marginTop: 20,
+    textAlign: 'center',
+  },
+  errorIconRing: {
+    alignItems: 'center',
+    borderRadius: 999,
+    height: 104,
+    justifyContent: 'center',
+    marginBottom: 8,
+    width: 104,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.35,
+    textAlign: 'center',
+  },
+  errorDetail: {
+    fontSize: 15,
+    fontWeight: '500',
+    lineHeight: 20,
+    marginTop: 8,
+    maxWidth: 280,
     textAlign: 'center',
   },
 });

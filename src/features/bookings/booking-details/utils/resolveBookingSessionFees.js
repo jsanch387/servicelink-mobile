@@ -1,3 +1,4 @@
+import { resolveBookingTaxCents } from '../../utils/resolveBookingPaymentTotals';
 import { parseSessionFeeLinesFromBooking } from './parseSessionFeeLinesFromBooking';
 import { parseSessionFeesFromInvoiceSnapshot } from './parseSessionFeesFromInvoiceSnapshot';
 
@@ -10,6 +11,7 @@ import { parseSessionFeesFromInvoiceSnapshot } from './parseSessionFeesFromInvoi
  *     sessionDiscountsTotalCents?: number;
  *     totalAmountCents?: number;
  *     taxCents?: number;
+ *     taxRateBps?: number | null;
  *   } | null;
  *   servicePrice?: number | null;
  *   addOnsTotal?: number;
@@ -40,7 +42,12 @@ export function resolveBookingSessionFees({
   const grossBaseCents = serviceCents + addonCents;
   const baseCents = Math.max(0, grossBaseCents - discountCents);
   const baseDueCents = Math.max(0, baseCents - Math.max(0, Math.round(paidOnlineCents)));
-  const taxCents = Math.max(0, Math.round(Number(paymentSummary?.taxCents ?? 0) || 0));
+  const storedTaxCents = Math.max(0, Math.round(Number(paymentSummary?.taxCents ?? 0) || 0));
+  const taxCents = resolveBookingTaxCents({
+    taxableBaseCents: baseCents,
+    taxRateBps: paymentSummary?.taxRateBps,
+    storedTaxCents,
+  });
   const totalAmountCents = Math.max(
     0,
     Math.round(Number(paymentSummary?.totalAmountCents ?? 0) || 0),

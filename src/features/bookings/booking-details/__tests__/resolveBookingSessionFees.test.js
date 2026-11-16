@@ -64,6 +64,21 @@ describe('resolveBookingSessionFees', () => {
     ).toEqual([{ id: 'inferred-session-fees', name: 'Additional fees', price: 15, kind: 'fee' }]);
   });
 
+  it('does not invent a fee when stored tax is behind the frozen rate', () => {
+    expect(
+      resolveBookingSessionFees({
+        sessionFeeLines: [],
+        paymentSummary: {
+          totalAmountCents: 64200,
+          taxCents: 2100,
+          taxRateBps: 700,
+        },
+        servicePrice: 600,
+        addOnsTotal: 0,
+      }),
+    ).toEqual([]);
+  });
+
   it('does not treat stored tax as an additional fee', () => {
     expect(
       resolveBookingSessionFees({

@@ -56,6 +56,11 @@ describe('previewTaxCents', () => {
     expect(previewTaxCents(8500, 0)).toBe(0);
     expect(previewTaxCents(8500, null)).toBe(0);
   });
+
+  it('rounds 8.25% of $150 the same way as the server and rejects a rate above 25%', () => {
+    expect(previewTaxCents(15000, 825)).toBe(1238);
+    expect(previewTaxCents(15000, 2501)).toBe(0);
+  });
 });
 
 describe('formatTaxLineLabel', () => {

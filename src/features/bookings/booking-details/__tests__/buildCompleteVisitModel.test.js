@@ -1,5 +1,50 @@
 import { buildCompleteVisitModelFromBooking } from '../utils/buildCompleteVisitModel';
 
+/**
+ * Port of web `computeBookingAmountDue` for the cases these tests cover.
+ * Session fees stay out of the taxable base. A rate above 0 replaces stored tax.
+ *
+ * @param {{
+ *   lineSubtotalCents: number;
+ *   discountCents?: number;
+ *   taxRateBps?: number;
+ *   storedTaxCents?: number;
+ *   sessionFeeCents?: number;
+ *   paidOnlineCents?: number;
+ *   sessionDiscountCents?: number;
+ *   sessionPaymentCents?: number;
+ * }} input
+ */
+function serverAmountDueCents({
+  lineSubtotalCents,
+  discountCents = 0,
+  taxRateBps = 0,
+  storedTaxCents = 0,
+  sessionFeeCents = 0,
+  paidOnlineCents = 0,
+  sessionDiscountCents = 0,
+  sessionPaymentCents = 0,
+}) {
+  const line = Math.max(0, Math.round(lineSubtotalCents));
+  const discount = Math.min(line, Math.max(0, Math.round(discountCents)));
+  const base = Math.max(0, line - discount);
+  const bps = Math.round(taxRateBps);
+  const taxCents =
+    bps > 0
+      ? bps < 1 || bps > 2500 || base <= 0
+        ? 0
+        : Math.round((base * bps) / 10000)
+      : Math.max(0, Math.round(storedTaxCents));
+  const fees = Math.max(0, Math.round(sessionFeeCents));
+  const adjustedTotalCents = Math.max(fees, line + fees - discount) + taxCents;
+  const amountDueCents =
+    adjustedTotalCents -
+    Math.max(0, Math.round(paidOnlineCents)) -
+    Math.max(0, Math.round(sessionDiscountCents)) -
+    Math.max(0, Math.round(sessionPaymentCents));
+  return { taxCents, adjustedTotalCents, amountDueCents };
+}
+
 describe('buildCompleteVisitModelFromBooking', () => {
   it('splits service name and pricing option for the service line', () => {
     const model = buildCompleteVisitModelFromBooking({
@@ -302,7 +347,7 @@ describe('buildCompleteVisitModelFromBooking', () => {
     expect(model?.isMembershipVisit).toBe(true);
   });
 
-  it('leaves the balance untaxed when the saved job has no tax', () => {
+  it('recomputes tax from the rate when the saved tax is still zero', () => {
     const model = buildCompleteVisitModelFromBooking({
       service_name: 'Wash',
       service_price_cents: 8500,
@@ -311,11 +356,92 @@ describe('buildCompleteVisitModelFromBooking', () => {
         taxCents: 0,
         taxRateBps: 225,
         totalAmountCents: 8500,
+        remainingAmountCents: 8500,
       },
     });
 
+    expect(model?.lineItems.at(-1)).toEqual({
+      id: 'tax',
+      label: 'Tax (2.25%)',
+      amount: 1.91,
+      kind: 'tax',
+    });
+    expect(model?.remainingAmountCents).toBe(8691);
+  });
+
+  it('charges the server amount due when stored tax is from the pre-edit price', () => {
+    const model = buildCompleteVisitModelFromBooking({
+      service_name: 'Auto Detail',
+      service_price_cents: 60000,
+      job_details: [
+        { id: 'j1', serviceName: 'Detail', servicePriceCents: 15000 },
+        { id: 'j2', serviceName: 'Detail', servicePriceCents: 15000 },
+        { id: 'j3', serviceName: 'Detail', servicePriceCents: 30000 },
+      ],
+      payment: {
+        paidOnlineAmountCents: 0,
+        taxCents: 2100,
+        taxRateBps: 700,
+        totalAmountCents: 60000,
+        remainingAmountCents: 60000,
+      },
+    });
+
+    expect(model?.lineItems.find((item) => item.kind === 'tax')).toEqual({
+      id: 'tax',
+      label: 'Tax (7%)',
+      amount: 42,
+      kind: 'tax',
+    });
+    const lineCents = (model?.lineItems ?? []).reduce(
+      (sum, item) => sum + Math.round(item.amount * 100),
+      0,
+    );
+    expect(lineCents).toBe(64200);
+    expect(model?.remainingAmountCents).toBe(64200);
+    expect(serverAmountDueCents({ lineSubtotalCents: 60000, taxRateBps: 700 })).toEqual({
+      taxCents: 4200,
+      adjustedTotalCents: 64200,
+      amountDueCents: 64200,
+    });
+  });
+
+  it('taxes the price after a frozen promo discount and after a deposit', () => {
+    const model = buildCompleteVisitModelFromBooking({
+      service_name: 'Detail',
+      service_price_cents: 30000,
+      discount_source: 'promo',
+      discount_cents: 5000,
+      discount_label: 'SAVE50',
+      payment: {
+        paidOnlineAmountCents: 10000,
+        taxRateBps: 700,
+        taxCents: 1750,
+        totalAmountCents: 26750,
+        remainingAmountCents: 16750,
+      },
+    });
+
+    const due = serverAmountDueCents({
+      lineSubtotalCents: 30000,
+      discountCents: 5000,
+      taxRateBps: 700,
+      paidOnlineCents: 10000,
+    });
+    expect(due).toEqual({ taxCents: 1750, adjustedTotalCents: 26750, amountDueCents: 16750 });
+    expect(model?.lineItems.find((item) => item.kind === 'tax')?.amount).toBe(17.5);
+    expect(model?.remainingAmountCents).toBe(16750);
+  });
+
+  it('leaves a zero rate untaxed', () => {
+    const model = buildCompleteVisitModelFromBooking({
+      service_name: 'Wash',
+      service_price_cents: 15000,
+      payment: { taxCents: 0, taxRateBps: 0, paidOnlineAmountCents: 0, totalAmountCents: 15000 },
+    });
+
     expect(model?.lineItems.some((item) => item.kind === 'tax')).toBe(false);
-    expect(model?.remainingAmountCents).toBe(8500);
+    expect(model?.remainingAmountCents).toBe(15000);
   });
 
   it('returns null when booking is missing', () => {

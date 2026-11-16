@@ -30,6 +30,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SUBMIT_OUTCOME_SUCCESS } from '../../../../components/ui/submitOutcomeTokens';
 import { FONT_FAMILIES, useTheme } from '../../../../theme';
+import { safeUserFacingMessage } from '../../../../utils/safeUserFacingMessage';
 import {
   getCompleteVisitFollowUpInfo,
   getCompleteVisitPaidRowLabel,
@@ -663,8 +664,9 @@ export function BookingCompleteVisitSheet({
   );
   const [tapToPayTipCents, setTapToPayTipCents] = useState(0);
   const [submitPhase, setSubmitPhase] = useState(
-    /** @type {'idle' | 'pending' | 'success'} */ ('idle'),
+    /** @type {'idle' | 'pending' | 'success' | 'error'} */ ('idle'),
   );
+  const [submitError, setSubmitError] = useState('');
   const [receiptEmailDraft, setReceiptEmailDraft] = useState('');
   const [savedReceiptEmail, setSavedReceiptEmail] = useState('');
   const [receiptPhoneDraft, setReceiptPhoneDraft] = useState('');
@@ -730,6 +732,7 @@ export function BookingCompleteVisitSheet({
       setInPersonPayment(null);
       setStripePaymentIntentId(null);
       setSubmitPhase('idle');
+      setSubmitError('');
       setReceiptEmailDraft('');
       setSavedReceiptEmail('');
       setReceiptPhoneDraft('');
@@ -943,7 +946,8 @@ export function BookingCompleteVisitSheet({
 
   const isSubmitting = submitPhase === 'pending';
   const isSuccess = submitPhase === 'success';
-  const showSubmitOverlay = isSubmitting || isSuccess;
+  const isSubmitError = submitPhase === 'error';
+  const showSubmitOverlay = isSubmitting || isSuccess || isSubmitError;
   const successFooterInset = 12 + 52 + Math.max(insets.bottom, 12);
 
   const handleMarkPaidInPerson = (method, amount) => {
@@ -980,15 +984,14 @@ export function BookingCompleteVisitSheet({
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         setSubmitPhase('success');
       } catch (err) {
-        setSubmitPhase('idle');
-        const message =
-          err instanceof Error && err.message.trim()
-            ? err.message.trim()
-            : 'The visit could not be completed.';
-        Alert.alert(
-          'Card charged',
+        const message = safeUserFacingMessage(err, {
+          fallback: 'The visit could not be completed.',
+        });
+        setSubmitError(
           `${message}\n\nThe card was charged. Tap Complete to finish the visit. Don't charge the card again.`,
         );
+        setSubmitPhase('error');
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       }
     }
   };
@@ -1127,12 +1130,11 @@ export function BookingCompleteVisitSheet({
       });
       setSubmitPhase('success');
     } catch (err) {
-      setSubmitPhase('idle');
-      const message =
-        err instanceof Error && err.message.trim()
-          ? err.message.trim()
-          : 'Could not complete this visit. Try again.';
-      Alert.alert('Could not complete', message);
+      setSubmitError(
+        safeUserFacingMessage(err, { fallback: 'Could not complete this visit. Try again.' }),
+      );
+      setSubmitPhase('error');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     }
   }, [
     MOCK_COMPLETE_MS,
@@ -1158,6 +1160,11 @@ export function BookingCompleteVisitSheet({
 
   const handleDoneAfterSuccess = () => {
     handleClose();
+  };
+
+  const handleDismissSubmitError = () => {
+    setSubmitPhase('idle');
+    setSubmitError('');
   };
 
   const resolvedTapToPayConnectReady = isDesignPreview ? true : tapToPayConnectReady;
@@ -1285,9 +1292,11 @@ export function BookingCompleteVisitSheet({
 
               {showSubmitOverlay ? (
                 <CompleteVisitSubmitOverlay
-                  bottomInset={isSuccess ? successFooterInset : 0}
+                  bottomInset={isSuccess || isSubmitError ? successFooterInset : 0}
+                  errorDetail={submitError}
+                  errorTitle="Could not complete"
                   includesReviewLink={resolvedModel?.showReviewInvite !== false}
-                  phase={isSubmitting ? 'pending' : 'success'}
+                  phase={isSubmitting ? 'pending' : isSubmitError ? 'error' : 'success'}
                   successDetail={successCopy.detail}
                   successTitle={successCopy.title}
                 />
@@ -1306,6 +1315,22 @@ export function BookingCompleteVisitSheet({
                     title="Done"
                     variant="primary"
                     onPress={handleDoneAfterSuccess}
+                  />
+                </View>
+              ) : null}
+              {isSubmitError ? (
+                <View
+                  style={[
+                    styles.footer,
+                    styles.footerOverlay,
+                    { paddingBottom: Math.max(insets.bottom, 12) },
+                  ]}
+                >
+                  <Button
+                    fullWidth
+                    title="Try again"
+                    variant="primary"
+                    onPress={handleDismissSubmitError}
                   />
                 </View>
               ) : null}

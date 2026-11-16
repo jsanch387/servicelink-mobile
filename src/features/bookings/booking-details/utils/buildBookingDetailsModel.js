@@ -1,4 +1,5 @@
 import { formatTaxLineLabel } from '../../../payments/utils/taxRateModel';
+import { resolveBookingTaxCents } from '../../utils/resolveBookingPaymentTotals';
 import { parseBookingStartLocalMs } from '../../../home/utils/bookingStart';
 import { formatLocationCardLines } from '../../create-appointment/utils/formatAppointmentAddress';
 import { formatPhoneWithCountryCode } from '../../../../utils/phone';
@@ -251,7 +252,8 @@ export function reconcilePaymentSummaryWithDiscount(
 
 /**
  * After owner edits job prices, `booking_payments` can lag behind Visit total.
- * Heal total/remaining from the current visit net (service + add-ons − discount [+ fees]).
+ * Heal total/remaining from the current visit net (service + add-ons − discount + tax).
+ * Session fees stay in the total. Remaining follows the payment-row consistency check.
  *
  * @param {ReturnType<typeof normalizeBookingPaymentSummary>} paymentSummary
  * @param {{ visitNetCents: number }} args
@@ -259,9 +261,18 @@ export function reconcilePaymentSummaryWithDiscount(
 export function reconcilePaymentSummaryWithVisitTotal(paymentSummary, { visitNetCents }) {
   if (!paymentSummary) return paymentSummary;
 
-  const expectedTotal = Math.max(0, Math.round(Number(visitNetCents) || 0));
+  const sessionFees = Math.max(0, Math.round(Number(paymentSummary.sessionFeesTotalCents) || 0));
+  const sessionDiscounts = Math.max(
+    0,
+    Math.round(Number(paymentSummary.sessionDiscountsTotalCents) || 0),
+  );
+  const sessionPayment = Math.max(
+    0,
+    Math.round(Number(paymentSummary.sessionPaymentAmountCents) || 0),
+  );
+  const expectedTotal = Math.max(0, Math.round(Number(visitNetCents) || 0) + sessionFees);
   const paid = Math.max(0, Math.round(Number(paymentSummary.paidOnlineAmountCents) || 0));
-  const expectedRem = Math.max(0, expectedTotal - paid);
+  const expectedRem = Math.max(0, expectedTotal - paid - sessionDiscounts - sessionPayment);
   const total = Math.max(0, Math.round(Number(paymentSummary.totalAmountCents) || 0));
   const rem = Math.max(0, Math.round(Number(paymentSummary.remainingAmountCents) || 0));
 
@@ -587,11 +598,20 @@ export function buildBookingDetailsModel(booking) {
     },
   );
   const storedTaxCents = Math.max(0, Math.round(Number(paymentSummary?.taxCents) || 0));
+  const isMembershipVisit =
+    String(paymentSummary?.paymentMethodSelected ?? '')
+      .trim()
+      .toLowerCase() === 'membership';
+  const resolvedTaxCents = resolveBookingTaxCents({
+    taxableBaseCents: visitNetCents,
+    taxRateBps: paymentSummary?.taxRateBps,
+    storedTaxCents,
+    isMembershipVisit,
+  });
   // Only heal stale payment totals when we know the visit pricing (jobs or service_price_cents).
-  // Stored tax stays in the expected total so a taxed job is not rewritten back to the pre-tax price.
   if (useJobDetails || Number.isFinite(legacyServicePrice)) {
     paymentSummary = reconcilePaymentSummaryWithVisitTotal(paymentSummary, {
-      visitNetCents: visitNetCents + storedTaxCents,
+      visitNetCents: visitNetCents + resolvedTaxCents,
     });
   }
   const resolvedSessionPayment = resolveSessionPaymentForDisplay(
@@ -613,7 +633,7 @@ export function buildBookingDetailsModel(booking) {
   const sessionDiscounts = sessionAdjustments.filter((item) => item.kind === 'discount');
   const sessionFeesTotal = sessionFees.reduce((sum, item) => sum + item.price, 0);
   const sessionDiscountsTotal = sessionDiscounts.reduce((sum, item) => sum + item.price, 0);
-  const taxDollars = storedTaxCents / 100;
+  const taxDollars = resolvedTaxCents / 100;
   const computedTotal = Number.isFinite(servicePrice)
     ? Math.max(0, servicePrice + addOnsTotal - discountDollars - sessionDiscountsTotal) +
       sessionFeesTotal +
@@ -650,7 +670,7 @@ export function buildBookingDetailsModel(booking) {
   const showSubtotal =
     subtotalCents != null &&
     (discountDollars > 0 ||
-      storedTaxCents > 0 ||
+      resolvedTaxCents > 0 ||
       sessionFees.length > 0 ||
       sessionDiscounts.length > 0 ||
       collectedCents > 0 ||
@@ -781,12 +801,12 @@ export function buildBookingDetailsModel(booking) {
             value: `−${formatMoney(discountDollars)}`,
           }
         : null,
-      hasTax: storedTaxCents > 0,
+      hasTax: resolvedTaxCents > 0,
       tax:
-        storedTaxCents > 0
+        resolvedTaxCents > 0
           ? {
               label: formatTaxLineLabel(paymentSummary?.taxRateBps),
-              value: formatMoneyFromCents(storedTaxCents, paymentSummary?.currency),
+              value: formatMoneyFromCents(resolvedTaxCents, paymentSummary?.currency),
             }
           : null,
       sessionFeesTotal: formatMoney(sessionFeesTotal),
