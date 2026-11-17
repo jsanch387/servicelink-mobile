@@ -11,12 +11,14 @@ export const PLAN_CADENCE_OPTIONS = [
   { key: 'monthly', label: 'Monthly', interval: 'month', intervalCount: 1 },
   { key: 'every_2_months', label: 'Every 2 months', interval: 'month', intervalCount: 2 },
   { key: 'every_3_months', label: 'Every 3 months', interval: 'month', intervalCount: 3 },
+  { key: 'every_6_months', label: 'Every 6 months', interval: 'month', intervalCount: 6 },
 ];
 
 export const DEFAULT_PLAN_CADENCE_KEY = 'monthly';
 
 /**
- * One-tap chips in the plan sheet — weekly, biweekly, monthly.
+ * One-tap chips in the plan sheet.
+ * Weekly, biweekly, and monthly sit on the first row; 3 and 6 months wrap under them.
  */
 export const PLAN_CADENCE_PRESETS = [
   { key: 'every_1_week', shortLabel: 'Weekly', count: 1, interval: /** @type {'week'} */ ('week') },
@@ -27,6 +29,18 @@ export const PLAN_CADENCE_PRESETS = [
     interval: /** @type {'week'} */ ('week'),
   },
   { key: 'monthly', shortLabel: 'Monthly', count: 1, interval: /** @type {'month'} */ ('month') },
+  {
+    key: 'every_3_months',
+    shortLabel: '3 months',
+    count: 3,
+    interval: /** @type {'month'} */ ('month'),
+  },
+  {
+    key: 'every_6_months',
+    shortLabel: '6 months',
+    count: 6,
+    interval: /** @type {'month'} */ ('month'),
+  },
 ];
 
 export function isPresetCadence(count, interval) {

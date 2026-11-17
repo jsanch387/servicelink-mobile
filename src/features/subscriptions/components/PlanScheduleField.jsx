@@ -7,6 +7,7 @@ import { FONT_FAMILIES, useTheme } from '../../../theme';
 import {
   cadenceKeyFromParts,
   clampCadenceCount,
+  formatCadenceLabel,
   formatCadencePillLabel,
   formatPlanPriceCents,
   normalizeCadenceInterval,
@@ -65,6 +66,9 @@ export function PlanScheduleField({ value, onChange, maxSchedules = 3, listFirst
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        chipStack: {
+          gap: 8,
+        },
         chipRow: {
           flexDirection: 'row',
           gap: 8,
@@ -294,29 +298,41 @@ export function PlanScheduleField({ value, onChange, maxSchedules = 3, listFirst
       </View>
     ) : null;
 
+  const frequentPresets = PLAN_CADENCE_PRESETS.filter(
+    (preset) => preset.interval === 'week' || preset.count === 1,
+  );
+  const longerPresets = PLAN_CADENCE_PRESETS.filter(
+    (preset) => preset.interval === 'month' && preset.count > 1,
+  );
+
+  const renderPresetChip = (preset) => {
+    const isActive = preset.key === draftKey;
+    const isTaken = takenKeys.has(preset.key);
+    return (
+      <TouchableOpacity
+        accessibilityLabel={formatCadenceLabel(preset.key)}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: isTaken, selected: isActive }}
+        activeOpacity={0.85}
+        disabled={isTaken}
+        key={preset.key}
+        style={[styles.chip, isActive && styles.chipOn, isTaken && styles.chipOff]}
+        onPress={() => selectPreset(preset)}
+      >
+        <AppText numberOfLines={1} style={[styles.chipLabel, isActive && styles.chipLabelOn]}>
+          {preset.shortLabel}
+        </AppText>
+      </TouchableOpacity>
+    );
+  };
+
   const composerBlock = showComposer ? (
     <View style={styles.composer}>
-      <View style={styles.chipRow}>
-        {PLAN_CADENCE_PRESETS.map((preset) => {
-          const isActive = preset.key === draftKey;
-          const isTaken = takenKeys.has(preset.key);
-          return (
-            <TouchableOpacity
-              accessibilityLabel={formatCadencePillLabel(preset.count, preset.interval)}
-              accessibilityRole="button"
-              accessibilityState={{ disabled: isTaken, selected: isActive }}
-              activeOpacity={0.85}
-              disabled={isTaken}
-              key={preset.key}
-              style={[styles.chip, isActive && styles.chipOn, isTaken && styles.chipOff]}
-              onPress={() => selectPreset(preset)}
-            >
-              <AppText numberOfLines={1} style={[styles.chipLabel, isActive && styles.chipLabelOn]}>
-                {preset.shortLabel}
-              </AppText>
-            </TouchableOpacity>
-          );
-        })}
+      <View style={styles.chipStack}>
+        <View style={styles.chipRow}>{frequentPresets.map(renderPresetChip)}</View>
+        {longerPresets.length > 0 ? (
+          <View style={styles.chipRow}>{longerPresets.map(renderPresetChip)}</View>
+        ) : null}
       </View>
 
       <View style={styles.priceRow}>

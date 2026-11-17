@@ -7,7 +7,7 @@ export const SUBSCRIPTIONS_NON_PRO_SECTION_LABEL = 'What you get';
 export const SUBSCRIPTIONS_NON_PRO_BENEFITS = [
   {
     lead: 'Recurring subscriptions',
-    rest: 'Weekly, biweekly, or monthly.',
+    rest: 'Weekly, biweekly, monthly, or every 3 or 6 months.',
   },
   {
     lead: 'Share a link',
@@ -56,8 +56,3 @@ export const SUBSCRIPTIONS_MEMBERS_EMPTY_AFTER_SETUP = {
   title: 'No subscribers yet',
   body: 'When someone subscribes, they show up here.',
 };
-
-export const SUBSCRIPTIONS_BETA_BANNER_TITLE = 'Beta feature';
-export const SUBSCRIPTIONS_BETA_BANNER_BODY = 'Tap to request improvements';
-export const SUBSCRIPTIONS_BETA_BANNER_A11Y_LABEL = 'Beta feature. Tap to request improvements.';
-export const SUBSCRIPTIONS_BETA_BANNER_A11Y_HINT = 'Opens Contact us';

@@ -6,8 +6,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AppText,
   AppVersionFootnote,
-  BetaLabel,
-  NewLabel,
   SettingsNavRow,
   SettingsSection,
 } from '../../../components/ui';
@@ -115,7 +113,6 @@ export function MoreScreen() {
                   icon="account-group-outline"
                   iconLibrary="material-community"
                   label="Team"
-                  labelAccessory={<NewLabel />}
                   onPress={() => navigation.navigate(ROUTES.TEAM)}
                 />
               ) : null}
@@ -123,7 +120,6 @@ export function MoreScreen() {
                 <SettingsNavRow
                   icon="layers-outline"
                   label="Subscriptions"
-                  labelAccessory={<BetaLabel />}
                   onPress={() => navigation.navigate(ROUTES.SUBSCRIPTIONS)}
                 />
               ) : null}
@@ -158,14 +154,12 @@ export function MoreScreen() {
                 <SettingsNavRow
                   icon="documents-outline"
                   label="Invoices"
-                  labelAccessory={<NewLabel />}
                   onPress={() => navigation.navigate(ROUTES.INVOICES)}
                 />
               ) : null}
               <SettingsNavRow
                 icon="receipt-outline"
                 label="Expenses"
-                labelAccessory={<NewLabel />}
                 showDividerBelow={false}
                 onPress={() => navigation.navigate(ROUTES.EXPENSES)}
               />

@@ -25,7 +25,6 @@ import {
 } from '../../payments/utils/stripeConnectSetupCopy';
 import { useSubscription } from '../../subscription';
 import { AddSubscriptionFab } from '../components/AddSubscriptionFab';
-import { SubscriptionsBetaBanner } from '../components/SubscriptionsBetaBanner';
 import { SubscriptionMemberCard } from '../components/SubscriptionMemberCard';
 import { SubscriptionPlanCard } from '../components/SubscriptionPlanCard';
 import { SubscriptionsCreatePlanSheet } from '../components/SubscriptionsCreatePlanSheet';
@@ -309,8 +308,6 @@ export function SubscriptionsScreen() {
           showsVerticalScrollIndicator={false}
           style={styles.scroll}
         >
-          <SubscriptionsBetaBanner onPress={() => navigation.navigate(ROUTES.SUPPORT)} />
-
           {showLoading ? (
             <View style={styles.loadingWrap}>
               <SubscriptionsHubSkeleton />
