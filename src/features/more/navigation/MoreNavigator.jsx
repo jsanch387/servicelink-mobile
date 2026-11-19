@@ -35,6 +35,7 @@ import {
   PromoCodeDetailScreen,
   SaleDetailScreen,
 } from '../../marketing';
+import { AssistantScreen } from '../../assistant';
 import { ReviewsScreen } from '../../reviews';
 import { ExpensesScreen } from '../../expenses';
 import { InvoiceDetailScreen, InvoicesScreen } from '../../invoicing';
@@ -168,6 +169,15 @@ export function MoreNavigator() {
             name={ROUTES.REVIEWS}
             options={{
               title: 'Reviews',
+              headerBackButtonDisplayMode: 'minimal',
+              headerBackTitleVisible: false,
+            }}
+          />
+          <Stack.Screen
+            component={AssistantScreen}
+            name={ROUTES.ASSISTANT}
+            options={{
+              title: 'Assistant',
               headerBackButtonDisplayMode: 'minimal',
               headerBackTitleVisible: false,
             }}

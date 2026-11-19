@@ -25,12 +25,10 @@ const Tab = createBottomTabNavigator();
 /** Screens inside a tab stack where the bottom tab bar should be hidden. */
 const CUSTOMERS_TAB_BAR_HIDDEN_ROUTES = new Set([ROUTES.MAINTENANCE_INVITE]);
 
-function customersTabBarOptions({ route }) {
-  const routeName = getFocusedRouteNameFromRoute(route) ?? ROUTES.CUSTOMERS_LIST;
-  const hideTabBar = CUSTOMERS_TAB_BAR_HIDDEN_ROUTES.has(routeName);
-
+function tabBarHiddenOptions(route, hiddenRoutes, fallbackName) {
+  const routeName = getFocusedRouteNameFromRoute(route) ?? fallbackName;
   return {
-    tabBarStyle: hideTabBar ? { display: 'none' } : undefined,
+    tabBarStyle: hiddenRoutes.has(routeName) ? { display: 'none' } : undefined,
   };
 }
 
@@ -100,22 +98,19 @@ export function MainTabNavigator() {
                   : undefined
               }
               name={route}
-              options={
-                route === ROUTES.CUSTOMERS
-                  ? ({ route: tabRoute }) => ({
-                      ...customersTabBarOptions({ route: tabRoute }),
-                      tabBarIcon: ({ color, focused, size }) => (
-                        <Ionicons color={color} name={icon} size={focused ? 24 : 22} />
-                      ),
-                      tabBarLabel: label,
-                    })
-                  : {
-                      tabBarIcon: ({ color, focused, size }) => (
-                        <Ionicons color={color} name={icon} size={focused ? 24 : 22} />
-                      ),
-                      tabBarLabel: label,
-                    }
-              }
+              options={({ route: tabRoute }) => ({
+                ...(route === ROUTES.CUSTOMERS
+                  ? tabBarHiddenOptions(
+                      tabRoute,
+                      CUSTOMERS_TAB_BAR_HIDDEN_ROUTES,
+                      ROUTES.CUSTOMERS_LIST,
+                    )
+                  : null),
+                tabBarIcon: ({ color, focused }) => (
+                  <Ionicons color={color} name={icon} size={focused ? 24 : 22} />
+                ),
+                tabBarLabel: label,
+              })}
             />
           );
         })}

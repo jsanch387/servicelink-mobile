@@ -42,6 +42,8 @@ export const ROUTES = {
   QUOTE_DETAIL: 'QuoteDetail',
   /** More stack — business reviews inbox and replies. */
   REVIEWS: 'Reviews',
+  /** More stack — owner assistant home. */
+  ASSISTANT: 'Assistant',
   /** More stack — maintenance enrollments inbox. */
   MAINTENANCE: 'Maintenance',
   /** More stack — single maintenance enrollment detail. */
@@ -129,6 +131,7 @@ export const PATHS = {
   QUOTES: '/quotes',
   QUOTE_DETAIL: '/quotes/detail',
   REVIEWS: '/reviews',
+  ASSISTANT: '/assistant',
   MAINTENANCE: '/maintenance',
   MAINTENANCE_DETAIL: '/maintenance/detail',
   TEAM: '/more/team',

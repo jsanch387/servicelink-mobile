@@ -89,6 +89,11 @@ export function MoreScreen() {
           {canSeeOffice ? (
             <>
               <SettingsNavRow
+                icon="sparkles-outline"
+                label="Assistant"
+                onPress={() => navigation.navigate(ROUTES.ASSISTANT)}
+              />
+              <SettingsNavRow
                 icon="albums-outline"
                 label="Services"
                 onPress={() => navigation.navigate(ROUTES.SERVICES_LIST)}
