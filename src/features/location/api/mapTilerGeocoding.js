@@ -336,10 +336,12 @@ export function applyTypedHouseNumber(locations, query) {
  * }} feature
  * @returns {import('../types/location').StructuredLocation | null}
  */
-function mapFeature(feature) {
+export function mapFeature(feature) {
   const cityItem = findHierarchyItem(feature, [
     'place',
     'municipality',
+    'joint_municipality',
+    'joint_submunicipality',
     'locality',
     'municipal_district',
   ]);

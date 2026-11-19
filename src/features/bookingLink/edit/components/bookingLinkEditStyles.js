@@ -59,6 +59,14 @@ export function createBookingLinkEditStyles(colors, galleryGap) {
       overflow: 'visible',
       zIndex: 30,
     },
+    bookingShopManualLink: {
+      alignSelf: 'flex-start',
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '500',
+      letterSpacing: -0.1,
+      textDecorationLine: 'underline',
+    },
     bookingMobileFields: {
       marginTop: 14,
       overflow: 'visible',

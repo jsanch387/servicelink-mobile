@@ -84,7 +84,7 @@ describe('validateBookingLinkEditFields', () => {
     ).toEqual({
       ok: false,
       title: 'Shop address',
-      message: 'Pick a street address so we can save the shop city and state.',
+      message: 'Shop city and state are required.',
     });
 
     expect(

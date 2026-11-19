@@ -88,7 +88,7 @@ export function validateBookingLinkEditFields(fields) {
       return {
         ok: false,
         title: 'Shop address',
-        message: 'Pick a street address so we can save the shop city and state.',
+        message: 'Shop city and state are required.',
       };
     }
     if (shopZip && shopZip.length !== 5) {

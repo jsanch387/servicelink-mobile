@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
-import { Switch, View } from 'react-native';
+import { Pressable, Switch, View } from 'react-native';
 import { AppText, SurfaceCard, SurfaceTextField } from '../../../../components/ui';
-import { LocationAutocompleteField, ServiceAreaFields } from '../../../location';
+import {
+  isAddressAutocompleteAvailable,
+  LocationAutocompleteField,
+  ServiceAreaFields,
+} from '../../../location';
 import { useTheme } from '../../../../theme';
 import {
   BOOKING_DEFAULT_LANGUAGE_OPTIONS,
@@ -16,6 +20,8 @@ import { BookingLinkEditCustomerPolicySection } from './BookingLinkEditCustomerP
 import { BookingLinkEditInlineSegment } from './BookingLinkEditInlineSegment';
 import { BookingLinkEditMobileAreaSummary } from './BookingLinkEditMobileAreaSummary';
 
+const FIELD_SHELL = { marginBottom: 0 };
+
 export function BookingLinkEditBookingSection({
   styles,
   rootStyle,
@@ -29,6 +35,16 @@ export function BookingLinkEditBookingSection({
   onLocationSelect,
   onRadiusChange,
   shopAddressInput,
+  shopAddressMode,
+  onShopAddressModeChange,
+  shopStreetInput,
+  shopCityInput,
+  shopStateInput,
+  shopZipInput,
+  onShopStreetInputChange,
+  onShopCityInputChange,
+  onShopStateInputChange,
+  onShopZipInputChange,
   selectedShopLocation,
   shopAddressError,
   onShopAddressFocus,
@@ -48,6 +64,8 @@ export function BookingLinkEditBookingSection({
   const { colors, isDark } = useTheme();
 
   const showShopAddress = bookingServiceTypeShowsShopAddress(serviceType);
+  const showAddressSearch = isAddressAutocompleteAvailable();
+  const shopAddressIsManual = !showAddressSearch || shopAddressMode === 'manual';
   const showServiceArea = bookingServiceTypeShowsServiceArea(serviceType);
   const showMobileAreaSummary = showShopAddress && showServiceArea;
 
@@ -79,19 +97,69 @@ export function BookingLinkEditBookingSection({
 
           {showShopAddress ? (
             <View style={styles.bookingShopFields}>
-              <LocationAutocompleteField
-                errorText={shopAddressError}
-                label="Shop address"
-                leftIcon="location-outline"
-                mode="customer-address"
-                placeholder="Search street address"
-                selectedLocation={selectedShopLocation}
-                showProviderFooter={false}
-                value={shopAddressInput}
-                onChangeText={onShopAddressInputChange}
-                onFocus={onShopAddressFocus}
-                onSelect={onShopAddressSelect}
-              />
+              {shopAddressIsManual ? (
+                <>
+                  <SurfaceTextField
+                    compact
+                    containerStyle={FIELD_SHELL}
+                    errorText={shopAddressError}
+                    label="Street address"
+                    maxLength={200}
+                    placeholder="123 Main Street"
+                    value={shopStreetInput}
+                    onChangeText={onShopStreetInputChange}
+                  />
+                  <SurfaceTextField
+                    compact
+                    containerStyle={FIELD_SHELL}
+                    label="City"
+                    maxLength={100}
+                    placeholder="Austin"
+                    value={shopCityInput}
+                    onChangeText={onShopCityInputChange}
+                  />
+                  <View style={styles.locationFieldsRow}>
+                    <View style={styles.locationFieldState}>
+                      <SurfaceTextField
+                        autoCapitalize="characters"
+                        compact
+                        containerStyle={FIELD_SHELL}
+                        label="State"
+                        maxLength={2}
+                        placeholder="TX"
+                        value={shopStateInput}
+                        onChangeText={onShopStateInputChange}
+                      />
+                    </View>
+                    <View style={styles.locationFieldZip}>
+                      <SurfaceTextField
+                        compact
+                        containerStyle={FIELD_SHELL}
+                        keyboardType="number-pad"
+                        label="ZIP code"
+                        maxLength={5}
+                        placeholder="78701"
+                        value={shopZipInput}
+                        onChangeText={onShopZipInputChange}
+                      />
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <LocationAutocompleteField
+                  errorText={shopAddressError}
+                  label="Search address"
+                  leftIcon={null}
+                  mode="customer-address"
+                  placeholder="Search street address"
+                  selectedLocation={selectedShopLocation}
+                  showProviderFooter={false}
+                  value={shopAddressInput}
+                  onChangeText={onShopAddressInputChange}
+                  onFocus={onShopAddressFocus}
+                  onSelect={onShopAddressSelect}
+                />
+              )}
               <SurfaceTextField
                 containerStyle={styles.infoFieldLast}
                 label="Unit (optional)"
@@ -99,6 +167,20 @@ export function BookingLinkEditBookingSection({
                 value={shopUnitInput}
                 onChangeText={onShopUnitInputChange}
               />
+              {showAddressSearch ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => onShopAddressModeChange(shopAddressIsManual ? 'search' : 'manual')}
+                >
+                  {({ pressed }) => (
+                    <View style={pressed ? { opacity: 0.55 } : null}>
+                      <AppText style={styles.bookingShopManualLink}>
+                        {shopAddressIsManual ? 'Search' : 'Enter manually'}
+                      </AppText>
+                    </View>
+                  )}
+                </Pressable>
+              ) : null}
             </View>
           ) : null}
 

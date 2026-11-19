@@ -173,6 +173,7 @@ export function useBookingLinkEditController({
     }),
   );
   const [shopAddressError, setShopAddressError] = useState('');
+  const [shopAddressMode, setShopAddressMode] = useState('search');
   const [shopUnitInput, setShopUnitInput] = useState(() => String(shopUnit ?? ''));
   const [spanishEnabled, setSpanishEnabled] = useState(() => Boolean(initialSpanishEnabled));
   const [defaultLanguageInput, setDefaultLanguageInput] = useState(() =>
@@ -481,8 +482,61 @@ export function useBookingLinkEditController({
   );
 
   const shopRequiresSuggestion = Boolean(
-    shopAddressInput.trim() !== shopAddressBaseline && !selectedShopLocation,
+    shopAddressMode === 'search' &&
+    shopAddressInput.trim() !== shopAddressBaseline &&
+    !selectedShopLocation,
   );
+
+  const onShopAddressModeChange = useCallback(
+    (mode) => {
+      setShopAddressMode(mode === 'manual' ? 'manual' : 'search');
+      setShopAddressError('');
+      if (mode === 'manual') {
+        if (!shopStreetInput.trim() && shopAddressInput.trim()) {
+          setShopStreetInput(shopAddressInput.trim());
+        }
+        return;
+      }
+      const location = buildSavedShopLocation({
+        street: shopStreetInput,
+        city: shopCityInput,
+        state: shopStateInput,
+        zip: shopZipInput,
+      });
+      setSelectedShopLocation(location);
+      if (location) setShopAddressInput(location.label);
+    },
+    [shopAddressInput, shopCityInput, shopStateInput, shopStreetInput, shopZipInput],
+  );
+
+  const onShopStreetInputChange = useCallback((next) => {
+    setShopStreetInput(next);
+    setShopAddressError('');
+  }, []);
+
+  const onShopCityInputChange = useCallback((next) => {
+    setShopCityInput(next);
+    setShopAddressError('');
+  }, []);
+
+  const onShopStateInputChange = useCallback((next) => {
+    setShopStateInput(
+      String(next ?? '')
+        .replace(/[^a-z]/gi, '')
+        .slice(0, 2)
+        .toUpperCase(),
+    );
+    setShopAddressError('');
+  }, []);
+
+  const onShopZipInputChange = useCallback((next) => {
+    setShopZipInput(
+      String(next ?? '')
+        .replace(/\D/g, '')
+        .slice(0, 5),
+    );
+    setShopAddressError('');
+  }, []);
 
   const onShopAddressFocus = useCallback(() => {
     setSelectedShopLocation(null);
@@ -927,8 +981,17 @@ export function useBookingLinkEditController({
     onRadiusChange,
     serviceTypeInput,
     setServiceTypeInput,
-    shopStreetInput,
     shopAddressInput,
+    shopAddressMode,
+    onShopAddressModeChange,
+    shopStreetInput,
+    shopCityInput,
+    shopStateInput,
+    shopZipInput,
+    onShopStreetInputChange,
+    onShopCityInputChange,
+    onShopStateInputChange,
+    onShopZipInputChange,
     selectedShopLocation,
     shopAddressError,
     onShopAddressFocus,
